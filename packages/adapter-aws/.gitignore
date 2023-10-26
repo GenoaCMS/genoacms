@@ -1,0 +1,4 @@
+node_modules
+.idea
+.env
+genoa.config.js

@@ -1,0 +1,32 @@
+{
+  "name": "@genoacms/adapter-aws",
+  "version": "0.1.0",
+  "description": "Adapter for abstraction layer for GenoaCMS",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": "https://github.com/GenoaCMS/adapter-aws",
+  "license": "ISC",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.436.0",
+    "@aws-sdk/client-s3": "^3.436.0",
+    "dotenv": "^16.3.1"
+  },
+  "exports": {
+    "./auth": {
+      "import": "./services/auth/index.js"
+    },
+    "./database": {
+      "import": "./services/database/index.js"
+    },
+    "./storage": {
+      "import": "./services/storage/index.js"
+    }
+  }
+}
