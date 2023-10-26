@@ -12,9 +12,6 @@
   },
   "license": "ISC",
   "main": "index.js",
-  "scripts": {
-    "test": "node index.js"
-  },
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.436.0",
