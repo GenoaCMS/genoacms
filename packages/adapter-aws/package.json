@@ -6,7 +6,10 @@
     "name": "Filip Holčík",
     "email": "filip.holcik.official@gmail.com"
   },
-  "repository": "https://github.com/GenoaCMS/adapter-aws",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GenoaCMS/adapter-aws.git"
+  },
   "license": "ISC",
   "main": "index.js",
   "scripts": {
