@@ -1,7 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
-  ListObjectsCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3'
@@ -73,11 +73,11 @@ const deleteObject = async (name) => {
   }
 }
 
-const listDirectory = async ({ limit, startOn }) => {
-  const command = new ListObjectsCommand({
+const listDirectory = async ({ limit, prefix }) => {
+  const command = new ListObjectsV2Command({
     Bucket: config.storage.bucket,
     MaxKeys: limit,
-    prefix: startOn
+    Prefix: prefix
   })
 
   try {
@@ -110,7 +110,7 @@ const createDirectory = async (name) => {
 //     const object = await isObjectExisting('testijoasjdiaj')
 //     console.log(object)
 // })()
-// uploadObject('testDir/', undefined)
+// console.log(await listDirectory({ prefix: 'testDir/' }))
 // listDirectory({ limit: 1})
 
 export {
