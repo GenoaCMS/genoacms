@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cloudabstraction",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -15,8 +15,18 @@
     "url": "https://github.com/GenoaCMS/cloudAbstraction/issues"
   },
   "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
-  "types": "./index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./types": "./dist/index.d.ts"
+  },
   "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
   "devDependencies": {
     "@types/node": "^20.8.9",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
