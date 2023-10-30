@@ -15,7 +15,7 @@
     "url": "https://github.com/GenoaCMS/cloudAbstraction/issues"
   },
   "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
-  "types": "./index.d.ts",
+  "types": "./index.ts",
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.8.9",
