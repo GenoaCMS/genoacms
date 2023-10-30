@@ -16,6 +16,7 @@
     "url": "https://github.com/GenoaCMS/adapter-gcp/issues"
   },
   "homepage": "https://github.com/GenoaCMS/adapter-gcp#readme",
+  "type": "module",
   "dependencies": {
     "@genoacms/cloudabstraction": "github:genoacms/cloudabstraction#master",
     "@google-cloud/firestore": "^7.1.0",
