@@ -17,6 +17,9 @@
   },
   "homepage": "https://github.com/GenoaCMS/adapter-gcp#readme",
   "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@genoacms/cloudabstraction": "github:genoacms/cloudabstraction#master",
     "@google-cloud/firestore": "^7.1.0",
@@ -30,5 +33,20 @@
     "eslint-plugin-n": "^16.2.0",
     "eslint-plugin-promise": "^6.1.1",
     "typescript": "^5.2.2"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "exports": {
+    "./auth": {
+      "import": "./dist/auth/index.js"
+    },
+    "./database": {
+      "import": "./dist/database/index.js"
+    },
+    "./storage": {
+      "import": "./dist/storage/index.js"
+    }
   }
 }
