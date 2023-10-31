@@ -19,6 +19,11 @@ jobs:
         with:
           node-version: 16
           registry-url: https://npm.pkg.github.com/
+          persist-credentials: false
+      - name: Reconfigure git to use HTTP authentication
+        run: >
+          git config --global url."https://github.com/".insteadOf
+          ssh://git@github.com/
       - run: npm ci
       - run: npm run build
       - run: npm publish
