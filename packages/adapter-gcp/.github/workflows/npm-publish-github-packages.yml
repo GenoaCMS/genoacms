@@ -23,7 +23,7 @@ jobs:
           registry-url: https://npm.pkg.github.com/
           always-auth: true
           scope: '@genoacms'
-      - run: git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf ssh://git@github.com/
+      - run: git config --global url."https://github-actions:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf ssh://git@github.com/
       - run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
