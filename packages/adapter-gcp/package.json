@@ -21,7 +21,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "github:genoacms/cloudabstraction#master",
+    "@genoacms/cloudabstraction": "^0.1.7",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/storage": "^7.4.0"
   },
