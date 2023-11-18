@@ -5,7 +5,7 @@ name: Node.js Package
 
 on:
   release:
-    types: [created]
+    types: [ created ]
 
 jobs:
   publish-npm:
@@ -20,6 +20,8 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: pnpm i
       - run: pnpm run build
-      - run: pnpm publish --access public --no-git-checks
+      - name: Set publishing config
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      - run: pnpm publish --access public --no-git-checks
