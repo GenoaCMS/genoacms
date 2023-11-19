@@ -1,9 +1,8 @@
 import type {
-  listDirectory as listDirectoryT,
-  StorageObject
-} from '@genoacms/cloudabstraction/src/services/storage'
+  storage as storageT
+} from '@genoacms/cloudabstraction'
 import { Storage } from '@google-cloud/storage'
-import config from '@genoacms/cloudabstraction/src/config'
+import { config } from '@genoacms/cloudabstraction'
 
 const storage = new Storage({
   // @ts-expect-error: TODO: type this adapter
@@ -12,7 +11,7 @@ const storage = new Storage({
 // @ts-expect-error: TODO: type this adapter
 const bucket = storage.bucket(config.adapter.gcp.storage.bucket)
 
-const listDirectory: listDirectoryT = async ({ limit, prefix }) => {
+const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
   const [files] = await bucket.getFiles({
     prefix,
     maxResults: limit
@@ -23,7 +22,7 @@ const listDirectory: listDirectoryT = async ({ limit, prefix }) => {
       size: file.metadata.size,
       // @ts-expect-error: Handle this
       lastModified: new Date(file.metadata.updated)
-    } as StorageObject
+    } as storageT.StorageObject
   })
 }
 
