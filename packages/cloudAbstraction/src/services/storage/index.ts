@@ -4,7 +4,7 @@ interface StorageObject {
   lastModified: Date
 }
 interface ObjectData {
-  data: ReadableStream
+  data: NodeJS.ReadableStream
 }
 
 interface DirectoryListingParams {
@@ -14,7 +14,7 @@ interface DirectoryListingParams {
 }
 
 type getObject = (name: string) => Promise<ObjectData>
-type uploadObject = (name: string, stream: ReadableStream) => Promise<void>
+type uploadObject = (name: string, stream: NodeJS.ReadableStream) => Promise<void>
 type deleteObject = (name: string) => Promise<void>
 type listDirectory = (params: DirectoryListingParams) => Promise<StorageObject[]>
 type createDirectory = (name: string) => Promise<void>
