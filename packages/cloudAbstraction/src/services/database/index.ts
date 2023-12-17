@@ -8,7 +8,7 @@ interface DocumentReference<C extends CollectionReference> {
   collection: C
   id: string
 }
-type Document<C extends CollectionReference> = Record<keyof C, C[key]>
+type Document<C extends CollectionReference> = Record<keyof C, C[keyof C]>
 type Collection<C extends CollectionReference> = Array<Document<C>>
 
 type createDocument = <C extends CollectionReference>(reference: C, document: Document<C>) => Promise<DocumentReference<C>>
