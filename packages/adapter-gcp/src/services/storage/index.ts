@@ -1,18 +1,19 @@
 import type {
   storage as storageT
 } from '@genoacms/cloudabstraction'
-import { Storage } from '@google-cloud/storage'
-import { config } from '@genoacms/cloudabstraction'
+import { type Bucket, Storage } from '@google-cloud/storage'
+import config from '../../config.ts'
 
 const storage = new Storage({
-  // @ts-expect-error: TODO: type this adapter
   credentials: config.adapter.gcp.credentials
 })
-// @ts-expect-error: TODO: type this adapter
-const bucket = storage.bucket(config.adapter.gcp.storage.bucket)
+const buckets: Bucket[] = []
+for (const bucket of config.storage.buckets) {
+  storage.bucket(bucket)
+}
 
 const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
-  const [files] = await bucket.getFiles({
+  const [files] = await buckets[0].getFiles({
     prefix,
     maxResults: limit
   })
