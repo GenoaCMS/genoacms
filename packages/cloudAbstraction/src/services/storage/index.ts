@@ -1,3 +1,7 @@
+interface ObjectReference {
+  bucket: string
+  name: string
+}
 interface StorageObject {
   name: string
   size: number
@@ -6,18 +10,16 @@ interface StorageObject {
 interface ObjectData {
   data: NodeJS.ReadableStream
 }
-
 interface DirectoryListingParams {
-  prefix?: string
   startAfter?: string
   limit?: number
 }
 
-type getObject = (name: string) => Promise<ObjectData>
-type uploadObject = (name: string, stream: NodeJS.ReadableStream) => Promise<void>
-type deleteObject = (name: string) => Promise<void>
-type listDirectory = (params: DirectoryListingParams) => Promise<StorageObject[]>
-type createDirectory = (name: string) => Promise<void>
+type getObject = (reference: ObjectReference) => Promise<ObjectData>
+type uploadObject = (reference: ObjectReference, stream: NodeJS.ReadableStream) => Promise<void>
+type deleteObject = (reference: ObjectReference) => Promise<void>
+type listDirectory = (reference: ObjectReference, params?: DirectoryListingParams) => Promise<StorageObject[]>
+type createDirectory = (reference: ObjectReference) => Promise<void>
 
 export type {
   StorageObject,
