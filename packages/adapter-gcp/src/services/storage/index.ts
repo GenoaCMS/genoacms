@@ -8,26 +8,38 @@ const storage = new Storage({
   credentials: config.storage.credentials
 })
 
-const buckets: Bucket[] = []
-for (const bucket of config.storage.buckets) {
-  buckets.push(storage.bucket(bucket))
+const getBucket = (name: string): Bucket => {
+  if (!config.storage.buckets.includes(name)) throw new Error('bucket-unregistered')
+  const bucket = storage.bucket(name)
+  return bucket
 }
 
-const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
-  const [files] = await buckets[0].getFiles({
-    prefix,
-    maxResults: limit
+const getObject: storageT.getObject = async ({ bucket, name }) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(name)
+
+  return {
+    data: file.createReadStream()
+  }
+}
+
+const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingParams) => {
+  const bucketInstance = getBucket(bucket)
+  const [files] = await bucketInstance.getFiles({
+    prefix: name,
+    maxResults: listingParams?.limit,
+    startOffset: listingParams?.startAfter
   })
   return files.map((file) => {
     return {
       name: file.name,
-      size: file.metadata.size,
-      // @ts-expect-error: Handle this
-      lastModified: new Date(file.metadata.updated)
-    } as storageT.StorageObject
+      size: file.metadata.size as number,
+      lastModified: new Date(file.metadata.updated as string)
+    } satisfies storageT.StorageObject
   })
 }
 
 export {
+  getObject,
   listDirectory
 }

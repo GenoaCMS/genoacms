@@ -23,7 +23,7 @@
     "prepublish": "npm run build && npm run test"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.2.2",
+    "@genoacms/cloudabstraction": "^0.2.3",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/storage": "^7.4.0"
   },
