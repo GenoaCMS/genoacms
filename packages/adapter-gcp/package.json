@@ -18,10 +18,12 @@
   "homepage": "https://github.com/GenoaCMS/adapter-gcp#readme",
   "type": "module",
   "scripts": {
-    "build": "rimraf dist && tsc"
+    "build": "rimraf dist && tsc",
+    "test": "vitest --run test/all.test.js",
+    "prepublish": "npm run build && npm run test"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.2.1",
+    "@genoacms/cloudabstraction": "^0.2.2",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/storage": "^7.4.0"
   },
