@@ -2,14 +2,15 @@ import type {
   storage as storageT
 } from '@genoacms/cloudabstraction'
 import { type Bucket, Storage } from '@google-cloud/storage'
-import config from '../../config.ts'
+import config from '../../config.js'
 
 const storage = new Storage({
-  credentials: config.adapter.gcp.credentials
+  credentials: config.storage.credentials
 })
+
 const buckets: Bucket[] = []
 for (const bucket of config.storage.buckets) {
-  storage.bucket(bucket)
+  buckets.push(storage.bucket(bucket))
 }
 
 const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
@@ -26,6 +27,12 @@ const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
     } as storageT.StorageObject
   })
 }
+
+// const dir = await listDirectory({
+//   limit: 10,
+// })
+//
+// console.log(dir)
 
 export {
   listDirectory

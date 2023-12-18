@@ -16,11 +16,13 @@ interface Credentials {
 
 interface DatabaseConfig {
   credentials: Credentials
+  databaseId: string
+  region: string
 }
 
 interface StorageConfig {
   credentials: Credentials
-  buckets: string
+  buckets: string[]
 }
 
 interface ConfigGCP extends Config<object, DatabaseConfig, StorageConfig> {}
