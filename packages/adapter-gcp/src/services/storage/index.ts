@@ -28,12 +28,6 @@ const listDirectory: storageT.listDirectory = async ({ limit, prefix }) => {
   })
 }
 
-// const dir = await listDirectory({
-//   limit: 10,
-// })
-//
-// console.log(dir)
-
 export {
   listDirectory
 }
