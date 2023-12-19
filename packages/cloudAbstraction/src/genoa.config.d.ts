@@ -5,14 +5,17 @@ import type * as storageAdapter from './services/storage'
 interface Config {
   auth: {
     adapter: authAdapter
+    [key: string]: any
   }
   database: {
     adapter: databaseAdapter
-    // TODO: type schemas
+    [key: string]: any
   }
   storage: {
     adapter: storageAdapter
+    [key: string]: any
   }
+  [key: string]: any
 }
 
 export default Config
