@@ -23,7 +23,19 @@ const getObject: storageT.getObject = async ({ bucket, name }) => {
   }
 }
 
-const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingParams) => {
+const uploadObject: storageT.uploadObject = async ({ bucket, name }, stream) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(name)
+  await file.save(stream)
+}
+
+const deleteObject: storageT.deleteObject = async ({ bucket, name }) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(name)
+  await file.delete()
+}
+
+const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingParams = {}) => {
   const bucketInstance = getBucket(bucket)
   const [files] = await bucketInstance.getFiles({
     prefix: name,
@@ -39,7 +51,16 @@ const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingPa
   })
 }
 
+const createDirectory: storageT.createDirectory = async ({ bucket, name }) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(`${name}/.folderPlaceholder`)
+  await file.save('')
+}
+
 export {
   getObject,
-  listDirectory
+  uploadObject,
+  deleteObject,
+  listDirectory,
+  createDirectory
 }
