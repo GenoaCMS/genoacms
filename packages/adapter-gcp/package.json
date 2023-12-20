@@ -19,11 +19,13 @@
   "type": "module",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test": "vitest --run test/all.test.js",
+    "test:all": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
+    "test:database": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
+    "test:storage": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js",
     "prepublish": "npm run build && npm run test"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.2.4",
+    "@genoacms/cloudabstraction": "^0.3.2",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/storage": "^7.4.0"
   },
