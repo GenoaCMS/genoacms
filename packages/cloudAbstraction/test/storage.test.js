@@ -3,8 +3,7 @@ import config from '../dist/config.js'
 import { Buffer } from 'buffer'
 
 const { getObject, uploadObject, deleteObject, listDirectory } = await config.storage.adapter
-
-const bucket = 'genoacms'
+const bucket = config.storage.testingBucket
 
 suite('complex test', async () => {
   const testingString = 'Storage adapter'
