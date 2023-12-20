@@ -1,8 +1,7 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
-  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GenoaCMS/adapter-gcp.git"
@@ -21,8 +20,7 @@
     "build": "rimraf dist && tsc",
     "test:all": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
     "test:database": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
-    "test:storage": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js",
-    "prepublish": "npm run build && npm run test"
+    "test:storage": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
   },
   "dependencies": {
     "@genoacms/cloudabstraction": "^0.3.2",
