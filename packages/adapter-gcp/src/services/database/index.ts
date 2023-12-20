@@ -8,7 +8,7 @@ const firestore = new Firestore({
   projectId: config.database.projectId
 })
 
-const createDocument: databaseT.createDocument = async (reference, data ) => {
+const createDocument: databaseT.createDocument = async (reference, data) => {
   const document = await firestore.collection(reference.name).add(data)
   return {
     collection: reference,
@@ -18,9 +18,9 @@ const createDocument: databaseT.createDocument = async (reference, data ) => {
 
 const getCollection: databaseT.getCollection = async ({ name, schema }) => {
   const collection = await firestore.collection(name).get()
-  const documents: databaseT.Document<typeof schema>[] = []
+  const documents: Array<databaseT.Document<typeof schema>> = []
   collection.forEach(document => {
-    let documentData: databaseT.Document<typeof schema> = {}
+    const documentData: databaseT.Document<typeof schema> = {}
     Object.keys(schema.properties).forEach(key => {
       documentData[key] = document.get(key)
     })
