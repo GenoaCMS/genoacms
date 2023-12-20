@@ -2,7 +2,7 @@ import { suite, expect, it } from 'vitest'
 import config from '../dist/config.js'
 import { Buffer } from 'buffer'
 
-const { getObject, uploadObject, deleteObject, listDirectory } = config.storage
+const { getObject, uploadObject, deleteObject, listDirectory } = await config.storage.adapter
 
 const bucket = 'genoacms'
 

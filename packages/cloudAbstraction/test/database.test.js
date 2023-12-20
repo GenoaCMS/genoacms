@@ -1,7 +1,7 @@
 import { suite, it, expect } from 'vitest'
 import config from '../dist/config.js'
 
-const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = config.database
+const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = await config.database.adapter
 
 const testCollection = {
   name: 'test',
