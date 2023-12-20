@@ -1,18 +1,18 @@
-import type * as authAdapter from './services/auth'
-import type * as databaseAdapter from './services/database'
-import type * as storageAdapter from './services/storage'
+import type * as AuthAdapter from './services/auth'
+import type * as DatabaseAdapter from './services/database'
+import type * as StorageAdapter from './services/storage'
 
 interface Config {
   auth: {
-    adapter: authAdapter
+    adapter: Promise<AuthAdapter>
     [key: string]: any
   }
   database: {
-    adapter: databaseAdapter
+    adapter: Promise<DatabaseAdapter>
     [key: string]: any
   }
   storage: {
-    adapter: storageAdapter
+    adapter: Promise<StorageAdapter>
     [key: string]: any
   }
   [key: string]: any
