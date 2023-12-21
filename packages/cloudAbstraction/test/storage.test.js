@@ -17,11 +17,15 @@ suite('complex test', async () => {
   })
   it('is looking for uploaded object', async () => {
     const dir = await listDirectory({ bucket, name: fileName })
-    expect(dir).toContainEqual({
+    /**
+     * @type {import('../dist/config.js').StorageObject}
+     */
+    const expectedObject = {
       name: fileName,
-      size: '15',
+      size: 15,
       lastModified: expect.any(Date)
-    })
+    }
+    expect(dir).toContainEqual(expectedObject)
   })
   it('is getting uploaded object', async () => {
     const { data } = await getObject({
