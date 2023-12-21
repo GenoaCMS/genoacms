@@ -1,8 +1,6 @@
-import path from 'node:path'
+import { config } from '@genoacms/cloudabstraction'
 
-const workDir = process.cwd()
-const configPath = path.join(workDir, 'genoa.config.js')
-
-const config = await import(configPath)
-
-export default config.default
+/**
+ * @satisfies {import('./genoa.config.d.ts')}
+ */
+export default config

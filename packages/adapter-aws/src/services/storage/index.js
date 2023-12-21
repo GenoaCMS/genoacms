@@ -1,3 +1,6 @@
+/**
+ * @typedef {import('@genoacms/cloudabstraction').storage} storageT
+ */
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -16,23 +19,41 @@ const client = new S3Client({
   }
 })
 
-const getObject = async (name) => {
+/**
+ * @param {string} bucket
+ * @returns {{Bucket: string}}
+ */
+const bucketToCommandInput = (bucket) => {
+  if (!config.storage.buckets.includes(bucket)) throw new Error('bucket-unregistered')
+  return {
+    Bucket: bucket
+  }
+}
+
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.getObject}
+ */
+const getObject = async ({ bucket, name }) => {
+  const commandInput = bucketToCommandInput(bucket)
   const command = new GetObjectCommand({
-    Bucket: config.storage.bucket,
+    ...commandInput,
     Key: name
   })
 
   try {
     const response = await client.send(command)
-    return response.Body.transformToWebStream()
+    return {
+      data: response.Body
+    }
   } catch (err) {
     console.error(err)
   }
 }
 
-const isObjectExisting = async (name) => {
+const isObjectExisting = async ({ bucket, name }) => {
+  const commandInput = bucketToCommandInput(bucket)
   const command = new GetObjectCommand({
-    Bucket: config.storage.bucket,
+    ...commandInput,
     Key: name
   })
 
@@ -44,52 +65,71 @@ const isObjectExisting = async (name) => {
   }
 }
 
-const uploadObject = async (name, content) => {
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.uploadObject}
+ */
+const uploadObject = async ({ bucket, name }, content) => {
+  const commandInput = bucketToCommandInput(bucket)
   const command = new PutObjectCommand({
-    Bucket: config.storage.bucket,
+    ...commandInput,
     Key: name,
     Body: content
   })
 
   try {
-    const response = await client.send(command)
-    console.log(response)
+    await client.send(command)
   } catch (err) {
-    console.error(err)
+    throw new Error('upload-failed')
   }
 }
 
-const deleteObject = async (name) => {
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.deleteObject}
+ */
+const deleteObject = async ({ bucket, name }) => {
+  const commandInput = bucketToCommandInput(bucket)
   const command = new DeleteObjectCommand({
-    Bucket: config.storage.bucket,
+    ...commandInput,
     Key: name
   })
 
   try {
-    const response = await client.send(command)
-    console.log(response)
+    await client.send(command)
   } catch (err) {
-    console.error(err)
+    throw new Error('delete-failed')
   }
 }
 
-const listDirectory = async ({ limit, prefix }) => {
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.listDirectory}
+ */
+const listDirectory = async ({ bucket, name }, listingParams) => {
+  const commandInput = bucketToCommandInput(bucket)
   const command = new ListObjectsV2Command({
-    Bucket: config.storage.bucket,
-    MaxKeys: limit,
-    Prefix: prefix
+    ...commandInput,
+    MaxKeys: listingParams?.limit,
+    StartAfter: listingParams?.startAfter,
+    Prefix: name
   })
 
   try {
     const response = await client.send(command)
-    console.log(response)
+    if (!response.Contents) return []
+    return response.Contents.map((item) => ({
+      name: item.Key,
+      size: parseInt(item.Size),
+      lastModified: item.LastModified
+    }))
   } catch (err) {
-    console.error(err)
+    throw new Error('listing-failed')
   }
 }
 
-const createDirectory = async (name) => {
-  if (await isObjectExisting(name)) {
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.createDirectory}
+ */
+const createDirectory = async ({ bucket, name }) => {
+  if (await isObjectExisting({ bucket, name })) {
     throw new Error('Directory already exists')
   }
   const command = new PutObjectCommand({
@@ -99,10 +139,9 @@ const createDirectory = async (name) => {
   })
 
   try {
-    const response = await client.send(command)
-    console.log(response)
+    await client.send(command)
   } catch (err) {
-    console.error(err)
+    throw new Error('directory-creation-failed')
   }
 }
 

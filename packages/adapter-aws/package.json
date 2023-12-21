@@ -13,10 +13,26 @@
   "license": "ISC",
   "main": "index.js",
   "type": "module",
+  "scripts": {
+    "test:all": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
+    "test:database": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
+    "test:storage": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
+  },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.436.0",
     "@aws-sdk/client-s3": "^3.436.0",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@genoacms/cloudabstraction": "^0.3.4",
+    "eslint": "^8.52.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-n": "^16.2.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "jsdoc": "^4.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
   },
   "exports": {
     "./auth": {
@@ -28,12 +44,5 @@
     "./storage": {
       "import": "./services/storage/index.js"
     }
-  },
-  "devDependencies": {
-    "eslint": "^8.52.0",
-    "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-n": "^16.2.0",
-    "eslint-plugin-promise": "^6.1.1"
   }
 }
