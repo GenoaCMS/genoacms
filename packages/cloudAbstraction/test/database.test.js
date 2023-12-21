@@ -7,22 +7,18 @@ const testCollection = config.collections[0]
 const testDocuments = config.testDocuments
 
 suite('complex test', async () => {
-  let id
   let documentData = testDocuments[0]
   /**
    * @type {import('@genoacms/cloudabstraction').database.DocumentReference}
    */
-  const documentReference = {
-    collection: testCollection,
-    id
-  }
+  let documentReference
 
   it('is creating a document', async () => {
     /**
      * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
      */
     const documentSnap = await createDocument(testCollection, documentData)
-    id = documentSnap[testCollection.primaryKey]
+    documentReference = documentSnap.reference
     /**
      * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
      */
@@ -69,10 +65,7 @@ suite('complex test', async () => {
     /**
      * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
      */
-    const documentSnap = await getDocument({
-      collection: testCollection,
-      id
-    })
+    const documentSnap = await getDocument(documentReference)
     /**
      * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
      */
