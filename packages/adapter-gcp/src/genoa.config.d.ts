@@ -27,4 +27,4 @@ interface StorageConfig {
 
 interface ConfigGCP extends Config<object, DatabaseConfig, StorageConfig> {}
 
-export default Config
+export default ConfigGCP

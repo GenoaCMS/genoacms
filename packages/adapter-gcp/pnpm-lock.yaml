@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@genoacms/cloudabstraction':
-    specifier: ^0.3.2
-    version: 0.3.2
+    specifier: ^0.3.8
+    version: 0.3.8
   '@google-cloud/firestore':
     specifier: ^7.1.0
     version: 7.1.0
@@ -286,8 +286,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
 
-  /@genoacms/cloudabstraction@0.3.2:
-    resolution: {integrity: sha512-TD3fnCUgICiMtsEbnS6tVkb35RYy74dPq29Yog9zgxDAK+z6Uux8Du/Sj+tBeeSFRpNBhF4z5ewsRnCv61PZEQ==}
+  /@genoacms/cloudabstraction@0.3.8:
+    resolution: {integrity: sha512-fj4RK0xRIwClDzjKVRcCZUI+kr6Nh2qPqsnsAPpLzsb+oCNdO4IL9xDQJ6N3AMS1yHBGkBbAcFjZvTj8CKksWw==}
     dev: false
 
   /@google-cloud/firestore@7.1.0:

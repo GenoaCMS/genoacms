@@ -45,7 +45,7 @@ const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingPa
   return files.map((file) => {
     return {
       name: file.name,
-      size: file.metadata.size as number,
+      size: file.metadata.size ? parseInt(file.metadata.size as string) : 0,
       lastModified: new Date(file.metadata.updated as string)
     } satisfies storageT.StorageObject
   })
