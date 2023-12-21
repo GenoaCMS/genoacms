@@ -22,18 +22,21 @@ interface QueryParams {
   }]
 }
 type Document<C extends CollectionReference> = Record<keyof C['schema'], C['schema'][keyof C['schema']]> // TODO: verify whether this is correct
-interface DocumentSnapshot<C extends CollectionReference, D extends DocumentReference<C>> {
-  reference: D
+interface DocumentSnapshot<C extends CollectionReference> {
+  reference: DocumentReference<C>
   data: Document<C>
 }
-type CollectionSnapshot<C extends CollectionReference, D extends DocumentReference<C>> = Array<DocumentSnapshot<C, D>>
+interface UpdateSnapshot<C extends CollectionReference> extends Omit<DocumentSnapshot<C>, 'data'> {
+  data: Partial<Document<C>>
+}
+type CollectionSnapshot<C extends CollectionReference> = Array<DocumentSnapshot<C>> // TODO: make class, method docs()
 
-type createDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C, D>>
+type createDocument = <C extends CollectionReference>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C>>
 
-type getCollection = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C, D>>
-type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C, D> | undefined>
+type getCollection = <C extends CollectionReference>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C>>
+type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C> | undefined>
 
-type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<DocumentSnapshot<C, D>>
+type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<UpdateSnapshot<C>>
 
 type deleteDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<void>
 
@@ -43,6 +46,7 @@ export type {
   QueryParams,
   Document,
   DocumentSnapshot,
+  UpdateSnapshot,
   CollectionSnapshot,
 
   createDocument,

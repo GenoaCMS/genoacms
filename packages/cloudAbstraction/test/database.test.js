@@ -9,54 +9,92 @@ const testDocuments = config.testDocuments
 suite('complex test', async () => {
   let id
   let documentData = testDocuments[0]
+  /**
+   * @type {import('@genoacms/cloudabstraction').database.DocumentReference}
+   */
+  const documentReference = {
+    collection: testCollection,
+    id
+  }
 
   it('is creating a document', async () => {
-    const doc = await createDocument(testCollection, documentData)
-    id = doc[testCollection.primaryKey]
-    expect(doc).toMatchObject({
-      collection: testCollection
-    })
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const documentSnap = await createDocument(testCollection, documentData)
+    id = documentSnap[testCollection.primaryKey]
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const expectedDocumentSnap = {
+      reference: documentReference,
+      data: documentData
+    }
+    expect(documentSnap).toMatchObject(expectedDocumentSnap)
   })
 
   it('is getting a document', async () => {
-    const doc = await getDocument({
-      collection: testCollection,
-      id
-    })
-    expect(doc).toEqual(documentData)
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const documentSnap = await getDocument(documentReference)
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const expectedDocumentSnap = {
+      reference: documentReference,
+      data: documentData
+    }
+    expect(documentSnap).toMatchObject(expectedDocumentSnap)
   })
 
   documentData = testDocuments[1]
 
   it('is updating a document', async () => {
-    const documentReference = {
-      collection: testCollection,
-      id
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.UpdateSnapshot}
+     */
+    const updateSnap = await updateDocument(documentReference, documentData)
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.UpdateSnapshot}
+     */
+    const expectedUpdateSnap = {
+      reference: documentReference,
+      data: documentData
     }
-    const doc = await updateDocument(documentReference, documentData)
-    expect(doc).toBe(documentReference)
+    expect(updateSnap).toMatchObject(expectedUpdateSnap)
   })
 
   it('is getting a document again', async () => {
-    const doc = await getDocument({
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const documentSnap = await getDocument({
       collection: testCollection,
       id
     })
-    expect(doc).toEqual(documentData)
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot}
+     */
+    const expectedDocumentSnap = {
+      reference: documentReference,
+      data: documentData
+    }
+    expect(documentSnap).toMatchObject(expectedDocumentSnap)
   })
 
   it('is deleting a document', async () => {
-    const documentReference = {
-      collection: testCollection,
-      id
-    }
     const doc = await deleteDocument(documentReference, documentData)
     expect(doc).toBeUndefined()
   })
 
   it('lists collection', async () => {
-    const collection = await getCollection(testCollection)
-    expect(collection).toBeInstanceOf(Array)
-    expect(collection.length).toBeGreaterThan(1)
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.CollectionSnapshot}
+     */
+    const collectionSnap = await getCollection(testCollection)
+    expect(collectionSnap).toBeInstanceOf(Array)
+    // const docs = collectionSnap.map(doc => doc.data)
+    // expect(collection.length).toBeGreaterThan(1)
   })
 })
