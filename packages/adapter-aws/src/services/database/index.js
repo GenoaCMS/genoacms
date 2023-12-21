@@ -100,14 +100,21 @@ const createDocument = async ({ name, primaryKey, schema }, document) => {
   })
   try {
     await client.send(command)
-    return {
-      id: documentToCreate[primaryKey],
-      collection: {
-        name,
-        primaryKey,
-        schema
-      }
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot<typeof collection>}
+     */
+    const snapshot = {
+      reference: {
+        collection: {
+          name,
+          primaryKey,
+          schema
+        },
+        id: documentToCreate[primaryKey]
+      },
+      data: document
     }
+    return snapshot
   } catch (err) {
     throw new Error('document-creation-failed')
   }
@@ -146,7 +153,17 @@ const getDocument = async ({ collection, id }) => {
     const response = await client.send(command)
     const object = dynamoItemToObject(response.Item)
     delete object[collection.primaryKey]
-    return object
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot<typeof collection>}
+     */
+    const snapshot = {
+      reference: {
+        collection,
+        id
+      },
+      data: object
+    }
+    return snapshot
   } catch (err) {
     throw new Error('document-fetching-failed')
   }
@@ -167,11 +184,17 @@ const updateDocument = async (reference, document) => {
   })
   try {
     await client.send(command)
-    return reference
+    /**
+     * @type {import('@genoacms/cloudabstraction').database.UpdateSnapshot<typeof reference.collection>}
+     */
+    const snapshot = {
+      reference,
+      data: document
+    }
+    return snapshot
   } catch (err) {
     throw new Error('document-updating-failed')
   }
-
 }
 
 /**

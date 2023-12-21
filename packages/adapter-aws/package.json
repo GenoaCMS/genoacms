@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-aws",
-  "version": "0.1.0",
+  "version": "0.3.8",
   "description": "Adapter for abstraction layer for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -25,7 +25,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@genoacms/cloudabstraction": "^0.3.5",
+    "@genoacms/cloudabstraction": "^0.3.8",
     "eslint": "^8.52.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.0",
