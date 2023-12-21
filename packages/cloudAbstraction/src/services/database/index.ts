@@ -31,9 +31,9 @@ type CollectionSnapshot<C extends CollectionReference, D extends DocumentReferen
 type createDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C, D>>
 
 type getCollection = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C, D>>
-type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C,D> | undefined>
+type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C, D> | undefined>
 
-type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<DocumentSnapshot<C,D>>
+type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<DocumentSnapshot<C, D>>
 
 type deleteDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<void>
 

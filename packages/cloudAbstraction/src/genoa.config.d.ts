@@ -15,6 +15,8 @@ interface Config<AuthExtension extends object, DatabaseExtension extends object,
     testingBucket?: string
     [key: string]: any
   } & StorageExtension
+  collections: DatabaseAdapter.CollectionReference[]
+  testDocuments?: [DatabaseAdapter.Document, DatabaseAdapter.Document]
   [key: string]: any
 }
 
