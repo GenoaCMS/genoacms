@@ -21,24 +21,30 @@ interface QueryParams {
     value: string
   }]
 }
-type Document<C extends CollectionReference> = Record<keyof C, C[keyof C]>
-type Collection<C extends CollectionReference> = Array<Document<C>>
+type Document<C extends CollectionReference> = Record<keyof C['schema'], C['schema'][keyof C['schema']]> // TODO: verify whether this is correct
+interface DocumentSnapshot<C extends CollectionReference, D extends DocumentReference<C>> {
+  reference: D
+  data: Document<C>
+}
+type CollectionSnapshot<C extends CollectionReference, D extends DocumentReference<C>> = Array<DocumentSnapshot<C, D>>
 
-type createDocument = <C extends CollectionReference>(reference: C, document: Document<C>) => Promise<DocumentReference<C>>
+type createDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C, D>>
 
-type getCollection = <C extends CollectionReference>(reference: C, queryParams?: QueryParams) => Promise<Collection<C>>
-type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<Document<C> | undefined>
+type getCollection = <C extends CollectionReference, D extends DocumentReference<C>>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C, D>>
+type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C,D> | undefined>
 
-type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<DocumentReference<C>>
+type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<DocumentSnapshot<C,D>>
 
 type deleteDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<void>
 
 export type {
   CollectionReference,
   DocumentReference,
-  Collection,
   QueryParams,
   Document,
+  DocumentSnapshot,
+  CollectionSnapshot,
+
   createDocument,
   getCollection,
   getDocument,
