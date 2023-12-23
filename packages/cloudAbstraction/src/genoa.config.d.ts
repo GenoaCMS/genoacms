@@ -12,7 +12,7 @@ interface Config<AuthExtension extends object, DatabaseExtension extends object,
   } & DatabaseExtension
   storage: {
     adapter: Promise<StorageAdapter>
-    testingBucket?: string
+    testBucket?: string
     [key: string]: any
   } & StorageExtension
   collections: DatabaseAdapter.CollectionReference[]
