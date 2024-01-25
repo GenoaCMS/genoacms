@@ -8,7 +8,8 @@ export default {
       info: '#28AFB0',
       warning: '#EE964B',
       yellow: '#F4D35E',
-      light: '#F8F9FA'
+      light: '#F8F9FA',
+      white: '#FFFFFF'
     },
     extend: {}
   },
