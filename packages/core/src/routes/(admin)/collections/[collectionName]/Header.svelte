@@ -4,9 +4,9 @@
   const properties = extractProperties(schema.properties)
 </script>
 
-<div class="border-bottom border-dark text-center flex">
+<div class="bg-light text-center flex border-b border-s border-dark">
     {#each properties as property}
-        <div class="m-auto">
+        <div class="flex-grow w-full text-center">
             {property.name}
         </div>
     {/each}

@@ -1,18 +1,19 @@
 <script lang="ts">
   import { extractProperties } from './utils'
-  import type { CollectionReference } from '@genoacms/cloudabstraction/dist/services/database/index.d.ts'
-  import Input from '$lib/components/Input.svelte'
+  import type { DocumentReference } from '@genoacms/cloudabstraction/dist/services/database/index.d.ts'
 
-  export let reference: CollectionReference
+  export let reference: DocumentReference
   export let data
   const schema = reference.collection.schema
   const properties = extractProperties(schema.properties)
 </script>
 
-<div class="flex">
-  {#each properties as property}
-    <div class="m-auto">
-      <Input bind:value={data[property.name]} placeholder={property.name}/>
-    </div>
-  {/each}
-</div>
+<a href="{reference.collection.name}/{reference.id}">
+  <div class="flex">
+    {#each properties as property}
+      <div class="flex-grow w-full text-center py-2 border-b-2 border-light">
+        {data[property.name]}
+      </div>
+    {/each}
+  </div>
+</a>
