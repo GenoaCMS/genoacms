@@ -1,10 +1,28 @@
 import { config } from '@genoacms/cloudabstraction'
 
 console.log(config.database)
-const adapter = await config.database.adapter
-// const collection = config.collections[0]
-// console.log(
-//     collection,
-//     await adapter.getCollection(collection)
-// )
-export default adapter
+const {
+  createDocument,
+  getCollection,
+  getDocument,
+  updateDocument,
+  deleteDocument
+} = await config.database.adapter
+const getCollectionReferences = () => {
+  return config.collections
+}
+const getCollectionReference = (name: string) => {
+  const filtered = config.collections.filter(obj => obj.name === name)
+  if (filtered.length === 0) throw new Error('collection/not-found')
+  return filtered[0]
+}
+
+export {
+  getCollectionReferences,
+  getCollectionReference,
+  createDocument,
+  getCollection,
+  getDocument,
+  updateDocument,
+  deleteDocument
+}

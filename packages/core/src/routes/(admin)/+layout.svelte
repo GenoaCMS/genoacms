@@ -2,23 +2,23 @@
     const pages = [
       {
         name: 'Dashboard',
-        route: 'dashboard'
+        route: '/dashboard'
       },
       {
         name: 'Components',
-        route: 'components'
+        route: '/components'
       },
       {
         name: 'Collections',
-        route: 'collections'
+        route: '/collections'
       },
       {
         name: 'Storage',
-        route: 'storage'
+        route: '/storage'
       },
       {
         name: 'Configuration',
-        route: 'configuration'
+        route: '/configuration'
       }
     ]
 </script>

@@ -1,2 +1,8 @@
-import database from '$lib/script/database'
-console.log(database)
+import { getCollectionReferences } from '$lib/script/database'
+
+export const load = async () => {
+  const collectionReferences = await getCollectionReferences()
+  return {
+    collectionReferences
+  }
+}
