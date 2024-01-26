@@ -1,6 +1,5 @@
 import { config } from '@genoacms/cloudabstraction'
 
-console.log(config.database)
 const {
   createDocument,
   getCollection,

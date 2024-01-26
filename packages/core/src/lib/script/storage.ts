@@ -1,5 +1,22 @@
 import { config } from '@genoacms/cloudabstraction'
 
-console.log(config.storage)
-const adapter = await config.storage.adapter
-export default adapter
+const {
+  createDirectory,
+  deleteObject,
+  getObject,
+  listDirectory,
+  uploadObject
+} = await config.storage.adapter
+
+const getBucketReferences = () => {
+  return config.storage.buckets
+}
+
+export {
+  getBucketReferences,
+  createDirectory,
+  deleteObject,
+  getObject,
+  listDirectory,
+  uploadObject
+}
