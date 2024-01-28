@@ -6,6 +6,9 @@
     <div class="flex-grow">
         <slot/>
     </div>
+    <div>
+        <slot name="right"/>
+    </div>
     <div class="aspect-square flex">
         <a href=".">
             <img src={ArrowLeftShort} alt="" class="w-full text-warning filter-[primary] min-h-[2.5rem]">

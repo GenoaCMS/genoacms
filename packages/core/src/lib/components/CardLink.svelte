@@ -4,7 +4,7 @@
     export let href: string
 </script>
 
-<a {href}>
+<a {href} on:contextmenu|preventDefault|stopPropagation>
     <div class="border border-dark aspect-square flex flex-col">
         <div class="flex-grow flex justify-center items-center">
 <!--            <i class="bi bi-{icon}"></i>-->

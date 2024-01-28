@@ -27,7 +27,7 @@
   }
 </script>
 
-<Button on:click={toggleDirectoryCreationModal}>
+<Button class="text-dark" on:click={toggleDirectoryCreationModal}>
     Create directory
 </Button>
 
