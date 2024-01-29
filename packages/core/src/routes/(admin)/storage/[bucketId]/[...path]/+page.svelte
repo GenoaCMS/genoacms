@@ -2,6 +2,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import File from './File.svelte'
   import DirectoryCreation from './DirectoryCreation.svelte'
+  import ObjectUpload from './ObjectUpload.svelte'
 
   export let data
   console.log(data)
@@ -13,6 +14,7 @@
     </h1>
     <svelte:fragment slot="right">
         <DirectoryCreation/>
+        <ObjectUpload/>
     </svelte:fragment>
 </TopPanel>
 
