@@ -61,8 +61,7 @@ export const actions = {
       path
     } = params
     const data = await request.formData()
-    const files = data.getAll('files[]')
-    console.log(files)
+    const files = data.getAll('files[]') as Array<File>
     if (files.length === 0) return
     let uploads: Array<Promise<void>> = []
     for (const file of files) {
@@ -72,7 +71,7 @@ export const actions = {
       }
       uploads = [
         ...uploads,
-        uploadObject(reference, file) // TODO: cast file to supported type
+        uploadObject(reference, file.stream())
       ]
     }
     await Promise.all(uploads)

@@ -3,13 +3,23 @@
   import Button from '$lib/components/Button.svelte'
   import Modal from '$lib/components/Modal.svelte'
   import Input from '$lib/components/Input.svelte'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
 
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
   const enhanceUpload = () => {
-
+    const alert = alertPending('Uploading')
+    return async ({ result }) => {
+      alert.close()
+      if (result.type !== 'success') {
+        toastError('Upload failed')
+        return
+      }
+      isModalOpen = false
+      toastSuccess('Upload successful')
+    }
   }
 </script>
 

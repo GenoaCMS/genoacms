@@ -14,6 +14,30 @@ const Toast = alert.mixin({
   }
 })
 
+const alertPending = (message?: string) => {
+  return alert.fire({
+    icon: 'info',
+    title: message || 'Pending',
+    showConfirmButton: false
+  })
+}
+const toastSuccess = (message: string) => {
+  Toast.fire({
+    icon: 'success',
+    title: message
+  })
+}
+
+const toastError = (message: string) => {
+  Toast.fire({
+    icon: 'error',
+    title: message
+  })
+}
+
 export {
-  Toast
+  Toast,
+  alertPending,
+  toastSuccess,
+  toastError
 }
