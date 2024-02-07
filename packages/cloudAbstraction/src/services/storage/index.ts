@@ -5,7 +5,6 @@ interface ObjectReference {
 
 interface StorageObject {
   name: string
-  path: string // fully qualified path name
   size: number
   lastModified: Date
 }
@@ -33,7 +32,12 @@ type listDirectory = (reference: ObjectReference, params?: DirectoryListingParam
 type createDirectory = (reference: ObjectReference) => Promise<void>
 
 export type {
+  ObjectReference,
   StorageObject,
+  objectPayload,
+  ObjectData,
+  DirectoryListingParams,
+  DirectoryContents,
   getObject,
   uploadObject,
   deleteObject,
