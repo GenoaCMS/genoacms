@@ -6,14 +6,14 @@ settings:
 
 dependencies:
   '@genoacms/cloudabstraction':
-    specifier: ^0.3.8
-    version: 0.3.8
+    specifier: ^0.3.9
+    version: 0.3.9
   '@google-cloud/firestore':
     specifier: ^7.1.0
     version: 7.1.0
   '@google-cloud/storage':
-    specifier: ^7.4.0
-    version: 7.6.0
+    specifier: ^7.7.0
+    version: 7.7.0
 
 devDependencies:
   '@typescript-eslint/eslint-plugin':
@@ -286,8 +286,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
 
-  /@genoacms/cloudabstraction@0.3.8:
-    resolution: {integrity: sha512-fj4RK0xRIwClDzjKVRcCZUI+kr6Nh2qPqsnsAPpLzsb+oCNdO4IL9xDQJ6N3AMS1yHBGkBbAcFjZvTj8CKksWw==}
+  /@genoacms/cloudabstraction@0.3.9:
+    resolution: {integrity: sha512-WeyC4k9noEna0kc+2ekOzaDnn/NY5N/Tbktv+0KR9SftMwfPAB5AFCOaqBOSS2v7kJYgXoY6SCd5czAWEtD16A==}
     dev: false
 
   /@google-cloud/firestore@7.1.0:
@@ -321,8 +321,8 @@ packages:
     engines: {node: '>=14'}
     dev: false
 
-  /@google-cloud/storage@7.6.0:
-    resolution: {integrity: sha512-/pQl5pXePhVRvgaR+huKIlSrjEjmxv5pdMieW09Sbo7pa1I9ofQ54y7QN/z9xZ1Yj2j9znfMPAmae1F+Tt4q4g==}
+  /@google-cloud/storage@7.7.0:
+    resolution: {integrity: sha512-EMCEY+6JiIkx7Dt8NXVGGjy1vRdSGdHkoqZoqjJw7cEBkT7ZkX0c7puedfn1MamnzW5SX4xoa2jVq5u7OWBmkQ==}
     engines: {node: '>=14'}
     dependencies:
       '@google-cloud/paginator': 5.0.0
