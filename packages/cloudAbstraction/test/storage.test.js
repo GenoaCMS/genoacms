@@ -25,7 +25,7 @@ suite('complex test', async () => {
       size: 15,
       lastModified: expect.any(Date)
     }
-    expect(dir).toContainEqual(expectedObject)
+    expect(dir.files).toContainEqual(expectedObject)
   })
   it('is getting uploaded object', async () => {
     const { data } = await getObject({
@@ -50,6 +50,6 @@ suite('complex test', async () => {
   })
   it('should be deleted', async () => {
     const dir = await listDirectory({ bucket, name: fileName })
-    expect(dir).toEqual([])
+    expect(dir.files).toEqual([])
   })
 })
