@@ -5,6 +5,7 @@ interface ObjectReference {
 
 interface StorageObject {
   name: string
+  path: string // fully qualified path name
   size: number
   lastModified: Date
 }
