@@ -34,7 +34,7 @@ const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   const expires = new Date()
-  expires.setTime(expires.getTime() + 60 * 60)
+  expires.setTime(expires.getTime() + 60 * 60 * 1_000)
   const [url] = await file.getSignedUrl({
     action: 'read',
     expires
