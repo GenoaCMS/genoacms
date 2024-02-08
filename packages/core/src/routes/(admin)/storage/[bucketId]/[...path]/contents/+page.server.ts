@@ -11,6 +11,12 @@ const removeRoutingSlashes = (path: string) => {
   return path.replaceAll('//', '/')
 }
 
+const resolveParentPath = (bucketId: string, path: string) => {
+  const storagePath = join(path, '..')
+  if (!path) return '/storage'
+  return join('/storage', bucketId, storagePath, 'contents')
+}
+
 export const load = async ({ params }) => {
   let {
     bucketId,
@@ -26,6 +32,7 @@ export const load = async ({ params }) => {
   return {
     bucketId,
     path,
+    parentPath: resolveParentPath(bucketId, path),
     contents: await processDirectoryContents(bucketId, contents)
   }
 }

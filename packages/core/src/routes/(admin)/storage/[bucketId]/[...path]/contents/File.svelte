@@ -4,6 +4,7 @@
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { invalidateAll } from '$app/navigation'
 
   export let name: string
   export let signedURL: string
@@ -20,6 +21,7 @@
         return
       }
       toastSuccess('File deleted')
+      invalidateAll()
     }
   }
 </script>

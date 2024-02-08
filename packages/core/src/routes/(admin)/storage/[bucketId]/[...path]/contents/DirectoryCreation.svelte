@@ -3,15 +3,18 @@
   import Modal from '$lib/components/Modal.svelte'
   import Button from '$lib/components/Button.svelte'
   import Input from '$lib/components/Input.svelte'
-  import { Toast } from '$lib/script/alert'
+  import { alertPending, Toast } from '$lib/script/alert'
+  import { invalidateAll } from '$app/navigation'
 
   let isDirectoryCreationModalOpen = false
   const toggleDirectoryCreationModal = () => {
     isDirectoryCreationModalOpen = !isDirectoryCreationModalOpen
   }
   const enhanceCreation = () => {
+    const alert = alertPending('Creating')
+    isDirectoryCreationModalOpen = false
     return async ({ result }) => {
-      toggleDirectoryCreationModal()
+      alert.close()
       if (result.type !== 'success') {
         Toast.fire({
           icon: 'error',
@@ -23,6 +26,7 @@
         icon: 'success',
         title: 'Directory created'
       })
+      invalidateAll()
     }
   }
 </script>

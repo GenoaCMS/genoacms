@@ -6,10 +6,10 @@
   import ObjectUpload from './ObjectUpload.svelte'
 
   export let data
-  console.log(data)
+  $: console.log(data)
 </script>
 
-<TopPanel>
+<TopPanel hrefBack={data.parentPath}>
     <h1 class="text-2xl">
         {data.path}
     </h1>
