@@ -26,7 +26,7 @@ export const load = async ({ params }) => {
   return {
     bucketId,
     path,
-    contents: processDirectoryContents(contents)
+    contents: await processDirectoryContents(bucketId, contents)
   }
 }
 

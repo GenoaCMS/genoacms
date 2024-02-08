@@ -1,13 +1,15 @@
 import { config } from '@genoacms/cloudabstraction'
-import type { DirectoryContents, StorageObject } from '@genoacms/cloudabstraction/storage'
+import type { Adapter, DirectoryContents, StorageObject } from '@genoacms/cloudabstraction/storage'
 
 const {
   createDirectory,
   deleteObject,
   getObject,
+  getPublicURL,
+  getSignedURL,
   listDirectory,
   uploadObject
-} = await config.storage.adapter
+} = (await config.storage.adapter) as Adapter
 
 const getBucketReferences = () => {
   return config.storage.buckets
@@ -19,30 +21,46 @@ const fullyQualifiedNameToFilename = (name: string) => {
   return lastIndexOfSlash === -1 ? name : name.slice(lastIndexOfSlash + 1)
 }
 
+type ProcessedFile = StorageObject & { filename: string, signedURL: string }
+
 interface ProcessedDirectory {
   directories: Array<{
     path: string,
     name: string
   }>,
-  files: StorageObject & { filename: string }
+  files: Array<ProcessedFile>
 }
 
-const processDirectoryContents = (contents: DirectoryContents) => {
-  const processedContents: ProcessedDirectory = {
-    directories: contents.directories.map(directory => {
-      return {
-        path: directory,
-        name: fullyQualifiedNameToFilename(directory).replaceAll('/', '')
-      }
-    }),
-    files: contents.files.map(file => {
-      return {
-        ...file,
-        filename: fullyQualifiedNameToFilename(file.name)
-      }
+const processDirectoryNames = (directories: Array<string>) => directories.map(directory => {
+  return {
+    path: directory,
+    name: fullyQualifiedNameToFilename(directory).replaceAll('/', '')
+  }
+})
+
+const processFile = async (bucketId: string, file: StorageObject): Promise<ProcessedFile> => {
+  return {
+    ...file,
+    filename: fullyQualifiedNameToFilename(file.name),
+    signedURL: await getSignedURL({
+      bucket: bucketId,
+      name: file.name
     })
   }
-  return processedContents
+}
+
+const processFiles = async (bucketId: string, files: Array<StorageObject>) => {
+  const filePromises = files.map(file => processFile(bucketId, file))
+  return await Promise.all(filePromises)
+}
+
+const processDirectoryContents = async (bucketId: string, contents: DirectoryContents): Promise<ProcessedDirectory> => {
+  const directories = processDirectoryNames(contents.directories)
+  const files = await processFiles(bucketId, contents.files)
+  return {
+    directories,
+    files
+  }
 }
 
 export {

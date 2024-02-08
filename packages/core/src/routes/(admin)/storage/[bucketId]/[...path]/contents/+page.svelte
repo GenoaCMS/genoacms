@@ -27,7 +27,7 @@
     {/each}
     {#each data.contents.files as item}
         <div class="col-span-1">
-            <File name={item.filename}/>
+            <File name={item.filename} signedURL={item.signedURL}/>
         </div>
     {/each}
 </div>

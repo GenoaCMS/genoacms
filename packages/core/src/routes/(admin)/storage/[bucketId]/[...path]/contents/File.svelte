@@ -7,6 +7,7 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
 
   export let name: string
+  export let signedURL: string
   let contextMenuEvent: MouseEvent | null = null
   const openContextMenu = (event) => {
     contextMenuEvent = event
@@ -32,4 +33,4 @@
         </ContextMenuItem>
     </form>
 </ContextMenu>
-<CardLink text={name} icon={File} on:contextmenu={openContextMenu}/>
+<CardLink href={signedURL} target="_blank" text={name} icon={File} on:contextmenu={openContextMenu}/>
