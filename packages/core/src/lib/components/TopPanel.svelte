@@ -2,7 +2,7 @@
     export let hrefBack = '.'
 </script>
 
-<div class="flex items-center bg-dark text-light p-3">
+<div class="sticky top-0 flex items-center bg-dark text-light p-3">
     <div class="flex-grow">
         <slot/>
     </div>

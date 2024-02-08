@@ -31,10 +31,12 @@
 </script>
 
 <div class="h-full grid grid-cols-6 gap-0">
-    <div class="bg-light p-5 flex flex-col justify-center">
-        {#each pages as page}
-            <NavbarItem {...page}/>
-        {/each}
+    <div class="bg-light">
+        <div class="sticky top-0 bottom-0 h-screen z-50 flex flex-col justify-center p-5">
+            {#each pages as page}
+                <NavbarItem {...page}/>
+            {/each}
+        </div>
     </div>
     <div class="col-span-5">
         <slot/>
