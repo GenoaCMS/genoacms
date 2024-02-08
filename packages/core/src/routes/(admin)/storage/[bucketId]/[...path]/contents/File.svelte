@@ -4,7 +4,7 @@
   import File from 'bootstrap-icons/icons/file-earmark.svg'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
-  import { Toast } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
 
   export let name: string
   let contextMenuEvent: MouseEvent | null = null
@@ -12,19 +12,14 @@
     contextMenuEvent = event
   }
   const enhanceDeletion = () => {
-    console.log('enhance deletion')
+    const alert = alertPending('Deleting file')
     return async ({ result }) => {
+      alert.close()
       if (result.type !== 'success') {
-        Toast.fire({
-          icon: 'error',
-          title: 'Deletion failed'
-        })
+        toastError('Deletion failed')
         return
       }
-      Toast.fire({
-        icon: 'success',
-        title: 'File deleted'
-      })
+      toastSuccess('File deleted')
     }
   }
 </script>

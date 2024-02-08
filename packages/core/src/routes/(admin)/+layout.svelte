@@ -35,13 +35,13 @@
     ]
 </script>
 
-<div class="h-full grid grid-cols-4 gap-0">
+<div class="h-full grid grid-cols-6 gap-0">
     <div class="bg-light p-5 flex flex-col justify-center">
         {#each pages as page}
             <NavbarItem {...page}/>
         {/each}
     </div>
-    <div class="col-span-3">
+    <div class="col-span-5">
         <slot/>
     </div>
 </div>
