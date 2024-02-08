@@ -1,6 +1,7 @@
 import type {
-  storage as storageT
-} from '@genoacms/cloudabstraction'
+  StorageObject,
+  Adapter
+} from '@genoacms/cloudabstraction/storage'
 import { type Bucket, Storage, type File } from '@google-cloud/storage'
 import config from '../../config.js'
 
@@ -14,7 +15,7 @@ const getBucket = (name: string): Bucket => {
   return bucket
 }
 
-const getObject: storageT.getObject = async ({ bucket, name }) => {
+const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
 
@@ -23,19 +24,37 @@ const getObject: storageT.getObject = async ({ bucket, name }) => {
   }
 }
 
-const uploadObject: storageT.uploadObject = async ({ bucket, name }, stream) => {
+const getPublicURL: Adapter['getPublicURL'] = async ({ bucket, name }) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(name)
+  return file.publicUrl()
+}
+
+const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }) => {
+  const bucketInstance = getBucket(bucket)
+  const file = bucketInstance.file(name)
+  const expires = new Date()
+  expires.setTime(expires.getTime() + 60 * 60)
+  const [url] = await file.getSignedUrl({
+    action: 'read',
+    expires
+  })
+  return url
+}
+
+const uploadObject: Adapter['uploadObject'] = async ({ bucket, name }, stream) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.save(stream)
 }
 
-const deleteObject: storageT.deleteObject = async ({ bucket, name }) => {
+const deleteObject: Adapter['deleteObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.delete()
 }
 
-const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingParams = {}) => {
+const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listingParams = {}) => {
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
@@ -43,9 +62,12 @@ const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingPa
     maxResults: listingParams?.limit,
     startOffset: listingParams?.startAfter,
     delimiter: '/'
+
   }
-  const [files, , apiResponse] =
-      (await bucketInstance.getFiles(options)) as [File[], object, { prefixes: string[] } | undefined ]
+  let [files, , apiResponse] =
+    (await bucketInstance.getFiles(options)) as [File[], object, { prefixes: string[] } | undefined]
+  files = files.filter((file) => !file.name.endsWith('.folderPlaceholder'))
+
   return {
     files: files.map((file) => {
       return {
@@ -53,13 +75,13 @@ const listDirectory: storageT.listDirectory = async ({ bucket, name }, listingPa
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         size: file.metadata.size ? parseInt(file.metadata.size as string) : 0,
         lastModified: new Date(file.metadata.updated as string)
-      } satisfies storageT.StorageObject
+      } satisfies StorageObject
     }),
     directories: apiResponse?.prefixes ?? []
   }
 }
 
-const createDirectory: storageT.createDirectory = async ({ bucket, name }) => {
+const createDirectory: Adapter['createDirectory'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(`${name}/.folderPlaceholder`)
   await file.save('')
@@ -67,6 +89,8 @@ const createDirectory: storageT.createDirectory = async ({ bucket, name }) => {
 
 export {
   getObject,
+  getPublicURL,
+  getSignedURL,
   uploadObject,
   deleteObject,
   listDirectory,
