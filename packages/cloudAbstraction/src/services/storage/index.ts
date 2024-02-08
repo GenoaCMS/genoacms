@@ -25,13 +25,15 @@ interface DirectoryContents {
   directories: string[]
 }
 
-type getObject = (reference: ObjectReference) => Promise<ObjectData>
-type getSignedURL = (reference: ObjectReference) => Promise<string>
-type getPublicURL = (reference: ObjectReference) => Promise<string>
-type uploadObject = (reference: ObjectReference, data: objectPayload) => Promise<void>
-type deleteObject = (reference: ObjectReference) => Promise<void>
-type listDirectory = (reference: ObjectReference, params?: DirectoryListingParams) => Promise<DirectoryContents>
-type createDirectory = (reference: ObjectReference) => Promise<void>
+interface Adapter {
+  getObject: (reference: ObjectReference) => Promise<ObjectData>
+  getSignedURL: (reference: ObjectReference) => Promise<string>
+  getPublicURL: (reference: ObjectReference) => Promise<string>
+  uploadObject: (reference: ObjectReference, data: objectPayload) => Promise<void>
+  deleteObject: (reference: ObjectReference) => Promise<void>
+  listDirectory: (reference: ObjectReference, params?: DirectoryListingParams) => Promise<DirectoryContents>
+  createDirectory: (reference: ObjectReference) => Promise<void>
+}
 
 export type {
   ObjectReference,
@@ -40,11 +42,5 @@ export type {
   ObjectData,
   DirectoryListingParams,
   DirectoryContents,
-  getObject,
-  getSignedURL,
-  getPublicURL,
-  uploadObject,
-  deleteObject,
-  listDirectory,
-  createDirectory
+  Adapter
 }
