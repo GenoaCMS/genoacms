@@ -1,19 +1,32 @@
-import { createDirectory, deleteObject, listDirectory, uploadObject } from '$lib/script/storage'
+import {
+  createDirectory,
+  deleteObject,
+  listDirectory,
+  processDirectoryContents,
+  uploadObject
+} from '$lib/script/storage'
+import { join } from 'path'
+
+const removeRoutingSlashes = (path: string) => {
+  return path.replaceAll('//', '/')
+}
 
 export const load = async ({ params }) => {
-  const {
+  let {
     bucketId,
     path
   } = params
+  path = removeRoutingSlashes(path)
 
-  const contents = await listDirectory({
+  const contents = await listDirectory({ // TODO: fix reading format of adapter-gcp
     bucket: bucketId,
     name: path
   })
 
   return {
+    bucketId,
     path,
-    contents
+    contents: processDirectoryContents(contents)
   }
 }
 
@@ -29,7 +42,8 @@ export const actions = {
 
     const data = await request.formData()
     const directoryName = data.get('directoryName')
-    const directoryPath = `${path}/${directoryName}`
+    if (!directoryName || typeof directoryName !== 'string') return
+    const directoryPath = join(path, directoryName)
 
     await createDirectory({
       bucket: bucketId,
@@ -46,11 +60,11 @@ export const actions = {
     } = params
     const data = await request.formData()
     const fileName = data.get('fileName')
-    console.log(bucketId, path, fileName)
-    // await deleteObject({
-    //   bucket: bucketId,
-    //   name: `${path}/${fileName}`
-    // })
+    if (!fileName || typeof fileName !== 'string') return
+    await deleteObject({
+      bucket: bucketId,
+      name: join(path, fileName)
+    })
   },
   uploadObject: async ({
     params,
@@ -67,7 +81,7 @@ export const actions = {
     for (const file of files) {
       const reference = {
         bucket: bucketId,
-        name: `${path}/${file.name}`
+        name: join(path, file.name)
       }
       uploads = [
         ...uploads,
