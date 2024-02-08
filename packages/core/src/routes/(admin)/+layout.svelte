@@ -1,36 +1,31 @@
 <script>
     import NavbarItem from './NavbarItem.svelte'
-    import Columns from 'bootstrap-icons/icons/columns.svg'
-    import Bricks from 'bootstrap-icons/icons/bricks.svg'
-    import Collection from 'bootstrap-icons/icons/collection.svg'
-    import Folder2 from 'bootstrap-icons/icons/folder2.svg'
-    import Toggles from 'bootstrap-icons/icons/toggles.svg'
 
     const pages = [
       {
         name: 'Dashboard',
         route: '/dashboard',
-        icon: Columns
+        icon: 'columns'
       },
       {
         name: 'Components',
         route: '/components',
-        icon: Bricks
+        icon: 'bricks'
       },
       {
         name: 'Collections',
         route: '/collections',
-        icon: Collection
+        icon: 'collection'
       },
       {
         name: 'Storage',
         route: '/storage',
-        icon: Folder2
+        icon: 'folder2'
       },
       {
         name: 'Configuration',
         route: '/configuration',
-        icon: Toggles
+        icon: 'toggles'
       }
     ]
 </script>

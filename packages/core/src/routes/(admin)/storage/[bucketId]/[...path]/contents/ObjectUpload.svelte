@@ -23,14 +23,20 @@
   }
 </script>
 
-<Button class="text-dark" on:click={toggleModal}>
-    Upload file
-</Button>
+<button class="h-full flex items-center px-3" on:click={toggleModal}>
+    <i class="bi bi-upload text-2xl hover:text-warning transition-all"/>
+</button>
 
 <Modal isOpen={isModalOpen}>
-    <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload}>
-        <Input name="files[]" type="file" multiple required/>
-        <Button type="submit" class="text-dark">
+
+    <svelte:fragment slot="header">
+        <h1 class="text-2xl">
+            Upload files
+        </h1>
+    </svelte:fragment>
+    <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col p-4">
+        <Input name="files[]" type="file" multiple required class="w-full my-2"/>
+        <Button type="submit" class="w-full text-dark">
             Upload
         </Button>
     </form>

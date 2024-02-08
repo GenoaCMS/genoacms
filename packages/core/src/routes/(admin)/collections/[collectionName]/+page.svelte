@@ -7,9 +7,9 @@
 </script>
 
 <TopPanel>
-    <h3>
+    <h1 class="text-2xl">
         Collection: {data.collectionReference.name}
-    </h3>
+    </h1>
 </TopPanel>
 <Header schema={data.collectionReference.schema}/>
 {#each data.documents as documentSnap}

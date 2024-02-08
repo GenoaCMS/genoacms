@@ -1,7 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import CardLink from '$lib/components/CardLink.svelte'
-  import File from 'bootstrap-icons/icons/file-earmark.svg'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
@@ -33,4 +32,4 @@
         </ContextMenuItem>
     </form>
 </ContextMenu>
-<CardLink href={signedURL} target="_blank" text={name} icon={File} on:contextmenu={openContextMenu}/>
+<CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" on:contextmenu={openContextMenu}/>
