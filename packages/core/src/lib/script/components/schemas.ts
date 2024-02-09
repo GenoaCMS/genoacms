@@ -184,35 +184,43 @@ const componentSchemaFileSchema: JSONSchemaType<Component> = {
   required: ['version', 'attributes']
 }
 
-const getAttributeTypes = (): Array<string> => componentSchemaFileSchema.properties.attributes.additionalProperties.oneOf
+const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaFileSchema.properties.attributes.additionalProperties.oneOf
   .map((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const)
 const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaFileSchema.properties
   .attributes.additionalProperties.oneOf
   .find((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const === type)
-const attributeToHTMLInputConfig = (name: string, attribute: PartialSchema<attributeValue>, isRequired: boolean): InputConfig => {
+const attributeToHTMLInputConfig = <T extends attributeValue>(name: string, attribute: PartialSchema<T>, isRequired: boolean): InputConfig<T['type']> => {
   const label = name
   let formControl: typeof Checkbox | typeof Input | typeof NumberInput
+  let fallbackValue
   const props = {
+    name,
     required: isRequired,
-    value: attribute.const ?? '',
     disabled: !!attribute.const
   }
 
   switch (attribute.type) {
     case 'boolean':
       formControl = Checkbox
+      fallbackValue = Boolean()
       break
     case 'number':
       formControl = NumberInput
+      fallbackValue = Number()
+      break
+    case 'array':
+      fallbackValue = []
+      formControl = Input
       break
     case 'string':
-    case 'array':
     default:
+      fallbackValue = String()
       formControl = Input
       break
   }
 
   return {
+    value: attribute.const ?? fallbackValue,
     label,
     formControl,
     props

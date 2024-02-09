@@ -1,4 +1,4 @@
-import type { Checkbox, Input, NumberInput } from 'flowbite-svelte'
+import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
 
 interface Attribute {
   name: string,
@@ -66,10 +66,15 @@ interface Component {
   attributes: Record<string, attributeValue>
 }
 
-interface InputConfig {
+interface InputConfig<T> {
   label: string,
-  formControl: Checkbox | Input | NumberInput,
-  props: Record<string, boolean | number | string>
+  formControl: typeof Checkbox | typeof Input | typeof NumberInput,
+  props: {
+    name: string,
+    required: boolean,
+    disabled: boolean
+  },
+  value: T
 }
 
 export type {
