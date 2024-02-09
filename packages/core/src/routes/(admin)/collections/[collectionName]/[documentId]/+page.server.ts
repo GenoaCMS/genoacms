@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit'
-import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database'
+import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database.server'
 import Ajv from 'ajv'
 
 const ajv = new Ajv()

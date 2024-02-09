@@ -1,4 +1,4 @@
-import { getBucketReferences } from '$lib/script/storage'
+import { getBucketReferences } from '$lib/script/storage.server'
 
 export const load = () => {
   const buckets = getBucketReferences()

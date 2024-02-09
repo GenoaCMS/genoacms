@@ -4,7 +4,7 @@ import {
   listDirectory,
   processDirectoryContents,
   uploadObject
-} from '$lib/script/storage'
+} from '$lib/script/storage.server'
 import { join } from 'path'
 
 const removeRoutingSlashes = (path: string) => {
