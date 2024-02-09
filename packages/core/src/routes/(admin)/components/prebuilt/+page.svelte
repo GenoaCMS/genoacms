@@ -1,6 +1,7 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import CardLink from '$lib/components/CardLink.svelte'
+  import CreateComponentSchema from './CreateComponentSchema.svelte'
 
   export let data
   $: console.log(data)
@@ -10,6 +11,9 @@
     <h1 class="text-2xl">
         Prebuilt component management
     </h1>
+    <svelte:fragment slot="right">
+        <CreateComponentSchema/>
+    </svelte:fragment>
 </TopPanel>
 
 <div class="grid grid-cols-6 gap-5 p-5">

@@ -1,3 +1,5 @@
+import type { Checkbox, Input, NumberInput } from 'flowbite-svelte'
+
 interface Attribute {
   name: string,
   description: string,
@@ -64,6 +66,12 @@ interface Component {
   attributes: Record<string, attributeValue>
 }
 
+interface InputConfig {
+  label: string,
+  formControl: Checkbox | Input | NumberInput,
+  props: Record<string, boolean | number | string>
+}
+
 export type {
   Attribute,
   BooleanAttribute,
@@ -76,5 +84,6 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   attributeValue,
-  Component
+  Component,
+  InputConfig
 }

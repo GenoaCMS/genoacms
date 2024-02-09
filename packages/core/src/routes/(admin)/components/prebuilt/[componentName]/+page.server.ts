@@ -1,4 +1,4 @@
-import { getComponent } from '$lib/script/components.server'
+import { getComponent } from '$lib/script/components/components.server'
 import { error } from '@sveltejs/kit'
 
 export const load = async ({ params }) => {

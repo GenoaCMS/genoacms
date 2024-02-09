@@ -1,8 +1,9 @@
 import type { JSONSchemaType } from 'ajv'
 import type {
+  attributeValue,
   BooleanAttribute,
   Component,
-  ComponentsAttribute,
+  ComponentsAttribute, InputConfig,
   LinkAttribute,
   MarkdownAttribute,
   NumberAttribute,
@@ -11,6 +12,8 @@ import type {
   StringAttribute,
   TextAttribute
 } from '$lib/script/components/types'
+import type { PartialSchema } from 'ajv/dist/types/json-schema'
+import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
 
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
   type: 'object',
@@ -181,6 +184,41 @@ const componentSchemaFileSchema: JSONSchemaType<Component> = {
   required: ['version', 'attributes']
 }
 
+const getAttributeTypes = (): Array<string> => componentSchemaFileSchema.properties.attributes.additionalProperties.oneOf
+  .map((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const)
+const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaFileSchema.properties
+  .attributes.additionalProperties.oneOf
+  .find((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const === type)
+const attributeToHTMLInputConfig = (name: string, attribute: PartialSchema<attributeValue>, isRequired: boolean): InputConfig => {
+  const label = name
+  let formControl: typeof Checkbox | typeof Input | typeof NumberInput
+  const props = {
+    required: isRequired,
+    value: attribute.const ?? '',
+    disabled: !!attribute.const
+  }
+
+  switch (attribute.type) {
+    case 'boolean':
+      formControl = Checkbox
+      break
+    case 'number':
+      formControl = NumberInput
+      break
+    case 'string':
+    case 'array':
+    default:
+      formControl = Input
+      break
+  }
+
+  return {
+    label,
+    formControl,
+    props
+  }
+}
+
 export {
   booleanAttributeSchema,
   numberAttributeSchema,
@@ -191,5 +229,8 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentSchemaFileSchema
+  componentSchemaFileSchema,
+  getAttributeTypes,
+  getAttributeSchemaByType,
+  attributeToHTMLInputConfig
 }
