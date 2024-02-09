@@ -24,7 +24,7 @@ export const load = async ({ params }) => {
   } = params
   path = removeRoutingSlashes(path)
 
-  const contents = await listDirectory({ // TODO: fix reading format of adapter-gcp
+  const contents = await listDirectory({
     bucket: bucketId,
     name: path
   })
