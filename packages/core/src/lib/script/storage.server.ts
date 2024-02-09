@@ -21,6 +21,10 @@ const fullyQualifiedNameToFilename = (name: string) => {
   return lastIndexOfSlash === -1 ? name : name.slice(lastIndexOfSlash + 1)
 }
 
+const isDirectoryExisting = (directory: DirectoryContents) => { // TODO: move to cloudabstraction, with a better name
+  return directory.directories.length > 0 || directory.files.length > 0
+}
+
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
 
 interface ProcessedDirectory {
@@ -70,5 +74,7 @@ export {
   getObject,
   listDirectory,
   uploadObject,
+  fullyQualifiedNameToFilename,
+  isDirectoryExisting,
   processDirectoryContents
 }

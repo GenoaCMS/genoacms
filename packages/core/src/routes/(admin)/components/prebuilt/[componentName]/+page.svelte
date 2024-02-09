@@ -8,12 +8,12 @@
 
 <TopPanel>
     <h1 class="text-2xl">
-        Prebuilt component management
+        Edit {data.componentName}
     </h1>
 </TopPanel>
 
 <div class="grid grid-cols-6 gap-5 p-5">
-    {#each data.components as component}
-        <CardLink href="prebuilt/{component}" icon="box" text={component}/>
-    {/each}
+    <!-- {#each data.components as component} -->
+<!--        <CardLink href="prebuilt/{component}" icon="box" text={component}/>-->
+<!--     {/each} -->
 </div>
