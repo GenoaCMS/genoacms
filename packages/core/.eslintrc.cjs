@@ -4,8 +4,8 @@ module.exports = {
 	extends: [
 		'standard',
 		'eslint:recommended',
-		'plugin:@typescript-eslint/recommended',
-		'plugin:svelte/recommended'
+		'plugin:svelte/recommended',
+		'plugin:@typescript-eslint/recommended'
 	],
 	parser: '@typescript-eslint/parser',
 	plugins: ['@typescript-eslint'],
@@ -24,6 +24,8 @@ module.exports = {
 			files: ['*.svelte'],
 			parser: 'svelte-eslint-parser',
 			parserOptions: {
+				ts: '@typescript-eslint/parser',
+				js: 'espree',
 				parser: '@typescript-eslint/parser'
 			}
 		}
