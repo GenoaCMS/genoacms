@@ -8,8 +8,10 @@
   import Ajv, { type JSONSchemaType } from 'ajv'
   import { Label, Select } from 'flowbite-svelte'
   import Button from '$lib/components/Button.svelte'
+  import { createEventDispatcher } from 'svelte'
 
-  export let attribute: attributeValue | null
+  export let attribute: attributeValue | null = null
+  const dispatch = createEventDispatcher()
 
   const attributeTypesToInputOptions = (types: Array<string>) => types.map((type) => ({
     name: type,
@@ -24,7 +26,7 @@
       return attributeToHTMLInputConfig((key as attributeValue['type']), schema.properties[key], isRequired)
     })
   }
-  const createAttribute = (event: SubmitEvent) => {
+  const saveAttribute = () => {
     if (!type) return
     type currentAttribute = Extract<attributeValue, { type: typeof type }>
     let properties: Omit<currentAttribute, 'type'> = {}
@@ -41,6 +43,13 @@
     const isAttributeValid = ajv.validate(schema, potentialAttribute)
     if (!isAttributeValid) return
     attribute = potentialAttribute
+    dispatch('save', attribute)
+  }
+  const loadValues = (attribute: attributeValue) => {
+    type = attribute.type
+    for (const input of inputs) {
+      input.value = attribute[input.props.name]
+    }
   }
 
   const attributeTypes = getAttributeTypes()
@@ -50,10 +59,10 @@
 
   $: schema = getSchema(type)
   $: generateInputs(schema)
-  $: console.log({ inputs })
+  $: if (attribute) loadValues(attribute)
 </script>
 
-<form on:submit|preventDefault={createAttribute}>
+<form on:submit|preventDefault={saveAttribute}>
     <Label>
         Type
         <Select items={attributeTypesToInputOptions(attributeTypes)} bind:value={type} name="type"/>
@@ -64,5 +73,5 @@
             <Input.formControl bind:value={Input.value} {...Input.props}/>
         </Label>
     {/each}
-    <Button class="w-full mt-3" type="submit">Create</Button>
+    <Button class="w-full mt-3" type="submit">Save</Button>
 </form>

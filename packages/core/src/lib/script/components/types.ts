@@ -63,7 +63,8 @@ type attributeValue = BooleanAttribute | NumberAttribute | StringAttribute | Tex
 
 interface ComponentSchema {
   version: string,
-  attributes: Record<string, attributeValue>
+  name: string,
+  attributes: Array<attributeValue>
 }
 
 interface InputConfig<T extends attributeValue['type']> {

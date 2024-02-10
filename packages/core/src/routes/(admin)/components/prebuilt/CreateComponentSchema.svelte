@@ -9,10 +9,11 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const enhanceUpload = () => {
+  const enhanceCreation = () => {
     const alert = alertPending('Creating')
     return async ({ result }) => {
       alert.close()
+      console.log(result)
       if (result.type !== 'success') {
         toastError('Creation failed')
         return
@@ -28,14 +29,13 @@
     <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"/>
 </button>
 
-<Modal isOpen={isModalOpen}>
-
+<Modal bind:isOpen={isModalOpen}>
     <svelte:fragment slot="header">
         <h1 class="text-2xl">
             Create a new component schema
         </h1>
     </svelte:fragment>
-    <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col p-4">
+    <form action="?/createComponentSchema" method="post" use:enhance={enhanceCreation} class="flex w-3/4 mx-auto">
+        <ComponentSchemaEditor />
     </form>
-    <ComponentSchemaEditor />
 </Modal>

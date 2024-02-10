@@ -164,9 +164,10 @@ const componentSchemaFileSchema: JSONSchemaType<ComponentSchema> = {
   type: 'object',
   properties: {
     version: { type: 'string' },
+    name: { type: 'string' },
     attributes: {
-      type: 'object',
-      additionalProperties: {
+      type: 'array',
+      items: {
         oneOf: [
           booleanAttributeSchema,
           numberAttributeSchema,
@@ -184,10 +185,10 @@ const componentSchemaFileSchema: JSONSchemaType<ComponentSchema> = {
   required: ['version', 'attributes']
 }
 
-const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaFileSchema.properties.attributes.additionalProperties.oneOf
+const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaFileSchema.properties.attributes.items.oneOf
   .map((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const)
 const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaFileSchema.properties
-  .attributes.additionalProperties.oneOf
+  .attributes.items.oneOf
   .find((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const === type)
 const attributeToHTMLInputConfig = (name: attributeValue['type'], attribute: PartialSchema<Extract<attributeValue, { type: typeof name }>>,
   isRequired: boolean): InputConfig<typeof name> => {
