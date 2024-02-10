@@ -2,7 +2,7 @@ import type { JSONSchemaType } from 'ajv'
 import type {
   attributeValue,
   BooleanAttribute,
-  Component,
+  ComponentSchema,
   ComponentsAttribute, InputConfig,
   LinkAttribute,
   MarkdownAttribute,
@@ -160,7 +160,7 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   required: ['name', 'type']
 }
 
-const componentSchemaFileSchema: JSONSchemaType<Component> = {
+const componentSchemaFileSchema: JSONSchemaType<ComponentSchema> = {
   type: 'object',
   properties: {
     version: { type: 'string' },
@@ -189,7 +189,8 @@ const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaFi
 const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaFileSchema.properties
   .attributes.additionalProperties.oneOf
   .find((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const === type)
-const attributeToHTMLInputConfig = <T extends attributeValue>(name: string, attribute: PartialSchema<T>, isRequired: boolean): InputConfig<T['type']> => {
+const attributeToHTMLInputConfig = (name: attributeValue['type'], attribute: PartialSchema<Extract<attributeValue, { type: typeof name }>>,
+  isRequired: boolean): InputConfig<typeof name> => {
   const label = name
   let formControl: typeof Checkbox | typeof Input | typeof NumberInput
   let fallbackValue

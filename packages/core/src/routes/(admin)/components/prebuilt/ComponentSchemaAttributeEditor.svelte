@@ -21,17 +21,18 @@
   const generateInputs = (schema: JSONSchemaType<attributeValue>) => {
     inputs = Object.keys(schema.properties).filter(key => key !== 'type').map((key) => {
       const isRequired = schema.required.includes(key) || false
-      return attributeToHTMLInputConfig(key, schema.properties[key], isRequired)
+      return attributeToHTMLInputConfig((key as attributeValue['type']), schema.properties[key], isRequired)
     })
   }
   const createAttribute = (event: SubmitEvent) => {
     if (!type) return
-    const properties = {}
+    type currentAttribute = Extract<attributeValue, { type: typeof type }>
+    let properties: Omit<currentAttribute, 'type'> = {}
+
     for (const input of inputs) {
       properties[input.props.name] = input.value
     }
-    type currentAttribute<T extends attributeValue> = typeof type extends T['type'] ? T : never
-    const potentialAttribute: currentAttribute<attributeValue> = {
+    const potentialAttribute: currentAttribute = {
       type,
       ...properties
     }
@@ -45,7 +46,7 @@
   const attributeTypes = getAttributeTypes()
   let type: attributeValue['type'] = attributeTypes[0]
   let schema: JSONSchemaType<attributeValue> = getSchema(type)
-  let inputs: Array<InputConfig<typeof schema>> = []
+  let inputs: Array<InputConfig<typeof schema.type>> = []
 
   $: schema = getSchema(type)
   $: generateInputs(schema)

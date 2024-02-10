@@ -61,20 +61,20 @@ interface ComponentsAttribute extends Attribute {
 type attributeValue = BooleanAttribute | NumberAttribute | StringAttribute | TextAttribute | MarkdownAttribute
   | RichTextAttribute | LinkAttribute | StorageResourceAttribute | ComponentsAttribute
 
-interface Component {
+interface ComponentSchema {
   version: string,
   attributes: Record<string, attributeValue>
 }
 
-interface InputConfig<T> {
+interface InputConfig<T extends attributeValue['type']> {
   label: string,
   formControl: typeof Checkbox | typeof Input | typeof NumberInput,
   props: {
-    name: string,
+    name: T,
     required: boolean,
     disabled: boolean
   },
-  value: T
+  value: unknown
 }
 
 export type {
@@ -89,6 +89,6 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   attributeValue,
-  Component,
+  ComponentSchema,
   InputConfig
 }
