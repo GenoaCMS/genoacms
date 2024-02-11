@@ -2,8 +2,10 @@
   import type { attributeValue } from '$lib/script/components/types'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
   import Modal from '$lib/components/Modal.svelte'
+  import { createEventDispatcher } from 'svelte'
 
   export let attribute: attributeValue
+  const dispatch = createEventDispatcher()
 
   let isModalOpen = false
   const toggleModal = () => {
@@ -14,12 +16,23 @@
     isModalOpen = false
     attribute = event.detail
   }
+  const dispatchDelete = () => {
+    dispatch('delete', attribute.name)
+  }
 </script>
 
-<button on:click={toggleModal} class="border border-dark border-opacity-30 w-full p-3">
+<div class="border border-dark border-opacity-30 w-full p-3 flex">
     {attribute.type}
     {attribute.name}
-</button>
+    <div class="ms-auto">
+        <button type="button" on:click={toggleModal}>
+            <i class="bi bi-pencil-square"/>
+        </button>
+        <button type="button" class="ms-4" on:click={dispatchDelete}>
+            <i class="bi bi-trash"/>
+        </button>
+    </div>
+</div>
 
 <Modal bind:isOpen={isModalOpen}>
     <svelte:fragment slot="header">

@@ -2,7 +2,6 @@
     import CardLink from '$lib/components/CardLink.svelte'
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
     import { invalidateAll } from '$app/navigation'
-    import { enhance } from '$app/forms'
     import type { ComponentSchema } from '$lib/script/components/types'
     import Modal from '$lib/components/Modal.svelte'
     import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
@@ -37,7 +36,7 @@
             Edit schema schema of component {schema.name}
         </h1>
     </svelte:fragment>
-    <form action="?/uploadComponentSchema" method="post" use:enhance={enhanceEdit} class="flex w-3/4 mx-auto">
-        <ComponentSchemaEditor {schema}/>
-    </form>
+    <div class="flex w-3/4 mx-auto">
+        <ComponentSchemaEditor {schema} enhanceForm={enhanceEdit}/>
+    </div>
 </Modal>

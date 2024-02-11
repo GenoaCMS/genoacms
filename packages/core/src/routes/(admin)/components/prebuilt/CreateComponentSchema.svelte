@@ -1,7 +1,6 @@
 <script lang="ts">
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
-  import { enhance } from '$app/forms'
   import Modal from '$lib/components/Modal.svelte'
   import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
 
@@ -35,7 +34,7 @@
             Create a new component schema
         </h1>
     </svelte:fragment>
-    <form action="?/createComponentSchema" method="post" use:enhance={enhanceCreation} class="flex w-3/4 mx-auto">
-        <ComponentSchemaEditor />
-    </form>
+    <div class="flex w-3/4 mx-auto">
+        <ComponentSchemaEditor enhanceForm={enhanceCreation}/>
+    </div>
 </Modal>

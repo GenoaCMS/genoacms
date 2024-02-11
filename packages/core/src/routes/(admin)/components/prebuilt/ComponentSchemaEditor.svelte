@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { attributeValue, ComponentSchema } from '$lib/script/components/types'
   import { componentSchemaFileSchema } from '$lib/script/components/schemas'
+  import { enhance } from '$app/forms'
   import Ajv from 'ajv'
   import Modal from '$lib/components/Modal.svelte'
   import ComponentSchemaAttribute from './ComponentSchemaAttribute.svelte'
@@ -8,11 +9,12 @@
   import Button from '$lib/components/Button.svelte'
   import { Input, Label } from 'flowbite-svelte'
 
-  const componentSchema: ComponentSchema = {
+  export let schema: ComponentSchema = {
     version: Date.now().toString(),
     name: '',
     attributes: []
   }
+  export let enhanceForm = () => {}
   let isModalOpen = false
   const ajv = new Ajv()
   const validate = ajv.compile(componentSchemaFileSchema)
@@ -23,13 +25,13 @@
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
     const newAttribute: attributeValue = event.detail
-    componentSchema.attributes = [...componentSchema.attributes, newAttribute]
+    schema.attributes = [...schema.attributes, newAttribute]
     isModalOpen = false
   }
   const handleAttributeDeletion = (event: CustomEvent) => {
     if (!event.detail) return
     const attributeName = event.detail
-    componentSchema.attributes = componentSchema.attributes.filter((attribute) => attribute.name !== attributeName)
+    schema.attributes = schema.attributes.filter((attribute) => attribute.name !== attributeName)
   }
   const serializeComponentSchema = (componentSchema: ComponentSchema) => {
     const isValid = validate(componentSchema)
@@ -38,21 +40,21 @@
     }
     return JSON.stringify(componentSchema)
   }
-  $: serializeComponentSchema(componentSchema)
+  $: serializeComponentSchema(schema)
 </script>
 
 <div class="flex-grow flex flex-col justify-center">
     <div class="w-full my-auto">
         <Label class="text-xl">
             Schema name:
-            <Input type="text" class="w-full" bind:value={componentSchema.name}/>
+            <Input type="text" class="w-full" bind:value={schema.name}/>
         </Label>
         <h2 class="text-xl">
             Attributes:
         </h2>
         <div class="py-1">
-            {#each componentSchema.attributes as attribute}
-                <ComponentSchemaAttribute {attribute}/>
+            {#each schema.attributes as attribute}
+                <ComponentSchemaAttribute {attribute} on:delete={handleAttributeDeletion}/>
             {:else}
                 <p class="w-auto m-auto text-lg text-center">No attributes</p>
             {/each}
@@ -64,10 +66,12 @@
         </div>
     </div>
     <div class="my-auto">
-        <input type="hidden" name="componentSchema" value={serializeComponentSchema(componentSchema)}/>
-        <Button type="submit" class="w-full bg-dark">
-            Create
-        </Button>
+        <form action="?/uploadComponentSchema" method="post" use:enhance={enhanceForm}>
+            <input type="hidden" name="componentSchema" value={serializeComponentSchema(schema)}/>
+            <Button type="submit" class="w-full bg-dark">
+                Create
+            </Button>
+        </form>
     </div>
 </div>
 
