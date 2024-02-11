@@ -1,6 +1,6 @@
 import {
   createDirectory,
-  fullyQualifiedNameToFilename,
+  deleteObject,
   getBucketReferences,
   getObject,
   isDirectoryExisting,
@@ -67,8 +67,16 @@ const uploadComponentSchema = async (name: string, data: string) => {
   }, data)
 }
 
+const deleteComponentSchema = async (name: string) => {
+  await deleteObject({
+    bucket: bucketId,
+    name: join(prebuiltSchemaPath, name)
+  })
+}
+
 export {
   listOrCreatePreBuiltComponentList,
   getComponentSchema,
-  uploadComponentSchema
+  uploadComponentSchema,
+  deleteComponentSchema
 }

@@ -2,15 +2,22 @@
     import CardLink from '$lib/components/CardLink.svelte'
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
     import { invalidateAll } from '$app/navigation'
+    import { enhance } from '$app/forms'
     import type { ComponentSchema } from '$lib/script/components/types'
     import Modal from '$lib/components/Modal.svelte'
     import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
+    import ContextMenu from '$lib/components/ContextMenu.svelte'
+    import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
 
     export let schema: ComponentSchema
 
     let isModalOpen = false
+    let contextMenuEvent: MouseEvent | null = null
     const toggleModal = () => {
       isModalOpen = !isModalOpen
+    }
+    const openContextMenu = (event) => {
+      contextMenuEvent = event
     }
     const enhanceEdit = () => {
       const alert = alertPending('Editing')
@@ -26,9 +33,29 @@
         invalidateAll()
       }
     }
+    const enhanceDeletion = () => {
+      const alert = alertPending('Deleting component schema')
+      return async ({ result }) => {
+        alert.close()
+        if (result.type !== 'success') {
+          toastError('Deletion failed')
+          return
+        }
+        toastSuccess('Component schema deleted')
+        invalidateAll()
+      }
+    }
 </script>
 
-<CardLink on:click={toggleModal} icon="box" text={schema.name}/>
+<CardLink on:click={toggleModal} icon="box" text={schema.name} on:contextmenu={openContextMenu}/>
+<ContextMenu bind:opener={contextMenuEvent}>
+    <form action="?/deleteComponentSchema" method="post" use:enhance={enhanceDeletion}>
+        <input type="text" name="name" value={schema.name} hidden/>
+        <ContextMenuItem type="submit">
+            Delete
+        </ContextMenuItem>
+    </form>
+</ContextMenu>
 
 <Modal bind:isOpen={isModalOpen}>
     <svelte:fragment slot="header">
