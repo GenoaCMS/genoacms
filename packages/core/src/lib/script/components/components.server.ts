@@ -8,12 +8,18 @@ import {
 } from '$lib/script/storage.server'
 import { join } from 'path'
 import { streamToString } from '$lib/script/utils'
+import Ajv from 'ajv'
+import { componentSchemaFileSchema } from '$lib/script/components/schemas'
+import type { ComponentSchema } from '$lib/script/components/types'
+import type { ObjectData } from '@genoacms/cloudabstraction/storage'
 
 const bucketId = getBucketReferences()[0] // TODO: replace with default bucket
 const componentSchemaPath = join('.genoacms', 'components/')
 const prebuiltSchemaPath = join(componentSchemaPath, 'prebuilt/')
+const ajv = new Ajv()
+const validateComponentSchema = ajv.compile(componentSchemaFileSchema)
 
-const listOrCreatePreBuiltComponentList = async () => {
+const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchema>> => {
   const componentList = await listDirectory({
     bucket: bucketId,
     name: prebuiltSchemaPath
@@ -26,20 +32,32 @@ const listOrCreatePreBuiltComponentList = async () => {
       name: prebuiltSchemaPath
     })
   }
-  return componentList.files.map(component => fullyQualifiedNameToFilename(component.name))
+  const componentSchemaPromises = componentList.files
+    .map(async component => getComponentSchema(component.name))
+  const componentSchemas = await Promise.all(componentSchemaPromises)
+  return componentSchemas.filter(schema => schema !== null)
 }
 
-const getComponent = async (name: string) => {
-  const file = await getObject({
-    bucket: bucketId,
-    name: join(prebuiltSchemaPath, name)
-  })
+const getComponentSchema = async (name: string) => {
+  let file: ObjectData
+  try {
+    file = await getObject({
+      bucket: bucketId,
+      name
+    })
+  } catch (e) {
+    return null
+  }
   const isComponentExisting = !!file.data
   if (!isComponentExisting) {
-    throw new Error('component-not-found')
+    return null
   }
   const text = await streamToString(file.data)
-  return JSON.parse(text)
+  const potentialComponentSchema = JSON.parse(text)
+  if (!validateComponentSchema(potentialComponentSchema)) {
+    return null
+  }
+  return potentialComponentSchema
 }
 
 const uploadComponentSchema = async (name: string, data: string) => {
@@ -51,6 +69,6 @@ const uploadComponentSchema = async (name: string, data: string) => {
 
 export {
   listOrCreatePreBuiltComponentList,
-  getComponent,
+  getComponentSchema,
   uploadComponentSchema
 }

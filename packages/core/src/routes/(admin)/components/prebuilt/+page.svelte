@@ -1,10 +1,9 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
-  import CardLink from '$lib/components/CardLink.svelte'
   import CreateComponentSchema from './CreateComponentSchema.svelte'
+  import ComponentSchema from './ComponentSchema.svelte'
 
   export let data
-  $: console.log(data)
 </script>
 
 <TopPanel>
@@ -17,7 +16,7 @@
 </TopPanel>
 
 <div class="grid grid-cols-6 gap-5 p-5">
-    {#each data.components as component}
-        <CardLink href="prebuilt/{component}" icon="box" text={component}/>
+    {#each data.componentSchemas as schema (schema.name)}
+        <ComponentSchema {schema}/>
     {/each}
 </div>

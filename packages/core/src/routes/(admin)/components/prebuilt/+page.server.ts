@@ -7,14 +7,14 @@ const ajv = new Ajv()
 const validate = ajv.compile(componentSchemaFileSchema)
 
 export const load = async () => {
-  const components = await listOrCreatePreBuiltComponentList()
+  const componentSchemas = await listOrCreatePreBuiltComponentList()
   return {
-    components
+    componentSchemas
   }
 }
 
 export const actions = {
-  createComponentSchema: async ({ request }) => {
+  uploadComponentSchema: async ({ request }) => {
     const data = await request.formData()
     const componentSchemaText = data.get('componentSchema')
     if (!componentSchemaText || typeof componentSchemaText !== 'string') return fail(400, { reason: 'no-component-schema' })
