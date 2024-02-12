@@ -2,6 +2,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import CreateComponentSchema from './CreateComponentSchema.svelte'
   import ComponentSchema from './ComponentSchema.svelte'
+  import Grid from '$lib/components/Grid.svelte'
 
   export let data
 </script>
@@ -15,8 +16,8 @@
     </svelte:fragment>
 </TopPanel>
 
-<div class="grid grid-cols-6 gap-5 p-5">
+<Grid>
     {#each data.componentSchemas as schema (schema.name)}
         <ComponentSchema {schema}/>
     {/each}
-</div>
+</Grid>

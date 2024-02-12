@@ -1,5 +1,12 @@
 import { config } from '@genoacms/cloudabstraction'
-import type { Adapter, DirectoryContents, StorageObject } from '@genoacms/cloudabstraction/storage'
+import type {
+  Adapter,
+  DirectoryContents,
+  ObjectData,
+  ObjectReference,
+  StorageObject
+} from '@genoacms/cloudabstraction/storage'
+import { streamToString } from '$lib/script/utils'
 
 const {
   createDirectory,
@@ -23,6 +30,31 @@ const fullyQualifiedNameToFilename = (name: string) => {
 
 const isDirectoryExisting = (directory: DirectoryContents) => { // TODO: move to cloudabstraction, with a better name
   return directory.directories.length > 0 || directory.files.length > 0
+}
+
+const listOrCreateDirectory = async (reference: ObjectReference) => {
+  const componentList = await listDirectory(reference)
+  console.log('componentList', componentList.files)
+  const isComponentListExisting = isDirectoryExisting(componentList)
+  if (!isComponentListExisting) {
+    await createDirectory(reference)
+  }
+  return componentList
+}
+
+const getObjectJSON = async (reference: ObjectReference) => {
+  let file: ObjectData
+  try {
+    file = await getObject(reference)
+  } catch (e) {
+    return null
+  }
+  const isComponentExisting = !!file.data
+  if (!isComponentExisting) {
+    return null
+  }
+  const text = await streamToString(file.data)
+  return JSON.parse(text)
 }
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
@@ -76,5 +108,7 @@ export {
   uploadObject,
   fullyQualifiedNameToFilename,
   isDirectoryExisting,
+  listOrCreateDirectory,
+  getObjectJSON,
   processDirectoryContents
 }
