@@ -10,7 +10,7 @@ import type {
   RichTextAttribute,
   StorageResourceAttribute,
   StringAttribute,
-  TextAttribute
+  TextAttribute, ComponentSchemaFile
 } from '$lib/script/components/types'
 import type { PartialSchema } from 'ajv/dist/types/json-schema'
 import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
@@ -160,11 +160,10 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   required: ['name', 'type']
 }
 
-const componentSchemaFileSchema: JSONSchemaType<ComponentSchema> = {
+const componentSchemaSchema: JSONSchemaType<ComponentSchema> = {
   type: 'object',
   properties: {
     version: { type: 'string' },
-    name: { type: 'string' },
     attributes: {
       type: 'array',
       items: {
@@ -185,13 +184,27 @@ const componentSchemaFileSchema: JSONSchemaType<ComponentSchema> = {
   required: ['version', 'attributes']
 }
 
-const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaFileSchema.properties.attributes.items.oneOf
+const componentSchemaFileSchema: JSONSchemaType<ComponentSchemaFile> = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    versions: {
+      type: 'object',
+      additionalProperties: componentSchemaSchema,
+      required: []
+    },
+    currentVersion: { type: 'string' }
+  },
+  required: ['versions', 'currentVersion']
+}
+
+const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaSchema.properties.attributes.items.oneOf
   .map((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const)
-const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaFileSchema.properties
+const getAttributeSchemaByType = (type: string): JSONSchemaType<attributeValue> => componentSchemaSchema.properties
   .attributes.items.oneOf
   .find((schema: JSONSchemaType<attributeValue>) => schema.properties.type.const === type)
-const attributeToHTMLInputConfig = (name: attributeValue['type'], attribute: PartialSchema<Extract<attributeValue, { type: typeof name }>>,
-  isRequired: boolean): InputConfig<typeof name> => {
+const attributeToHTMLInputConfig = (name: attributeValue['type'], attribute: PartialSchema<Extract<attributeValue,
+  { type: typeof name }>>, isRequired: boolean): InputConfig<typeof name> => {
   const label = name
   let formControl: typeof Checkbox | typeof Input | typeof NumberInput
   let fallbackValue
@@ -239,6 +252,7 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
+  componentSchemaSchema,
   componentSchemaFileSchema,
   getAttributeTypes,
   getAttributeSchemaByType,

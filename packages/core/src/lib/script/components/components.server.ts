@@ -8,7 +8,7 @@ import {
 import { join } from 'path'
 import Ajv from 'ajv'
 import { componentSchemaFileSchema } from '$lib/script/components/schemas'
-import type { ComponentSchema } from '$lib/script/components/types'
+import type { ComponentSchemaFile } from '$lib/script/components/types'
 
 const bucketId = getBucketReferences()[0] // TODO: replace with default bucket
 const componentSchemaPath = join('.genoacms', 'components/')
@@ -17,13 +17,13 @@ const pagesPath = join('.genoacms', 'pages/')
 const ajv = new Ajv()
 const validateComponentSchema = ajv.compile(componentSchemaFileSchema)
 
-const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchema>> => {
+const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchemaFile>> => {
   const componentList = await listOrCreateDirectory({
     bucket: bucketId,
     name: prebuiltSchemaPath
   })
   const componentSchemaPromises = componentList.files
-    .map(async component => getComponentSchema(component.name))
+    .map(async component => getComponentSchemaFile(component.name))
   const componentSchemas = await Promise.all(componentSchemaPromises)
   return componentSchemas.filter(schema => schema !== null)
 }
@@ -48,7 +48,7 @@ const getPageStructure = async (name: string) => {
   return potentialPageStructure
 }
 
-const getComponentSchema = async (name: string) => {
+const getComponentSchemaFile = async (name: string) => {
   const potentialComponentSchema = await getObjectJSON({
     bucket: bucketId,
     name: join(prebuiltSchemaPath, name)
@@ -76,7 +76,7 @@ const deleteComponentSchema = async (name: string) => {
 export {
   listOrCreatePreBuiltComponentList,
   listOrCreatePageList,
-  getComponentSchema,
+  getComponentSchemaFile,
   uploadComponentSchema,
   deleteComponentSchema
 }

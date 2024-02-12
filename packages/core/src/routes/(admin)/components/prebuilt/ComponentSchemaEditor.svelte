@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { attributeValue, ComponentSchema } from '$lib/script/components/types'
-  import { componentSchemaFileSchema } from '$lib/script/components/schemas'
+  import type { attributeValue, ComponentSchemaFile } from '$lib/script/components/types'
+  import { componentSchemaSchema } from '$lib/script/components/schemas'
   import { enhance } from '$app/forms'
   import Ajv from 'ajv'
   import Modal from '$lib/components/Modal.svelte'
@@ -9,15 +9,22 @@
   import Button from '$lib/components/Button.svelte'
   import { Input, Label } from 'flowbite-svelte'
 
-  export let schema: ComponentSchema = {
-    version: Date.now().toString(),
+  const currentDateString = Date.now().toString()
+  export let schema: ComponentSchemaFile = {
     name: '',
-    attributes: []
+    versions: {
+      currentDateString: {
+        version: currentDateString,
+        attributes: []
+      }
+    },
+    currentVersion: currentDateString
   }
-  export let enhanceForm = () => {}
+  export let enhanceForm = () => {
+  }
   let isModalOpen = false
   const ajv = new Ajv()
-  const validate = ajv.compile(componentSchemaFileSchema)
+  const validate = ajv.compile(componentSchemaSchema)
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
@@ -25,15 +32,18 @@
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
     const newAttribute: attributeValue = event.detail
-    schema.attributes = [...schema.attributes, newAttribute]
+    schema.versions[schema.currentVersion].attributes = [
+      ...schema.versions[schema.currentVersion].attributes,
+      newAttribute]
     isModalOpen = false
   }
   const handleAttributeDeletion = (event: CustomEvent) => {
     if (!event.detail) return
     const attributeName = event.detail
-    schema.attributes = schema.attributes.filter((attribute) => attribute.name !== attributeName)
+    schema.versions[schema.currentVersion].attributes = schema.versions[schema.currentVersion].attributes
+      .filter((attribute) => attribute.name !== attributeName)
   }
-  const serializeComponentSchema = (componentSchema: ComponentSchema) => {
+  const serializeComponentSchema = (componentSchema: ComponentSchemaFile) => {
     const isValid = validate(componentSchema)
     if (!isValid) {
       return ''
@@ -53,7 +63,7 @@
             Attributes:
         </h2>
         <div class="py-1">
-            {#each schema.attributes as attribute}
+            {#each schema.versions[0].attributes as attribute}
                 <ComponentSchemaAttribute {attribute} on:delete={handleAttributeDeletion}/>
             {:else}
                 <p class="w-auto m-auto text-lg text-center">No attributes</p>
