@@ -1,5 +1,6 @@
 import {
   deleteObject,
+  fullyQualifiedNameToFilename,
   getBucketReferences,
   getObjectJSON,
   listOrCreateDirectory,
@@ -8,7 +9,7 @@ import {
 import { join } from 'path'
 import Ajv from 'ajv'
 import { componentSchemaFileSchema } from '$lib/script/components/schemas'
-import type { ComponentSchemaFile } from '$lib/script/components/types'
+import type { ComponentSchemaFile, Page } from '$lib/script/components/types'
 
 const bucketId = getBucketReferences()[0] // TODO: replace with default bucket
 const componentSchemaPath = join('.genoacms', 'components/')
@@ -37,7 +38,7 @@ const listOrCreatePageList = async () => {
   //   .map(async page => getPageStructure(page.name))
   // const pageStructures = await Promise.all(pageStructurePromises)
   // return pageStructures.filter(schema => schema !== null)
-  return pageStructureList.files.map(page => page.name)
+  return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
 const getPageStructure = async (name: string) => {
@@ -73,10 +74,20 @@ const deleteComponentSchema = async (name: string) => {
   })
 }
 
+const uploadPage = (page: Page) => {
+  const pageJson = JSON.stringify(page)
+  // TODO: validate page
+  return uploadObject({
+    bucket: bucketId,
+    name: join(pagesPath, page.name)
+  }, pageJson)
+}
+
 export {
   listOrCreatePreBuiltComponentList,
   listOrCreatePageList,
   getComponentSchemaFile,
   uploadComponentSchema,
-  deleteComponentSchema
+  deleteComponentSchema,
+  uploadPage
 }

@@ -4,4 +4,4 @@
     export let name: string
 </script>
 
-<CardLink href="pages/{name}" icon="" text={name} />
+<CardLink href="pages/{name}" icon="window" text={name} />
