@@ -83,11 +83,19 @@ const uploadPage = (page: Page) => {
   }, pageJson)
 }
 
+const getPage = (name: string) => {
+  return getObjectJSON({
+    bucket: bucketId,
+    name: join(pagesPath, name)
+  })
+}
+
 export {
   listOrCreatePreBuiltComponentList,
   listOrCreatePageList,
   getComponentSchemaFile,
   uploadComponentSchema,
   deleteComponentSchema,
-  uploadPage
+  uploadPage,
+  getPage
 }

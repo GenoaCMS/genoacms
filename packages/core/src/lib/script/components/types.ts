@@ -111,6 +111,7 @@ interface SerialzedComponentNode extends ComponentNode {
 
 interface Page {
   name: string,
+  previewURL: string,
   components: Array<ComponentNode>,
   lastModified: string
 }
