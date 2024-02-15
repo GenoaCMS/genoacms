@@ -4,7 +4,7 @@ import {
   uploadComponentSchema
 } from '$lib/script/components/components.server'
 import Ajv from 'ajv'
-import { componentSchemaFileSchema } from '$lib/script/components/schemas'
+import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schema'
 import { fail } from '@sveltejs/kit'
 
 const ajv = new Ajv()
