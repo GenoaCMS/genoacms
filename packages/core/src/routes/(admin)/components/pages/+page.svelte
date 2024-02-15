@@ -12,7 +12,7 @@
         Pages
     </h1>
     <svelte:fragment slot="right">
-        <CreatePage/>
+        <CreatePage components={data.components}/>
     </svelte:fragment>
 </TopPanel>
 

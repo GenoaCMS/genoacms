@@ -9,7 +9,7 @@ import {
 import { join } from 'path'
 import Ajv from 'ajv'
 import { componentSchemaFileSchema } from '$lib/script/components/schemas'
-import type { ComponentSchemaFile, Page } from '$lib/script/components/types'
+import type { ComponentSchemaFile, SerializedPage } from '$lib/script/components/types'
 
 const bucketId = getBucketReferences()[0] // TODO: replace with default bucket
 const componentSchemaPath = join('.genoacms', 'components/')
@@ -74,7 +74,7 @@ const deleteComponentSchema = async (name: string) => {
   })
 }
 
-const uploadPage = (page: Page) => {
+const uploadPage = (page: SerializedPage) => {
   const pageJson = JSON.stringify(page)
   // TODO: validate page
   return uploadObject({

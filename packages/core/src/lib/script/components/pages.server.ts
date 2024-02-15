@@ -1,8 +1,10 @@
-const createPage = (name: string) => {
+import type { SerializedPage } from '$lib/script/components/types'
+
+const createPage = (values: { name: string, contents: string }): SerializedPage => {
   return {
-    name,
-    components: [],
-    lastModified: new Date().toISOString()
+    previewURL: '',
+    lastModified: new Date().toISOString(),
+    ...values
   }
 }
 

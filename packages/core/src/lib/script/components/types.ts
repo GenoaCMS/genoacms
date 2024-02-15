@@ -91,15 +91,19 @@ interface ComponentNode {
   data: Record<ComponentSchema['attributes'][number]['name'], unknown>
 }
 
-interface SerialzedComponentNode extends ComponentNode {
+interface SerializedComponentNode extends Omit<ComponentNode, 'schema'> {
   schema: string
 }
 
 interface Page {
   name: string,
   previewURL: string,
-  contents: ComponentNode | null,
+  contents: ComponentNode,
   lastModified: string
+}
+
+interface SerializedPage extends Omit<Page, 'contents'> {
+  contents: string
 }
 
 export type {
@@ -119,6 +123,7 @@ export type {
   InputConfig,
   // pages --------------------------
   ComponentNode,
-  SerialzedComponentNode,
-  Page
+  SerializedComponentNode,
+  Page,
+  SerializedPage
 }

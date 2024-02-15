@@ -4,8 +4,10 @@
   import Modal from '$lib/components/Modal.svelte'
   import Input from '$lib/components/Input.svelte'
   import Button from '$lib/components/Button.svelte'
-  import { Label } from 'flowbite-svelte'
+  import { Label, Select } from 'flowbite-svelte'
+  import type { ComponentSchemaFile } from '$lib/script/components/types'
 
+  export let components: Array<ComponentSchemaFile>
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen
@@ -40,6 +42,14 @@
             <Label>
                 Name:
                 <Input type="text" name="name" class="w-full"/>
+            </Label>
+            <Label>
+                Component:
+                <Select name="contents" class="w-full">
+                    {#each components as component}
+                        <option value={component.name}>{component.name}</option>
+                    {/each}
+                </Select>
             </Label>
             <Button class="w-full mt-3">
                 Create
