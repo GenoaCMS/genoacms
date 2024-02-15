@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { attributeValue, ComponentSchemaFile } from '$lib/script/components/types'
-  import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schema'
+  import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schemas'
   import { enhance } from '$app/forms'
   import Ajv from 'ajv'
   import Modal from '$lib/components/Modal.svelte'

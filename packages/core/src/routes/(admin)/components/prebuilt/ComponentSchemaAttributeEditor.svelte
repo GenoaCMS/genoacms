@@ -4,7 +4,7 @@
     attributeToHTMLInputConfig,
     getAttributeSchemaByType,
     getAttributeTypes
-  } from '$lib/script/components/componentSchema/schema'
+  } from '$lib/script/components/componentSchema/schemas'
   import Ajv, { type JSONSchemaType } from 'ajv'
   import { Label, Select } from 'flowbite-svelte'
   import Button from '$lib/components/Button.svelte'

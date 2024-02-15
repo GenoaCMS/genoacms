@@ -1,4 +1,4 @@
-import { getPage, uploadPage } from '$lib/script/components/components.server'
+import { getPage, uploadPage } from '$lib/script/components/page/page.server'
 import { fail } from '@sveltejs/kit'
 
 export const load = async ({ params }) => {

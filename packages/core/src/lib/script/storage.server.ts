@@ -22,6 +22,8 @@ const getBucketReferences = () => {
   return config.storage.buckets
 }
 
+const defaultBucketId = getBucketReferences()[0] // TODO: get default bucket from config
+
 const fullyQualifiedNameToFilename = (name: string) => {
   if (name[name.length - 1] === '/') name = name.slice(0, -1)
   const lastIndexOfSlash = name.lastIndexOf('/')
@@ -101,6 +103,7 @@ const processDirectoryContents = async (bucketId: string, contents: DirectoryCon
 
 export {
   getBucketReferences,
+  defaultBucketId,
   createDirectory,
   deleteObject,
   getObject,
