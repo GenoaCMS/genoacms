@@ -52,7 +52,7 @@ const getPageStructure = async (name: string) => {
 const getComponentSchemaFile = async (name: string) => {
   const potentialComponentSchema = await getObjectJSON({
     bucket: bucketId,
-    name: join(prebuiltSchemaPath, name)
+    name
   })
   if (!validateComponentSchema(potentialComponentSchema)) {
     return null

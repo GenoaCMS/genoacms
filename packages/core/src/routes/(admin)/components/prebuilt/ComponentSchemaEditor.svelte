@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { attributeValue, ComponentSchemaFile } from '$lib/script/components/types'
-  import { componentSchemaSchema } from '$lib/script/components/schemas'
+  import { componentSchemaFileSchema } from '$lib/script/components/schemas'
   import { enhance } from '$app/forms'
   import Ajv from 'ajv'
   import Modal from '$lib/components/Modal.svelte'
@@ -13,7 +13,7 @@
   export let schema: ComponentSchemaFile = {
     name: '',
     versions: {
-      currentDateString: {
+      [currentDateString]: {
         version: currentDateString,
         attributes: []
       }
@@ -24,7 +24,7 @@
   }
   let isModalOpen = false
   const ajv = new Ajv()
-  const validate = ajv.compile(componentSchemaSchema)
+  const validate = ajv.compile(componentSchemaFileSchema)
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
@@ -46,6 +46,7 @@
   const serializeComponentSchema = (componentSchema: ComponentSchemaFile) => {
     const isValid = validate(componentSchema)
     if (!isValid) {
+      console.warn('Invalid component schema', validate.errors, componentSchema)
       return ''
     }
     return JSON.stringify(componentSchema)
@@ -63,7 +64,7 @@
             Attributes:
         </h2>
         <div class="py-1">
-            {#each schema.versions[0].attributes as attribute}
+            {#each schema.versions[schema.currentVersion].attributes as attribute}
                 <ComponentSchemaAttribute {attribute} on:delete={handleAttributeDeletion}/>
             {:else}
                 <p class="w-auto m-auto text-lg text-center">No attributes</p>

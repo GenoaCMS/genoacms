@@ -25,10 +25,6 @@ const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
       type: 'string',
       const: 'boolean'
     },
-    dataType: {
-      type: 'string',
-      const: 'boolean'
-    },
     defaultValue: { type: 'boolean' }
   },
   required: ['name', 'type']
@@ -41,10 +37,6 @@ const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
     type: {
-      type: 'string',
-      const: 'number'
-    },
-    dataType: {
       type: 'string',
       const: 'number'
     },
@@ -67,10 +59,6 @@ const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
       type: 'string',
       const: 'string'
     },
-    dataType: {
-      type: 'string',
-      const: 'string'
-    },
     defaultValue: { type: 'string' },
     regex: { type: 'string' },
     maxLength: { type: 'number' }
@@ -88,10 +76,6 @@ const textAttributeSchema: JSONSchemaType<TextAttribute> = {
       type: 'string',
       const: 'text'
     },
-    dataType: {
-      type: 'string',
-      const: 'string'
-    },
     defaultValue: { type: 'string' },
     maxLength: { type: 'number' }
   },
@@ -108,10 +92,6 @@ const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
       type: 'string',
       const: 'markdown'
     },
-    dataType: {
-      type: 'string',
-      const: 'string'
-    },
     defaultValue: { type: 'string' }
   },
   required: ['name', 'type']
@@ -127,10 +107,6 @@ const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
       type: 'string',
       const: 'richText'
     },
-    dataType: {
-      type: 'string',
-      const: 'string'
-    },
     defaultValue: { type: 'string' }
   },
   required: ['name', 'type']
@@ -145,11 +121,7 @@ const linkAttributeSchema: JSONSchemaType<LinkAttribute> = {
     type: {
       type: 'string',
       const: 'link'
-    },
-    dataType: {
-      type: 'string',
-      const: 'string'
-    },
+    }
   },
   required: ['name', 'type']
 }
@@ -163,10 +135,6 @@ const storageResourceAttributeSchema: JSONSchemaType<StorageResourceAttribute> =
     type: {
       type: 'string',
       const: 'storageResource'
-    },
-    dataType: {
-      type: 'string',
-      const: 'string'
     }
   },
   required: ['name', 'type']
@@ -181,14 +149,6 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
     type: {
       type: 'string',
       const: 'component'
-    },
-    dataType: {
-      type: 'object',
-      const: {
-        type: 'array',
-        items: 'string'
-      },
-      required: []
     },
     component: { type: 'string' },
     maxComponents: { type: 'number' },
@@ -235,7 +195,7 @@ const componentSchemaFileSchema: JSONSchemaType<ComponentSchemaFile> = {
     },
     currentVersion: { type: 'string' }
   },
-  required: ['versions', 'currentVersion']
+  required: ['name', 'versions', 'currentVersion']
 }
 
 const getAttributeTypes = (): Array<attributeValue['type']> => componentSchemaSchema.properties.attributes.items.oneOf
