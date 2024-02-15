@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { attributeValue, InputConfig } from '$lib/script/components/types'
+  import type { attributeValue, InputConfig } from '$lib/script/components/componentSchema/types'
   import {
     attributeToHTMLInputConfig,
     getAttributeSchemaByType,

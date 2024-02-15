@@ -3,7 +3,7 @@
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
     import { invalidateAll } from '$app/navigation'
     import { enhance } from '$app/forms'
-    import type { ComponentSchema } from '$lib/script/components/types'
+    import type { ComponentSchema } from '$lib/script/components/componentSchema/types'
     import Modal from '$lib/components/Modal.svelte'
     import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
     import ContextMenu from '$lib/components/ContextMenu.svelte'

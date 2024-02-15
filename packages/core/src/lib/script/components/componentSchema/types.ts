@@ -83,29 +83,6 @@ interface InputConfig<T extends attributeValue['type']> {
   value: unknown
 }
 
-// pages --------------------------
-
-interface ComponentNode {
-  schema: ComponentSchema,
-  code?: string,
-  data: Record<ComponentSchema['attributes'][number]['name'], unknown>
-}
-
-interface SerializedComponentNode extends Omit<ComponentNode, 'schema'> {
-  schema: string
-}
-
-interface Page {
-  name: string,
-  previewURL: string,
-  contents: ComponentNode,
-  lastModified: string
-}
-
-interface SerializedPage extends Omit<Page, 'contents'> {
-  contents: string
-}
-
 export type {
   Attribute,
   BooleanAttribute,
@@ -120,10 +97,5 @@ export type {
   attributeValue,
   ComponentSchema,
   ComponentSchemaFile,
-  InputConfig,
-  // pages --------------------------
-  ComponentNode,
-  SerializedComponentNode,
-  Page,
-  SerializedPage
+  InputConfig
 }

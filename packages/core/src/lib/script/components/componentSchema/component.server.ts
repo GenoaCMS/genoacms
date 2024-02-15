@@ -7,8 +7,8 @@ import {
 } from '$lib/script/storage.server'
 import { join } from 'path'
 import Ajv from 'ajv'
-import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schemas'
-import type { ComponentSchemaFile } from '$lib/script/components/types'
+import { componentSchemaFileSchema } from './schemas'
+import type { ComponentSchemaFile } from './types'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
 const ajv = new Ajv()

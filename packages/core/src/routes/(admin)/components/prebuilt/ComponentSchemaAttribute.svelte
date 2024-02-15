@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { attributeValue } from '$lib/script/components/types'
+  import type { attributeValue } from '$lib/script/components/componentSchema/types'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
   import Modal from '$lib/components/Modal.svelte'
   import { createEventDispatcher } from 'svelte'
