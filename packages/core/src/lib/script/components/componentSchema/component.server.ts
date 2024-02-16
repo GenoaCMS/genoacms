@@ -3,7 +3,8 @@ import {
   defaultBucketId,
   getObjectJSON,
   listOrCreateDirectory,
-  uploadObject
+  uploadObject,
+  fullyQualifiedNameToFilename
 } from '$lib/script/storage.server'
 import { join } from 'path'
 import Ajv from 'ajv'
@@ -20,15 +21,16 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchem
     name: prebuiltSchemaPath
   })
   const componentSchemaPromises = componentList.files
-    .map(async component => getComponentSchemaFile(component.name))
+    .map(async component => getComponentSchemaFile(fullyQualifiedNameToFilename(component.name)))
   const componentSchemas = await Promise.all(componentSchemaPromises)
-  return componentSchemas.filter(schema => schema !== null)
+  return componentSchemas.filter(schema => schema !== null) as Array<ComponentSchemaFile>
 }
 
-const getComponentSchemaFile = async (name: string) => {
+const getComponentSchemaFile = async (name: string): Promise<ComponentSchemaFile | null> => {
+  console.log('getComponentSchemaFile', name)
   const potentialComponentSchema = await getObjectJSON({
     bucket: defaultBucketId,
-    name
+    name: join(prebuiltSchemaPath, name)
   })
   if (!validateComponentSchema(potentialComponentSchema)) {
     return null

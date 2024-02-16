@@ -1,4 +1,4 @@
-import type { SerializedPage } from '$lib/script/components/types'
+import type { Page, SerializedPage } from './types'
 import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
@@ -7,6 +7,12 @@ import {
   uploadObject
 } from '$lib/script/storage.server'
 import { join } from 'path'
+import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
+import {
+  componentSchemaToNode,
+  deserializeComponentNode,
+  serializeComponentNode
+} from '$lib/script/components/page/tree'
 
 const pagesPath = join('.genoacms', 'pages/')
 
@@ -22,11 +28,15 @@ const listOrCreatePageList = async () => {
   return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
-const createPage = (values: { name: string, contents: string }): SerializedPage => {
+const createPage = async (values: { name: string, componentName: string }): Promise<Page> => {
+  const component = await getComponentSchemaFile(values.componentName)
+  if (!component) throw new Error('no-component')
+  const componentNode = componentSchemaToNode(component)
   return {
+    name: values.name,
     previewURL: '',
-    lastModified: new Date().toISOString(),
-    ...values
+    contents: componentNode,
+    lastModified: new Date().toISOString()
   }
 }
 
@@ -39,16 +49,36 @@ const uploadPage = (page: SerializedPage) => {
   }, pageJson)
 }
 
-const getPage = (name: string) => {
-  return getObjectJSON({
+const getPage = async (name: string): Promise<SerializedPage> => {
+  return await getObjectJSON({
     bucket: defaultBucketId,
     name: join(pagesPath, name)
   })
+}
+
+const serializePage = (page: Page): SerializedPage => {
+  return {
+    name: page.name,
+    previewURL: page.previewURL,
+    contents: serializeComponentNode(page.contents),
+    lastModified: page.lastModified
+  }
+}
+
+const deserializePage = async (page: SerializedPage): Promise<Page> => {
+  return {
+    name: page.name,
+    previewURL: page.previewURL,
+    contents: await deserializeComponentNode(page.contents),
+    lastModified: page.lastModified
+  }
 }
 
 export {
   listOrCreatePageList,
   createPage,
   uploadPage,
-  getPage
+  getPage,
+  serializePage,
+  deserializePage
 }

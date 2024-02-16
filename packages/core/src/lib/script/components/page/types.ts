@@ -1,13 +1,16 @@
-import type { ComponentSchema } from '$lib/script/components/componentSchema/types'
+import type { ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+
+type ComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], unknown>
 
 interface ComponentNode {
-  schema: ComponentSchema,
+  schemaFile: ComponentSchemaFile,
   code?: string,
-  data: Record<ComponentSchema['attributes'][number]['name'], unknown>
+  data: ComponentNodeData
 }
 
-interface SerializedComponentNode extends Omit<ComponentNode, 'schema'> {
-  schema: string
+interface SerializedComponentNode extends Omit<ComponentNode, 'schemaFile' | 'data'> {
+  schemaName: string,
+  data: string
 }
 
 interface Page {
@@ -22,6 +25,7 @@ interface SerializedPage extends Omit<Page, 'contents'> {
 }
 
 export type {
+  ComponentNodeData,
   ComponentNode,
   SerializedComponentNode,
   Page,

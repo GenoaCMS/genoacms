@@ -1,9 +1,10 @@
-import { getPage, uploadPage } from '$lib/script/components/page/page.server'
+import { deserializePage, getPage, uploadPage } from '$lib/script/components/page/page.server'
 import { fail } from '@sveltejs/kit'
 
 export const load = async ({ params }) => {
   const { pageName } = params
-  const page = await getPage(pageName)
+  const serializedPage = await getPage(pageName)
+  const page = await deserializePage(serializedPage)
   return {
     page
   }

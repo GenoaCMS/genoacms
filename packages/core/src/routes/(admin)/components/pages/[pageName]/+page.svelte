@@ -1,6 +1,7 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
+  import Editor from './Editor.svelte'
 
   export let data
   $: console.log(data)
@@ -27,7 +28,7 @@
             {/if}
         </div>
         <div class="col-span-2">
-
+            <Editor {...data.page} />
         </div>
     </div>
 </div>

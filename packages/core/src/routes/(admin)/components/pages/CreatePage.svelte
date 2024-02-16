@@ -5,7 +5,7 @@
   import Input from '$lib/components/Input.svelte'
   import Button from '$lib/components/Button.svelte'
   import { Label, Select } from 'flowbite-svelte'
-  import type { ComponentSchemaFile } from '$lib/script/components/types'
+  import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
 
   export let components: Array<ComponentSchemaFile>
   let isModalOpen = false
@@ -45,7 +45,7 @@
             </Label>
             <Label>
                 Component:
-                <Select name="contents" class="w-full">
+                <Select name="componentName" class="w-full">
                     {#each components as component}
                         <option value={component.name}>{component.name}</option>
                     {/each}
