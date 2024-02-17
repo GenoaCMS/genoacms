@@ -3,7 +3,8 @@ import type {
   attributeValue,
   BooleanAttribute,
   ComponentSchema,
-  ComponentsAttribute, InputConfig,
+  ComponentsAttribute,
+  InputConfig,
   LinkAttribute,
   MarkdownAttribute,
   NumberAttribute,
@@ -11,7 +12,7 @@ import type {
   StorageResourceAttribute,
   StringAttribute,
   TextAttribute, ComponentSchemaFile
-} from '$lib/script/components/types'
+} from './types'
 import type { PartialSchema } from 'ajv/dist/types/json-schema'
 import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
 
@@ -242,6 +243,26 @@ const attributeToHTMLInputConfig = (name: attributeValue['type'], attribute: Par
   }
 }
 
+const booleanValueSchema: JSONSchemaType<boolean> = {
+  type: 'boolean'
+}
+
+const numberValueSchema: JSONSchemaType<number> = {
+  type: 'number'
+}
+
+const stringValueSchema: JSONSchemaType<string> = {
+  type: 'string'
+}
+
+const componentsValueSchema: JSONSchemaType<Array<string>> = {
+  type: 'array',
+  items: {
+    type: 'string',
+    enum: []
+  }
+}
+
 export {
   booleanAttributeSchema,
   numberAttributeSchema,
@@ -256,5 +277,9 @@ export {
   componentSchemaFileSchema,
   getAttributeTypes,
   getAttributeSchemaByType,
-  attributeToHTMLInputConfig
+  attributeToHTMLInputConfig,
+  booleanValueSchema,
+  numberValueSchema,
+  stringValueSchema,
+  componentsValueSchema
 }

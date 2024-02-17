@@ -27,7 +27,6 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchem
 }
 
 const getComponentSchemaFile = async (name: string): Promise<ComponentSchemaFile | null> => {
-  console.log('getComponentSchemaFile', name)
   const potentialComponentSchema = await getObjectJSON({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, name)

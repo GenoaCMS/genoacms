@@ -60,6 +60,7 @@ interface ComponentsAttribute extends Attribute {
 
 type attributeValue = BooleanAttribute | NumberAttribute | StringAttribute | TextAttribute | MarkdownAttribute
   | RichTextAttribute | LinkAttribute | StorageResourceAttribute | ComponentsAttribute
+type attributeType = attributeValue['type']
 
 interface ComponentSchema {
   version: string,
@@ -95,6 +96,7 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   attributeValue,
+  attributeType,
   ComponentSchema,
   ComponentSchemaFile,
   InputConfig

@@ -36,7 +36,6 @@ const isDirectoryExisting = (directory: DirectoryContents) => { // TODO: move to
 
 const listOrCreateDirectory = async (reference: ObjectReference) => {
   const componentList = await listDirectory(reference)
-  console.log('componentList', componentList.files)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
     await createDirectory(reference)

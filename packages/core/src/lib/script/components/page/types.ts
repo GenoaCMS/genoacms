@@ -1,16 +1,31 @@
-import type { ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+import type { ComponentSchema } from '$lib/script/components/componentSchema/types'
+import type { JSONSchemaType } from 'ajv'
 
-type ComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], unknown>
+type PrimitiveAttributeValue = boolean | number | string
+// eslint-disable-next-line no-use-before-define
+type AttributeValue = PrimitiveAttributeValue | Array<ComponentNode>
+// eslint-disable-next-line no-use-before-define
+type SerializedAttributeValue = PrimitiveAttributeValue | Array<SerializedComponentNode>
+
+interface AttributeData {
+  name: string,
+  schema: JSONSchemaType<AttributeValue>,
+  value: AttributeValue
+}
+interface SerializedAttributeData extends Omit<AttributeData, 'schema' | 'value'> {
+  value: SerializedAttributeValue
+}
+
+type ComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], AttributeData>
+type SerializedComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], SerializedAttributeData>
 
 interface ComponentNode {
-  schemaFile: ComponentSchemaFile,
-  code?: string,
+  schemaName: string,
   data: ComponentNodeData
 }
 
-interface SerializedComponentNode extends Omit<ComponentNode, 'schemaFile' | 'data'> {
-  schemaName: string,
-  data: string
+interface SerializedComponentNode extends Omit<ComponentNode, 'data'> {
+  data: SerializedComponentNodeData
 }
 
 interface Page {
@@ -25,7 +40,13 @@ interface SerializedPage extends Omit<Page, 'contents'> {
 }
 
 export type {
+  PrimitiveAttributeValue,
+  AttributeValue,
+  SerializedAttributeValue,
+  AttributeData,
+  SerializedAttributeData,
   ComponentNodeData,
+  SerializedComponentNodeData,
   ComponentNode,
   SerializedComponentNode,
   Page,

@@ -1,8 +1,14 @@
-import type { ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
-import type { ComponentNode, ComponentNodeData, SerializedComponentNode } from '$lib/script/components/page/types'
+import type { attributeValue, ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+import type {
+  AttributeData, AttributeValue,
+  ComponentNode,
+  ComponentNodeData, PrimitiveAttributeValue, SerializedAttributeData, SerializedAttributeValue,
+  SerializedComponentNode, SerializedComponentNodeData
+} from '$lib/script/components/page/types'
 import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
+import { attributeToSchema } from '$lib/script/components/componentSchema/schemas.server'
 
-const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][number]['type']) => {
+const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][number]['type']): AttributeValue => {
   switch (type) {
     case 'boolean':
       return false
@@ -17,69 +23,108 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
       return ''
     case 'component':
       return []
-    default:
-      return null
   }
 }
 
-const componentSchemaToNode = (schemaFile: ComponentSchemaFile): ComponentNode => {
-  const data: Record<string, unknown> = {}
+const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<ComponentNode> => {
+  const data: ComponentNodeData = {}
   const schema = schemaFile.versions[schemaFile.currentVersion]
   for (const attribute of schema.attributes) {
-    data[attribute.name] = 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
+    data[attribute.name] = {
+      name: attribute.name,
+      schema: await attributeToSchema(attribute),
+      value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
+    } satisfies AttributeData
   }
   return {
-    schemaFile,
+    schemaName: schemaFile.name,
     data
   }
 }
 
-const serializeData = (schema: ComponentSchema, data: ComponentNodeData) => {
-  const serializedData: Record<string, unknown> = {}
-  for (const attribute of schema.attributes) {
-    if (attribute.type === 'component') {
-      serializedData[attribute.name] = data[attribute.name].map((component: ComponentNode) => serializeComponentNode(component))
-    } else {
-      serializedData[attribute.name] = data[attribute.name]
-    }
+const serializeAttributeData = (data: AttributeData): SerializedAttributeData => {
+  let value: SerializedAttributeValue
+  if (data.schema.type === 'component') {
+    if (!Array.isArray(data.value)) throw new Error('invalid-component-value')
+    value = data.value.map((component: ComponentNode) => serializeComponentNode(component))
+  } else {
+    value = data.value
   }
-  return JSON.stringify(serializedData)
+  return {
+    name: data.name,
+    value
+  }
 }
 
-const serializeComponentNode = (node: ComponentNode): string => {
-  return JSON.stringify({
-    schemaName: node.schemaFile.name,
-    data: serializeData(node.schemaFile.versions[node.schemaFile.currentVersion], node.data)
-  })
+const serializeData = (data: ComponentNodeData): SerializedComponentNodeData => {
+  const serializedData: SerializedComponentNodeData = {}
+  for (const attributeName in data) {
+    const attributeData = data[attributeName]
+    serializedData[attributeName] = serializeAttributeData(attributeData)
+  }
+  return serializedData
 }
 
-const deserializeData = (schema: ComponentSchema, data: ComponentNodeData) => {
-  const deserializedData: Record<string, unknown> = {}
+const serializeComponentNode = (node: ComponentNode): SerializedComponentNode => {
+  return {
+    schemaName: node.schemaName,
+    data: serializeData(node.data)
+  }
+}
+
+const serializeComponentTree = (tree: ComponentNode): string => {
+  const serializedNode = serializeComponentNode(tree)
+  return JSON.stringify(serializedNode)
+}
+
+const deserializeAttributeValue = async (type: attributeValue['type'], value: SerializedAttributeValue): Promise<AttributeValue> => {
+  if (type !== 'component') {
+    return value as PrimitiveAttributeValue
+  }
+  console.log(value)
+  const componentNodePromises: Array<Promise<ComponentNode>> = value.map((component) => deserializeComponentNode(component))
+  return await Promise.all(componentNodePromises)
+}
+
+const deserializeAttributeData = async (schemaAttribute: attributeValue, value: SerializedAttributeData): Promise<AttributeData> => {
+  return {
+    name: schemaAttribute.name,
+    schema: await attributeToSchema(schemaAttribute),
+    value: await deserializeAttributeValue(schemaAttribute.type, value.value)
+  }
+}
+
+const deserializeData = async (schema: ComponentSchema, data: SerializedComponentNodeData) => {
+  const deserializedData: ComponentNodeData = {}
+  const attributePromises: Array<Promise<AttributeData>> = []
   for (const attribute of schema.attributes) {
-    if (attribute.type === 'component') {
-      deserializedData[attribute.name] = data[attribute.name].map((component: string) => deserializeComponentNode(component))
-    } else {
-      deserializedData[attribute.name] = data[attribute.name]
-    }
+    const attributeData = data[attribute.name]
+    attributePromises.push(deserializeAttributeData(attribute, attributeData))
+  }
+  for (const attribute of await Promise.all(attributePromises)) {
+    deserializedData[attribute.name] = attribute
   }
   return deserializedData
 }
 
-const deserializeComponentNode = async (nodeJSON: string): Promise<ComponentNode> => {
-  console.log(nodeJSON)
-  const node = JSON.parse(nodeJSON) as SerializedComponentNode
+const deserializeComponentNode = async (node: SerializedComponentNode): Promise<ComponentNode> => {
   const schemaFile = await getComponentSchemaFile(node.schemaName)
   if (!schemaFile) throw new Error('no-schema')
   const schema = schemaFile.versions[schemaFile.currentVersion]
-  const data = deserializeData(schema, JSON.parse(node.data))
+  const data = await deserializeData(schema, node.data)
   return {
-    schemaFile,
+    schemaName: schemaFile.name,
     data
   }
 }
 
+const deserializeComponentTree = async (nodeJSON: string) => {
+  const node = JSON.parse(nodeJSON) as SerializedComponentNode
+  return deserializeComponentNode(node)
+}
+
 export {
   componentSchemaToNode,
-  serializeComponentNode,
-  deserializeComponentNode
+  serializeComponentTree,
+  deserializeComponentTree
 }

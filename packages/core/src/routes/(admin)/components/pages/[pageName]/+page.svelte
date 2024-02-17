@@ -1,7 +1,7 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
-  import Editor from './Editor.svelte'
+  import Editor from './Editor/Editor.svelte'
 
   export let data
   $: console.log(data)

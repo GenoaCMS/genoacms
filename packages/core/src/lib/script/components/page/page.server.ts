@@ -10,8 +10,8 @@ import { join } from 'path'
 import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
 import {
   componentSchemaToNode,
-  deserializeComponentNode,
-  serializeComponentNode
+  deserializeComponentTree,
+  serializeComponentTree
 } from '$lib/script/components/page/tree'
 
 const pagesPath = join('.genoacms', 'pages/')
@@ -31,7 +31,8 @@ const listOrCreatePageList = async () => {
 const createPage = async (values: { name: string, componentName: string }): Promise<Page> => {
   const component = await getComponentSchemaFile(values.componentName)
   if (!component) throw new Error('no-component')
-  const componentNode = componentSchemaToNode(component)
+  const componentNode = await componentSchemaToNode(component)
+
   return {
     name: values.name,
     previewURL: '',
@@ -60,7 +61,7 @@ const serializePage = (page: Page): SerializedPage => {
   return {
     name: page.name,
     previewURL: page.previewURL,
-    contents: serializeComponentNode(page.contents),
+    contents: serializeComponentTree(page.contents),
     lastModified: page.lastModified
   }
 }
@@ -69,7 +70,7 @@ const deserializePage = async (page: SerializedPage): Promise<Page> => {
   return {
     name: page.name,
     previewURL: page.previewURL,
-    contents: await deserializeComponentNode(page.contents),
+    contents: await deserializeComponentTree(page.contents),
     lastModified: page.lastModified
   }
 }
