@@ -1,12 +1,15 @@
 import { deserializePage, getPage, uploadPage } from '$lib/script/components/page/page.server'
 import { fail } from '@sveltejs/kit'
+import { listOrCreatePreBuiltComponentList } from '$lib/script/components/componentSchema/component.server'
 
 export const load = async ({ params }) => {
   const { pageName } = params
   const serializedPage = await getPage(pageName)
   const page = await deserializePage(serializedPage)
+  const componentSchemas = await listOrCreatePreBuiltComponentList()
   return {
-    page
+    page,
+    componentSchemas
   }
 }
 

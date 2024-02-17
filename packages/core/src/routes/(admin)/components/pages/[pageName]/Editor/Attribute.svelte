@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Select } from 'flowbite-svelte'
     import type { AttributeData } from '$lib/script/components/page/types'
+    import Components from './types/Components.svelte'
     // import {JSONEditor } from '@json-editor/json-editor/src/core.js'
 
     const setupEditor = async () => {
@@ -21,8 +21,6 @@
 <div use:editor>
     {attribute.name}
     {#if attribute.schema.type === 'array'}
-        <Select>
-            <option value="1">One</option>
-        </Select>
+        <Components data={attribute} />
     {/if}
 </div>
