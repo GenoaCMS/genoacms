@@ -1,5 +1,6 @@
 <script>
     import NavbarItem from './NavbarItem.svelte'
+    import { DarkMode } from 'flowbite-svelte'
 
     const pages = [
       {
@@ -36,6 +37,7 @@
             {#each pages as page}
                 <NavbarItem {...page}/>
             {/each}
+            <DarkMode/>
         </div>
     </div>
     <div class="col-span-5">
