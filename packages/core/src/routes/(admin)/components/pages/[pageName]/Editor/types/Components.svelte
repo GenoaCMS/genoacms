@@ -1,11 +1,13 @@
 <script lang="ts">
-    import type { AttributeData } from '$lib/script/components/page/types'
+    import type { AttributeData, ComponentNode as ComponentNodeT } from '$lib/script/components/page/types'
     import { page } from '$app/stores'
     import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
     import type { JSONSchemaType } from 'ajv'
     import Modal from '$lib/components/Modal.svelte'
     import ComponentNode from '../ComponentNode.svelte'
     import Component from './Component.svelte'
+    import { enhance } from '$app/forms'
+    import { toastError } from '$lib/script/alert'
 
     export let data: AttributeData
     let isModalOpen = false
@@ -16,11 +18,18 @@
       if (dataSchema.items.enum.length === 0) return components
       return components.filter((component) => dataSchema.items.enum.includes(component.name))
     }
-    const addComponent = (event: CustomEvent) => {
-      const schema: ComponentSchemaFile = event.detail
-      // TODO: create component node, add it to the data.value array
+    const addComponent = () => {
+      isModalOpen = false
+      return async ({ result }) => {
+        if (result.type !== 'success') {
+          toastError('Failed to add component')
+          return
+        }
+        const newNode = result.data.node
+        data.value = [...(data.value as Array<ComponentNodeT>), newNode]
+      }
     }
-    $: possibleSubcomponents = getSubcomponents($page.componentSchemas, data.schema)
+    $: possibleSubcomponents = getSubcomponents($page.data.componentSchemas, data.schema)
 </script>
 
 <div>
@@ -40,17 +49,17 @@
     </div>
 </div>
 
-<Modal>
+<Modal bind:isOpen={isModalOpen}>
     <svelte:fragment slot="header">
         <h2>
             Add a new component
         </h2>
     </svelte:fragment>
-    <div class="grid grid-cols-4">
+    <div class="w-full grid grid-cols-4 gap-5 p-5">
         {#each possibleSubcomponents as componentSchema}
-            <div>
-                <Component schema={componentSchema} on:select={addComponent}/>
-            </div>
+            <form action="?/componentSchemaToNode" method="post" use:enhance={addComponent} class="col-span-1">
+                <Component schema={componentSchema}/>
+            </form>
         {/each}
     </div>
 </Modal>
