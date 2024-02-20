@@ -7,6 +7,7 @@
 
 <Label>
     <span class="text-xl">{data.name}</span>
-    <Input type="number" bind:value={data.value} min={data.schema?.minimum} max={data.schema?.maximum}
-           step={data.schema?.multipleOf} required={!data.schema.nullable}/>
+    <Input type="number" bind:value={data.value} min={data.schema.minimum || undefined}
+           max={data.schema.maximum || undefined} step={data.schema.multipleOf || undefined}
+           required={!data.schema.nullable}/>
 </Label>

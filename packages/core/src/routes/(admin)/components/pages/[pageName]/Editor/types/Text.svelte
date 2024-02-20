@@ -7,5 +7,6 @@
 
 <Label>
     <span class="text-xl">{data.name}</span>
-    <Textarea type="text" bind:value={data.value} maxlength={data.schema?.maxLength} required={!data.schema.nullable}/>
+    <Textarea type="text" bind:value={data.value} maxlength={data.schema.maxLength || undefined}
+              required={!data.schema.nullable}/>
 </Label>
