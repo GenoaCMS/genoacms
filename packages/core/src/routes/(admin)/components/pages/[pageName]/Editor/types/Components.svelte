@@ -9,7 +9,7 @@
     import { toastError } from '$lib/script/alert'
     import Subcomponent from './Subcomponent.svelte'
 
-    export let data: AttributeData
+    export let data: AttributeData<Array<ComponentNode>>
     let isModalOpen = false
     const toggleModal = () => {
       isModalOpen = !isModalOpen

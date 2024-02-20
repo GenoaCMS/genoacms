@@ -1,4 +1,3 @@
-import type { ComponentSchema } from '$lib/script/components/componentSchema/types'
 import type { JSONSchemaType } from 'ajv'
 
 type PrimitiveAttributeValue = boolean | number | string
@@ -7,10 +6,10 @@ type AttributeValue = PrimitiveAttributeValue | Array<ComponentNode>
 // eslint-disable-next-line no-use-before-define
 type SerializedAttributeValue = PrimitiveAttributeValue | Array<SerializedComponentNode>
 
-interface AttributeData {
+interface AttributeData<T extends AttributeValue = AttributeValue> {
   name: string,
-  schema: JSONSchemaType<AttributeValue>,
-  value: AttributeValue
+  schema: JSONSchemaType<T>,
+  value: T
 }
 interface SerializedAttributeData extends Omit<AttributeData, 'schema' | 'value'> {
   value: SerializedAttributeValue
