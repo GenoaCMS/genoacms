@@ -1,4 +1,9 @@
-import { deserializePage, getPage, uploadPage } from '$lib/script/components/page/page.server'
+import {
+  deserializePage,
+  getPage,
+  serializePartialPage,
+  uploadPage
+} from '$lib/script/components/page/page.server'
 import { fail } from '@sveltejs/kit'
 import { listOrCreatePreBuiltComponentList } from '$lib/script/components/componentSchema/component.server'
 import { componentSchemaToNode } from '$lib/script/components/page/tree'
@@ -23,7 +28,7 @@ export const actions = {
     const data = await request.formData()
     const diffText = data.get('diff')
     if (!diffText || typeof diffText !== 'string') return fail(400, { reason: 'no-diff' })
-    const diff = JSON.parse(diffText)
+    const diff = serializePartialPage(JSON.parse(diffText))
     const page = await getPage(pageName)
 
     await uploadPage({

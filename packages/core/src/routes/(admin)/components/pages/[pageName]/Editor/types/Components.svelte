@@ -39,7 +39,7 @@
         </h3>
         {#each data.value as childComponentNode}
 <!--            TODO: figure out routing to display the component as current and allow for navigating to parent-->
-            <ComponentNode node={childComponentNode}/>
+            <ComponentNode bind:node={childComponentNode}/>
         {/each}
     </div>
     <div class="w-full">

@@ -27,14 +27,14 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
 }
 
 const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<ComponentNode> => {
-  const data: ComponentNodeData = {}
+  const data: ComponentNodeData = []
   const schema = schemaFile.versions[schemaFile.currentVersion]
   for (const attribute of schema.attributes) {
-    data[attribute.name] = {
+    data.push({
       name: attribute.name,
       schema: await attributeToSchema(attribute),
       value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
-    } satisfies AttributeData
+    } satisfies AttributeData)
   }
   return {
     schemaName: schemaFile.name,
@@ -57,10 +57,9 @@ const serializeAttributeData = (data: AttributeData): SerializedAttributeData =>
 }
 
 const serializeData = (data: ComponentNodeData): SerializedComponentNodeData => {
-  const serializedData: SerializedComponentNodeData = {}
-  for (const attributeName in data) {
-    const attributeData = data[attributeName]
-    serializedData[attributeName] = serializeAttributeData(attributeData)
+  const serializedData: SerializedComponentNodeData = []
+  for (const attributeData of data) {
+    serializedData.push(serializeAttributeData(attributeData))
   }
   return serializedData
 }
@@ -72,16 +71,10 @@ const serializeComponentNode = (node: ComponentNode): SerializedComponentNode =>
   }
 }
 
-const serializeComponentTree = (tree: ComponentNode): string => {
-  const serializedNode = serializeComponentNode(tree)
-  return JSON.stringify(serializedNode)
-}
-
 const deserializeAttributeValue = async (type: attributeValue['type'], value: SerializedAttributeValue): Promise<AttributeValue> => {
   if (type !== 'component') {
     return value as PrimitiveAttributeValue
   }
-  console.log(value)
   const componentNodePromises: Array<Promise<ComponentNode>> = value.map((component) => deserializeComponentNode(component))
   return await Promise.all(componentNodePromises)
 }
@@ -95,15 +88,13 @@ const deserializeAttributeData = async (schemaAttribute: attributeValue, value: 
 }
 
 const deserializeData = async (schema: ComponentSchema, data: SerializedComponentNodeData) => {
-  const deserializedData: ComponentNodeData = {}
   const attributePromises: Array<Promise<AttributeData>> = []
   for (const attribute of schema.attributes) {
-    const attributeData = data[attribute.name]
+    const attributeData = data.find((data) => data.name === attribute.name)
+    if (!attributeData) throw new Error('missing-attribute')
     attributePromises.push(deserializeAttributeData(attribute, attributeData))
   }
-  for (const attribute of await Promise.all(attributePromises)) {
-    deserializedData[attribute.name] = attribute
-  }
+  const deserializedData: ComponentNodeData = await Promise.all(attributePromises)
   return deserializedData
 }
 
@@ -118,13 +109,8 @@ const deserializeComponentNode = async (node: SerializedComponentNode): Promise<
   }
 }
 
-const deserializeComponentTree = async (nodeJSON: string) => {
-  const node = JSON.parse(nodeJSON) as SerializedComponentNode
-  return deserializeComponentNode(node)
-}
-
 export {
   componentSchemaToNode,
-  serializeComponentTree,
-  deserializeComponentTree
+  serializeComponentNode,
+  deserializeComponentNode
 }

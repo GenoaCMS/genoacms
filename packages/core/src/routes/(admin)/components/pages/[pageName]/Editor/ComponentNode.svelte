@@ -5,6 +5,6 @@
     export let node: ComponentNode
 </script>
 
-{#each Object.values(node.data) as attribute (attribute.name)}
-    <Attribute {attribute} />
+{#each node.data as attribute (attribute.name)}
+    <Attribute bind:attribute />
 {/each}

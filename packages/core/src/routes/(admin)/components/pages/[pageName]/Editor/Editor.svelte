@@ -10,6 +10,6 @@
         Contents:
     </div>
     <div>
-        <ComponentNode node={contents} />
+        <ComponentNode bind:node={contents} />
     </div>
 </div>

@@ -10,8 +10,8 @@ import { join } from 'path'
 import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
 import {
   componentSchemaToNode,
-  deserializeComponentTree,
-  serializeComponentTree
+  deserializeComponentNode,
+  serializeComponentNode
 } from '$lib/script/components/page/tree'
 
 const pagesPath = join('.genoacms', 'pages/')
@@ -57,11 +57,20 @@ const getPage = async (name: string): Promise<SerializedPage> => {
   })
 }
 
+const serializePartialPage = (partialPage: Partial<Page>): Partial<SerializedPage> => {
+  const serialized: Partial<SerializedPage> = {}
+  if (partialPage.name) serialized.name = partialPage.name
+  if (partialPage.previewURL) serialized.previewURL = partialPage.previewURL
+  if (partialPage.contents) serialized.contents = serializeComponentNode(partialPage.contents)
+  if (partialPage.lastModified) serialized.lastModified = partialPage.lastModified
+  return serialized
+}
+
 const serializePage = (page: Page): SerializedPage => {
   return {
     name: page.name,
     previewURL: page.previewURL,
-    contents: serializeComponentTree(page.contents),
+    contents: serializeComponentNode(page.contents),
     lastModified: page.lastModified
   }
 }
@@ -70,7 +79,7 @@ const deserializePage = async (page: SerializedPage): Promise<Page> => {
   return {
     name: page.name,
     previewURL: page.previewURL,
-    contents: await deserializeComponentTree(page.contents),
+    contents: await deserializeComponentNode(page.contents),
     lastModified: page.lastModified
   }
 }
@@ -80,6 +89,7 @@ export {
   createPage,
   uploadPage,
   getPage,
+  serializePartialPage,
   serializePage,
   deserializePage
 }

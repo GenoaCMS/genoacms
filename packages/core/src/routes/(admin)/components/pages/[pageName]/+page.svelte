@@ -2,9 +2,9 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
   import Editor from './Editor/Editor.svelte'
+  import SavePageContents from './SavePageContents.svelte'
 
   export let data
-  $: console.log(data)
 </script>
 
 <div class="h-full flex flex-col">
@@ -13,6 +13,7 @@
             {data.page.name}
         </h1>
         <svelte:fragment slot="right">
+            <SavePageContents contents={data.page.contents} />
             <UpdatePreviewURL value={data.page.previewURL}/>
         </svelte:fragment>
     </TopPanel>
@@ -28,7 +29,7 @@
             {/if}
         </div>
         <div class="col-span-2">
-            <Editor {...data.page} />
+            <Editor bind:contents={data.page.contents} />
         </div>
     </div>
 </div>

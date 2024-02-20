@@ -16,8 +16,8 @@ interface SerializedAttributeData extends Omit<AttributeData, 'schema' | 'value'
   value: SerializedAttributeValue
 }
 
-type ComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], AttributeData>
-type SerializedComponentNodeData = Record<ComponentSchema['attributes'][number]['name'], SerializedAttributeData>
+type ComponentNodeData = Array<AttributeData>
+type SerializedComponentNodeData = Array<SerializedAttributeData>
 
 interface ComponentNode {
   schemaName: string,
@@ -36,7 +36,7 @@ interface Page {
 }
 
 interface SerializedPage extends Omit<Page, 'contents'> {
-  contents: string
+  contents: SerializedComponentNode
 }
 
 export type {
