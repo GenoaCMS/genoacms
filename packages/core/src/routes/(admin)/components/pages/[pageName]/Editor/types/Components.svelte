@@ -1,13 +1,13 @@
 <script lang="ts">
-    import type { AttributeData, ComponentNode as ComponentNodeT } from '$lib/script/components/page/types'
+    import type { AttributeData, ComponentNode } from '$lib/script/components/page/types'
     import { page } from '$app/stores'
     import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
     import type { JSONSchemaType } from 'ajv'
     import Modal from '$lib/components/Modal.svelte'
-    import ComponentNode from '../ComponentNode.svelte'
     import Component from './Component.svelte'
     import { enhance } from '$app/forms'
     import { toastError } from '$lib/script/alert'
+    import Subcomponent from './Subcomponent.svelte'
 
     export let data: AttributeData
     let isModalOpen = false
@@ -26,7 +26,7 @@
           return
         }
         const newNode = result.data.node
-        data.value = [...(data.value as Array<ComponentNodeT>), newNode]
+        data.value = [...(data.value as Array<ComponentNode>), newNode]
       }
     }
     $: possibleSubcomponents = getSubcomponents($page.data.componentSchemas, data.schema)
@@ -37,13 +37,14 @@
         <h3>
             {data.name}
         </h3>
-        {#each data.value as childComponentNode}
-<!--            TODO: figure out routing to display the component as current and allow for navigating to parent-->
-            <ComponentNode bind:node={childComponentNode}/>
-        {/each}
+        <div class="flex flex-col">
+            {#each data.value as childComponentNode}
+                <Subcomponent bind:node={childComponentNode}/>
+            {/each}
+        </div>
     </div>
-    <div class="w-full">
-        <button type="button" on:click={toggleModal}>
+    <div class="w-full flex py-3">
+        <button type="button" on:click={toggleModal} class="mx-auto">
             <i class="bi bi-plus-circle text-4xl"/>
         </button>
     </div>

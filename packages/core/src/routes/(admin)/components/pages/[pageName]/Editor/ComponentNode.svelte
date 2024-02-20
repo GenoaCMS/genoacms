@@ -5,6 +5,13 @@
     export let node: ComponentNode
 </script>
 
-{#each node.data as attribute (attribute.name)}
-    <Attribute bind:attribute />
-{/each}
+<div>
+    <h2>
+        {node.schemaName}
+    </h2>
+    <div class="border">
+        {#each node.data as attribute (attribute.name)}
+            <Attribute bind:attribute />
+        {/each}
+    </div>
+</div>

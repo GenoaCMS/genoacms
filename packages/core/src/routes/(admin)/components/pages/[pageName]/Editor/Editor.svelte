@@ -5,11 +5,13 @@
     export let contents: ComponentNodeT
 </script>
 
-<div class="p-4">
+<div class="h-full flex flex-col p-4">
     <div class="text-2xl">
         Contents:
     </div>
-    <div>
-        <ComponentNode bind:node={contents} />
+    <div class="relative flex-grow">
+        <div class="absolute top-0 bottom-0 start-0 end-0">
+            <ComponentNode bind:node={contents} />
+        </div>
     </div>
 </div>

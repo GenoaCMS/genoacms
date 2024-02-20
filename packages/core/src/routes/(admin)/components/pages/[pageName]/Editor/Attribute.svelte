@@ -6,7 +6,6 @@
 </script>
 
 <div>
-    {attribute.name}
     {#if attribute.schema.type === 'array'}
         <Components bind:data={attribute} />
     {/if}
