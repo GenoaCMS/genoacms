@@ -5,6 +5,7 @@ export default {
   darkMode: 'class',
   theme: {
     colors: {},
+    borderRadius: 0,
     extend: {
       colors: {
         dark: '#1F271B',
