@@ -5,6 +5,6 @@
   export let data: AttributeData<boolean>
 </script>
 
-<Toggle bind:checked={data.value}>
-    {data.name}
+<Toggle bind:checked={data.value} required={!data.schema.nullable}>
+    <span class="text-xl">{data.name}</span>
 </Toggle>
