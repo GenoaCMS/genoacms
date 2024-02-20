@@ -5,6 +5,7 @@
     import Number from './types/Number.svelte'
     import String from './types/String.svelte'
     import Text from './types/Text.svelte'
+    import Markdown from './types/Markdown.svelte'
 
     export let attribute: AttributeData
 </script>
@@ -18,7 +19,8 @@
         <String bind:data={attribute} />
      {:else if attribute.type === 'text'}
         <Text bind:data={attribute} />
-    <!-- {:else if attribute.type === 'markdown'} -->
+     {:else if attribute.type === 'markdown'}
+        <Markdown bind:data={attribute} />
     <!-- {:else if attribute.type === 'richText'} -->
     <!-- {:else if attribute.type === 'link'} -->
     <!-- {:else if attribute.type === 'storageResource'} -->
