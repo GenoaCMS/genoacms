@@ -8,10 +8,11 @@ type SerializedAttributeValue = PrimitiveAttributeValue | Array<SerializedCompon
 
 interface AttributeData<T extends AttributeValue = AttributeValue> {
   name: string,
+  type: string,
   schema: JSONSchemaType<T>,
   value: T
 }
-interface SerializedAttributeData extends Omit<AttributeData, 'schema' | 'value'> {
+interface SerializedAttributeData extends Omit<AttributeData, 'type' | 'schema' | 'value'> {
   value: SerializedAttributeValue
 }
 

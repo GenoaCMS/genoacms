@@ -32,6 +32,7 @@ const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<C
   for (const attribute of schema.attributes) {
     data.push({
       name: attribute.name,
+      type: attribute.type,
       schema: await attributeToSchema(attribute),
       value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
     } satisfies AttributeData)
@@ -82,6 +83,7 @@ const deserializeAttributeValue = async (type: attributeValue['type'], value: Se
 const deserializeAttributeData = async (schemaAttribute: attributeValue, value: SerializedAttributeData): Promise<AttributeData> => {
   return {
     name: schemaAttribute.name,
+    type: schemaAttribute.type,
     schema: await attributeToSchema(schemaAttribute),
     value: await deserializeAttributeValue(schemaAttribute.type, value.value)
   }
