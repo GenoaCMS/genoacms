@@ -1,10 +1,15 @@
 import type { JSONSchemaType } from 'ajv'
 
 type PrimitiveAttributeValue = boolean | number | string
+interface LinkAttributeValue<T extends boolean = boolean> {
+  isExternal: T,
+  url: T extends true ? string : undefined,
+  pageName: T extends false ? string : undefined
+}
 // eslint-disable-next-line no-use-before-define
-type AttributeValue = PrimitiveAttributeValue | Array<ComponentNode>
+type AttributeValue = PrimitiveAttributeValue | LinkAttributeValue | Array<ComponentNode>
 // eslint-disable-next-line no-use-before-define
-type SerializedAttributeValue = PrimitiveAttributeValue | Array<SerializedComponentNode>
+type SerializedAttributeValue = PrimitiveAttributeValue | LinkAttributeValue | Array<SerializedComponentNode>
 
 interface AttributeData<T extends AttributeValue = AttributeValue> {
   name: string,
@@ -41,6 +46,7 @@ interface SerializedPage extends Omit<Page, 'contents'> {
 
 export type {
   PrimitiveAttributeValue,
+  LinkAttributeValue,
   AttributeValue,
   SerializedAttributeValue,
   AttributeData,

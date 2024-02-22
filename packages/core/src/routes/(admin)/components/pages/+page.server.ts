@@ -1,21 +1,8 @@
 import {
-  listOrCreatePreBuiltComponentList
-} from '$lib/script/components/componentSchema/component.server'
-import {
-  listOrCreatePageList,
   createPage,
   uploadPage, serializePage
 } from '$lib/script/components/page/page.server'
 import { fail, redirect } from '@sveltejs/kit'
-
-export const load = async () => {
-  const pages = await listOrCreatePageList()
-  const components = await listOrCreatePreBuiltComponentList()
-  return {
-    pages,
-    components
-  }
-}
 
 export const actions = {
   createPage: async ({ request }) => {

@@ -19,6 +19,11 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
     case 'markdown':
     case 'richText':
     case 'link':
+      return {
+        isExternal: false,
+        url: '',
+        pageName: ''
+      }
     case 'storageResource':
       return ''
     case 'component':
