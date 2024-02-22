@@ -4,12 +4,18 @@ import {
   serializePartialPage,
   uploadPage
 } from '$lib/script/components/page/page.server'
-import { fail } from '@sveltejs/kit'
+import { error, fail } from '@sveltejs/kit'
 import { componentSchemaToNode } from '$lib/script/components/page/tree'
+import type { SerializedPage } from '$lib/script/components/page/types'
 
 export const load = async ({ params }) => {
   const { pageName } = params
-  const serializedPage = await getPage(pageName)
+  let serializedPage: SerializedPage
+  try {
+    serializedPage = await getPage(pageName)
+  } catch (e) {
+    return error(404, { message: `No page named "${pageName}"` })
+  }
   const page = await deserializePage(serializedPage)
   return {
     page
