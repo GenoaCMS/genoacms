@@ -47,6 +47,7 @@ const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<C
     dataPromises.push(generateAttributeData(attribute))
   }
   return {
+    uid: crypto.randomUUID(),
     schemaName: schemaFile.name,
     data: await Promise.all(dataPromises)
   }
@@ -76,6 +77,7 @@ const serializeData = (data: ComponentNodeData): SerializedComponentNodeData => 
 
 const serializeComponentNode = (node: ComponentNode): SerializedComponentNode => {
   return {
+    uid: node.uid,
     schemaName: node.schemaName,
     data: serializeData(node.data)
   }
@@ -118,13 +120,31 @@ const deserializeComponentNode = async (node: SerializedComponentNode): Promise<
   const schema = schemaFile.versions[schemaFile.currentVersion]
   const data = await deserializeData(schema, node.data)
   return {
+    uid: node.uid,
     schemaName: schemaFile.name,
     data
   }
 }
 
+const getComponentNodeByUidPath = (tree: ComponentNode, uidPath: Array<string>): ComponentNode => {
+  let node = tree
+  if (uidPath.length === 1 && node.uid === uidPath[0]) return node
+  for (const uid of uidPath) {
+    const components = node.data
+      .filter((data) => data.type === 'component') as Array<AttributeData<Array<ComponentNode>>>
+    let foundNode
+    for (const component of components) {
+      foundNode = component.value.find((component) => component.uid === uid)
+    }
+    if (!foundNode) throw new Error('node-not-found')
+    node = foundNode
+  }
+  return node
+}
+
 export {
   componentSchemaToNode,
   serializeComponentNode,
-  deserializeComponentNode
+  deserializeComponentNode,
+  getComponentNodeByUidPath
 }

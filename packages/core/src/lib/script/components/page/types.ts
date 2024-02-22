@@ -25,6 +25,7 @@ type ComponentNodeData = Array<AttributeData>
 type SerializedComponentNodeData = Array<SerializedAttributeData>
 
 interface ComponentNode {
+  uid: string,
   schemaName: string,
   data: ComponentNodeData
 }

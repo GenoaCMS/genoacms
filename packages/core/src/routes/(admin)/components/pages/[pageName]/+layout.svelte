@@ -1,7 +1,6 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
-  import Editor from './Editor/Editor.svelte'
   import SavePageContents from './SavePageContents.svelte'
 
   export let data
@@ -29,7 +28,7 @@
             {/if}
         </div>
         <div class="col-span-2">
-            <Editor bind:contents={data.page.contents} />
+            <slot/>
         </div>
     </div>
 </div>
