@@ -1,4 +1,3 @@
-import type { Page, SerializedPage } from './types'
 import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
@@ -7,11 +6,7 @@ import {
   uploadObject
 } from '$lib/script/storage.server'
 import { join } from 'path'
-import {
-  deserializeComponentNode,
-  serializeComponentNode
-} from '$lib/script/components/page/tree'
-import type { PageEntry } from '$lib/script/components/page/entry'
+import type { PageEntry } from '$lib/script/components/page/entry/types'
 
 const pagesPath = join('.genoacms', 'pages/')
 
@@ -46,38 +41,8 @@ const getPage = async (name: string): Promise<PageEntry> => {
   })
 }
 
-const serializePartialPage = (partialPage: Partial<Page>): Partial<SerializedPage> => {
-  const serialized: Partial<SerializedPage> = {}
-  if (partialPage.name) serialized.name = partialPage.name
-  if (partialPage.previewURL) serialized.previewURL = partialPage.previewURL
-  if (partialPage.contents) serialized.contents = serializeComponentNode(partialPage.contents)
-  if (partialPage.lastModified) serialized.lastModified = partialPage.lastModified
-  return serialized
-}
-
-const serializePage = (page: Page): SerializedPage => {
-  return {
-    name: page.name,
-    previewURL: page.previewURL,
-    contents: serializeComponentNode(page.contents),
-    lastModified: page.lastModified
-  }
-}
-
-const deserializePage = async (page: SerializedPage): Promise<Page> => {
-  return {
-    name: page.name,
-    previewURL: page.previewURL,
-    contents: await deserializeComponentNode(page.contents),
-    lastModified: page.lastModified
-  }
-}
-
 export {
   listOrCreatePageList,
   uploadPage,
-  getPage,
-  serializePartialPage,
-  serializePage,
-  deserializePage
+  getPage
 }
