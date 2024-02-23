@@ -89,5 +89,19 @@ export const actions = {
     const childNode = await componentSchemaToNode(schemaObject)
     page = addChildNodeToNodeInPage(page, currentNode, attributeUID, childNode)
     await uploadPageEntry(page)
+  },
+  setStorageResourceValue: async ({ request, params }) => {
+    const { pageName, nodeUid } = params
+    const data = await request.formData()
+    const attributeUID = data.get('attributeUID')
+    const value = data.get('value')
+    if (!attributeUID || typeof attributeUID !== 'string') return fail(400, { reason: 'no-target-attribute' })
+    if (!value || typeof value !== 'string') return fail(400, { reason: 'no-value' })
+    const page = await getPageEntry(pageName)
+    const node = page.contents.nodes[nodeUid]
+    const attribute = node.data[attributeUID]
+    attribute.value = value
+    await uploadPageEntry(page)
+    return redirect(307, `/components/pages/${pageName}/${nodeUid}`)
   }
 }
