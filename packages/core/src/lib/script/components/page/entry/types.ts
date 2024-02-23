@@ -1,4 +1,5 @@
 import type { JSONSchemaType } from 'ajv'
+import type { attributeType } from '$lib/script/components/componentSchema/types'
 
 type PrimitiveAttributeValue = boolean | number | string
 interface LinkAttributeValue<T extends boolean = boolean> {
@@ -16,7 +17,7 @@ type AttributeValue = PrimitiveAttributeValue | LinkAttributeValue | Array<Compo
 interface AttributeData<T extends AttributeValue = AttributeValue> {
   uid: AttributeReference,
   name: string,
-  type: string,
+  type: attributeType,
   schema: JSONSchemaType<T>,
   value: T
 }
@@ -27,8 +28,10 @@ interface ComponentNode {
   schemaName: string,
   data: ComponentNodeData
 }
+type ComponentNodes = Record<ComponentNodeReference, ComponentNode>
+
 interface PageContents {
-  nodes: Record<ComponentNodeReference, ComponentNode>
+  nodes: ComponentNodes,
   rootNodeUid: ComponentNodeReference
 }
 
@@ -48,6 +51,7 @@ export type {
   AttributeData,
   ComponentNodeData,
   ComponentNode,
+  ComponentNodes,
   PageContents,
   PageEntry
 }

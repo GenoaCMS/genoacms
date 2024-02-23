@@ -21,7 +21,7 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
       }
     case 'storageResource':
       return ''
-    case 'component':
+    case 'components':
       return []
   }
 }

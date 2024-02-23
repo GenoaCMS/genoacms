@@ -20,7 +20,7 @@ const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSche
     case 'link':
     case 'storageResource':
       return stringValueSchema
-    case 'component': {
+    case 'components': {
       const schema = componentsValueSchema
       const availableComponents = await listOrCreatePreBuiltComponentList()
       schema.enum = availableComponents.map(component => component.name)

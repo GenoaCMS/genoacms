@@ -149,7 +149,7 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
     isRequired: { type: 'boolean' },
     type: {
       type: 'string',
-      const: 'component'
+      const: 'components'
     },
     component: { type: 'string' },
     maxComponents: { type: 'number' },

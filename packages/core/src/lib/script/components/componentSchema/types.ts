@@ -52,7 +52,7 @@ interface StorageResourceAttribute extends Attribute {
 }
 
 interface ComponentsAttribute extends Attribute {
-  type: 'component',
+  type: 'components',
   component: string,
   maxComponents: number,
   allowedComponents: Array<string>

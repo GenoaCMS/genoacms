@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { ComponentNode } from '$lib/script/components/page/types'
-    import Attribute from './Attribute.svelte'
+  import type { ComponentNode } from '$lib/script/components/page/entry/types'
+  import Attribute from './Attribute.svelte'
 
-    export let node: ComponentNode
+  export let node: ComponentNode
 
-    $: attributeArray = Object.values(node.data)
+  $: attributeArray = Object.values(node.data)
 </script>
 
 <div>

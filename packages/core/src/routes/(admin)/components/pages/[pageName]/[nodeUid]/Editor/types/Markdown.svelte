@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/types'
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
   import { Button, Modal } from 'flowbite-svelte'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'

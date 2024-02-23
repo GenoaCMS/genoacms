@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/types'
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
   import { Textarea, Label } from 'flowbite-svelte'
 
   export let data: AttributeData<string>

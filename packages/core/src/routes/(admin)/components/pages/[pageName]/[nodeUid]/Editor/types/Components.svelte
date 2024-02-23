@@ -1,44 +1,44 @@
 <script lang="ts">
-  import type { AttributeData, ComponentNode, componentNodeReference } from '$lib/script/components/page/entry'
-    import { page } from '$app/stores'
-    import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
-    import type { JSONSchemaType } from 'ajv'
-    import Modal from '$lib/components/Modal.svelte'
-    import Component from './Component.svelte'
-    import { enhance } from '$app/forms'
-    import { toastError } from '$lib/script/alert'
-    import Subcomponent from './Subcomponent.svelte'
+  import type { AttributeData, ComponentNode, ComponentNodeReference } from '$lib/script/components/page/entry/types'
+  import { page } from '$app/stores'
+  import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+  import type { JSONSchemaType } from 'ajv'
+  import Modal from '$lib/components/Modal.svelte'
+  import Component from './Component.svelte'
+  import { enhance } from '$app/forms'
+  import { toastError } from '$lib/script/alert'
+  import Subcomponent from './Subcomponent.svelte'
   import { invalidateAll } from '$app/navigation'
 
-    export let data: AttributeData<Array<componentNodeReference>>
-    let isModalOpen = false
-    const toggleModal = () => {
-      isModalOpen = !isModalOpen
+  export let data: AttributeData<Array<ComponentNodeReference>>
+  let isModalOpen = false
+  const toggleModal = () => {
+    isModalOpen = !isModalOpen
+  }
+  const getPossibleSubcomponents = (components: Array<ComponentSchemaFile>, dataSchema: JSONSchemaType<Array<string>>) => {
+    if (dataSchema.items.enum.length === 0) return components
+    return components.filter((component) => dataSchema.items.enum.includes(component.name))
+  }
+  const getChildNodes = (childNodeUIDs: Array<ComponentNodeReference>, allNodes: Record<componentNodeReference, ComponentNode>) => {
+    const childNodes = []
+    for (const childNodeUID of childNodeUIDs) {
+      const childNode = allNodes[childNodeUID]
+      if (childNode) childNodes.push(childNode)
     }
-    const getPossibleSubcomponents = (components: Array<ComponentSchemaFile>, dataSchema: JSONSchemaType<Array<string>>) => {
-      if (dataSchema.items.enum.length === 0) return components
-      return components.filter((component) => dataSchema.items.enum.includes(component.name))
-    }
-    const getChildNodes = (childNodeUIDs: Array<componentNodeReference>, allNodes: Record<componentNodeReference, ComponentNode>) => {
-      const childNodes = []
-      for (const childNodeUID of childNodeUIDs) {
-        const childNode = allNodes[childNodeUID]
-        if (childNode) childNodes.push(childNode)
+    return childNodes
+  }
+  const addComponent = () => {
+    isModalOpen = false
+    return ({ result }) => {
+      if (result.type !== 'success') {
+        toastError('Failed to add component')
+        return
       }
-      return childNodes
+      invalidateAll()
     }
-    const addComponent = () => {
-      isModalOpen = false
-      return ({ result }) => {
-        if (result.type !== 'success') {
-          toastError('Failed to add component')
-          return
-        }
-        invalidateAll()
-      }
-    }
-    $: possibleSubcomponents = getPossibleSubcomponents($page.data.componentSchemas, data.schema)
-    $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
+  }
+  $: possibleSubcomponents = getPossibleSubcomponents($page.data.componentSchemas, data.schema)
+  $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
 </script>
 
 <div>

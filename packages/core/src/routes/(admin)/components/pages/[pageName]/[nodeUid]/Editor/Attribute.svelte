@@ -1,14 +1,14 @@
 <script lang="ts">
-    import type { AttributeData } from '$lib/script/components/page/types'
-    import Components from './types/Components.svelte'
-    import Boolean from './types/Boolean.svelte'
-    import Number from './types/Number.svelte'
-    import String from './types/String.svelte'
-    import Text from './types/Text.svelte'
-    import Markdown from './types/Markdown.svelte'
-    import Link from './types/Link.svelte'
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import Components from './types/Components.svelte'
+  import Boolean from './types/Boolean.svelte'
+  import Number from './types/Number.svelte'
+  import String from './types/String.svelte'
+  import Text from './types/Text.svelte'
+  import Markdown from './types/Markdown.svelte'
+  import Link from './types/Link.svelte'
 
-    export let attribute: AttributeData
+  export let attribute: AttributeData
 </script>
 
 <div>
@@ -26,7 +26,7 @@
      {:else if attribute.type === 'link'}
         <Link bind:data={attribute} />
     <!-- {:else if attribute.type === 'storageResource'} -->
-    {:else if attribute.type === 'component'}
+    {:else if attribute.type === 'components'}
         <Components bind:data={attribute} />
     {/if}
 </div>
