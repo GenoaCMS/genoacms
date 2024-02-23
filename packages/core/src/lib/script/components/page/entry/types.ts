@@ -1,4 +1,5 @@
 import type { JSONSchemaType } from 'ajv'
+import type { Diff } from 'deep-diff'
 import type { attributeType } from '$lib/script/components/componentSchema/types'
 
 type PrimitiveAttributeValue = boolean | number | string
@@ -39,6 +40,8 @@ interface PageEntry {
   name: string,
   previewURL: string,
   contents: PageContents,
+  history: Array<Diff<PageContents, PageContents>>,
+  future: Array<Diff<PageContents, PageContents>>,
   lastModified: string
 }
 

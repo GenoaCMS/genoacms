@@ -1,7 +1,8 @@
 import type { attributeValue, ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
 import { attributeToSchema } from '$lib/script/components/componentSchema/schemas.server'
 import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
-import type { AttributeData, AttributeReference, AttributeValue, ComponentNode, PageEntry } from './types'
+import type { AttributeData, AttributeReference, AttributeValue, ComponentNode, PageContents, PageEntry } from './types'
+import diff from 'deep-diff'
 
 const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][number]['type']): AttributeValue => {
   switch (type) {
@@ -67,19 +68,55 @@ const createPageEntry = async (values: { name: string, componentName: string }):
       },
       rootNodeUid: componentNode.uid
     },
+    history: [],
+    future: [],
     lastModified: new Date().toISOString()
   }
 }
 
-const updateComponentNode = (page: PageEntry, updaterComponent: ComponentNode) => {
-  const node = page.contents.nodes[updaterComponent.uid]
-  if (!node) throw new Error('no-node')
-  page.contents.nodes[updaterComponent.uid] = updaterComponent
+const pushPageEntryState = (oldContents: PageContents, page: PageEntry) => {
+  const differences = diff.diff(oldContents, page.contents)
+  if (differences) {
+    page.history.push(...differences)
+    page.future = []
+  }
   return page
 }
 
-const addNodeToPage = (page: PageEntry, node: ComponentNode) => {
-  page.contents.nodes[node.uid] = node
+const undoPageEntryState = (page: PageEntry) => {
+  const lastDiff = page.history.pop()
+  if (lastDiff) {
+    diff.revertChange(page.contents, page.contents, lastDiff)
+    page.future.push(lastDiff)
+  }
+  return page
+}
+
+const redoPageEntryState = (page: PageEntry) => {
+  const nextDiff = page.future.pop()
+  if (nextDiff) {
+    diff.applyChange(page.contents, page.contents, nextDiff)
+    page.history.push(nextDiff)
+  }
+  return page
+}
+
+const duplicateObject = (object: object) => JSON.parse(JSON.stringify(object))
+
+const updateComponentNode = (page: PageEntry, updaterComponent: ComponentNode) => {
+  const node = page.contents.nodes[updaterComponent.uid]
+  if (!node) throw new Error('no-node')
+  const oldContents: PageContents = duplicateObject(page.contents)
+  page.contents.nodes[updaterComponent.uid] = updaterComponent
+  page = pushPageEntryState(oldContents, page)
+  return page
+}
+
+const addChildNodeToNodeInPage = (page: PageEntry, node: ComponentNode, attributeUID: AttributeReference, childNode: ComponentNode) => {
+  const oldContents: PageContents = duplicateObject(page.contents)
+  page.contents.nodes[childNode.uid] = childNode
+  node.data[attributeUID].value.push(childNode.uid)
+  page = pushPageEntryState(oldContents, page)
   return page
 }
 
@@ -87,5 +124,7 @@ export {
   componentSchemaToNode,
   createPageEntry,
   updateComponentNode,
-  addNodeToPage
+  addChildNodeToNodeInPage,
+  undoPageEntryState,
+  redoPageEntryState
 }

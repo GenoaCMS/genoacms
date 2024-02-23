@@ -3,6 +3,8 @@
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
   import SavePageContents from './SavePageContents.svelte'
   import Build from './Build.svelte'
+  import Undo from './Undo.svelte'
+  import Redo from './Redo.svelte'
 
   export let data
 
@@ -18,6 +20,8 @@
             {data.page.name}
         </h1>
         <svelte:fragment slot="right">
+            <Undo isEnabled={data.canUndo}/>
+            <Redo isEnabled={data.canRedo}/>
             <Build />
             <SavePageContents />
             <UpdatePreviewURL bind:value={data.page.previewURL}/>

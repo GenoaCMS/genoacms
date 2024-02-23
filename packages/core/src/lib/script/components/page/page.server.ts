@@ -1,13 +1,14 @@
 import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
-  getObjectJSON,
+  getObjectFlatted,
   listOrCreateDirectory,
   uploadObject
 } from '$lib/script/storage.server'
 import { join } from 'path'
 import type { PageEntry } from '$lib/script/components/page/entry/types'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
+import { stringify } from 'flatted'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries')
 const pageReadableTreePath = join('.genoacms', 'pages', 'readables')
@@ -25,7 +26,7 @@ const listOrCreatePageList = async () => {
 }
 
 const uploadPageEntry = (page: PageEntry) => {
-  const pageJson = JSON.stringify({
+  const pageFlatted = stringify({
     ...page,
     lastModified: new Date().toISOString()
   })
@@ -33,11 +34,11 @@ const uploadPageEntry = (page: PageEntry) => {
   return uploadObject({
     bucket: defaultBucketId,
     name: join(pageEntriesPath, page.name)
-  }, pageJson)
+  }, pageFlatted)
 }
 
 const getPageEntry = async (name: string): Promise<PageEntry> => {
-  return await getObjectJSON({
+  return await getObjectFlatted({
     bucket: defaultBucketId,
     name: join(pageEntriesPath, name)
   })

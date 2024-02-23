@@ -1,12 +1,18 @@
-import { error, fail } from '@sveltejs/kit'
+import { fail, redirect } from '@sveltejs/kit'
 import { generateReadablePageTree, getPageEntry, uploadPageEntry } from '$lib/script/components/page/page.server'
-import { addNodeToPage, componentSchemaToNode, updateComponentNode } from '$lib/script/components/page/entry'
+import {
+  addChildNodeToNodeInPage,
+  componentSchemaToNode,
+  redoPageEntryState,
+  undoPageEntryState,
+  updateComponentNode
+} from '$lib/script/components/page/entry'
 
 export const load = async ({ params, parent }) => {
   const { page } = await parent()
   const { nodeUid } = params
   const node = page.contents.nodes[nodeUid]
-  if (!node) return error(404, { message: `No node with id "${nodeUid}"` })
+  if (!node) return redirect(307, page.contents.rootNodeUid)
 
   return {
     node
@@ -25,6 +31,18 @@ const updatePage = async (pageName: string, data: FormData, generateTree: boolea
 }
 
 export const actions = {
+  undo: async ({ params }) => {
+    const { pageName } = params
+    let page = await getPageEntry(pageName)
+    page = undoPageEntryState(page)
+    await uploadPageEntry(page)
+  },
+  redo: async ({ params }) => {
+    const { pageName } = params
+    let page = await getPageEntry(pageName)
+    page = redoPageEntryState(page)
+    await uploadPageEntry(page)
+  },
   changePreviewURL: async ({
     request,
     params
@@ -69,9 +87,7 @@ export const actions = {
     const currentNode = page.contents.nodes[nodeUid]
     if (!currentNode) fail(400, { reason: 'non-existent-node' })
     const childNode = await componentSchemaToNode(schemaObject)
-    page = addNodeToPage(page, childNode)
-    currentNode.data[attributeUID].value.push(childNode.uid)
-    page = updateComponentNode(page, currentNode)
+    page = addChildNodeToNodeInPage(page, currentNode, attributeUID, childNode)
     await uploadPageEntry(page)
   }
 }

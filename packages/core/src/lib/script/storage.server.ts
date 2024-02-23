@@ -2,11 +2,12 @@ import { config } from '@genoacms/cloudabstraction'
 import type {
   Adapter,
   DirectoryContents,
-  ObjectData,
   ObjectReference,
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils'
+import { parse as parseFlatted } from 'flatted'
+import { join } from 'path'
 
 const {
   createDirectory,
@@ -35,6 +36,7 @@ const isDirectoryExisting = (directory: DirectoryContents) => { // TODO: move to
 }
 
 const listOrCreateDirectory = async (reference: ObjectReference) => {
+  reference.name = join(reference.name, '/')
   const componentList = await listDirectory(reference)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
@@ -43,19 +45,17 @@ const listOrCreateDirectory = async (reference: ObjectReference) => {
   return componentList
 }
 
+const getObjectString = async (reference: ObjectReference) => {
+  const file = await getObject(reference)
+  return await streamToString(file.data)
+}
 const getObjectJSON = async (reference: ObjectReference) => {
-  let file: ObjectData
-  try {
-    file = await getObject(reference)
-  } catch (e) {
-    return null
-  }
-  const isComponentExisting = !!file.data
-  if (!isComponentExisting) {
-    return null
-  }
-  const text = await streamToString(file.data)
+  const text = await getObjectString(reference)
   return JSON.parse(text)
+}
+const getObjectFlatted = async (reference: ObjectReference) => {
+  const text = await getObjectString(reference)
+  return parseFlatted(text)
 }
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
@@ -112,5 +112,6 @@ export {
   isDirectoryExisting,
   listOrCreateDirectory,
   getObjectJSON,
+  getObjectFlatted,
   processDirectoryContents
 }

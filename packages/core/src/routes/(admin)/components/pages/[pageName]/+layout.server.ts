@@ -6,14 +6,15 @@ import type { PageEntry } from '$lib/script/components/page/entry/types'
 
 export const load = async ({ params }) => {
   const { pageName } = params
-  let serializedPage: PageEntry
+  let page: PageEntry
   try {
-    serializedPage = await getPageEntry(pageName)
+    page = await getPageEntry(pageName)
   } catch (e) {
     return error(404, { message: `No page named "${pageName}"` })
   }
-  // const page = await deserializePage(serializedPage)
   return {
-    page: serializedPage
+    page,
+    canUndo: !!page.history.length,
+    canRedo: !!page.future.length
   }
 }
