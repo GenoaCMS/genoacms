@@ -7,13 +7,15 @@ import {
 } from '$lib/script/storage.server'
 import { join } from 'path'
 import type { PageEntry } from '$lib/script/components/page/entry/types'
+import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
 
-const pagesPath = join('.genoacms', 'pages/')
+const pageEntriesPath = join('.genoacms', 'pages', 'entries')
+const pageReadableTreePath = join('.genoacms', 'pages', 'readables')
 
 const listOrCreatePageList = async () => {
   const pageStructureList = await listOrCreateDirectory({
     bucket: defaultBucketId,
-    name: pagesPath
+    name: pageEntriesPath
   })
   // const pageStructurePromises = pageStructureList.files
   //   .map(async page => getPageStructure(page.name))
@@ -22,7 +24,7 @@ const listOrCreatePageList = async () => {
   return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
-const uploadPage = (page: PageEntry) => {
+const uploadPageEntry = (page: PageEntry) => {
   const pageJson = JSON.stringify({
     ...page,
     lastModified: new Date().toISOString()
@@ -30,19 +32,28 @@ const uploadPage = (page: PageEntry) => {
   // TODO: validate page
   return uploadObject({
     bucket: defaultBucketId,
-    name: join(pagesPath, page.name)
+    name: join(pageEntriesPath, page.name)
   }, pageJson)
 }
 
-const getPage = async (name: string): Promise<PageEntry> => {
+const getPageEntry = async (name: string): Promise<PageEntry> => {
   return await getObjectJSON({
     bucket: defaultBucketId,
-    name: join(pagesPath, name)
+    name: join(pageEntriesPath, name)
   })
+}
+
+const generateReadablePageTree = async (page: PageEntry) => {
+  const readableTree = await pageEntryToReadableTree(page)
+  return uploadObject({
+    bucket: defaultBucketId,
+    name: join(pageReadableTreePath, page.name)
+  }, JSON.stringify(readableTree))
 }
 
 export {
   listOrCreatePageList,
-  uploadPage,
-  getPage
+  uploadPageEntry,
+  getPageEntry,
+  generateReadablePageTree
 }

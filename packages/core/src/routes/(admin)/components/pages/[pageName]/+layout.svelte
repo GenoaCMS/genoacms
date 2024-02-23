@@ -2,6 +2,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
   import SavePageContents from './SavePageContents.svelte'
+  import Build from './Build.svelte'
 
   export let data
 
@@ -17,6 +18,7 @@
             {data.page.name}
         </h1>
         <svelte:fragment slot="right">
+            <Build />
             <SavePageContents />
             <UpdatePreviewURL bind:value={data.page.previewURL}/>
         </svelte:fragment>

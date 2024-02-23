@@ -28,3 +28,6 @@
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>
     <input type="text" name="componentNode" value={JSON.stringify(data.node)} />
 </form>
+<form id="build-form" action="?/updateAndGenerateTree" method="post" use:enhance={enhanceUpdate} hidden>
+    <input type="text" name="componentNode" value={JSON.stringify(data.node)} />
+</form>

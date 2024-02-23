@@ -1,5 +1,5 @@
 import {
-  uploadPage
+  uploadPageEntry
 } from '$lib/script/components/page/page.server'
 import { fail, redirect } from '@sveltejs/kit'
 import { createPageEntry } from '$lib/script/components/page/entry'
@@ -16,7 +16,7 @@ export const actions = {
       componentName
     })
     // TODO: validate page
-    await uploadPage(page)
+    await uploadPageEntry(page)
     return redirect(307, `pages/${name}`)
   }
 }
