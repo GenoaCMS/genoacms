@@ -11,7 +11,7 @@
   export let attribute: AttributeData
 </script>
 
-<div>
+<div class="pt-3">
     {#if attribute.type === 'boolean'}
         <Boolean bind:data={attribute} />
     {:else if attribute.type === 'number'}

@@ -9,6 +9,7 @@
   import { toastError } from '$lib/script/alert'
   import Subcomponent from './Subcomponent.svelte'
   import { invalidateAll } from '$app/navigation'
+  import { Card } from 'flowbite-svelte'
 
   export let data: AttributeData<Array<ComponentNodeReference>>
   let isModalOpen = false
@@ -41,23 +42,21 @@
   $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
 </script>
 
-<div>
-    <div>
-        <h3>
-            {data.name}
-        </h3>
-        <div class="flex flex-col">
-            {#each childNodes as childComponentNode}
-                <Subcomponent bind:node={childComponentNode}/>
-            {/each}
-        </div>
+<Card padding="sm">
+    <h3 class="text-xl pb-3">
+        {data.name}
+    </h3>
+    <div class="flex flex-col">
+        {#each childNodes as childComponentNode}
+            <Subcomponent bind:node={childComponentNode}/>
+        {/each}
     </div>
     <div class="w-full flex py-3">
         <button type="button" on:click={toggleModal} class="mx-auto">
             <i class="bi bi-plus-circle text-4xl"/>
         </button>
     </div>
-</div>
+</Card>
 
 <Modal bind:isOpen={isModalOpen}>
     <svelte:fragment slot="header">

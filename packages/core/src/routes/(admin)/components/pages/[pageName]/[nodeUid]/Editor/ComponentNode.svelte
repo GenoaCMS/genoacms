@@ -11,7 +11,7 @@
     <h2>
         {node.schemaName}
     </h2>
-    <div class="border">
+    <div>
         {#each attributeArray as attribute (attribute.name)}
             <Attribute bind:attribute />
         {/each}
