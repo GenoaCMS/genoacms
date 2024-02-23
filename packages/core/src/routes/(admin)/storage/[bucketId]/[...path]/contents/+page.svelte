@@ -4,9 +4,11 @@
   import Folder from './Folder.svelte'
   import DirectoryCreation from './DirectoryCreation.svelte'
   import ObjectUpload from './ObjectUpload.svelte'
+  import type { SelectionStoreT } from '../../../SelectionStore'
+  import { getContext } from 'svelte'
 
   export let data
-  $: console.log(data)
+  const selection: SelectionStoreT = getContext('selection') // TODO: continue here with submission of selection
 </script>
 
 <TopPanel hrefBack={data.parentPath}>

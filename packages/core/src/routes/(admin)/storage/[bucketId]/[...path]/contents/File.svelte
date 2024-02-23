@@ -5,6 +5,7 @@
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
+  import Selectable from './Selectable.svelte'
 
   export let name: string
   export let signedURL: string
@@ -34,4 +35,7 @@
         </ContextMenuItem>
     </form>
 </ContextMenu>
-<CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" on:contextmenu={openContextMenu}/>
+
+<Selectable {name}>
+    <CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" on:contextmenu={openContextMenu}/>
+</Selectable>

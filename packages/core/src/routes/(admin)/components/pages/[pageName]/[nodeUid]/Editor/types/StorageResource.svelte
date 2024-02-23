@@ -6,8 +6,9 @@
   export let data: AttributeData<string>
   const buildSelectURL = (data: AttributeData<string>) => {
     let url = '/storage'
-    url += '?select='
-    url += `&pageName=${$page.data.page.pageName}`
+    url += '?maxSelectionItems=1'
+    url += '?selectionType=page-data'
+    url += `&pageName=${$page.data.page.name}`
     url += `&nodeUID=${$page.data.node.uid}`
     url += `&attributeUID=${data.uid}`
     return url
