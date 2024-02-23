@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { enhance, applyAction } from '$app/forms'
-  import { Label } from 'flowbite-svelte'
+  import { enhance } from '$app/forms'
+  import { Input, Label, Modal } from 'flowbite-svelte'
   import Button from '$lib/components/Button.svelte'
-  import Modal from '$lib/components/Modal.svelte'
-  import Input from '$lib/components/Input.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { invalidate } from '$app/navigation'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
   export let value: string
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const enhanceEdit = () => {
+  const enhanceEdit = ({ formData }): SubmitFunction => {
     const alert = alertPending('Editing')
     return async ({ result }) => {
       alert.close()
@@ -21,13 +21,8 @@
       }
       toastSuccess('Edit successful')
       isModalOpen = false
-      await applyAction(result)
+      value = formData.get('value')
     }
-  }
-  const generateDiffJSON = (previewURL: string) => {
-    return JSON.stringify({
-      previewURL
-    })
   }
 </script>
 
@@ -35,20 +30,14 @@
     <i class="bi bi-input-cursor-text text-2xl hover:text-warning transition-all"/>
 </button>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Edit preview URL:
-        </h1>
-    </svelte:fragment>
+<Modal title="Edit preview URL:" bind:open={isModalOpen}>
     <div class="flex w-3/4 mx-auto justify-center">
         <div>
-            <Label>
-                Preview URL:
-                <Input type="text" bind:value class="w-full"/>
-            </Label>
-            <form action="?/updatePage" method="post" use:enhance={enhanceEdit}>
-                <input type="hidden" name="diff" value={generateDiffJSON(value)}/>
+            <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit}>
+                <Label>
+                    Preview URL:
+                    <Input type="text" name="value" {value} class="w-full"/>
+                </Label>
                 <Button type="submit" class="mt-4 w-full">
                     Edit
                 </Button>

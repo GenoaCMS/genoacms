@@ -7,12 +7,11 @@ import {
   uploadObject
 } from '$lib/script/storage.server'
 import { join } from 'path'
-import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
 import {
-  componentSchemaToNode,
   deserializeComponentNode,
   serializeComponentNode
 } from '$lib/script/components/page/tree'
+import type { PageEntry } from '$lib/script/components/page/entry'
 
 const pagesPath = join('.genoacms', 'pages/')
 
@@ -28,21 +27,11 @@ const listOrCreatePageList = async () => {
   return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
-const createPage = async (values: { name: string, componentName: string }): Promise<Page> => {
-  const component = await getComponentSchemaFile(values.componentName)
-  if (!component) throw new Error('no-component')
-  const componentNode = await componentSchemaToNode(component)
-
-  return {
-    name: values.name,
-    previewURL: '',
-    contents: componentNode,
+const uploadPage = (page: PageEntry) => {
+  const pageJson = JSON.stringify({
+    ...page,
     lastModified: new Date().toISOString()
-  }
-}
-
-const uploadPage = (page: SerializedPage) => {
-  const pageJson = JSON.stringify(page)
+  })
   // TODO: validate page
   return uploadObject({
     bucket: defaultBucketId,
@@ -50,7 +39,7 @@ const uploadPage = (page: SerializedPage) => {
   }, pageJson)
 }
 
-const getPage = async (name: string): Promise<SerializedPage> => {
+const getPage = async (name: string): Promise<PageEntry> => {
   return await getObjectJSON({
     bucket: defaultBucketId,
     name: join(pagesPath, name)
@@ -86,7 +75,6 @@ const deserializePage = async (page: SerializedPage): Promise<Page> => {
 
 export {
   listOrCreatePageList,
-  createPage,
   uploadPage,
   getPage,
   serializePartialPage,

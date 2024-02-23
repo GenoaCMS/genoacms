@@ -10,7 +10,7 @@
         <slot name="right"/>
     </div>
     <div class="aspect-square flex">
-        <a href={hrefBack}>
+        <a href={hrefBack} on:click>
             <i class="bi bi-arrow-left-short text-5xl text-warning min-h-[2.5rem]"/>
         </a>
     </div>

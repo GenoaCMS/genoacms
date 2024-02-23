@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AttributeData, ComponentNode } from '$lib/script/components/page/types'
+  import type { AttributeData, ComponentNode, componentNodeReference } from '$lib/script/components/page/entry'
     import { page } from '$app/stores'
     import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
     import type { JSONSchemaType } from 'ajv'
@@ -8,28 +8,37 @@
     import { enhance } from '$app/forms'
     import { toastError } from '$lib/script/alert'
     import Subcomponent from './Subcomponent.svelte'
+  import { invalidateAll } from '$app/navigation'
 
-    export let data: AttributeData<Array<ComponentNode>>
+    export let data: AttributeData<Array<componentNodeReference>>
     let isModalOpen = false
     const toggleModal = () => {
       isModalOpen = !isModalOpen
     }
-    const getSubcomponents = (components: Array<ComponentSchemaFile>, dataSchema: JSONSchemaType<Array<string>>) => {
+    const getPossibleSubcomponents = (components: Array<ComponentSchemaFile>, dataSchema: JSONSchemaType<Array<string>>) => {
       if (dataSchema.items.enum.length === 0) return components
       return components.filter((component) => dataSchema.items.enum.includes(component.name))
     }
+    const getChildNodes = (childNodeUIDs: Array<componentNodeReference>, allNodes: Record<componentNodeReference, ComponentNode>) => {
+      const childNodes = []
+      for (const childNodeUID of childNodeUIDs) {
+        const childNode = allNodes[childNodeUID]
+        if (childNode) childNodes.push(childNode)
+      }
+      return childNodes
+    }
     const addComponent = () => {
       isModalOpen = false
-      return async ({ result }) => {
+      return ({ result }) => {
         if (result.type !== 'success') {
           toastError('Failed to add component')
           return
         }
-        const newNode = result.data.node
-        data.value = [...(data.value as Array<ComponentNode>), newNode]
+        invalidateAll()
       }
     }
-    $: possibleSubcomponents = getSubcomponents($page.data.componentSchemas, data.schema)
+    $: possibleSubcomponents = getPossibleSubcomponents($page.data.componentSchemas, data.schema)
+    $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
 </script>
 
 <div>
@@ -38,7 +47,7 @@
             {data.name}
         </h3>
         <div class="flex flex-col">
-            {#each data.value as childComponentNode}
+            {#each childNodes as childComponentNode}
                 <Subcomponent bind:node={childComponentNode}/>
             {/each}
         </div>
@@ -58,7 +67,8 @@
     </svelte:fragment>
     <div class="w-full grid grid-cols-4 gap-5 p-5">
         {#each possibleSubcomponents as componentSchema}
-            <form action="?/componentSchemaToNode" method="post" use:enhance={addComponent} class="col-span-1">
+            <form action="?/addChildNode" method="post" use:enhance={addComponent} class="col-span-1">
+                <input type="hidden" name="attributeUID" value={data.uid}>
                 <Component schema={componentSchema}/>
             </form>
         {/each}

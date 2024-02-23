@@ -8,51 +8,6 @@ import type {
 import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
 import { attributeToSchema } from '$lib/script/components/componentSchema/schemas.server'
 
-const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][number]['type']): AttributeValue => {
-  switch (type) {
-    case 'boolean':
-      return false
-    case 'number':
-      return 0
-    case 'string':
-    case 'text':
-    case 'markdown':
-    case 'richText':
-    case 'link':
-      return {
-        isExternal: false,
-        url: '',
-        pageName: ''
-      }
-    case 'storageResource':
-      return ''
-    case 'component':
-      return []
-  }
-}
-
-const generateAttributeData = async (attribute: attributeValue): Promise<AttributeData> => {
-  return {
-    name: attribute.name,
-    type: attribute.type,
-    schema: await attributeToSchema(attribute),
-    value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
-  }
-}
-
-const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<ComponentNode> => {
-  const dataPromises: Array<Promise<AttributeData>> = []
-  const schema = schemaFile.versions[schemaFile.currentVersion]
-  for (const attribute of schema.attributes) {
-    dataPromises.push(generateAttributeData(attribute))
-  }
-  return {
-    uid: crypto.randomUUID(),
-    schemaName: schemaFile.name,
-    data: await Promise.all(dataPromises)
-  }
-}
-
 const serializeAttributeData = (data: AttributeData): SerializedAttributeData => {
   let value: SerializedAttributeValue
   if (data.schema.type === 'component') {
@@ -143,7 +98,6 @@ const getComponentNodeByUidPath = (tree: ComponentNode, uidPath: Array<string>):
 }
 
 export {
-  componentSchemaToNode,
   serializeComponentNode,
   deserializeComponentNode,
   getComponentNodeByUidPath

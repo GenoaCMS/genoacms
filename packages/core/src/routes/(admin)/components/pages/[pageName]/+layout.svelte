@@ -4,16 +4,21 @@
   import SavePageContents from './SavePageContents.svelte'
 
   export let data
+
+  const backClickAction = (event: MouseEvent) => {
+    event.preventDefault()
+    history.back()
+  }
 </script>
 
 <div class="h-full flex flex-col">
-    <TopPanel>
+    <TopPanel on:click={backClickAction}>
         <h1 class="text-2xl">
             {data.page.name}
         </h1>
         <svelte:fragment slot="right">
-            <SavePageContents contents={data.page.contents} />
-            <UpdatePreviewURL value={data.page.previewURL}/>
+            <SavePageContents />
+            <UpdatePreviewURL bind:value={data.page.previewURL}/>
         </svelte:fragment>
     </TopPanel>
 

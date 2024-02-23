@@ -1,8 +1,8 @@
 import {
-  createPage,
-  uploadPage, serializePage
+  uploadPage
 } from '$lib/script/components/page/page.server'
 import { fail, redirect } from '@sveltejs/kit'
+import { createPageEntry } from '$lib/script/components/page/entry'
 
 export const actions = {
   createPage: async ({ request }) => {
@@ -11,13 +11,12 @@ export const actions = {
     const componentName = data.get('componentName')
     if (!name || typeof name !== 'string' ||
       !componentName || typeof componentName !== 'string') return fail(400, { reason: 'no-page-name' })
-    const page = await createPage({
+    const page = await createPageEntry({
       name,
       componentName
     })
-    const serializedPage = serializePage(page)
     // TODO: validate page
-    await uploadPage(serializedPage)
+    await uploadPage(page)
     return redirect(307, `pages/${name}`)
   }
 }
