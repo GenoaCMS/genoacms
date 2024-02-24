@@ -5,7 +5,7 @@ import {
   listOrCreateDirectory,
   uploadObject,
   fullyQualifiedNameToFilename
-} from '$lib/script/storage.server'
+} from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import Ajv from 'ajv'
 import { componentSchemaFileSchema } from './schemas'

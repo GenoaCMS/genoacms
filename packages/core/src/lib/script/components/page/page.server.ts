@@ -4,7 +4,7 @@ import {
   getObjectFlatted,
   listOrCreateDirectory,
   uploadObject
-} from '$lib/script/storage.server'
+} from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import type { PageEntry } from '$lib/script/components/page/entry/types'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'

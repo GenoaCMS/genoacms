@@ -21,7 +21,10 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
         pageName: ''
       }
     case 'storageResource':
-      return ''
+      return {
+        bucket: '',
+        name: ''
+      }
     case 'components':
       return []
   }

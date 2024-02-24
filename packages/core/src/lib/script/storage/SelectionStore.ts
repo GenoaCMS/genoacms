@@ -1,23 +1,22 @@
 import { writable, type Readable } from 'svelte/store'
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
 interface SelectionStoreOptions {
   maxItems: number
 }
 interface SelectionOperations {
-  values: Array<ObjectReference>
-  select: (reference: ObjectReference) => void,
-  isSelected: (reference: ObjectReference) => boolean,
+  values: Array<string>
+  select: (reference: string) => void,
+  isSelected: (reference: string) => boolean,
   canBeSelected: () => boolean
 }
 
 type SelectionStoreT = Readable<SelectionOperations>
 
 function SelectionStore ({ maxItems }: SelectionStoreOptions): SelectionStoreT {
-  const selectionMap: Set<ObjectReference> = new Set()
+  const selectionMap: Set<string> = new Set()
   const selectionOperations: SelectionOperations = {
     values: [],
-    select: (reference: ObjectReference) => {
+    select: (reference: string) => {
       if (selectionMap.has(reference)) {
         selectionMap.delete(reference)
         update()
@@ -27,7 +26,7 @@ function SelectionStore ({ maxItems }: SelectionStoreOptions): SelectionStoreT {
       selectionMap.add(reference)
       update()
     },
-    isSelected: (reference: ObjectReference) => {
+    isSelected: (reference: string) => {
       return selectionMap.has(reference)
     },
     canBeSelected: () => {

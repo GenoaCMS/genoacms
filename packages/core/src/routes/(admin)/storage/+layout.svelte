@@ -1,5 +1,5 @@
 <script lang="ts">
-    import SelectionStore from './SelectionStore'
+    import SelectionStore from '$lib/script/storage/SelectionStore'
     import { setContext } from 'svelte'
 
     export let data

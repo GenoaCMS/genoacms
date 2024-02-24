@@ -1,19 +1,21 @@
 import type { JSONSchemaType } from 'ajv'
 import type { Diff } from 'deep-diff'
 import type { attributeType } from '$lib/script/components/componentSchema/types'
+import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
+type AttributeReference = string
+type ComponentNodeReference = string
 type PrimitiveAttributeValue = boolean | number | string
 interface LinkAttributeValue<T extends boolean = boolean> {
   isExternal: T,
   url: T extends true ? string : undefined,
   pageName: T extends false ? string : undefined
 }
-
-type ComponentNodeReference = string
-type AttributeReference = string
+type StorageResourceAttributeValue = ObjectReference
+type ComponentsAttributeValue = Array<ComponentNodeReference>
 
 // eslint-disable-next-line no-use-before-define
-type AttributeValue = PrimitiveAttributeValue | LinkAttributeValue | Array<ComponentNodeReference>
+type AttributeValue = PrimitiveAttributeValue | LinkAttributeValue | StorageResourceAttributeValue | ComponentsAttributeValue
 
 interface AttributeData<T extends AttributeValue = AttributeValue> {
   uid: AttributeReference,
@@ -48,6 +50,8 @@ interface PageEntry {
 export type {
   PrimitiveAttributeValue,
   LinkAttributeValue,
+  StorageResourceAttributeValue,
+  ComponentsAttributeValue,
   AttributeValue,
   ComponentNodeReference,
   AttributeReference,

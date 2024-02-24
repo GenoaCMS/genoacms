@@ -1,13 +1,13 @@
 <script lang="ts">
     import { page } from '$app/stores'
     import { getContext } from 'svelte'
-    import type { SelectionStoreT } from '../../../SelectionStore'
+    import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
 
     export let name
-    const reference = {
+    const reference = JSON.stringify({
       bucket: $page.params.bucketId,
       name
-    }
+    })
     const selection: SelectionStoreT = getContext('selection')
     const select = () => {
       $selection.select(reference)

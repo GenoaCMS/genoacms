@@ -93,14 +93,13 @@ export const actions = {
   setStorageResourceValue: async ({ request, params }) => {
     const { pageName, nodeUid } = params
     const data = await request.formData()
-    const attributeUID = data.get('attributeUID')
-    const value = data.get('value')
-    if (!attributeUID || typeof attributeUID !== 'string') return fail(400, { reason: 'no-target-attribute' })
-    if (!value || typeof value !== 'string') return fail(400, { reason: 'no-value' })
+    const valueText = data.get('value')
+    if (!valueText || typeof valueText !== 'string') return fail(400, { reason: 'no-value' })
+    const value = JSON.parse(valueText)
     const page = await getPageEntry(pageName)
     const node = page.contents.nodes[nodeUid]
-    const attribute = node.data[attributeUID]
-    attribute.value = value
+    const attribute = node.data[value.attributeUID]
+    attribute.value = JSON.parse(value.selection[0])
     await uploadPageEntry(page)
     return redirect(307, `/components/pages/${pageName}/${nodeUid}`)
   }
