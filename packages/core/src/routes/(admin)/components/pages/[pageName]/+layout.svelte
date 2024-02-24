@@ -29,7 +29,7 @@
     </TopPanel>
 
     <div class="flex-grow grid grid-cols-6">
-        <div class="col-span-4 flex justify-center items-center bg-light border-e p-4">
+        <div class="col-span-4 flex justify-center items-center bg-light dark:bg-dark-light border-x dark:border-dark p-4">
             {#if data.page.previewURL}
                 <iframe src={data.page.previewURL} title="Preview" class="w-full h-full border" />
             {:else}

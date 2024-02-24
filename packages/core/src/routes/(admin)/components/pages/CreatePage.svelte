@@ -43,7 +43,7 @@
                     {/each}
                 </Select>
             </Label>
-            <Button color="light" class="w-full mt-3">
+            <Button type="submit" color="light" class="w-full mt-3">
                 Create
             </Button>
         </form>
