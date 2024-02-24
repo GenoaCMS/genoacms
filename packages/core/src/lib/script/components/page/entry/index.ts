@@ -77,38 +77,33 @@ const createPageEntry = async (values: { name: string, componentName: string }):
   }
 }
 
-const removeNodesFromHistory = (page: PageEntry) => {
-  for (const nodeUID in page.contents.nodes) {
-    if (!page.contents.nodes[nodeUID]) delete page.contents.nodes[nodeUID]
-  }
-  return page
-}
-
 const pushPageEntryState = (oldContents: PageContents, page: PageEntry) => {
   const differences = diff.diff(oldContents, page.contents)
   if (differences) {
-    page.history.push(...differences)
+    page.history.push(differences)
     page.future = []
   }
   return page
 }
 
 const undoPageEntryState = (page: PageEntry) => {
-  const lastDiff = page.history.pop()
-  if (lastDiff) {
-    diff.revertChange(page.contents, page.contents, lastDiff)
-    page.future.push(lastDiff)
-    page = removeNodesFromHistory(page)
+  const lastChange = page.history.pop()
+  if (lastChange) {
+    for (const changeDiff of lastChange) {
+      diff.revertChange(page.contents, page.contents, changeDiff)
+    }
+    page.future.push(lastChange)
   }
   return page
 }
 
 const redoPageEntryState = (page: PageEntry) => {
-  const nextDiff = page.future.pop()
-  if (nextDiff) {
-    diff.applyChange(page.contents, page.contents, nextDiff)
-    page.history.push(nextDiff)
-    page = removeNodesFromHistory(page)
+  const nextChange = page.future.pop()
+  if (nextChange) {
+    for (const changeDiff of nextChange) {
+      diff.applyChange(page.contents, page.contents, changeDiff)
+    }
+    page.history.push(nextChange)
   }
   return page
 }

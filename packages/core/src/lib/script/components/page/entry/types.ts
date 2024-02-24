@@ -38,12 +38,14 @@ interface PageContents {
   rootNodeUid: ComponentNodeReference
 }
 
+type ContentsChange = Array<Diff<PageContents, PageContents>>
+
 interface PageEntry {
   name: string,
   previewURL: string,
   contents: PageContents,
-  history: Array<Diff<PageContents, PageContents>>,
-  future: Array<Diff<PageContents, PageContents>>,
+  history: Array<ContentsChange>,
+  future: Array<ContentsChange>,
   lastModified: string
 }
 
