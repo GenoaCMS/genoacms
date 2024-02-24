@@ -6,6 +6,8 @@ import {
   uploadObject
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
+import { isString } from '$lib/script/utils'
+import { fail } from '@sveltejs/kit'
 
 const removeRoutingSlashes = (path: string) => {
   return path.replaceAll('//', '/')
@@ -49,7 +51,7 @@ export const actions = {
 
     const data = await request.formData()
     const directoryName = data.get('directoryName')
-    if (!directoryName || typeof directoryName !== 'string') return
+    if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
     const directoryPath = join(path, directoryName)
 
     await createDirectory({
@@ -67,7 +69,7 @@ export const actions = {
     } = params
     const data = await request.formData()
     const fileName = data.get('fileName')
-    if (!fileName || typeof fileName !== 'string') return
+    if (!isString(fileName)) return fail(400, { reason: 'missing-file-name' })
     await deleteObject({
       bucket: bucketId,
       name: join(path, fileName)

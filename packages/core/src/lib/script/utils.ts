@@ -12,6 +12,11 @@ const streamToString = (stream: NodeJS.ReadableStream): Promise<string> => {
   })
 }
 
+const isString = (variable: unknown): variable is string => {
+  return !!variable && typeof variable === 'string'
+}
+
 export {
-  streamToString
+  streamToString,
+  isString
 }

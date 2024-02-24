@@ -7,6 +7,7 @@ import {
   undoPageEntryState,
   updateComponentNode
 } from '$lib/script/components/page/entry'
+import { isString } from '$lib/script/utils'
 
 export const load = async ({ params, parent }) => {
   const { page } = await parent()
@@ -21,7 +22,7 @@ export const load = async ({ params, parent }) => {
 
 const updatePage = async (pageName: string, data: FormData, generateTree: boolean) => {
   const componentNodeText = data.get('componentNode')
-  if (!componentNodeText || typeof componentNodeText !== 'string') return fail(400, { reason: 'no-diff' })
+  if (!isString(componentNodeText)) return fail(400, { reason: 'no-diff' })
   const componentNode = JSON.parse(componentNodeText)
 
   let page = await getPageEntry(pageName)
@@ -50,7 +51,7 @@ export const actions = {
     const { pageName } = params
     const data = await request.formData()
     const value = data.get('value')
-    if (!value || typeof value !== 'string') return fail(400, { reason: 'no-diff' })
+    if (!isString(value)) return fail(400, { reason: 'no-diff' })
     const page = await getPageEntry(pageName)
 
     await uploadPageEntry({
@@ -80,8 +81,8 @@ export const actions = {
     const data = await request.formData()
     const schema = data.get('schema')
     const attributeUID = data.get('attributeUID')
-    if (!schema || typeof schema !== 'string') return fail(400, { reason: 'no-schema' })
-    if (!attributeUID || typeof attributeUID !== 'string') return fail(400, { reason: 'no-target-attribute' })
+    if (!isString(schema)) return fail(400, { reason: 'no-schema' })
+    if (!isString(attributeUID)) return fail(400, { reason: 'no-target-attribute' })
     const schemaObject = JSON.parse(schema) // TODO: validate schema
     let page = await getPageEntry(pageName)
     const currentNode = page.contents.nodes[nodeUid]
@@ -94,7 +95,7 @@ export const actions = {
     const { pageName, nodeUid } = params
     const data = await request.formData()
     const valueText = data.get('value')
-    if (!valueText || typeof valueText !== 'string') return fail(400, { reason: 'no-value' })
+    if (!isString(valueText)) return fail(400, { reason: 'no-value' })
     const value = JSON.parse(valueText)
     const page = await getPageEntry(pageName)
     const node = page.contents.nodes[nodeUid]
