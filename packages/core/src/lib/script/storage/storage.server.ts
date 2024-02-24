@@ -106,6 +106,7 @@ export {
   createDirectory,
   deleteObject,
   getObject,
+  getPublicURL,
   listDirectory,
   uploadObject,
   fullyQualifiedNameToFilename,

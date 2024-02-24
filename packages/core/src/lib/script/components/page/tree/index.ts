@@ -9,6 +9,8 @@ import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/compo
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
+import { getPublicURL } from '$lib/script/storage/storage.server'
+import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
 const parseMarkdown = async (markdown: string) => {
   const window = new JSDOM('').window
@@ -24,13 +26,22 @@ const componentNodesToReadableNodes = async (component: Array<ComponentNodeRefer
   return await Promise.all(readableNodePromises)
 }
 
+const getStorageResourceURL = async (reference: ObjectReference) => {
+  let url: string
+  try {
+    url = await getPublicURL(reference)
+  } catch (e) {
+    return ''
+  }
+  return url
+}
+
 const attributeDataToNodeValue = async (data: AttributeData, componentNodes: ComponentNodes): Promise<ReadableAttributeValue> => {
   switch (data.type) {
     case 'boolean':
     case 'number':
     case 'string':
     case 'text':
-    case 'storageResource':
       return data.value
     case 'markdown':
       return await parseMarkdown(data.value as string)
@@ -38,6 +49,8 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
       return ''
     case 'link':
       return data.value.isExternal ? data.value.url : data.value.pageName
+    case 'storageResource':
+      return getStorageResourceURL(data.value)
     case 'components':
       return await componentNodesToReadableNodes(data.value as Array<ComponentNodeReference>, componentNodes)
   }
