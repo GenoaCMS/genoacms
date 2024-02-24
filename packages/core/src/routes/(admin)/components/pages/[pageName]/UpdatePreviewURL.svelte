@@ -1,9 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Input, Label, Modal } from 'flowbite-svelte'
-  import Button from '$lib/components/Button.svelte'
+  import { Button, Input, Label, Modal } from 'flowbite-svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
-  import { invalidate } from '$app/navigation'
   import type { SubmitFunction } from '@sveltejs/kit'
 
   export let value: string
@@ -31,17 +29,15 @@
 </button>
 
 <Modal title="Edit preview URL:" bind:open={isModalOpen}>
-    <div class="flex w-3/4 mx-auto justify-center">
-        <div>
-            <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit}>
-                <Label>
-                    Preview URL:
-                    <Input type="text" name="value" {value} class="w-full"/>
-                </Label>
-                <Button type="submit" class="mt-4 w-full">
-                    Edit
-                </Button>
-            </form>
-        </div>
+    <div class="flex justify-center">
+        <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit} class="w-3/4 mx-auto">
+            <Label>
+                Preview URL:
+                <Input type="text" name="value" {value} class="w-full"/>
+            </Label>
+            <Button type="submit" color="light" class="mt-4 w-full">
+                Edit
+            </Button>
+        </form>
     </div>
 </Modal>

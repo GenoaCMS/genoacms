@@ -6,8 +6,7 @@
     getAttributeTypes
   } from '$lib/script/components/componentSchema/schemas'
   import Ajv, { type JSONSchemaType } from 'ajv'
-  import { Label, Select } from 'flowbite-svelte'
-  import Button from '$lib/components/Button.svelte'
+  import { Button, Label, Select } from 'flowbite-svelte'
   import { createEventDispatcher } from 'svelte'
 
   export let attribute: attributeValue | null = null
@@ -73,5 +72,5 @@
             <Input.formControl bind:value={Input.value} {...Input.props}/>
         </Label>
     {/each}
-    <Button class="w-full mt-3" type="submit">Save</Button>
+    <Button type="submit" color="light" class="w-full mt-3">Save</Button>
 </form>

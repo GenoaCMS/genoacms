@@ -1,10 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import Modal from '$lib/components/Modal.svelte'
-  import Button from '$lib/components/Button.svelte'
-  import Input from '$lib/components/Input.svelte'
   import { alertPending, Toast } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
+  import { Button, Input, Label, Modal } from 'flowbite-svelte'
 
   let isDirectoryCreationModalOpen = false
   const toggleDirectoryCreationModal = () => {
@@ -35,20 +33,13 @@
     <i class="bi bi-folder-plus text-2xl text-white hover:text-warning transition-all"/>
 </button>
 
-<Modal bind:isOpen={isDirectoryCreationModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Create directory
-        </h1>
-    </svelte:fragment>
+<Modal title="Create directory" bind:open={isDirectoryCreationModalOpen}>
     <form enctype="multipart/form-data" action="?/createDirectory" method="post" use:enhance={enhanceCreation} class="flex flex-col p-4">
-        <div class="flex py-2">
-            <label for="directoryName" class="p-2">
-                Name:
-            </label>
+        <Label for="directoryName" class="pb-2">
+            Name:
             <Input id="directoryName" name="directoryName" class="w-full"/>
-        </div>
-        <Button type="submit">
+        </Label>
+        <Button type="submit" color="light">
             Create
         </Button>
     </form>

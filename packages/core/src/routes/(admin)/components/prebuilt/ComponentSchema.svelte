@@ -4,10 +4,10 @@
     import { invalidateAll } from '$app/navigation'
     import { enhance } from '$app/forms'
     import type { ComponentSchema } from '$lib/script/components/componentSchema/types'
-    import Modal from '$lib/components/Modal.svelte'
     import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
     import ContextMenu from '$lib/components/ContextMenu.svelte'
     import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
+    import { Modal } from 'flowbite-svelte'
 
     export let schema: ComponentSchema
 
@@ -57,12 +57,7 @@
     </form>
 </ContextMenu>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Edit schema schema of component {schema.name}
-        </h1>
-    </svelte:fragment>
+<Modal title="Edit schema schema of component {schema.name}" bind:open={isModalOpen}>
     <div class="flex w-3/4 mx-auto">
         <ComponentSchemaEditor {schema} enhanceForm={enhanceEdit}/>
     </div>

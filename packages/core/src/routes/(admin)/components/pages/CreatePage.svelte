@@ -1,10 +1,7 @@
 <script lang="ts">
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { applyAction, enhance } from '$app/forms'
-  import Modal from '$lib/components/Modal.svelte'
-  import Input from '$lib/components/Input.svelte'
-  import Button from '$lib/components/Button.svelte'
-  import { Label, Select } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, Select } from 'flowbite-svelte'
   import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
 
   export let components: Array<ComponentSchemaFile>
@@ -31,14 +28,9 @@
     <i class="bi bi-window-plus text-2xl hover:text-warning transition-all"/>
 </button>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Create a new page
-        </h1>
-    </svelte:fragment>
-    <div class="flex w-3/4 mx-auto justify-center">
-        <form method="post" action="?/createPage" use:enhance={enhanceCreation}>
+<Modal title="Create a new page" bind:open={isModalOpen}>
+    <div class="flex justify-center">
+        <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-3/4 mx-auto">
             <Label>
                 Name:
                 <Input type="text" name="name" class="w-full"/>
@@ -51,7 +43,7 @@
                     {/each}
                 </Select>
             </Label>
-            <Button class="w-full mt-3">
+            <Button color="light" class="w-full mt-3">
                 Create
             </Button>
         </form>

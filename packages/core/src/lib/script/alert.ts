@@ -2,7 +2,9 @@ import alert from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
 const Toast = alert.mixin({
-  customClass: 'rounded-none',
+  customClass: {
+    container: ['bg-light', 'dark:bg-dark-light', 'rounded-none', 'rounded-0']
+  },
   toast: true,
   position: 'bottom-end',
   showConfirmButton: false,

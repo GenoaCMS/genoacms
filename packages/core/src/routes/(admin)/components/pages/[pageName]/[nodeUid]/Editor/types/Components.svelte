@@ -3,13 +3,12 @@
   import { page } from '$app/stores'
   import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
   import type { JSONSchemaType } from 'ajv'
-  import Modal from '$lib/components/Modal.svelte'
   import Component from './Component.svelte'
   import { enhance } from '$app/forms'
   import { toastError } from '$lib/script/alert'
   import Subcomponent from './Subcomponent.svelte'
   import { invalidateAll } from '$app/navigation'
-  import { Card } from 'flowbite-svelte'
+  import { Card, Modal } from 'flowbite-svelte'
 
   export let data: AttributeData<Array<ComponentNodeReference>>
   let isModalOpen = false
@@ -58,12 +57,7 @@
     </div>
 </Card>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h2>
-            Add a new component
-        </h2>
-    </svelte:fragment>
+<Modal title="Add a new component" bind:open={isModalOpen}>
     <div class="w-full grid grid-cols-4 gap-5 p-5">
         {#each possibleSubcomponents as componentSchema}
             <form action="?/addChildNode" method="post" use:enhance={addComponent} class="col-span-1">

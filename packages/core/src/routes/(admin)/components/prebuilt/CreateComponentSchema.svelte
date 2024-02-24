@@ -1,8 +1,8 @@
 <script lang="ts">
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
-  import Modal from '$lib/components/Modal.svelte'
   import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
+  import { Modal } from 'flowbite-svelte'
 
   let isModalOpen = false
   const toggleModal = () => {
@@ -28,12 +28,7 @@
     <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"/>
 </button>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Create a new component schema
-        </h1>
-    </svelte:fragment>
+<Modal title="Create a new component schema" bind:open={isModalOpen}>
     <div class="flex w-3/4 mx-auto">
         <ComponentSchemaEditor enhanceForm={enhanceCreation}/>
     </div>

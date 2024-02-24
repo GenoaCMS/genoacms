@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { attributeValue } from '$lib/script/components/componentSchema/types'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
-  import Modal from '$lib/components/Modal.svelte'
   import { createEventDispatcher } from 'svelte'
+  import { Modal } from 'flowbite-svelte'
 
   export let attribute: attributeValue
   const dispatch = createEventDispatcher()
@@ -34,12 +34,7 @@
     </div>
 </div>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Edit attribute
-        </h1>
-    </svelte:fragment>
+<Modal title="Edit attribute" bind:open={isModalOpen}>
     <div class="m-auto w-2/3">
         <ComponentSchemaAttributeEditor {attribute} on:save={updateAttribute}/>
     </div>

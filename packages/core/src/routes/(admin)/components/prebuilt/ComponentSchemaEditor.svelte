@@ -3,11 +3,9 @@
   import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schemas'
   import { enhance } from '$app/forms'
   import Ajv from 'ajv'
-  import Modal from '$lib/components/Modal.svelte'
   import ComponentSchemaAttribute from './ComponentSchemaAttribute.svelte'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
-  import Button from '$lib/components/Button.svelte'
-  import { Input, Label } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal } from 'flowbite-svelte'
 
   const currentDateString = Date.now().toString()
   export let schema: ComponentSchemaFile = {
@@ -55,7 +53,7 @@
 </script>
 
 <div class="flex-grow flex flex-col justify-center">
-    <div class="w-full my-auto">
+    <div class="w-full mb-3">
         <Label class="text-xl">
             Schema name:
             <Input type="text" class="w-full" bind:value={schema.name}/>
@@ -79,19 +77,14 @@
     <div class="my-auto">
         <form action="?/uploadComponentSchema" method="post" use:enhance={enhanceForm}>
             <input type="hidden" name="componentSchema" value={serializeComponentSchema(schema)}/>
-            <Button type="submit" class="w-full bg-dark">
+            <Button type="submit" color="light" class="w-full">
                 Create
             </Button>
         </form>
     </div>
 </div>
 
-<Modal bind:isOpen={isModalOpen}>
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            New attribute
-        </h1>
-    </svelte:fragment>
+<Modal title="New attribute" bind:open={isModalOpen}>
     <div class="m-auto w-2/3">
         <ComponentSchemaAttributeEditor on:save={handleAttributeCreation}/>
     </div>

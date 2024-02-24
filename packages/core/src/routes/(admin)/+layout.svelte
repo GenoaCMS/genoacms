@@ -32,12 +32,16 @@
 </script>
 
 <div class="h-full grid grid-cols-6 gap-0">
-    <div class="bg-light">
-        <div class="sticky top-0 bottom-0 h-screen z-50 flex flex-col justify-center p-5">
-            {#each pages as page}
-                <NavbarItem {...page}/>
-            {/each}
-            <DarkMode/>
+    <div class="bg-light dark:bg-dark-light">
+        <div class="sticky z-0 top-0 bottom-0 h-screen flex flex-col justify-center p-5">
+            <div class="my-auto">
+                {#each pages as page}
+                    <NavbarItem {...page}/>
+                {/each}
+            </div>
+            <div>
+                <DarkMode/>
+            </div>
         </div>
     </div>
     <div class="col-span-5">

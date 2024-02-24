@@ -1,10 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import Button from '$lib/components/Button.svelte'
-  import Modal from '$lib/components/Modal.svelte'
-  import Input from '$lib/components/Input.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
+  import { Button, Input, Modal } from 'flowbite-svelte'
 
   let isModalOpen = false
   const toggleModal = () => {
@@ -29,16 +27,10 @@
     <i class="bi bi-upload text-2xl hover:text-warning transition-all"/>
 </button>
 
-<Modal isOpen={isModalOpen}>
-
-    <svelte:fragment slot="header">
-        <h1 class="text-2xl">
-            Upload files
-        </h1>
-    </svelte:fragment>
+<Modal title="Upload files" bind:open={isModalOpen}>
     <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col p-4">
         <Input name="files[]" type="file" multiple required class="w-full my-2"/>
-        <Button type="submit" class="w-full text-dark">
+        <Button type="submit" color="light" class="w-full">
             Upload
         </Button>
     </form>
