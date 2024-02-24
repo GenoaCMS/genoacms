@@ -1,10 +1,9 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { extractProperties } from '../utils'
-  import Input from '$lib/components/Input.svelte'
-  import Button from '$lib/components/Button.svelte'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import { Toast } from '$lib/script/alert'
+  import { Input, Label } from 'flowbite-svelte'
 
   export let data
   const properties = extractProperties(data.document.reference.collection.schema.properties)
@@ -31,14 +30,18 @@
         Update <span class="text-warning">{data.document.reference.id}</span> of
         <span class="text-warning">{data.document.reference.collection.name}</span>
     </h1>
+    <svelte:fragment slot="right">
+        <button type="submit" form="update-form" class="h-full flex items-center px-3">
+            <i class="bi bi-floppy text-2xl hover:text-warning transition-all"/>
+        </button>
+    </svelte:fragment>
 </TopPanel>
 
-<form action="?/update" method="post" use:enhance={enhanceUpdate}>
+<form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} class="p-3">
     {#each properties as property}
-        {property.name}:
-        <Input name={property.name} bind:value={data.document.data[property.name]}/>
+        <Label>
+            {property.name}:
+            <Input name={property.name} bind:value={data.document.data[property.name]}/>
+        </Label>
     {/each}
-    <Button>
-        Save
-    </Button>
 </form>
