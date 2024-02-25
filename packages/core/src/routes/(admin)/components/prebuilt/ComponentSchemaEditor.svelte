@@ -1,14 +1,13 @@
 <script lang="ts">
-  import type { attributeValue, ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
-  import { componentSchemaFileSchema } from '$lib/script/components/componentEntry/schemas'
+  import type { Attribute, PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { enhance } from '$app/forms'
-  import Ajv from 'ajv'
   import ComponentSchemaAttribute from './ComponentSchemaAttribute.svelte'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
   import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { validatePrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/validators'
 
   const currentDateString = Date.now().toString()
-  export let schema: ComponentSchemaFile = {
+  export let schema: PrebuiltComponentEntry = {
     name: '',
     versions: {
       [currentDateString]: {
@@ -21,15 +20,13 @@
   export let enhanceForm = () => {
   }
   let isModalOpen = false
-  const ajv = new Ajv()
-  const validate = ajv.compile(componentSchemaFileSchema)
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
-    const newAttribute: attributeValue = event.detail
+    const newAttribute: Attribute = event.detail
     schema.versions[schema.currentVersion].attributes = [
       ...schema.versions[schema.currentVersion].attributes,
       newAttribute]
@@ -41,10 +38,10 @@
     schema.versions[schema.currentVersion].attributes = schema.versions[schema.currentVersion].attributes
       .filter((attribute) => attribute.name !== attributeName)
   }
-  const serializeComponentSchema = (componentSchema: ComponentSchemaFile) => {
-    const isValid = validate(componentSchema)
+  const serializeComponentSchema = (componentSchema: PrebuiltComponentEntry) => {
+    const isValid = validatePrebuiltComponentEntry(componentSchema)
     if (!isValid) {
-      console.warn('Invalid component schema', validate.errors, componentSchema)
+      console.warn('Invalid component schema', validatePrebuiltComponentEntry.errors, componentSchema)
       return ''
     }
     return JSON.stringify(componentSchema)

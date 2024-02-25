@@ -1,27 +1,32 @@
-import type { attributeType, attributeValue } from '$lib/script/components/componentEntry/types'
+import type { Attribute, AttributeType } from '$lib/script/components/componentEntry/component/types'
 import type { JSONSchemaType } from 'ajv'
-import { listOrCreatePreBuiltComponentList } from './component.server'
 import {
   booleanValueSchema,
   componentsValueSchema,
   linkValueSchema,
+  markdownValueSchema,
   numberValueSchema,
+  richTextValueSchema,
   storageResourceValueSchema,
-  stringValueSchema
-} from '$lib/script/components/componentEntry/schemas'
-import type { AttributeValue } from '$lib/script/components/page/entry/types'
+  stringValueSchema,
+  textValueSchema
+} from './schemas'
+import { listOrCreatePreBuiltComponentList } from '$lib/script/components/componentEntry/component.server'
 
-const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSchemaType<AttributeValue>> => {
+const attributeTypeToValueSchema = async (type: AttributeType): Promise<JSONSchemaType<Attribute>> => {
   switch (type) {
     case 'boolean':
       return booleanValueSchema
     case 'number':
       return numberValueSchema
     case 'string':
-    case 'text':
-    case 'markdown':
-    case 'richText':
       return stringValueSchema
+    case 'text':
+      return textValueSchema
+    case 'markdown':
+      return markdownValueSchema
+    case 'richText':
+      return richTextValueSchema
     case 'link':
       return linkValueSchema
     case 'storageResource':
@@ -37,7 +42,7 @@ const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSche
   }
 }
 
-const attributeToSchema = async (attribute: attributeValue) => {
+const attributeToSchema = async (attribute: Attribute) => {
   const schema = await attributeTypeToValueSchema(attribute.type)
   if (attribute.isRequired) schema.nullable = false
   if ('min' in attribute) schema.minimum = attribute.min

@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { AttributeData, ComponentNode, ComponentNodeReference } from '$lib/script/components/page/entry/types'
-  import { page } from '$app/stores'
-  import type { ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
+  import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
+  import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
+  import type { PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import type { JSONSchemaType } from 'ajv'
+  import { page } from '$app/stores'
   import Component from './Component.svelte'
   import { enhance } from '$app/forms'
   import { toastError } from '$lib/script/alert'
@@ -15,11 +16,11 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const getPossibleSubcomponents = (components: Array<ComponentSchemaFile>, dataSchema: JSONSchemaType<Array<string>>) => {
+  const getPossibleSubcomponents = (components: Array<PrebuiltComponentEntry>, dataSchema: JSONSchemaType<Array<string>>) => {
     if (dataSchema.items.enum.length === 0) return components
     return components.filter((component) => dataSchema.items.enum.includes(component.name))
   }
-  const getChildNodes = (childNodeUIDs: Array<ComponentNodeReference>, allNodes: Record<componentNodeReference, ComponentNode>) => {
+  const getChildNodes = (childNodeUIDs: Array<ComponentNodeReference>, allNodes: Record<ComponentNodeReference, ComponentNode>) => {
     const childNodes = []
     for (const childNodeUID of childNodeUIDs) {
       const childNode = allNodes[childNodeUID]

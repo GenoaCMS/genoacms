@@ -8,14 +8,14 @@ import {
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import Ajv from 'ajv'
-import { componentSchemaFileSchema } from './schemas'
-import type { ComponentSchemaFile } from './types'
+import { prebuiltComponentEntrySchema } from './component/schemas'
+import type { PrebuiltComponentEntry } from './component/types'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
 const ajv = new Ajv()
-const validateComponentSchema = ajv.compile(componentSchemaFileSchema)
+const validateComponentSchema = ajv.compile(prebuiltComponentEntrySchema)
 
-const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchemaFile>> => {
+const listOrCreatePreBuiltComponentList = async (): Promise<Array<PrebuiltComponentEntry>> => {
   const componentList = await listOrCreateDirectory({
     bucket: defaultBucketId,
     name: prebuiltSchemaPath
@@ -23,10 +23,10 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentSchem
   const componentSchemaPromises = componentList.files
     .map(async component => getComponentSchemaFile(fullyQualifiedNameToFilename(component.name)))
   const componentSchemas = await Promise.all(componentSchemaPromises)
-  return componentSchemas.filter(schema => schema !== null) as Array<ComponentSchemaFile>
+  return componentSchemas.filter(schema => schema !== null) as Array<PrebuiltComponentEntry>
 }
 
-const getComponentSchemaFile = async (name: string): Promise<ComponentSchemaFile | null> => {
+const getComponentSchemaFile = async (name: string): Promise<PrebuiltComponentEntry | null> => {
   const potentialComponentSchema = await getObjectJSON({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, name)

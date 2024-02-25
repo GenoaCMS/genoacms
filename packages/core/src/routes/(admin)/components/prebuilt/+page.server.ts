@@ -3,13 +3,9 @@ import {
   listOrCreatePreBuiltComponentList,
   uploadComponentSchema
 } from '$lib/script/components/componentEntry/component.server'
-import Ajv from 'ajv'
-import { componentSchemaFileSchema } from '$lib/script/components/componentEntry/schemas'
 import { fail } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
-
-const ajv = new Ajv()
-const validate = ajv.compile(componentSchemaFileSchema)
+import { validatePrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/validators'
 
 export const load = async () => {
   const componentSchemas = await listOrCreatePreBuiltComponentList()
@@ -24,7 +20,7 @@ export const actions = {
     const componentSchemaText = data.get('componentSchema')
     if (!isString(componentSchemaText)) return fail(400, { reason: 'no-component-schema' })
     const componentSchema = JSON.parse(componentSchemaText)
-    if (!validate(componentSchema)) return fail(400, { reason: 'invalid-component-schema' })
+    if (!validatePrebuiltComponentEntry(componentSchema)) return fail(400, { reason: 'invalid-component-schema' })
     await uploadComponentSchema(componentSchema.name, componentSchemaText)
   },
   deleteComponentSchema: async ({ request }) => {

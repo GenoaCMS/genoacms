@@ -1,18 +1,17 @@
 import type { JSONSchemaType } from 'ajv'
 import type {
   BooleanAttribute,
+  ComponentEntry,
   ComponentsAttribute,
-  ComponentSchema,
-  ComponentSchemaFile,
   LinkAttribute,
   MarkdownAttribute,
   NumberAttribute,
+  PrebuiltComponentEntry,
   RichTextAttribute,
   StorageResourceAttribute,
   StringAttribute,
   TextAttribute
-} from '$lib/script/components/componentEntry/types'
-import type { LinkAttributeValue, StorageResourceAttributeValue } from '$lib/script/components/page/entry/types'
+} from './types'
 
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
   type: 'object',
@@ -159,7 +158,7 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   required: ['name', 'type']
 }
 
-const componentSchemaSchema: JSONSchemaType<ComponentSchema> = {
+const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
   type: 'object',
   properties: {
     version: { type: 'string' },
@@ -183,57 +182,18 @@ const componentSchemaSchema: JSONSchemaType<ComponentSchema> = {
   required: ['version', 'attributes']
 }
 
-const componentSchemaFileSchema: JSONSchemaType<ComponentSchemaFile> = {
+const prebuiltComponentEntrySchema: JSONSchemaType<PrebuiltComponentEntry> = {
   type: 'object',
   properties: {
     name: { type: 'string' },
     versions: {
       type: 'object',
-      additionalProperties: componentSchemaSchema,
+      additionalProperties: componentEntrySchema,
       required: []
     },
     currentVersion: { type: 'string' }
   },
   required: ['name', 'versions', 'currentVersion']
-}
-
-const booleanValueSchema: JSONSchemaType<boolean> = {
-  type: 'boolean'
-}
-
-const numberValueSchema: JSONSchemaType<number> = {
-  type: 'number'
-}
-
-const stringValueSchema: JSONSchemaType<string> = {
-  type: 'string'
-}
-
-const linkValueSchema: JSONSchemaType<LinkAttributeValue> = {
-  type: 'object',
-  properties: {
-    isExternal: { type: 'boolean' },
-    url: { type: 'string', nullable: true },
-    pageName: { type: 'string', nullable: true }
-  },
-  required: ['isExternal']
-}
-
-const storageResourceValueSchema: JSONSchemaType<StorageResourceAttributeValue> = {
-  type: 'object',
-  properties: {
-    bucket: { type: 'string' },
-    name: { type: 'string' }
-  },
-  required: ['bucket', 'name']
-}
-
-const componentsValueSchema: JSONSchemaType<Array<string>> = {
-  type: 'array',
-  items: {
-    type: 'string',
-    enum: []
-  }
 }
 
 export {
@@ -246,12 +206,6 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentSchemaSchema,
-  componentSchemaFileSchema,
-  booleanValueSchema,
-  numberValueSchema,
-  stringValueSchema,
-  linkValueSchema,
-  storageResourceValueSchema,
-  componentsValueSchema
+  componentEntrySchema,
+  prebuiltComponentEntrySchema
 }

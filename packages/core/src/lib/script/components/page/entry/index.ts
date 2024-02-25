@@ -1,10 +1,11 @@
-import type { attributeValue, ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
-import { attributeToSchema } from '$lib/script/components/componentEntry/entry.server'
+import type { Attribute, ComponentEntry, PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getComponentSchemaFile } from '$lib/script/components/componentEntry/component.server'
-import type { AttributeData, AttributeReference, AttributeValue, ComponentNode, PageContents, PageEntry } from './types'
+import type { AttributeData, AttributeReference, ComponentNode, PageContents, PageEntry } from './types'
 import diff from 'deep-diff'
+import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
 
-const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][number]['type']): AttributeValue => {
+const generateAttributeDefaultValue = (type: ComponentEntry['attributes'][number]['type']): AttributeValue => {
   switch (type) {
     case 'boolean':
       return false
@@ -30,7 +31,7 @@ const generateAttributeDefaultValue = (type: ComponentSchema['attributes'][numbe
   }
 }
 
-const generateAttributeData = async (attribute: attributeValue): Promise<AttributeData> => {
+const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
   return {
     uid: crypto.randomUUID(),
     name: attribute.name,
@@ -40,7 +41,7 @@ const generateAttributeData = async (attribute: attributeValue): Promise<Attribu
   }
 }
 
-const componentSchemaToNode = async (schemaFile: ComponentSchemaFile): Promise<ComponentNode> => {
+const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promise<ComponentNode> => {
   const dataPromises: Array<Promise<AttributeData>> = []
   const data: Record<AttributeReference, AttributeData> = {}
   const schema = schemaFile.versions[schemaFile.currentVersion]

@@ -1,16 +1,16 @@
 import type {
   AttributeData,
   ComponentNode,
-  ComponentNodeReference,
   ComponentNodes,
   PageEntry
 } from '$lib/script/components/page/entry/types'
 import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/components/page/tree/types'
+import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
 import { getPublicURL } from '$lib/script/storage/storage.server'
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
 const parseMarkdown = async (markdown: string) => {
   const window = new JSDOM('').window
