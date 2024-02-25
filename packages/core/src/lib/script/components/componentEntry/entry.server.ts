@@ -1,13 +1,17 @@
-import type { attributeType, attributeValue } from '$lib/script/components/componentSchema/types'
+import type { attributeType, attributeValue } from '$lib/script/components/componentEntry/types'
 import type { JSONSchemaType } from 'ajv'
 import { listOrCreatePreBuiltComponentList } from './component.server'
 import {
-  booleanValueSchema, componentsValueSchema,
+  booleanValueSchema,
+  componentsValueSchema,
+  linkValueSchema,
   numberValueSchema,
+  storageResourceValueSchema,
   stringValueSchema
-} from '$lib/script/components/componentSchema/schemas'
+} from '$lib/script/components/componentEntry/schemas'
+import type { AttributeValue } from '$lib/script/components/page/entry/types'
 
-const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSchemaType<boolean | number | string | Array<string>>> => {
+const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSchemaType<AttributeValue>> => {
   switch (type) {
     case 'boolean':
       return booleanValueSchema
@@ -17,9 +21,11 @@ const attributeTypeToValueSchema = async (type: attributeType): Promise<JSONSche
     case 'text':
     case 'markdown':
     case 'richText':
-    case 'link':
-    case 'storageResource':
       return stringValueSchema
+    case 'link':
+      return linkValueSchema
+    case 'storageResource':
+      return storageResourceValueSchema
     case 'components': {
       const schema = componentsValueSchema
       const availableComponents = await listOrCreatePreBuiltComponentList()

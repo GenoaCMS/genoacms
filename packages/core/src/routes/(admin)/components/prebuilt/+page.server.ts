@@ -2,9 +2,9 @@ import {
   deleteComponentSchema,
   listOrCreatePreBuiltComponentList,
   uploadComponentSchema
-} from '$lib/script/components/componentSchema/component.server'
+} from '$lib/script/components/componentEntry/component.server'
 import Ajv from 'ajv'
-import { componentSchemaFileSchema } from '$lib/script/components/componentSchema/schemas'
+import { componentSchemaFileSchema } from '$lib/script/components/componentEntry/schemas'
 import { fail } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
 

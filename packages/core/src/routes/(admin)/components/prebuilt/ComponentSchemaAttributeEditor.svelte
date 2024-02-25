@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { attributeValue, InputConfig } from '$lib/script/components/componentSchema/types'
+  import type { attributeValue, InputConfig } from '$lib/script/components/componentEntry/types'
   import {
     attributeToHTMLInputConfig,
     getAttributeSchemaByType,
     getAttributeTypes
-  } from '$lib/script/components/componentSchema/schemas'
+  } from '$lib/script/components/componentEntry/entry'
   import Ajv, { type JSONSchemaType } from 'ajv'
   import { Button, Label, Select } from 'flowbite-svelte'
   import { createEventDispatcher } from 'svelte'

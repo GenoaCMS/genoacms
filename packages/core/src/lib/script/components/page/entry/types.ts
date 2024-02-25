@@ -1,6 +1,6 @@
 import type { JSONSchemaType } from 'ajv'
 import type { Diff } from 'deep-diff'
-import type { attributeType } from '$lib/script/components/componentSchema/types'
+import type { attributeType } from '$lib/script/components/componentEntry/types'
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
 type AttributeReference = string

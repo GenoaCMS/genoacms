@@ -2,7 +2,7 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select } from 'flowbite-svelte'
-  import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+  import type { ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
 
   export let components: Array<ComponentSchemaFile>
   let isModalOpen = false

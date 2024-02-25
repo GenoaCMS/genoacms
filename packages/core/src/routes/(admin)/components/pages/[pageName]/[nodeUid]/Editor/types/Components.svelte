@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AttributeData, ComponentNode, ComponentNodeReference } from '$lib/script/components/page/entry/types'
   import { page } from '$app/stores'
-  import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+  import type { ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
   import type { JSONSchemaType } from 'ajv'
   import Component from './Component.svelte'
   import { enhance } from '$app/forms'

@@ -1,6 +1,6 @@
 <script lang="ts">
     import CardLink from '$lib/components/CardLink.svelte'
-    import type { ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
+    import type { ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
 
     export let schema: ComponentSchemaFile
 </script>

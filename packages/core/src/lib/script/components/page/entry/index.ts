@@ -1,6 +1,6 @@
-import type { attributeValue, ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentSchema/types'
-import { attributeToSchema } from '$lib/script/components/componentSchema/schemas.server'
-import { getComponentSchemaFile } from '$lib/script/components/componentSchema/component.server'
+import type { attributeValue, ComponentSchema, ComponentSchemaFile } from '$lib/script/components/componentEntry/types'
+import { attributeToSchema } from '$lib/script/components/componentEntry/entry.server'
+import { getComponentSchemaFile } from '$lib/script/components/componentEntry/component.server'
 import type { AttributeData, AttributeReference, AttributeValue, ComponentNode, PageContents, PageEntry } from './types'
 import diff from 'deep-diff'
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { attributeValue } from '$lib/script/components/componentSchema/types'
+  import type { attributeValue } from '$lib/script/components/componentEntry/types'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
   import { createEventDispatcher } from 'svelte'
   import { Modal } from 'flowbite-svelte'
