@@ -5,12 +5,12 @@ import type { AttributeValue, ComponentNodeReference } from '$lib/script/compone
 
 type AttributeReference = string
 
-interface AttributeData<T extends AttributeValue = AttributeValue> {
+interface AttributeData<T extends AttributeType = AttributeType, V extends AttributeValue<T> = AttributeValue<T>> {
   uid: AttributeReference,
   name: string,
-  type: AttributeType,
-  schema: JSONSchemaType<T>,
-  value: T
+  type: T,
+  schema: JSONSchemaType<V>,
+  value: V
 }
 
 type ComponentNodeData = Record<AttributeReference, AttributeData>

@@ -1,13 +1,13 @@
 <script lang="ts">
   import type {
-    AttributeData,
-    StorageResourceAttributeValue
+    AttributeData
   } from '$lib/script/components/page/entry/types'
+  import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Card } from 'flowbite-svelte'
   import { page } from '$app/stores'
 
-  export let data: AttributeData<StorageResourceAttributeValue>
-  const buildSelectURL = (data: AttributeData<StorageResourceAttributeValue>) => {
+  export let data: AttributeData<StorageResourceAttributeType>
+  const buildSelectURL = (data: AttributeData<StorageResourceAttributeType>) => {
     let url = '/storage'
     url += '?maxSelectionItems=1'
     url += '&selectionType=page-data'

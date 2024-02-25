@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import type { MarkdownAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Button, Card, Modal } from 'flowbite-svelte'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
 
-  export let data: AttributeData<string>
+  export let data: AttributeData<MarkdownAttributeType>
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen

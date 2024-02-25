@@ -1,11 +1,16 @@
-import type { Attribute, ComponentEntry, PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+import type {
+  Attribute,
+  AttributeType,
+  ComponentsAttributeType,
+  PrebuiltComponentEntry
+} from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getComponentSchemaFile } from '$lib/script/components/componentEntry/component.server'
 import type { AttributeData, AttributeReference, ComponentNode, PageContents, PageEntry } from './types'
 import diff from 'deep-diff'
 import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
 
-const generateAttributeDefaultValue = (type: ComponentEntry['attributes'][number]['type']): AttributeValue => {
+const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
   switch (type) {
     case 'boolean':
       return false
@@ -120,10 +125,14 @@ const updateComponentNode = (page: PageEntry, updaterComponent: ComponentNode) =
   return page
 }
 
+const isAttributeDataComponentsType = (attribute: AttributeData): attribute is AttributeData<ComponentsAttributeType> => attribute.type === 'components'
+
 const addChildNodeToNodeInPage = (page: PageEntry, node: ComponentNode, attributeUID: AttributeReference, childNode: ComponentNode) => {
   const oldContents: PageContents = duplicateObject(page.contents)
   page.contents.nodes[childNode.uid] = childNode
-  node.data[attributeUID].value.push(childNode.uid)
+  const attribute = node.data[attributeUID]
+  if (!isAttributeDataComponentsType(attribute)) throw new Error('invalid-attribute-type')
+  attribute.value.push(childNode.uid)
   page = pushPageEntryState(oldContents, page)
   return page
 }

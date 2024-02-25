@@ -1,7 +1,10 @@
 <script lang="ts">
   import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
   import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
-  import type { PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type {
+    ComponentsAttributeType,
+    PrebuiltComponentEntry
+  } from '$lib/script/components/componentEntry/component/types'
   import type { JSONSchemaType } from 'ajv'
   import { page } from '$app/stores'
   import Component from './Component.svelte'
@@ -11,7 +14,7 @@
   import { invalidateAll } from '$app/navigation'
   import { Card, Modal } from 'flowbite-svelte'
 
-  export let data: AttributeData<Array<ComponentNodeReference>>
+  export let data: AttributeData<ComponentsAttributeType>
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen

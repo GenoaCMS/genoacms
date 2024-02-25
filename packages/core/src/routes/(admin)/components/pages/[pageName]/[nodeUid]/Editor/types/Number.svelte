@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import type { NumberAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Input, Label } from 'flowbite-svelte'
 
-  export let data: AttributeData<number>
+  export let data: AttributeData<NumberAttributeType>
 </script>
 
 <Label>

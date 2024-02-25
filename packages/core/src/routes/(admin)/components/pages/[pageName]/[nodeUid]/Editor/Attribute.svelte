@@ -9,7 +9,7 @@
   import Link from './types/Link.svelte'
   import StorageResource from './types/StorageResource.svelte'
 
-  export let attribute: AttributeData
+  export let attribute: AttributeData<never>
 </script>
 
 <div class="pt-3">

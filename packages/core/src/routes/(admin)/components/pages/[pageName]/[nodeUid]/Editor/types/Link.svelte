@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { AttributeData, LinkAttributeValue } from '$lib/script/components/page/entry/types'
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import type { LinkAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Card, Input, Select, Toggle } from 'flowbite-svelte'
   import { page } from '$app/stores'
 
-  export let data: AttributeData<LinkAttributeValue>
+  export let data: AttributeData<LinkAttributeType>
 </script>
 
 <Card>
