@@ -37,9 +37,9 @@
             </Label>
             <Label>
                 Component:
-                <Select name="componentName" class="w-full">
+                <Select name="componentUID" class="w-full">
                     {#each components as component}
-                        <option value={component.name}>{component.name}</option>
+                        <option value={component.uid}>{component.name}</option>
                     {/each}
                 </Select>
             </Label>

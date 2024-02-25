@@ -9,7 +9,7 @@ import {
 import { join } from 'path'
 import Ajv from 'ajv'
 import { prebuiltComponentEntrySchema } from './component/schemas'
-import type { PrebuiltComponentEntry } from './component/types'
+import type { PrebuiltComponentEntry, PrebuiltComponentReference } from './component/types'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
 const ajv = new Ajv()
@@ -21,15 +21,15 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<PrebuiltCompon
     name: prebuiltSchemaPath
   })
   const componentSchemaPromises = componentList.files
-    .map(async component => getComponentSchemaFile(fullyQualifiedNameToFilename(component.name)))
+    .map(async component => getPrebuiltComponentEntry(fullyQualifiedNameToFilename(component.name)))
   const componentSchemas = await Promise.all(componentSchemaPromises)
   return componentSchemas.filter(schema => schema !== null) as Array<PrebuiltComponentEntry>
 }
 
-const getComponentSchemaFile = async (name: string): Promise<PrebuiltComponentEntry | null> => {
+const getPrebuiltComponentEntry = async (reference: PrebuiltComponentReference): Promise<PrebuiltComponentEntry | null> => {
   const potentialComponentSchema = await getObjectJSON({
     bucket: defaultBucketId,
-    name: join(prebuiltSchemaPath, name)
+    name: join(prebuiltSchemaPath, reference)
   })
   if (!validateComponentSchema(potentialComponentSchema)) {
     return null
@@ -37,14 +37,14 @@ const getComponentSchemaFile = async (name: string): Promise<PrebuiltComponentEn
   return potentialComponentSchema
 }
 
-const uploadComponentSchema = async (name: string, data: string) => {
+const uploadPrebuiltComponentEntry = async (entry: PrebuiltComponentEntry) => {
   await uploadObject({
     bucket: defaultBucketId,
-    name: join(prebuiltSchemaPath, name)
-  }, data)
+    name: join(prebuiltSchemaPath, entry.uid)
+  }, JSON.stringify(entry))
 }
 
-const deleteComponentSchema = async (name: string) => {
+const deletePrebuiltComponentEntry = async (name: string) => {
   await deleteObject({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, name)
@@ -53,7 +53,7 @@ const deleteComponentSchema = async (name: string) => {
 
 export {
   listOrCreatePreBuiltComponentList,
-  getComponentSchemaFile,
-  uploadComponentSchema,
-  deleteComponentSchema
+  getPrebuiltComponentEntry,
+  uploadPrebuiltComponentEntry,
+  deletePrebuiltComponentEntry
 }

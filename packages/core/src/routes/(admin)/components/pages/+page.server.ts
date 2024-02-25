@@ -9,13 +9,12 @@ export const actions = {
   createPage: async ({ request }) => {
     const data = await request.formData()
     const name = data.get('name')
-    const componentName = data.get('componentName')
-    if (!isString(name) || !isString(componentName)) return fail(400, { reason: 'no-page-name' })
+    const componentUID = data.get('componentUID')
+    if (!isString(name) || !isString(componentUID)) return fail(400, { reason: 'no-page-name' })
     const page = await createPageEntry({
       name,
-      componentName
+      componentUID
     })
-    // TODO: validate page
     await uploadPageEntry(page)
     return redirect(307, `pages/${name}`)
   }

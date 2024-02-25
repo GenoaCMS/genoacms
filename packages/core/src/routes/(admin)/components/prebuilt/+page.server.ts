@@ -1,7 +1,7 @@
 import {
-  deleteComponentSchema,
+  deletePrebuiltComponentEntry,
   listOrCreatePreBuiltComponentList,
-  uploadComponentSchema
+  uploadPrebuiltComponentEntry
 } from '$lib/script/components/componentEntry/component.server'
 import { fail } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
@@ -21,12 +21,12 @@ export const actions = {
     if (!isString(componentSchemaText)) return fail(400, { reason: 'no-component-schema' })
     const componentSchema = JSON.parse(componentSchemaText)
     if (!validatePrebuiltComponentEntry(componentSchema)) return fail(400, { reason: 'invalid-component-schema' })
-    await uploadComponentSchema(componentSchema.name, componentSchemaText)
+    await uploadPrebuiltComponentEntry(componentSchema)
   },
   deleteComponentSchema: async ({ request }) => {
     const data = await request.formData()
     const componentSchemaName = data.get('name')
     if (!isString(componentSchemaName)) return fail(400, { reason: 'no-component-schema-name' })
-    await deleteComponentSchema(componentSchemaName)
+    await deletePrebuiltComponentEntry(componentSchemaName)
   }
 }

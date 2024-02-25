@@ -2,10 +2,10 @@ import type {
   Attribute,
   AttributeType,
   ComponentsAttributeType,
-  PrebuiltComponentEntry
+  PrebuiltComponentEntry, PrebuiltComponentReference
 } from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
-import { getComponentSchemaFile } from '$lib/script/components/componentEntry/component.server'
+import { getPrebuiltComponentEntry } from '$lib/script/components/componentEntry/component.server'
 import type { AttributeData, AttributeReference, ComponentNode, PageContents, PageEntry } from './types'
 import diff from 'deep-diff'
 import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
@@ -63,8 +63,8 @@ const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promis
   }
 }
 
-const createPageEntry = async (values: { name: string, componentName: string }): Promise<PageEntry> => {
-  const component = await getComponentSchemaFile(values.componentName)
+const createPageEntry = async (values: { name: string, componentUID: PrebuiltComponentReference }): Promise<PageEntry> => {
+  const component = await getPrebuiltComponentEntry(values.componentUID)
   if (!component) throw new Error('no-component')
   const componentNode = await componentSchemaToNode(component)
 

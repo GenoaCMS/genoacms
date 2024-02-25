@@ -185,6 +185,7 @@ const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
 const prebuiltComponentEntrySchema: JSONSchemaType<PrebuiltComponentEntry> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     versions: {
       type: 'object',

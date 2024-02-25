@@ -94,7 +94,10 @@ interface ComponentEntry {
   attributes: Array<Attribute>
 }
 
+type PrebuiltComponentReference = string
+
 interface PrebuiltComponentEntry {
+  uid: PrebuiltComponentReference,
   name: string,
   versions: Record<string, ComponentEntry>,
   currentVersion: string
@@ -123,5 +126,6 @@ export type {
   ComponentsAttribute,
   Attribute,
   ComponentEntry,
+  PrebuiltComponentReference,
   PrebuiltComponentEntry
 }

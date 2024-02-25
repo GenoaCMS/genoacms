@@ -8,6 +8,7 @@
 
   const currentDateString = Date.now().toString()
   export let schema: PrebuiltComponentEntry = {
+    uid: crypto.randomUUID(),
     name: '',
     versions: {
       [currentDateString]: {
