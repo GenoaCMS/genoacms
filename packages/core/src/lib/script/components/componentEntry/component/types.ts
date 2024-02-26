@@ -1,3 +1,5 @@
+import type { Diff } from 'deep-diff'
+
 type BooleanAttributeType = 'boolean'
 type NumberAttributeType = 'number'
 type StringAttributeType = 'string'
@@ -92,18 +94,18 @@ type Attribute<T extends AttributeType = AttributeType> =
                   T extends ComponentsAttributeType ? ComponentsAttribute :
                     never
 
-interface ComponentEntry {
-  version: string,
-  attributes: Record<AttributeReference, Attribute>
-}
-
 type PrebuiltComponentReference = string
 
-interface PrebuiltComponentEntry {
+type ComponentEntryAttributes = Record<AttributeReference, Attribute>
+
+type AttributesChange = Array<Diff<ComponentEntryAttributes>>
+
+interface ComponentEntry {
   uid: PrebuiltComponentReference,
   name: string,
-  versions: Record<string, ComponentEntry>,
-  currentVersion: string
+  attributes: ComponentEntryAttributes,
+  history: Array<AttributesChange>,
+  future: Array<AttributesChange>
 }
 
 export type {
@@ -129,7 +131,7 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   Attribute,
-  ComponentEntry,
+  ComponentEntryAttributes,
   PrebuiltComponentReference,
-  PrebuiltComponentEntry
+  ComponentEntry
 }

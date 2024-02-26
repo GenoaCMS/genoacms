@@ -41,6 +41,7 @@
     const ajv = new Ajv()
     ajv.addSchema(schema)
     const isAttributeValid = ajv.validate(schema, potentialAttribute)
+    console.log(isAttributeValid, ajv.errors, schema)
     if (!isAttributeValid) return
     attribute = potentialAttribute
     dispatch('save', attribute)

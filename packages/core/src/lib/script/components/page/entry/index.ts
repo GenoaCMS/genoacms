@@ -3,7 +3,7 @@ import type {
   AttributeType,
   ComponentEntry,
   ComponentsAttributeType,
-  PrebuiltComponentEntry, PrebuiltComponentReference
+  PrebuiltComponentReference
 } from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getPrebuiltComponentEntry } from '$lib/script/components/componentEntry/component.server'
@@ -56,11 +56,10 @@ const generateAttributeData = async (attribute: Attribute): Promise<AttributeDat
   }
 }
 
-const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promise<ComponentNode> => {
+const componentSchemaToNode = async (entry: ComponentEntry): Promise<ComponentNode> => {
   const dataPromises: Array<Promise<AttributeData>> = []
   const data: Record<AttributeReference, AttributeData> = {}
-  const schema = schemaFile.versions[schemaFile.currentVersion]
-  for (const attribute of Object.values(schema.attributes)) {
+  for (const attribute of Object.values(entry.attributes)) {
     dataPromises.push(generateAttributeData(attribute))
   }
   for (const attributeData of await Promise.all(dataPromises)) {
@@ -68,8 +67,8 @@ const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promis
   }
   return {
     uid: crypto.randomUUID(),
-    name: schemaFile.name,
-    entryReference: schemaFile.uid,
+    name: entry.name,
+    entryReference: entry.uid,
     data
   }
 }
@@ -225,7 +224,7 @@ const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Pr
   return {
     ...node,
     name: componentEntry.name,
-    data: await deserializeComponentNodeData(node.data, componentEntry.versions[componentEntry.currentVersion])
+    data: await deserializeComponentNodeData(node.data, componentEntry)
   }
 }
 

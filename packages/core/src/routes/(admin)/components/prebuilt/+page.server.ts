@@ -5,23 +5,24 @@ import {
 } from '$lib/script/components/componentEntry/component.server'
 import { fail } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
-import { validatePrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/validators'
+import { validateComponentEntryAttributes } from '$lib/script/components/componentEntry/component/validators'
+import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
 
 export const load = async () => {
-  const componentSchemas = await listOrCreatePreBuiltComponentList()
+  const componentEntries = await listOrCreatePreBuiltComponentList()
   return {
-    componentSchemas
+    componentEntries
   }
 }
 
 export const actions = {
   uploadComponentSchema: async ({ request }) => {
     const data = await request.formData()
-    const componentSchemaText = data.get('componentSchema')
-    if (!isString(componentSchemaText)) return fail(400, { reason: 'no-component-schema' })
-    const componentSchema = JSON.parse(componentSchemaText)
-    if (!validatePrebuiltComponentEntry(componentSchema)) return fail(400, { reason: 'invalid-component-schema' })
-    await uploadPrebuiltComponentEntry(componentSchema)
+    const componentEntryText = data.get('componentSchema')
+    if (!isString(componentEntryText)) return fail(400, { reason: 'no-component-schema' })
+    const componentEntry = JSON.parse(componentEntryText) as ComponentEntry
+    if (!validateComponentEntryAttributes(componentEntry.attributes)) return fail(400, { reason: 'invalid-component-schema' })
+    await uploadPrebuiltComponentEntry(componentEntry)
   },
   deleteComponentSchema: async ({ request }) => {
     const data = await request.formData()

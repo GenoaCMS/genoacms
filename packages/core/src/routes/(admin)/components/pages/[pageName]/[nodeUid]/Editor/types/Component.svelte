@@ -1,8 +1,8 @@
 <script lang="ts">
     import CardLink from '$lib/components/CardLink.svelte'
-    import type { PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+    import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
 
-    export let schema: PrebuiltComponentEntry
+    export let schema: ComponentEntry
 </script>
 
 <input type="hidden" name="schema" value={JSON.stringify(schema)}>

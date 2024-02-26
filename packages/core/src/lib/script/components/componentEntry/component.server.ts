@@ -1,21 +1,19 @@
+import type { ComponentEntry, PrebuiltComponentReference } from './component/types'
 import {
   deleteObject,
   defaultBucketId,
-  getObjectJSON,
   listOrCreateDirectory,
   uploadObject,
-  fullyQualifiedNameToFilename
+  fullyQualifiedNameToFilename,
+  getObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
-import Ajv from 'ajv'
-import { prebuiltComponentEntrySchema } from './component/schemas'
-import type { PrebuiltComponentEntry, PrebuiltComponentReference } from './component/types'
+import { stringify } from 'flatted'
+import { validateComponentEntryAttributes } from '$lib/script/components/componentEntry/component/validators'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
-const ajv = new Ajv()
-const validateComponentSchema = ajv.compile(prebuiltComponentEntrySchema)
 
-const listOrCreatePreBuiltComponentList = async (): Promise<Array<PrebuiltComponentEntry>> => {
+const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentEntry>> => {
   const componentList = await listOrCreateDirectory({
     bucket: defaultBucketId,
     name: prebuiltSchemaPath
@@ -23,25 +21,25 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<PrebuiltCompon
   const componentSchemaPromises = componentList.files
     .map(async component => getPrebuiltComponentEntry(fullyQualifiedNameToFilename(component.name)))
   const componentSchemas = await Promise.all(componentSchemaPromises)
-  return componentSchemas.filter(schema => schema !== null) as Array<PrebuiltComponentEntry>
+  return componentSchemas.filter(schema => schema !== null) as Array<ComponentEntry>
 }
 
-const getPrebuiltComponentEntry = async (reference: PrebuiltComponentReference): Promise<PrebuiltComponentEntry | null> => {
-  const potentialComponentSchema = await getObjectJSON({
+const getPrebuiltComponentEntry = async (reference: PrebuiltComponentReference): Promise<ComponentEntry | null> => {
+  const potentialComponentEntry = await getObjectFlatted({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, reference)
-  })
-  if (!validateComponentSchema(potentialComponentSchema)) {
+  }) as ComponentEntry
+  if (!validateComponentEntryAttributes(potentialComponentEntry.attributes)) { // TODO: figure out how to validate whole entry, but skip validation of history
     return null
   }
-  return potentialComponentSchema
+  return potentialComponentEntry
 }
 
-const uploadPrebuiltComponentEntry = async (entry: PrebuiltComponentEntry) => {
+const uploadPrebuiltComponentEntry = async (entry: ComponentEntry) => {
   await uploadObject({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, entry.uid)
-  }, JSON.stringify(entry))
+  }, stringify(entry))
 }
 
 const deletePrebuiltComponentEntry = async (name: string) => {

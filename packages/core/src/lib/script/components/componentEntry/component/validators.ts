@@ -1,9 +1,11 @@
 import Ajv from 'ajv'
-import { prebuiltComponentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
+import {
+  componentEntryAttributesSchema
+} from '$lib/script/components/componentEntry/component/schemas'
 
 const ajv = new Ajv()
-const validatePrebuiltComponentEntry = ajv.compile(prebuiltComponentEntrySchema)
+const validateComponentEntryAttributes = ajv.compile(componentEntryAttributesSchema)
 
 export {
-  validatePrebuiltComponentEntry
+  validateComponentEntryAttributes
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import CreateComponentSchema from './CreateComponentSchema.svelte'
-  import ComponentSchema from './ComponentSchema.svelte'
+  import ComponentEntry from './ComponentEntry.svelte'
   import Grid from '$lib/components/Grid.svelte'
 
   export let data
@@ -17,7 +17,7 @@
 </TopPanel>
 
 <Grid>
-    {#each data.componentSchemas as schema (schema.name)}
-        <ComponentSchema {schema}/>
+    {#each data.componentEntries as entry (entry.uid)}
+        <ComponentEntry {entry}/>
     {/each}
 </Grid>

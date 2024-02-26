@@ -3,7 +3,7 @@
   import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
   import type {
     ComponentsAttributeType,
-    PrebuiltComponentEntry
+    ComponentEntry
   } from '$lib/script/components/componentEntry/component/types'
   import type { JSONSchemaType } from 'ajv'
   import { page } from '$app/stores'
@@ -19,7 +19,7 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const getPossibleSubcomponents = (components: Array<PrebuiltComponentEntry>, dataSchema: JSONSchemaType<Array<string>>) => {
+  const getPossibleSubcomponents = (components: Array<ComponentEntry>, dataSchema: JSONSchemaType<Array<string>>) => {
     if (dataSchema.items.enum.length === 0) return components
     return components.filter((component) => dataSchema.items.enum.includes(component.name))
   }

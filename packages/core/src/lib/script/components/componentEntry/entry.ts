@@ -4,13 +4,13 @@ import type {
 } from './types'
 import type { PartialSchema } from 'ajv/dist/types/json-schema'
 import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
-import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
+import { componentEntryAttributesSchema } from '$lib/script/components/componentEntry/component/schemas'
 import type { Attribute, AttributeType } from '$lib/script/components/componentEntry/component/types'
 
-const getAttributeTypes = (): Array<AttributeType> => componentEntrySchema.properties.attributes.additionalProperties.oneOf
+const getAttributeTypes = (): Array<AttributeType> => componentEntryAttributesSchema.additionalProperties.oneOf
   .map((schema: JSONSchemaType<Attribute>) => schema.properties.type.const)
-const getAttributeSchemaByType = (type: string): JSONSchemaType<Attribute> => componentEntrySchema.properties
-  .attributes.additionalProperties.oneOf
+const getAttributeSchemaByType = (type: string): JSONSchemaType<Attribute> => componentEntryAttributesSchema
+  .additionalProperties.oneOf
   .find((schema: JSONSchemaType<Attribute>) => schema.properties.type.const === type)
 const attributeToHTMLInputConfig = (name: AttributeType,
   attribute: PartialSchema<Extract<Attribute, { type: typeof name }>>,

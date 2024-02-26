@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import CardLink from '$lib/components/CardLink.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
@@ -9,7 +9,7 @@
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { Modal } from 'flowbite-svelte'
 
-  export let schema: PrebuiltComponentEntry
+  export let entry: ComponentEntry
 
   let isModalOpen = false
   let contextMenuEvent: MouseEvent | null = null
@@ -47,18 +47,18 @@
   }
 </script>
 
-<CardLink on:click={toggleModal} icon="box" text={schema.name} on:contextmenu={openContextMenu}/>
+<CardLink on:click={toggleModal} icon="box" text={entry.name} on:contextmenu={openContextMenu}/>
 <ContextMenu bind:opener={contextMenuEvent}>
     <form action="?/deleteComponentSchema" method="post" use:enhance={enhanceDeletion}>
-        <input type="text" name="name" value={schema.name} hidden/>
+        <input type="text" name="name" value={entry.name} hidden/>
         <ContextMenuItem type="submit">
             Delete
         </ContextMenuItem>
     </form>
 </ContextMenu>
 
-<Modal title="Edit schema schema of component {schema.name}" bind:open={isModalOpen}>
+<Modal title="Edit schema schema of component {entry.name}" bind:open={isModalOpen}>
     <div class="flex w-3/4 mx-auto">
-        <ComponentSchemaEditor {schema} enhanceForm={enhanceEdit}/>
+        <ComponentSchemaEditor {entry} enhanceForm={enhanceEdit}/>
     </div>
 </Modal>

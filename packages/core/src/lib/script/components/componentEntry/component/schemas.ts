@@ -1,12 +1,11 @@
 import type { JSONSchemaType } from 'ajv'
 import type {
   BooleanAttribute,
-  ComponentEntry,
+  ComponentEntryAttributes,
   ComponentsAttribute,
   LinkAttribute,
   MarkdownAttribute,
   NumberAttribute,
-  PrebuiltComponentEntry,
   RichTextAttribute,
   StorageResourceAttribute,
   StringAttribute,
@@ -167,44 +166,22 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   required: ['uid', 'name', 'type']
 }
 
-const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
+const componentEntryAttributesSchema: JSONSchemaType<ComponentEntryAttributes> = {
   type: 'object',
-  properties: {
-    version: { type: 'string' },
-    attributes: {
-      type: 'object',
-      additionalProperties: {
-        oneOf: [
-          booleanAttributeSchema,
-          numberAttributeSchema,
-          stringAttributeSchema,
-          textAttributeSchema,
-          markdownAttributeSchema,
-          richTextAttributeSchema,
-          linkAttributeSchema,
-          storageResourceAttributeSchema,
-          componentsAttributeSchema
-        ]
-      },
-      required: []
-    }
+  additionalProperties: {
+    oneOf: [
+      booleanAttributeSchema,
+      numberAttributeSchema,
+      stringAttributeSchema,
+      textAttributeSchema,
+      markdownAttributeSchema,
+      richTextAttributeSchema,
+      linkAttributeSchema,
+      storageResourceAttributeSchema,
+      componentsAttributeSchema
+    ]
   },
-  required: ['version', 'attributes']
-}
-
-const prebuiltComponentEntrySchema: JSONSchemaType<PrebuiltComponentEntry> = {
-  type: 'object',
-  properties: {
-    uid: { type: 'string' },
-    name: { type: 'string' },
-    versions: {
-      type: 'object',
-      additionalProperties: componentEntrySchema,
-      required: []
-    },
-    currentVersion: { type: 'string' }
-  },
-  required: ['name', 'versions', 'currentVersion']
+  required: []
 }
 
 export {
@@ -217,6 +194,5 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentEntrySchema,
-  prebuiltComponentEntrySchema
+  componentEntryAttributesSchema
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { PrebuiltComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select } from 'flowbite-svelte'
 
-  export let components: Array<PrebuiltComponentEntry>
+  export let components: Array<ComponentEntry>
   let isModalOpen = false
   const toggleModal = () => {
     isModalOpen = !isModalOpen

@@ -15,6 +15,7 @@
     if (!event.detail) return
     isModalOpen = false
     attribute = event.detail
+    // dispatch('save', attribute)
   }
   const dispatchDelete = () => {
     dispatch('delete', attribute.name)
