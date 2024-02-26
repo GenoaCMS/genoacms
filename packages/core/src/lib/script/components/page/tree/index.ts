@@ -56,9 +56,10 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
   }
 }
 
-const componentNodeToReadablePageNode = async (node: ComponentNode, componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
+const componentNodeToReadablePageNode = async (node: ComponentNode,
+  componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
   const readableNode: ReadablePageNode = {
-    component: node.schemaName,
+    component: node.name,
     data: {}
   }
   for (const data of Object.values(node.data)) {

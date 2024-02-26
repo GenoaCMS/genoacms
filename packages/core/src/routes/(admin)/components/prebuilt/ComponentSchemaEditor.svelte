@@ -13,7 +13,7 @@
     versions: {
       [currentDateString]: {
         version: currentDateString,
-        attributes: []
+        attributes: {}
       }
     },
     currentVersion: currentDateString
@@ -28,16 +28,13 @@
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
     const newAttribute: Attribute = event.detail
-    schema.versions[schema.currentVersion].attributes = [
-      ...schema.versions[schema.currentVersion].attributes,
-      newAttribute]
+    schema.versions[schema.currentVersion].attributes[newAttribute.uid] = newAttribute
     isModalOpen = false
   }
   const handleAttributeDeletion = (event: CustomEvent) => {
     if (!event.detail) return
     const attributeName = event.detail
-    schema.versions[schema.currentVersion].attributes = schema.versions[schema.currentVersion].attributes
-      .filter((attribute) => attribute.name !== attributeName)
+    delete schema.versions[schema.currentVersion].attributes[attributeName]
   }
   const serializeComponentSchema = (componentSchema: PrebuiltComponentEntry) => {
     const isValid = validatePrebuiltComponentEntry(componentSchema)
@@ -48,6 +45,7 @@
     return JSON.stringify(componentSchema)
   }
   $: serializeComponentSchema(schema)
+  $: attributeArray = Object.values(schema.versions[schema.currentVersion].attributes)
 </script>
 
 <div class="flex-grow flex flex-col justify-center">
@@ -60,7 +58,7 @@
             Attributes:
         </h2>
         <div class="py-1">
-            {#each schema.versions[schema.currentVersion].attributes as attribute}
+            {#each attributeArray as attribute}
                 <ComponentSchemaAttribute {attribute} on:delete={handleAttributeDeletion}/>
             {:else}
                 <p class="w-auto m-auto text-lg text-center">No attributes</p>

@@ -9,7 +9,7 @@
 
 <div>
     <h2>
-        {node.schemaName}
+        {node.name}
     </h2>
     <div>
         {#each attributeArray as attribute (attribute.name)}

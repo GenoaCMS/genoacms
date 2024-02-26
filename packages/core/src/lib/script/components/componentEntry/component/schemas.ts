@@ -16,6 +16,7 @@ import type {
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -25,12 +26,13 @@ const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
     },
     defaultValue: { type: 'boolean' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -44,12 +46,13 @@ const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
     step: { type: 'number' },
     decimalPlaces: { type: 'number' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -61,12 +64,13 @@ const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
     regex: { type: 'string' },
     maxLength: { type: 'number' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const textAttributeSchema: JSONSchemaType<TextAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -77,12 +81,13 @@ const textAttributeSchema: JSONSchemaType<TextAttribute> = {
     defaultValue: { type: 'string' },
     maxLength: { type: 'number' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -92,12 +97,13 @@ const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
     },
     defaultValue: { type: 'string' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -107,12 +113,13 @@ const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
     },
     defaultValue: { type: 'string' }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const linkAttributeSchema: JSONSchemaType<LinkAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -121,12 +128,13 @@ const linkAttributeSchema: JSONSchemaType<LinkAttribute> = {
       const: 'link'
     }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const storageResourceAttributeSchema: JSONSchemaType<StorageResourceAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -135,12 +143,13 @@ const storageResourceAttributeSchema: JSONSchemaType<StorageResourceAttribute> =
       const: 'storageResource'
     }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   type: 'object',
   properties: {
+    uid: { type: 'string' },
     name: { type: 'string' },
     description: { type: 'string' },
     isRequired: { type: 'boolean' },
@@ -155,7 +164,7 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
       items: { type: 'string' }
     }
   },
-  required: ['name', 'type']
+  required: ['uid', 'name', 'type']
 }
 
 const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
@@ -163,8 +172,8 @@ const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
   properties: {
     version: { type: 'string' },
     attributes: {
-      type: 'array',
-      items: {
+      type: 'object',
+      additionalProperties: {
         oneOf: [
           booleanAttributeSchema,
           numberAttributeSchema,
@@ -176,7 +185,8 @@ const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
           storageResourceAttributeSchema,
           componentsAttributeSchema
         ]
-      }
+      },
+      required: []
     }
   },
   required: ['version', 'attributes']

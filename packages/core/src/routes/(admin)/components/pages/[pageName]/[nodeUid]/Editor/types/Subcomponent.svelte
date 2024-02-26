@@ -6,5 +6,5 @@
 </script>
 
 <Button color="light" href={node.uid}>
-    {node.schemaName}
+    {node.name}
 </Button>

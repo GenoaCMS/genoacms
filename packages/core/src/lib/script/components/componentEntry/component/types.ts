@@ -19,7 +19,10 @@ type AttributeType =
   | StorageResourceAttributeType
   | ComponentsAttributeType
 
+type AttributeReference = string
+
 interface AttributeBase {
+  uid: AttributeReference,
   name: string,
   description: string,
   isRequired: boolean
@@ -91,7 +94,7 @@ type Attribute<T extends AttributeType = AttributeType> =
 
 interface ComponentEntry {
   version: string,
-  attributes: Array<Attribute>
+  attributes: Record<AttributeReference, Attribute>
 }
 
 type PrebuiltComponentReference = string
@@ -104,6 +107,7 @@ interface PrebuiltComponentEntry {
 }
 
 export type {
+  AttributeReference,
   BooleanAttributeType,
   NumberAttributeType,
   StringAttributeType,

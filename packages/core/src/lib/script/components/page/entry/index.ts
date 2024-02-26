@@ -1,12 +1,22 @@
 import type {
   Attribute,
   AttributeType,
+  ComponentEntry,
   ComponentsAttributeType,
   PrebuiltComponentEntry, PrebuiltComponentReference
 } from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getPrebuiltComponentEntry } from '$lib/script/components/componentEntry/component.server'
-import type { AttributeData, AttributeReference, ComponentNode, PageContents, PageEntry } from './types'
+import type {
+  AttributeData,
+  AttributeReference,
+  ComponentNode,
+  ComponentNodeData,
+  ComponentNodes,
+  IsSerializable,
+  PageContents,
+  PageEntry
+} from './types'
 import diff from 'deep-diff'
 import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
 
@@ -38,7 +48,7 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
 
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
   return {
-    uid: crypto.randomUUID(),
+    uid: attribute.uid,
     name: attribute.name,
     type: attribute.type,
     schema: await attributeToSchema(attribute),
@@ -50,7 +60,7 @@ const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promis
   const dataPromises: Array<Promise<AttributeData>> = []
   const data: Record<AttributeReference, AttributeData> = {}
   const schema = schemaFile.versions[schemaFile.currentVersion]
-  for (const attribute of schema.attributes) {
+  for (const attribute of Object.values(schema.attributes)) {
     dataPromises.push(generateAttributeData(attribute))
   }
   for (const attributeData of await Promise.all(dataPromises)) {
@@ -58,12 +68,16 @@ const componentSchemaToNode = async (schemaFile: PrebuiltComponentEntry): Promis
   }
   return {
     uid: crypto.randomUUID(),
-    schemaName: schemaFile.name,
+    name: schemaFile.name,
+    entryReference: schemaFile.uid,
     data
   }
 }
 
-const createPageEntry = async (values: { name: string, componentUID: PrebuiltComponentReference }): Promise<PageEntry> => {
+const createPageEntry = async (values: {
+  name: string,
+  componentUID: PrebuiltComponentReference
+}): Promise<PageEntry> => {
   const component = await getPrebuiltComponentEntry(values.componentUID)
   if (!component) throw new Error('no-component')
   const componentNode = await componentSchemaToNode(component)
@@ -83,7 +97,7 @@ const createPageEntry = async (values: { name: string, componentUID: PrebuiltCom
   }
 }
 
-const pushPageEntryState = (oldContents: PageContents, page: PageEntry) => {
+const pushPageEntryState = (oldContents: PageContents<IsSerializable>, page: PageEntry<IsSerializable>) => {
   const differences = diff.diff(oldContents, page.contents)
   if (differences) {
     page.history.push(differences)
@@ -92,7 +106,7 @@ const pushPageEntryState = (oldContents: PageContents, page: PageEntry) => {
   return page
 }
 
-const undoPageEntryState = (page: PageEntry) => {
+const undoPageEntryState = (page: PageEntry<IsSerializable>) => {
   const lastChange = page.history.pop()
   if (lastChange) {
     for (const changeDiff of lastChange) {
@@ -103,7 +117,7 @@ const undoPageEntryState = (page: PageEntry) => {
   return page
 }
 
-const redoPageEntryState = (page: PageEntry) => {
+const redoPageEntryState = (page: PageEntry<IsSerializable>) => {
   const nextChange = page.future.pop()
   if (nextChange) {
     for (const changeDiff of nextChange) {
@@ -114,21 +128,23 @@ const redoPageEntryState = (page: PageEntry) => {
   return page
 }
 
-const duplicateObject = (object: object) => JSON.parse(JSON.stringify(object))
+const duplicateObject = <T extends object> (object: T): T => JSON.parse(JSON.stringify(object))
 
-const updateComponentNode = (page: PageEntry, updaterComponent: ComponentNode) => {
+const updateComponentNode = (page: PageEntry<IsSerializable>, updaterComponent: ComponentNode<IsSerializable>) => {
   const node = page.contents.nodes[updaterComponent.uid]
   if (!node) throw new Error('no-node')
-  const oldContents: PageContents = duplicateObject(page.contents)
+  const oldContents: PageContents<IsSerializable> = duplicateObject(page.contents)
   page.contents.nodes[updaterComponent.uid] = updaterComponent
   page = pushPageEntryState(oldContents, page)
   return page
 }
 
-const isAttributeDataComponentsType = (attribute: AttributeData): attribute is AttributeData<ComponentsAttributeType> => attribute.type === 'components'
+const isAttributeDataComponentsType = (attribute: AttributeData<AttributeType, IsSerializable>):
+  attribute is AttributeData<ComponentsAttributeType, IsSerializable> => attribute.type === 'components'
 
-const addChildNodeToNodeInPage = (page: PageEntry, node: ComponentNode, attributeUID: AttributeReference, childNode: ComponentNode) => {
-  const oldContents: PageContents = duplicateObject(page.contents)
+const addChildNodeToNodeInPage = (page: PageEntry<IsSerializable>, node: ComponentNode<IsSerializable>,
+  attributeUID: AttributeReference, childNode: ComponentNode<IsSerializable>) => {
+  const oldContents: PageContents<IsSerializable> = duplicateObject(page.contents)
   page.contents.nodes[childNode.uid] = childNode
   const attribute = node.data[attributeUID]
   if (!isAttributeDataComponentsType(attribute)) throw new Error('invalid-attribute-type')
@@ -137,11 +153,112 @@ const addChildNodeToNodeInPage = (page: PageEntry, node: ComponentNode, attribut
   return page
 }
 
+const serializeComponentNodeData = (nodeData: ComponentNodeData): ComponentNodeData<IsSerializable> => {
+  const serializableData: ComponentNodeData<IsSerializable> = {}
+  for (const [uid, data] of Object.entries(nodeData)) {
+    serializableData[uid] = {
+      uid: data.uid,
+      name: data.name,
+      type: data.type,
+      value: data.value
+    }
+  }
+  return serializableData
+}
+
+const serializeComponentNode = (node: ComponentNode): ComponentNode<IsSerializable> => {
+  return {
+    uid: node.uid,
+    entryReference: node.entryReference,
+    data: serializeComponentNodeData(node.data)
+  }
+}
+
+const serializePageContents = (contents: PageContents): PageContents<IsSerializable> => {
+  const serializableNodes: ComponentNodes<IsSerializable> = {}
+  for (const [uid, node] of Object.entries(contents.nodes)) {
+    serializableNodes[uid] = serializeComponentNode(node)
+  }
+  return {
+    nodes: serializableNodes,
+    rootNodeUid: contents.rootNodeUid
+  }
+}
+const serializePageEntry = (page: PageEntry): PageEntry<IsSerializable> => {
+  return {
+    ...page,
+    contents: serializePageContents(page.contents)
+  }
+}
+
+const deserializeAttributeData = async (data: AttributeData<AttributeType,
+  IsSerializable> | undefined, attribute: Attribute): Promise<AttributeData> => {
+  if (!data) {
+    return await generateAttributeData(attribute)
+  }
+  return {
+    uid: data.uid,
+    name: data.name,
+    type: data.type,
+    schema: await attributeToSchema(attribute),
+    value: data.value
+  }
+}
+
+const deserializeComponentNodeData = async (nodeData: ComponentNodeData<IsSerializable>,
+  componentEntry: ComponentEntry): Promise<ComponentNodeData> => {
+  const deserializedDataPromises: Array<Promise<AttributeData>> = []
+  const deserializedData: ComponentNodeData = {}
+  for (const [uid, attribute] of Object.entries(componentEntry.attributes)) {
+    deserializedDataPromises.push(deserializeAttributeData(nodeData[uid], attribute))
+  }
+  for (const attributeData of await Promise.all(deserializedDataPromises)) {
+    deserializedData[attributeData.uid] = attributeData
+  }
+  return deserializedData
+}
+
+const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Promise<ComponentNode> => {
+  const componentEntry = await getPrebuiltComponentEntry(node.entryReference)
+  if (!componentEntry) throw new Error('no-component')
+
+  return {
+    ...node,
+    name: componentEntry.name,
+    data: await deserializeComponentNodeData(node.data, componentEntry.versions[componentEntry.currentVersion])
+  }
+}
+
+const deserializePageContents = async (contents: PageContents<IsSerializable>): Promise<PageContents> => {
+  const deserializedNodePromises: Array<Promise<ComponentNode>> = []
+  const deserializedNodes: ComponentNodes = {}
+  for (const node of Object.values(contents.nodes)) {
+    deserializedNodePromises.push(deserializeComponentNode(node))
+  }
+  for (const node of await Promise.all(deserializedNodePromises)) {
+    deserializedNodes[node.uid] = node
+  }
+  return {
+    nodes: deserializedNodes,
+    rootNodeUid: contents.rootNodeUid
+  }
+}
+
+const deserializePageEntry = async (page: PageEntry<IsSerializable>): Promise<PageEntry> => {
+  return {
+    ...page,
+    contents: await deserializePageContents(page.contents)
+  }
+}
+
 export {
   componentSchemaToNode,
   createPageEntry,
   updateComponentNode,
   addChildNodeToNodeInPage,
   undoPageEntryState,
-  redoPageEntryState
+  redoPageEntryState,
+  serializeComponentNode,
+  serializePageEntry,
+  deserializePageEntry
 }

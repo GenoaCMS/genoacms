@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { attributeValue } from '$lib/script/components/componentEntry/types'
+  import type { Attribute } from '$lib/script/components/componentEntry/component/types'
   import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
   import { createEventDispatcher } from 'svelte'
   import { Modal } from 'flowbite-svelte'
 
-  export let attribute: attributeValue
+  export let attribute: Attribute
   const dispatch = createEventDispatcher()
 
   let isModalOpen = false

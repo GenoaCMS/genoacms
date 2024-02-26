@@ -7,10 +7,10 @@ import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
 import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
 import type { Attribute, AttributeType } from '$lib/script/components/componentEntry/component/types'
 
-const getAttributeTypes = (): Array<AttributeType> => componentEntrySchema.properties.attributes.items.oneOf
+const getAttributeTypes = (): Array<AttributeType> => componentEntrySchema.properties.attributes.additionalProperties.oneOf
   .map((schema: JSONSchemaType<Attribute>) => schema.properties.type.const)
 const getAttributeSchemaByType = (type: string): JSONSchemaType<Attribute> => componentEntrySchema.properties
-  .attributes.items.oneOf
+  .attributes.additionalProperties.oneOf
   .find((schema: JSONSchemaType<Attribute>) => schema.properties.type.const === type)
 const attributeToHTMLInputConfig = (name: AttributeType,
   attribute: PartialSchema<Extract<Attribute, { type: typeof name }>>,

@@ -1,43 +1,54 @@
 import type { JSONSchemaType } from 'ajv'
 import type { Diff } from 'deep-diff'
-import type { AttributeType } from '$lib/script/components/componentEntry/component/types'
+import type { AttributeReference, AttributeType, PrebuiltComponentReference } from '$lib/script/components/componentEntry/component/types'
 import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
 
-type AttributeReference = string
+type IsSerializable = true
 
-interface AttributeData<T extends AttributeType = AttributeType, V extends AttributeValue<T> = AttributeValue<T>> {
+interface AttributeData<T extends AttributeType = AttributeType,
+  isSerializable extends boolean = false,
+  V extends AttributeValue<T> = AttributeValue<T>> {
   uid: AttributeReference,
   name: string,
   type: T,
-  schema: JSONSchemaType<V>,
+  schema: isSerializable extends true ? undefined : JSONSchemaType<V>,
   value: V
 }
 
-type ComponentNodeData = Record<AttributeReference, AttributeData>
-interface ComponentNode {
+type ComponentNodeData<isSerializable extends boolean = false> =
+  Record<AttributeReference, AttributeData<AttributeType, isSerializable>>
+interface NonSerializedComponentNode {
   uid: ComponentNodeReference,
-  schemaName: string,
+  entryReference: PrebuiltComponentReference,
+  name: string,
   data: ComponentNodeData
 }
-type ComponentNodes = Record<ComponentNodeReference, ComponentNode>
+interface SerializedComponentNode {
+  uid: ComponentNodeReference,
+  entryReference: PrebuiltComponentReference,
+  data: ComponentNodeData<IsSerializable>
+}
+type ComponentNode<isSerializable extends boolean = false> = isSerializable extends true ? SerializedComponentNode : NonSerializedComponentNode
+type ComponentNodes<isSerializable extends boolean = false> = Record<ComponentNodeReference, ComponentNode<isSerializable>>
 
-interface PageContents {
-  nodes: ComponentNodes,
+interface PageContents<isSerializable extends boolean = false> {
+  nodes: Record<ComponentNodeReference, ComponentNode<isSerializable>>,
   rootNodeUid: ComponentNodeReference
 }
 
-type ContentsChange = Array<Diff<PageContents, PageContents>>
+type ContentsChange = Array<Diff<PageContents<IsSerializable>>>
 
-interface PageEntry {
+interface PageEntry<isSerializable extends boolean = false> {
   name: string,
   previewURL: string,
-  contents: PageContents,
+  contents: PageContents<isSerializable>,
   history: Array<ContentsChange>,
   future: Array<ContentsChange>,
   lastModified: string
 }
 
 export type {
+  IsSerializable,
   AttributeReference,
   AttributeData,
   ComponentNodeData,

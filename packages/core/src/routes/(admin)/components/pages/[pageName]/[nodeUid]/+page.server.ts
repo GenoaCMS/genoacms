@@ -4,6 +4,7 @@ import {
   addChildNodeToNodeInPage,
   componentSchemaToNode,
   redoPageEntryState,
+  serializeComponentNode,
   undoPageEntryState,
   updateComponentNode
 } from '$lib/script/components/page/entry'
@@ -88,7 +89,8 @@ export const actions = {
     const currentNode = page.contents.nodes[nodeUid]
     if (!currentNode) fail(400, { reason: 'non-existent-node' })
     const childNode = await componentSchemaToNode(schemaObject)
-    page = addChildNodeToNodeInPage(page, currentNode, attributeUID, childNode)
+    const serializeChildNode = serializeComponentNode(childNode)
+    page = addChildNodeToNodeInPage(page, currentNode, attributeUID, serializeChildNode)
     await uploadPageEntry(page)
   },
   setStorageResourceValue: async ({ request, params }) => {
@@ -97,10 +99,11 @@ export const actions = {
     const valueText = data.get('value')
     if (!isString(valueText)) return fail(400, { reason: 'no-value' })
     const value = JSON.parse(valueText)
-    const page = await getPageEntry(pageName)
+    let page = await getPageEntry(pageName)
     const node = page.contents.nodes[nodeUid]
     const attribute = node.data[value.attributeUID]
     attribute.value = JSON.parse(value.selection[0])
+    page = updateComponentNode(page, node)
     await uploadPageEntry(page)
     return redirect(307, `/components/pages/${pageName}/${nodeUid}`)
   }

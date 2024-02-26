@@ -1,3 +1,4 @@
+import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
 import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
@@ -6,7 +7,6 @@ import {
   uploadObject
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
-import type { PageEntry } from '$lib/script/components/page/entry/types'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
 import { stringify } from 'flatted'
 
@@ -25,7 +25,7 @@ const listOrCreatePageList = async () => {
   return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
-const uploadPageEntry = (page: PageEntry) => {
+const uploadPageEntry = (page: PageEntry<IsSerializable>) => {
   const pageFlatted = stringify({
     ...page,
     lastModified: new Date().toISOString()
@@ -37,14 +37,14 @@ const uploadPageEntry = (page: PageEntry) => {
   }, pageFlatted)
 }
 
-const getPageEntry = async (name: string): Promise<PageEntry> => {
+const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> => {
   return await getObjectFlatted({
     bucket: defaultBucketId,
     name: join(pageEntriesPath, name)
   })
 }
 
-const generateReadablePageTree = async (page: PageEntry) => {
+const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
   const readableTree = await pageEntryToReadableTree(page)
   return uploadObject({
     bucket: defaultBucketId,
