@@ -1,6 +1,6 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
-  import CreateComponentSchema from './CreateComponentSchema.svelte'
+  import CreateComponentSchema from './CreateComponentEntry.svelte'
   import ComponentEntry from './ComponentEntry.svelte'
   import Grid from '$lib/components/Grid.svelte'
 

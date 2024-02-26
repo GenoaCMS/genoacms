@@ -1,7 +1,7 @@
 <script lang="ts">
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
-  import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
+  import ComponentSchemaEditor from './ComponentEntryEditor/ComponentEntryEditor.svelte'
   import { Modal } from 'flowbite-svelte'
 
   let isModalOpen = false

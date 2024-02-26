@@ -16,18 +16,18 @@ export const load = async () => {
 }
 
 export const actions = {
-  uploadComponentSchema: async ({ request }) => {
+  uploadComponentEntry: async ({ request }) => {
     const data = await request.formData()
-    const componentEntryText = data.get('componentSchema')
-    if (!isString(componentEntryText)) return fail(400, { reason: 'no-component-schema' })
+    const componentEntryText = data.get('componentEntry')
+    if (!isString(componentEntryText)) return fail(400, { reason: 'no-component-entry' })
     const componentEntry = JSON.parse(componentEntryText) as ComponentEntry
-    if (!validateComponentEntryAttributes(componentEntry.attributes)) return fail(400, { reason: 'invalid-component-schema' })
+    if (!validateComponentEntryAttributes(componentEntry.attributes)) return fail(400, { reason: 'invalid-component-entry' })
     await uploadPrebuiltComponentEntry(componentEntry)
   },
-  deleteComponentSchema: async ({ request }) => {
+  deleteComponentEntry: async ({ request }) => {
     const data = await request.formData()
-    const componentSchemaName = data.get('name')
-    if (!isString(componentSchemaName)) return fail(400, { reason: 'no-component-schema-name' })
-    await deletePrebuiltComponentEntry(componentSchemaName)
+    const entryUID = data.get('UID')
+    if (!isString(entryUID)) return fail(400, { reason: 'no-component-entry-name' })
+    await deletePrebuiltComponentEntry(entryUID)
   }
 }

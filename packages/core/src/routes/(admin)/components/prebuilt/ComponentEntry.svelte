@@ -4,7 +4,7 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import ComponentSchemaEditor from './ComponentSchemaEditor.svelte'
+  import ComponentSchemaEditor from './ComponentEntryEditor/ComponentEntryEditor.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { Modal } from 'flowbite-svelte'
@@ -34,14 +34,14 @@
     }
   }
   const enhanceDeletion = () => {
-    const alert = alertPending('Deleting component schema')
+    const alert = alertPending('Deleting component entry')
     return async ({ result }) => {
       alert.close()
       if (result.type !== 'success') {
         toastError('Deletion failed')
         return
       }
-      toastSuccess('Component schema deleted')
+      toastSuccess('Component entry deleted')
       invalidateAll()
     }
   }
@@ -49,8 +49,8 @@
 
 <CardLink on:click={toggleModal} icon="box" text={entry.name} on:contextmenu={openContextMenu}/>
 <ContextMenu bind:opener={contextMenuEvent}>
-    <form action="?/deleteComponentSchema" method="post" use:enhance={enhanceDeletion}>
-        <input type="text" name="name" value={entry.name} hidden/>
+    <form action="?/deleteComponentEntry" method="post" use:enhance={enhanceDeletion}>
+        <input type="text" name="UID" value={entry.uid} hidden/>
         <ContextMenuItem type="submit">
             Delete
         </ContextMenuItem>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
-  import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
+  import AttributeEditor from './AttributeEditor.svelte'
   import { createEventDispatcher } from 'svelte'
   import { Modal } from 'flowbite-svelte'
 
@@ -15,7 +15,7 @@
     if (!event.detail) return
     isModalOpen = false
     attribute = event.detail
-    // dispatch('save', attribute)
+    dispatch('update', attribute)
   }
   const dispatchDelete = () => {
     dispatch('delete', attribute.name)
@@ -37,6 +37,6 @@
 
 <Modal title="Edit attribute" bind:open={isModalOpen}>
     <div class="m-auto w-2/3">
-        <ComponentSchemaAttributeEditor {attribute} on:save={updateAttribute}/>
+        <AttributeEditor {attribute} on:save={updateAttribute}/>
     </div>
 </Modal>

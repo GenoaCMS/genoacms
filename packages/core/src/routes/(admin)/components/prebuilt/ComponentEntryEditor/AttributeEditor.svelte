@@ -34,7 +34,7 @@
       properties[input.props.name] = input.value
     }
     const potentialAttribute: Attribute = {
-      uid: crypto.randomUUID(),
+      uid: attribute?.uid || crypto.randomUUID(),
       ...properties,
       type
     }
@@ -54,7 +54,7 @@
   }
 
   const attributeTypes = getAttributeTypes()
-  let type: AttributeType = attributeTypes[0]
+  let type: AttributeType = attribute?.type || attributeTypes[0]
   let schema: JSONSchemaType<Attribute> = getSchema(type)
   let inputs: Array<InputConfig<typeof schema.type>> = []
 

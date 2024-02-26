@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Attribute, ComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { Attribute as AttributeT, ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { enhance } from '$app/forms'
-  import ComponentSchemaAttribute from './ComponentSchemaAttribute.svelte'
-  import ComponentSchemaAttributeEditor from './ComponentSchemaAttributeEditor.svelte'
+  import Attribute from './Attribute.svelte'
+  import ComponentSchemaAttributeEditor from './AttributeEditor.svelte'
   import { Button, Input, Label, Modal } from 'flowbite-svelte'
   import { validateComponentEntryAttributes } from '$lib/script/components/componentEntry/component/validators'
 
@@ -22,9 +22,13 @@
   }
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
-    const newAttribute: Attribute = event.detail
+    const newAttribute: AttributeT = event.detail
     entry.attributes[newAttribute.uid] = newAttribute
     isModalOpen = false
+  }
+  const handleAttributeUpdate = (event: CustomEvent) => {
+    const attribute: AttributeT = event.detail
+    entry.attributes[attribute.uid] = attribute
   }
   const handleAttributeDeletion = (event: CustomEvent) => {
     if (!event.detail) return
@@ -38,9 +42,6 @@
       return ''
     }
     return JSON.stringify(componentSchema)
-  }
-  const registerChange = (event: CustomEvent) => {
-    console.log(event)
   }
   $: serializeComponentSchema(entry)
   $: attributeArray = Object.values(entry.attributes)
@@ -57,7 +58,7 @@
         </h2>
         <div class="py-1">
             {#each attributeArray as attribute (attribute.uid)}
-                <ComponentSchemaAttribute {attribute} on:save={registerChange} on:delete={handleAttributeDeletion}/>
+                <Attribute {attribute} on:update={handleAttributeUpdate} on:delete={handleAttributeDeletion}/>
             {:else}
                 <p class="w-auto m-auto text-lg text-center">No attributes</p>
             {/each}
@@ -69,10 +70,10 @@
         </div>
     </div>
     <div class="my-auto">
-        <form action="?/uploadComponentSchema" method="post" use:enhance={enhanceForm}>
-            <input type="hidden" name="componentSchema" value={serializeComponentSchema(entry)}/>
+        <form action="?/uploadComponentEntry" method="post" use:enhance={enhanceForm}>
+            <input type="hidden" name="componentEntry" value={serializeComponentSchema(entry)}/>
             <Button type="submit" color="light" class="w-full">
-                Create
+                Save
             </Button>
         </form>
     </div>
