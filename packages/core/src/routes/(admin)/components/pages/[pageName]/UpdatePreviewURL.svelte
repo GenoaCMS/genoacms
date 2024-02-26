@@ -33,7 +33,7 @@
         <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit} class="w-3/4 mx-auto">
             <Label>
                 Preview URL:
-                <Input type="text" name="value" {value} class="w-full"/>
+                <Input type="url" name="value" {value} class="w-full"/>
             </Label>
             <Button type="submit" color="light" class="mt-4 w-full">
                 Edit

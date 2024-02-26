@@ -6,11 +6,12 @@ import type {
 } from '$lib/script/components/page/entry/types'
 import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/components/page/tree/types'
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
+import type { ComponentNodeReference, LinkAttributeValue } from '$lib/script/components/componentEntry/attribute/types'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
 import { getPublicURL } from '$lib/script/storage/storage.server'
+import { getPageEntry } from '$lib/script/components/page/page.server'
 
 const parseMarkdown = async (markdown: string) => {
   const window = new JSDOM('').window
@@ -19,11 +20,13 @@ const parseMarkdown = async (markdown: string) => {
   return purify.sanitize(html)
 }
 
-const componentNodesToReadableNodes = async (component: Array<ComponentNodeReference>, componentNodes: ComponentNodes) => {
-  console.log(component)
-  const readableNodePromises: Array<Promise<ReadablePageNode>> = component
-    .map(component => componentNodeToReadablePageNode(componentNodes[component], componentNodes))
-  return await Promise.all(readableNodePromises)
+const linkToURL = async (link: LinkAttributeValue): Promise<string> => {
+  if (link.isExternal) {
+    return link.url || ''
+  }
+  if (!link.pageName) throw new Error('missing-pageUID')
+  const destinationPageEntry = await getPageEntry(link.pageName)
+  return destinationPageEntry.previewURL
 }
 
 const getStorageResourceURL = async (reference: ObjectReference) => {
@@ -36,21 +39,28 @@ const getStorageResourceURL = async (reference: ObjectReference) => {
   return url
 }
 
+const componentNodesToReadableNodes = async (component: Array<ComponentNodeReference>, componentNodes: ComponentNodes) => {
+  console.log(component)
+  const readableNodePromises: Array<Promise<ReadablePageNode>> = component
+    .map(component => componentNodeToReadablePageNode(componentNodes[component], componentNodes))
+  return await Promise.all(readableNodePromises)
+}
+
 const attributeDataToNodeValue = async (data: AttributeData, componentNodes: ComponentNodes): Promise<ReadableAttributeValue> => {
   switch (data.type) {
     case 'boolean':
     case 'number':
     case 'string':
     case 'text':
-      return data.value
+      return data.value as string
     case 'markdown':
       return await parseMarkdown(data.value as string)
     case 'richText':
       return ''
     case 'link':
-      return data.value.isExternal ? data.value.url : data.value.pageName
+      return await linkToURL(data.value as LinkAttributeValue)
     case 'storageResource':
-      return getStorageResourceURL(data.value)
+      return getStorageResourceURL(data.value as ObjectReference)
     case 'components':
       return await componentNodesToReadableNodes(data.value as Array<ComponentNodeReference>, componentNodes)
   }
