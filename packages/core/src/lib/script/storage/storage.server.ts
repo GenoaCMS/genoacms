@@ -5,7 +5,7 @@ import type {
   ObjectReference,
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
-import { streamToString } from '$lib/script/utils'
+import { streamToString } from '$lib/script/utils.server'
 import { parse as parseFlatted } from 'flatted'
 import { join } from 'path'
 

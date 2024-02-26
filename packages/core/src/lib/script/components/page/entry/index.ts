@@ -19,6 +19,7 @@ import type {
 } from './types'
 import diff from 'deep-diff'
 import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
+import { duplicateObject } from '$lib/script/utils'
 
 const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
   switch (type) {
@@ -126,8 +127,6 @@ const redoPageEntryState = (page: PageEntry<IsSerializable>) => {
   }
   return page
 }
-
-const duplicateObject = <T extends object> (object: T): T => JSON.parse(JSON.stringify(object))
 
 const updateComponentNode = (page: PageEntry<IsSerializable>, updaterComponent: ComponentNode<IsSerializable>) => {
   const node = page.contents.nodes[updaterComponent.uid]
