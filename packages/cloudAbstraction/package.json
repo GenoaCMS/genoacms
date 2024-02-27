@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cloudabstraction",
-  "version": "0.3.13",
+  "version": "0.4.0",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -31,10 +31,15 @@
       "types": "./dist/index.d.ts"
     },
     "./types": "./dist/index.d.ts",
-    "./auth": {
-      "import": "./dist/services/auth/index.js",
-      "require": "./dist/services/auth/index.js",
-      "types": "./dist/services/auth/index.d.ts"
+    "./authorization": {
+      "import": "./dist/services/authorization/index.js",
+      "require": "./dist/services/authorization/index.js",
+      "types": "./dist/services/authorization/index.d.ts"
+    },
+    "./clientAuthentication": {
+      "import": "./dist/services/clientAuthentication/index.js",
+      "require": "./dist/services/clientAuthentication/index.js",
+      "types": "./dist/services/clientAuthentication/index.d.ts"
     },
     "./database": {
       "import": "./dist/services/database/index.js",

@@ -1,11 +1,18 @@
-import type * as AuthAdapter from './services/auth'
+import type * as AuthorizationAdapter from './services/authorization'
+import type * as ClientAuthenticationAdapter from './services/clientAuthentication'
 import type * as DatabaseAdapter from './services/database'
 import type * as StorageAdapter from './services/storage'
 
-interface Config<AuthExtension extends object, DatabaseExtension extends object, StorageExtension extends object> {
-  auth: {
-    adapter: Promise<AuthAdapter>
+interface Config<AuthExtension extends object,
+    ClientAuthenticationExtension extends object,
+    DatabaseExtension extends object,
+    StorageExtension extends object> {
+  authorization: {
+    adapter: Promise<AuthorizationAdapter>
   } & AuthExtension
+  clientAuthentication: {
+    adapter: Promise<ClientAuthenticationAdapter>
+  } & ClientAuthenticationExtension
   database: {
     adapter: Promise<DatabaseAdapter>
     [key: string]: any
