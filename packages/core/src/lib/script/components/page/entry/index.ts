@@ -144,6 +144,8 @@ const addChildNodeToNodeInPage = (page: PageEntry<IsSerializable>, node: Compone
   attributeUID: AttributeReference, childNode: ComponentNode<IsSerializable>) => {
   const oldContents: PageContents<IsSerializable> = duplicateObject(page.contents)
   page.contents.nodes[childNode.uid] = childNode
+  console.log(node) // TODO: when manipulating node, that had recent change in component entry, change its not reflected in page
+  // Reproduction: create page with component A, add attribute to component A, add child to component A's new attribute
   const attribute = node.data[attributeUID]
   if (!isAttributeDataComponentsType(attribute)) throw new Error('invalid-attribute-type')
   attribute.value.push(childNode.uid)
