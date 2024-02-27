@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.3.13",
+  "version": "0.4.0",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
@@ -23,8 +23,9 @@
     "test:storage": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.3.13",
+    "@genoacms/cloudabstraction": "^0.4.0",
     "@google-cloud/firestore": "^7.1.0",
+    "@google-cloud/resource-manager": "^5.1.0",
     "@google-cloud/storage": "^7.7.0"
   },
   "devDependencies": {

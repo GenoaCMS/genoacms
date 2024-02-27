@@ -19,9 +19,11 @@ const testCollection = {
  * @type {import('./src/genoa.config.d.ts').default}
  */
 const config = {
-  // auth: {
-  //     adapter: authAdapter
-  // }
+  authorization: {
+    adapter: import('./dist/services/auth/index.js'),
+    projectId: 'genoacms',
+    credentials
+  },
   database: {
     adapter: import('./dist/services/database/index.js'),
     region: 'eu-west3',

@@ -6,11 +6,14 @@ settings:
 
 dependencies:
   '@genoacms/cloudabstraction':
-    specifier: ^0.3.13
-    version: 0.3.13
+    specifier: ^0.4.0
+    version: 0.4.0
   '@google-cloud/firestore':
     specifier: ^7.1.0
     version: 7.1.0
+  '@google-cloud/resource-manager':
+    specifier: ^5.1.0
+    version: 5.1.0
   '@google-cloud/storage':
     specifier: ^7.7.0
     version: 7.7.0
@@ -286,8 +289,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
 
-  /@genoacms/cloudabstraction@0.3.13:
-    resolution: {integrity: sha512-MExUEOZUe3VgAyINBmNVovjNFNA+AKTlpWh/fLusWN7sTFd8GdKGhCjwIUVzX4yBuEf1rYL9KeRyYCpMjQQonA==}
+  /@genoacms/cloudabstraction@0.4.0:
+    resolution: {integrity: sha512-hp/3UtbUcSyiRXJUqDgdTQuYKFMrgxAzxx5KX+zjToPKGg/rcU8jaPprWKPDMD+jQ65xXR/R4I7K1cfRhbtneA==}
     dev: false
 
   /@google-cloud/firestore@7.1.0:
@@ -319,6 +322,16 @@ packages:
   /@google-cloud/promisify@4.0.0:
     resolution: {integrity: sha512-Orxzlfb9c67A15cq2JQEyVc7wEsmFBmHjZWZYQMUyJ1qivXyMwdyNOs9odi79hze+2zqdTtu1E19IM/FtqZ10g==}
     engines: {node: '>=14'}
+    dev: false
+
+  /@google-cloud/resource-manager@5.1.0:
+    resolution: {integrity: sha512-7AYIs2slFAHy7ItEof4ZBkNlGO+KWJKmV1cEEeb5FlHxShjf4rt9hjvvC4saH/YAtQNeV99kA3NW7OpPBZEY8A==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      google-gax: 4.0.5
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
     dev: false
 
   /@google-cloud/storage@7.7.0:
