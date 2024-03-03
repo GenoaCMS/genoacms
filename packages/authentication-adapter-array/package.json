@@ -1,0 +1,22 @@
+{
+  "name": "authentication-adapter-array",
+  "version": "0.4.1",
+  "description": "Adapter for authentication using array of credential for genoacms",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/authentication-adapter-array.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@genoacms/cloudabstraction": "^0.4.0"
+  }
+}
