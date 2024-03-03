@@ -1,5 +1,5 @@
 {
-  "name": "authentication-adapter-array",
+  "name": "@genoacms/authentication-adapter-array",
   "version": "0.4.1",
   "description": "Adapter for authentication using array of credential for genoacms",
   "main": "src/index.js",
