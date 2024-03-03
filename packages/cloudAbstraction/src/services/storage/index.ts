@@ -27,7 +27,7 @@ interface DirectoryContents {
 
 interface Adapter {
   getObject: (reference: ObjectReference) => Promise<ObjectData>
-  getSignedURL: (reference: ObjectReference) => Promise<string>
+  getSignedURL: (reference: ObjectReference, expires: Date) => Promise<string>
   getPublicURL: (reference: ObjectReference) => Promise<string>
   uploadObject: (reference: ObjectReference, data: objectPayload) => Promise<void>
   deleteObject: (reference: ObjectReference) => Promise<void>
