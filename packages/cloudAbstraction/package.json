@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cloudabstraction",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -16,46 +16,37 @@
   },
   "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
   "publishConfig": {
-    "directory": "./dist"
+    "directory": "./src"
   },
   "files": [
     "src",
-    "dist",
     "test"
   ],
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
     },
-    "./types": "./dist/index.d.ts",
     "./authorization": {
-      "import": "./dist/services/authorization/index.js",
-      "require": "./dist/services/authorization/index.js",
-      "types": "./dist/services/authorization/index.d.ts"
+      "import": "./src/services/authorization/index.js",
+      "types": "./src/services/authorization/index.d.ts"
     },
     "./authentication": {
-      "import": "./dist/services/authentication/index.js",
-      "require": "./dist/services/authentication/index.js",
-      "types": "./dist/services/authentication/index.d.ts"
+      "import": "./src/services/authentication/index.js",
+      "types": "./src/services/authentication/index.d.ts"
     },
     "./database": {
-      "import": "./dist/services/database/index.js",
-      "require": "./dist/services/database/index.js",
-      "types": "./dist/services/database/index.d.ts"
+      "import": "./src/services/database/index.js",
+      "types": "./src/services/database/index.d.ts"
     },
     "./storage": {
-      "import": "./dist/services/storage/index.js",
-      "require": "./dist/services/storage/index.js",
-      "types": "./dist/services/storage/index.d.ts"
+      "import": "./src/services/storage/index.js",
+      "types": "./src/services/storage/index.d.ts"
     }
   },
   "type": "module",
-  "scripts": {
-    "build": "tsc"
-  },
   "devDependencies": {
     "@types/node": "^20.8.9",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
@@ -65,7 +56,6 @@
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-n": "^16.2.0",
     "eslint-plugin-promise": "^6.1.1",
-    "typescript": "^5.2.2",
     "vitest": "^1.1.0"
   }
 }
