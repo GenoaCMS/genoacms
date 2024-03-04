@@ -25,6 +25,6 @@ interface StorageConfig {
   buckets: string[]
 }
 
-interface ConfigGCP extends Config<object, DatabaseConfig, StorageConfig> {}
+interface ConfigGCP extends Config<object, object, DatabaseConfig, StorageConfig> {}
 
 export default ConfigGCP

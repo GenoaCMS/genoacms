@@ -1,6 +1,6 @@
 import type {
-  StorageObject,
-  Adapter
+  Adapter,
+  StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { type Bucket, Storage, type File } from '@google-cloud/storage'
 import config from '../../config.js'
@@ -15,7 +15,7 @@ const getBucket = (name: string): Bucket => {
   return bucket
 }
 
-const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
+const getObject: Adapter.getObject = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
 
@@ -24,13 +24,13 @@ const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
   }
 }
 
-const getPublicURL: Adapter['getPublicURL'] = async ({ bucket, name }) => {
+const getPublicURL: Adapter.getPublicURL = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   return file.publicUrl()
 }
 
-const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }) => {
+const getSignedURL: Adapter.getSignedURL = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   const expires = new Date()
@@ -42,19 +42,19 @@ const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }) => {
   return url
 }
 
-const uploadObject: Adapter['uploadObject'] = async ({ bucket, name }, stream) => {
+const uploadObject: Adapter.uploadObject = async ({ bucket, name }, stream) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.save(stream)
 }
 
-const deleteObject: Adapter['deleteObject'] = async ({ bucket, name }) => {
+const deleteObject: Adapter.deleteObject = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.delete()
 }
 
-const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listingParams = {}) => {
+const listDirectory: Adapter.listDirectory = async ({ bucket, name }, listingParams = {}) => {
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
@@ -81,7 +81,7 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
   }
 }
 
-const createDirectory: Adapter['createDirectory'] = async ({ bucket, name }) => {
+const createDirectory: Adapter.createDirectory = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(`${name}/.folderPlaceholder`)
   await file.save('')

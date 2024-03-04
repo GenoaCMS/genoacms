@@ -1,6 +1,6 @@
-import { ProjectsClient } from '@google-cloud/resource-manager'
+import type { Adapter } from '@genoacms/cloudabstraction/authorization'
 import config from '../../config.js'
-import type { isEmailAdmins as isEmailAdminsT } from '@genoacms/cloudabstraction/authorization'
+import { ProjectsClient } from '@google-cloud/resource-manager'
 
 const resourceManager = new ProjectsClient({
   projectId: config.authorization.projectId,
@@ -8,7 +8,7 @@ const resourceManager = new ProjectsClient({
 })
 const projectId = config.authorization.projectId
 
-const isEmailAdmins: isEmailAdminsT = async (email: string) => {
+const isEmailAdmins: Adapter.isEmailAdmins = async (email: string) => {
   const resource = `projects/${projectId}`
   const role = resource + '/roles/genoacms'
   const data = await resourceManager.getIamPolicy({ resource })
