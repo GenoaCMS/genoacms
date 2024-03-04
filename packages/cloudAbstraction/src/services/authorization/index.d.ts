@@ -1,3 +1,3 @@
-export declare module '@genoacms/cloudabstraction/authorization' {
+export declare module '@genoacms/adapter/authorization' {
   type isEmailAdmins = (email: string) => Promise<boolean>
 }

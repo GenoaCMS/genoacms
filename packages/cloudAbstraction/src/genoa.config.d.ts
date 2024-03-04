@@ -1,7 +1,7 @@
-import type * as AuthorizationAdapter from '@genoacms/cloudabstraction/authorization'
-import type * as AuthenticationAdapter from '@genoacms/cloudabstraction/authentication'
-import type * as DatabaseAdapter from '@genoacms/cloudabstraction/database'
-import type * as StorageAdapter from '@genoacms/cloudabstraction/storage'
+import type * as AuthorizationAdapter from '@genoacms/adapter/authorization'
+import type * as AuthenticationAdapter from '@genoacms/adapter/authentication'
+import type * as DatabaseAdapter from '@genoacms/adapter/database'
+import type * as StorageAdapter from '@genoacms/adapter/storage'
 import type { CollectionReference, Document } from './services/database/index.d.ts'
 
 interface Config<AuthExtension extends object = object,

@@ -3,6 +3,7 @@ import type * as authentication from './services/authentication/index'
 import type * as database from './services/database/index'
 import type * as storage from './services/storage/index'
 import type genoaConfig from './genoa.config'
+import config from './config'
 
 export type {
   authorization,
@@ -10,4 +11,8 @@ export type {
   database,
   storage,
   genoaConfig
+}
+
+export {
+  config
 }

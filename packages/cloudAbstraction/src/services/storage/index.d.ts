@@ -25,7 +25,7 @@ interface DirectoryContents {
   directories: string[]
 }
 
-export declare module '@genoacms/cloudabstraction/storage' {
+export declare module '@genoacms/adapter/storage' {
   type getObject = (reference: ObjectReference) => Promise<ObjectData>
   type getSignedURL = (reference: ObjectReference, expires: Date) => Promise<string>
   type getPublicURL = (reference: ObjectReference) => Promise<string>
