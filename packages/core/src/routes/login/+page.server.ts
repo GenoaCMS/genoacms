@@ -1,6 +1,6 @@
 import { isString } from '$lib/script/utils'
 import { fail, redirect } from '@sveltejs/kit'
-import { login } from '$lib/script/auth'
+import { login } from '$lib/script/auth/auth.server'
 
 export const load = async ({ locals }) => {
   if (locals.user) redirect(303, '/dashboard')

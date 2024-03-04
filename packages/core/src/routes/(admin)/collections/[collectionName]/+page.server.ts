@@ -1,4 +1,4 @@
-import { getCollectionReference, getCollection } from '$lib/script/database.server'
+import { getCollectionReference, getCollection } from '$lib/script/database/database.server'
 
 export const load = async ({ params }) => {
   const collectionName = params.collectionName

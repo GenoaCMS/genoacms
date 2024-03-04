@@ -1,4 +1,4 @@
-import { cookieName, verifyAuthCookie } from '$lib/script/auth'
+import { cookieName, verifyAuthCookie } from '$lib/script/auth/auth.server'
 
 export async function handle ({ event, resolve }) {
   const sessionCookie = event.cookies.get(cookieName)

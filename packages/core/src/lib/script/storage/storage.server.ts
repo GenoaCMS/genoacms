@@ -1,6 +1,5 @@
 import { config } from '@genoacms/cloudabstraction'
 import type {
-  Adapter,
   DirectoryContents,
   ObjectReference,
   StorageObject
@@ -17,7 +16,7 @@ const {
   getSignedURL,
   listDirectory,
   uploadObject
-} = (await config.storage.adapter) as Adapter
+} = await config.storage.adapter
 
 const getBucketReferences = () => {
   return config.storage.buckets
