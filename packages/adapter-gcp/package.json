@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.4.1",
+  "version": "0.4.1-fix.1",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
@@ -44,9 +44,9 @@
     "dist"
   ],
   "exports": {
-    "./auth": {
-      "import": "./dist/services/auth/index.js",
-      "types": "./dist/services/auth/index.d.ts"
+    "./authorization": {
+      "import": "./dist/services/authorization/index.js",
+      "types": "./dist/services/authorization/index.d.ts"
     },
     "./database": {
       "import": "./dist/services/database/index.js",
