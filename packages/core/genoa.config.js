@@ -1,4 +1,5 @@
 import credentials from './serviceAccount.json' assert { type: 'json' }
+import authCredentials from './authCredentials.js'
 
 const testCollection = {
   name: 'test',
@@ -19,9 +20,17 @@ const testCollection = {
  * @type {import('./src/genoa.config.d.ts').default}
  */
 const config = {
-  // auth: {
-  //     adapter: authAdapter
-  // }
+  authentication: {
+    adapter: import('@genoacms/authentication-adapter-array'),
+    credentials: authCredentials,
+    cookieName: '__session',
+    JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
+  },
+  authorization: {
+    adapter: import('@genoacms/adapter-gcp/authorization'),
+    projectId: 'genoacms',
+    credentials
+  },
   database: {
     adapter: import('@genoacms/adapter-gcp/database'),
     region: 'eu-west3',
