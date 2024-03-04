@@ -1,8 +1,7 @@
-import type * as AuthorizationAdapter from '@genoacms/adapter/authorization'
-import type * as AuthenticationAdapter from '@genoacms/adapter/authentication'
-import type * as DatabaseAdapter from '@genoacms/adapter/database'
-import type * as StorageAdapter from '@genoacms/adapter/storage'
-import type { CollectionReference, Document } from './services/database/index.d.ts'
+import type { Adapter as AuthorizationAdapter } from './services/authorization/index.d.ts'
+import type { Adapter as AuthenticationAdapter } from './services/authentication/index.d.ts'
+import type { Adapter as DatabaseAdapter, CollectionReference, Document } from './services/database/index.d'
+import type { Adapter as StorageAdapter } from './services/storage/index.d'
 
 interface Config<AuthExtension extends object = object,
     AuthenticationExtension extends object = object,

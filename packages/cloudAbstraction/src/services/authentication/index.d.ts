@@ -1,3 +1,3 @@
-export declare module '@genoacms/adapter/authentication' {
+export declare namespace Adapter {
   type loginWithEmailAndPassword = (email: string, password: string) => Promise<boolean>
 }

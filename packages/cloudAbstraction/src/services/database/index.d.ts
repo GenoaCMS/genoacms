@@ -31,7 +31,7 @@ interface UpdateSnapshot<C extends CollectionReference> extends Omit<DocumentSna
 }
 type CollectionSnapshot<C extends CollectionReference> = Array<DocumentSnapshot<C>> // TODO: make class, method docs()
 
-export declare module '@genoacms/adapter/database' {
+export declare namespace Adapter {
   type createDocument = <C extends CollectionReference>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C>>
 
   type getCollection = <C extends CollectionReference>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C>>
