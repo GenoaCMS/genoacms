@@ -1,7 +1,15 @@
 {
-	"name": "genoacms",
+	"name": "@genoacms/core",
 	"version": "0.0.1",
-	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/GenoaCMS/core.git"
+	},
+	"author": {
+		"name": "Filip Holčík",
+		"email": "filip.holcik.official@gmail.com"
+	},
+	"license": "ISC",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
