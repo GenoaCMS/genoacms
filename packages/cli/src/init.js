@@ -1,7 +1,11 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { execSync } from 'node:child_process'
-import { join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
+import { promisify } from 'node:util'
+import { exec as execCb } from 'node:child_process'
+import { join, resolve, dirname } from 'node:path'
 import { intro, outro, select, spinner } from '@clack/prompts'
+
+const exec = promisify(execCb)
 
 let packageManager = ''
 
@@ -36,7 +40,7 @@ async function initNpmProject () {
     if (!packageManager) await getPackageManager()
     const initializing = spinner()
     initializing.start('Initializing npm project')
-    execSync(`${packageManager} init -y`)
+    await exec(`${packageManager} init -y`)
     initializing.stop('npm project initialized')
 }
 
@@ -44,7 +48,7 @@ async function installPackage (name) {
     if (!packageManager) await getPackageManager()
     const installing = spinner()
     installing.start(`Installing ${name}`)
-    execSync(`${packageManager} install ${name}`)
+    await exec(`${packageManager} install ${name}`)
     installing.stop(`${name} installed`)
 }
 
@@ -107,7 +111,10 @@ async function installAuthenticationAdapter (adapter) {
 }
 
 async function prepareConfig () {
-    const config = readFileSync('genoa.config.js', 'utf-8')
+    const creating = spinner()
+    creating.start('Creating genoa.config.js')
+    const templateConfigPath = join(resolve(dirname('')), 'genoa.config.js')
+    const config = readFile(templateConfigPath, 'utf-8')
     const authenticationAdapterPackage = authenticationAdapterToPackageName()
     const adapterSuitePackage = adapterSuiteToPackageName()
     const preparedConfig = config.replace('%authentication-adapter%', authenticationAdapterPackage)
@@ -116,7 +123,8 @@ async function prepareConfig () {
         .replace('%storage-adapter%', adapterSuitePackage + '/storage')
     const workDir = process.cwd()
     const configPath = join(workDir, 'genoa.config.js')
-    writeFileSync(configPath, preparedConfig)
+    await writeFile(configPath, preparedConfig, 'utf-8')
+    creating.stop('genoa.config.js created')
 }
 
 async function init () {

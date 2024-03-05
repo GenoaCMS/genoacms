@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "CLI tool for setting up GenoaCMS",
   "repository": {
     "type": "git",
