@@ -14,7 +14,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node src/index.js"
+    "test": "node src/index.js",
+    "test:init": "node src/index.js init"
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0"
