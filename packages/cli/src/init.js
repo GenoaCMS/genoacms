@@ -2,12 +2,15 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { exec as execCb } from 'node:child_process'
-import { join, resolve, dirname } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { intro, outro, select, spinner } from '@clack/prompts'
 
 const exec = promisify(execCb)
 
 let packageManager = ''
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 async function selectPackageManager () {
     return await select({
@@ -110,13 +113,13 @@ async function installAuthenticationAdapter (adapter) {
     if (packageName) await installPackage(packageName)
 }
 
-async function prepareConfig () {
+async function prepareConfig (adapterSuite, authenticationAdapter) {
     const creating = spinner()
     creating.start('Creating genoa.config.js')
-    const templateConfigPath = join(resolve(dirname('')), 'genoa.config.js')
-    const config = readFile(templateConfigPath, 'utf-8')
-    const authenticationAdapterPackage = authenticationAdapterToPackageName()
-    const adapterSuitePackage = adapterSuiteToPackageName()
+    const templateConfigPath = join(__dirname, 'genoa.config.js')
+    const config = await readFile(templateConfigPath, 'utf-8')
+    const adapterSuitePackage = adapterSuiteToPackageName(adapterSuite)
+    const authenticationAdapterPackage = authenticationAdapterToPackageName(authenticationAdapter)
     const preparedConfig = config.replace('%authentication-adapter%', authenticationAdapterPackage)
         .replace('%authorization-adapter%', adapterSuitePackage + '/authorization')
         .replace('%database-adapter%', adapterSuitePackage + '/database')
@@ -136,7 +139,7 @@ async function init () {
     await installAdapterSuite(adapterSuite)
     const authenticationAdapter = await selectAuthenticationAdapter()
     await installAuthenticationAdapter(authenticationAdapter)
-    await prepareConfig()
+    await prepareConfig(adapterSuite, authenticationAdapter)
     outro('GenoaCMS initialized')
 }
 
