@@ -1,6 +1,6 @@
 {
 	"name": "@genoacms/core",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/GenoaCMS/core.git"
@@ -21,9 +21,8 @@
 		"test:integration": "playwright test",
 		"test:unit": "vitest"
 	},
-	"devDependencies": {
-		"@genoacms/adapter-gcp": "^0.4.2",
-		"@genoacms/authentication-adapter-array": "^0.4.1",
+	"dependencies": {
+		"@genoacms/cloudabstraction": "^0.4.2-fix.2",
 		"@playwright/test": "^1.28.1",
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/kit": "^2.4.3",
@@ -63,7 +62,8 @@
 		"vitest": "^1.2.1"
 	},
 	"type": "module",
-	"dependencies": {
-		"@genoacms/cloudabstraction": "^0.4.2-fix.2"
+	"devDependencies": {
+		"@genoacms/authentication-adapter-array": "^0.4.1",
+		"@genoacms/adapter-gcp": "^0.4.2"
 	}
 }

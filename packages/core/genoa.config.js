@@ -17,7 +17,7 @@ const testCollection = {
 }
 
 /**
- * @type {import('./src/genoa.config.d.ts').default}
+ * @type {import('@genoacms/cloudabstraction').genoaConfig}
  */
 const config = {
   authentication: {
