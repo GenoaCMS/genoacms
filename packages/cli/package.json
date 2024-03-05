@@ -1,0 +1,22 @@
+{
+  "name": "@genoacms/cli",
+  "version": "0.0.1",
+  "description": "CLI tool for setting up GenoaCMS",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/cli.git"
+  },
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node src/index.js"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0"
+  }
+}
