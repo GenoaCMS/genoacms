@@ -28,7 +28,7 @@ async function getPackageManager () {
     } else if (existsSync('yarn.lock')) {
         packageManager = 'yarn'
     } else {
-        packageManager = selectPackageManager()
+        packageManager = await selectPackageManager()
     }
 }
 
