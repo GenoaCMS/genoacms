@@ -3,6 +3,7 @@
 import { select } from '@clack/prompts'
 import { init } from './init.js'
 import run from './run.js'
+import deploy from './deploy.js'
 
 async function selectMode () {
     return await select({
@@ -13,6 +14,9 @@ async function selectMode () {
         }, {
             value: 'run',
             label: 'Run GenoaCMS locally'
+        }, {
+            value: 'deploy',
+            label: 'Deploy GenoaCMS'
         }, {
             value: 'exit',
             label: 'Exit'
@@ -27,6 +31,9 @@ async function runMode(mode) {
             break
         case 'run':
             run()
+            break
+        case 'deploy':
+            deploy()
             break
         case 'exit':
             return
