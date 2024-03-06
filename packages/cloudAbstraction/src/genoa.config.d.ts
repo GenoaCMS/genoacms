@@ -22,7 +22,7 @@ interface Config<AuthorizationExtension extends object = object,
   } & DeploymentExtension
   storage: {
     adapter: Promise<typeof StorageAdapter>
-    testBucket?: string
+    defaultBucket: string
   } & StorageExtension
   collections: CollectionReference[]
   testDocuments?: [Document, Document]
