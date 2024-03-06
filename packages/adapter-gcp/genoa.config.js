@@ -20,7 +20,7 @@ const testCollection = {
  */
 const config = {
   authorization: {
-    adapter: import('./dist/services/auth/index.js'),
+    adapter: import('./dist/services/authorization/index.js'),
     projectId: 'genoacms',
     credentials
   },
@@ -37,7 +37,7 @@ const config = {
     buckets: [
       'genoacms'
     ],
-    testingBucket: 'genoacms',
+    defaultBucket: 'genoacms',
     credentials
   },
   collections: [

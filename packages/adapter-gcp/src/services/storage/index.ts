@@ -2,18 +2,8 @@ import type {
   Adapter,
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
-import { type Bucket, Storage, type File } from '@google-cloud/storage'
-import config from '../../config.js'
-
-const storage = new Storage({
-  credentials: config.storage.credentials
-})
-
-const getBucket = (name: string): Bucket => {
-  if (!config.storage.buckets.includes(name)) throw new Error('bucket-unregistered')
-  const bucket = storage.bucket(name)
-  return bucket
-}
+import { type File } from '@google-cloud/storage'
+import { getBucket } from './storage.js'
 
 const getObject: Adapter.getObject = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
@@ -42,10 +32,10 @@ const getSignedURL: Adapter.getSignedURL = async ({ bucket, name }) => {
   return url
 }
 
-const uploadObject: Adapter.uploadObject = async ({ bucket, name }, stream) => {
+const uploadObject: Adapter.uploadObject = async ({ bucket, name }, stream, options) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
-  await file.save(stream)
+  await file.save(stream, options)
 }
 
 const deleteObject: Adapter.deleteObject = async ({ bucket, name }) => {
