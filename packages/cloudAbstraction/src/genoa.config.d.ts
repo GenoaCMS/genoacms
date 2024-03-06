@@ -3,24 +3,26 @@ import type { Adapter as AuthenticationAdapter } from './services/authentication
 import type { Adapter as DatabaseAdapter, CollectionReference, Document } from './services/database/index.d'
 import type { Adapter as StorageAdapter } from './services/storage/index.d'
 
-interface Config<AuthExtension extends object = object,
+interface Config<AuthorizationExtension extends object = object,
     AuthenticationExtension extends object = object,
     DatabaseExtension extends object = object,
+    DeploymentExtension extends object = object,
     StorageExtension extends object = object> {
   authorization: {
     adapter: Promise<typeof AuthorizationAdapter>
-  } & AuthExtension
+  } & AuthorizationExtension
   authentication: {
     adapter: Promise<typeof AuthenticationAdapter>
   } & AuthenticationExtension
   database: {
     adapter: Promise<typeof DatabaseAdapter>
-    [key: string]: any
   } & DatabaseExtension
+  deployment: {
+    adapterPath: string
+  } & DeploymentExtension
   storage: {
     adapter: Promise<typeof StorageAdapter>
     testBucket?: string
-    [key: string]: any
   } & StorageExtension
   collections: CollectionReference[]
   testDocuments?: [Document, Document]
