@@ -38,6 +38,10 @@ const config = {
     projectId: 'genoacms',
     credentials
   },
+  deployment: {
+    adapter: import('@genoacms/adapter-gcp/deployment'),
+    credentials
+  },
   storage: {
     adapter: import('@genoacms/adapter-gcp/storage'),
     projectId: 'genoacms',
