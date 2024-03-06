@@ -9,7 +9,11 @@ interface StorageObject {
   lastModified: Date
 }
 
-type objectPayload = string | Buffer | NodeJS.ReadableStream
+type ObjectPayload = string | Buffer | NodeJS.ReadableStream
+
+interface UploadOptions {
+  gzip?: boolean
+}
 
 interface ObjectData {
   data: NodeJS.ReadableStream
@@ -29,7 +33,7 @@ export namespace Adapter {
   type getObject = (reference: ObjectReference) => Promise<ObjectData>
   type getSignedURL = (reference: ObjectReference, expires: Date) => Promise<string>
   type getPublicURL = (reference: ObjectReference) => Promise<string>
-  type uploadObject = (reference: ObjectReference, data: objectPayload) => Promise<void>
+  type uploadObject = (reference: ObjectReference, data: ObjectPayload, options: UploadOptions) => Promise<void>
   type deleteObject = (reference: ObjectReference) => Promise<void>
   type listDirectory = (reference: ObjectReference, params?: DirectoryListingParams) => Promise<DirectoryContents>
   type createDirectory = (reference: ObjectReference) => Promise<void>
@@ -38,7 +42,7 @@ export namespace Adapter {
 export type {
   ObjectReference,
   StorageObject,
-  objectPayload,
+  ObjectPayload,
   ObjectData,
   DirectoryListingParams,
   DirectoryContents
