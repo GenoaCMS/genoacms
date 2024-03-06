@@ -1,5 +1,4 @@
-
 export declare namespace Adapter {
-    type svelteKitAdapter = any
+    type svelteKitAdapter = string
     type deployProcedure = () => Promise<void>
 }
