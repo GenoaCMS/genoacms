@@ -1,9 +1,10 @@
 import config from '../../config.js'
 import { getBucket } from '../storage/storage.js'
 import { readdir, lstat } from 'node:fs/promises'
-import { createReadStream } from 'node:fs'
+import { createReadStream, createWriteStream } from 'node:fs'
 import { join } from 'node:path'
 import { CloudFunctionsServiceClient } from '@google-cloud/functions'
+import archiver from 'archiver'
 
 const functionsClient = new CloudFunctionsServiceClient({
   credentials: config.deployment.credentials
@@ -36,18 +37,28 @@ async function uploadDirectory (bucketName: string, directoryPath: string, prefi
   }
 }
 
-async function uploadSourceCode (bucketName: string, source: string, dest: string): Promise<string> {
-  const bucket = getBucket(bucketName)
-  const uploadResponse = await bucket.upload(source, {
-    gzip: true,
-    destination: dest
+async function zipDirectory (source: string, out: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const output = createWriteStream(out)
+    const archive = archiver('zip', { zlib: { level: 9 } })
+
+    output.on('close', () => {
+      resolve()
+    })
+
+    archive.on('error', (err) => {
+      reject(err)
+    })
+
+    archive.pipe(output)
+    archive.directory(source, false)
+    archive.finalize()
   })
-  const file = uploadResponse[0]
-  return file.cloudStorageURI.toString()
 }
 
-async function deployFunction (name: string, source: string): Promise<void> {
+async function deployFunction (functionName: string, source: string): Promise<void> {
   const location = functionsClient.locationPath(projectId, region)
+  const name = functionsClient.cloudFunctionPath(projectId, region, functionName)
   const [response] = await functionsClient.createFunction({
     location,
     function: {
@@ -67,8 +78,11 @@ async function deployFunction (name: string, source: string): Promise<void> {
 export default async function (): Promise<void> {
   const bucketName = config.storage.defaultBucket
   const assetsPath = '.genoacms/deployment/static'
-  const buildArchivePath = '.genoacms/deployment/build.zip'
+  const buildArchiveSrc = '.build.zip'
+  const buildArchiveDest = '.genoacms/deployment/build.zip'
+  const buildArchiveRef = `gs://${bucketName}/${buildArchiveDest}`
+  await zipDirectory('./build', buildArchiveSrc)
   await uploadDirectory(bucketName, './static', assetsPath)
-  const buildArchiveURI = await uploadSourceCode(bucketName, './build', buildArchivePath)
-  await deployFunction('genoacms', buildArchiveURI)
+  await uploadDirectory(bucketName, buildArchiveSrc, buildArchiveDest)
+  await deployFunction('genoacms', buildArchiveRef)
 }

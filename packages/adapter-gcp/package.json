@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.5.2-fix.1",
+  "version": "0.5.2-fix.2",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
@@ -27,9 +27,11 @@
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/functions": "^3.2.0",
     "@google-cloud/resource-manager": "^5.1.0",
-    "@google-cloud/storage": "^7.7.0"
+    "@google-cloud/storage": "^7.7.0",
+    "archiver": "^7.0.0"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "eslint": "^8.52.0",
     "eslint-config-standard-with-typescript": "^39.1.1",
@@ -41,8 +43,8 @@
     "vitest": "^1.0.4"
   },
   "peerDependencies": {
-    "@sveltejs/adapter-node": "^4.0.1",
-    "@google-cloud/functions-framework": "^3.3.0"
+    "@google-cloud/functions-framework": "^3.3.0",
+    "@sveltejs/adapter-node": "^4.0.1"
   },
   "files": [
     "src",
