@@ -12,29 +12,38 @@ const functionsClient = new CloudFunctionsServiceClient({
 const projectId = config.deployment.projectId
 const region = config.deployment.region
 
-async function uploadDirectory (bucketName: string, directoryPath: string, prefix = ''): Promise<void> {
+async function uploadFile (bucketName: string, filePath: string, destination: string): Promise<void> {
   const bucket = getBucket(bucketName)
+  const fileStream = createReadStream(filePath)
+  const gcsFile = bucket.file(destination)
+
+  await new Promise((resolve, reject) => {
+    fileStream
+      .pipe(gcsFile.createWriteStream())
+      .on('error', reject)
+      .on('finish', resolve)
+  })
+}
+
+async function uploadFileOrDirectory (bucketName: string, path: string, prefix = ''): Promise<void> {
+  const isDirectory = (await lstat(path)).isDirectory()
+  if (isDirectory) {
+    await uploadDirectory(bucketName, path, prefix)
+  } else {
+    await uploadFile(bucketName, path, prefix)
+  }
+}
+
+async function uploadDirectory (bucketName: string, directoryPath: string, prefix = ''): Promise<void> {
   const files = await readdir(directoryPath)
+  const promises = []
 
   for (const file of files) {
     const filePath = join(directoryPath, file)
     const destination = join(prefix, file)
-
-    const isFileDirectory = (await lstat(filePath)).isDirectory()
-    if (isFileDirectory) {
-      await uploadDirectory(bucketName, filePath, destination)
-    } else {
-      const fileStream = createReadStream(filePath)
-      const gcsFile = bucket.file(destination)
-
-      await new Promise((resolve, reject) => {
-        fileStream
-          .pipe(gcsFile.createWriteStream())
-          .on('error', reject)
-          .on('finish', resolve)
-      })
-    }
+    promises.push(uploadFileOrDirectory(bucketName, filePath, destination))
   }
+  await Promise.all(promises)
 }
 
 async function zipDirectory (source: string, out: string): Promise<void> {
@@ -83,6 +92,6 @@ export default async function (): Promise<void> {
   const buildArchiveRef = `gs://${bucketName}/${buildArchiveDest}`
   await zipDirectory('./build', buildArchiveSrc)
   await uploadDirectory(bucketName, './static', assetsPath)
-  await uploadDirectory(bucketName, buildArchiveSrc, buildArchiveDest)
+  await uploadFile(bucketName, buildArchiveSrc, buildArchiveDest)
   await deployFunction('genoacms', buildArchiveRef)
 }
