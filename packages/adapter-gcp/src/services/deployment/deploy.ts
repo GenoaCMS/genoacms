@@ -1,5 +1,4 @@
 import config from '../../config.js'
-import { getBucket } from '../storage/storage.js'
 import { readdir, lstat } from 'node:fs/promises'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { join } from 'node:path'
@@ -11,18 +10,12 @@ const functionsClient = new CloudFunctionsServiceClient({
 })
 const projectId = config.deployment.projectId
 const region = config.deployment.region
+const { uploadObject, getSignedURL } = await config.storage.adapter
 
 async function uploadFile (bucketName: string, filePath: string, destination: string): Promise<void> {
-  const bucket = getBucket(bucketName)
-  const fileStream = createReadStream(filePath)
-  const gcsFile = bucket.file(destination)
-
-  await new Promise((resolve, reject) => {
-    fileStream
-      .pipe(gcsFile.createWriteStream())
-      .on('error', reject)
-      .on('finish', resolve)
-  })
+  const reference = { bucket: bucketName, name: destination }
+  await uploadObject(reference, createReadStream(filePath))
+  return await getSignedURL(reference, new Date(Date.now() + 1000 * 60 * 60 * 12))
 }
 
 async function uploadFileOrDirectory (bucketName: string, path: string, prefix = ''): Promise<void> {
@@ -65,33 +58,64 @@ async function zipDirectory (source: string, out: string): Promise<void> {
   })
 }
 
+async function uploadSource (sourceArchivePath: string): Promise<string> {
+  const location = functionsClient.locationPath(projectId, region)
+  const [urlResponse] = await functionsClient.generateUploadUrl({ parent: location })
+  const uploadUrl = urlResponse.uploadUrl
+  if (!uploadUrl) throw new Error('Upload URL not found')
+  const sourceArchiveStream = createReadStream(sourceArchivePath)
+  await fetch(uploadUrl, {
+    method: 'PUT',
+    // @ts-expect-error: invalid typings
+    body: sourceArchiveStream,
+    duplex: 'half',
+    headers: {
+      'Content-Type': 'application/zip'
+    }
+  })
+  return uploadUrl
+}
+
 async function deployFunction (functionName: string, source: string): Promise<void> {
   const location = functionsClient.locationPath(projectId, region)
   const name = functionsClient.cloudFunctionPath(projectId, region, functionName)
-  const [response] = await functionsClient.createFunction({
+  let isFunctionExisting: boolean
+  try {
+    await functionsClient.getFunction({ name })
+    isFunctionExisting = true
+  } catch (error) {
+    isFunctionExisting = false
+  }
+  const operationParams = {
     location,
     function: {
       name,
       sourceUploadUrl: source,
-      entryPoint: 'handler',
+      entryPoint: 'cloudFunction.js',
       runtime: 'nodejs20',
       httpsTrigger: {},
       environmentVariables: {
         NODE_ENV: 'production'
       }
     }
-  }, {})
-  console.log(response)
+  }
+  let response
+  if (isFunctionExisting) {
+    [response] = await functionsClient.updateFunction(operationParams, {})
+  } else {
+    [response] = await functionsClient.createFunction(operationParams, {})
+  }
+  console.log(response, source)
 }
 
 export default async function (): Promise<void> {
   const bucketName = config.storage.defaultBucket
-  const assetsPath = '.genoacms/deployment/static'
-  const buildArchiveSrc = '.build.zip'
-  const buildArchiveDest = '.genoacms/deployment/build.zip'
-  const buildArchiveRef = `gs://${bucketName}/${buildArchiveDest}`
-  await zipDirectory('./build', buildArchiveSrc)
-  await uploadDirectory(bucketName, './static', assetsPath)
-  await uploadFile(bucketName, buildArchiveSrc, buildArchiveDest)
-  await deployFunction('genoacms', buildArchiveRef)
+  const buildDirectoryPath = './build'
+  const buildArchivePath = '.build.zip'
+  const assetsDirectoryPath = './static'
+  const assetsDestPath = '.genoacms/deployment/static'
+  await zipDirectory(buildDirectoryPath, buildArchivePath)
+  const uploadUrl = await uploadSource(buildArchivePath)
+  await uploadDirectory(bucketName, assetsDirectoryPath, assetsDestPath)
+  await deployFunction('genoacms', uploadUrl)
 }
