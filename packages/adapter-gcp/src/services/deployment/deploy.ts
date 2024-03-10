@@ -1,7 +1,7 @@
 import config from '../../config.js'
 import { readdir, lstat } from 'node:fs/promises'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { join, resolve, dirname } from 'node:path'
+import { join, resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CloudFunctionsServiceClient } from '@google-cloud/functions'
 import archiver from 'archiver'
@@ -61,7 +61,7 @@ async function createZip (source: string, injectPaths: string[], ignorePaths: st
     archive.pipe(output)
     archive.glob(source, { ignore: ignorePaths })
     for (const path of injectPaths) {
-      archive.append(path, { name: path })
+      archive.file(path, { name: basename(path) })
     }
     archive.finalize()
   })
@@ -100,7 +100,7 @@ async function deployFunction (functionName: string, source: string): Promise<vo
     function: {
       name,
       sourceUploadUrl: source,
-      entryPoint: 'svelteKitApp',
+      entryPoint: 'genoacms',
       runtime: 'nodejs20',
       httpsTrigger: {},
       environmentVariables: {
@@ -119,7 +119,7 @@ async function deployFunction (functionName: string, source: string): Promise<vo
 
 async function deploy (): Promise<void> {
   const bucketName = config.storage.defaultBucket
-  const buildDirectoryPath = './*'
+  const buildDirectoryPath = '*'
   const buildArchivePath = '.build.zip'
   const assetsDirectoryPath = './static'
   const assetsDestPath = '.genoacms/deployment/static'
@@ -128,7 +128,8 @@ async function deploy (): Promise<void> {
     '.git',
     '.github',
     '.gitignore',
-    'build'
+    'build',
+    '.build.zip'
   ]
   const injectArchivePaths = [
     locateFunctionEntryScript()
