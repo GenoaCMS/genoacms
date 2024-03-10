@@ -1,7 +1,8 @@
 import config from '../../config.js'
 import { readdir, lstat } from 'node:fs/promises'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { CloudFunctionsServiceClient } from '@google-cloud/functions'
 import archiver from 'archiver'
 
@@ -12,6 +13,11 @@ const projectId = config.deployment.projectId
 const region = config.deployment.region
 const { uploadObject, getSignedURL } = await config.storage.adapter
 
+function locateFunctionEntryScript (): string {
+  const currentDir = dirname(fileURLToPath(import.meta.url))
+  const indexPath = resolve(currentDir, './snippets/index.js')
+  return indexPath
+}
 async function uploadFile (bucketName: string, filePath: string, destination: string): Promise<void> {
   const reference = { bucket: bucketName, name: destination }
   await uploadObject(reference, createReadStream(filePath))
@@ -39,7 +45,7 @@ async function uploadDirectory (bucketName: string, directoryPath: string, prefi
   await Promise.all(promises)
 }
 
-async function zipDirectory (source: string, out: string): Promise<void> {
+async function createZip (source: string, injectPaths: string[], ignorePaths: string[], out: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const output = createWriteStream(out)
     const archive = archiver('zip', { zlib: { level: 9 } })
@@ -53,7 +59,10 @@ async function zipDirectory (source: string, out: string): Promise<void> {
     })
 
     archive.pipe(output)
-    archive.directory(source, false)
+    archive.glob(source, { ignore: ignorePaths })
+    for (const path of injectPaths) {
+      archive.append(path, { name: path })
+    }
     archive.finalize()
   })
 }
@@ -91,7 +100,7 @@ async function deployFunction (functionName: string, source: string): Promise<vo
     function: {
       name,
       sourceUploadUrl: source,
-      entryPoint: 'cloudFunction.js',
+      entryPoint: 'svelteKitApp',
       runtime: 'nodejs20',
       httpsTrigger: {},
       environmentVariables: {
@@ -108,14 +117,26 @@ async function deployFunction (functionName: string, source: string): Promise<vo
   console.log(response, source)
 }
 
-export default async function (): Promise<void> {
+async function deploy (): Promise<void> {
   const bucketName = config.storage.defaultBucket
-  const buildDirectoryPath = './build'
+  const buildDirectoryPath = './*'
   const buildArchivePath = '.build.zip'
   const assetsDirectoryPath = './static'
   const assetsDestPath = '.genoacms/deployment/static'
-  await zipDirectory(buildDirectoryPath, buildArchivePath)
+  const ignoreArchivePaths = [
+    'node_modules',
+    '.git',
+    '.github',
+    '.gitignore',
+    'build'
+  ]
+  const injectArchivePaths = [
+    locateFunctionEntryScript()
+  ]
+  await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const uploadUrl = await uploadSource(buildArchivePath)
   await uploadDirectory(bucketName, assetsDirectoryPath, assetsDestPath)
   await deployFunction('genoacms', uploadUrl)
 }
+
+export default deploy

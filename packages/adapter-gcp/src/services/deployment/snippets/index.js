@@ -1,7 +1,7 @@
 import { HttpFunction } from '@google-cloud/functions-framework'
-import { handler } from './handler.js'
+import { handler } from './build/handler.js'
 
-const svelteKitApp = HttpFunction(handler)
+const svelteKitApp = new HttpFunction(handler)
 
 export {
   svelteKitApp
