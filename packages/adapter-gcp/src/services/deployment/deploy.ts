@@ -1,7 +1,6 @@
 import config from '../../config.js'
-import { readdir, lstat } from 'node:fs/promises'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { join, resolve, dirname, basename } from 'node:path'
+import { resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { v2 } from '@google-cloud/functions'
 import archiver from 'archiver'
@@ -14,39 +13,8 @@ const functionsClient = new FunctionServiceClient({
 })
 const projectId = config.deployment.projectId
 const region = config.deployment.region
-const { uploadObject, getSignedURL } = await config.storage.adapter
 
-function locateFunctionEntryScript (): string {
-  const currentDir = dirname(fileURLToPath(import.meta.url))
-  const indexPath = resolve(currentDir, './snippets/index.js')
-  return indexPath
-}
-async function uploadFile (bucketName: string, filePath: string, destination: string): Promise<void> {
-  const reference = { bucket: bucketName, name: destination }
-  await uploadObject(reference, createReadStream(filePath))
-  return await getSignedURL(reference, new Date(Date.now() + 1000 * 60 * 60 * 12))
-}
-
-async function uploadFileOrDirectory (bucketName: string, path: string, prefix = ''): Promise<void> {
-  const isDirectory = (await lstat(path)).isDirectory()
-  if (isDirectory) {
-    await uploadDirectory(bucketName, path, prefix)
-  } else {
-    await uploadFile(bucketName, path, prefix)
-  }
-}
-
-async function uploadDirectory (bucketName: string, directoryPath: string, prefix = ''): Promise<void> {
-  const files = await readdir(directoryPath)
-  const promises = []
-
-  for (const file of files) {
-    const filePath = join(directoryPath, file)
-    const destination = join(prefix, file)
-    promises.push(uploadFileOrDirectory(bucketName, filePath, destination))
-  }
-  await Promise.all(promises)
-}
+const currentDir = dirname(fileURLToPath(import.meta.url))
 
 async function createZip (source: string, injectPaths: string[], ignorePaths: string[], out: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -127,28 +95,25 @@ async function deployFunction (functionName: string, storageSource: IStorageSour
   } else {
     [response] = await functionsClient.createFunction(operationParams)
   }
+  console.log(response)
 }
 
 async function deploy (): Promise<void> {
-  const bucketName = config.storage.defaultBucket
-  const buildDirectoryPath = '*'
-  const buildArchivePath = '.build.zip'
-  const assetsDirectoryPath = './static'
-  const assetsDestPath = '.genoacms/deployment/static'
+  const buildDirectoryPath = '**'
+  const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
+  const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
   const ignoreArchivePaths = [
-    'node_modules',
-    '.git',
-    '.github',
+    'node_modules/**',
+    '.git/**',
+    '.github/**',
     '.gitignore',
-    'build',
-    '.build.zip'
+    'build/**'
   ]
   const injectArchivePaths = [
-    locateFunctionEntryScript()
+    functionEntryScriptPath
   ]
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const functionStorageSource = await uploadSource(buildArchivePath)
-  await uploadDirectory(bucketName, assetsDirectoryPath, assetsDestPath)
   await deployFunction('genoacms', functionStorageSource)
 }
 

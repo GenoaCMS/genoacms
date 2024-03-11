@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.5.2-fix.6",
+  "version": "0.5.2-fix.7",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
@@ -26,7 +26,6 @@
     "@genoacms/cloudabstraction": "^0.5.2",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/functions": "^3.2.0",
-    "@google-cloud/functions-framework": "^3.3.0",
     "@google-cloud/resource-manager": "^5.1.0",
     "@google-cloud/storage": "^7.7.0",
     "archiver": "^7.0.0"
@@ -44,11 +43,11 @@
     "vitest": "^1.0.4"
   },
   "peerDependencies": {
-    "@google-cloud/functions-framework": "^3.3.0",
     "@sveltejs/adapter-node": "^4.0.1"
   },
   "files": [
     "src",
+    "deployment",
     "dist"
   ],
   "exports": {
