@@ -81,7 +81,7 @@ const processFile = async (bucketId: string, file: StorageObject): Promise<Proce
     signedURL: await getSignedURL({
       bucket: bucketId,
       name: file.name
-    })
+    }, new Date(Date.now() + 1000 * 60 * 60))
   }
 }
 

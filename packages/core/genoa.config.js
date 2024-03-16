@@ -40,11 +40,14 @@ const config = {
   },
   deployment: {
     adapter: import('@genoacms/adapter-gcp/deployment'),
+    projectId: 'genoacms',
+    region: 'europe-west3',
     credentials
   },
   storage: {
     adapter: import('@genoacms/adapter-gcp/storage'),
     projectId: 'genoacms',
+    defaultBucket: 'genoacms',
     buckets: [
       'genoacms'
     ],
