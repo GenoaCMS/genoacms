@@ -11,6 +11,10 @@ const testCollection = {
       },
       isA: {
         type: 'boolean'
+      },
+      markdown: {
+        type: 'string',
+        format: 'markdown'
       }
     }
   }

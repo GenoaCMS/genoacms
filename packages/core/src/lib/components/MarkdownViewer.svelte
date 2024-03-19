@@ -4,8 +4,9 @@
     import 'github-markdown-css/github-markdown-light.css'
 
     export let markdown = ''
+    let html = ''
 
-    $: html = dompurify.sanitize(parse(markdown))
+    $: if (dompurify.sanitize) html = dompurify.sanitize(parse(markdown || ''))
 </script>
 
 <div class="markdown-body">

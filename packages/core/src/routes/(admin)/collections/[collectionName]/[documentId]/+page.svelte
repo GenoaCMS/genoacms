@@ -3,7 +3,8 @@
   import { extractProperties } from '../utils'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import { Toast } from '$lib/script/alert'
-  import { Input, Label } from 'flowbite-svelte'
+  import { Label } from 'flowbite-svelte'
+  import Input from './Input.svelte'
 
   export let data
   const properties = extractProperties(data.document.reference.collection.schema.properties)
@@ -39,9 +40,9 @@
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} class="p-3">
     {#each properties as property}
-        <Label>
-            {property.name}:
-            <Input name={property.name} bind:value={data.document.data[property.name]}/>
-        </Label>
+      <Label>
+          {property.name}:
+          <Input name={property.name} type={property.format || property.type} value={data.document.data[property.name]}/>
+      </Label>
     {/each}
 </form>

@@ -31,4 +31,4 @@
   }
 </script>
 
-<div use:monacoEditor class="h-full w-full"/>
+<div use:monacoEditor class="h-full w-full"></div>

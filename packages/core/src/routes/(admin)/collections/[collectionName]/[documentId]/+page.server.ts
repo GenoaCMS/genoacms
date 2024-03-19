@@ -1,8 +1,6 @@
 import { fail } from '@sveltejs/kit'
 import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
-import Ajv from 'ajv'
-
-const ajv = new Ajv()
+import { validateDocumentData } from '$lib/script/database/validators'
 
 export const load = async ({ params }) => {
   const { collectionName, documentId } = params
@@ -25,7 +23,9 @@ const update = async ({ params, request }) => {
     else if (type === 'boolean') value = Boolean(value)
     documentData[property] = value
   }
-  const areDocumentDataValid = ajv.validate(collection.schema, documentData)
+
+  const areDocumentDataValid = validateDocumentData(collection.schema, documentData)
+
   if (!areDocumentDataValid) return fail(1)
   await updateDocument({ collection, id: documentId }, documentData)
 }

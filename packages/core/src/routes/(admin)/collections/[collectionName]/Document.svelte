@@ -1,8 +1,8 @@
 <script lang="ts">
   import { extractProperties } from './utils'
-  import type { DocumentReference } from '@genoacms/cloudabstraction/dist/services/database/index.d.ts'
+  import type { CollectionReference, DocumentReference } from '@genoacms/cloudabstraction/database'
 
-  export let reference: DocumentReference
+  export let reference: DocumentReference<CollectionReference>
   export let data
   const schema = reference.collection.schema
   const properties = extractProperties(schema.properties)
