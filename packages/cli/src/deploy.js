@@ -1,10 +1,12 @@
 import { exec } from 'node:child_process'
+import { config } from '@genoacms/cloudabstraction'
+
+const { deployProcedure } = await config.deployment.adapter
 
 function deploy () {
     process.chdir('node_modules/@genoacms/core')
     exec('npm run build')
-    // TODO: run custom deployment logic from deployment adapter
-
+    deployProcedure()
 }
 
 export default deploy
