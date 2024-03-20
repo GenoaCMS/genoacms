@@ -22,15 +22,16 @@ const getBucketReferences = () => {
   return config.storage.buckets
 }
 
-const defaultBucketId = getBucketReferences()[0] // TODO: get default bucket from config
+const defaultBucketId = config.storage.defaultBucket
 
 const fullyQualifiedNameToFilename = (name: string) => {
   if (name[name.length - 1] === '/') name = name.slice(0, -1)
+
   const lastIndexOfSlash = name.lastIndexOf('/')
   return lastIndexOfSlash === -1 ? name : name.slice(lastIndexOfSlash + 1)
 }
 
-const isDirectoryExisting = (directory: DirectoryContents) => { // TODO: move to cloudabstraction, with a better name
+const isDirectoryExisting = (directory: DirectoryContents) => {
   return directory.directories.length > 0 || directory.files.length > 0
 }
 
@@ -50,6 +51,7 @@ const getObjectString = async (reference: ObjectReference) => {
 }
 const getObjectJSON = async (reference: ObjectReference) => {
   const text = await getObjectString(reference)
+
   return JSON.parse(text)
 }
 const getObjectFlatted = async (reference: ObjectReference) => {

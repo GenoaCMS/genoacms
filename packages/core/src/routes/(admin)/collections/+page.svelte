@@ -16,7 +16,7 @@
 <div class="grid grid-cols-5 gap-5 p-5">
     {#each data.collectionReferences as collection}
         <div class="col-span-1">
-            <CardLink href="/collections/{collection.name}" icon="collection" text={collection.name}/>
+            <CardLink href="/collections/{collection}" icon="collection" text={collection}/>
         </div>
     {/each}
 </div>

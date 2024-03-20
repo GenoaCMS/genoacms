@@ -1,25 +1,6 @@
 import credentials from './serviceAccount.json' assert { type: 'json' }
 import authCredentials from './authCredentials.js'
 
-const testCollection = {
-  name: 'test',
-  schema: {
-    type: 'object',
-    properties: {
-      name: {
-        type: 'string'
-      },
-      isA: {
-        type: 'boolean'
-      },
-      markdown: {
-        type: 'string',
-        format: 'markdown'
-      }
-    }
-  }
-}
-
 /**
  * @type {import('@genoacms/cloudabstraction').genoaConfig}
  */
@@ -56,10 +37,7 @@ const config = {
       'genoacms'
     ],
     credentials
-  },
-  collections: [
-    testCollection
-  ]
+  }
 }
 
 export default config

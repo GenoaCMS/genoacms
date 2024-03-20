@@ -1,5 +1,6 @@
 import { config } from '@genoacms/cloudabstraction'
 import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listOrCreateDirectory } from '../storage/storage.server'
 
 const {
   createDocument,
@@ -8,13 +9,18 @@ const {
   updateDocument,
   deleteDocument
 } = await config.database.adapter
-const getCollectionReferences = () => {
-  return config.collections
+
+const collectionsDirectory = '.genoacms/collections'
+const collectionsDirectoryContents = await listOrCreateDirectory({ name: collectionsDirectory, bucket: defaultBucketId })
+
+function getCollectionReferences () {
+  return collectionsDirectoryContents.files.map(file => {
+    return fullyQualifiedNameToFilename(file.name)
+  })
 }
-const getCollectionReference = (name: string): CollectionReference => {
-  const filtered = config.collections.filter(obj => obj.name === name)
-  if (filtered.length === 0) throw new Error('collection/not-found')
-  return filtered[0]
+async function getCollectionReference (name: string): Promise<CollectionReference> {
+  const collectionSchema = await getObjectJSON({ name: `${collectionsDirectory}/${name}`, bucket: defaultBucketId })
+  return collectionSchema
 }
 
 export {
