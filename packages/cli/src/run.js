@@ -1,9 +1,8 @@
 import { exec } from 'node:child_process'
 
 function run () {
-    process.chdir('node_modules/@genoacms/core')
-    exec('npm run dev')
-
+    const child = exec('npm explore @genoacms/core -- npm run dev')
+    child.stdout.pipe(process.stdout)
 }
 
 export default run
