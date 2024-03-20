@@ -19,6 +19,7 @@
     "test:init": "node src/index.js init"
   },
   "dependencies": {
-    "@clack/prompts": "^0.7.0"
+    "@clack/prompts": "^0.7.0",
+    "@genoacms/cloudabstraction": "^0.5.2"
   }
 }

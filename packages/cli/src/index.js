@@ -18,6 +18,9 @@ async function selectMode () {
             value: 'deploy',
             label: 'Deploy GenoaCMS'
         }, {
+            value: 'database',
+            label: 'Configure database'
+        }, {
             value: 'exit',
             label: 'Exit'
         }]
@@ -34,6 +37,9 @@ async function runMode(mode) {
             break
         case 'deploy':
             deploy()
+            break
+        case 'database':
+            await database()
             break
         case 'exit':
             return
