@@ -51,7 +51,8 @@ async function selectMode() {
 }
 
 async function selectCollection () {
-  const options = collectionsDirectoryContents.map(({ name }) => ({ value: name, label: fullyQualifiedNameToFilename(name) }))
+  const options = collectionsDirectoryContents.files.map(({ name }) => ({ value: name, label: fullyQualifiedNameToFilename(name) }))
+  options.push({ value: '', label: 'Exit' })
   return await select({ message: 'Select a collection', options })
 }
 
@@ -62,18 +63,18 @@ function addCollection() {
 
 async function deleteCollection() {
   const collection = await selectCollection()
+  if (!collection) return
   await deleteObject({ name: collection, bucket: config.storage.defaultBucket })
   collectionsDirectoryContents = await listCollections()
 }
 
-export async function database() {
+export default async function database() {
   const mode = await selectMode()
-  switch (mode) {
-    case 'add':
+  switch (mode) { case 'add':
       addCollection()
       break
     case 'delete':
-      deleteCollection()
+      await deleteCollection()
       break
     case 'exit':
       return
