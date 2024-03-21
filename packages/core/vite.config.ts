@@ -8,5 +8,10 @@ export default defineConfig({
   },
   ssr: {
     noExternal: ['monaco-editor']
+  },
+  server: {
+    fs: {
+      allow: ['../..']
+    }
   }
 })
