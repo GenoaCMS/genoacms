@@ -4,6 +4,7 @@ import type {
 } from '@genoacms/cloudabstraction/storage'
 import { type File } from '@google-cloud/storage'
 import { getBucket } from './storage.js'
+import { join } from 'path'
 
 const getObject: Adapter.getObject = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
@@ -46,7 +47,7 @@ const listDirectory: Adapter.listDirectory = async ({ bucket, name }, listingPar
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
-    prefix: name,
+    prefix: join(name, '/'),
     maxResults: listingParams?.limit,
     startOffset: listingParams?.startAfter,
     delimiter: '/'
@@ -65,7 +66,7 @@ const listDirectory: Adapter.listDirectory = async ({ bucket, name }, listingPar
         lastModified: new Date(file.metadata.updated as string)
       } satisfies StorageObject
     }),
-    directories: apiResponse?.prefixes ?? []
+    directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name)
   }
 }
 
