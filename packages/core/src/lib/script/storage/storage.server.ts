@@ -6,7 +6,6 @@ import type {
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
 import { parse as parseFlatted } from 'flatted'
-import { join } from 'path'
 
 const {
   createDirectory,
@@ -36,7 +35,6 @@ const isDirectoryExisting = (directory: DirectoryContents) => {
 }
 
 const listOrCreateDirectory = async (reference: ObjectReference) => {
-  reference.name = join(reference.name, '/')
   const componentList = await listDirectory(reference)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
