@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cloudabstraction",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
