@@ -1,3 +1,6 @@
+/**
+ * @typedef {import('@genoacms/cloudabstraction/database').Adapter} Adapter
+ */
 import {
   GetItemCommand,
   DynamoDBClient,
@@ -22,7 +25,7 @@ const client = new DynamoDBClient({
  * @param {import('@genoacms/cloudabstraction').database.Document} document
  * @returns {import('@aws-sdk/client-dynamodb').AttributeValueMap
  */
-const documentToDynamoItem = (document) => {
+function documentToDynamoItem (document) {
   const item = {}
   for (const [key, value] of Object.entries(document)) {
     switch (typeof value) {
@@ -53,7 +56,7 @@ const documentToDynamoItem = (document) => {
  * @param {import('@aws-sdk/client-dynamodb').AttributeValueMap} item
  * @returns {import('@genoacms/cloudabstraction').database.Document}
  */
-const dynamoItemToObject = (item) => {
+function dynamoItemToObject (item) {
   const document = {}
   for (const [key, value] of Object.entries(item)) {
     switch (Object.keys(value)[0]) {
@@ -79,16 +82,16 @@ const dynamoItemToObject = (item) => {
   return document
 }
 
-const generateID = ({ primaryKey }) => {
+function generateID ({ primaryKey }) {
   return {
     [primaryKey]: uuid4()
   }
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').database.createDocument}
+ * @type {Adapter.createDocument}
  */
-const createDocument = async ({ name, primaryKey, schema }, document) => {
+async function createDocument ({ name, primaryKey, schema }, document) {
   const documentToCreate = {
     ...generateID({ primaryKey }),
     ...document
@@ -101,7 +104,7 @@ const createDocument = async ({ name, primaryKey, schema }, document) => {
   try {
     await client.send(command)
     /**
-     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot<typeof collection>}
+     * @type {import('@genoacms/cloudabstraction/database').DocumentSnapshot<typeof collection>}
      */
     const snapshot = {
       reference: {
@@ -121,10 +124,9 @@ const createDocument = async ({ name, primaryKey, schema }, document) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').database.getCollection}
+ * @type {Adapter.getCollection}
  */
-// const getCollection = async ({ name, schema }, queryParams) => {
-const getCollection = async ({ name, schema }) => {
+async function getCollection ({ name, schema }) {
   // const { startAfterValue, limit, conditions } = queryParams
   const command = new ScanCommand({
     TableName: name
@@ -139,9 +141,9 @@ const getCollection = async ({ name, schema }) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').database.getDocument}
+ * @type {Adapter.getDocument}
  */
-const getDocument = async ({ collection, id }) => {
+async function getDocument ({ collection, id }) {
   const Key = documentToDynamoItem({
     [collection.primaryKey]: id
   })
@@ -154,7 +156,7 @@ const getDocument = async ({ collection, id }) => {
     const object = dynamoItemToObject(response.Item)
     delete object[collection.primaryKey]
     /**
-     * @type {import('@genoacms/cloudabstraction').database.DocumentSnapshot<typeof collection>}
+     * @type {import('@genoacms/cloudabstraction/database').DocumentSnapshot<typeof collection>}
      */
     const snapshot = {
       reference: {
@@ -170,9 +172,9 @@ const getDocument = async ({ collection, id }) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').database.updateDocument}
+ * @type {Adapter.updateDocument}
  */
-const updateDocument = async (reference, document) => {
+async function updateDocument (reference, document) {
   const Item = documentToDynamoItem(document)
   const Key = documentToDynamoItem({
     [reference.collection.primaryKey]: reference.id
@@ -185,7 +187,7 @@ const updateDocument = async (reference, document) => {
   try {
     await client.send(command)
     /**
-     * @type {import('@genoacms/cloudabstraction').database.UpdateSnapshot<typeof reference.collection>}
+     * @type {import('@genoacms/cloudabstraction/database').UpdateSnapshot<typeof reference.collection>}
      */
     const snapshot = {
       reference,
@@ -198,9 +200,9 @@ const updateDocument = async (reference, document) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').database.deleteDocument}
+ * @type {Adapter.deleteDocument}
  */
-const deleteDocument = async ({ collection, id }) => {
+async function deleteDocument ({ collection, id }) {
   const Key = documentToDynamoItem({
     [collection.primaryKey]: id
   })

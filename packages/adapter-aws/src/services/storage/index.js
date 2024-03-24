@@ -1,5 +1,5 @@
 /**
- * @typedef {import('@genoacms/cloudabstraction').storage} storageT
+ * @typedef {import('@genoacms/cloudabstraction/storage').Adapter} Adapter
  */
 import {
   DeleteObjectCommand,
@@ -26,7 +26,7 @@ const client = new S3Client({
  * @param {string} bucket
  * @returns {{Bucket: string}}
  */
-const bucketToCommandInput = (bucket) => {
+function bucketToCommandInput (bucket) {
   if (!config.storage.buckets.includes(bucket)) throw new Error('bucket-unregistered')
   return {
     Bucket: bucket
@@ -34,9 +34,9 @@ const bucketToCommandInput = (bucket) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.getObject}
+ * @type {Adapter.getObject}
  */
-const getObject = async ({ bucket, name }) => {
+async function getObject ({ bucket, name }) {
   const commandInput = bucketToCommandInput(bucket)
   const command = new GetObjectCommand({
     ...commandInput,
@@ -54,14 +54,14 @@ const getObject = async ({ bucket, name }) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.getPublicUrl}
+ * @type {Adapter.getPublicUrl}
  */
 function getPublicUrl ({ bucket, name }) {
   return `https://${bucket}.s3.${config.storage.region}.amazonaws.com/${name}`
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.getSignedUrl}
+ * @type {Adapter.getSignedUrl}
  */
 function getSignedUrl ({ bucket, name }, expires) {
   const command = new GetObjectCommand({
@@ -71,7 +71,7 @@ function getSignedUrl ({ bucket, name }, expires) {
   return getSignedUrlFromS3(client, command, { expiresIn: expires })
 }
 
-const isObjectExisting = async ({ bucket, name }) => {
+async function isObjectExisting ({ bucket, name }) {
   const commandInput = bucketToCommandInput(bucket)
   const command = new GetObjectCommand({
     ...commandInput,
@@ -87,9 +87,9 @@ const isObjectExisting = async ({ bucket, name }) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.uploadObject}
+ * @type {Adapter.uploadObject}
  */
-const uploadObject = async ({ bucket, name }, content) => {
+async function uploadObject ({ bucket, name }, content) {
   const commandInput = bucketToCommandInput(bucket)
   const command = new PutObjectCommand({
     ...commandInput,
@@ -105,9 +105,9 @@ const uploadObject = async ({ bucket, name }, content) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.deleteObject}
+ * @type {Adapter.deleteObject}
  */
-const deleteObject = async ({ bucket, name }) => {
+async function deleteObject ({ bucket, name }) {
   const commandInput = bucketToCommandInput(bucket)
   const command = new DeleteObjectCommand({
     ...commandInput,
@@ -122,9 +122,9 @@ const deleteObject = async ({ bucket, name }) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.listDirectory}
+ * @type {Adapter.listDirectory}
  */
-const listDirectory = async ({ bucket, name }, listingParams) => {
+async function listDirectory ({ bucket, name }, listingParams) {
   const commandInput = bucketToCommandInput(bucket)
   const command = new ListObjectsV2Command({
     ...commandInput,
@@ -148,9 +148,9 @@ const listDirectory = async ({ bucket, name }, listingParams) => {
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').storage.createDirectory}
+ * @type {Adapter.createDirectory}
  */
-const createDirectory = async ({ bucket, name }) => {
+async function createDirectory ({ bucket, name }) {
   if (await isObjectExisting({ bucket, name })) {
     throw new Error('Directory already exists')
   }
