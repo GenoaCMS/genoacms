@@ -8,6 +8,9 @@ import {
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3'
+import {
+  getSignedUrl as getSignedUrlFromS3
+} from '@aws-sdk/s3-request-presigner'
 import config from '../../config.js'
 import 'dotenv/config'
 
@@ -48,6 +51,24 @@ const getObject = async ({ bucket, name }) => {
   } catch (err) {
     console.error(err)
   }
+}
+
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.getPublicUrl}
+ */
+function getPublicUrl ({ bucket, name }) {
+  return `https://${bucket}.s3.${config.storage.region}.amazonaws.com/${name}`
+}
+
+/**
+ * @type {import('@genoacms/cloudabstraction').storage.getSignedUrl}
+ */
+function getSignedUrl ({ bucket, name }, expires) {
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: name
+  })
+  return getSignedUrlFromS3(client, command, { expiresIn: expires })
 }
 
 const isObjectExisting = async ({ bucket, name }) => {
@@ -115,6 +136,7 @@ const listDirectory = async ({ bucket, name }, listingParams) => {
   try {
     const response = await client.send(command)
     if (!response.Contents) return []
+    console.log(response.Contents)
     return response.Contents.map((item) => ({
       name: item.Key,
       size: parseInt(item.Size),
@@ -145,15 +167,10 @@ const createDirectory = async ({ bucket, name }) => {
   }
 }
 
-// (async () => {
-//     const object = await isObjectExisting('testijoasjdiaj')
-//     console.log(object)
-// })()
-// console.log(await listDirectory({ prefix: 'testDir/' }))
-// listDirectory({ limit: 1})
-
 export {
   getObject,
+  getPublicUrl,
+  getSignedUrl,
   uploadObject,
   deleteObject,
   listDirectory,
