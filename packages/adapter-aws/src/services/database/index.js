@@ -9,16 +9,12 @@ import {
   UpdateItemCommand,
   ScanCommand
 } from '@aws-sdk/client-dynamodb'
-import config from '../../config.js'
-import 'dotenv/config'
+import { config } from '@genoacms/cloudabstraction'
 import { v4 as uuid4 } from 'uuid'
 
 const client = new DynamoDBClient({
   region: config.database.region,
-  credentials: {
-    accessKeyId: globalThis.process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: globalThis.process.env.AWS_SECRET_ACCESS_KEY
-  }
+  credentials: config.database.credentials
 })
 
 /**

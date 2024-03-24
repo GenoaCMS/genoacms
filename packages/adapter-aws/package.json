@@ -20,13 +20,14 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.436.0",
+    "@aws-sdk/client-iam": "^3.540.0",
     "@aws-sdk/client-s3": "^3.436.0",
     "@aws-sdk/s3-request-presigner": "^3.509.0",
     "@genoacms/cloudabstraction": "^0.5.3",
-    "dotenv": "^16.3.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "dotenv": "^16.3.1",
     "eslint": "^8.52.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.0",
@@ -37,8 +38,8 @@
     "vitest": "^1.1.0"
   },
   "exports": {
-    "./auth": {
-      "import": "./services/auth/index.js"
+    "./authentication": {
+      "import": "./services/authentication/index.js"
     },
     "./database": {
       "import": "./services/database/index.js"

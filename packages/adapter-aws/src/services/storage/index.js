@@ -11,15 +11,12 @@ import {
 import {
   getSignedUrl as getSignedUrlFromS3
 } from '@aws-sdk/s3-request-presigner'
-import config from '../../config.js'
+import { config } from '@genoacms/cloudabstraction'
 import 'dotenv/config'
 
 const client = new S3Client({
   region: config.storage.region,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
+  credentials: config.storage.credentials
 })
 
 /**
