@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-aws",
-  "version": "0.5.3",
+  "version": "0.5.3-fix.1",
   "description": "Adapter for abstraction layer for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -41,16 +41,16 @@
   },
   "exports": {
     "./authentication": {
-      "import": "./services/authentication/index.js"
+      "import": "./src/services/authentication/index.js"
     },
     "./database": {
-      "import": "./services/database/index.js"
+      "import": "./src/services/database/index.js"
     },
     "./deployment": {
-      "import": "./services/deployment/index.js"
+      "import": "./src/services/deployment/index.js"
     },
     "./storage": {
-      "import": "./services/storage/index.js"
+      "import": "./src/services/storage/index.js"
     }
   }
 }
