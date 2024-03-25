@@ -40,8 +40,8 @@
     "vitest": "^1.1.0"
   },
   "exports": {
-    "./authentication": {
-      "import": "./src/services/authentication/index.js"
+    "./authorization": {
+      "import": "./src/services/authorization/index.js"
     },
     "./database": {
       "import": "./src/services/database/index.js"
