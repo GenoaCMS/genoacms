@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cli",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "CLI tool for setting up GenoaCMS",
   "repository": {
     "type": "git",
@@ -20,6 +20,6 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "@genoacms/cloudabstraction": "^0.5.2"
+    "@genoacms/cloudabstraction": "^0.5.3"
   }
 }
