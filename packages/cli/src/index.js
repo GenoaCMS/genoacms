@@ -2,9 +2,6 @@
 
 import { select } from '@clack/prompts'
 import { init } from './init.js'
-import run from './run.js'
-import deploy from './deploy.js'
-import database from './database.js'
 
 async function selectMode () {
     return await select({
@@ -33,15 +30,21 @@ async function runMode(mode) {
         case 'init':
             await init()
             break
-        case 'run':
+        case 'run': {
+            const run = (await import('./run.js')).default
             run()
             break
-        case 'deploy':
+        }
+        case 'deploy': {
+            const deploy = (await import('./deploy.js')).default
             await deploy()
             break
-        case 'database':
+        }
+        case 'database': {
+            const database = (await import('./database.js')).default
             await database()
             break
+        }
         case 'exit':
             return
         default:
