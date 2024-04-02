@@ -8,11 +8,11 @@ import {
   PutObjectCommand,
   S3Client
 } from '@aws-sdk/client-s3'
+import { Upload } from '@aws-sdk/lib-storage'
 import {
   getSignedUrl as getSignedUrlFromS3
 } from '@aws-sdk/s3-request-presigner'
 import { config } from '@genoacms/cloudabstraction'
-import 'dotenv/config'
 
 const client = new S3Client({
   region: config.storage.region,
@@ -53,19 +53,19 @@ async function getObject ({ bucket, name }) {
 /**
  * @type {Adapter.getPublicUrl}
  */
-function getPublicUrl ({ bucket, name }) {
+function getPublicURL ({ bucket, name }) {
   return `https://${bucket}.s3.${config.storage.region}.amazonaws.com/${name}`
 }
 
 /**
  * @type {Adapter.getSignedUrl}
  */
-function getSignedUrl ({ bucket, name }, expires) {
+function getSignedURL ({ bucket, name }, expires) {
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: name
   })
-  return getSignedUrlFromS3(client, command, { expiresIn: expires })
+  return getSignedUrlFromS3(client, command, { expiresIn: (expires.getTime() - Date.now()) / 1_000 })
 }
 
 async function isObjectExisting ({ bucket, name }) {
@@ -87,15 +87,17 @@ async function isObjectExisting ({ bucket, name }) {
  * @type {Adapter.uploadObject}
  */
 async function uploadObject ({ bucket, name }, content) {
-  const commandInput = bucketToCommandInput(bucket)
-  const command = new PutObjectCommand({
-    ...commandInput,
-    Key: name,
-    Body: content
+  const upload = new Upload({
+    client,
+    params: {
+      Bucket: bucket,
+      Key: name,
+      Body: content
+    }
   })
 
   try {
-    await client.send(command)
+    await upload.done()
   } catch (err) {
     throw new Error('upload-failed')
   }
@@ -127,19 +129,29 @@ async function listDirectory ({ bucket, name }, listingParams) {
     ...commandInput,
     MaxKeys: listingParams?.limit,
     StartAfter: listingParams?.startAfter,
+    Delimiter: '/',
     Prefix: name
   })
 
   try {
     const response = await client.send(command)
-    if (!response.Contents) return []
-    console.log(response.Contents)
-    return response.Contents.map((item) => ({
+    if (!response.Contents) return { files: [], directories: [] }
+    const rawDirectories = response.CommonPrefixes || []
+    const rawFiles = response.Contents || []
+    const directories = rawDirectories.map((item) => {
+      return item.Prefix
+    })
+    const files = rawFiles.filter(item => item.Key !== name).map((item) => ({
       name: item.Key,
       size: parseInt(item.Size),
       lastModified: item.LastModified
     }))
+    return {
+      files,
+      directories
+    }
   } catch (err) {
+    console.error(err)
     throw new Error('listing-failed')
   }
 }
@@ -152,7 +164,7 @@ async function createDirectory ({ bucket, name }) {
     throw new Error('Directory already exists')
   }
   const command = new PutObjectCommand({
-    Bucket: config.storage.bucket,
+    Bucket: bucket,
     Key: `${name}/`,
     Body: ''
   })
@@ -166,8 +178,8 @@ async function createDirectory ({ bucket, name }) {
 
 export {
   getObject,
-  getPublicUrl,
-  getSignedUrl,
+  getPublicURL,
+  getSignedURL,
   uploadObject,
   deleteObject,
   listDirectory,
