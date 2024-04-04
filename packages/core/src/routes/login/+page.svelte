@@ -22,7 +22,7 @@
         <h1 class="text-4xl text-center mb-[8rem]">
             GenoaCMS - Log in
         </h1>
-        <Input label="Email" type="email" name="email" placeholder="Email" class="mb-3"/>
+        <Input label="Username" type="text" name="username" placeholder="Username" class="mb-3"/>
         <Input label="Password" type="password" name="password" placeholder="Password" class="mb-3"/>
         <Button type="submit" color="light" size="lg" class="w-full mt-4">Login</Button>
     </form>

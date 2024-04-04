@@ -9,11 +9,11 @@ export const load = async ({ locals }) => {
 export const actions = {
   default: async ({ request, cookies }) => {
     const data = await request.formData()
-    const email = data.get('email')
+    const username = data.get('username')
     const password = data.get('password')
-    if (!isString(email) || !isString(password)) return fail(403, { reason: 'missing-credentials' })
+    if (!isString(username) || !isString(password)) return fail(403, { reason: 'missing-credentials' })
     try {
-      await login(email, password, cookies)
+      await login(username, password, cookies)
     } catch (e) {
       return fail(400, { reason: (e as Error).name })
     }
