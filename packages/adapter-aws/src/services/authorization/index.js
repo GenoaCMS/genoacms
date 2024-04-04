@@ -1,13 +1,13 @@
 /**
- * @typedef {import('@genoacms/cloudabstraction/authentication').Adapter} Adapter
+ * @typedef {import('@genoacms/cloudabstraction/authorization').Adapter} Adapter
  */
 
 import { IAMClient, ListGroupsForUserCommand } from '@aws-sdk/client-iam'
 import { config } from '@genoacms/cloudabstraction'
 
 const iamClient = new IAMClient({
-  region: config.authentication.region,
-  credentials: config.authentication.credentials
+  region: config.authorization.region,
+  credentials: config.authorization.credentials
 })
 
 /**
