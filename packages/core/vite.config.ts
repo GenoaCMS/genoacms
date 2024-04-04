@@ -13,5 +13,8 @@ export default defineConfig({
     fs: {
       allow: ['../..']
     }
+  },
+  optimizeDeps: {
+    include: ['sweetalert2']
   }
 })
