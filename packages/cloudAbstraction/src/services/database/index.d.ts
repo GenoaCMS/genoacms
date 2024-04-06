@@ -2,7 +2,10 @@ import type { JSONSchemaType } from 'ajv'
 
 interface CollectionReference {
   name: string
-  primaryKey: string
+  primaryKey: {
+    key: string,
+    schema: JSONSchemaType<any>
+  },
   schema: JSONSchemaType<any>
 }
 interface DocumentReference<C extends CollectionReference> {
