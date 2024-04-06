@@ -122,14 +122,22 @@ async function createDocument ({ name, primaryKey, schema }, document) {
 /**
  * @type {Adapter.getCollection}
  */
-async function getCollection ({ name, schema }) {
-  // const { startAfterValue, limit, conditions } = queryParams
+async function getCollection (reference) {
   const command = new ScanCommand({
-    TableName: name
+    TableName: reference.name
   })
   try {
     const response = await client.send(command)
-    const documents = response.Items.map(dynamoItemToObject)
+    const documents = []
+    for (const document of response.Items) {
+      documents.push({
+        reference: {
+          collection: reference,
+          id: document[reference.primaryKey].S
+        },
+        data: dynamoItemToObject(document)
+      })
+    }
     return documents
   } catch (err) {
     throw new Error('collection-fetching-failed')

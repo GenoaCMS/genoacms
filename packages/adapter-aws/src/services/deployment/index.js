@@ -11,7 +11,7 @@ const svelteKitAdapter = '@sveltejs/adapter-node'
  * @type {Adapter.deployProcedure}
  */
 async function deployProcedure () {
-  const deploy = (await import('./deploy.js')).default
+  const { deploy } = await import('./deploy.js')
   await deploy()
 }
 
