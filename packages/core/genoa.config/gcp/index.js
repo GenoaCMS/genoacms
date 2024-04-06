@@ -1,5 +1,6 @@
 import credentials from './serviceAccount.json' assert { type: 'json' }
 import authCredentials from './authCredentials.js'
+import { collections } from '../collections.js'
 
 /**
  * @type {import('@genoacms/cloudabstraction').genoaConfig}
@@ -21,7 +22,8 @@ const config = {
     region: 'eu-west3',
     databaseId: '(default)',
     projectId: 'genoacms',
-    credentials
+    credentials,
+    collections
   },
   deployment: {
     adapter: import('@genoacms/adapter-gcp/deployment'),

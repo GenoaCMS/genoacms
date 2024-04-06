@@ -1,7 +1,7 @@
 import { getCollectionReferences } from '$lib/script/database/database.server'
 
-export const load = async () => {
-  const collectionReferences = await getCollectionReferences()
+export async function load () {
+  const collectionReferences = getCollectionReferences()
   return {
     collectionReferences
   }

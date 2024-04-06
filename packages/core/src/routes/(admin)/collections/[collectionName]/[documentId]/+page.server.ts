@@ -2,9 +2,9 @@ import { fail } from '@sveltejs/kit'
 import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
 import { validateDocumentData } from '$lib/script/database/validators'
 
-export const load = async ({ params }) => {
+export async function load ({ params }) {
   const { collectionName, documentId } = params
-  const collection = getCollectionReference(collectionName)
+  const collection = await getCollectionReference(collectionName)
   const document = await getDocument({ collection, id: documentId })
   return {
     document

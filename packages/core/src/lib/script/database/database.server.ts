@@ -12,15 +12,23 @@ const {
 
 const collectionsDirectory = '.genoacms/collections'
 const collectionsDirectoryContents = await listOrCreateDirectory({ name: collectionsDirectory, bucket: defaultBucketId })
+const predefinedCollections = config.database.collections || []
 
 function getCollectionReferences () {
-  return collectionsDirectoryContents.files.map(file => {
+  const predefinedReferences = predefinedCollections.map(collection => collection.name)
+  const dynamicReferences = collectionsDirectoryContents.files.map(file => {
     return fullyQualifiedNameToFilename(file.name)
   })
+  return [...predefinedReferences, ...dynamicReferences]
 }
 async function getCollectionReference (name: string): Promise<CollectionReference> {
-  const collectionSchema = await getObjectJSON({ name: `${collectionsDirectory}/${name}`, bucket: defaultBucketId })
-  return collectionSchema
+  try {
+    return await getObjectJSON({ name: `${collectionsDirectory}/${name}`, bucket: defaultBucketId })
+  } catch (error) {}
+  const filtered = predefinedCollections.filter(obj => obj.name === name)
+  console.log(filtered)
+  if (filtered.length === 0) throw new Error('collection/not-found')
+  return filtered[0]
 }
 
 export {

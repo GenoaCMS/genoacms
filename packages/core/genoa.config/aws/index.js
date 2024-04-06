@@ -1,5 +1,6 @@
 import authCredentials from './authCredentials.js'
 import 'dotenv/config'
+import { collections } from '../collections.js'
 
 const credentials = {
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -24,7 +25,8 @@ const config = {
   database: {
     adapter: import('@genoacms/adapter-aws/database'),
     region: 'eu-west-2',
-    credentials
+    credentials,
+    collections
   },
   deployment: {
     adapter: import('@genoacms/adapter-aws/deployment'),

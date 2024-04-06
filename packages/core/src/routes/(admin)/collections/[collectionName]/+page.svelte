@@ -5,7 +5,6 @@
 
     export let data
 </script>
-
 <TopPanel>
     <h1 class="text-2xl">
         Collection: {data.collectionReference.name}
@@ -15,3 +14,4 @@
 {#each data.documents as documentSnap}
     <Document {...documentSnap}/>
 {/each}
+
