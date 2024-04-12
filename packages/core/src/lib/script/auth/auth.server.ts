@@ -35,8 +35,13 @@ async function verifyAuthCookie (cookies: Cookies) {
   return result.payload
 }
 
+function logout (cookies: Cookies) {
+  cookies.delete(cookieName, { path: '/' })
+}
+
 export {
   cookieName,
   login,
-  verifyAuthCookie
+  verifyAuthCookie,
+  logout
 }
