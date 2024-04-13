@@ -132,9 +132,9 @@ async function getCollection (reference) {
     for (const document of response.Items) {
       let id
       if (reference.primaryKey.schema.type === 'string') {
-        id = document[reference.primaryKey].S
+        id = document[reference.primaryKey.key].S
       } else {
-        id = document[reference.primaryKey].N
+        id = document[reference.primaryKey.key].N
       }
       documents.push({
         reference: {

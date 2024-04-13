@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-aws",
-  "version": "0.5.4",
+  "version": "0.5.4-fix.1",
   "description": "Adapter for abstraction layer for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
