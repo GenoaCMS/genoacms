@@ -80,7 +80,7 @@ function dynamoItemToObject (item) {
 
 function generateID ({ primaryKey }) {
   return {
-    [primaryKey]: uuid4()
+    [primaryKey.key]: uuid4()
   }
 }
 
@@ -109,7 +109,7 @@ async function createDocument ({ name, primaryKey, schema }, document) {
           primaryKey,
           schema
         },
-        id: documentToCreate[primaryKey]
+        id: documentToCreate[primaryKey.key]
       },
       data: document
     }
@@ -130,10 +130,16 @@ async function getCollection (reference) {
     const response = await client.send(command)
     const documents = []
     for (const document of response.Items) {
+      let id
+      if (reference.primaryKey.schema.type === 'string') {
+        id = document[reference.primaryKey].S
+      } else {
+        id = document[reference.primaryKey].N
+      }
       documents.push({
         reference: {
           collection: reference,
-          id: document[reference.primaryKey].S
+          id
         },
         data: dynamoItemToObject(document)
       })
@@ -149,7 +155,7 @@ async function getCollection (reference) {
  */
 async function getDocument ({ collection, id }) {
   const Key = documentToDynamoItem({
-    [collection.primaryKey]: id
+    [collection.primaryKey.key]: id
   })
   const command = new GetItemCommand({
     TableName: collection.name,
@@ -158,7 +164,7 @@ async function getDocument ({ collection, id }) {
   try {
     const response = await client.send(command)
     const object = dynamoItemToObject(response.Item)
-    delete object[collection.primaryKey]
+    delete object[collection.primaryKey.key]
     /**
      * @type {import('@genoacms/cloudabstraction/database').DocumentSnapshot<typeof collection>}
      */
@@ -181,7 +187,7 @@ async function getDocument ({ collection, id }) {
 async function updateDocument (reference, document) {
   const Item = documentToDynamoItem(document)
   const Key = documentToDynamoItem({
-    [reference.collection.primaryKey]: reference.id
+    [reference.collection.primaryKey.key]: reference.id
   })
   const command = new UpdateItemCommand({
     TableName: reference.collection.name,
@@ -208,7 +214,7 @@ async function updateDocument (reference, document) {
  */
 async function deleteDocument ({ collection, id }) {
   const Key = documentToDynamoItem({
-    [collection.primaryKey]: id
+    [collection.primaryKey.key]: id
   })
   const command = new DeleteItemCommand({
     TableName: collection.name,
