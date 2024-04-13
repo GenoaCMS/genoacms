@@ -4,7 +4,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import { Toast } from '$lib/script/alert'
   import { Label } from 'flowbite-svelte'
-  import Input from './Input.svelte'
+  import Input from '../Editor/Input.svelte'
 
   export let data
   const properties = extractProperties(data.document.reference.collection.schema.properties)

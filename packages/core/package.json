@@ -63,7 +63,7 @@
 	},
 	"type": "module",
 	"devDependencies": {
-		"@genoacms/adapter-aws": "^0.5.3-fix.5",
+		"@genoacms/adapter-aws": "0.5.4-fix.1",
 		"@genoacms/adapter-gcp": "0.5.2-fix.9",
 		"@genoacms/authentication-adapter-array": "^0.5.3",
 		"dotenv": "^16.4.5"
