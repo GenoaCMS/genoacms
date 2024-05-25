@@ -11,7 +11,7 @@
     Collection: {data.collectionReference.name}
   </h1>
   <svelte:fragment slot="right">
-    <NewDocument schema={data.collectionReference.schema}/>
+    <NewDocument collectionReference={data.collectionReference}/>
   </svelte:fragment>
 </TopPanel>
 <Header schema={data.collectionReference.schema}/>

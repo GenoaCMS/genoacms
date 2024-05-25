@@ -1,12 +1,13 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal } from 'flowbite-svelte'
+    import { Button, Label, Modal } from 'flowbite-svelte'
+    import Input from './Editor/Input.svelte'
     import { extractProperties } from './utils'
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
     import { enhance } from '$app/forms'
     import { invalidateAll } from '$app/navigation'
 
-    export let schema
-    const properties = extractProperties(schema.properties)
+    export let collectionReference
+    const properties = extractProperties(collectionReference.schema.properties)
     let isModalOpen = false
     function toggleModal() {
       isModalOpen = !isModalOpen
@@ -36,6 +37,7 @@
       <Label>
         {property.name}:
         <Input name={property.name} type={property.format || property.type}/>
+        {property.type}
       </Label>
     {/each}
     <Button type="submit" color="light" class="w-full mt-2">
@@ -43,4 +45,5 @@
     </Button>
   </form>
 </Modal>
+
 

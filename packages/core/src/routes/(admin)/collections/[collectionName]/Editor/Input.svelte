@@ -2,13 +2,15 @@
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
   import { Checkbox, Input } from 'flowbite-svelte'
+  import StorageResources from './StorageResources.svelte'
 
   export let name: string
   export let type: string
-  export let value: string | number | boolean
+  export let value: string | number | boolean | Array<string>
 </script>
 
 <!-- TODO: Array<any>, Object  -->
+{type}
 {#if type === 'string'}
     <Input {name} bind:value/>
 {:else if type === 'number'}
@@ -26,7 +28,7 @@
       </div>
     </div>
 {:else if type === 'storageResources'}
-    <Input {name} type="text" bind:value/>
+  <StorageResources />
 {:else if type === 'reference'}
     <Input {name} type="text" bind:value/>
 {/if}
