@@ -5,25 +5,40 @@
   import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Card } from 'flowbite-svelte'
   import { page } from '$app/stores'
+  import { ITC } from '$lib/script/utils'
+  import { onDestroy } from 'svelte' 
 
   export let data: AttributeData<StorageResourceAttributeType>
-  const buildSelectURL = (data: AttributeData<StorageResourceAttributeType>) => {
-    let url = '/storage'
-    url += '?maxSelectionItems=1'
-    url += '&selectionType=page-data'
-    url += `&pageName=${$page.data.page.name}`
-    url += `&nodeUID=${$page.data.node.uid}`
-    url += `&attributeUID=${data.uid}`
-    return url
+  const selectionId = crypto.randomUUID()
+  const itc = new ITC(selectionId)
+
+  const buildSelectURL = (selectionId) => {
+    return `/storage?selectionId=${selectionId}`
   }
-  $: selectHref = buildSelectURL(data)
+
+  itc.on('storageReady', async () => {
+    itc.send('parameters', {
+      maxItems: 1,
+      selection: isSelected ? [data.value] : undefined
+    })
+    const selection = await itc.once('submit')
+    if (selection.length < 1) return
+    data.value = selection[0]
+    itc.send('done')
+  })
+
+  onDestroy(() => {
+    itc.close()
+  })
+  $: selectHref = buildSelectURL(selectionId)
+  $: isSelected = data.value.bucket && data.value.name
 </script>
 
-<Card href={selectHref} padding="sm">
+<Card href={selectHref} target="_blank" padding="sm">
     <h3 class="text-xl pb-3">
         {data.name}
     </h3>
-    {#if data.value.bucket && data.value.name}
+    {#if isSelected}
         Bucket: {data.value.bucket}<br>
         Filename: {data.value.name}
     {:else}

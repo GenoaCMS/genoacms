@@ -1,6 +1,6 @@
 export const load = ({ url }) => {
-  const maxSelectionItems = parseInt(url.searchParams.get('maxSelectionItems') || '0')
+  const selectionId = url.searchParams.get('selectionId')
   return {
-    maxSelectionItems
+    selectionId
   }
 }

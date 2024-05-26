@@ -1,4 +1,5 @@
 import { writable, type Readable } from 'svelte/store'
+import { ITC } from '$lib/script/utils'
 
 interface SelectionStoreOptions {
   maxItems: number
@@ -12,25 +13,28 @@ interface SelectionOperations {
 
 type SelectionStoreT = Readable<SelectionOperations>
 
-function SelectionStore ({ maxItems }: SelectionStoreOptions): SelectionStoreT {
-  const selectionMap: Set<string> = new Set()
+function SelectionStore (selectionId: string): SelectionStoreT {
+  const itc = new ITC(selectionId)
+  
+  let maxItems = 0;
+  const selectionSet: Set<string> = new Set()
   const selectionOperations: SelectionOperations = {
     values: [],
     select: (reference: string) => {
-      if (selectionMap.has(reference)) {
-        selectionMap.delete(reference)
+      if (selectionSet.has(reference)) {
+        selectionSet.delete(reference)
         update()
         return
       }
-      if (selectionMap.size >= maxItems) return
-      selectionMap.add(reference)
+      if (selectionSet.size >= maxItems) return
+      selectionSet.add(reference)
       update()
     },
     isSelected: (reference: string) => {
-      return selectionMap.has(reference)
+      return selectionSet.has(reference)
     },
     canBeSelected: () => {
-      return selectionMap.size < maxItems
+      return selectionSet.size < maxItems
     }
   }
   const { subscribe, update: storeUpdate } = writable(selectionOperations)
@@ -38,12 +42,40 @@ function SelectionStore ({ maxItems }: SelectionStoreOptions): SelectionStoreT {
     storeUpdate(operations => {
       return {
         ...operations,
-        values: Array.from(selectionMap.values())
+        values: Array.from(selectionSet.values())
       }
     })
   }
+  async function init() {
+    itc.send('storageReady')
+    const parameters = await itc.once('parameters')
+    storeUpdate(operations => {
+      maxItems = parameters.maxItems // destructuring fails here, needs special syntax and semicolon
+      const selection = parameters.selection
+      if (selection) loadSelection(selection)
+      return operations
+    })
+  }
+  function parseSelection(selection: Array<string>) {
+    return selection.map(item => JSON.parse(item))
+  }
+  function loadSelection(selection: Array<object>) {
+    for (const item of selection) {
+      selectionSet.add(JSON.stringify(item))
+    }
+  }
+  async function submit() {
+    const selectionStringArray = Array.from(selectionSet.values())
+    const selection = parseSelection(selectionStringArray)
+    itc.send('submit', selection)
+    await itc.once('done')
+    window.close()
+  }
+  init()
   return {
-    subscribe
+    subscribe,
+    submit,
+    isSelecting: !!selectionId
   }
 }
 

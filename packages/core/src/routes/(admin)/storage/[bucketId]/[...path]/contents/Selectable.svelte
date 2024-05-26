@@ -4,15 +4,16 @@
     import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
 
     export let name
-    const reference = JSON.stringify({
-      bucket: $page.params.bucketId,
-      name
-    })
+    let reference = ''
     const selection: SelectionStoreT = getContext('selection')
     const select = () => {
       $selection.select(reference)
     }
 
+    $: reference = JSON.stringify({
+      bucket: $page.params.bucketId,
+      name
+    })
     $: canBeSelected = $selection.canBeSelected()
     $: isSelected = $selection.isSelected(reference)
 </script>

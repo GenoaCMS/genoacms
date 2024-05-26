@@ -12,8 +12,6 @@
 
   export let data
   const selection: SelectionStoreT = getContext('selection')
-  let selectionType: SelectionType = null
-  $: selectionType = $page.url.searchParams.get('selectionType') as SelectionType
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
@@ -21,7 +19,7 @@
         {data.path}
     </h1>
     <svelte:fragment slot="right">
-        <ConfirmSelection {selectionType} {selection}/>
+        <ConfirmSelection {selection}/>
         <DirectoryCreation/>
         <ObjectUpload/>
     </svelte:fragment>
