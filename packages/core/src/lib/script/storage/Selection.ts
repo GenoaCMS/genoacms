@@ -46,7 +46,8 @@ class Selection <T extends ObjectReference> {
     return this.#selectionSet.has(referenceString)
   }
 
-  load (selection: Array<T>) {
+  load (selection: Array<T> | undefined) {
+    if (!selection) return
     for (const reference of selection) {
       const referenceString = JSON.stringify(reference)
       this.#selectionSet.add(referenceString)

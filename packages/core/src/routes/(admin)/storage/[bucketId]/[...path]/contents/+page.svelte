@@ -6,9 +6,7 @@
   import ObjectUpload from './ObjectUpload.svelte'
   import { getContext } from 'svelte'
   import ConfirmSelection from './ConfirmSelection.svelte'
-  import { page } from '$app/stores'
   import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
-  import type { SelectionType } from '$lib/script/storage/types'
 
   export let data
   const selection: SelectionStoreT = getContext('selection')

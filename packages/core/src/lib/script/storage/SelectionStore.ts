@@ -1,9 +1,11 @@
 import { writable, type Readable } from 'svelte/store'
 import { ITC } from '$lib/script/utils'
-import Selection from './Selection'
+import Selection, { type SelectionParameters } from './Selection'
+import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
-interface SelectionStoreOptions {
-  maxItems: number
+interface SelectionInitData {
+  parameters: SelectionParameters,
+  defaultValue: Array<ObjectReference> | undefined
 }
 
 type SelectionStoreT = Readable<Selection>
@@ -18,15 +20,15 @@ function SelectionStore (selectionId: string): SelectionStoreT {
     set(selection)
   }
   async function init () {
-    itc.send('storageReady')
-    const parameters = await itc.once('parameters')
-    selection.setParameters(parameters)
-    if (parameters.selection) selection.load(parameters.selection)
+    itc.send('selectionInit')
+    const initData = await itc.once('selectionInitData') as SelectionInitData
+    selection.setParameters(initData.parameters)
+    selection.load(initData.defaultValue)
     set(selection)
   }
   async function submit () {
-    itc.send('submit', selection.value)
-    await itc.once('done')
+    itc.send('selectionDone', selection.value)
+    await itc.once('selectionKill')
     window.close()
   }
   init()
@@ -39,6 +41,7 @@ function SelectionStore (selectionId: string): SelectionStoreT {
 }
 
 export type {
-  SelectionStoreT
+  SelectionStoreT,
+  SelectionInitData
 }
 export default SelectionStore
