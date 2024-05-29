@@ -27,7 +27,7 @@
       </div>
     </div>
 {:else if type === 'storageResources'}
-  <StorageResources />
+  <StorageResources {name}/>
 {:else if type === 'reference'}
     <Input {name} type="text" bind:value/>
 {/if}

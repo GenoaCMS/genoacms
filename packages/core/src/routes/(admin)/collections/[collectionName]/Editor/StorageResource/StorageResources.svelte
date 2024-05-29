@@ -5,6 +5,7 @@
   import { ITC } from '$lib/script/utils'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
+  export let name: string
   export let resources: Array<ObjectReference> = []
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
@@ -29,9 +30,10 @@
   })
 </script>
 
+<input type="hidden" {name} value={JSON.stringify(resources)}>
 <div class="flex flex-col border p-2">
   {#each resources as reference (reference)}
-    <StorageObject {reference} />
+    <StorageObject {name} {reference} />
   {:else}
     <div class="text-center w-auto m-auto m-5">
       No files selected yet
