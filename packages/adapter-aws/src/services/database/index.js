@@ -24,28 +24,34 @@ const client = new DynamoDBClient({
 function documentToDynamoItem (document) {
   const item = {}
   for (const [key, value] of Object.entries(document)) {
-    switch (typeof value) {
-      case 'string':
-        item[key] = { S: value }
-        break
-      case 'number':
-        item[key] = { N: value.toString() }
-        break
-      case 'boolean':
-        item[key] = { BOOL: value }
-        break
-      case 'object':
-        if (Array.isArray(value)) {
-          item[key] = { L: value.map((item) => documentToDynamoItem(item)) }
-        } else {
-          item[key] = { M: documentToDynamoItem(value) }
-        }
-        break
-      default:
-        throw new Error('unsupported-type')
-    }
+    item[key] = convertToDynamoAttribute(value)
   }
   return item
+}
+
+/**
+ * @param {any} value
+ * @returns {import('@aws-sdk/client-dynamodb').AttributeValue}
+ */
+function convertToDynamoAttribute (value) {
+  switch (typeof value) {
+    case 'string':
+      return { S: value }
+    case 'number':
+      return { N: value.toString() }
+    case 'boolean':
+      return { BOOL: value }
+    case 'object':
+      if (Array.isArray(value)) {
+        return { L: value.map(convertToDynamoAttribute) }
+      } else if (value === null) {
+        return { NULL: true }
+      } else {
+        return { M: documentToDynamoItem(value) }
+      }
+    default:
+      throw new Error('unsupported-type')
+  }
 }
 
 /**
@@ -55,27 +61,33 @@ function documentToDynamoItem (document) {
 function dynamoItemToObject (item) {
   const document = {}
   for (const [key, value] of Object.entries(item)) {
-    switch (Object.keys(value)[0]) {
-      case 'S':
-        document[key] = value.S
-        break
-      case 'N':
-        document[key] = Number(value.N)
-        break
-      case 'BOOL':
-        document[key] = value.BOOL
-        break
-      case 'L':
-        document[key] = value.L.map((item) => dynamoItemToObject(item))
-        break
-      case 'M':
-        document[key] = dynamoItemToObject(value.M)
-        break
-      default:
-        throw new Error('unsupported-type')
-    }
+    document[key] = dynamoAttributeToObject(value)
   }
   return document
+}
+
+/**
+ * @param {import('@aws-sdk/client-dynamodb').AttributeValue} value
+ * @returns {any}
+ */
+function dynamoAttributeToObject (value) {
+  const typeKey = Object.keys(value)[0]
+  switch (typeKey) {
+    case 'S':
+      return value.S
+    case 'N':
+      return Number(value.N)
+    case 'BOOL':
+      return value.BOOL
+    case 'L':
+      return value.L.map(dynamoAttributeToObject)
+    case 'M':
+      return dynamoItemToObject(value.M)
+    case 'NULL':
+      return null
+    default:
+      throw new Error('unsupported-type')
+  }
 }
 
 function generateID ({ primaryKey }) {
