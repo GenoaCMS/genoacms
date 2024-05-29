@@ -10,6 +10,14 @@
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
+  function deleteResource (event: CustomEvent<ObjectReference>) {
+    const resource = event.detail
+    resources = resources.filter(r => r !== resource)
+  }
+  function clearResources () {
+    resources = []
+  }
+
   itc.on('selectionInit', async () => {
     const parameters = {
       maxItems: 0
@@ -33,11 +41,11 @@
 <input type="hidden" {name} value={JSON.stringify(resources)}>
 <div class="flex flex-col border p-2">
   {#each resources as reference (reference)}
-    <StorageObject {name} {reference} />
+    <StorageObject {reference} on:delete={deleteResource}/>
   {:else}
-    <div class="text-center w-auto m-auto m-5">
+    <div class="text-center text-xl w-auto m-auto pb-3 pt-2">
       No files selected yet
     </div>
   {/each}
-  <EditSelection {selectionId} />
+  <EditSelection {selectionId} on:clear={clearResources}/>
 </div>
