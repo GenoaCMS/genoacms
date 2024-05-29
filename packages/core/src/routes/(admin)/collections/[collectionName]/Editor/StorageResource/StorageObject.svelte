@@ -1,20 +1,13 @@
 <script lang="ts">
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
   import { Card } from 'flowbite-svelte'
 
-  export let reference = undefined
-
-  export let collectionName: string
-  export let documentId: string
-  export let attributeName: string
-
-
-  let bucket = ''
-  let name = ''
-
+  export let reference: ObjectReference
 
 </script>
 
-<Card target="_blank" padding="sm" class="w-[25%] aspect-[2/1]">
-    Bucket: {bucket}<br>
-    Filename: {name}
+<input type="hidden" name="storageResources" value={JSON.stringify(reference)}>
+<Card target="_blank" padding="sm" class="w-full mb-2 whitespace-nowrap">
+    Bucket: {reference.bucket}<br>
+    Filename: {reference.name}
 </Card>

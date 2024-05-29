@@ -1,28 +1,27 @@
 <script lang="ts">
   import StorageObject from './StorageObject.svelte'
   import EditSelection from './EditSelection.svelte'
-  import { onDestroy } from 'svelte' 
+  import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
-  export let allowMutliple: boolean = false
-  export let resources: Array<object> = []
+  export let resources: Array<ObjectReference> = []
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
-  function canSelectMore(resources: Array<string>) {
-    return allowMutliple || resources.length === 0
-  }
-
-  itc.on('storageReady', async () => {
-    itc.send('parameters', {
-      maxItems: 1,
-      selection: resources
-    })
-    const selection = await itc.once('submit')
+  itc.on('selectionInit', async () => {
+    const parameters = {
+      maxItems: 0
+    }
+    const selectionInitData = {
+      parameters,
+      defaultValue: resources
+    }
+    itc.send('selectionInitData', selectionInitData)
+    const selection = await itc.once('selectionDone') as Array<ObjectReference>
+    itc.send('selectionKill')
     if (selection.length < 1) return
     resources = selection
-    itc.send('done')
-    console.log(selection)
   })
 
   onDestroy(() => {
@@ -30,14 +29,13 @@
   })
 </script>
 
-<div class="flex border p-2">
-  {#each resources as resource}
-    <StorageObject {resource} {allowMutliple} />
+<div class="flex flex-col border p-2">
+  {#each resources as reference (reference)}
+    <StorageObject {reference} />
   {:else}
-    <div class="w-auto m-auto">
+    <div class="text-center w-auto m-auto m-5">
       No files selected yet
     </div>
   {/each}
   <EditSelection {selectionId} />
 </div>
-
