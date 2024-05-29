@@ -23,7 +23,8 @@ class Selection <T extends ObjectReference> {
   }
 
   get isEmpty (): boolean {
-    return this.#selectionSet.values() === 0
+    const referenceStrings = Array.from(this.#selectionSet.values())
+    return referenceStrings.length === 0
   }
 
   get canSelect () {

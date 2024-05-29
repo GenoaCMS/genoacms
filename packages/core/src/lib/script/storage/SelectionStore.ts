@@ -8,14 +8,18 @@ interface SelectionInitData {
   defaultValue: Array<ObjectReference> | undefined
 }
 
-type SelectionStoreT = Readable<Selection>
+type SelectionStoreT = Readable<Selection<ObjectReference>> & {
+  submit: () => Promise<void>,
+  select: (reference: ObjectReference) => void,
+  isSelecting: boolean
+}
 
 function SelectionStore (selectionId: string): SelectionStoreT {
   const itc = new ITC(selectionId)
   const selection = new Selection()
   const { subscribe, set } = writable(selection)
 
-  function select (reference: string) {
+  function select (reference: ObjectReference) {
     selection.select(reference)
     set(selection)
   }
