@@ -38,9 +38,26 @@ function toastError (message: string) {
   })
 }
 
+function confirmationModal (message: string) {
+  return alert.fire({
+    icon: 'warning',
+    title: 'Are you sure?',
+    text: message,
+    showCancelButton: true,
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'No',
+    buttonsStyling: false,
+    customClass: {
+      confirmButton: ['m-2', 'p-3', 'px-5', 'border', 'hover:shadow'],
+      cancelButton: ['m-3', 'p-3', 'px-5', 'border', 'hover:shadow']
+    }
+  })
+}
+
 export {
   Toast,
   alertPending,
   toastSuccess,
-  toastError
+  toastError,
+  confirmationModal
 }

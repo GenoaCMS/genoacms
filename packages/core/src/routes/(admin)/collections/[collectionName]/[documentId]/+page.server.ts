@@ -1,5 +1,5 @@
-import { fail } from '@sveltejs/kit'
-import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
+import { fail, redirect } from '@sveltejs/kit'
+import { deleteDocument, getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
 import { validateDocumentData } from '$lib/script/database/validators'
 import { parseDocument } from '$lib/script/collections/collections.server'
 
@@ -25,12 +25,17 @@ const update = async ({ params, request }) => {
   await updateDocument({ collection, id: documentId }, documentData)
 }
 
-function deleteDocument ({ params }) {
+async function deleteDoc ({ params }) {
   const { collectionName, documentId } = params
-  log
+
+  const collectionReference = await getCollectionReference(collectionName)
+  const documentReference = { collection: collectionReference, id: documentId }
+
+  await deleteDocument(documentReference)
+  redirect(307, '.')
 }
 
 export const actions = {
   update,
-  delete: deleteDocument
+  delete: deleteDoc
 }
