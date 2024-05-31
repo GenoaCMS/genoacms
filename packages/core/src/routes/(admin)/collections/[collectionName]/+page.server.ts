@@ -1,4 +1,5 @@
 import { getCollectionReference, getCollection, createDocument } from '$lib/script/database/database.server'
+import { parseDocument } from '$lib/script/collections/collections.server'
 
 export async function load ({ params }) {
   const collectionName = params.collectionName
@@ -18,10 +19,7 @@ export const actions = {
     const collectionReference = await getCollectionReference(params.collectionName)
 
     const data = await request.formData()
-    const document = {}
-    for (const [key, value] of data.entries()) {
-      document[key] = value
-    }
+    const document = parseDocument(data, collectionReference.schema)
     createDocument(collectionReference, document)
   }
 }

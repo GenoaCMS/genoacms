@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit'
 import { getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
 import { validateDocumentData } from '$lib/script/database/validators'
+import { parseDocument } from '$lib/script/collections/collections.server'
 
 export async function load ({ params }) {
   const { collectionName, documentId } = params
@@ -13,16 +14,10 @@ export async function load ({ params }) {
 
 const update = async ({ params, request }) => {
   const { collectionName, documentId } = params
-  const collection = getCollectionReference(collectionName)
+  const collection = await getCollectionReference(collectionName)
   const formData = await request.formData()
-  const documentData = {}
-  for (const property in collection.schema.properties) {
-    const type = collection.schema.properties[property].type
-    let value = formData.get(property)
-    if (type === 'number') value = Number(value)
-    else if (type === 'boolean') value = Boolean(value)
-    documentData[property] = value
-  }
+
+  const documentData = parseDocument(formData, collection.schema)
 
   const areDocumentDataValid = validateDocumentData(collection.schema, documentData)
 
@@ -30,6 +25,12 @@ const update = async ({ params, request }) => {
   await updateDocument({ collection, id: documentId }, documentData)
 }
 
+function deleteDocument ({ params }) {
+  const { collectionName, documentId } = params
+  log
+}
+
 export const actions = {
-  update
+  update,
+  delete: deleteDocument
 }
