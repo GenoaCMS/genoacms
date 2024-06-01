@@ -6,7 +6,6 @@ import {
   DynamoDBClient,
   PutItemCommand,
   DeleteItemCommand,
-  UpdateItemCommand,
   ScanCommand
 } from '@aws-sdk/client-dynamodb'
 import { config } from '@genoacms/cloudabstraction'
@@ -197,14 +196,16 @@ async function getDocument ({ collection, id }) {
  * @type {Adapter.updateDocument}
  */
 async function updateDocument (reference, document) {
-  const Item = documentToDynamoItem(document)
   const Key = documentToDynamoItem({
     [reference.collection.primaryKey.key]: reference.id
   })
-  const command = new UpdateItemCommand({
+  const Item = {
+    ...documentToDynamoItem(document),
+    ...Key
+  }
+  const command = new PutItemCommand({
     TableName: reference.collection.name,
-    Item,
-    Key
+    Item
   })
   try {
     await client.send(command)
