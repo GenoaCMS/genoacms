@@ -37,7 +37,7 @@
       <Label>
         {property.name}:
         <Input name={property.name} type={property.format || property.type}/>
-        {property.type}
+        <!-- {property.type} -->
       </Label>
     {/each}
     <Button type="submit" color="light" class="w-full mt-2">

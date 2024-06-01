@@ -1,7 +1,7 @@
 <script lang="ts">
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
-  import { Checkbox, Input } from 'flowbite-svelte'
+  import { Checkbox, Input, Textarea } from 'flowbite-svelte'
   import StorageResources from './StorageResource/StorageResources.svelte'
 
   export let name: string
@@ -16,6 +16,8 @@
     <Input {name} type="number" bind:value/>
 {:else if type === 'boolean'}
     <Checkbox {name} bind:checked={value}/>
+{:else if type === 'text'}
+  <Textarea {name} bind:value/>
 {:else if type === 'markdown'}
     <input type="hidden" {name} bind:value/>
     <div class="w-full min-h-[15rem] flex border">

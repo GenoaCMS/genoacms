@@ -29,6 +29,12 @@ ajv.addFormat('storageResources', {
     return true
   }
 })
+ajv.addFormat('text', {
+  type: 'string',
+  validate: (text: string) => {
+    return true
+  }
+})
 
 export function validateDocumentData (schema: JSONSchemaType<any>, documentData: object) {
   return ajv.validate(schema, documentData)

@@ -12,7 +12,11 @@
   <div class="flex">
     {#each properties as property}
       <div class="flex-grow w-full text-center py-2 border-b-2 border-light">
-        {data[property.name]}
+        {#if property.type === 'array'}
+          {data[property.name].length} items
+        {:else}
+          {data[property.name] || ''}
+        {/if}
       </div>
     {/each}
   </div>
