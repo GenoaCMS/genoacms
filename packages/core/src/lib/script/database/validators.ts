@@ -18,9 +18,14 @@ ajv.addFormat('markdown', {
 ajv.addFormat('storageResources', {
   type: 'array',
   items: {
-    type: 'string'
+    type: 'object',
+    properties: {
+      bucket: { type: 'string' },
+      name: { type: 'string' }
+    },
+    required: ['bucket', 'name']
   },
-  validate: (resources: Array<string>) => {
+  validate: (resources: Array<{ bucket: string, name: string }>) => {
     return true
   }
 })

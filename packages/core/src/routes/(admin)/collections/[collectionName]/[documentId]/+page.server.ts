@@ -18,7 +18,6 @@ const update = async ({ params, request }) => {
   const formData = await request.formData()
 
   const documentData = parseDocument(formData, collection.schema)
-
   const areDocumentDataValid = validateDocumentData(collection.schema, documentData)
 
   if (!areDocumentDataValid) return fail(1)
