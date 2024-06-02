@@ -13,6 +13,7 @@ import {
   getSignedUrl as getSignedUrlFromS3
 } from '@aws-sdk/s3-request-presigner'
 import { config } from '@genoacms/cloudabstraction'
+import { join } from 'path'
 
 const client = new S3Client({
   region: config.storage.region,
@@ -124,6 +125,7 @@ async function deleteObject ({ bucket, name }) {
  * @type {Adapter.listDirectory}
  */
 async function listDirectory ({ bucket, name }, listingParams) {
+  name = join(name, '/') // Ensure listing directory
   const commandInput = bucketToCommandInput(bucket)
   const command = new ListObjectsV2Command({
     ...commandInput,
