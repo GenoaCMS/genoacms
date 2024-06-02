@@ -125,7 +125,7 @@ async function deleteObject ({ bucket, name }) {
  * @type {Adapter.listDirectory}
  */
 async function listDirectory ({ bucket, name }, listingParams) {
-  name = join(name, '/') // Ensure listing directory
+  if (name) name = join(name, '/') // Ensure listing directory
   const commandInput = bucketToCommandInput(bucket)
   const command = new ListObjectsV2Command({
     ...commandInput,
