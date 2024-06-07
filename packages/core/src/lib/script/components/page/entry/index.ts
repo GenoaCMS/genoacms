@@ -260,5 +260,6 @@ export {
   redoPageEntryState,
   serializeComponentNode,
   serializePageEntry,
+  deserializeComponentNode,
   deserializePageEntry
 }

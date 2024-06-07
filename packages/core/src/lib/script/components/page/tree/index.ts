@@ -24,7 +24,7 @@ const linkToURL = async (link: LinkAttributeValue): Promise<string> => {
   if (link.isExternal) {
     return link.url || ''
   }
-  if (!link.pageName) throw new Error('missing-pageUID')
+  if (!link.pageName) return ''
   const destinationPageEntry = await getPageEntry(link.pageName)
   return destinationPageEntry.previewURL
 }
@@ -40,10 +40,11 @@ const getStorageResourceURL = async (reference: ObjectReference) => {
 }
 
 const componentNodesToReadableNodes = async (component: Array<ComponentNodeReference>, componentNodes: ComponentNodes) => {
-  console.log(component)
   const readableNodePromises: Array<Promise<ReadablePageNode>> = component
     .map(component => componentNodeToReadablePageNode(componentNodes[component], componentNodes))
-  return await Promise.all(readableNodePromises)
+  const nodes = await Promise.all(readableNodePromises)
+  // console.log(JSON.stringify(nodes, null, 2))
+  return nodes
 }
 
 const attributeDataToNodeValue = async (data: AttributeData, componentNodes: ComponentNodes): Promise<ReadableAttributeValue> => {
@@ -68,6 +69,7 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
 
 const componentNodeToReadablePageNode = async (node: ComponentNode,
   componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
+  // console.log('name ----------', node.name)
   const readableNode: ReadablePageNode = {
     component: node.name,
     data: {}
@@ -81,6 +83,7 @@ const componentNodeToReadablePageNode = async (node: ComponentNode,
 const pageEntryToReadableTree = async (page: PageEntry): Promise<ReadablePageNode> => {
   const componentNodes = page.contents.nodes
   const rootNode = componentNodes[page.contents.rootNodeUid]
+
   return await componentNodeToReadablePageNode(rootNode, componentNodes)
 }
 

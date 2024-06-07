@@ -25,6 +25,7 @@ const updatePage = async (pageName: string, data: FormData, generateTree: boolea
   const componentNodeText = data.get('componentNode')
   if (!isString(componentNodeText)) return fail(400, { reason: 'no-diff' })
   const componentNode = JSON.parse(componentNodeText)
+  console.log(componentNode)
 
   let page = await getPageEntry(pageName)
   page = updateComponentNode(page, componentNode)
@@ -89,6 +90,7 @@ export const actions = {
     const currentNode = page.contents.nodes[nodeUid]
     if (!currentNode) fail(400, { reason: 'non-existent-node' })
     const childNode = await componentSchemaToNode(schemaObject)
+    console.log('cn', childNode)
     const serializeChildNode = serializeComponentNode(childNode)
     page = addChildNodeToNodeInPage(page, currentNode, attributeUID, serializeChildNode)
     await uploadPageEntry(page)

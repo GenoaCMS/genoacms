@@ -4,6 +4,7 @@ import { listOrCreatePreBuiltComponentList } from '$lib/script/components/compon
 export const load = async () => {
   const pages = await listOrCreatePageList()
   const componentSchemas = await listOrCreatePreBuiltComponentList()
+
   return {
     pages,
     componentSchemas
