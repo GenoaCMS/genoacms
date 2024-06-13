@@ -12,8 +12,8 @@ dependencies:
     specifier: ^7.1.0
     version: 7.1.0
   '@google-cloud/functions':
-    specifier: ^3.2.0
-    version: 3.2.0
+    specifier: ^3.4.0
+    version: 3.4.0
   '@google-cloud/resource-manager':
     specifier: ^5.1.0
     version: 5.1.0
@@ -304,8 +304,8 @@ packages:
       - supports-color
     dev: false
 
-  /@google-cloud/functions@3.2.0:
-    resolution: {integrity: sha512-fwdF/OZhvA0XDbvCNmFvbfOt9ldlfAtjJESfLRWpATBx/0PBVCyISLtu9A8YMsId/PsxNTkyuIGoY1tIvG9l7A==}
+  /@google-cloud/functions@3.4.0:
+    resolution: {integrity: sha512-MGMbIqUfbHqcujU7yPZROKlX1qk5UHca6JbZvAL4a7YtCNpOiyGWXMD2pI5Zn+lLdiFFpp17bsSLqSga/05sSg==}
     engines: {node: '>=14.0.0'}
     dependencies:
       google-gax: 4.0.5
