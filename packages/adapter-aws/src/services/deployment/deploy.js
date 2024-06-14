@@ -1,4 +1,4 @@
-import { LambdaClient, CreateFunctionCommand } from '@aws-sdk/client-lambda'
+import { LambdaClient, CreateFunctionCommand, GetFunctionCommand, UpdateFunctionCodeCommand } from '@aws-sdk/client-lambda'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { config } from '@genoacms/cloudabstraction'
 import { createReadStream, createWriteStream } from 'node:fs'
@@ -14,6 +14,7 @@ const s3client = new S3Client({
   region: config.deployment.region,
   credentials: config.deployment.credentials
 })
+const deploymentRole = config.deployment.role
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -67,23 +68,44 @@ async function uploadSource (sourcePath) {
 }
 
 /**
+ * @param {string} FunctionName
+ * @returns {Promise<boolean>}
+ * */
+async function isLambdaExisting (functionName) {
+  try {
+    await client.send(new GetFunctionCommand({
+      FunctionName: functionName
+    }))
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
+/**
+  * @param {string} functionName
   * @param {string} sourcePath
   * @returns {Promise<void>}
   */
-async function createLambda (sourcePath) {
+async function createLambda (functionName, sourcePath) {
   const params = {
-    FunctionName: 'test',
-    Handler: 'index.handler',
-    Role: 'arn:aws:iam::123456789012:role/lambda-role',
+    FunctionName: functionName,
+    Handler: 'build.handler.handler',
+    Role: deploymentRole,
     Runtime: 'nodejs20.x',
     Code: {
       S3Bucket: config.storage.defaultBucket,
       S3Key: sourcePath
     }
   }
-  const command = new CreateFunctionCommand(params)
+  const isExisting = await isLambdaExisting(functionName)
+  let command
+  if (isExisting) {
+    command = new UpdateFunctionCodeCommand(params)
+  } else {
+    command = new CreateFunctionCommand(params)
+  }
   const data = await client.send(command)
-  console.log(data)
 }
 
 export async function deploy () {
@@ -95,14 +117,14 @@ export async function deploy () {
     'node_modules/**',
     '.git/**',
     '.github/**',
-    '.gitignore',
-    'build/**'
+    '.gitignore'
+    // 'build/**'
   ]
   const injectArchivePaths = [
     functionEntryScriptPath
   ]
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const functionStoragePath = await uploadSource(buildArchivePath)
-  createLambda(functionStoragePath)
+  createLambda('genoacms', functionStoragePath)
   console.log('deployed')
 }
