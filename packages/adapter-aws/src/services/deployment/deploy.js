@@ -1,16 +1,36 @@
-import { LambdaClient, CreateFunctionCommand, GetFunctionCommand, UpdateFunctionCodeCommand } from '@aws-sdk/client-lambda'
+import {
+  LambdaClient,
+  CreateFunctionCommand,
+  GetFunctionCommand,
+  UpdateFunctionCodeCommand,
+  AddPermissionCommand
+} from '@aws-sdk/client-lambda'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  APIGatewayClient,
+  GetRestApiCommand,
+  CreateRestApiCommand,
+  GetResourcesCommand,
+  CreateResourceCommand,
+  PutMethodCommand,
+  PutIntegrationCommand,
+  CreateDeploymentCommand
+} from '@aws-sdk/client-api-gateway'
 import { config } from '@genoacms/cloudabstraction'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import archiver from 'archiver'
 
-const client = new LambdaClient({
+const lambdaClient = new LambdaClient({
   region: config.deployment.region,
   credentials: config.deployment.credentials
 })
 const s3client = new S3Client({
+  region: config.deployment.region,
+  credentials: config.deployment.credentials
+})
+const apiGatewayClient = new APIGatewayClient({
   region: config.deployment.region,
   credentials: config.deployment.credentials
 })
@@ -68,12 +88,12 @@ async function uploadSource (sourcePath) {
 }
 
 /**
- * @param {string} FunctionName
+ * @param {string} functionName
  * @returns {Promise<boolean>}
- * */
+ */
 async function isLambdaExisting (functionName) {
   try {
-    await client.send(new GetFunctionCommand({
+    await lambdaClient.send(new GetFunctionCommand({
       FunctionName: functionName
     }))
     return true
@@ -105,16 +125,139 @@ async function createLambda (functionName, sourcePath) {
   } else {
     command = new CreateFunctionCommand(params)
   }
-  const data = await client.send(command)
+  const data = await lambdaClient.send(command)
+}
+
+/**
+  * @param {string} name
+  * @returns {Promise<string | null>}
+  */
+async function isApiGatewayExisting (name) {
+  try {
+    const response = await apiGatewayClient.send(new GetRestApiCommand({ name }))
+    return response.id
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * @param {string} name
+ * @returns {Promise<string>}
+ */
+async function createApiGateway (name) {
+  const gatewayId = isApiGatewayExisting(name)
+  if (gatewayId) return gatewayId
+  const createRestApiCommand = new CreateRestApiCommand({ name })
+  const response = await apiGatewayClient.send(createRestApiCommand)
+  return response.id
+}
+
+/**
+ * @param {string} apiId
+ * @returns {Promise<string>}
+ */
+async function getApiGatewayRootResourceId (apiId) {
+  const getResourcesCommand = new GetResourcesCommand({ restApiId: apiId })
+  const response = await apiGatewayClient.send(getResourcesCommand)
+  return response.items[0].id
+}
+
+/**
+ * @param {string} apiId
+ * @param {string} parentId
+ * @param {string} functionName
+ * @returns {Promise<string>}
+ */
+async function createApiGatewayResource (apiId, parentId, functionName) {
+  const createResourceCommand = new CreateResourceCommand({
+    restApiId: apiId,
+    parentId,
+    pathPart: functionName
+  })
+  const response = await apiGatewayClient.send(createResourceCommand)
+  return response.id
+}
+
+/**
+ * @param {string} apiId
+ * @param {string} resourceId
+ */
+async function createApiGatewayMethod (apiId, resourceId) {
+  const putMethodCommand = new PutMethodCommand({
+    restApiId: apiId,
+    resourceId,
+    httpMethod: 'GET',
+    authorizationType: 'NONE'
+  })
+  await apiGatewayClient.send(putMethodCommand)
+}
+
+/**
+ * @param {string} apiId
+ * @param {string} resourceId
+ * @param {string} region
+ * @param {string} accessKeyId
+ * @param {string} functionName
+ */
+async function setLambdaIntegration (apiId, resourceId, region, accessKeyId, functionName) {
+  const uri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${accessKeyId}:function:${functionName}/invocations`
+
+  const putIntegrationCommand = new PutIntegrationCommand({
+    restApiId: apiId,
+    resourceId,
+    httpMethod: 'GET',
+    type: 'AWS_PROXY',
+    integrationHttpMethod: 'POST',
+    uri
+  })
+
+  await apiGatewayClient.send(putIntegrationCommand)
+}
+
+/**
+ * @param {string} apiId
+ * @returns {Promise<void>}
+ */
+async function deployApi (apiId) {
+  const createDeploymentCommand = new CreateDeploymentCommand({
+    restApiId: apiId,
+    stageName: 'prod'
+  })
+
+  await apiGatewayClient.send(createDeploymentCommand)
+}
+
+/**
+ * @param {string} apiId
+ * @param {string} functionName
+ * @param {string} accessKeyId
+ * @param {string} region
+ * @returns {Promise<void>}
+ */
+async function addLambdaInvokePermission (apiId, functionName, accessKeyId, region) {
+  const addPermissionCommand = new AddPermissionCommand({
+    FunctionName: functionName,
+    StatementId: 'apigateway-access',
+    Action: 'lambda:InvokeFunction',
+    Principal: 'apigateway.amazonaws.com',
+    SourceArn: `arn:aws:execute-api:${region}:${accessKeyId}:${apiId}/*/GET/${functionName}`
+  })
+
+  await lambdaClient.send(addPermissionCommand)
 }
 
 export async function deploy () {
   console.log('deploying')
+  const functionName = 'genoacms'
   const buildDirectoryPath = '**'
-  const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
+  const accessKeyId = config.deployment.credentials.accessKeyId
+  const region = config.deployment.region
+  const buildArchivePath = resolve(currentDir, '.genoacms/deployment/build.zip')
   const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
   const ignoreArchivePaths = [
-    'node_modules/**',
+    // 'node_modules/**',
+    '.genoacms/**',
     '.git/**',
     '.github/**',
     '.gitignore'
@@ -125,6 +268,13 @@ export async function deploy () {
   ]
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const functionStoragePath = await uploadSource(buildArchivePath)
-  createLambda('genoacms', functionStoragePath)
+  createLambda(functionName, functionStoragePath)
+  const apiId = await createApiGateway()
+  const rootResourceId = await getApiGatewayRootResourceId(apiId)
+  const resourceId = await createApiGatewayResource(apiId, rootResourceId)
+  await createApiGatewayMethod(apiId, resourceId, functionName)
+  await setLambdaIntegration(apiId, resourceId, region, accessKeyId, functionName)
+  await deployApi(apiId)
+  await addLambdaInvokePermission(apiId, functionName, accessKeyId, region)
   console.log('deployed')
 }

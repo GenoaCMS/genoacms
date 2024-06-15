@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-aws",
-  "version": "0.5.4-fix.5",
+  "version": "0.5.4-fix.6",
   "description": "Adapter for abstraction layer for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -19,6 +19,7 @@
     "test:storage": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
   },
   "dependencies": {
+    "@aws-sdk/client-api-gateway": "^3.598.0",
     "@aws-sdk/client-dynamodb": "^3.436.0",
     "@aws-sdk/client-iam": "^3.540.0",
     "@aws-sdk/client-lambda": "^3.540.0",
