@@ -3,7 +3,8 @@ import {
   CreateFunctionCommand,
   GetFunctionCommand,
   UpdateFunctionCodeCommand,
-  AddPermissionCommand
+  AddPermissionCommand,
+  GetFunctionUrlConfigCommand
 } from '@aws-sdk/client-lambda'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import {
@@ -37,6 +38,23 @@ const apiGatewayClient = new APIGatewayClient({
 const deploymentRole = config.deployment.role
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
+const functionName = config.deployment.functionName || 'genoacms'
+const buildDirectoryPath = 'build/**'
+const accessKeyId = config.deployment.credentials.accessKeyId
+const region = config.deployment.region
+const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
+const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
+const ignoreArchivePaths = [
+  'node_modules/**',
+  '.genoacms/**',
+  '.git/**',
+  '.github/**',
+  '.gitignore'
+  // 'build/**'
+]
+const injectArchivePaths = [
+  functionEntryScriptPath
+]
 
 /**
   * @param {string} source
@@ -101,12 +119,6 @@ async function isLambdaExisting (functionName) {
     return false
   }
 }
-
-/**
-  * @param {string} functionName
-  * @param {string} sourcePath
-  * @returns {Promise<void>}
-  */
 async function createLambda (functionName, sourcePath) {
   const params = {
     FunctionName: functionName,
@@ -117,15 +129,63 @@ async function createLambda (functionName, sourcePath) {
       S3Bucket: config.storage.defaultBucket,
       S3Key: sourcePath
     }
+
   }
+  const command = new CreateFunctionCommand(params)
+  console.info('Creating lambda')
+  await lambdaClient.send(command)
+  const lambdaArn = await getLambdaUri(functionName)
+  console.info('Creating api gateway')
+  const apiId = await createApiGateway(functionName)
+  console.info('Getting api gateway root resource id')
+  const rootResourceId = await getApiGatewayRootResourceId(apiId)
+  console.info('Creating api gateway resource')
+  const resourceId = await createApiGatewayResource(apiId, rootResourceId, functionName)
+  console.info('Creating api gateway method')
+  await createApiGatewayMethod(apiId, resourceId, functionName)
+  console.info('Setting lambda integration')
+  await setLambdaIntegration(apiId, resourceId, region, accessKeyId, functionName, lambdaArn)
+  console.info('Deploying api gateway')
+  await deployApi(apiId)
+  console.info('Adding lambda invoke permission')
+  await addLambdaInvokePermission(apiId, functionName, accessKeyId, region)
+}
+
+async function updateLambda (functionName, sourcePath) {
+  const params = {
+    FunctionName: functionName,
+    S3Bucket: config.storage.defaultBucket,
+    S3Key: sourcePath
+  }
+  const command = new UpdateFunctionCodeCommand(params)
+  await lambdaClient.send(command)
+}
+
+/**
+  * @param {string} functionName
+  * @param {string} sourcePath
+  * @returns {Promise<void>}
+  */
+async function createOrUpdateLambda (functionName, sourcePath) {
   const isExisting = await isLambdaExisting(functionName)
-  let command
   if (isExisting) {
-    command = new UpdateFunctionCodeCommand(params)
+    await updateLambda(functionName, sourcePath)
   } else {
-    command = new CreateFunctionCommand(params)
+    await createLambda(functionName, sourcePath)
   }
-  const data = await lambdaClient.send(command)
+}
+
+/**
+ * @param {string} FunctionName
+ * @returns {Promise<string>}
+ */
+async function getLambdaUri (functionName) {
+  const command = new GetFunctionUrlConfigCommand({
+    FunctionName: functionName
+  })
+  const response = await lambdaClient.send(command)
+  console.log(response)
+  return response.FunctionArn
 }
 
 /**
@@ -134,7 +194,7 @@ async function createLambda (functionName, sourcePath) {
   */
 async function isApiGatewayExisting (name) {
   try {
-    const response = await apiGatewayClient.send(new GetRestApiCommand({ name }))
+    const response = await apiGatewayClient.send(new GetRestApiCommand({ restApiId: name }))
     return response.id
   } catch (error) {
     return null
@@ -146,7 +206,7 @@ async function isApiGatewayExisting (name) {
  * @returns {Promise<string>}
  */
 async function createApiGateway (name) {
-  const gatewayId = isApiGatewayExisting(name)
+  const gatewayId = await isApiGatewayExisting(name)
   if (gatewayId) return gatewayId
   const createRestApiCommand = new CreateRestApiCommand({ name })
   const response = await apiGatewayClient.send(createRestApiCommand)
@@ -200,16 +260,15 @@ async function createApiGatewayMethod (apiId, resourceId) {
  * @param {string} accessKeyId
  * @param {string} functionName
  */
-async function setLambdaIntegration (apiId, resourceId, region, accessKeyId, functionName) {
-  const uri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${accessKeyId}:function:${functionName}/invocations`
-
+async function setLambdaIntegration (apiId, resourceId, lambdaArn) {
+  console.log('setLambdaIntegration', lambdaArn)
   const putIntegrationCommand = new PutIntegrationCommand({
     restApiId: apiId,
     resourceId,
-    httpMethod: 'GET',
+    httpMethod: 'ANY',
     type: 'AWS_PROXY',
     integrationHttpMethod: 'POST',
-    uri
+    uri: lambdaArn
   })
 
   await apiGatewayClient.send(putIntegrationCommand)
@@ -248,33 +307,11 @@ async function addLambdaInvokePermission (apiId, functionName, accessKeyId, regi
 }
 
 export async function deploy () {
-  console.log('deploying')
-  const functionName = 'genoacms'
-  const buildDirectoryPath = '**'
-  const accessKeyId = config.deployment.credentials.accessKeyId
-  const region = config.deployment.region
-  const buildArchivePath = resolve(currentDir, '.genoacms/deployment/build.zip')
-  const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
-  const ignoreArchivePaths = [
-    // 'node_modules/**',
-    '.genoacms/**',
-    '.git/**',
-    '.github/**',
-    '.gitignore'
-    // 'build/**'
-  ]
-  const injectArchivePaths = [
-    functionEntryScriptPath
-  ]
+  console.info('Creating deployment .zip package')
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
+  console.info('Uploading archive to S3')
   const functionStoragePath = await uploadSource(buildArchivePath)
-  createLambda(functionName, functionStoragePath)
-  const apiId = await createApiGateway()
-  const rootResourceId = await getApiGatewayRootResourceId(apiId)
-  const resourceId = await createApiGatewayResource(apiId, rootResourceId)
-  await createApiGatewayMethod(apiId, resourceId, functionName)
-  await setLambdaIntegration(apiId, resourceId, region, accessKeyId, functionName)
-  await deployApi(apiId)
-  await addLambdaInvokePermission(apiId, functionName, accessKeyId, region)
-  console.log('deployed')
+  await createOrUpdateLambda(functionName, functionStoragePath)
+  console.info('Deployment finished!')
 }
+deploy()
