@@ -44,6 +44,7 @@ const accessKeyId = config.deployment.credentials.accessKeyId
 const region = config.deployment.region
 const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
 const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
+const packageJsonScriptPath = resolve(currentDir, '../../../deployment/snippets/package.json')
 const ignoreArchivePaths = [
   'node_modules/**',
   '.genoacms/**',
@@ -53,7 +54,8 @@ const ignoreArchivePaths = [
   // 'build/**'
 ]
 const injectArchivePaths = [
-  functionEntryScriptPath
+  functionEntryScriptPath,
+  packageJsonScriptPath
 ]
 
 /**

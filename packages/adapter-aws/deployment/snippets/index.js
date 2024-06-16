@@ -1,12 +1,16 @@
-let serverHandler
+// let serverHandler
+//
+// async function handler (e, c) {
+//   if (!serverHandler) {
+//     const module = await import('./build/handler.js')
+//     serverHandler = module.handler
+//   }
+//   console.log('ok')
+//   return await serverHandler(e, c)
+// }
+//
+// module.exports = { handler }
 
-async function handler (e, c) {
-  if (!serverHandler) {
-    const module = await import('./build/server/serverless.js')
-    serverHandler = module.handler
-  }
-  console.log('ok')
-  return await serverHandler(e, c)
-}
+import handler from './build/handler.js'
 
-module.exports = { handler }
+export { handler }
