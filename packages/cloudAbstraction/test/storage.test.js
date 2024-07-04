@@ -1,5 +1,5 @@
 import { suite, expect, it } from 'vitest'
-import config from '../dist/config.js'
+import { config } from '@genoacms/cloudabstraction'
 import { Buffer } from 'buffer'
 
 const { getObject, uploadObject, deleteObject, listDirectory } = await import(config.storage.adapterPath)
