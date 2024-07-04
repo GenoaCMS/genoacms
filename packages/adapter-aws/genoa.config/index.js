@@ -24,17 +24,17 @@ const credentials = {
  */
 const config = {
   authentication: {
-    adapter: import('../src/services/authentication/index.js'),
+    adapterPath: '../src/services/authentication/index.js',
     region: 'eu-west-2',
     credentials
   },
   database: {
-    adapter: import('../src/services/database/index.js'),
+    adapterPath: '../src/services/database/index.js',
     region: 'eu-west-2',
     credentials
   },
   storage: {
-    adapter: import('../src/services/storage/index.js'),
+    adapterPath: '../src/services/storage/index.js',
     region: 'eu-central-1',
     credentials,
     buckets: [
