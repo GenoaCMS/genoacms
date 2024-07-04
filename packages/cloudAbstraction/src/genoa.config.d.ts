@@ -1,27 +1,22 @@
-import type { Adapter as AuthorizationAdapter } from './services/authorization/index.d.ts'
-import type { Adapter as AuthenticationAdapter } from './services/authentication/index.d.ts'
-import type { Adapter as DatabaseAdapter, CollectionReference, Document } from './services/database/index.d'
-import type { Adapter as StorageAdapter } from './services/storage/index.d'
-
 interface Config<AuthorizationExtension extends object = object,
     AuthenticationExtension extends object = object,
     DatabaseExtension extends object = object,
     DeploymentExtension extends object = object,
     StorageExtension extends object = object> {
   authorization: {
-    adapter: Promise<typeof AuthorizationAdapter>
+    adapterPath: string
   } & AuthorizationExtension
   authentication: {
-    adapter: Promise<typeof AuthenticationAdapter>
+    adapterPath: string
   } & AuthenticationExtension
   database: {
-    adapter: Promise<typeof DatabaseAdapter>
+    adapterPath: string
   } & DatabaseExtension
   deployment: {
     adapterPath: string
   } & DeploymentExtension
   storage: {
-    adapter: Promise<typeof StorageAdapter>
+    adapterPath: string
     defaultBucket: string
   } & StorageExtension
   collections: CollectionReference[]
