@@ -1,14 +1,14 @@
-interface Config<AuthorizationExtension extends object = object,
-    AuthenticationExtension extends object = object,
+interface Config<AuthenticationExtension extends object = object,
+    AuthorizationExtension extends object = object,
     DatabaseExtension extends object = object,
     DeploymentExtension extends object = object,
     StorageExtension extends object = object> {
-  authorization: {
-    adapterPath: string
-  } & AuthorizationExtension
   authentication: {
     adapterPath: string
   } & AuthenticationExtension
+  authorization: {
+    adapterPath: string
+  } & AuthorizationExtension
   database: {
     adapterPath: string
   } & DatabaseExtension

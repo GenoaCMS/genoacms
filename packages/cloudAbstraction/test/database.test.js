@@ -1,7 +1,7 @@
 import { suite, it, expect } from 'vitest'
-import config from '../dist/config.js'
+import { config } from '@genoacms/cloudabstraction'
 
-const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = await import(config.database.adapter)
+const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = await import(config.database.adapterPath)
 
 const testCollection = config.collections[0]
 const testDocuments = config.testDocuments
