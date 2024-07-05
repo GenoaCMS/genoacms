@@ -14,7 +14,8 @@ const config = (await import(configPath)).default
   * @returns {void}
   */
 function normalizeAdapterPath (config) {
-  if (config?.adapterPath === undefined) return
+  if (typeof config?.adapterPath !== 'string') return
+  if (!config.adapterPath.startsWith('.')) return
   config.adapterPath = join(configDirectory, config.adapterPath)
 }
 
