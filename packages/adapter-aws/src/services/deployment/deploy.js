@@ -43,8 +43,11 @@ const buildDirectoryPath = 'build/**'
 const accessKeyId = config.deployment.credentials.accessKeyId
 const region = config.deployment.region
 const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
+const configPath = 'genoa.config/'
 const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
 const packageJsonScriptPath = resolve(currentDir, '../../../deployment/snippets/package.json')
+const packageLockJsonScriptPath = resolve(currentDir, '../../../deployment/snippets/package-lock.json')
+const nodeModulesPath = resolve(currentDir, '../../../deployment/snippets/node_modules') // This path will change for production
 const ignoreArchivePaths = [
   'node_modules/**',
   '.genoacms/**',
@@ -55,7 +58,12 @@ const ignoreArchivePaths = [
 ]
 const injectArchivePaths = [
   functionEntryScriptPath,
-  packageJsonScriptPath
+  packageJsonScriptPath,
+  packageLockJsonScriptPath
+]
+const injectArchiveDirs = [
+  configPath,
+  nodeModulesPath
 ]
 
 /**
@@ -65,7 +73,7 @@ const injectArchivePaths = [
   * @param {string} out
   * @returns {Promise<void>}
   */
-async function createZip (source, injectPaths, ignorePaths, out) {
+async function createZip (source, injectPaths, injectDirs, ignorePaths, out) {
   await new Promise((resolve, reject) => {
     const output = createWriteStream(out)
     const archive = archiver('zip', { zlib: { level: 9 } })
@@ -82,6 +90,9 @@ async function createZip (source, injectPaths, ignorePaths, out) {
     archive.glob(source, { ignore: ignorePaths })
     for (const path of injectPaths) {
       archive.file(path, { name: basename(path) })
+    }
+    for (const path of injectDirs) {
+      archive.directory(path, basename(path))
     }
     archive.finalize()
   })
@@ -310,7 +321,7 @@ async function addLambdaInvokePermission (apiId, functionName, accessKeyId, regi
 
 export async function deploy () {
   console.info('Creating deployment .zip package')
-  await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
+  await createZip(buildDirectoryPath, injectArchivePaths, injectArchiveDirs, ignoreArchivePaths, buildArchivePath)
   console.info('Uploading archive to S3')
   const functionStoragePath = await uploadSource(buildArchivePath)
   await createOrUpdateLambda(functionName, functionStoragePath)
