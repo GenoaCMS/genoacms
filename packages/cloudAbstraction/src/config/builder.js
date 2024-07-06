@@ -1,32 +1,34 @@
-import esbuild from 'esbuild'
-import { configPath, configBundlePath } from './paths'
-
-const buildConfig = {
-  entryPoints: [configPath],
-  bundle: true,
-  platform: 'node',
-  format: 'esm',
-  target: 'node20',
-  outfile: configBundlePath,
-  external: [
-    'fs', 'path', 'os', 'http', 'https', 'url', 'stream', 'crypto', 'buffer'
-  ],
-  loader: {
-    '.json': 'json'
-  },
-  treeShaking: true
-}
+import { rollup } from 'rollup'
+import commonjs from '@rollup/plugin-commonjs'
+import resolve from '@rollup/plugin-node-resolve'
+import json from '@rollup/plugin-json'
+import { configPath, configBundlePath } from './paths.js'
 
 /**
   * @returns {Promise<void>}
   */
 async function build () {
-  try {
-    await esbuild.build(buildConfig)
-  } catch (e) {
-    console.error('Building config failed: ', e)
-    process.exit(1)
-  }
+  const bundle = await rollup({
+    input: configPath,
+    plugins: [
+      resolve({
+        preferBuiltins: true,
+        extensions: ['.mjs', '.js', '.json', '.node']
+      }),
+      commonjs(),
+      json()
+    ]
+  })
+
+  await bundle.generate({
+    dir: configBundlePath,
+    format: 'esm'
+  })
+
+  await bundle.write({
+    dir: configBundlePath,
+    format: 'esm'
+  })
 }
 
 export default build
