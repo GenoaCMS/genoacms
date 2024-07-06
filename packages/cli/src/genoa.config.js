@@ -5,19 +5,19 @@
  */
 const config = {
   authentication: {
-    adapterPath: '%authentication-adapter%'
+    adapter: import('%authentication-adapter%')
     // TODO: configure authentication
   },
   authorization: {
-    adapterPath: '%authorization-adapter%'
+    adapter: import('%authorization-adapter%')
     // TODO: configure authorization
   },
   database: {
-    adapterPath: '%database-adapter%'
+    adapter: import('%database-adapter%')
     // TODO: configure database
   },
   storage: {
-    adapterPath: '%storage-adapter%'
+    adapter: import('%storage-adapter%')
     // TODO: configure storage
   },
   // TODO: configure collections

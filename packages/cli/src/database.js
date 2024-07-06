@@ -9,7 +9,7 @@ const {
   getSignedURL,
   listDirectory,
   uploadObject
-} = await import(config.storage.adapterPath)
+} = await config.storage.adapter
 
 const collectionsDirectory = '.genoacms/collections'
 
