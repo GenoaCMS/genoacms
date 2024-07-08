@@ -27,4 +27,3 @@ export async function deploy () {
   await createOrUpdateLambda(functionName, functionStoragePath)
   console.info('Deployment finished!')
 }
-deploy()

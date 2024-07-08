@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-aws",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "Adapter for abstraction layer for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -26,7 +26,7 @@
     "@aws-sdk/client-s3": "^3.436.0",
     "@aws-sdk/lib-storage": "^3.540.0",
     "@aws-sdk/s3-request-presigner": "^3.509.0",
-    "@genoacms/cloudabstraction": "^0.6.0",
+    "@genoacms/cloudabstraction": "^0.6.2",
     "archiver": "^7.0.1",
     "uuid": "^9.0.1"
   },
