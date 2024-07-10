@@ -19,7 +19,7 @@ const ignorePaths = [
 
 export async function deploy () {
   console.info('Installing dependencies of injected assets')
-  installAssetsDependencies(assetsDirectoryPath)
+  await installAssetsDependencies(assetsDirectoryPath)
   console.info('Creating deployment .zip package')
   await createZip(buildDirectoryPath, assetsDirectoryPath, ignorePaths, buildArchivePath)
   console.info('Uploading archive to S3')
