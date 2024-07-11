@@ -74,7 +74,7 @@ async function createApiGatewayMethod (apiId, resourceId) {
   const putMethodCommand = new PutMethodCommand({
     restApiId: apiId,
     resourceId,
-    httpMethod: 'GET',
+    httpMethod: 'ANY',
     authorizationType: 'NONE'
   })
   await apiGatewayClient.send(putMethodCommand)
@@ -87,15 +87,15 @@ async function createApiGatewayMethod (apiId, resourceId) {
  * @param {string} accessKeyId
  * @param {string} functionName
  */
-async function setLambdaIntegration (apiId, resourceId, lambdaArn) {
-  console.log('setLambdaIntegration', lambdaArn)
+async function setLambdaIntegration (apiId, resourceId, region, lambdaArn) {
+  const uri = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`
   const putIntegrationCommand = new PutIntegrationCommand({
     restApiId: apiId,
     resourceId,
-    httpMethod: 'ANY',
     type: 'AWS_PROXY',
+    httpMethod: 'ANY',
     integrationHttpMethod: 'POST',
-    uri: lambdaArn
+    uri
   })
 
   await apiGatewayClient.send(putIntegrationCommand)

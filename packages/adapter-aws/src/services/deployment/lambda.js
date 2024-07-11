@@ -21,8 +21,8 @@ const lambdaClient = new LambdaClient({
   credentials: config.deployment.credentials
 })
 const deploymentRole = config.deployment.role
-const accessKeyId = config.deployment.credentials.accessKeyId
 const region = config.deployment.region
+const accountId = config.deployment.credentials.accountId
 
 /**
  * @param {string} functionName
@@ -42,7 +42,7 @@ async function isLambdaExisting (functionName) {
 async function createLambda (functionName, sourcePath) {
   const params = {
     FunctionName: functionName,
-    Handler: 'build.handler.handler',
+    Handler: 'index.handler',
     Role: deploymentRole,
     Runtime: 'nodejs20.x',
     Code: {
@@ -64,11 +64,11 @@ async function createLambda (functionName, sourcePath) {
   console.info('Creating api gateway method')
   await createApiGatewayMethod(apiId, resourceId, functionName)
   console.info('Setting lambda integration')
-  await setLambdaIntegration(apiId, resourceId, region, accessKeyId, functionName, lambdaArn)
+  await setLambdaIntegration(apiId, resourceId, region, lambdaArn)
   console.info('Deploying api gateway')
   await deployApi(apiId)
   console.info('Adding lambda invoke permission')
-  await addLambdaInvokePermission(apiId, functionName, accessKeyId, region)
+  await addLambdaInvokePermission(apiId, functionName, accountId, region)
 }
 
 async function updateLambda (functionName, sourcePath) {
@@ -104,24 +104,23 @@ async function getLambdaUri (functionName) {
     FunctionName: functionName
   })
   const response = await lambdaClient.send(command)
-  console.log(response)
   return response.FunctionArn
 }
 
 /**
  * @param {string} apiId
  * @param {string} functionName
- * @param {string} accessKeyId
+ * @param {string} accountId
  * @param {string} region
  * @returns {Promise<void>}
  */
-async function addLambdaInvokePermission (apiId, functionName, accessKeyId, region) {
+async function addLambdaInvokePermission (apiId, functionName, accountId, region) {
   const addPermissionCommand = new AddPermissionCommand({
     FunctionName: functionName,
     StatementId: 'apigateway-access',
     Action: 'lambda:InvokeFunction',
     Principal: 'apigateway.amazonaws.com',
-    SourceArn: `arn:aws:execute-api:${region}:${accessKeyId}:${apiId}/*/GET/${functionName}`
+    SourceArn: `arn:aws:execute-api:${region}:${accountId}:${apiId}/prod/*/GET/${functionName}`
   })
 
   await lambdaClient.send(addPermissionCommand)
