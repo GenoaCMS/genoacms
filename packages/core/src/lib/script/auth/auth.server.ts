@@ -19,7 +19,7 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
 
 async function login (email: string, password: string, cookies: Cookies) {
   const authResult = await authenticateAndAuthorize(email, password)
-  if (!authResult) return
+  if (!authResult) throw new Error('invalid-credentials')
   const payloadText = JSON.stringify({ email })
   const encoder = new TextEncoder()
   const token = await new CompactSign(encoder.encode(payloadText))
