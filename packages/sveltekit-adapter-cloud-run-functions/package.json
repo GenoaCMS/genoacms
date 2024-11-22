@@ -35,12 +35,12 @@
 		"test": "echo \"tests temporarily disabled\" # vitest run",
 		"check": "tsc",
 		"lint": "prettier --check .",
-		"format": "pnpm lint --write",
-		"prepublishOnly": "pnpm build"
+		"format": "npm run lint --write",
+		"prepublishOnly": "npm run build"
 	},
 	"devDependencies": {
 		"@polka/url": "^1.0.0-next.28",
-		"@sveltejs/kit": "workspace:^",
+		"@sveltejs/kit": "^2.4.0",
 		"@sveltejs/vite-plugin-svelte": "^3.0.1",
 		"@types/node": "^18.19.48",
 		"polka": "^1.0.0-next.28",
