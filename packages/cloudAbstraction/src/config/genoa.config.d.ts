@@ -1,31 +1,29 @@
 import type { AuthorizationProvider } from './services/authorization/index.d.ts'
-import type { Adapter as AuthenticationAdapter } from './services/authentication/index.d.ts'
+import type { AuthenticationProvider } from './services/authentication/index.d'
 import type { DatabaseInit, DatabaseProvider } from './services/database/index.d'
-import type { BucketInit } from './services/storage/index.d'
+import type { BucketInit, StorageProvider } from './services/storage/index.d'
 
-interface Config<AuthorizationExtension extends object = object,
-    AuthenticationExtension extends object = object,
-    DatabaseExtension extends object = object,
-    DeploymentExtension extends object = object,
-    StorageExtension extends object = object> {
+type Config<Extension extends object = object> = Extension & {
   authorization: {
     providers: AuthorizationProvider[]
-  } & AuthorizationExtension
+  }
   authentication: {
-    adapter: Promise<typeof AuthenticationAdapter>
-  } & AuthenticationExtension
+    providers: AuthenticationProvider[]
+    cookieName: string
+    JWTSecret: string
+  }
   database: {
     databases: DatabaseInit[]
     providers: DatabaseProvider[]
-  } & DatabaseExtension
+  }
   deployment: {
     adapterPath: string
-  } & DeploymentExtension
+  }
   storage: {
     defaultBucket: string
     buckets: BucketInit[]
     providers: StorageProvider[]
-  } & StorageExtension
+  }
   [key: string]: any
 }
 

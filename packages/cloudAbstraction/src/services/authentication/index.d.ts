@@ -1,3 +1,9 @@
-export declare namespace Adapter {
-  type loginWithEmailAndPassword = (email: string, password: string) => Promise<boolean>
+import type { Adapter } from './adapter.d'
+
+type AuthenticationProvider<Extension extends object = object> = Extension & {
+  adapter: Promise<typeof Adapter>
+}
+
+export type {
+  AuthenticationProvider
 }
