@@ -6,7 +6,7 @@ const PROVIDER_NAME = '@genoacms/adapter-gcp/storage'
 const storageConfig = config.storage.providers.find((provider: StorageProvider) => provider.name === PROVIDER_NAME)
 if (!storageConfig) throw new Error('storage-provider-not-found')
 const storage = new Storage({
-  credentials: config.storage.credentials
+  credentials: storageConfig.credentials
 })
 
 const hasBucket = (name: string): boolean => {

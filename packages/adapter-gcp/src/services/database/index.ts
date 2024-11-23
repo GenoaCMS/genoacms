@@ -10,7 +10,8 @@ import type {
 import config from '../../config.js'
 import { Firestore } from '@google-cloud/firestore'
 
-const firestoreConfig = config.database.providers.find((provider: DatabaseProvider) => provider.name === 'firestore')
+const PROVIDER_NAME = '@genoacms/adapter-gcp/database'
+const firestoreConfig = config.database.providers.find((provider: DatabaseProvider) => provider.name === PROVIDER_NAME)
 if (!firestoreConfig) throw new Error('firestore-provider-not-found')
 const firestore = new Firestore({
   credentials: firestoreConfig.credentials,

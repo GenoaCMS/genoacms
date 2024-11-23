@@ -2,7 +2,8 @@ import type { Adapter, AuthorizationProvider } from '@genoacms/cloudabstraction/
 import config from '../../config.js'
 import { ProjectsClient } from '@google-cloud/resource-manager'
 
-const authorizationConfig = config.authorization.providers.find((provider: AuthorizationProvider) => provider.name === 'gcp')
+const PROVIDER_NAME = '@genoacms/adapter-gcp/authorization'
+const authorizationConfig = config.authorization.providers.find((provider: AuthorizationProvider) => provider.name === PROVIDER_NAME)
 if (!authorizationConfig) throw new Error('authorization-provider-not-found')
 const projectId = authorizationConfig.projectId
 const resourceManager = new ProjectsClient({
