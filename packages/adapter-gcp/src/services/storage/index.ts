@@ -6,7 +6,7 @@ import { type File } from '@google-cloud/storage'
 import { getBucket } from './storage.js'
 import { join } from 'path'
 
-const getObject: Adapter.getObject = async ({ bucket, name }) => {
+const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
 
@@ -15,13 +15,13 @@ const getObject: Adapter.getObject = async ({ bucket, name }) => {
   }
 }
 
-const getPublicURL: Adapter.getPublicURL = async ({ bucket, name }) => {
+const getPublicURL: Adapter['getPublicURL'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   return file.publicUrl()
 }
 
-const getSignedURL: Adapter.getSignedURL = async ({ bucket, name }, expires) => {
+const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }, expires) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   const [url] = await file.getSignedUrl({
@@ -31,19 +31,19 @@ const getSignedURL: Adapter.getSignedURL = async ({ bucket, name }, expires) => 
   return url
 }
 
-const uploadObject: Adapter.uploadObject = async ({ bucket, name }, stream, options) => {
+const uploadObject: Adapter['uploadObject'] = async ({ bucket, name }, stream, options) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.save(stream, options)
 }
 
-const deleteObject: Adapter.deleteObject = async ({ bucket, name }) => {
+const deleteObject: Adapter['deleteObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.delete()
 }
 
-const listDirectory: Adapter.listDirectory = async ({ bucket, name }, listingParams = {}) => {
+const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listingParams = {}) => {
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
@@ -70,7 +70,7 @@ const listDirectory: Adapter.listDirectory = async ({ bucket, name }, listingPar
   }
 }
 
-const createDirectory: Adapter.createDirectory = async ({ bucket, name }) => {
+const createDirectory: Adapter['createDirectory'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(`${name}/.folderPlaceholder`)
   await file.save('')

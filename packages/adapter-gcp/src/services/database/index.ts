@@ -1,5 +1,6 @@
 import type {
   Adapter,
+  DatabaseProvider,
   CollectionSnapshot,
   Document,
   DocumentReference,
@@ -9,13 +10,15 @@ import type {
 import config from '../../config.js'
 import { Firestore } from '@google-cloud/firestore'
 
+const firestoreConfig = config.database.providers.find((provider: DatabaseProvider) => provider.name === 'firestore')
+if (!firestoreConfig) throw new Error('firestore-provider-not-found')
 const firestore = new Firestore({
-  credentials: config.database.credentials,
-  databaseId: config.database.databaseId,
-  projectId: config.database.projectId
+  credentials: firestoreConfig.credentials,
+  databaseId: firestoreConfig.databaseId,
+  projectId: firestoreConfig.projectId
 })
 
-const createDocument: Adapter.createDocument = async (reference, data) => {
+const createDocument: Adapter['createDocument'] = async (reference, data) => {
   const document = await firestore.collection(reference.name).add(data)
   const documentReference: DocumentReference<typeof reference> = {
     collection: reference,
@@ -27,7 +30,7 @@ const createDocument: Adapter.createDocument = async (reference, data) => {
   } satisfies DocumentSnapshot<typeof reference>
 }
 
-const getCollection: Adapter.getCollection = async (reference) => {
+const getCollection: Adapter['getCollection'] = async (reference) => {
   const collection = await firestore.collection(reference.name).get()
   const documents: CollectionSnapshot<typeof reference> = []
 
@@ -48,7 +51,7 @@ const getCollection: Adapter.getCollection = async (reference) => {
   return documents
 }
 
-const getDocument: Adapter.getDocument = async ({ collection, id }) => {
+const getDocument: Adapter['getDocument'] = async ({ collection, id }) => {
   const document = await firestore.collection(collection.name).doc(id).get()
   if (!document.exists) return undefined
   const documentReference: DocumentReference<typeof collection> = {
@@ -62,7 +65,7 @@ const getDocument: Adapter.getDocument = async ({ collection, id }) => {
   return documentSnapshot
 }
 
-const updateDocument: Adapter.updateDocument = async (reference, document) => {
+const updateDocument: Adapter['updateDocument'] = async (reference, document) => {
   await firestore.collection(reference.collection.name).doc(reference.id).update(document)
   return {
     reference,
@@ -70,7 +73,7 @@ const updateDocument: Adapter.updateDocument = async (reference, document) => {
   } satisfies UpdateSnapshot<typeof reference.collection>
 }
 
-const deleteDocument: Adapter.deleteDocument = async (reference) => {
+const deleteDocument: Adapter['deleteDocument'] = async (reference) => {
   await firestore.collection(reference.collection.name).doc(reference.id).delete()
 }
 
