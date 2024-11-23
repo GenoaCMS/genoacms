@@ -1,6 +1,6 @@
 {
 	"name": "@genoacms/sveltekit-adapter-cloud-run-functions",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"description": "Adapter for SvelteKit apps that generates a Cloud Run Function",
 	"keywords": [
 		"adapter",
