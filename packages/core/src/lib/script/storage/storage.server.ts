@@ -6,8 +6,7 @@ import type {
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
 import { parse as parseFlatted } from 'flatted'
-
-const {
+import {
   createDirectory,
   deleteObject,
   getObject,
@@ -15,7 +14,7 @@ const {
   getSignedURL,
   listDirectory,
   uploadObject
-} = await config.storage.adapter
+} from './providers.server'
 
 const getBucketReferences = () => {
   return config.storage.buckets

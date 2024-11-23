@@ -16,7 +16,7 @@
 <div class="grid grid-cols-5 gap-5 p-5">
     {#each data.buckets as bucket}
         <div class="col-span-1">
-            <CardLink href="storage/{bucket}/contents{searchParams}" text={bucket} icon="bucket"/>
+            <CardLink href="storage/{bucket.name}/contents{searchParams}" text={bucket.name} icon="bucket"/>
         </div>
     {/each}
 </div>

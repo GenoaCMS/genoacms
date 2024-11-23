@@ -6,6 +6,12 @@ async function getProviders (providersConfig: Array<{ adapter: Promise<object> }
   return await Promise.all(providerPromises)
 }
 
+async function getProvider (providers: Array<{ adapter: Promise<object> }>, providerName: string) {
+  const provider = providers.find(provider => provider.name === providerName)
+  if (!provider) throw new Error('provider/not-found')
+  return await provider.adapter
+}
+
 async function callProvidersFunction (providers: Array<object>, functionName: string, args: Array<any>) {
   const results = []
   for (const provider of providers) {
@@ -21,6 +27,7 @@ function isAnyTrue (bools: Array<boolean>) {
 
 export {
   getProviders,
+  getProvider,
   callProvidersFunction,
   isAnyTrue
 }

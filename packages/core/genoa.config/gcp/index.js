@@ -3,7 +3,7 @@ import authCredentials from './authCredentials.js'
 import { collections } from '../collections.js'
 
 const firestore = {
-  name: 'firestore',
+  name: '@genoacms/adapter-gcp/database',
   adapter: import('@genoacms/adapter-gcp/database'),
   region: 'eu-west3',
   databaseId: '(default)',
@@ -11,7 +11,7 @@ const firestore = {
   credentials
 }
 const cloudStorage = {
-  name: 'gcs',
+  name: '@genoacms/adapter-gcp/storage',
   adapter: import('@genoacms/adapter-gcp/storage'),
   projectId: 'genoacms',
   credentials
@@ -35,7 +35,7 @@ const config = {
   authorization: {
     providers: [
       {
-        name: 'gcp',
+        name: '@genoacms/adapter-gcp/authorization',
         adapter: import('@genoacms/adapter-gcp/authorization'),
         projectId: 'genoacms',
         credentials
@@ -45,7 +45,7 @@ const config = {
   database: {
     databases: [
       {
-        providerName: 'firestore',
+        providerName: '@genoacms/adapter-gcp/database',
         collections
       }
     ],
@@ -64,11 +64,11 @@ const config = {
     buckets: [
       {
         name: 'genoacms',
-        providerName: 'gcs'
+        providerName: '@genoacms/adapter-gcp/storage'
       },
       {
         name: 'genoacms-public',
-        providerName: 'gcs'
+        providerName: '@genoacms/adapter-gcp/storage'
       }
     ],
     providers: [
