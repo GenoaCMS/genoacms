@@ -4,11 +4,11 @@ import { ProjectsClient } from '@google-cloud/resource-manager'
 
 const authorizationConfig = config.authorization.providers.find((provider: AuthorizationProvider) => provider.name === 'gcp')
 if (!authorizationConfig) throw new Error('authorization-provider-not-found')
+const projectId = authorizationConfig.projectId
 const resourceManager = new ProjectsClient({
-  projectId: config.authorization.projectId,
-  credentials: config.authorization.credentials
+  projectId,
+  credentials: authorizationConfig.credentials
 })
-const projectId = config.authorization.projectId
 
 const isEmailAdmins: Adapter.isEmailAdmins = async (email: string) => {
   const resource = `projects/${projectId}`
