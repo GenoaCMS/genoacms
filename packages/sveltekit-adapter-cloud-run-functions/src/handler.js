@@ -5,42 +5,13 @@ import process from 'node:process';
 import sirv from 'sirv';
 import { fileURLToPath } from 'node:url';
 import { parse as polka_url_parser } from '@polka/url';
-import { getRequest, setResponse, createReadableStream } from '@sveltejs/kit/node';
+import { setResponse, createReadableStream } from '@sveltejs/kit/node';
 import { Server } from 'SERVER';
 import { manifest, prerendered, base } from 'MANIFEST';
-import { env } from 'ENV';
 
 /* global ENV_PREFIX */
 
 const server = new Server(manifest);
-
-const origin = env('ORIGIN', undefined);
-const xff_depth = parseInt(env('XFF_DEPTH', '1'));
-const address_header = env('ADDRESS_HEADER', '').toLowerCase();
-const protocol_header = env('PROTOCOL_HEADER', '').toLowerCase();
-const host_header = env('HOST_HEADER', 'host').toLowerCase();
-const port_header = env('PORT_HEADER', '').toLowerCase();
-
-/**
- * @param {string} bytes
- */
-function parse_body_size_limit(bytes) {
-	const multiplier =
-		{
-			K: 1024,
-			M: 1024 * 1024,
-			G: 1024 * 1024 * 1024
-		}[bytes[bytes.length - 1]?.toUpperCase()] ?? 1;
-	return Number(multiplier != 1 ? bytes.substring(0, bytes.length - 1) : bytes) * multiplier;
-}
-
-const body_size_limit = parse_body_size_limit(env('BODY_SIZE_LIMIT', '512K'));
-
-if (isNaN(body_size_limit)) {
-	throw new Error(
-		`Invalid BODY_SIZE_LIMIT: '${env('BODY_SIZE_LIMIT')}'. Please provide a numeric value.`
-	);
-}
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -103,67 +74,61 @@ function serve_prerendered() {
 	};
 }
 
+/**
+ * @param {import('http').IncomingMessage} cloudRunRequest
+ * @returns {Request}
+ */
+function parseRequest(cloudRunRequest) {
+	const protocol = cloudRunRequest.headers['x-forwarded-proto'] || 'http';
+  const hostname = cloudRunRequest.headers['x-forwarded-host'] || cloudRunRequest.headers['host'];
+	const host = `${protocol}://${hostname}`;
+	const {href, pathname, searchParams} = new URL(cloudRunRequest.url || '', host);
+	const request = new Request(href, {
+		method: cloudRunRequest.method,
+		headers: parseHeaders(cloudRunRequest.headers),
+		body: cloudRunRequest.rawBody ?? null,
+		host,
+		path: pathname,
+		query: searchParams
+	});
+  return request;
+}
+/**
+ * @param {import('http').IncomingHttpHeaders} headers
+ * @returns
+ */
+function parseHeaders(headers) {
+	/** @type {Record<string, string>} */
+	const finalHeaders = {};
+
+	for (const [key, value] of Object.entries(headers)) {
+		finalHeaders[key] = Array.isArray(value)
+			? value.join(',')
+			: value;
+	}
+
+	return finalHeaders;
+}
+
 /** @type {import('polka').Middleware} */
 const ssr = async (req, res) => {
 	/** @type {Request} */
 	let request;
 
 	try {
-		request = await getRequest({
-			base: origin || get_origin(req.headers),
-			request: req,
-			bodySizeLimit: body_size_limit
-		});
+		request = parseRequest(req);
 	} catch {
 		res.statusCode = 400;
 		res.end('Bad Request');
 		return;
 	}
 
-	setResponse(
+  setResponse(
 		res,
 		await server.respond(request, {
 			platform: { req },
 			getClientAddress: () => {
-				if (address_header) {
-					if (!(address_header in req.headers)) {
-						throw new Error(
-							`Address header was specified with ${
-								ENV_PREFIX + 'ADDRESS_HEADER'
-							}=${address_header} but is absent from request`
-						);
-					}
-
-					const value = /** @type {string} */ (req.headers[address_header]) || '';
-
-					if (address_header === 'x-forwarded-for') {
-						const addresses = value.split(',');
-
-						if (xff_depth < 1) {
-							throw new Error(`${ENV_PREFIX + 'XFF_DEPTH'} must be a positive integer`);
-						}
-
-						if (xff_depth > addresses.length) {
-							throw new Error(
-								`${ENV_PREFIX + 'XFF_DEPTH'} is ${xff_depth}, but only found ${
-									addresses.length
-								} addresses`
-							);
-						}
-						return addresses[addresses.length - xff_depth].trim();
-					}
-
-					return value;
-				}
-
-				return (
-					req.connection?.remoteAddress ||
-					// @ts-expect-error
-					req.connection?.socket?.remoteAddress ||
-					req.socket?.remoteAddress ||
-					// @ts-expect-error
-					req.info?.remoteAddress
-				);
+        return request.headers.get('x-forwarded-for');
 			}
 		})
 	);
@@ -187,21 +152,6 @@ function sequence(handlers) {
 
 		return handle(0);
 	};
-}
-
-/**
- * @param {import('http').IncomingHttpHeaders} headers
- * @returns
- */
-function get_origin(headers) {
-	const protocol = (protocol_header && headers[protocol_header]) || 'https';
-	const host = headers[host_header];
-	const port = port_header && headers[port_header];
-	if (port) {
-		return `${protocol}://${host}:${port}`;
-	} else {
-		return `${protocol}://${host}`;
-	}
 }
 
 export const handler = sequence(
