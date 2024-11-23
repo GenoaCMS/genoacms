@@ -1,6 +1,6 @@
 import type { Adapter } from './adapter'
 
-interface StorageProvider {
+type StorageProvider<Extension extends object = object> = Extension & {
   adapter: Promise<typeof Adapter>
 }
 

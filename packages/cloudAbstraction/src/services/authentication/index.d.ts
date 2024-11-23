@@ -5,5 +5,6 @@ type AuthenticationProvider<Extension extends object = object> = Extension & {
 }
 
 export type {
+  Adapter,
   AuthenticationProvider
 }

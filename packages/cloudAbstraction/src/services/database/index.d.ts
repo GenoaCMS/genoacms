@@ -6,7 +6,7 @@ interface DatabaseInit {
   testDocuments?: [Document, Document]
 }
 
-interface DatabaseProvider {
+type DatabaseProvider<Extension extends object = object> = Extension & {
   name: string
   adapter: Promise<typeof Adapter>
 }
