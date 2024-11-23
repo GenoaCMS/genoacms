@@ -1,3 +1,7 @@
-export declare namespace Adapter {
-  type isEmailAdmins = (email: string) => Promise<boolean>
+type AuthorizationProvider<Extension extends object = object> = Extension & {
+  adapter: Promise<typeof Adapter>
+}
+
+export type {
+  AuthorizationProvider
 }

@@ -1,4 +1,4 @@
-import type { Adapter as AuthorizationAdapter } from './services/authorization/index.d.ts'
+import type { AuthorizationProvider } from './services/authorization/index.d.ts'
 import type { Adapter as AuthenticationAdapter } from './services/authentication/index.d.ts'
 import type { DatabaseInit, DatabaseProvider } from './services/database/index.d'
 import type { BucketInit } from './services/storage/index.d'
@@ -9,7 +9,7 @@ interface Config<AuthorizationExtension extends object = object,
     DeploymentExtension extends object = object,
     StorageExtension extends object = object> {
   authorization: {
-    adapter: Promise<typeof AuthorizationAdapter>
+    providers: AuthorizationProvider[]
   } & AuthorizationExtension
   authentication: {
     adapter: Promise<typeof AuthenticationAdapter>
