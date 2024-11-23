@@ -1,6 +1,27 @@
-import type { Adapter } from './adapter'
+import type Adapter from './adapter.d.ts'
+
+declare module '@genoacms/adapter-*/storage' {
+  import type Adapter from './adapter.d.ts'
+  const getObject: Adapter.getObject
+  const getSignedURL: Adapter.getSignedURL
+  const getPublicURL: Adapter.getPublicURL
+  const uploadObject: Adapter.uploadObject
+  const deleteObject: Adapter.deleteObject
+  const listDirectory: Adapter.listDirectory
+  const createDirectory: Adapter.createDirectory
+  export {
+    getObject,
+    getSignedURL,
+    getPublicURL,
+    uploadObject,
+    deleteObject,
+    listDirectory,
+    createDirectory
+  }
+}
 
 type StorageProvider<Extension extends object = object> = Extension & {
+  name: string
   adapter: Promise<typeof Adapter>
 }
 
@@ -10,6 +31,7 @@ interface BucketInit {
 }
 
 export type {
+  Adapter,
   StorageProvider,
   BucketInit
 }
@@ -20,4 +42,4 @@ export type {
   ObjectData,
   DirectoryListingParams,
   DirectoryContents
-} from './adapter'
+} from './types.d.ts'

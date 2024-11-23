@@ -1,4 +1,24 @@
-import type { Adapter, CollectionReference, Document } from './adapter.d'
+import type Adapter from './adapter.d.ts'
+import type {
+  CollectionReference,
+  Document
+} from './types.d.ts'
+
+declare module '@genoacms/adapter-*/database' {
+  import type Adapter from './adapter.d'
+  const createDocument: Adapter.createDocument
+  const getCollection: Adapter.getCollection
+  const getDocument: Adapter.getDocument
+  const updateDocument: Adapter.updateDocument
+  const deleteDocument: Adapter.deleteDocument
+  export {
+    createDocument,
+    getCollection,
+    getDocument,
+    updateDocument,
+    deleteDocument
+  }
+}
 
 interface DatabaseInit {
   providerName: string
@@ -8,10 +28,11 @@ interface DatabaseInit {
 
 type DatabaseProvider<Extension extends object = object> = Extension & {
   name: string
-  adapter: Promise<typeof Adapter>
+  adapter: Promise<Adapter>
 }
 
 export type {
+  Adapter,
   DatabaseInit,
   DatabaseProvider
 }
@@ -23,4 +44,4 @@ export type {
   DocumentSnapshot,
   UpdateSnapshot,
   CollectionSnapshot
-} from './adapter.d'
+} from './types.d.ts'
