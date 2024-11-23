@@ -43,8 +43,10 @@ const config = {
     ]
   },
   database: {
+    defaultDatabase: 'firestore',
     databases: [
       {
+        name: 'firestore',
         providerName: '@genoacms/adapter-gcp/database',
         collections
       }

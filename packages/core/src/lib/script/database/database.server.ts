@@ -1,18 +1,17 @@
-import { config } from '@genoacms/cloudabstraction'
 import type { CollectionReference } from '@genoacms/cloudabstraction/database'
 import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listOrCreateDirectory } from '../storage/storage.server'
-
-const {
+import {
+  getCollections,
   createDocument,
   getCollection,
   getDocument,
   updateDocument,
   deleteDocument
-} = await config.database.adapter
+} from './providers.server'
 
 const collectionsDirectory = '.genoacms/collections'
 const collectionsDirectoryContents = await listOrCreateDirectory({ name: collectionsDirectory, bucket: defaultBucketId })
-const predefinedCollections = config.database.collections || []
+const predefinedCollections = getCollections() || []
 
 function getCollectionReferences () {
   const predefinedReferences = predefinedCollections.map(collection => collection.name)
