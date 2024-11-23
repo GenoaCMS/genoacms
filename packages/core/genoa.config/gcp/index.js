@@ -2,28 +2,56 @@ import credentials from './serviceAccount.json' assert { type: 'json' }
 import authCredentials from './authCredentials.js'
 import { collections } from '../collections.js'
 
+const firestore = {
+  name: 'firestore',
+  adapter: import('@genoacms/adapter-gcp/database'),
+  region: 'eu-west3',
+  databaseId: '(default)',
+  projectId: 'genoacms',
+  credentials
+}
+const cloudStorage = {
+  name: 'gcs',
+  adapter: import('@genoacms/adapter-gcp/storage'),
+  projectId: 'genoacms',
+  credentials
+}
+
 /**
  * @type {import('@genoacms/cloudabstraction').genoaConfig}
  */
 const config = {
   authentication: {
-    adapter: import('@genoacms/authentication-adapter-array'),
-    credentials: authCredentials,
+    providers: [
+      {
+        name: '@genoacms/authentication-adapter-array',
+        adapter: import('@genoacms/authentication-adapter-array'),
+        credentials: authCredentials
+      }
+    ],
     cookieName: '__session',
     JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
   },
   authorization: {
-    adapter: import('@genoacms/adapter-gcp/authorization'),
-    projectId: 'genoacms',
-    credentials
+    providers: [
+      {
+        name: 'gcp',
+        adapter: import('@genoacms/adapter-gcp/authorization'),
+        projectId: 'genoacms',
+        credentials
+      }
+    ]
   },
   database: {
-    adapter: import('@genoacms/adapter-gcp/database'),
-    region: 'eu-west3',
-    databaseId: '(default)',
-    projectId: 'genoacms',
-    credentials,
-    collections
+    databases: [
+      {
+        providerName: 'firestore',
+        collections
+      }
+    ],
+    providers: [
+      firestore
+    ]
   },
   deployment: {
     adapter: import('@genoacms/adapter-gcp/deployment'),
@@ -32,14 +60,20 @@ const config = {
     credentials
   },
   storage: {
-    adapter: import('@genoacms/adapter-gcp/storage'),
-    projectId: 'genoacms',
-    defaultBucket: 'genoacms.test',
+    defaultBucket: 'genoacms',
     buckets: [
-      'genoa-public',
-      'genoacms.test'
+      {
+        name: 'genoacms',
+        providerName: 'gcs'
+      },
+      {
+        name: 'genoacms-public',
+        providerName: 'gcs'
+      }
     ],
-    credentials
+    providers: [
+      cloudStorage
+    ]
   }
 }
 

@@ -1,6 +1,7 @@
 import { cookieName, verifyAuthCookie } from '$lib/script/auth/auth.server'
+import type { Handle } from '@sveltejs/kit'
 
-export async function handle ({ event, resolve }) {
+export const handle: Handle = async ({ event, resolve }) => {
   const sessionCookie = event.cookies.get(cookieName)
   if (!sessionCookie) return await resolve(event)
   let payload
@@ -13,5 +14,6 @@ export async function handle ({ event, resolve }) {
     return await resolve(event)
   }
   event.locals.user = payload
-  return await resolve(event)
+  const response = await resolve(event)
+  return response
 }

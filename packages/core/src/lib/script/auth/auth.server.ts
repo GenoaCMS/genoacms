@@ -1,10 +1,9 @@
 import { config } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
 import { CompactSign, jwtVerify } from 'jose'
+import { loginWithEmailAndPassword, isEmailAdmins } from './providers.server'
 
 const { cookieName, JWTSecret } = await config.authentication
-const { loginWithEmailAndPassword } = await config.authentication.adapter
-const { isEmailAdmins } = await config.authorization.adapter
 
 async function authenticateAndAuthorize (email: string, password: string): Promise<boolean> {
   let areCredentialsValid = false
@@ -14,7 +13,7 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
     return false
   }
   if (!areCredentialsValid) return false
-  return isEmailAdmins(email)
+  return await isEmailAdmins(email)
 }
 
 async function login (email: string, password: string, cookies: Cookies) {
