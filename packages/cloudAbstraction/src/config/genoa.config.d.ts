@@ -1,6 +1,6 @@
 import type { Adapter as AuthorizationAdapter } from './services/authorization/index.d.ts'
 import type { Adapter as AuthenticationAdapter } from './services/authentication/index.d.ts'
-import type { Adapter as DatabaseAdapter, CollectionReference, Document } from './services/database/index.d'
+import type { DatabaseInit, DatabaseProvider } from './services/database/index.d'
 import type { BucketInit } from './services/storage/index.d'
 
 interface Config<AuthorizationExtension extends object = object,
@@ -15,7 +15,8 @@ interface Config<AuthorizationExtension extends object = object,
     adapter: Promise<typeof AuthenticationAdapter>
   } & AuthenticationExtension
   database: {
-    adapter: Promise<typeof DatabaseAdapter>
+    databases: DatabaseInit[]
+    providers: DatabaseProvider[]
   } & DatabaseExtension
   deployment: {
     adapterPath: string
@@ -24,8 +25,6 @@ interface Config<AuthorizationExtension extends object = object,
     buckets: BucketInit[]
     defaultBucket: string
   } & StorageExtension
-  collections: CollectionReference[]
-  testDocuments?: [Document, Document]
   [key: string]: any
 }
 
