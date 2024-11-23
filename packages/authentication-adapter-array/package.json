@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/authentication-adapter-array",
-  "version": "0.5.3",
+  "version": "0.7.1",
   "description": "Adapter for authentication using array of credential for genoacms",
   "main": "src/index.js",
   "type": "module",
@@ -17,6 +17,6 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.5.3"
+    "@genoacms/cloudabstraction": "^0.7.1"
   }
 }
