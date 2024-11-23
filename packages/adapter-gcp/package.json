@@ -1,6 +1,7 @@
 {
   "name": "@genoacms/adapter-gcp",
   "version": "0.7.1",
+  "type": "module",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
@@ -15,7 +16,9 @@
     "url": "https://github.com/GenoaCMS/adapter-gcp/issues"
   },
   "homepage": "https://github.com/GenoaCMS/adapter-gcp#readme",
-  "type": "module",
+  "publishConfig": {
+    "provenance": true
+  },
   "scripts": {
     "build": "rimraf dist && tsc",
     "test:all": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
