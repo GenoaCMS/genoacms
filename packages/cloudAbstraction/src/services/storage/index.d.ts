@@ -1,15 +1,16 @@
 import type { Adapter } from './adapter'
 
-interface Provider {
+interface StorageProvider {
   adapter: Promise<typeof Adapter>
 }
 
 interface BucketInit {
   name: string
-  provider: Provider
+  providerName: string
 }
 
 export type {
+  StorageProvider,
   BucketInit
 }
 export type {

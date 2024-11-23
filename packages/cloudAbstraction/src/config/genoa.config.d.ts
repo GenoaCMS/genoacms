@@ -22,8 +22,9 @@ interface Config<AuthorizationExtension extends object = object,
     adapterPath: string
   } & DeploymentExtension
   storage: {
-    buckets: BucketInit[]
     defaultBucket: string
+    buckets: BucketInit[]
+    providers: StorageProvider[]
   } & StorageExtension
   [key: string]: any
 }
