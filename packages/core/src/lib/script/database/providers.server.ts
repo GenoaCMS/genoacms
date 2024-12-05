@@ -47,7 +47,6 @@ const createDocument: Adapter['createDocument'] = async (reference, document) =>
 
 const getCollection: Adapter['getCollection'] = async (reference, queryParams) => {
   const adapter = await getAdapterByCollectionName(reference.name)
-  console.log('adapter', adapter)
   return await adapter.getCollection(reference, queryParams)
 }
 
