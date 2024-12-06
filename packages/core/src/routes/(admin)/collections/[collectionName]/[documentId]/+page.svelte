@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
+  import { superForm } from 'sveltekit-superforms'
   import { extractProperties } from '../utils'
   import { toastSuccess, toastError } from '$lib/script/alert'
   import TopPanel from '$lib/components/TopPanel.svelte'
@@ -10,6 +11,7 @@
 
   export let data
   const properties = extractProperties(data.document.reference.collection.schema.properties)
+  const { form } = superForm(data.form)
 
   const enhanceUpdate = () => {
     return ({ result }) => {
@@ -20,6 +22,7 @@
       toastSuccess('Document updated')
     }
   }
+  $: console.log(properties, data.document.reference.collection.schema, data.form)
 </script>
 
 <TopPanel>
@@ -35,11 +38,12 @@
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} class="p-3">
   {#each properties as property}
+    {@const type = data.document.reference.collection.schema.properties[property.name]}
     <Label>
       {property.name}:
       <Input name={property.name}
-        type={property.format || property.type}
-        value={data.document.data[property.name]}/>
+        schema={type}
+        value={$form[property.name]}/>
     </Label>
   {/each}
 </form>
