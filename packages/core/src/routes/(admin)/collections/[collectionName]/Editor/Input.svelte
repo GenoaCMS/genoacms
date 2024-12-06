@@ -32,4 +32,11 @@
   <StorageResources {name} resources={value}/>
 {:else if type === 'reference'}
     <Input {name} type="text" bind:value/>
+{:else if type === 'array'}
+  {#each value || [] as item, index}
+    <svelte:self name={index} type="text" value={item}/>
+  {/each}
+  {name}
+  {type}
+  {value}
 {/if}

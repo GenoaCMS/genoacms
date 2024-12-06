@@ -37,7 +37,9 @@
   {#each properties as property}
     <Label>
       {property.name}:
-      <Input name={property.name} type={property.format || property.type} value={data.document.data[property.name]}/>
+      <Input name={property.name}
+        type={property.format || property.type}
+        value={data.document.data[property.name]}/>
     </Label>
   {/each}
 </form>

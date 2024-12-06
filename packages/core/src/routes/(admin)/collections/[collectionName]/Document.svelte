@@ -6,6 +6,7 @@
   export let data
   const schema = reference.collection.schema
   const properties = extractProperties(schema.properties)
+  console.log(properties, data)
 </script>
 
 <a href="{reference.collection.name}/{reference.id}">
@@ -13,7 +14,7 @@
     {#each properties as property}
       <div class="flex-grow w-full text-center py-2 border-b-2 border-light">
         {#if property.type === 'array'}
-          {data[property.name].length} items
+          {(data[property.name] || []).length} items
         {:else}
           {data[property.name] || ''}
         {/if}
