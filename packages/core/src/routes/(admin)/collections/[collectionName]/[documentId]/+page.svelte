@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { superForm } from 'sveltekit-superforms'
   import { extractProperties } from '../utils'
   import { toastSuccess, toastError } from '$lib/script/alert'
@@ -11,18 +10,14 @@
 
   export let data
   const properties = extractProperties(data.document.reference.collection.schema.properties)
-  const { form } = superForm(data.form)
-
-  const enhanceUpdate = () => {
-    return ({ result }) => {
-      if (result.type !== 'success') {
-        toastError('Document update failed')
-        return
-      }
-      toastSuccess('Document updated')
+  const { form, enhance } = superForm(data.form, {
+    dataType: 'json',
+    onUpdate ({ form }) {
+      if (!form.message) return
+      if (form.message.status === 'success') toastSuccess(form.message.text)
+      else toastError(form.message.text)
     }
-  }
-  $: console.log(properties, data.document.reference.collection.schema, data.form)
+  })
 </script>
 
 <TopPanel>
@@ -36,14 +31,14 @@
   </svelte:fragment>
 </TopPanel>
 
-<form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} class="p-3">
+<form id="update-form" action="?/update" method="post" use:enhance class="p-3">
   {#each properties as property}
     {@const type = data.document.reference.collection.schema.properties[property.name]}
     <Label>
       {property.name}:
       <Input name={property.name}
         schema={type}
-        value={$form[property.name]}/>
+        bind:value={$form[property.name]}/>
     </Label>
   {/each}
 </form>

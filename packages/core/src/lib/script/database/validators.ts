@@ -49,7 +49,7 @@ const formats = {
   markdown: (markdown: string) => {
     return true
   },
-  storageResources: (resources: Array<{ bucket: string, name: string }>) => {
+  storageResource: (resource: { bucket: string, name: string }) => {
     return true
   },
   text: (text: string) => {

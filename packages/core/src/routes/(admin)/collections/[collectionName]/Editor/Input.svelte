@@ -1,41 +1,26 @@
 <script lang="ts">
-  import MonacoEditor from '$lib/components/MonacoEditor.svelte'
-  import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
-  import { Button, ButtonGroup, Checkbox, Input, InputAddon, Textarea } from 'flowbite-svelte'
+  import type { JSONSchemaType } from 'ajv'
+  import { Checkbox, Input, Textarea } from 'flowbite-svelte'
   import StorageResources from './StorageResource/StorageResources.svelte'
+  import UuidInput from './UUIDInput.svelte'
+  import MarkdownInput from './MarkdownInput.svelte'
+  import ArrayInput from './ArrayInput.svelte'
+  import ObjectInput from './ObjectInput.svelte'
+  import Const from './Const.svelte'
 
+  type Arr = string | number | boolean | object
+  type T = string | number | boolean | Array<Arr>
   export let name: string
-  export let schema: JSONSchemaType<any>
-  export let value: undefined | string | number | boolean | Array<string>
-
-  function generateUUID () {
-    value = crypto.randomUUID()
-  }
-  function addItem () {
-    value = [...(value || []), '']
-  }
+  export let schema: JSONSchemaType<T>
+  export let value: undefined & T
 </script>
 
-<!-- TODO: Array<any>, Object  -->
 {#if schema.type === 'string' && schema.format === 'uuid'}
-    <ButtonGroup class="w-full">
-      <InputAddon>
-          <button type="button" on:click={generateUUID}><i class="bi bi-dice-5-fill"></i></button>
-      </InputAddon>
-      <Input {name} bind:value/>
-    </ButtonGroup>
+  <UuidInput {name} bind:value/>
 {:else if schema.type === 'string' && schema.format === 'text'}
-    <Textarea {name} bind:value/>
+  <Textarea {name} bind:value/>
 {:else if schema.type === 'string' && schema.format === 'markdown'}
-    <input type="hidden" {name} bind:value/>
-    <div class="w-full min-h-[15rem] flex border">
-      <div class="w-1/2">
-        <MonacoEditor bind:value/>
-      </div>
-      <div class="w-1/2">
-        <MarkdownViewer markdown={value}/>
-      </div>
-    </div>
+  <MarkdownInput {name} bind:value/>
 {:else if schema.type === 'string' && schema.format === 'reference'}
     <Input {name} type="text" bind:value/>
 {:else if schema.type === 'string'}
@@ -44,15 +29,14 @@
     <Input {name} type="number" bind:value/>
 {:else if schema.type === 'boolean'}
     <Checkbox {name} bind:checked={value}/>
-{:else if schema.type === 'array' && schema.format === 'storageResources'}
+{:else if schema.type === 'array' &&
+  schema.items === 'string' &&
+  schema.items.format === 'storageResource'}
     <StorageResources {name} resources={value}/>
 {:else if schema.type === 'array'}
-  {#each value || [] as item}
-    <div class="mt-1">
-      <svelte:self name="{name}" schema={schema.items} value={item}/>
-    </div>
-  {/each}
-  <div class="w-full flex mt-3">
-    <Button on:click={addItem} class="ms-auto" color="blue"><i class="bi bi-plus text-lg"></i></Button>
-  </div>
+  <ArrayInput {name} {schema} bind:value/>
+{:else if schema.type === 'object'}
+  <ObjectInput {name} {schema} bind:value/>
+{:else if schema.const}
+  <Const {name} constValue={schema.const} bind:value/>
 {/if}

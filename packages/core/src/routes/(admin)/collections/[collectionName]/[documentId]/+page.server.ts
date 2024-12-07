@@ -1,6 +1,6 @@
-import { fail, redirect } from '@sveltejs/kit'
+import { redirect } from '@sveltejs/kit'
 import { deleteDocument, getCollectionReference, getDocument, updateDocument } from '$lib/script/database/database.server'
-import { superValidate } from 'sveltekit-superforms'
+import { message, superValidate } from 'sveltekit-superforms'
 import { schemasafe } from 'sveltekit-superforms/adapters'
 import { formats } from '$lib/script/database/validators'
 
@@ -22,9 +22,10 @@ const update = async ({ params, request }) => {
   const validator = schemasafe(collection.schema, { config: { formats } })
   const form = await superValidate(request, validator)
 
-  if (!form.valid) return fail(1)
+  if (!form.valid) return message(form, { status: 'fail', text: 'Failed to update a document' })
   const documentData = form.data
   await updateDocument({ collection, id: documentId }, documentData)
+  return message(form, { status: 'success', text: 'Document updated' })
 }
 
 async function deleteDoc ({ params }) {

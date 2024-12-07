@@ -6,7 +6,6 @@
   export let data
   const schema = reference.collection.schema
   const properties = extractProperties(schema.properties)
-  console.log(properties, data)
 </script>
 
 <a href="{reference.collection.name}/{reference.id}">

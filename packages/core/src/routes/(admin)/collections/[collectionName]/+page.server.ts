@@ -1,6 +1,5 @@
-import { fail } from '@sveltejs/kit'
 import { getCollectionReference, getCollection, createDocument } from '$lib/script/database/database.server'
-import { superValidate } from 'sveltekit-superforms'
+import { message, superValidate } from 'sveltekit-superforms'
 import { schemasafe } from 'sveltekit-superforms/adapters'
 import { formats } from '$lib/script/database/validators'
 
@@ -26,7 +25,8 @@ export const actions = {
     const validator = schemasafe(collectionReference.schema, { config: { formats } })
     const form = await superValidate(request, validator)
 
-    if (!form.valid) return fail(1)
+    if (!form.valid) return message(form, { status: 'fail', text: 'Failed to create a document' })
     createDocument(collectionReference, form.data)
+    return message(form, { status: 'success', text: 'Document created' })
   }
 }

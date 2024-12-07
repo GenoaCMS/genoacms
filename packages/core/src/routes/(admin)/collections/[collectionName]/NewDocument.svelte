@@ -3,30 +3,24 @@
     import { Button, Label, Modal } from 'flowbite-svelte'
     import Input from './Editor/Input.svelte'
     import { extractProperties } from './utils'
-    import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
-    import { enhance } from '$app/forms'
-    import { invalidateAll } from '$app/navigation'
+    import { toastError, toastSuccess } from '$lib/script/alert'
     import { superForm } from 'sveltekit-superforms'
 
     export let collectionReference
     const properties = extractProperties(collectionReference.schema.properties)
-    const { form } = superForm($page.data.form)
+    const { form, enhance } = superForm($page.data.form, {
+      dataType: 'json',
+      invalidateAll: 'force',
+      onUpdate ({ form }) {
+        if (!form.message) return
+        if (form.message.status === 'success') toastSuccess(form.message.text)
+        else toastError(form.message.text)
+        isModalOpen = false
+      }
+    })
     let isModalOpen = false
     function toggleModal () {
       isModalOpen = !isModalOpen
-    }
-    function enhanceCreation () {
-      const alert = alertPending('Creating')
-      return async function ({ result }) {
-        alert.close()
-        if (result.type !== 'success') {
-          toastError('Failed to create document')
-          return
-        }
-        isModalOpen = false
-        toastSuccess('Document created')
-        invalidateAll()
-      }
     }
 </script>
 
@@ -35,8 +29,8 @@
 </button>
 
 <Modal open={isModalOpen} title="New document">
-  <form action="?/createDocument" method="post" use:enhance={enhanceCreation} class="p-3">
-    {#each properties as property}
+  <form action="?/createDocument" method="post" use:enhance class="p-3">
+    {#each properties as property (collectionReference.schema.properties[property.name])}
       {@const type = collectionReference.schema.properties[property.name]}
       <Label>
         {property.name}:
