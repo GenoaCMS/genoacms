@@ -2,6 +2,7 @@
   import type { JSONSchemaType } from 'ajv'
   import { Checkbox, Input, Textarea } from 'flowbite-svelte'
   import StorageResources from './StorageResource/StorageResources.svelte'
+  import StorageResource from './StorageResource/StorageResource.svelte'
   import UuidInput from './UUIDInput.svelte'
   import MarkdownInput from './MarkdownInput.svelte'
   import ArrayInput from './ArrayInput.svelte'
@@ -10,9 +11,12 @@
 
   type Arr = string | number | boolean | object
   type T = string | number | boolean | Array<Arr>
-  export let name: string
-  export let schema: JSONSchemaType<T>
-  export let value: undefined & T
+  type Props = {
+    name: string
+    schema: JSONSchemaType<T>
+    value: T
+  }
+  let { name, schema, value = $bindable() }: Props = $props()
 </script>
 
 {#if schema.type === 'string' && schema.format === 'uuid'}
@@ -30,9 +34,12 @@
 {:else if schema.type === 'boolean'}
     <Checkbox {name} bind:checked={value}/>
 {:else if schema.type === 'array' &&
-  schema.items === 'string' &&
-  schema.items.format === 'storageResource'}
-    <StorageResources {name} resources={value}/>
+  schema.items.type === 'object' &&
+  schema.items.title === 'storageResource'}
+    <StorageResources {name} bind:resources={value}/>
+{:else if schema.type === 'object' &&
+  schema.title === 'storageResource'}
+    <StorageResource {name} bind:resource={value}/>
 {:else if schema.type === 'array'}
   <ArrayInput {name} {schema} bind:value/>
 {:else if schema.type === 'object'}

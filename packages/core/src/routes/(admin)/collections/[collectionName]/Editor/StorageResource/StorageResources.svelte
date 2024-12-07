@@ -5,14 +5,19 @@
   import { ITC } from '$lib/script/utils'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
+  //type Props = {
+  //  name: string
+  //  resources: Array<ObjectReference>
+  //}
+  //let { name = '', resources = $bindable([]) }: Props = $props()
   export let name: string
-  export let resources: Array<ObjectReference> = []
+  export let resources: Array<ObjectReference>
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
-  function deleteResource (event: CustomEvent<ObjectReference>) {
-    const resource = event.detail
+  function deleteResource (resource: ObjectReference) {
     resources = resources.filter(r => r !== resource)
+    resources = [...resources]
   }
   function clearResources () {
     resources = []
@@ -40,12 +45,12 @@
 
 <input type="hidden" {name} value={JSON.stringify(resources)}>
 <div class="flex flex-col border p-2">
-  {#each resources as reference (reference)}
-    <StorageObject {reference} on:delete={deleteResource}/>
+  {#each resources as resource, index (resources, index)}
+    <StorageObject {resource} {deleteResource}/>
   {:else}
     <div class="text-center text-xl w-auto m-auto pb-3 pt-2">
       No files selected yet
     </div>
   {/each}
-  <EditSelection {selectionId} on:clear={clearResources}/>
+  <EditSelection {selectionId} clear={clearResources}/>
 </div>
