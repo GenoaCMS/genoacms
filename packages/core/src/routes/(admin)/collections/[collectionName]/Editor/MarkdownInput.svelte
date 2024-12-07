@@ -2,8 +2,11 @@
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
 
-  export let name: string
-  export let value: string
+  type Props = {
+    name: string
+    value: string
+  }
+  let { name, value = $bindable('') }: Props = $props()
 </script>
 
 <input type="hidden" {name} bind:value/>

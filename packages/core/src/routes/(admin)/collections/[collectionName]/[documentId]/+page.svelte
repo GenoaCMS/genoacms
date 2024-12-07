@@ -8,8 +8,8 @@
   import Delete from './Delete.svelte'
   import Update from './Update.svelte'
 
-  export let data
-  const properties = extractProperties(data.document.reference.collection.schema.properties)
+  const { data } = $props()
+  const properties = $derived(extractProperties(data.document.reference.collection.schema.properties))
   const { form, enhance } = superForm(data.form, {
     dataType: 'json',
     onUpdate ({ form }) {
