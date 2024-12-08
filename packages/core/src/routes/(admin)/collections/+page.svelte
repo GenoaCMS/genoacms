@@ -2,7 +2,7 @@
     import CardLink from '$lib/components/CardLink.svelte'
     import TopPanel from '$lib/components/TopPanel.svelte'
 
-    export let data
+    const { data } = $props()
 </script>
 
 <TopPanel>

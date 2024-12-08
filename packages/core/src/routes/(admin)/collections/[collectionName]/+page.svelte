@@ -3,6 +3,7 @@
     import Header from './Header.svelte'
     import TopPanel from '$lib/components/TopPanel.svelte'
     import NewDocument from './NewDocument.svelte'
+    import ConfirmSelection from './ConfirmSelection.svelte'
 
     export let data
 </script>
@@ -11,6 +12,7 @@
     Collection: {data.collectionReference.name}
   </h1>
   <svelte:fragment slot="right">
+    <ConfirmSelection />
     <NewDocument collectionReference={data.collectionReference}/>
   </svelte:fragment>
 </TopPanel>

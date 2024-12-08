@@ -1,25 +1,25 @@
 import { writable, type Readable } from 'svelte/store'
 import { ITC } from '$lib/script/utils'
-import Selection, { type SelectionParameters } from './Selection'
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import Selection, { type SelectionParameters } from '$lib/script/storage/Selection'
 
+type DocumentReference = Array<string | number | object>
 interface SelectionInitData {
   parameters: SelectionParameters,
-  defaultValue: Array<ObjectReference> | undefined
+  defaultValue: Array<ObjectReference> | DocumentReference | undefined
 }
 
-type SelectionStoreT = Readable<Selection<ObjectReference>> & {
+type SelectionStoreT<T> = Readable<Selection<T>> & {
   submit: () => Promise<void>,
-  select: (reference: ObjectReference) => void,
+  select: (reference: T) => void,
   isSelecting: boolean
 }
 
-function SelectionStore (selectionId: string): SelectionStoreT {
+function SelectionStore <T> (selectionId: string): SelectionStoreT<T> {
   const itc = new ITC(selectionId)
   const selection = new Selection()
   const { subscribe, set } = writable(selection)
 
-  function select (reference: ObjectReference) {
+  function select (reference: T) {
     selection.select(reference)
     set(selection)
   }
