@@ -36,10 +36,10 @@
 {:else if schema.type === 'array' &&
   schema.items.type === 'object' &&
   schema.items.title === 'storageResource'}
-    <StorageResources {name} bind:resources={value}/>
+    <StorageResources {name} bind:value/>
 {:else if schema.type === 'object' &&
   schema.title === 'storageResource'}
-    <StorageResource {name} bind:resource={value}/>
+    <StorageResource {name} bind:value/>
 {:else if schema.type === 'array'}
   <ArrayInput {name} {schema} bind:value/>
 {:else if schema.type === 'object'}

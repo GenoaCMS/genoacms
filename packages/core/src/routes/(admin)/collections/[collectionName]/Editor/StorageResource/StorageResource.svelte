@@ -5,13 +5,18 @@
   import { ITC } from '$lib/script/utils'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
-  export let name: string
-  export let resource: ObjectReference | undefined
+  type Props = {
+    name: string
+    value: ObjectReference | undefined
+  }
+  let { name = '', value = $bindable() }: Props = $props()
+  let resource: ObjectReference | undefined = $state(value)
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
   function deleteResource () {
     resource = undefined
+    value = resource
   }
 
   itc.on('selectionInit', async () => {
@@ -20,13 +25,14 @@
     }
     const selectionInitData = {
       parameters,
-      defaultValue: resource ? [resource] : []
+      defaultValue: resource ? [$state.snapshot(resource)] : []
     }
     itc.send('selectionInitData', selectionInitData)
     const selection = await itc.once('selectionDone') as Array<ObjectReference>
     itc.send('selectionKill')
     if (selection.length < 1) return
     resource = selection[0]
+    value = resource
   })
 
   onDestroy(() => {
