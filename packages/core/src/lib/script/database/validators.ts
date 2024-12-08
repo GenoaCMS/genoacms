@@ -49,7 +49,11 @@ const formats = {
   markdown: (markdown: string) => {
     return true
   },
-  storageResource: (resource: { bucket: string, name: string }) => {
+  storageResource: (resource: any): resource is { bucket: string, name: string } => {
+    if (!resource) return false
+    if (typeof resource !== 'object') return false
+    if (!resource.bucket) return false
+    if (!resource.name) return false
     return true
   },
   text: (text: string) => {
