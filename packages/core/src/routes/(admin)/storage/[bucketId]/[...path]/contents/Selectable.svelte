@@ -4,22 +4,24 @@
     import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
     import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
-    export let name
-    let reference: ObjectReference
-    const selection: SelectionStoreT = getContext('selection')
-    const select = () => {
-      selection.select(reference)
+    type Props = {
+      name: string
     }
-
-    $: reference = {
+    export const { name }: Props = $props()
+    const reference: ObjectReference = $derived({
       bucket: $page.params.bucketId,
       name
+    })
+    const selection: SelectionStoreT = getContext('selection')
+    const canSelect = $derived($selection.canSelect)
+    const isSelected = $derived($selection.isSelected(reference))
+
+    function select () {
+      selection.select(reference)
     }
-    $: canSelect = $selection.canSelect
-    $: isSelected = $selection.isSelected(reference)
 </script>
 
-<div class="w-auto h-auto relative">
+<div class="w-auto h-auto relative z-[1]">
     <slot/>
     {#if canSelect || isSelected}
         <button on:click={select} class="absolute top-0 start-0 p-2">

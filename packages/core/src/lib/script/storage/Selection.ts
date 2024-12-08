@@ -10,11 +10,14 @@ class Selection <T extends ObjectReference> {
     maxItems: 0
   }
 
+  #hasInitialized: boolean = false
+
   setParameters (parameters: SelectionParameters) {
     this.#parameters = {
       ...this.#parameters,
       ...parameters
     }
+    this.#hasInitialized = true
   }
 
   get value (): Array<T> {
@@ -28,6 +31,7 @@ class Selection <T extends ObjectReference> {
   }
 
   get canSelect () {
+    if (!this.#hasInitialized) return false
     if (!this.#parameters.maxItems) return true
     return this.#selectionSet.size < this.#parameters.maxItems
   }

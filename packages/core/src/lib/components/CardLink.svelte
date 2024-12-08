@@ -1,18 +1,22 @@
 <script lang="ts">
-    import CardLinkContents from '$lib/components/CardLinkContents.svelte'
+  import CardLinkContents from '$lib/components/CardLinkContents.svelte'
 
-    export let icon: string
-    export let text: string
-    export let href: string = ''
+  type Props = {
+    icon: string
+    text: string
+    href?: string,
+    oncontextmenu?: (event: MouseEvent) => void,
+    onclick?: (event: MouseEvent) => void
+  }
+  const { icon, text, href = '', oncontextmenu, onclick, ...rest }: Props = $props()
 </script>
 
 {#if href}
-    <a {href} on:contextmenu|preventDefault|stopPropagation {...$$restProps}>
+    <a {href} {onclick} {oncontextmenu} {...rest}>
         <CardLinkContents {icon} {text} />
     </a>
 {:else}
-    <button type="button" on:click on:contextmenu|preventDefault|stopPropagation {...$$restProps}>
+    <button type="button" {onclick} {oncontextmenu} {...rest}>
         <CardLinkContents {icon} {text} />
     </button>
 {/if}
-

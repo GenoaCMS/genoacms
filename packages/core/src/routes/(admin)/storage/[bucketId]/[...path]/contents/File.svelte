@@ -7,13 +7,16 @@
   import { invalidateAll } from '$app/navigation'
   import Selectable from './Selectable.svelte'
 
-  export let name: string
-  export let signedURL: string
-  let contextMenuEvent: MouseEvent | null = null
-  const openContextMenu = (event) => {
+  type Props = {
+    name: string
+    signedURL: string
+  }
+  const { name, signedURL }: Props = $props()
+  let contextMenuEvent: MouseEvent | null = $state(null)
+  function openContextMenu (event) {
     contextMenuEvent = event
   }
-  const enhanceDeletion = () => {
+  function enhanceDeletion () {
     const alert = alertPending('Deleting file')
     return async ({ result }) => {
       alert.close()
@@ -37,5 +40,5 @@
 </ContextMenu>
 
 <Selectable {name}>
-    <CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" on:contextmenu={openContextMenu}/>
+    <CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" oncontextmenu={openContextMenu}/>
 </Selectable>

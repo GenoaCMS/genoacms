@@ -8,7 +8,7 @@
   import ConfirmSelection from './ConfirmSelection.svelte'
   import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
 
-  export let data
+  const { data } = $props()
   const selection: SelectionStoreT = getContext('selection')
 </script>
 

@@ -2,10 +2,13 @@
   import CardLink from '$lib/components/CardLink.svelte'
   import { page } from '$app/stores'
 
-  export let bucketId: string
-  export let path: string
-  export let name: string
-  $: searchParams = '?' + $page.url.searchParams.toString() || ''
+  type Props = {
+    bucketId: string,
+    path: string,
+    name: string
+  }
+  const { bucketId, path, name }: Props = $props()
+  const searchParams = $derived('?' + $page.url.searchParams.toString() || '')
 </script>
 
 <CardLink text={name || path} href="/storage/{bucketId}/{path}/contents{searchParams}" icon="folder"/>

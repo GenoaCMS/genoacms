@@ -3,8 +3,8 @@
     import TopPanel from '$lib/components/TopPanel.svelte'
     import { page } from '$app/stores'
 
-    export let data
-    $: searchParams = '?' + $page.url.searchParams.toString() || ''
+    const { data } = $props()
+    const searchParams = $derived('?' + $page.url.searchParams.toString() || '')
 </script>
 
 <TopPanel>
