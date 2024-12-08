@@ -45,7 +45,7 @@
 </script>
 
 <input type="hidden" {name} value={JSON.stringify(resources)}>
-<div class="flex flex-col border p-2">
+<div class="flex flex-col">
   {#each resources as resource, index (resources, index)}
     <StorageObject {resource} {deleteResource}/>
   {:else}

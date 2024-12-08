@@ -6,7 +6,7 @@
     name: string
     value: string
   }
-  let { name, value = $bindable('') }: Props = $props()
+  let { name, value = $bindable() }: Props = $props()
 </script>
 
 <input type="hidden" {name} bind:value/>

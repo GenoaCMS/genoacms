@@ -5,7 +5,7 @@
     name: string
     value: string
   }
-  let { name, value = $bindable('') }: Props = $props()
+  let { name, value = $bindable() }: Props = $props()
 
   function generateUUID () {
     value = crypto.randomUUID()

@@ -8,6 +8,8 @@
   import ArrayInput from './ArrayInput.svelte'
   import ObjectInput from './ObjectInput.svelte'
   import Const from './Const.svelte'
+  import Reference from './Reference/Reference.svelte'
+  import References from './Reference/References.svelte'
 
   type Arr = string | number | boolean | object
   type T = string | number | boolean | Array<Arr>
@@ -19,7 +21,9 @@
   let { name, schema, value = $bindable() }: Props = $props()
 </script>
 
-{#if schema.type === 'string' && schema.format === 'uuid'}
+{#if schema.title === 'reference'}
+  <Reference {name} {schema} bind:value/>
+{:else if schema.type === 'string' && schema.format === 'uuid'}
   <UuidInput {name} bind:value/>
 {:else if schema.type === 'string' && schema.format === 'text'}
   <Textarea {name} bind:value/>
@@ -33,6 +37,9 @@
     <Input {name} type="number" bind:value/>
 {:else if schema.type === 'boolean'}
     <Checkbox {name} bind:checked={value}/>
+{:else if schema.type === 'array' &&
+  schema.items.title === 'reference'}
+  <References {name} schema={schema.items} bind:value/>
 {:else if schema.type === 'array' &&
   schema.items.type === 'object' &&
   schema.items.title === 'storageResource'}
