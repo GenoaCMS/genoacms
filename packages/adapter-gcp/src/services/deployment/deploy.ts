@@ -30,7 +30,7 @@ async function createZip (source: string, injectPaths: string[], ignorePaths: st
     })
 
     archive.pipe(output)
-    archive.glob(source, { ignore: ignorePaths })
+    archive.glob(source, { ignore: ignorePaths, follow: true })
     for (const path of injectPaths) {
       archive.file(path, { name: basename(path) })
     }
@@ -100,17 +100,20 @@ async function deployFunction (functionName: string, storageSource: IStorageSour
 
 async function deploy (): Promise<void> {
   const buildDirectoryPath = '**'
-  const buildArchivePath = resolve(currentDir, '../../../deployment/build.zip')
+  const buildArchivePath = resolve(currentDir, '../../../../../../.genoacms/build.zip')
   const functionEntryScriptPath = resolve(currentDir, '../../../deployment/snippets/index.js')
+  const builderScriptPath = resolve(currentDir, '../../../deployment/snippets/build.js')
   const ignoreArchivePaths = [
     'node_modules/**',
     '.git/**',
     '.github/**',
     '.gitignore',
+    '.genoacms/**',
     'build/**'
   ]
   const injectArchivePaths = [
-    functionEntryScriptPath
+    functionEntryScriptPath,
+    builderScriptPath
   ]
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const functionStorageSource = await uploadSource(buildArchivePath)

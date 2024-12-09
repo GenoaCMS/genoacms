@@ -1,4 +1,4 @@
-import { handler } from './build/handler.js'
+import { handler } from './node_modules/@genoacms/core/build/index.js'
 
 function genoacms (req, res) {
   handler(req, res, undefined)
