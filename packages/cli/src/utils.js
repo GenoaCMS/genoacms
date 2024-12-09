@@ -1,14 +1,15 @@
 import { rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 
-async function copyConfig () {
-  const configPath = join(process.cwd(), 'genoa.config')
-  const symlinkPath = join(process.cwd(), 'node_modules/@genoacms/core/genoa.config')
+async function copyBuild () {
+  const buildPath = join(process.cwd(), 'node_modules/@genoacms/core/build')
+  const symlinkPath = join(process.cwd(), '.genoacms/build')
 
   await rm(symlinkPath, { recursive: true, force: true })
-  await symlink(configPath, symlinkPath)
+  await symlink(buildPath, symlinkPath)
 }
 
 export {
-  copyConfig
+  copyConfig,
+  copyBuild
 }
