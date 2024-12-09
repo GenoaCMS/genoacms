@@ -6,3 +6,4 @@ import { configPath } from './paths.js'
 const config = (await import(configPath)).default
 
 export default config
+export { storageResource, reference } from './schemas.js'
