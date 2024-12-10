@@ -10,13 +10,12 @@
     schema: JSONSchemaType<T>
     value: T
   }
-  const { name, schema, value = $bindable() }: Props = $props()
+  let { name, schema, value = $bindable() }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
-  let v = $state(value || {})
+  const v = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
   const objectSchema = $derived(discriminator ? schema.oneOf[selectedSchema] : schema)
   const properties = $derived(extractProperties(objectSchema.properties))
-
 
   function selectSchema (index: number) {
     selectedSchema = index
@@ -28,6 +27,7 @@
     const index = schema.oneOf.findIndex((item) => item.properties[discriminator].const === valueDiscriminator)
     return index === -1 ? 0 : index
   }
+  $effect(() => value = v)
 </script>
 
 <Card class="w-full" size="none">

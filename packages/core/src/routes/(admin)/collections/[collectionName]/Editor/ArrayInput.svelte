@@ -4,23 +4,27 @@
   import Input from './Input.svelte'
 
   type T = undefined | string | number | boolean | object
-  export let name: string
-  export let schema: JSONSchemaType<T>
-  export let value: Array<T> = []
+  type Props = {
+    name: string
+    schema: JSONSchemaType<T>
+    value?: Array<T>
+  }
+  let { name, schema, value = $bindable() }: Props = $props()
+  const items: Array<T> = $state(value || [])
 
   function addItem () {
-    value = [...value, undefined]
+    items.push(undefined)
   }
   function deleteItem (index: number) {
-    value.splice(index, 1)
-    value = [...value]
+    items.splice(index, 1)
   }
+  $effect(() => value = items)
 </script>
 
-{#each value as item, index}
+{#each items as item, index (item, crypto.randomUUID())}
   <div class="flex mt-1">
     <div class="flex-grow">
-      <Input {name} schema={schema.items} bind:value={item}/>
+      <Input {name} schema={schema.items} bind:value={items[index]}/>
     </div>
     <div class="w-auto">
       <Button on:click={() => deleteItem(index)} color="red">
@@ -29,6 +33,7 @@
     </div>
   </div>
 {/each}
+
 <div class="w-full flex mt-3">
   <div class="ms-auto">
     <Button on:click={addItem} color="blue">
