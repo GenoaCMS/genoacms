@@ -10,6 +10,5 @@ async function copyBuild () {
 }
 
 export {
-  copyConfig,
   copyBuild
 }
