@@ -47,7 +47,7 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
-    prefix: join(name, '/'),
+    prefix: name ? join(name, '/') : '',
     maxResults: listingParams?.limit,
     startOffset: listingParams?.startAfter,
     delimiter: '/'
