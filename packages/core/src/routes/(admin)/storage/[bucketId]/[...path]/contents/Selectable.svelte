@@ -5,12 +5,13 @@
     import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
     type Props = {
-      name: string
+      name: string,
+      path: string
     }
-    export const { name }: Props = $props()
+    export const { name, path }: Props = $props()
     const reference: ObjectReference = $derived({
       bucket: $page.params.bucketId,
-      name
+      name: `${path}${name}`
     })
     const selection: SelectionStoreT = getContext('selection')
     const canSelect = $derived($selection.canSelect)

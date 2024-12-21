@@ -6,6 +6,7 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
   import Selectable from './Selectable.svelte'
+  import { page } from '$app/stores'
 
   type Props = {
     name: string
@@ -39,6 +40,6 @@
     </form>
 </ContextMenu>
 
-<Selectable {name}>
+<Selectable {name} path={$page.data.path}>
     <CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" oncontextmenu={openContextMenu}/>
 </Selectable>
