@@ -94,14 +94,14 @@ type Attribute<T extends AttributeType = AttributeType> =
                   T extends ComponentsAttributeType ? ComponentsAttribute :
                     never
 
-type PrebuiltComponentReference = string
+type ComponentEntryReference = string
 
 type ComponentEntryAttributes = Record<AttributeReference, Attribute>
 
 type AttributesChange = Array<Diff<ComponentEntryAttributes>>
 
 interface ComponentEntry {
-  uid: PrebuiltComponentReference,
+  uid: ComponentEntryReference,
   name: string,
   attributes: ComponentEntryAttributes,
   history: Array<AttributesChange>,
@@ -132,6 +132,6 @@ export type {
   ComponentsAttribute,
   Attribute,
   ComponentEntryAttributes,
-  PrebuiltComponentReference,
+  ComponentEntryReference,
   ComponentEntry
 }

@@ -3,7 +3,7 @@ import type {
   AttributeType,
   ComponentEntry,
   ComponentsAttributeType,
-  PrebuiltComponentReference
+  ComponentEntryReference
 } from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getPrebuiltComponentEntry } from '$lib/script/components/componentEntry/component.server'
@@ -76,7 +76,7 @@ const componentSchemaToNode = async (entry: ComponentEntry): Promise<ComponentNo
 
 const createPageEntry = async (values: {
   name: string,
-  componentUID: PrebuiltComponentReference
+  componentUID: ComponentEntryReference
 }): Promise<PageEntry> => {
   const component = await getPrebuiltComponentEntry(values.componentUID)
   if (!component) throw new Error('no-component')
