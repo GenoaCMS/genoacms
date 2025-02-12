@@ -5,7 +5,7 @@ import type {
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
-import { parse as parseFlatted } from 'flatted'
+import { parse as parseFlatted, stringify as stringifyFlatted } from 'flatted'
 import {
   createDirectory,
   deleteObject,
@@ -33,7 +33,7 @@ const isDirectoryExisting = (directory: DirectoryContents) => {
   return directory.directories.length > 0 || directory.files.length > 0
 }
 
-const listOrCreateDirectory = async (reference: ObjectReference) => {
+const listOrCreateDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
   const componentList = await listDirectory(reference)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
@@ -54,6 +54,13 @@ const getObjectJSON = async (reference: ObjectReference) => {
 const getObjectFlatted = async (reference: ObjectReference) => {
   const text = await getObjectString(reference)
   return parseFlatted(text)
+}
+const getInternalObjectFlatted = async (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
+const uploadInternalObjectFlatted = async (path: string, data: any) => {
+  await uploadObject({
+    bucket: defaultBucketId,
+    name: path
+  }, stringifyFlatted(data))
 }
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
@@ -112,5 +119,7 @@ export {
   listOrCreateDirectory,
   getObjectJSON,
   getObjectFlatted,
+  getInternalObjectFlatted,
+  uploadInternalObjectFlatted,
   processDirectoryContents
 }
