@@ -10,6 +10,10 @@ interface ComponentCreation {
   name: string,
 }
 
+interface ComponentDeletion extends ComponentCreation {
+  entryId: ComponentEntryReference
+}
+
 interface ComponentDefinition {
   uid: ComponentDefinitionReference,
   language: ComponentLanguage,
@@ -26,6 +30,7 @@ interface Component extends ComponentCreation {
 
 export type {
   ComponentCreation,
+  ComponentDeletion,
   ComponentDefinitionReference,
   ComponentCode,
   ComponentLanguage,

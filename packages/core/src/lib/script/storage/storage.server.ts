@@ -22,7 +22,7 @@ const getBucketReferences = () => {
 
 const defaultBucketId = config.storage.defaultBucket
 
-const fullyQualifiedNameToFilename = (name: string) => {
+const fullyQualifiedNameToFilename = (name: string): string => {
   if (name[name.length - 1] === '/') name = name.slice(0, -1)
 
   const lastIndexOfSlash = name.lastIndexOf('/')
@@ -105,6 +105,14 @@ const processDirectoryContents = async (bucketId: string, contents: DirectoryCon
   }
 }
 
+const deleteInternalObject = async (path: string) => {
+  const reference: ObjectReference = {
+    bucket: defaultBucketId,
+    name: path
+  }
+  await deleteObject(reference)
+}
+
 export {
   getBucketReferences,
   defaultBucketId,
@@ -121,5 +129,6 @@ export {
   getObjectFlatted,
   getInternalObjectFlatted,
   uploadInternalObjectFlatted,
-  processDirectoryContents
+  processDirectoryContents,
+  deleteInternalObject
 }

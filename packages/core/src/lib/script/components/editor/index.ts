@@ -1,17 +1,19 @@
-import type { Component, ComponentDefinition } from './types'
+import type { Component, ComponentDefinition, ComponentDefinitionReference } from './types'
 import type { ComponentEntry, ComponentEntryReference } from '../componentEntry/component/types'
 import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
 
 import { join } from 'path'
-import { uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
+import { deletePrebuiltComponentEntry, uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
 import {
   listOrCreateDirectory,
   defaultBucketId,
   uploadInternalObjectFlatted,
-  getInternalObjectFlatted
+  getInternalObjectFlatted,
+  fullyQualifiedNameToFilename,
+  deleteInternalObject
 } from '$lib/script/storage/storage.server'
 import { validator } from '@exodus/schemasafe'
-import { componentSchema } from './schemas'
+import { componentDefinitionSchema, componentSchema } from './schemas'
 
 const componentDefinitionPath = join('.genoacms', 'components/', 'definitions/')
 const componentPath = join('.genoacms', 'components/', 'edited/')
@@ -56,15 +58,23 @@ async function createComponent (name: string) {
   await uploadComponent(component)
 }
 
-async function getComponent (reference: ComponentEntryReference) {
-  const potentialComponent = await getInternalObjectFlatted(reference)
+async function getComponent (reference: ComponentEntryReference): Promise<Component> {
+  const potentialComponent = await getInternalObjectFlatted(join(componentPath, reference))
   const validateComponent = validator(componentSchema)
   if (!validateComponent(potentialComponent)) throw Error(`Invalid component: ${reference}`)
   return potentialComponent
 }
 
+async function getComponentDefiniton (reference: ComponentDefinitionReference) {
+  const potentialComponentDefinition = await getInternalObjectFlatted(join(componentDefinitionPath, reference))
+  const validateComponentDefinition = validator(componentDefinitionSchema)
+  if (!validateComponentDefinition(potentialComponentDefinition)) throw Error(`Invalid component definition: ${reference}`)
+  return potentialComponentDefinition
+}
+
 async function componentDirectoryToComponents (directoryContents: DirectoryContents): Promise<Array<Component>> {
-  const componentPromises = directoryContents.files.map(f => getComponent(f.name))
+  const componentIDs = directoryContents.files.map(f => fullyQualifiedNameToFilename(f.name))
+  const componentPromises = componentIDs.map(id => getComponent(id))
   return await Promise.all(componentPromises)
 }
 
@@ -76,7 +86,21 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
   return await componentDirectoryToComponents(componentDirectoryList)
 }
 
+const deleteComponentDefinition = (reference: ComponentDefinitionReference) => deleteInternalObject(join(componentDefinitionPath, reference))
+
+async function deleteComponent (component: Component): Promise<void> {
+  const deletionTasks = [
+    deleteComponentDefinition(component.definitionId),
+    deletePrebuiltComponentEntry(component.entryId),
+    deleteInternalObject(join(componentPath, component.entryId))
+  ]
+  await Promise.all(deletionTasks)
+}
+
 export {
   createComponent,
-  listOrCreateComponentList
+  listOrCreateComponentList,
+  getComponent,
+  getComponentDefiniton,
+  deleteComponent
 }
