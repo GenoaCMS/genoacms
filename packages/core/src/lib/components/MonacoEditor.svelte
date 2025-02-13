@@ -2,8 +2,11 @@
   import type { Action } from 'svelte/action'
   import type * as monaco from 'monaco-editor'
 
-  export let language: 'markdown' | 'javascript' = 'markdown'
-  export let value = ''
+  interface Props {
+    language: 'markdown' | 'javascript',
+    value: string
+  }
+  let { language = 'markdown', value = $bindable('') }: Props = $props()
   let editorInstance: monaco.editor.IStandaloneCodeEditor
 
   const createEditor = async (node: HTMLDivElement) => {

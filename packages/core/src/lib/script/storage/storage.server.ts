@@ -55,13 +55,10 @@ const getObjectFlatted = async (reference: ObjectReference) => {
   const text = await getObjectString(reference)
   return parseFlatted(text)
 }
-const getInternalObjectFlatted = async (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
-const uploadInternalObjectFlatted = async (path: string, data: any) => {
-  await uploadObject({
-    bucket: defaultBucketId,
-    name: path
-  }, stringifyFlatted(data))
-}
+const getInternalObjectJSON = (path: string) => getObjectJSON({ bucket: defaultBucketId, name: path })
+const getInternalObjectFlatted = (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
+const uploadInternalObjectJSON = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data))
+const uploadInternalObjectFlatted = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data))
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
 
@@ -127,7 +124,9 @@ export {
   listOrCreateDirectory,
   getObjectJSON,
   getObjectFlatted,
+  getInternalObjectJSON,
   getInternalObjectFlatted,
+  uploadInternalObjectJSON,
   uploadInternalObjectFlatted,
   processDirectoryContents,
   deleteInternalObject

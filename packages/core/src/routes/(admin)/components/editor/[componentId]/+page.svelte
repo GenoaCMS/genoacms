@@ -3,6 +3,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
   import Editor from './Editor.svelte'
+  import CommitComponent from './CommitComponent.svelte'
 
   const { data }: PageData = $props()
 </script>
@@ -13,6 +14,7 @@
    </h1>
     <svelte:fragment slot="right">
       <DeleteComponent deletionForm={data.deletionForm} name={data.component.name}/>
+      <CommitComponent commitForm={data.commitForm} changeForm={data.changeForm} code={data.componentDefinition.code}/>
     </svelte:fragment>
 </TopPanel>
 

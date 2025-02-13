@@ -2,6 +2,7 @@ import type { Diff } from 'deep-diff'
 import type { ComponentEntryReference } from '../componentEntry/component/types'
 
 type ComponentReference = string
+type ComponentCommitReference = string
 type ComponentCode = string
 type ComponentLanguage = 'javascript'
 type CodeChange = Array<Diff<ComponentCode>>
@@ -19,8 +20,8 @@ interface ComponentDefinition {
   language: ComponentLanguage,
   uncommitedCode: ComponentCode,
   code: ComponentCode,
-  history: Array<CodeChange>,
-  future: Array<CodeChange>
+  history: Array<string>,
+  future: Array<string>
 }
 
 interface Component extends ComponentCreation {
@@ -32,6 +33,17 @@ interface ComponentCodeChange {
   uncommitedCode: string
 }
 
+interface ComponentCommitOrder {
+  componentId: ComponentReference,
+  message: string
+}
+
+interface ComponentCommit extends ComponentCommitOrder {
+  uid: ComponentCommitReference,
+  timestamp: number,
+  change: CodeChange
+}
+
 export type {
   ComponentCreation,
   ComponentDeletion,
@@ -41,6 +53,8 @@ export type {
   CodeChange,
   ComponentDefinition,
   Component,
-  ComponentCodeChange
+  ComponentCodeChange,
+  ComponentCommitOrder,
+  ComponentCommit
 }
 

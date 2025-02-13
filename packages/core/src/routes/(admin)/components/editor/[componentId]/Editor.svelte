@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ComponentCodeChange } from '$lib/script/components/editor/types'
   import { superForm, type SuperForm } from 'sveltekit-superforms'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { formConfig } from '$lib/script/forms'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
 
   interface Props {
@@ -9,14 +9,7 @@
     language: 'javascript'
   }
   const { changeForm, language }: Props = $props()
-  const { form, enhance, submit } = superForm(changeForm, {
-    dataType: 'json',
-    onUpdate ({ form }) {
-      if (!form.message) return
-      if (form.message.status === 'success') toastSuccess(form.message.text)
-      else toastError(form.message.text)
-    }
-  })
+  const { form, enhance, submit } = superForm(changeForm, { ...formConfig, dataType: 'json' })
   let code = $state($form.uncommitedCode as string || '')
   let updateTimeout: ReturnType<typeof setTimeout>
 

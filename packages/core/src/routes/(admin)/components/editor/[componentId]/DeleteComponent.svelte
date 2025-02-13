@@ -1,17 +1,11 @@
 <script lang="ts">
   import { Button, Input, Label, Modal } from 'flowbite-svelte'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { formConfig } from '$lib/script/forms'
   import { superForm } from 'sveltekit-superforms'
   import Portal from '$lib/components/Portal.svelte'
 
   const { deletionForm, name } = $props()
-  const { form, enhance } = superForm(deletionForm, {
-    onUpdate ({ form }) {
-      if (!form.message) return
-      if (form.message.status === 'success') toastSuccess(form.message.text)
-      else toastError(form.message.text)
-    }
-  })
+  const { form, enhance } = superForm(deletionForm, formConfig)
   let isModalOpen = $state(false)
   function toggleModal () {
     isModalOpen = !isModalOpen

@@ -1,29 +1,20 @@
-import type { Component, ComponentDefinition, ComponentDefinitionReference, ComponentReference } from './types'
-import type { ComponentEntry, ComponentEntryReference } from '../componentEntry/component/types'
-import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
+import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
+import type { ComponentEntry } from '../componentEntry/component/types'
 
-import { join } from 'path'
 import { deletePrebuiltComponentEntry, uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
 import {
-  listOrCreateDirectory,
-  defaultBucketId,
-  uploadInternalObjectFlatted,
-  getInternalObjectFlatted,
-  fullyQualifiedNameToFilename,
-  deleteInternalObject
-} from '$lib/script/storage/storage.server'
-import { validator } from '@exodus/schemasafe'
-import { componentDefinitionSchema, componentSchema } from './schemas'
+  uploadComponent,
+  uploadComponentDefinition,
+  uploadComponentCommit,
+  getComponent,
+  getComponentDefiniton,
+  listOrCreateComponentList,
+  deleteComponentDefinition,
+  deleteComponentFile
+} from './io'
+import diff from 'deep-diff'
+import { ComponentDiffError } from './errors'
 
-const componentDefinitionPath = join('.genoacms', 'components/', 'definitions/')
-const componentPath = join('.genoacms', 'components/', 'edited/')
-
-async function uploadComponentDefinition (definition: ComponentDefinition) {
-  await uploadInternalObjectFlatted(join(componentDefinitionPath, definition.uid), definition)
-}
-async function uploadComponent (component: Component) {
-  await uploadInternalObjectFlatted(join(componentPath, component.uid), component)
-}
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
     uid,
@@ -59,47 +50,44 @@ async function createComponent (name: string) {
   return uid
 }
 
-async function getComponent (reference: ComponentEntryReference): Promise<Component> {
-  const potentialComponent = await getInternalObjectFlatted(join(componentPath, reference))
-  const validateComponent = validator(componentSchema)
-  if (!validateComponent(potentialComponent)) throw Error(`Invalid component: ${reference}`)
-  return potentialComponent
-}
-
-async function getComponentDefiniton (reference: ComponentDefinitionReference) {
-  const potentialComponentDefinition = await getInternalObjectFlatted(join(componentDefinitionPath, reference))
-  const validateComponentDefinition = validator(componentDefinitionSchema)
-  if (!validateComponentDefinition(potentialComponentDefinition)) throw Error(`Invalid component definition: ${reference}`)
-  return potentialComponentDefinition
-}
-
-async function componentDirectoryToComponents (directoryContents: DirectoryContents): Promise<Array<Component>> {
-  const componentIDs = directoryContents.files.map(f => fullyQualifiedNameToFilename(f.name))
-  const componentPromises = componentIDs.map(id => getComponent(id))
-  return await Promise.all(componentPromises)
-}
-
-async function listOrCreateComponentList (): Promise<Array<Component>> {
-  const componentDirectoryList = await listOrCreateDirectory({
-    bucket: defaultBucketId,
-    name: componentPath
-  })
-  return await componentDirectoryToComponents(componentDirectoryList)
-}
-
-async function updateComponentDefinition (reference: ComponentReference, delta: object): Promise<void> {
-  const definition = await getComponentDefiniton(reference)
-  const updatedDefinition = { ...definition, ...delta }
+async function updateComponentDefinition (reference: ComponentReference, updater: (d: ComponentDefinition) => ComponentDefinition, d?: ComponentDefinition): Promise<void> {
+  const definition = d || await getComponentDefiniton(reference)
+  const updatedDefinition = updater(definition)
   await uploadComponentDefinition(updatedDefinition)
 }
 
-const deleteComponentDefinition = (reference: ComponentDefinitionReference) => deleteInternalObject(join(componentDefinitionPath, reference))
+async function createComponentCommit (order: ComponentCommitOrder, definition: ComponentDefinition): Promise<ComponentCommit> {
+  const codeDiff = diff.diff(definition.code, definition.uncommitedCode)
+  if (!codeDiff) throw new ComponentDiffError('no-change', 'No changes between versions')
+  const commit: ComponentCommit = {
+    uid: crypto.randomUUID(),
+    timestamp: Date.now(),
+    componentId: order.componentId,
+    message: order.message,
+    change: codeDiff
+  }
+  return commit
+}
+
+async function commitComponentDefinition (order: ComponentCommitOrder) {
+  const definition = await getComponentDefiniton(order.componentId)
+  const commit = await createComponentCommit(order, definition)
+
+  await Promise.all([
+    updateComponentDefinition(order.componentId, d => {
+      d.code = d.uncommitedCode
+      d.history.push(commit.uid)
+      return d
+    }, definition),
+    uploadComponentCommit(commit)
+  ])
+}
 
 async function deleteComponent (component: Component): Promise<void> {
   const deletionTasks = [
     deleteComponentDefinition(component.uid),
     deletePrebuiltComponentEntry(component.uid),
-    deleteInternalObject(join(componentPath, component.uid))
+    deleteComponentFile(component.uid)
   ]
   await Promise.all(deletionTasks)
 }
@@ -110,5 +98,6 @@ export {
   getComponent,
   getComponentDefiniton,
   updateComponentDefinition,
+  commitComponentDefinition,
   deleteComponent
 }
