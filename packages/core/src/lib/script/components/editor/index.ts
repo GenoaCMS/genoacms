@@ -1,4 +1,4 @@
-import type { Component, ComponentDefinition, ComponentDefinitionReference } from './types'
+import type { Component, ComponentDefinition, ComponentDefinitionReference, ComponentReference } from './types'
 import type { ComponentEntry, ComponentEntryReference } from '../componentEntry/component/types'
 import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
 
@@ -22,7 +22,7 @@ async function uploadComponentDefinition (definition: ComponentDefinition) {
   await uploadInternalObjectFlatted(join(componentDefinitionPath, definition.uid), definition)
 }
 async function uploadComponent (component: Component) {
-  await uploadInternalObjectFlatted(join(componentPath, component.entryId), component)
+  await uploadInternalObjectFlatted(join(componentPath, component.uid), component)
 }
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
@@ -46,16 +46,17 @@ async function createComponentEntry (uid: string) {
   await uploadPrebuiltComponentEntry(emptyComponentEntry)
 }
 async function createComponent (name: string) {
-  const componentEntryUid = crypto.randomUUID()
-  const componentDefinitionUid = crypto.randomUUID()
+  const uid = crypto.randomUUID()
   const component = {
-    entryId: componentEntryUid,
-    definitionId: componentDefinitionUid,
+    uid,
     name
   }
-  await createComponentEntry(componentEntryUid)
-  await createComponentDefinition(componentDefinitionUid)
+
+  await createComponentEntry(uid)
+  await createComponentDefinition(uid)
   await uploadComponent(component)
+
+  return uid
 }
 
 async function getComponent (reference: ComponentEntryReference): Promise<Component> {
@@ -86,13 +87,19 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
   return await componentDirectoryToComponents(componentDirectoryList)
 }
 
+async function updateComponentDefinition (reference: ComponentReference, delta: object): Promise<void> {
+  const definition = await getComponentDefiniton(reference)
+  const updatedDefinition = { ...definition, ...delta }
+  await uploadComponentDefinition(updatedDefinition)
+}
+
 const deleteComponentDefinition = (reference: ComponentDefinitionReference) => deleteInternalObject(join(componentDefinitionPath, reference))
 
 async function deleteComponent (component: Component): Promise<void> {
   const deletionTasks = [
-    deleteComponentDefinition(component.definitionId),
-    deletePrebuiltComponentEntry(component.entryId),
-    deleteInternalObject(join(componentPath, component.entryId))
+    deleteComponentDefinition(component.uid),
+    deletePrebuiltComponentEntry(component.uid),
+    deleteInternalObject(join(componentPath, component.uid))
   ]
   await Promise.all(deletionTasks)
 }
@@ -102,5 +109,6 @@ export {
   listOrCreateComponentList,
   getComponent,
   getComponentDefiniton,
+  updateComponentDefinition,
   deleteComponent
 }

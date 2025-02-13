@@ -1,5 +1,5 @@
 import type { JSONSchemaType } from 'ajv'
-import type { CodeChange, Component, ComponentCreation, ComponentDefinition, ComponentDeletion } from './types'
+import type { CodeChange, Component, ComponentCodeChange, ComponentCreation, ComponentDefinition, ComponentDeletion } from './types'
 
 const componentCreationSchema: JSONSchemaType<ComponentCreation> = {
   type: 'object',
@@ -12,20 +12,19 @@ const componentCreationSchema: JSONSchemaType<ComponentCreation> = {
 const componentDeletionSchema: JSONSchemaType<ComponentDeletion> = {
   type: 'object',
   properties: {
-    entryId: { type: 'string', format: 'uuid' },
+    uid: { type: 'string', format: 'uuid' },
     name: { type: 'string' }
   },
-  required: ['entryId', 'name']
+  required: ['uid', 'name']
 }
 
 const componentSchema: JSONSchemaType<Component> = {
   type: 'object',
   properties: {
-    entryId: { type: 'string', format: 'uuid' },
-    definitionId: { type: 'string', format: 'uuid' },
+    uid: { type: 'string', format: 'uuid' },
     name: { type: 'string' }
   },
-  required: ['entryId', 'definitionId', 'name']
+  required: ['uid', 'name']
 }
 
 const codeChangeSchema: JSONSchemaType<CodeChange> = {}
@@ -49,9 +48,19 @@ const componentDefinitionSchema: JSONSchemaType<ComponentDefinition> = {
   required: ['uid', 'language', 'uncommitedCode', 'code', 'history', 'future']
 }
 
+const componentCodeChangeSchema: JSONSchemaType<ComponentCodeChange> = {
+  type: 'object',
+  properties: {
+    uid: { type: 'string', format: 'uuid' },
+    uncommitedCode: { type: 'string' }
+  },
+  required: ['uid', 'uncommitedCode']
+}
+
 export {
   componentCreationSchema,
   componentDeletionSchema,
   componentSchema,
-  componentDefinitionSchema
+  componentDefinitionSchema,
+  componentCodeChangeSchema
 }

@@ -26,7 +26,7 @@
 		"@exodus/schemasafe": "^1.3.0",
 		"@genoacms/cloudabstraction": "^0.7.3",
 		"@playwright/test": "^1.28.1",
-		"@sveltejs/kit": "^2.9.0",
+		"@sveltejs/kit": "^2.17.1",
 		"@sveltejs/vite-plugin-svelte": "^5.0.1",
 		"@types/deep-diff": "^1.0.5",
 		"@types/dompurify": "^3.0.5",

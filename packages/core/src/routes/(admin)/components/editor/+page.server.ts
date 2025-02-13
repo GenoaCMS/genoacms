@@ -5,6 +5,7 @@ import { schemasafe } from 'sveltekit-superforms/adapters'
 import { formats } from '$lib/script/database/validators'
 import { createComponent, listOrCreateComponentList } from '$lib/script/components/editor'
 import { componentCreationSchema } from '$lib/script/components/editor/schemas'
+import { redirect } from '@sveltejs/kit'
 
 const validator = schemasafe(componentCreationSchema, { config: { formats } })
 
@@ -22,7 +23,7 @@ export const actions = {
     const form = await superValidate(request, validator)
 
     if (!form.valid) return message(form, { status: 'fail', text: 'Failed to create a component' })
-    await createComponent(form.data.name)
-    return message(form, { status: 'success', text: 'Component created' })
+    const componentId = await createComponent(form.data.name)
+    return redirect(307, `editor/${componentId}`)
   }
 } satisfies Actions

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import CardLink from '$lib/components/CardLink.svelte'
-  import Grid from '$lib/components/Grid.svelte'
+  import type { PageData } from './$types'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
+  import Editor from './Editor.svelte'
 
-  const { data } = $props()
+  const { data }: PageData = $props()
 </script>
 
 <TopPanel>
@@ -15,3 +15,5 @@
       <DeleteComponent deletionForm={data.deletionForm} name={data.component.name}/>
     </svelte:fragment>
 </TopPanel>
+
+<Editor changeForm={data.changeForm} language={data.componentDefinition.language}/>

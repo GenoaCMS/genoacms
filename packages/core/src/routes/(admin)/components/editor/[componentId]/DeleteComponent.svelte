@@ -2,6 +2,7 @@
   import { Button, Input, Label, Modal } from 'flowbite-svelte'
   import { toastError, toastSuccess } from '$lib/script/alert'
   import { superForm } from 'sveltekit-superforms'
+  import Portal from '$lib/components/Portal.svelte'
 
   const { deletionForm, name } = $props()
   const { form, enhance } = superForm(deletionForm, {
@@ -21,10 +22,11 @@
     <i class="bi bi-trash3 text-2xl hover:text-red-600 transition-all"/>
 </button>
 
+<Portal>
 <Modal title="Delete the component" bind:open={isModalOpen}>
     <div class="flex w-3/4 mx-auto">
         <form action="?/delete" method="post" use:enhance={enhance} class="w-full">
-            <input name="entryId" value={$form.entryId} hidden/>
+            <input name="uid" value={$form.uid} hidden/>
             <Label class="mb-2">
                 To confirm deletion, type "{name}":
             </Label>
@@ -35,3 +37,4 @@
         </form>
     </div>
 </Modal>
+</Portal>

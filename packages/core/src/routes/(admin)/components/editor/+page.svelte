@@ -18,6 +18,6 @@
 
 <Grid>
   {#each data.components as component}
-    <CardLink text={component.name} icon="file-earmark-code" href="editor/{component.entryId}"/>
+    <CardLink text={component.name} icon="file-earmark-code" href="editor/{component.uid}"/>
   {/each}
 </Grid>
