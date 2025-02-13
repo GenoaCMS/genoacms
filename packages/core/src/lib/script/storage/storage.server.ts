@@ -5,7 +5,7 @@ import type {
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
-import { parse as parseFlatted } from 'flatted'
+import { parse as parseFlatted, stringify as stringifyFlatted } from 'flatted'
 import {
   createDirectory,
   deleteObject,
@@ -22,7 +22,7 @@ const getBucketReferences = () => {
 
 const defaultBucketId = config.storage.defaultBucket
 
-const fullyQualifiedNameToFilename = (name: string) => {
+const fullyQualifiedNameToFilename = (name: string): string => {
   if (name[name.length - 1] === '/') name = name.slice(0, -1)
 
   const lastIndexOfSlash = name.lastIndexOf('/')
@@ -33,7 +33,7 @@ const isDirectoryExisting = (directory: DirectoryContents) => {
   return directory.directories.length > 0 || directory.files.length > 0
 }
 
-const listOrCreateDirectory = async (reference: ObjectReference) => {
+const listOrCreateDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
   const componentList = await listDirectory(reference)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
@@ -55,6 +55,10 @@ const getObjectFlatted = async (reference: ObjectReference) => {
   const text = await getObjectString(reference)
   return parseFlatted(text)
 }
+const getInternalObjectJSON = (path: string) => getObjectJSON({ bucket: defaultBucketId, name: path })
+const getInternalObjectFlatted = (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
+const uploadInternalObjectJSON = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data))
+const uploadInternalObjectFlatted = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data))
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
 
@@ -98,6 +102,14 @@ const processDirectoryContents = async (bucketId: string, contents: DirectoryCon
   }
 }
 
+const deleteInternalObject = async (path: string) => {
+  const reference: ObjectReference = {
+    bucket: defaultBucketId,
+    name: path
+  }
+  await deleteObject(reference)
+}
+
 export {
   getBucketReferences,
   defaultBucketId,
@@ -112,5 +124,10 @@ export {
   listOrCreateDirectory,
   getObjectJSON,
   getObjectFlatted,
-  processDirectoryContents
+  getInternalObjectJSON,
+  getInternalObjectFlatted,
+  uploadInternalObjectJSON,
+  uploadInternalObjectFlatted,
+  processDirectoryContents,
+  deleteInternalObject
 }

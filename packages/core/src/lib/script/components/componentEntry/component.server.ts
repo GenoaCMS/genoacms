@@ -1,4 +1,4 @@
-import type { ComponentEntry, PrebuiltComponentReference } from './component/types'
+import type { ComponentEntry, ComponentEntryReference } from './component/types'
 import {
   deleteObject,
   defaultBucketId,
@@ -24,7 +24,7 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentEntry
   return componentSchemas.filter(schema => schema !== null) as Array<ComponentEntry>
 }
 
-const getPrebuiltComponentEntry = async (reference: PrebuiltComponentReference): Promise<ComponentEntry | null> => {
+const getPrebuiltComponentEntry = async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
   const potentialComponentEntry = await getObjectFlatted({
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, reference)
