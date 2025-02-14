@@ -1,7 +1,7 @@
 import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
 import type { ComponentEntry } from '../componentEntry/component/types'
 
-import { deletePrebuiltComponentEntry, uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
+import { deletePrebuiltComponentEntry, getPrebuiltComponentEntry, uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
 import {
   uploadComponent,
   uploadComponentDefinition,
@@ -27,10 +27,10 @@ async function createComponentDefinition (uid: string) {
   }
   await uploadComponentDefinition(emptyComponentDefinition)
 }
-async function createComponentEntry (uid: string) {
+async function createComponentEntry (uid: string, name: string) {
   const emptyComponentEntry: ComponentEntry = {
     uid,
-    name: '',
+    name,
     attributes: {},
     history: [],
     future: []
@@ -44,7 +44,7 @@ async function createComponent (name: string) {
     name
   }
 
-  await createComponentEntry(uid)
+  await createComponentEntry(uid, name)
   await createComponentDefinition(uid)
   await uploadComponent(component)
 
@@ -71,10 +71,13 @@ async function createComponentCommit (order: ComponentCommitOrder, definition: C
 }
 
 async function commitComponentDefinition (order: ComponentCommitOrder) {
-  const definition = await getComponentDefiniton(order.componentId)
-  const component = await getComponent(order.componentId)
+  const [definition, component, entry] = await Promise.all([
+    getComponentDefiniton(order.componentId),
+    getComponent(order.componentId),
+    getPrebuiltComponentEntry(order.componentId)
+  ])
   const commit = await createComponentCommit(order, definition)
-  componentCodeToEntry(component.name, definition.uncommitedCode)
+  const newEntry = componentCodeToEntry(component.name, definition.uncommitedCode, entry)
 
   await Promise.all([
     updateComponentDefinition(order.componentId, d => {
@@ -82,7 +85,8 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
       d.history.push(commit.uid)
       return d
     }, definition),
-    uploadComponentCommit(commit)
+    uploadComponentCommit(commit),
+    uploadPrebuiltComponentEntry(newEntry)
   ])
 }
 
