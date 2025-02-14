@@ -14,6 +14,7 @@ import {
 } from './io'
 import diff from 'deep-diff'
 import { ComponentDiffError } from './errors'
+import { componentCodeToEntry } from './analyzer'
 
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
@@ -71,7 +72,9 @@ async function createComponentCommit (order: ComponentCommitOrder, definition: C
 
 async function commitComponentDefinition (order: ComponentCommitOrder) {
   const definition = await getComponentDefiniton(order.componentId)
+  const component = await getComponent(order.componentId)
   const commit = await createComponentCommit(order, definition)
+  componentCodeToEntry(component.name, definition.uncommitedCode)
 
   await Promise.all([
     updateComponentDefinition(order.componentId, d => {
