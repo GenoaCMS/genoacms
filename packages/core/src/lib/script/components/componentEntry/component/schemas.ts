@@ -184,6 +184,18 @@ const componentEntryAttributesSchema: JSONSchemaType<ComponentEntryAttributes> =
   required: []
 }
 
+const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
+  type: 'object',
+  properties: {
+    uid: { type: 'string' },
+    name: { type: 'string' },
+    attributes: componentEntryAttributesSchema,
+    history: {},
+    future: {}
+  },
+  required: ['uid', 'name', 'attributes', 'history', 'future']
+}
+
 export {
   booleanAttributeSchema,
   numberAttributeSchema,
@@ -194,5 +206,6 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentEntryAttributesSchema
+  componentEntryAttributesSchema,
+  componentEntrySchema
 }
