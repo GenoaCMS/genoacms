@@ -1,6 +1,8 @@
+type ITCCallback = (data: unknown) => void
+
 interface ITCListener {
   eventName: string,
-  cb: () => object
+  cb: ITCCallback
 }
 
 class ITC { // Inter Tab Communication
@@ -19,7 +21,7 @@ class ITC { // Inter Tab Communication
   }
 
   async once (eventName: string) {
-    let resolveEvent
+    let resolveEvent: ITCCallback
     const dataPromise = new Promise((resolve) => {
       resolveEvent = resolve
     })
@@ -28,14 +30,14 @@ class ITC { // Inter Tab Communication
       cb: function (data) {
         resolveEvent(data)
       }
-    }
+    } satisfies ITCListener
     this.#listeners.push(listener)
     const data = await dataPromise
     this.#removeListener(listener)
     return data
   }
 
-  on (eventName: string, cb: (data: object) => void) {
+  on (eventName: string, cb: ITCCallback) {
     const listener = {
       eventName,
       cb
@@ -49,7 +51,7 @@ class ITC { // Inter Tab Communication
     this.#listeners.splice(index, 1)
   }
 
-  send (eventName: string, data?: any) {
+  send (eventName: string, data?: unknown) {
     const message = {
       eventName,
       data
