@@ -19,6 +19,7 @@
 
   function selectSchema (index: number) {
     selectedSchema = index
+    removeOldProperties()
   }
   function pickUpSchemaFromValue () {
     if (!discriminator) return 0
@@ -26,6 +27,13 @@
     if (!valueDiscriminator) return 0
     const index = schema.oneOf.findIndex((item) => item.properties[discriminator].const === valueDiscriminator)
     return index === -1 ? 0 : index
+  }
+  function removeOldProperties () {
+    for (const key in v) {
+      if (!properties.find((property) => property.name === key)) {
+        delete v[key]
+      }
+    }
   }
   $effect(() => value = v)
 </script>
