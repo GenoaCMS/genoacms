@@ -21,11 +21,12 @@
       },
       { taint: false }
     )
+    console.log($form.uncommitedCode)
     submit()
   }
   function scheduleCodeUpdate (code: string) {
     clearTimeout(updateTimeout)
-    updateTimeout = setTimeout(() => updateFormCode(code), 1500)
+    updateTimeout = setTimeout(() => updateFormCode(code), 1000)
   }
 
   $effect(() => {

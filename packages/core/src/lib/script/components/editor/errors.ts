@@ -3,7 +3,13 @@ class ComponentDiffError extends Error {
     super(message)
   }
 }
+class ComponentCodeError extends Error {
+  constructor (public code: string, message: string) {
+    super(message)
+  }
+}
 
 export {
-  ComponentDiffError
+  ComponentDiffError,
+  ComponentCodeError
 }

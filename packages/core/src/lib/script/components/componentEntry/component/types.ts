@@ -39,9 +39,9 @@ interface NumberAttribute extends AttributeBase {
   type: NumberAttributeType,
   min: number,
   max: number,
-  defaultValue: number,
   step: number,
-  decimalPlaces: number
+  decimalPlaces: number,
+  defaultValue: number
 }
 
 interface StringAttribute extends AttributeBase {

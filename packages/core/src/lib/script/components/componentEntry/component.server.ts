@@ -9,7 +9,8 @@ import {
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { stringify } from 'flatted'
-import { validateComponentEntryAttributes } from '$lib/script/components/componentEntry/component/validators'
+import { validator } from '@exodus/schemasafe'
+import { componentEntrySchema } from './component/schemas'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
 
@@ -29,7 +30,8 @@ const getPrebuiltComponentEntry = async (reference: ComponentEntryReference): Pr
     bucket: defaultBucketId,
     name: join(prebuiltSchemaPath, reference)
   }) as ComponentEntry
-  if (!validateComponentEntryAttributes(potentialComponentEntry.attributes)) { // TODO: figure out how to validate whole entry, but skip validation of history
+  const validateComponentEntry = validator(componentEntrySchema)
+  if (!validateComponentEntry(potentialComponentEntry)) {
     return null
   }
   return potentialComponentEntry

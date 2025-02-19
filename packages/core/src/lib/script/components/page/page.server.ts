@@ -2,13 +2,13 @@ import type { IsSerializable, PageEntry } from '$lib/script/components/page/entr
 import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
-  getObjectFlatted,
+  getInternalObjectFlatted,
   listOrCreateDirectory,
-  uploadObject
+  uploadInternalObjectFlatted,
+  uploadInternalObjectJSON
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
-import { stringify } from 'flatted'
 import { deserializeComponentNode } from './entry'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries')
@@ -27,23 +27,13 @@ const listOrCreatePageList = async () => {
 }
 
 const uploadPageEntry = (page: PageEntry<IsSerializable>) => {
-  const pageFlatted = stringify({
-    ...page,
-    lastModified: new Date().toISOString()
-  })
-  // TODO: validate page
-  return uploadObject({
-    bucket: defaultBucketId,
-    name: join(pageEntriesPath, page.name)
-  }, pageFlatted)
+  page.lastModified = new Date().toISOString()
+  return uploadInternalObjectFlatted(join(pageEntriesPath, page.name), page)
 }
 
 // TODO: refactor/rethink
 const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> => {
-  const serializedPageEntry = await getObjectFlatted({
-    bucket: defaultBucketId,
-    name: join(pageEntriesPath, name)
-  }) as PageEntry<IsSerializable>
+  const serializedPageEntry = await getInternalObjectFlatted(join(pageEntriesPath, name)) as PageEntry<IsSerializable>
   const deserializedNodePromises = []
   for (const key in serializedPageEntry.contents.nodes) {
     const node = serializedPageEntry.contents.nodes[key]
@@ -58,10 +48,7 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
 
 const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
   const readableTree = await pageEntryToReadableTree(page)
-  return uploadObject({
-    bucket: defaultBucketId,
-    name: join(pageReadableTreePath, page.name)
-  }, JSON.stringify(readableTree))
+  return uploadInternalObjectJSON(join(pageReadableTreePath, page.name), JSON.stringify(readableTree))
 }
 
 export {
