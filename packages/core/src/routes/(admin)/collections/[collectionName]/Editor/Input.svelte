@@ -16,9 +16,13 @@
   type Props = {
     name: string
     schema: JSONSchemaType<T>
-    value: T
+    value: T,
+    onvalue?: (e: T) => void
   }
-  let { name, schema, value = $bindable() }: Props = $props()
+  let { name, schema, value = $bindable(), onvalue = () => {} }: Props = $props()
+  $effect(() => {
+    onvalue(value)
+  })
 </script>
 
 {#if schema.title === 'reference'}
@@ -40,12 +44,9 @@
 {:else if schema.type === 'array' &&
   schema.items.title === 'reference'}
   <References {name} schema={schema.items} bind:value/>
-{:else if schema.type === 'array' &&
-  schema.items.type === 'object' &&
-  schema.items.title === 'storageResource'}
+{:else if schema.type === 'array' && schema.items.title === 'storageResource'}
     <StorageResources {name} bind:value/>
-{:else if schema.type === 'object' &&
-  schema.title === 'storageResource'}
+{:else if schema.title === 'storageResource'}
     <StorageResource {name} bind:value/>
 {:else if schema.type === 'array'}
   <ArrayInput {name} {schema} bind:value/>

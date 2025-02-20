@@ -39,6 +39,9 @@
     value = resources
   })
 
+  $effect(() => {
+    if (!value) value = resources
+  })
   onDestroy(() => {
     itc.close()
   })

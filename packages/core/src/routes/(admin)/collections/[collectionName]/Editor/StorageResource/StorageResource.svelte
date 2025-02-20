@@ -10,7 +10,7 @@
     value: ObjectReference | undefined
   }
   let { name = '', value = $bindable() }: Props = $props()
-  let resource: ObjectReference | undefined = $state(value)
+  let resource: ObjectReference | null = $state(value || null)
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
@@ -35,6 +35,9 @@
     value = resource
   })
 
+  $effect(() => {
+    if (!value) value = resource
+  })
   onDestroy(() => {
     itc.close()
   })

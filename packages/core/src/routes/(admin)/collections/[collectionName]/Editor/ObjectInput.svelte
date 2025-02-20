@@ -12,14 +12,14 @@
   }
   let { name, schema, value = $bindable() }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
-  const v = $state(value || {})
+  let v = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
   const objectSchema = $derived(discriminator ? schema.oneOf[selectedSchema] : schema)
   const properties = $derived(extractProperties(objectSchema.properties))
 
   function selectSchema (index: number) {
     selectedSchema = index
-    removeOldProperties()
+    v = removeOldProperties(v)
   }
   function pickUpSchemaFromValue () {
     if (!discriminator) return 0
@@ -28,14 +28,19 @@
     const index = schema.oneOf.findIndex((item) => item.properties[discriminator].const === valueDiscriminator)
     return index === -1 ? 0 : index
   }
-  function removeOldProperties () {
+  function removeOldProperties (v: T): T {
+    if (typeof v !== 'object') return v
     for (const key in v) {
       if (!properties.find((property) => property.name === key)) {
         delete v[key]
       }
     }
+    return v
   }
-  $effect(() => value = v)
+  function updateValue (name: string, value: T) {
+    v[name] = value
+    value = v
+  }
 </script>
 
 <Card class="w-full" size="none">
@@ -43,7 +48,7 @@
     <div class="w-full flex justify-center mt-3">
       <ButtonGroup>
         {#each schema.oneOf as item, index}
-          <Button onclick={() => selectSchema(index)} color="blue">
+          <Button onclick={() => selectSchema(index)} color="blue" outline={index !== selectedSchema}>
             {item.properties[discriminator].const}
           </Button>
         {/each}
@@ -55,7 +60,7 @@
     {@const schema = objectSchema.properties[property.name]}
     <Label>
       {property.name}:
-      <Input name="{name}.{property.name}" {schema} bind:value={v[property.name]}/>
+      <Input name="{name}.{property.name}" {schema} value={v[property.name]} onvalue={(v) => updateValue(property.name, v)}/>
     </Label>
   {/each}
 </Card>
