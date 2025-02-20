@@ -2,15 +2,14 @@
   import { DarkMode, SpeedDial, SpeedDialButton } from 'flowbite-svelte'
   import { pages } from './pages'
   import Logout from '$lib/components/Logout.svelte'
-  console.log(pages)
 </script>
 
 <div class="fixed bottom-0 end-0 md:hidden block">
   <SpeedDial color="blue">
-    <SpeedDialButton>
+    <SpeedDialButton name="Logout">
       <Logout/>
     </SpeedDialButton>
-    <SpeedDialButton>
+    <SpeedDialButton name="Color mode">
       <DarkMode/>
     </SpeedDialButton>
     {#each pages as page}
