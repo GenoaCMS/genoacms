@@ -8,8 +8,7 @@
     onvalue: (e: boolean) => void
   }
   const { value, onvalue }: Props = $props()
-  let v = $state(value)
-  $effect(() => onvalue(v))
+  const v = $state(value)
 </script>
 
-<Checkbox bind:checked={v}/>
+<Checkbox checked={v} onchange={e => onvalue(e.target.value)}/>

@@ -8,8 +8,7 @@
     onvalue: (e: string) => void
   }
   const { value, onvalue }: Props = $props()
-  let v = $state(value)
-  $effect(() => onvalue(v))
+  const v = $state(value)
 </script>
 
-<Textarea bind:value={v}/>
+<Textarea value={v} oninput={e => onvalue(e.target.value)}/>
