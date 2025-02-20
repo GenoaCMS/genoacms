@@ -12,6 +12,7 @@
   const properties = $derived(extractProperties(data.document.reference.collection.schema.properties))
   const { form, enhance } = superForm(data.form, {
     dataType: 'json',
+    resetForm: false,
     onUpdate ({ form }) {
       if (!form.message) return
       if (form.message.status === 'success') toastSuccess(form.message.text)
