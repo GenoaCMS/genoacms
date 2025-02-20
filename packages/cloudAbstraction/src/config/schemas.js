@@ -10,6 +10,15 @@ const storageResource = {
     }
   }
 }
+const nullableStorageResource = {
+  title: 'storageResource',
+  oneOf: [
+    storageResource,
+    {
+      type: 'null'
+    }
+  ]
+}
 
 const reference = {
   type: 'object',
@@ -29,5 +38,6 @@ const reference = {
 
 export {
   storageResource,
+  nullableStorageResource,
   reference
 }
