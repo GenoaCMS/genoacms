@@ -1,12 +1,9 @@
 <script lang="ts">
   type Props = {
-    name: string
     constValue: string
-    value: string
+    onvalue: (e: string) => void
   }
-  let { name, constValue, value = $bindable() }: Props = $props()
+  const { constValue, onvalue }: Props = $props()
 
-  value = constValue
+  onvalue(constValue)
 </script>
-
-<input type="hidden" {name} bind:value/>

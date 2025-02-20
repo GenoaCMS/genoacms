@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { JSONSchemaType } from 'ajv'
-  import { Checkbox, Input, Textarea } from 'flowbite-svelte'
   import StorageResources from './StorageResource/StorageResources.svelte'
   import StorageResource from './StorageResource/StorageResource.svelte'
   import UuidInput from './UUIDInput.svelte'
@@ -10,48 +9,46 @@
   import Const from './Const.svelte'
   import Reference from './Reference/Reference.svelte'
   import References from './Reference/References.svelte'
+  import StringInput from './StringInput.svelte'
+  import NumberInput from './NumberInput.svelte'
+  import BooleanInput from './BooleanInput.svelte'
+  import TextInput from './TextInput.svelte'
 
   type Arr = string | number | boolean | object
   type T = string | number | boolean | Array<Arr>
   type Props = {
-    name: string
     schema: JSONSchemaType<T>
     value: T,
-    onvalue?: (e: T) => void
+    onvalue: (e: T) => void
   }
-  let { name, schema, value = $bindable(), onvalue = () => {} }: Props = $props()
-  $effect(() => {
-    onvalue(value)
-  })
+  let { schema, value, onvalue = (v) => { value = v } }: Props = $props()
 </script>
 
 {#if schema.title === 'reference'}
-  <Reference {name} {schema} bind:value/>
+  <Reference {schema} {value} {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'uuid'}
-  <UuidInput {name} bind:value/>
+  <UuidInput {value} {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'text'}
-  <Textarea {name} bind:value/>
+  <TextInput {schema} {value} {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'markdown'}
-  <MarkdownInput {name} bind:value/>
-{:else if schema.type === 'string' && schema.format === 'reference'}
-    <Input {name} type="text" bind:value/>
+  <MarkdownInput {value} {onvalue}/>
 {:else if schema.type === 'string'}
-    <Input {name} bind:value/>
+  <StringInput {schema} {value} {onvalue}/>
 {:else if schema.type === 'number'}
-    <Input {name} type="number" bind:value/>
+  <NumberInput {schema} {value} {onvalue}/>
 {:else if schema.type === 'boolean'}
-    <Checkbox {name} bind:checked={value}/>
+  <BooleanInput {schema} {value} {onvalue}/>
 {:else if schema.type === 'array' &&
   schema.items.title === 'reference'}
-  <References {name} schema={schema.items} bind:value/>
+  <References schema={schema.items} {value} {onvalue}/>
 {:else if schema.type === 'array' && schema.items.title === 'storageResource'}
-    <StorageResources {name} bind:value/>
+  <StorageResources {value} {onvalue}/>
 {:else if schema.title === 'storageResource'}
-    <StorageResource {name} bind:value/>
+  <StorageResource {value} {onvalue}/>
 {:else if schema.type === 'array'}
-  <ArrayInput {name} {schema} bind:value/>
+  <ArrayInput {schema} {value} {onvalue}/>
 {:else if schema.type === 'object'}
-  <ObjectInput {name} {schema} bind:value/>
+  <ObjectInput {schema} {value} {onvalue}/>
 {:else if schema.const}
-  <Const {name} constValue={schema.const} bind:value/>
+  <Const constValue={schema.const} {onvalue}/>
 {/if}

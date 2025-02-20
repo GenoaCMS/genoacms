@@ -6,21 +6,24 @@
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
   type Props = {
-    name: string
-    value: Array<ObjectReference>
+    value: Array<ObjectReference>,
+    onvalue: (value: Array<ObjectReference>) => void
   }
-  let { name = '', value = $bindable() }: Props = $props()
+  const { value, onvalue }: Props = $props()
   let resources: Array<ObjectReference> = $state(value || [])
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
   function deleteResource (resource: ObjectReference) {
     resources = resources.filter(r => r !== resource)
-    value = resources
+    updateValue()
   }
   function clearResources () {
     resources = []
-    value = resources
+    updateValue()
+  }
+  function updateValue () {
+    onvalue(resources)
   }
 
   itc.on('selectionInit', async () => {
@@ -31,23 +34,20 @@
       parameters,
       defaultValue: $state.snapshot(resources)
     }
+    console.log(selectionInitData)
     itc.send('selectionInitData', selectionInitData)
     const selection = await itc.once('selectionDone') as Array<ObjectReference>
     itc.send('selectionKill')
     if (selection.length < 1) return
     resources = selection
-    value = resources
+    updateValue()
   })
 
-  $effect(() => {
-    if (!value) value = resources
-  })
   onDestroy(() => {
     itc.close()
   })
 </script>
 
-<input type="hidden" {name} value={JSON.stringify(resources)}>
 <div class="flex flex-col">
   {#each resources as resource, index (resources, index)}
     <StorageObject {resource} {deleteResource}/>

@@ -8,9 +8,10 @@
   type Props = {
     name: string
     schema: JSONSchemaType<T>
-    value: T
+    value: T,
+    onvalue: (e: T) => void
   }
-  let { name, schema, value = $bindable() }: Props = $props()
+  const { name, schema, value, onvalue }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
   let v = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
@@ -20,6 +21,7 @@
   function selectSchema (index: number) {
     selectedSchema = index
     v = removeOldProperties(v)
+    onvalue(v)
   }
   function pickUpSchemaFromValue () {
     if (!discriminator) return 0
@@ -39,7 +41,7 @@
   }
   function updateValue (name: string, value: T) {
     v[name] = value
-    value = v
+    onvalue(v)
   }
 </script>
 
@@ -60,7 +62,7 @@
     {@const schema = objectSchema.properties[property.name]}
     <Label>
       {property.name}:
-      <Input name="{name}.{property.name}" {schema} value={v[property.name]} onvalue={(v) => updateValue(property.name, v)}/>
+      <Input {schema} value={v[property.name]} onvalue={(v) => updateValue(property.name, v)}/>
     </Label>
   {/each}
 </Card>

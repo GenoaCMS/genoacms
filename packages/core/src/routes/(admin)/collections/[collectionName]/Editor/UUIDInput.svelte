@@ -2,13 +2,14 @@
   import { ButtonGroup, Input, InputAddon } from 'flowbite-svelte'
 
   type Props = {
-    name: string
-    value: string
+    value: string,
+    onvalue: (e: string) => void
   }
-  let { name, value = $bindable() }: Props = $props()
+  let { value, onvalue }: Props = $props()
 
   function generateUUID () {
     value = crypto.randomUUID()
+    onvalue(value)
   }
 </script>
 
@@ -16,5 +17,5 @@
   <InputAddon>
     <button type="button" on:click={generateUUID}><i class="bi bi-dice-5-fill"></i></button>
   </InputAddon>
-  <Input {name} bind:value/>
+  <Input {value} oninput={e => onvalue(e.target.value)}/>
 </ButtonGroup>

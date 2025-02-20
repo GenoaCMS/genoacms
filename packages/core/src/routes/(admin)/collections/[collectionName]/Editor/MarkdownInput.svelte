@@ -3,18 +3,19 @@
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
 
   type Props = {
-    name: string
-    value: string
+    value: string,
+    onvalue: (e: string) => void
   }
-  let { name, value = $bindable() }: Props = $props()
+  const { value, onvalue }: Props = $props()
+  let v = $state(value)
+  $effect(() => onvalue(v))
 </script>
 
-<input type="hidden" {name} bind:value/>
 <div class="w-full min-h-[15rem] flex border">
   <div class="w-1/2">
-    <MonacoEditor bind:value/>
+    <MonacoEditor language="markdown" bind:value={v}/>
   </div>
   <div class="w-1/2">
-    <MarkdownViewer markdown={value}/>
+    <MarkdownViewer markdown={v}/>
   </div>
 </div>

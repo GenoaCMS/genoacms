@@ -7,11 +7,11 @@
 
   type T = string | number | boolean
   type Props = {
-    name: string
     schema: JSONSchemaType<T>
-    value: Array<T> | undefined
+    value: Array<T> | undefined,
+    onvalue: (value: Array<T>) => void
   }
-  let { name, schema, value = $bindable() }: Props = $props()
+  const { schema, value, onvalue }: Props = $props()
   let references: Array<T> = $state(value || [])
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
@@ -19,16 +19,19 @@
 
   function deleteReference (reference: T) {
     references = references.filter((item) => item !== reference)
-    value = references
+    updateValue()
   }
   function clearReferences () {
     references = []
-    value = references
+    updateValue()
   }
   function getReferenceCollectionId (schema: JSONSchemaType<T>) {
     if (!schema.description) throw new Error('For reference use helper function')
     const collection = schema.description
     return collection
+  }
+  function updateValue () {
+    onvalue(references)
   }
 
   itc.on('selectionInit', async () => {
@@ -44,7 +47,7 @@
     itc.send('selectionKill')
     if (selection.length < 1) return
     references = selection
-    value = references
+    updateValue()
   })
 
   onDestroy(() => {
@@ -52,7 +55,6 @@
   })
 </script>
 
-<input type="hidden" {name} value={JSON.stringify(references)}>
 <div class="flex flex-col">
   {#each references as reference, index (index)}
     <DocumentReference {reference} {deleteReference}/>

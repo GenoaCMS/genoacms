@@ -8,25 +8,28 @@
   type T = undefined | string | number | boolean | object
   type wrappedT = { id: string, value: T }
   type Props = {
-    name: string
     schema: JSONSchemaType<T>
-    value?: Array<T>
+    value?: Array<T>,
+    onvalue: (e: Array<T>) => void
   }
-  let { name, schema, value = $bindable() }: Props = $props()
+  const { schema, value, onvalue }: Props = $props()
   let items: Array<wrappedT> = $state(toWrappedValue(value || []))
   const flipDurationMs = 300
 
   function addItem () {
     items.push({ id: crypto.randomUUID(), value: undefined })
+    updateValue()
   }
   function deleteItem (index: number) {
     items.splice(index, 1)
+    updateValue()
   }
   function handleDndConsider (e) {
     items = e.detail.items
   }
   function handleDndFinalize (e) {
     items = e.detail.items
+    updateValue()
   }
   function toWrappedValue (items: Array<T>) {
     return items.map((item) => ({ id: crypto.randomUUID(), value: item }))
@@ -34,14 +37,21 @@
   function toUnwrappedValue (items: Array<wrappedT>): Array<T> {
     return items.map((item) => item.value)
   }
-  $effect(() => value = toUnwrappedValue(items))
+  function updateItemValue (index: number, value: T) {
+    items[index].value = value
+    updateValue()
+  }
+  function updateValue () {
+    onvalue(toUnwrappedValue(items))
+  }
+
 </script>
 
 <div use:dndzone={{ items, flipDurationMs }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
   {#each items as item, index (item.id)}
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
-        <Input {name} schema={schema.items} bind:value={item.value}/>
+        <Input schema={schema.items} value={item.value} onvalue={(v) => updateItemValue(index, v)}/>
       </div>
       <div class="w-auto">
         <Button on:click={() => deleteItem(index)} color="red">

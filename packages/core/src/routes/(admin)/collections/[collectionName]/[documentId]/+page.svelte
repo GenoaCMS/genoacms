@@ -18,6 +18,12 @@
       else toastError(form.message.text)
     }
   })
+  function updateProperty (name: string, value: unknown) {
+    form.update(($form) => {
+      $form[name] = value
+      return $form
+    })
+  }
 </script>
 
 <TopPanel>
@@ -38,7 +44,9 @@
       {property.name}:
       <Input name={property.name}
         schema={type}
-        bind:value={$form[property.name]}/>
+        value={$form[property.name]}
+        onvalue={(value) => updateProperty(property.name, value)}
+      />
     </Label>
   {/each}
 </form>
