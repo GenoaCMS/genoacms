@@ -5,7 +5,7 @@
   console.log(pages)
 </script>
 
-<div class="fixed bottom-0 end-0">
+<div class="fixed bottom-0 end-0 md:hidden block">
   <SpeedDial color="blue">
     <SpeedDialButton>
       <Logout/>
