@@ -12,7 +12,7 @@ const config = {
 			pages: 'dist',
 		}),
     paths: {
-      base: '/docs'
+      base: process.argv.includes('dev') ? '' : process.env.BASE_PATH
     }
 	},
 	compilerOptions: {
