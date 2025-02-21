@@ -5,7 +5,7 @@ tagline: New generation of content management system
 actions: 
   - label: Get started
     type: primary
-    to: /guide
+    to: /guide/introduction
   - label: View on github
     to: https://github.com/GenoaCMS/core
     external: true

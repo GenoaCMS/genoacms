@@ -21,7 +21,7 @@ root
 └── package-lock.json
 ```
 
-The `genoa.config/index.js` file is the main [configuration](/guide/config) file for your project. It is a JavaScript file that allows importing and exporting configuration options.
+The `genoa.config/index.js` file is the main [configuration](/guide/config/structure) file for your project. It is a JavaScript file that allows importing and exporting configuration options.
 
 :::tip[Break down the configuration]
 Leverage ability to split configuration into multiple files and subdirectories. 

@@ -9,11 +9,11 @@ const config = defineConfig({
 				navbar: [
           {
             title: 'Guide',
-            to: '/guide',
+            to: '/guide/introduction',
           }
 				],
 				sidebar: {
-          '/guide': [
+          '/guide/introduction': [
             {
               title: 'Introduction',
               items: [
@@ -24,8 +24,24 @@ const config = defineConfig({
                 {
                   title: 'Getting Started',
                   to: '/guide/getting-started',
-                }
+                },
               ]
+            },
+            {
+              title: 'Configuration',
+              items: [
+                {
+                  title: 'Config structure',
+                  to: '/guide/config/structure',
+                },
+                {
+                  title: 'Providers API',
+                  to: '/guide/config/providers',
+                },
+                {
+                  title: 'Services',
+                  to: '/guide/config/services',
+                }]
             }
           ]
 				},
