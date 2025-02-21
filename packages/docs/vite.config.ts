@@ -30,13 +30,21 @@ const config = defineConfig({
           ]
 				},
 				github: 'https://github.com/GenoaCMS/core',
-				logo: '/favicon.png',
-			}),
-			siteConfig: {
-				title: 'GenoaCMS',
+        logo: '/favicon.png',
+        preBuildIconifyIcons: {
+          'bi': ['boxes'],
+          'vscode-icons': ['file-type-json', 'typescript-icon', 'file-type-vite'],
+          'game-icons': ['swiss-army-knife'],
+          'tabler': ['cloud-network', 'code-off'],
+          'si': ['json-fill'],
+        },
+      },
+      ),
+      siteConfig: {
+        title: 'GenoaCMS',
 				description: 'Platform-agnostic headless CMS',
-			},
-		}),
+      },
+    }),
 	],
 })
 
