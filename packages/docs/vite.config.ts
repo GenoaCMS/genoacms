@@ -10,20 +10,24 @@ const config = defineConfig({
           {
             title: 'Guide',
             to: '/guide/introduction',
+          },
+          {
+            title: 'Reference',
+            to: '/reference/cloudabstraction/config/',
           }
 				],
 				sidebar: {
-          '/guide/introduction': [
+          '/guide/': [
             {
               title: 'Introduction',
               items: [
                 {
                   title: 'What is GenoaCMS?',
-                  to: '/guide/introduction',
+                  to: '/guide/introduction/',
                 },
                 {
                   title: 'Getting Started',
-                  to: '/guide/getting-started',
+                  to: '/guide/getting-started/',
                 },
               ]
             },
@@ -32,16 +36,47 @@ const config = defineConfig({
               items: [
                 {
                   title: 'Config structure',
-                  to: '/guide/config/structure',
+                  to: '/guide/config/structure/',
                 },
                 {
                   title: 'Providers API',
-                  to: '/guide/config/providers',
+                  to: '/guide/config/providers/',
                 },
                 {
                   title: 'Services',
-                  to: '/guide/config/services',
+                  to: '/guide/config/services/',
                 }]
+            }
+          ],
+          '/reference/': [
+            {
+              title: 'Cloud Abstraction',
+              items: [
+                {
+                  title: 'Config',
+                  to: '/reference/cloudabstraction/config/',
+                },
+                {
+                  title: 'Authentication',
+                  to: '/reference/cloudabstraction/authentication/',
+                },
+                {
+                  title: 'Authorization',
+                  to: '/reference/cloudabstraction/authorization/',
+                },
+                {
+                  title: 'Database',
+                  to: '/reference/cloudabstraction/database/',
+                },
+                {
+                  title: 'Deployment',
+                  to: '/reference/cloudabstraction/deployment/',
+                },
+                {
+                  title: 'Storage',
+                  to: '/reference/cloudabstraction/storage/',
+                }
+              ]
             }
           ]
 				},
