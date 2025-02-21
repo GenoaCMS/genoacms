@@ -46,7 +46,7 @@ const config = defineConfig({
           ]
 				},
 				github: 'https://github.com/GenoaCMS/core',
-        logo: '/favicon.png',
+        logo: '/sail.png',
         preBuildIconifyIcons: {
           'bi': ['boxes'],
           'vscode-icons': ['file-type-json', 'typescript-icon', 'file-type-vite'],
