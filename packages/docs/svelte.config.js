@@ -11,6 +11,9 @@ const config = {
 		adapter: adapter({
 			pages: 'dist',
 		}),
+    paths: {
+      base: '/docs'
+    }
 	},
 	compilerOptions: {
 		runes: true,
