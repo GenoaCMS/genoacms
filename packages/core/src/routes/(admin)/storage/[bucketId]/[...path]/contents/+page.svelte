@@ -26,7 +26,7 @@
 <div class="grid grid-cols-6 gap-5 p-5">
     {#each data.contents.directories as item}
         <div class="col-span-1">
-            <Folder bucketId={data.bucketId} {...item}/>
+            <Folder currentPath={data.navigationPath} bucketId={data.bucketId} {...item}/>
         </div>
     {/each}
     {#each data.contents.files as item}

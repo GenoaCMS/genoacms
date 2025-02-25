@@ -9,31 +9,36 @@ import { join } from 'path'
 import { isString } from '$lib/script/utils'
 import { fail } from '@sveltejs/kit'
 
-const removeRoutingSlashes = (path: string) => {
-  return path.replaceAll('//', '/')
-}
+const removePathDelimiter = (path: string) => path.replaceAll('|->', '')
+
+const pathToSegments = (path: string) => path.split('|->')
+
+const segmentsToPath = (segments: Array<string>) => segments.join('|->')
 
 const resolveParentPath = (bucketId: string, path: string) => {
-  const storagePath = join(path, '..')
-  if (!path) return '/storage'
-  return join('/storage', bucketId, storagePath, 'contents')
+  const pathSegments = pathToSegments(path)
+  if (pathSegments.length <= 1) return '/storage'
+  pathSegments.pop()
+  const parentPath = segmentsToPath(pathSegments)
+  const newPath = `/storage/${bucketId}/${parentPath}/contents`
+  return newPath
 }
 
 export const load = async ({ params }) => {
-  let {
+  const {
     bucketId,
     path
   } = params
-  path = removeRoutingSlashes(path)
 
   const contents = await listDirectory({
     bucket: bucketId,
-    name: path
+    name: removePathDelimiter(path)
   })
 
   return {
     bucketId,
-    path,
+    navigationPath: path,
+    path: removePathDelimiter(path),
     parentPath: resolveParentPath(bucketId, path),
     contents: await processDirectoryContents(bucketId, contents)
   }
