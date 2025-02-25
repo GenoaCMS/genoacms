@@ -4,7 +4,6 @@ import type {
 } from '@genoacms/cloudabstraction/storage'
 import { type File } from '@google-cloud/storage'
 import { getBucket } from './storage.js'
-import { join } from 'path'
 
 const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
