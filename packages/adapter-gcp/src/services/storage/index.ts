@@ -47,7 +47,7 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
   const bucketInstance = getBucket(bucket)
   const options = {
     autoPaginate: false,
-    prefix: join(name, '/'),
+    prefix: name,
     maxResults: listingParams?.limit,
     startOffset: listingParams?.startAfter,
     delimiter: '/'
@@ -66,7 +66,7 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
         lastModified: new Date(file.metadata.updated as string)
       } satisfies StorageObject
     }),
-    directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name)
+    directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name).map(i => i.replace(name, ''))
   }
 }
 
