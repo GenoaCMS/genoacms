@@ -17,7 +17,7 @@ export async function load ({ params }) {
 }
 
 export const actions = {
-  createDocument: async function ({ locals, params, request }) {
+  create: async function ({ locals, params, request }) {
     if (!locals.user) return
     if (!params.collectionName) return
 
