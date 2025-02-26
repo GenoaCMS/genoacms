@@ -6,6 +6,8 @@
   import { Label } from 'flowbite-svelte'
   import Input from '../Editor/Input.svelte'
   import { formConfig } from '$lib/script/forms'
+import { schemasafe } from 'sveltekit-superforms/adapters'
+import { formats } from '$lib/script/database/validators'
 
   interface Props {
     editorForm: SuperForm<unknown>,
@@ -16,10 +18,13 @@
   }
   const { editorForm, schema, action, onsuccess = () => {}, onerror = () => {} }: Props = $props()
   const properties = $derived(extractProperties(schema.properties))
-  const { form, errors, enhance } = superForm(editorForm, {
+  const validators = $derived(schemasafe(schema, { config: { formats } }))
+  const { form, errors, constraints, enhance } = superForm(editorForm, {
     ...formConfig,
     dataType: 'json',
     resetForm: false,
+    validators,
+    validationMethod: 'onsubmit',
     onUpdate ({ form }) {
       if (!form.message) return
       if (form.message.status === 'success') {
@@ -37,6 +42,7 @@
       return $form
     })
   }
+  $inspect($errors, $constraints, $form)
 </script>
 
 <form id="document-form" {action} method="post" use:enhance class="p-3">
@@ -48,6 +54,8 @@
         schema={type}
         value={$form[property.name]}
         onvalue={(value) => updateProperty(property.name, value)}
+        errors={$errors[property.name]}
+        constraints={$constraints[property.name]}
       />
     </Label>
   {/each}

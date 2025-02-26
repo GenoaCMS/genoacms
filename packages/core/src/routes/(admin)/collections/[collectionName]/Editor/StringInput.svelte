@@ -5,10 +5,17 @@
   type Props = {
     schema: JSONSchemaType<string>,
     value: string,
+    constraints: Record<string, unknown> | undefined,
+    errors: Array<string> | undefined,
     onvalue: (e: string) => void
   }
-  const { value, onvalue }: Props = $props()
+  const { value, constraints, errors, onvalue }: Props = $props()
   const v = $state(value)
 </script>
 
-<Input value={v} oninput={e => onvalue(e.target.value)}/>
+<Input
+  value={v}
+  aria-invalid={errors ? 'true' : undefined}
+  color={errors ? 'red' : 'base'}
+  {...constraints}
+  oninput={e => onvalue(e.target.value)}/>

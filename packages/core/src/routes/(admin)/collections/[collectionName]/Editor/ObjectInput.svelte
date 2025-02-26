@@ -6,12 +6,13 @@
 
   type T = string | number | boolean | object
   type Props = {
-    name: string
     schema: JSONSchemaType<T>
     value: T,
+    constraints: Record<string, unknown> | undefined,
+    errors: Record<string, unknown> | undefined,
     onvalue: (e: T) => void
   }
-  const { name, schema, value, onvalue }: Props = $props()
+  const { schema, value, constraints, errors, onvalue }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
   let v = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
@@ -62,7 +63,11 @@
     {@const schema = objectSchema.properties[property.name]}
     <Label>
       {property.name}:
-      <Input {schema} value={v[property.name]} onvalue={(v) => updateValue(property.name, v)}/>
+      <Input {schema}
+        value={v[property.name]}
+        constraints={constraints?.[property.name]}
+        errors={errors?.[property.name]}
+        onvalue={(v) => updateValue(property.name, v)}/>
     </Label>
   {/each}
 </Card>

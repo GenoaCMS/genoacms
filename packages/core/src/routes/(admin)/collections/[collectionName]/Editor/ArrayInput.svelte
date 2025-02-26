@@ -1,18 +1,20 @@
-<script lang="ts">
+<script lang="ts" generics="">
   import type { JSONSchemaType } from 'ajv'
   import { Button } from 'flowbite-svelte'
   import Input from './Input.svelte'
   import { dndzone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
 
-  type T = undefined | string | number | boolean | object
+  type T = undefined | string | number | boolean | Array<T> | Record<string, unknown>
   type wrappedT = { id: string, value: T }
   type Props = {
     schema: JSONSchemaType<T>
     value?: Array<T>,
+    constraints: Record<string, unknown> | undefined,
+    errors: Record<string, unknown> | undefined,
     onvalue: (e: Array<T>) => void
   }
-  const { schema, value, onvalue }: Props = $props()
+  const { schema, value, constraints, errors, onvalue }: Props = $props()
   let items: Array<wrappedT> = $state(toWrappedValue(value || []))
   const flipDurationMs = 300
 
@@ -24,10 +26,10 @@
     items.splice(index, 1)
     updateValue()
   }
-  function handleDndConsider (e) {
+  function handleDndConsider (e: CustomEvent) {
     items = e.detail.items
   }
-  function handleDndFinalize (e) {
+  function handleDndFinalize (e: CustomEvent) {
     items = e.detail.items
     updateValue()
   }
@@ -44,14 +46,18 @@
   function updateValue () {
     onvalue(toUnwrappedValue(items))
   }
-
 </script>
 
 <div use:dndzone={{ items, flipDurationMs }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
   {#each items as item, index (item.id)}
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
-        <Input schema={schema.items} value={item.value} onvalue={(v) => updateItemValue(index, v)}/>
+        <Input
+          schema={schema.items}
+          value={item.value}
+          constraints={constraints?.[index]}
+          errors={errors?.[index]}
+          onvalue={(v) => updateItemValue(index, v)}/>
       </div>
       <div class="w-auto">
         <Button on:click={() => deleteItem(index)} color="red">

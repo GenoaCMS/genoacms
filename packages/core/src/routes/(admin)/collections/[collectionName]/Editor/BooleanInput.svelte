@@ -5,10 +5,17 @@
   type Props = {
     schema: JSONSchemaType<boolean>
     value: boolean,
+    constraints: Record<string, unknown> | undefined,
+    errors: Array<string> | undefined,
     onvalue: (e: boolean) => void
   }
-  const { value, onvalue }: Props = $props()
+  const { value, constraints, errors, onvalue }: Props = $props()
   const v = $state(value)
 </script>
 
-<Checkbox checked={v} onchange={e => onvalue(e.target.value)}/>
+<Checkbox
+  checked={v}
+  aria-invalid={errors ? 'true' : undefined}
+  color={errors ? 'red' : 'base'}
+  {...constraints}
+  onchange={e => onvalue(e.target.value)}/>
