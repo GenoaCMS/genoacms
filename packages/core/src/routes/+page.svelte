@@ -8,8 +8,13 @@
     <h1 class="text-xl">
       Welcome to <strong>GenoaCMS</strong>
     </h1>
-    <div class="flex-grow flex flex-col">
-      <Button color="light" class="mt-auto">
+    <div class="flex-grow flex justify-center">
+      <div class="m-auto w-auto max-w-[40rem]">
+        <img src="/genoacms-narrow.png" alt="GenoaCMS logo" class="" />
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <Button href="https://genoacms.github.io/docs" target="_blank" color="light" class="mt-auto">
         Read documentation
       </Button>
       <Button href="/login" color="light" class="mt-3">
@@ -18,4 +23,3 @@
     </div>
   </Card>
 </div>
-
