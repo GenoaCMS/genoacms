@@ -1,16 +1,23 @@
 <script lang="ts">
-  import StorageObject from './StorageObject.svelte'
-  import EditSelection from './EditSelection.svelte'
+  import type { ResourcesValue, Errors } from '../types'
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import type { JSONSchemaType } from 'ajv'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import StorageObject from './StorageObject.svelte'
+  import EditSelection from './EditSelection.svelte'
+  import { Helper } from 'flowbite-svelte'
 
   type Props = {
-    value: Array<ObjectReference>,
-    onvalue: (value: Array<ObjectReference>) => void
+    schema: JSONSchemaType<ResourcesValue>,
+    value: ResourcesValue,
+    errors: Errors,
+    onvalue: (value: ResourcesValue) => void
   }
-  const { value, onvalue }: Props = $props()
-  let resources: Array<ObjectReference> = $state(value || [])
+  const { schema, value, errors, onvalue }: Props = $props()
+  let resources: ResourcesValue = $state(value || [])
+  const minItems = $derived(schema.minItems || 0)
+  const maxItems = $derived(schema.maxItems || 0)
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
@@ -28,7 +35,7 @@
 
   itc.on('selectionInit', async () => {
     const parameters = {
-      maxItems: 0
+      maxItems
     }
     const selectionInitData = {
       parameters,
@@ -57,4 +64,13 @@
     </div>
   {/each}
   <EditSelection {selectionId} clear={clearResources}/>
+  <div class="pt-1">
+    {resources.length} / {maxItems || '∞'}
+  </div>
+
+  {#if errors}
+    <Helper color="red">
+      Invalid
+    </Helper>
+  {/if}
 </div>

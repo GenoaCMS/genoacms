@@ -1,16 +1,19 @@
 <script lang="ts">
-  import StorageObject from './StorageObject.svelte'
-  import EditSelection from './EditSelection.svelte'
+  import type { ResourceValue, Errors } from '../types'
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import StorageObject from './StorageObject.svelte'
+  import EditSelection from './EditSelection.svelte'
+  import { Helper } from 'flowbite-svelte'
 
   type Props = {
-    value: ObjectReference | null,
-    onvalue: (value: ObjectReference | null) => void
+    value: ResourceValue,
+    errors: Errors,
+    onvalue: (value: ResourceValue) => void
   }
-  const { value, onvalue }: Props = $props()
-  let resource: ObjectReference | null = $state(value || null)
+  const { value, errors, onvalue }: Props = $props()
+  let resource: ResourceValue = $state(value || null)
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
 
@@ -48,5 +51,10 @@
     <StorageObject {resource} {deleteResource}/>
   {:else}
     <EditSelection {selectionId} hideDeleteButton/>
+  {/if}
+  {#if errors}
+    <Helper color="red">
+      Invalid
+    </Helper>
   {/if}
 </div>

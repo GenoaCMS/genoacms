@@ -78,6 +78,7 @@
     {onvalue}/>
 {:else if schema.type === 'array' && schema.items.title === 'storageResource'}
   <StorageResources
+    {schema}
     {value}
     {errors}
     {onvalue}/>
