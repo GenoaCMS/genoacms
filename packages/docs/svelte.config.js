@@ -12,6 +12,7 @@ const config = {
 			pages: 'dist',
 		}),
     paths: {
+      base: '/docs'
     }
 	},
 	compilerOptions: {
