@@ -1,7 +1,9 @@
 <script lang="ts">
+  import type { StringValue } from './types'
+
   type Props = {
-    constValue: string
-    onvalue: (e: string) => void
+    constValue: StringValue
+    onvalue: (e: StringValue) => void
   }
   const { constValue, onvalue }: Props = $props()
 

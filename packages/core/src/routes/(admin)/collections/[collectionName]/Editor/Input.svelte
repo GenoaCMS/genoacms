@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { JSONSchemaType } from 'ajv'
+  import type { InputValue, Constraints, Errors } from './types'
   import StorageResources from './StorageResource/StorageResources.svelte'
   import StorageResource from './StorageResource/StorageResource.svelte'
   import UuidInput from './UUIDInput.svelte'
@@ -14,42 +15,91 @@
   import BooleanInput from './BooleanInput.svelte'
   import TextInput from './TextInput.svelte'
 
-  type T = undefined | string | number | boolean | Array<T> | Record<string, unknown>
   type Props = {
-    schema: JSONSchemaType<T>
-    value: T,
-    constraints: Record<string, unknown> | undefined,
-    errors: Record<string, unknown> | Array<string> | undefined,
-    onvalue: (e: T) => void
+    schema: JSONSchemaType<InputValue>
+    value: InputValue,
+    constraints: Constraints,
+    errors: Errors,
+    onvalue: (e: InputValue) => void
   }
   let { schema, value, constraints, errors, onvalue = (v) => { value = v } }: Props = $props()
 </script>
 
 {#if schema.title === 'reference'}
-  <Reference {schema} {value} {errors} {onvalue}/>
+  <Reference
+    {schema}
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'uuid'}
-  <UuidInput {value} {errors} {onvalue}/>
+  <UuidInput
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'text'}
-  <TextInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <TextInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'string' && schema.format === 'markdown'}
-  <MarkdownInput {value} {errors} {onvalue}/>
+  <MarkdownInput
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'string'}
-  <StringInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <StringInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'number'}
-  <NumberInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <NumberInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'boolean'}
-  <BooleanInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <BooleanInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'array' &&
   schema.items.title === 'reference'}
-  <References schema={schema.items} {value} {errors} {onvalue}/>
+  <References
+    schema={schema.items}
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'array' && schema.items.title === 'storageResource'}
-  <StorageResources {value} {errors} {onvalue}/>
+  <StorageResources
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.title === 'storageResource'}
-  <StorageResource {value} {errors} {onvalue}/>
+  <StorageResource
+    {value}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'array'}
-  <ArrayInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <ArrayInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.type === 'object'}
-  <ObjectInput {schema} {value} {constraints} {errors} {onvalue}/>
+  <ObjectInput
+    {schema}
+    {value}
+    {constraints}
+    {errors}
+    {onvalue}/>
 {:else if schema.const}
   <Const constValue={schema.const} {onvalue}/>
 {/if}

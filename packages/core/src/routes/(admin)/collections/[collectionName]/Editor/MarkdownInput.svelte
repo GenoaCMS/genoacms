@@ -1,12 +1,14 @@
 <script lang="ts">
+  import type { MarkdownValue, Errors } from './types'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
 
   type Props = {
-    value: string,
-    onvalue: (e: string) => void
+    value: MarkdownValue,
+    errors: Errors,
+    onvalue: (e: MarkdownValue) => void
   }
-  const { value, onvalue }: Props = $props()
+  const { value, errors, onvalue }: Props = $props()
   let v = $state(value)
   $effect(() => onvalue(v))
 </script>

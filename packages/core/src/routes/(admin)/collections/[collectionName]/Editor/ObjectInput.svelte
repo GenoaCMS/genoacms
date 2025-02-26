@@ -1,20 +1,20 @@
 <script lang="ts">
+  import type { ObjectValue, Constraints, Errors } from './types'
   import type { JSONSchemaType } from 'ajv'
   import { Button, ButtonGroup, Card, Label } from 'flowbite-svelte'
   import Input from './Input.svelte'
   import { extractProperties } from '../utils'
 
-  type T = string | number | boolean | object
   type Props = {
-    schema: JSONSchemaType<T>
-    value: T,
-    constraints: Record<string, unknown> | undefined,
-    errors: Record<string, unknown> | undefined,
-    onvalue: (e: T) => void
+    schema: JSONSchemaType<ObjectValue>
+    value: ObjectValue,
+    constraints: Constraints,
+    errors: Errors,
+    onvalue: (e: ObjectValue) => void
   }
   const { schema, value, constraints, errors, onvalue }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
-  let v = $state(value || {})
+  let v: ObjectValue = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
   const objectSchema = $derived(discriminator ? schema.oneOf[selectedSchema] : schema)
   const properties = $derived(extractProperties(objectSchema.properties))
@@ -31,7 +31,7 @@
     const index = schema.oneOf.findIndex((item) => item.properties[discriminator].const === valueDiscriminator)
     return index === -1 ? 0 : index
   }
-  function removeOldProperties (v: T): T {
+  function removeOldProperties (v: ObjectValue): ObjectValue {
     if (typeof v !== 'object') return v
     for (const key in v) {
       if (!properties.find((property) => property.name === key)) {
@@ -40,7 +40,7 @@
     }
     return v
   }
-  function updateValue (name: string, value: T) {
+  function updateValue (name: string, value: ObjectValue) {
     v[name] = value
     onvalue(v)
   }

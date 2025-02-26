@@ -1,18 +1,18 @@
 <script lang="ts" generics="">
+  import type { ArrayValue, InputValue, Constraints, Errors } from './types'
   import type { JSONSchemaType } from 'ajv'
   import { Button } from 'flowbite-svelte'
   import Input from './Input.svelte'
   import { dndzone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
 
-  type T = undefined | string | number | boolean | Array<T> | Record<string, unknown>
-  type wrappedT = { id: string, value: T }
+  type wrappedT = { id: string, value: InputValue }
   type Props = {
-    schema: JSONSchemaType<T>
-    value?: Array<T>,
-    constraints: Record<string, unknown> | undefined,
-    errors: Record<string, unknown> | undefined,
-    onvalue: (e: Array<T>) => void
+    schema: JSONSchemaType<InputValue>
+    value?: ArrayValue,
+    constraints: Constraints,
+    errors: Errors,
+    onvalue: (e: ArrayValue) => void
   }
   const { schema, value, constraints, errors, onvalue }: Props = $props()
   let items: Array<wrappedT> = $state(toWrappedValue(value || []))
@@ -33,13 +33,13 @@
     items = e.detail.items
     updateValue()
   }
-  function toWrappedValue (items: Array<T>) {
+  function toWrappedValue (items: ArrayValue) {
     return items.map((item) => ({ id: crypto.randomUUID(), value: item }))
   }
-  function toUnwrappedValue (items: Array<wrappedT>): Array<T> {
+  function toUnwrappedValue (items: Array<wrappedT>): ArrayValue {
     return items.map((item) => item.value)
   }
-  function updateItemValue (index: number, value: T) {
+  function updateItemValue (index: number, value: InputValue) {
     items[index].value = value
     updateValue()
   }
