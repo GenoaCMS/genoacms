@@ -20,7 +20,7 @@
     <i class="bi bi-folder-symlink text-2xl"></i>
   </Button>
   {#if !hideDeleteButton}
-    <Button onclick={clear} color="light" outline class="hover:text-warning transition-all ms-2 shadow">
+    <Button onclick={clear} color="red" outline class="hover:text-warning transition-all ms-2 shadow">
       <i class="bi bi-trash text-2xl"></i>
     </Button>
   {/if}

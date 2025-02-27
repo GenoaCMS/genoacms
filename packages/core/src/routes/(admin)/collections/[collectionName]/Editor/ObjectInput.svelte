@@ -1,24 +1,31 @@
 <script lang="ts">
   import type { ObjectValue, Constraints, Errors } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import { Button, ButtonGroup, Card, Label } from 'flowbite-svelte'
+  import { Button, ButtonGroup, Card, Dropdown, Label } from 'flowbite-svelte'
   import Input from './Input.svelte'
   import { extractProperties } from '../utils'
+  import { dragHandle } from 'svelte-dnd-action'
 
   type Props = {
     schema: JSONSchemaType<ObjectValue>
     value: ObjectValue,
     constraints: Constraints,
     errors: Errors,
-    onvalue: (e: ObjectValue) => void
+    onvalue: (e: ObjectValue) => void,
+    ondelete: () => void
   }
-  const { schema, value, constraints, errors, onvalue }: Props = $props()
+
+  const { schema, value, constraints, errors, onvalue, ondelete }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
   let v: ObjectValue = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
   const objectSchema = $derived(discriminator ? schema.oneOf[selectedSchema] : schema)
   const properties = $derived(extractProperties(objectSchema.properties))
+  let isDropdownOpen = $state(false)
 
+  function toggleDropdown () {
+    isDropdownOpen = !isDropdownOpen
+  }
   function selectSchema (index: number) {
     selectedSchema = index
     v = removeOldProperties(v)
@@ -47,17 +54,35 @@
 </script>
 
 <Card class="w-full" size="none">
-  {#if discriminator}
-    <div class="w-full flex justify-center mt-3">
-      <ButtonGroup>
-        {#each schema.oneOf as item, index}
-          <Button onclick={() => selectSchema(index)} color="blue" outline={index !== selectedSchema}>
-            {item.properties[discriminator].const}
-          </Button>
-        {/each}
-      </ButtonGroup>
+  <div class="w-full flex">
+    <div class="flex">
+      <button aria-label="Dragger" type="button" use:dragHandle>
+        <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
+      </button>
     </div>
-  {/if}
+    <div class="m-auto">
+      {#if discriminator}
+        <ButtonGroup>
+          {#each schema.oneOf as item, index}
+            <Button onclick={() => selectSchema(index)} color="blue" outline={index !== selectedSchema}>
+              {item.properties[discriminator].const}
+            </Button>
+          {/each}
+        </ButtonGroup>
+      {/if}
+    </div>
+    <div class="flex">
+      <Button color="none" onclick={toggleDropdown}>
+        <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
+      </Button>
+      <Dropdown open={isDropdownOpen}>
+        <Button color="red" class="flex" onclick={ondelete}>
+          <span>Delete</span>
+          <i class="bi bi-trash ms-2"></i>
+        </Button>
+      </Dropdown>
+    </div>
+  </div>
 
   {#each properties as property (objectSchema.properties[property.name])}
     {@const schema = objectSchema.properties[property.name]}

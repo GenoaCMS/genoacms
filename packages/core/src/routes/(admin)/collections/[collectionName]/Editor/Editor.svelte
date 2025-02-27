@@ -6,8 +6,8 @@
   import { Label } from 'flowbite-svelte'
   import Input from '../Editor/Input.svelte'
   import { formConfig } from '$lib/script/forms'
-import { schemasafe } from 'sveltekit-superforms/adapters'
-import { formats } from '$lib/script/database/validators'
+  import { schemasafe } from 'sveltekit-superforms/adapters'
+  import { formats } from '$lib/script/database/validators'
 
   interface Props {
     editorForm: SuperForm<unknown>,
@@ -24,7 +24,7 @@ import { formats } from '$lib/script/database/validators'
     dataType: 'json',
     resetForm: false,
     validators,
-    validationMethod: 'onsubmit',
+    validationMethod: 'oninput',
     onUpdate ({ form }) {
       if (!form.message) return
       if (form.message.status === 'success') {
@@ -42,7 +42,6 @@ import { formats } from '$lib/script/database/validators'
       return $form
     })
   }
-  $inspect($errors, $constraints, $form)
 </script>
 
 <form id="document-form" {action} method="post" use:enhance class="p-3">

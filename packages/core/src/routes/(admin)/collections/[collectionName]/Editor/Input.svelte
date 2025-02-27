@@ -20,9 +20,10 @@
     value: InputValue,
     constraints: Constraints,
     errors: Errors,
-    onvalue: (e: InputValue) => void
+    onvalue: (e: InputValue) => void,
+    ondelete?: () => void
   }
-  let { schema, value, constraints, errors, onvalue = (v) => { value = v } }: Props = $props()
+  let { schema, value, constraints, errors, onvalue = (v) => { value = v }, ondelete = () => {} }: Props = $props()
 </script>
 
 {#if schema.title === 'reference'}
@@ -30,77 +31,90 @@
     {schema}
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'string' && schema.format === 'uuid'}
   <UuidInput
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'string' && schema.format === 'text'}
   <TextInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'string' && schema.format === 'markdown'}
   <MarkdownInput
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'string'}
   <StringInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'number'}
   <NumberInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'boolean'}
   <BooleanInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'array' &&
   schema.items.title === 'reference'}
   <References
     schema={schema.items}
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'array' && schema.items.title === 'storageResource'}
   <StorageResources
     {schema}
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.title === 'storageResource'}
   <StorageResource
     {value}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'array'}
   <ArrayInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+  />
 {:else if schema.type === 'object'}
   <ObjectInput
     {schema}
     {value}
     {constraints}
     {errors}
-    {onvalue}/>
+    {onvalue}
+    {ondelete}
+  />
 {:else if schema.const}
   <Const constValue={schema.const} {onvalue}/>
 {/if}

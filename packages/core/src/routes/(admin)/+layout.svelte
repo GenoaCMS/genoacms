@@ -7,7 +7,7 @@
     <div class="bg-light dark:bg-dark-light hidden md:block w-[30rem]">
       <Navbar/>
     </div>
-    <div class="w-full">
+    <div class="w-full overflow-scroll">
         <slot/>
     </div>
 </div>

@@ -3,8 +3,9 @@
   import type { JSONSchemaType } from 'ajv'
   import { Button } from 'flowbite-svelte'
   import Input from './Input.svelte'
-  import { dndzone } from 'svelte-dnd-action'
+  import { dragHandleZone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
+  import { confirmationModal } from '$lib/script/alert'
 
   type wrappedT = { id: string, value: InputValue }
   type Props = {
@@ -22,7 +23,9 @@
     items.push({ id: crypto.randomUUID(), value: undefined })
     updateValue()
   }
-  function deleteItem (index: number) {
+  async function deleteItem (index: number) {
+    const confirmation = await confirmationModal('Are you sure you want to delete this item?')
+    if (!confirmation.isConfirmed) return
     items.splice(index, 1)
     updateValue()
   }
@@ -48,7 +51,10 @@
   }
 </script>
 
-<div use:dndzone={{ items, flipDurationMs }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
+<div
+  use:dragHandleZone={{ items, flipDurationMs, dropFromOthersDisabled: true, dropTargetStyle: { outline: '' } }}
+  onconsider={handleDndConsider}
+  onfinalize={handleDndFinalize}>
   {#each items as item, index (item.id)}
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
@@ -57,21 +63,21 @@
           value={item.value}
           constraints={constraints?.[index]}
           errors={errors?.[index]}
-          onvalue={(v) => updateItemValue(index, v)}/>
-      </div>
-      <div class="w-auto">
-        <Button on:click={() => deleteItem(index)} color="red">
-          <i class="bi bi-trash text-lg"></i>
-        </Button>
+          onvalue={(v) => updateItemValue(index, v)}
+          ondelete={() => deleteItem(index)}
+        />
       </div>
     </div>
   {/each}
 </div>
 
 <div class="w-full flex mt-3">
-  <div class="ms-auto">
-    <Button on:click={addItem} color="blue">
-      <i class="bi bi-plus text-lg"></i>
+  <div class="mx-auto">
+    <Button on:click={addItem} color="blue" class="flex min-w-[10rem]">
+      <span class="me-auto">
+        Add item
+      </span>
+      <i class="bi bi-plus text-2xl"></i>
     </Button>
   </div>
 </div>

@@ -9,11 +9,17 @@
   const { resource, deleteResource }: Props = $props()
 </script>
 
-<Card target="_blank" padding="sm" class="min-w-full mb-2">
+<Card target="_top" padding="sm" class="min-w-full mb-2">
   <div class="flex">
-    <div class="flex-grow whitespace-nowrap">
-      Bucket: {resource.bucket}<br>
-      Filename: {resource.name}
+    <div class="flex-grow">
+      <div class="flex justify-center items-center">
+        <i class="bi bi-bucket text-xl me-4"></i>
+        <div class="flex-grow">{resource.bucket}</div>
+      </div>
+      <div class="flex justify-center items-center">
+        <i class="bi bi-input-cursor-text text-xl me-4"></i>
+        <div class="flex-grow">{resource.name}</div>
+      </div>
     </div>
     <div class="w-auto h-auto my-auto">
       <Button onclick={() => deleteResource(resource)}>

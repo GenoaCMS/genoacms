@@ -8,8 +8,10 @@
 </script>
 
 <TopPanel>
-  <h1 class="text-2xl">
-    Update <span class="text-warning">{data.document.reference.id}</span> of
+  <h1 class="text-2xl flex flex-wrap">
+    <span class="me-2">Update</span>
+    <span class="text-warning inline-block truncate max-w-[5ch]">{data.document.reference.id}</span>
+    <span class="me-2">of</span>
     <span class="text-warning">{data.document.reference.collection.name}</span>
   </h1>
   <svelte:fragment slot="right">
