@@ -6,7 +6,8 @@
   const { icon, text }: Props = $props()
 </script>
 
-<div class="border border-dark dark:border-light border-opacity-30 aspect-square flex flex-col">
+<div class="border border-dark dark:border-light border-opacity-30
+  aspect-square flex flex-col transition-all hover:scale-105 hover:shadow-lg">
     <div class="flex-grow flex justify-center items-center">
         <i class="bi bi-{icon} text-6xl"/>
     </div>

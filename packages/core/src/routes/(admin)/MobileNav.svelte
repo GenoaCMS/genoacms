@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { DarkMode, SpeedDial, SpeedDialButton } from 'flowbite-svelte'
   import { pages } from './pages'
+  import { page } from '$app/state'
+  import { DarkMode, SpeedDial, SpeedDialButton } from 'flowbite-svelte'
   import Logout from '$lib/components/Logout.svelte'
 </script>
 
@@ -12,9 +13,10 @@
     <SpeedDialButton name="Color mode">
       <DarkMode/>
     </SpeedDialButton>
-    {#each pages as page}
-      <SpeedDialButton name={page.name} href={page.route}>
-        <i class="bi bi-{page.icon} text-2xl h-[2rem] mx-3"/>
+    {#each pages as pageItem}
+      {@const isActive = page.url.pathname.startsWith(pageItem.route)}
+      <SpeedDialButton name={pageItem.name} href={pageItem.route}>
+        <i class="bi bi-{pageItem.icon} text-2xl h-[2rem] mx-3 {isActive ? 'text-warning' : ''}"></i>
       </SpeedDialButton>
     {/each}
   </SpeedDial>

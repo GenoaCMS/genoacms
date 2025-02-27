@@ -4,7 +4,6 @@ export default {
   plugins: [require('flowbite/plugin')],
   darkMode: 'class',
   theme: {
-    colors: {},
     borderRadius: 0,
     extend: {
       colors: {

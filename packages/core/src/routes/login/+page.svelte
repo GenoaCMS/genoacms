@@ -17,11 +17,13 @@
   }
 </script>
 
-<div class="w-full h-full flex justify-center items-center">
-    <form class="w-1/3" method="post" use:enhance={enhanceLogin}>
-        <h1 class="text-4xl text-center mb-[8rem]">
-            GenoaCMS - Log in
-        </h1>
+<div class="container mx-auto w-full h-full flex flex-col justify-center items-center">
+    <div class="flex mt-0 justify-center">
+      <div class="m-auto w-auto max-w-[40rem]">
+        <img src="/genoacms-narrow.png" alt="GenoaCMS logo" class="" />
+      </div>
+    </div>
+    <form class="w-full md:w-2/3 xl:w-1/3 p-5" method="post" use:enhance={enhanceLogin}>
         <Input label="Username" type="text" name="username" placeholder="Username" class="mb-3"/>
         <Input label="Password" type="password" name="password" placeholder="Password" class="mb-3"/>
         <Button type="submit" color="light" size="lg" class="w-full mt-4">Login</Button>

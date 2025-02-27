@@ -3,11 +3,11 @@
   import MobileNav from './MobileNav.svelte'
 </script>
 
-<div class="h-full grid grid-cols-12 gap-0">
-    <div class="bg-light dark:bg-dark-light hidden md:block md:col-span-4 xl:col-span-2">
+<div class="h-full flex gap-0">
+    <div class="bg-light dark:bg-dark-light hidden md:block w-[30rem]">
       <Navbar/>
     </div>
-    <div class="col-span-12 md:col-span-8 xl:col-span-10">
+    <div class="w-full">
         <slot/>
     </div>
 </div>
