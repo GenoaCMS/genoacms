@@ -4,39 +4,20 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import ComponentSchemaEditor from './ComponentEntryEditor/ComponentEntryEditor.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
-  import { Modal } from 'flowbite-svelte'
 
   interface Props {
     entry: ComponentEntry
   }
   const { entry }: Props = $props()
 
-  let isModalOpen = $state(false)
   let contextMenuEvent: MouseEvent | null = $state(null)
 
-  const toggleModal = () => {
-    isModalOpen = !isModalOpen
-  }
   const openContextMenu = (event: MouseEvent) => {
     contextMenuEvent = event
   }
-  const enhanceEdit = () => {
-    const alert = alertPending('Editing')
-    return async ({ result }) => {
-      alert.close()
-      console.log(result)
-      if (result.type !== 'success') {
-        toastError('Editing failed')
-        return
-      }
-      toastSuccess('Editing successful')
-      isModalOpen = false
-      invalidateAll()
-    }
-  }
+
   const enhanceDeletion = () => {
     const alert = alertPending('Deleting component entry')
     return async ({ result }) => {
@@ -51,18 +32,12 @@
   }
 </script>
 
-<CardLink onclick={toggleModal} icon="box" text={entry.name} oncontextmenu={openContextMenu}/>
+<CardLink href="prebuilt/{entry.uid}" icon="box" text={entry.name} oncontextmenu={openContextMenu}/>
 <ContextMenu bind:opener={contextMenuEvent}>
-    <form action="?/deleteComponentEntry" method="post" use:enhance={enhanceDeletion}>
+    <form action="prebuilt/{entry.uid}?/deleteComponentEntry" method="post" use:enhance={enhanceDeletion}>
         <input type="text" name="UID" value={entry.uid} hidden/>
         <ContextMenuItem type="submit">
             Delete
         </ContextMenuItem>
     </form>
 </ContextMenu>
-
-<Modal title="Edit schema schema of component {entry.name}" bind:open={isModalOpen}>
-    <div class="flex w-3/4 mx-auto">
-        <ComponentSchemaEditor {entry} enhanceForm={enhanceEdit}/>
-    </div>
-</Modal>

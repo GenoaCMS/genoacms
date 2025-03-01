@@ -11,7 +11,7 @@ import { join } from 'path'
 import { validator } from '@exodus/schemasafe'
 import { componentEntrySchema } from './component/schemas'
 
-const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
+const prebuiltSchemaPath = join('.genoacms', 'components', 'prebuilt/')
 const validateComponentEntry = validator(componentEntrySchema, { includeErrors: true })
 
 const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentEntry>> => {
@@ -35,11 +35,24 @@ const getPrebuiltComponentEntry = async (reference: ComponentEntryReference): Pr
 
 const uploadPrebuiltComponentEntry = async (entry: ComponentEntry) => uploadInternalObjectFlatted(join(prebuiltSchemaPath, entry.uid), entry)
 
+const createComponentEntry = async (creation: ComponentEntryCreation) => {
+  const componentEntry: ComponentEntry = {
+    uid: crypto.randomUUID(),
+    name: creation.name,
+    attributes: {},
+    history: [],
+    future: []
+  }
+  await uploadPrebuiltComponentEntry(componentEntry)
+  return componentEntry
+}
+
 const deletePrebuiltComponentEntry = async (name: string) => deleteInternalObject(join(prebuiltSchemaPath, name))
 
 export {
   listOrCreatePreBuiltComponentList,
   getPrebuiltComponentEntry,
   uploadPrebuiltComponentEntry,
+  createComponentEntry,
   deletePrebuiltComponentEntry
 }

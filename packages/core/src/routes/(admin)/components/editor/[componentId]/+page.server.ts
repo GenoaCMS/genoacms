@@ -55,6 +55,7 @@ export const actions = {
     try {
       await commitComponentDefinition(form.data)
     } catch (e) {
+      console.log(e)
       if (e instanceof ComponentDiffError) return message(form, { status: 'fail', text: e.message })
       else return message(form, { status: 'fail', text: e.message })
     }

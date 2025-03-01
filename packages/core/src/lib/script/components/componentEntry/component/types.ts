@@ -1,4 +1,5 @@
 import type { Diff } from 'deep-diff'
+import type { JSONSchemaType } from 'ajv'
 
 type BooleanAttributeType = 'boolean'
 type NumberAttributeType = 'number'
@@ -24,31 +25,54 @@ type AttributeType =
 type AttributeReference = string
 
 interface AttributeBase {
-  uid: AttributeReference,
-  name: string,
+  uid: AttributeReference
+}
+
+interface BooleanMetaSchema {
+  type: 'boolean',
+  title: string,
   description: string,
-  isRequired: boolean
+  required: boolean,
+  default: boolean,
+}
+
+interface NumberMetaSchema {
+  type: 'number',
+  title: string,
+  description: string,
+  minimum?: number,
+  maximum?: number,
+  multipleOf?: number,
+  required: boolean,
+  default: number
+}
+
+interface StringMetaSchema {
+  type: 'string',
+  title: string,
+  description: string,
+  minLength?: number,
+  maxLength?: number,
+  pattern?: string,
+  format?: string,
+  required: boolean,
+  default: string
 }
 
 interface BooleanAttribute extends AttributeBase {
   type: BooleanAttributeType,
-  defaultValue: boolean
+  schema: JSONSchemaType<BooleanMetaSchema>
 }
 
 interface NumberAttribute extends AttributeBase {
   type: NumberAttributeType,
-  min: number,
-  max: number,
-  step: number,
-  decimalPlaces: number,
-  defaultValue: number
+  schema: JSONSchemaType<NumberMetaSchema>,
+  decimalPlaces: number
 }
 
 interface StringAttribute extends AttributeBase {
   type: StringAttributeType,
-  regex: string,
-  maxLength: number,
-  defaultValue: string
+  schema: StringMetaSchema
 }
 
 interface TextAttribute extends AttributeBase {
@@ -59,16 +83,17 @@ interface TextAttribute extends AttributeBase {
 
 interface MarkdownAttribute extends AttributeBase {
   type: MarkdownAttributeType,
-  defaultValue: string
+  schema: StringMetaSchema
 }
 
 interface RichTextAttribute extends AttributeBase {
   type: RichTextAttributeType,
-  defaultValue: string
+  schema: StringMetaSchema
 }
 
 interface LinkAttribute extends AttributeBase {
   type: LinkAttributeType,
+  schema: StringMetaSchema
 }
 
 interface StorageResourceAttribute extends AttributeBase {
@@ -108,8 +133,15 @@ interface ComponentEntry {
   future: Array<AttributesChange>
 }
 
+interface ComponentEntryCreation {
+  name: string
+}
+
 export type {
   AttributeReference,
+  BooleanMetaSchema,
+  NumberMetaSchema,
+  StringMetaSchema,
   BooleanAttributeType,
   NumberAttributeType,
   StringAttributeType,
@@ -133,5 +165,6 @@ export type {
   Attribute,
   ComponentEntryAttributes,
   ComponentEntryReference,
-  ComponentEntry
+  ComponentEntry,
+  ComponentEntryCreation
 }

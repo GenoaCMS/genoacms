@@ -4,7 +4,7 @@
   import ComponentEntry from './ComponentEntry.svelte'
   import Grid from '$lib/components/Grid.svelte'
 
-  export let data
+  const { data } = $props()
 </script>
 
 <TopPanel>
@@ -12,7 +12,7 @@
         Prebuilt component management
     </h1>
     <svelte:fragment slot="right">
-        <CreateComponentSchema/>
+        <CreateComponentSchema creationForm={data.creationForm}/>
     </svelte:fragment>
 </TopPanel>
 
