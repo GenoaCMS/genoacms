@@ -1,18 +1,18 @@
 import type { ComponentEntry, ComponentEntryReference } from './component/types'
 import {
-  deleteObject,
   defaultBucketId,
   listOrCreateDirectory,
-  uploadObject,
   fullyQualifiedNameToFilename,
-  getObjectFlatted
+  uploadInternalObjectFlatted,
+  deleteInternalObject,
+  getInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
-import { stringify } from 'flatted'
 import { validator } from '@exodus/schemasafe'
 import { componentEntrySchema } from './component/schemas'
 
 const prebuiltSchemaPath = join('.genoacms', 'components/', 'prebuilt/')
+const validateComponentEntry = validator(componentEntrySchema, { includeErrors: true })
 
 const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentEntry>> => {
   const componentList = await listOrCreateDirectory({
@@ -26,30 +26,16 @@ const listOrCreatePreBuiltComponentList = async (): Promise<Array<ComponentEntry
 }
 
 const getPrebuiltComponentEntry = async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
-  const potentialComponentEntry = await getObjectFlatted({
-    bucket: defaultBucketId,
-    name: join(prebuiltSchemaPath, reference)
-  }) as ComponentEntry
-  const validateComponentEntry = validator(componentEntrySchema)
+  const potentialComponentEntry = await getInternalObjectFlatted(join(prebuiltSchemaPath, reference)) as unknown
   if (!validateComponentEntry(potentialComponentEntry)) {
     return null
   }
-  return potentialComponentEntry
+  return potentialComponentEntry as ComponentEntry
 }
 
-const uploadPrebuiltComponentEntry = async (entry: ComponentEntry) => {
-  await uploadObject({
-    bucket: defaultBucketId,
-    name: join(prebuiltSchemaPath, entry.uid)
-  }, stringify(entry))
-}
+const uploadPrebuiltComponentEntry = async (entry: ComponentEntry) => uploadInternalObjectFlatted(join(prebuiltSchemaPath, entry.uid), entry)
 
-const deletePrebuiltComponentEntry = async (name: string) => {
-  await deleteObject({
-    bucket: defaultBucketId,
-    name: join(prebuiltSchemaPath, name)
-  })
-}
+const deletePrebuiltComponentEntry = async (name: string) => deleteInternalObject(join(prebuiltSchemaPath, name))
 
 export {
   listOrCreatePreBuiltComponentList,
