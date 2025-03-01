@@ -9,10 +9,14 @@
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import { Modal } from 'flowbite-svelte'
 
-  export let entry: ComponentEntry
+  interface Props {
+    entry: ComponentEntry
+  }
+  const { entry }: Props = $props()
 
-  let isModalOpen = false
-  let contextMenuEvent: MouseEvent | null = null
+  let isModalOpen = $state(false)
+  let contextMenuEvent: MouseEvent | null = $state(null)
+
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
@@ -47,7 +51,7 @@
   }
 </script>
 
-<CardLink on:click={toggleModal} icon="box" text={entry.name} on:contextmenu={openContextMenu}/>
+<CardLink onclick={toggleModal} icon="box" text={entry.name} oncontextmenu={openContextMenu}/>
 <ContextMenu bind:opener={contextMenuEvent}>
     <form action="?/deleteComponentEntry" method="post" use:enhance={enhanceDeletion}>
         <input type="text" name="UID" value={entry.uid} hidden/>

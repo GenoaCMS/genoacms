@@ -43,7 +43,7 @@
 
 {#if isOpen}
     <Portal>
-        <div bind:clientWidth={menuWidth} class="absolute min-w-[8rem] w-auto bg-light shadow-lg border border-b-0 flex flex-col z-10"
+        <div bind:clientWidth={menuWidth} class="absolute min-w-[8rem] w-auto bg-light dark:bg-dark shadow-lg border border-b-0 flex flex-col z-10"
              {style}>
             <div class="text-nowrap">
                 <slot/>
