@@ -61,7 +61,7 @@
         <Input
           schema={schema.items}
           value={item.value}
-          constraints={constraints?.[index]}
+          constraints={constraints}
           errors={errors?.[index]}
           onvalue={(v) => updateItemValue(index, v)}
           ondelete={() => deleteItem(index)}

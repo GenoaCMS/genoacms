@@ -12,11 +12,6 @@
     attributes: ComponentEntryAttributes
   }
   const { attributes }: Props = $props()
-  let isModalOpen = $state(false)
-
-  const toggleModal = () => {
-    isModalOpen = !isModalOpen
-  }
 
   const handleAttributeCreation = (event: CustomEvent) => {
     if (!event.detail) return
@@ -54,9 +49,3 @@
         </div>
     </div>
 </div>
-
-<Modal title="New attribute" bind:open={isModalOpen}>
-    <div class="m-auto w-2/3">
-        <ComponentSchemaAttributeEditor on:save={handleAttributeCreation}/>
-    </div>
-</Modal>

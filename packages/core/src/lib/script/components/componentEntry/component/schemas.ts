@@ -2,7 +2,7 @@ import type { JSONSchemaType } from 'ajv'
 import type {
   BooleanAttribute,
   BooleanMetaSchema,
-  ComponentCreation,
+  ComponentEntryCreation,
   ComponentEntryAttributes,
   ComponentsAttribute,
   LinkAttribute,
@@ -19,7 +19,7 @@ import type {
 const booleanMetaSchema: JSONSchemaType<BooleanMetaSchema> = {
   type: 'object',
   properties: {
-    type: { const: 'boolean' },
+    type: { type: 'string', const: 'boolean' },
     title: { type: 'string' },
     description: { type: 'string' },
     required: { type: 'boolean' },
@@ -31,7 +31,7 @@ const booleanMetaSchema: JSONSchemaType<BooleanMetaSchema> = {
 const numberMetaSchema: JSONSchemaType<NumberMetaSchema> = {
   type: 'object',
   properties: {
-    type: { const: 'number' },
+    type: { type: 'string', const: 'number' },
     title: { type: 'string' },
     description: { type: 'string' },
     minimum: { type: 'number' },
@@ -46,7 +46,7 @@ const numberMetaSchema: JSONSchemaType<NumberMetaSchema> = {
 const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
   type: 'object',
   properties: {
-    type: { const: 'string' },
+    type: { type: 'string', const: 'string' },
     title: { type: 'string' },
     description: { type: 'string' },
     minLength: { type: 'number' },
@@ -54,15 +54,16 @@ const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
     pattern: { type: 'string' },
     format: { type: 'string' },
     required: { type: 'boolean' },
-    default: { type: 'boolean' }
-  }
+    default: { type: 'string' }
+  },
+  required: ['type', 'title', 'description', 'required', 'default']
 }
 
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'boolean' },
+    type: { type: 'string', const: 'boolean' },
     schema: booleanMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -72,7 +73,7 @@ const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'number' },
+    type: { type: 'string', const: 'number' },
     schema: numberMetaSchema,
     decimalPlaces: { type: 'number' }
   },
@@ -83,7 +84,7 @@ const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'string' },
+    type: { type: 'string', const: 'string' },
     schema: stringMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -93,7 +94,7 @@ const textAttributeSchema: JSONSchemaType<TextAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'text' },
+    type: { type: 'string', const: 'text' },
     schema: stringMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -103,7 +104,7 @@ const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'markdown' },
+    type: { type: 'string', const: 'markdown' },
     schema: stringMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -113,7 +114,7 @@ const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'richText' },
+    type: { type: 'string', const: 'richText' },
     schema: stringMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -123,7 +124,7 @@ const linkAttributeSchema: JSONSchemaType<LinkAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    type: { const: 'link' },
+    type: { type: 'string', const: 'link' },
     schema: stringMetaSchema
   },
   required: ['uid', 'type', 'schema']
@@ -195,7 +196,7 @@ const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
   required: ['uid', 'name', 'attributes', 'history', 'future']
 }
 
-const componentEntryCreationSchema: JSONSchemaType<ComponentCreation> = {
+const componentEntryCreationSchema: JSONSchemaType<ComponentEntryCreation> = {
   type: 'object',
   properties: {
     name: {

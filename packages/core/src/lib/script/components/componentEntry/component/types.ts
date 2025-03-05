@@ -98,13 +98,15 @@ interface LinkAttribute extends AttributeBase {
 
 interface StorageResourceAttribute extends AttributeBase {
   type: StorageResourceAttributeType,
+  schema: {}
 }
 
 interface ComponentsAttribute extends AttributeBase {
   type: ComponentsAttributeType,
   component: string,
   maxComponents: number,
-  allowedComponents: Array<string>
+  allowedComponents: Array<string>,
+  schema: {}
 }
 
 type Attribute<T extends AttributeType = AttributeType> =

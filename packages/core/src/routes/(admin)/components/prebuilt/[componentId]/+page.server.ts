@@ -26,6 +26,7 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions = {
   update: async ({ request }) => {
     const form = await superValidate(request, componentEntryValidator)
+    console.log(form)
     if (!form.valid) return message(form, { status: 'fail', text: 'Failed to update a component' })
     // TODO: get previous stade, create diff
     await uploadPrebuiltComponentEntry(form.data as ComponentEntry)

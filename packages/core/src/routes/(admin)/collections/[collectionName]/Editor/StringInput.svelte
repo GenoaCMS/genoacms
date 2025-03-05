@@ -20,6 +20,7 @@
   }
 </script>
 
+{constraints}
 <Input
   value={v}
   aria-invalid={errors ? 'true' : undefined}

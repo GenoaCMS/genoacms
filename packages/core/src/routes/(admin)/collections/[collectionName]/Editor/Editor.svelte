@@ -42,6 +42,7 @@
       return $form
     })
   }
+  $inspect($errors, $constraints)
 </script>
 
 <form id="document-form" {action} method="post" use:enhance class="p-3">
