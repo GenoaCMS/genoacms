@@ -22,7 +22,7 @@
   })
 </script>
 
-<Card>
+<Card size="none" class="mb-4">
   <Label>
     Name:
     <Input bind:value={value.schema.title} />
@@ -30,10 +30,6 @@
   <Label>
     Description:
     <Input bind:value={value.schema.description} />
-  </Label>
-  <Label>
-    Is required:
-    <Checkbox bind:checked={value.schema.required} />
   </Label>
   {#if attribute.type === 'boolean'}
     <BooleanAttribute
@@ -47,11 +43,29 @@
       bind:multipleOf={value.schema.multipleOf}
     />
   {:else if attribute.type === 'string'}
-    <StringAttribute />
+    <StringAttribute
+      bind:default={value.schema.default}
+      bind:minLength={value.schema.minLength}
+      bind:maxLength={value.schema.maxLength}
+      bind:pattern={value.schema.pattern}
+      bind:format={value.schema.format}
+    />
   {:else if attribute.type === 'text'}
-    <TextAttribute />
+    <TextAttribute
+      bind:default={value.schema.default}
+      bind:minLength={value.schema.minLength}
+      bind:maxLength={value.schema.maxLength}
+      bind:pattern={value.schema.pattern}
+      bind:format={value.schema.format}
+    />
   {:else if attribute.type === 'markdown'}
-    <MarkdownAttribute />
+    <MarkdownAttribute
+      bind:default={value.schema.default}
+      bind:minLength={value.schema.minLength}
+      bind:maxLength={value.schema.maxLength}
+      bind:pattern={value.schema.pattern}
+      bind:format={value.schema.format}
+    />
   {:else if attribute.type === 'richText'}
     <RichTextAttribute />
   {:else if attribute.type === 'link'}
@@ -61,4 +75,8 @@
   {:else if attribute.type === 'components'}
     <ComponentsAttribute />
   {/if}
+  <Label>
+    Is required:
+    <Checkbox bind:checked={value.schema.required} />
+  </Label>
 </Card>

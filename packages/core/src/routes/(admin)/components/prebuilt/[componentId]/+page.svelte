@@ -52,7 +52,7 @@ const componentEntryValidator = schemasafe(componentEntrySchema, { config: { inc
 
 <SuperDebug data={{ $form, $errors }} />
 
-<form id="update-form" method="post" action="?/update" use:enhance>
+<form id="update-form" method="post" action="?/update" use:enhance class="p-4">
   {#each Object.values($form.attributes) as attribute (attribute.uid)}
     <Attribute {attribute} onvalue={updateAttribute} />
   {/each}

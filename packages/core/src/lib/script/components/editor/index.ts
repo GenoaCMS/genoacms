@@ -77,6 +77,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
     getPrebuiltComponentEntry(order.componentId)
   ])
   const commit = await createComponentCommit(order, definition)
+  console.log('entry', entry, order.componentId)
   const newEntry = componentCodeToEntry(component.name, definition.uncommitedCode, entry)
 
   await Promise.all([

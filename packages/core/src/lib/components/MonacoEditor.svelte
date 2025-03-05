@@ -4,16 +4,21 @@
 
   interface Props {
     language: 'markdown' | 'javascript',
-    value: string
+    value: string,
+    class?: string
   }
-  let { language = 'markdown', value = $bindable('') }: Props = $props()
+  let {
+    language = 'markdown',
+    value = $bindable(),
+    class: additionalClasses = ''
+  }: Props = $props()
   let editorInstance: monaco.editor.IStandaloneCodeEditor
 
   const createEditor = async (node: HTMLDivElement) => {
     const monaco = await import('monaco-editor')
 
     editorInstance = monaco.editor.create(node, {
-      value,
+      value: value || '',
       language,
       theme: 'hc-light',
       minimap: {
@@ -34,4 +39,4 @@
   }
 </script>
 
-<div use:monacoEditor class="h-full w-full" autofocus></div>
+<div use:monacoEditor class="h-full w-full {additionalClasses}" autofocus></div>
