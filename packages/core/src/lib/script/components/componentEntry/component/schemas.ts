@@ -34,11 +34,11 @@ const numberMetaSchema: JSONSchemaType<NumberMetaSchema> = {
     type: { type: 'string', const: 'number' },
     title: { type: 'string' },
     description: { type: 'string' },
-    minimum: { type: 'number' },
-    maximum: { type: 'number' },
-    multipleOf: { type: 'number' },
+    minimum: { type: ['number', 'null'] },
+    maximum: { type: ['number', 'null'] },
+    multipleOf: { type: ['number', 'null'] },
     required: { type: 'boolean' },
-    default: { type: 'number' }
+    default: { type: ['number', 'null'] }
   },
   required: ['type', 'title', 'description', 'required', 'default']
 }
@@ -48,15 +48,15 @@ const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
   properties: {
     type: { type: 'string', const: 'string' },
     title: { type: 'string' },
-    description: { type: 'string' },
-    minLength: { type: 'number' },
-    maxLength: { type: 'number' },
-    pattern: { type: 'string' },
-    format: { type: 'string' },
+    description: { type: 'string', default: '' }, // Allow undefined/null
+    minLength: { type: ['number', 'null'] },
+    maxLength: { type: ['number', 'null'] },
+    pattern: { type: 'string', default: '' },
+    format: { type: 'string', default: '' },
     required: { type: 'boolean' },
-    default: { type: 'string' }
+    default: { type: 'string', default: '' }
   },
-  required: ['type', 'title', 'description', 'required', 'default']
+  required: ['type', 'title']
 }
 
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {

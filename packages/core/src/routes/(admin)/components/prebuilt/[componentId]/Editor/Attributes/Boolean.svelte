@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox } from 'flowbite-svelte'
+  import { Checkbox, Label } from 'flowbite-svelte'
 
   interface Props {
     default: boolean
@@ -7,4 +7,7 @@
   let { default: d = $bindable() }: Props = $props()
 </script>
 
-<Checkbox bind:checked={d} />
+<Label>
+  Default value:
+  <Checkbox bind:checked={d} />
+</Label>

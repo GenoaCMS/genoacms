@@ -12,14 +12,42 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
+  const booleanSchemaInit = {
+    type: 'boolean',
+    title: '',
+    description: '',
+    required: false,
+    default: false
+  }
+  const numberSchemaInit = {
+    type: 'number',
+    title: '',
+    description: '',
+    minimum: null,
+    maximum: null,
+    multipleOf: null,
+    required: false,
+    default: null
+  }
+  const stringSchemaInit = {
+    type: 'string',
+    title: '',
+    description: '',
+    minLength: null,
+    maxLength: null,
+    pattern: '',
+    format: '',
+    required: false,
+    default: ''
+  }
   const types = [
-    { name: 'boolean', icon: 'toggle-on', schema: { type: 'boolean' } },
-    { name: 'number', icon: '123', schema: { type: 'number' } },
-    { name: 'string', icon: 'type', schema: { type: 'string' } },
-    { name: 'text', icon: 'textarea-t', schema: { type: 'string' } },
-    { name: 'markdown', icon: 'markdown', schema: { type: 'string' } },
-    { name: 'richText', icon: 'file-richtext', schema: { type: 'string' } },
-    { name: 'link', icon: 'link-45deg', schema: { type: 'string' } },
+    { name: 'boolean', icon: 'toggle-on', schema: booleanSchemaInit },
+    { name: 'number', icon: '123', schema: numberSchemaInit },
+    { name: 'string', icon: 'type', schema: stringSchemaInit },
+    { name: 'text', icon: 'textarea-t', schema: stringSchemaInit },
+    { name: 'markdown', icon: 'markdown', schema: stringSchemaInit },
+    { name: 'richText', icon: 'file-richtext', schema: stringSchemaInit },
+    { name: 'link', icon: 'link-45deg', schema: stringSchemaInit },
     { name: 'storageResource', icon: 'cloud', schema: { type: 'object' } },
     { name: 'components', icon: 'box', schema: { type: 'array' } }
   ]

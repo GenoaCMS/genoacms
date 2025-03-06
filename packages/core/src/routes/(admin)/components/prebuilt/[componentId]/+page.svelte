@@ -13,23 +13,22 @@
     import AddAttribute from './AddAttribute.svelte'
 
     const { data } = $props()
-const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
-    const { form, errors, enhance, submit } = superForm(data.updateForm, {
+    const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
+    const { form, constraints, errors, enhance, submit } = superForm(data.updateForm, {
       ...formConfig,
       dataType: 'json',
       validators: componentEntryValidator,
       resetForm: false
     })
-    function addAttribute (attributeInit) {
-      form.update($f => {
-        console.log($f)
-        $f.attributes[attributeInit.uid] = attributeInit
-        return $f
-      })
-    }
     function updateAttribute (attribute: AttributeT) {
       form.update($f => {
         $f.attributes[attribute.uid] = attribute
+        return $f
+      })
+    }
+    function deleteAttribute (uid: string) {
+      form.update($f => {
+        delete $f.attributes[uid]
         return $f
       })
     }
@@ -45,15 +44,15 @@ const componentEntryValidator = schemasafe(componentEntrySchema, { config: { inc
     <ChangeName bind:name={$form.name} onrename={submit}/>
     <Undo />
     <Redo />
-    <AddAttribute onadd={addAttribute} />
+    <AddAttribute onadd={updateAttribute} />
     <Submit />
   </svelte:fragment>
 </TopPanel>
 
-<SuperDebug data={{ $form, $errors }} />
+<SuperDebug data={{ $form, $constraints, $errors }} />
 
 <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
   {#each Object.values($form.attributes) as attribute (attribute.uid)}
-    <Attribute {attribute} onvalue={updateAttribute} />
+    <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
   {/each}
 </form>

@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
-  import { Card, Checkbox, Input, Label } from 'flowbite-svelte'
+  import { Button, Card, Checkbox, Dropdown, Input, Label } from 'flowbite-svelte'
   import BooleanAttribute from './Boolean.svelte'
   import NumberAttribute from './Number.svelte'
   import StringAttribute from './String.svelte'
@@ -13,16 +13,45 @@
 
   interface Props {
     attribute: Attribute,
-    onvalue: (value: Attribute) => void
+    onvalue: (value: Attribute) => void,
+    ondelete: (uid: string) => void
   }
-  let { attribute = $bindable(), onvalue }: Props = $props()
+  let { attribute = $bindable(), onvalue, ondelete }: Props = $props()
   const value = $state(attribute)
+  let isDropdownOpen = $state(false)
+  function toggleDropdown () {
+    isDropdownOpen = !isDropdownOpen
+  }
+  function deleteAttribute () {
+    ondelete(value.uid)
+  }
   $effect(() => {
     onvalue(value)
   })
 </script>
 
 <Card size="none" class="mb-4">
+  <div class="w-full flex justify-between">
+    <div class="flex">
+      <!--button aria-label="Dragger" type="button" use:dragHandle> TODO: think about order
+        <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
+      </button-->
+    </div>
+    <div>
+      {value.type}
+    </div>
+    <div class="flex">
+      <Button color="none" onclick={toggleDropdown}>
+        <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
+      </Button>
+      <Dropdown open={isDropdownOpen}>
+        <Button color="red" class="flex" onclick={deleteAttribute}>
+          <span>Delete</span>
+          <i class="bi bi-trash ms-2"></i>
+        </Button>
+      </Dropdown>
+    </div>
+  </div>
   <Label>
     Name:
     <Input bind:value={value.schema.title} />
