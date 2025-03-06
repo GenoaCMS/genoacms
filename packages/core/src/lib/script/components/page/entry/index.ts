@@ -6,7 +6,7 @@ import type {
   ComponentEntryReference
 } from '$lib/script/components/componentEntry/component/types'
 import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
-import { getPrebuiltComponentEntry } from '$lib/script/components/componentEntry/component.server'
+import { getComponentEntry } from '$lib/script/components/componentEntry/io.server'
 import type {
   AttributeData,
   AttributeReference,
@@ -78,7 +78,7 @@ const createPageEntry = async (values: {
   name: string,
   componentUID: ComponentEntryReference
 }): Promise<PageEntry> => {
-  const component = await getPrebuiltComponentEntry(values.componentUID)
+  const component = await getComponentEntry(values.componentUID)
   if (!component) throw new Error('no-component')
   const componentNode = await componentSchemaToNode(component)
 
@@ -219,7 +219,7 @@ const deserializeComponentNodeData = async (nodeData: ComponentNodeData<IsSerial
 }
 
 const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Promise<ComponentNode> => {
-  const componentEntry = await getPrebuiltComponentEntry(node.entryReference)
+  const componentEntry = await getComponentEntry(node.entryReference)
   if (!componentEntry) throw new Error('no-component')
 
   return {

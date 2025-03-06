@@ -1,6 +1,6 @@
 import type { JSONSchemaType } from 'ajv'
 import type { Diff } from 'deep-diff'
-import type { AttributeReference, AttributeType, PrebuiltComponentReference } from '$lib/script/components/componentEntry/component/types'
+import type { AttributeReference, AttributeType, ComponentEntryReference } from '$lib/script/components/componentEntry/component/types'
 import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
 
 type IsSerializable = true
@@ -19,13 +19,13 @@ type ComponentNodeData<isSerializable extends boolean = false> =
   Record<AttributeReference, AttributeData<AttributeType, isSerializable>>
 interface NonSerializedComponentNode {
   uid: ComponentNodeReference,
-  entryReference: PrebuiltComponentReference,
+  entryReference: ComponentEntryReference,
   name: string,
   data: ComponentNodeData
 }
 interface SerializedComponentNode {
   uid: ComponentNodeReference,
-  entryReference: PrebuiltComponentReference,
+  entryReference: ComponentEntryReference,
   data: ComponentNodeData<IsSerializable>
 }
 type ComponentNode<isSerializable extends boolean = false> = isSerializable extends true ? SerializedComponentNode : NonSerializedComponentNode

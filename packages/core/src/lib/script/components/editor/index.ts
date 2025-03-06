@@ -1,7 +1,7 @@
 import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
 import type { ComponentEntry } from '../componentEntry/component/types'
 
-import { deletePrebuiltComponentEntry, getPrebuiltComponentEntry, uploadPrebuiltComponentEntry } from '../componentEntry/component.server'
+import { deleteComponentEntry, getComponentEntry, uploadComponentEntry } from '../componentEntry/io.server'
 import {
   uploadComponent,
   uploadComponentDefinition,
@@ -35,7 +35,7 @@ async function createComponentEntry (uid: string, name: string) {
     history: [],
     future: []
   }
-  await uploadPrebuiltComponentEntry(emptyComponentEntry)
+  await uploadComponentEntry(emptyComponentEntry)
 }
 async function createComponent (name: string) {
   const uid = crypto.randomUUID()
@@ -74,7 +74,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
   const [definition, component, entry] = await Promise.all([
     getComponentDefiniton(order.componentId),
     getComponent(order.componentId),
-    getPrebuiltComponentEntry(order.componentId)
+    getComponentEntry(order.componentId)
   ])
   const commit = await createComponentCommit(order, definition)
   console.log('entry', entry, order.componentId)
@@ -87,14 +87,14 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
       return d
     }, definition),
     uploadComponentCommit(commit),
-    uploadPrebuiltComponentEntry(newEntry)
+    uploadComponentEntry(newEntry)
   ])
 }
 
 async function deleteComponent (component: Component): Promise<void> {
   const deletionTasks = [
     deleteComponentDefinition(component.uid),
-    deletePrebuiltComponentEntry(component.uid),
+    deleteComponentEntry(component.uid),
     deleteComponentFile(component.uid)
   ]
   await Promise.all(deletionTasks)

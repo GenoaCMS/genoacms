@@ -1,10 +1,10 @@
 import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
 import type { PageServerLoad } from '../$types'
 import {
-  deletePrebuiltComponentEntry,
-  getPrebuiltComponentEntry,
-  uploadPrebuiltComponentEntry
-} from '$lib/script/components/componentEntry/component.server'
+  deleteComponentEntry,
+  getComponentEntry,
+  uploadComponentEntry
+} from '$lib/script/components/componentEntry/io.server'
 import { fail, type Actions, redirect } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
 import { superValidate, message } from 'sveltekit-superforms'
@@ -15,7 +15,7 @@ const componentEntryValidator = schemasafe(componentEntrySchema, { config: { inc
 
 export const load: PageServerLoad = async ({ params }) => {
   const { componentId } = params
-  const componentEntry = await getPrebuiltComponentEntry(componentId)
+  const componentEntry = await getComponentEntry(componentId)
   const updateForm = await superValidate(componentEntry, componentEntryValidator)
 
   return {
@@ -29,7 +29,7 @@ export const actions = {
     console.log(form)
     if (!form.valid) return message(form, { status: 'fail', text: 'Failed to update a component' })
     // TODO: get previous stade, create diff
-    await uploadPrebuiltComponentEntry(form.data as ComponentEntry)
+    await uploadComponentEntry(form.data as ComponentEntry)
   },
   undo: async ({ request }) => {
   },
@@ -39,7 +39,7 @@ export const actions = {
     const { componentId } = params
     const data = await request.formData()
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
-    await deletePrebuiltComponentEntry(componentId)
+    await deleteComponentEntry(componentId)
     return redirect(307, '.')
   }
 } satisfies Actions
