@@ -49,10 +49,10 @@
   </svelte:fragment>
 </TopPanel>
 
-<SuperDebug data={{ $form, $constraints, $errors }} />
-
 <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
   {#each Object.values($form.attributes) as attribute (attribute.uid)}
     <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
   {/each}
 </form>
+
+<SuperDebug data={{ $form, $constraints, $errors }} />

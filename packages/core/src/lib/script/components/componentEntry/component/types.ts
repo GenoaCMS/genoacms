@@ -51,12 +51,53 @@ interface StringMetaSchema {
   type: 'string',
   title: string,
   description: string,
-  minLength?: number,
-  maxLength?: number,
+  minLength?: number | null,
+  maxLength?: number | null,
   pattern?: string,
   format?: string,
   required: boolean,
   default: string
+}
+
+interface ExternalLink {
+  isExternal: true,
+  url: string
+}
+
+interface InternalLink {
+  isExternal: false,
+  pageName: string
+}
+
+type LinkAttributeValue = ExternalLink | InternalLink
+
+interface LinkMetaSchema {
+  type: 'object',
+  properties: {
+    isExternal: {
+      type: 'boolean'
+    },
+    url: {
+      type: 'string',
+      nullable: true
+    },
+    pageName: {
+      type: 'string',
+      nullable: true
+    }
+  },
+  required: ['isExternal']
+}
+
+interface LinksMetaSchema {
+  type: 'array',
+  title: string,
+  description: string,
+  items: LinkMetaSchema,
+  default?: Array<LinkAttributeValue> | null,
+  minItems?: number,
+  maxItems?: number,
+  required: boolean
 }
 
 interface ComponentsAttributeMetaSchema {
@@ -107,7 +148,7 @@ interface RichTextAttribute extends AttributeBase {
 
 interface LinkAttribute extends AttributeBase {
   type: LinkAttributeType,
-  schema: StringMetaSchema
+  schema: LinksMetaSchema
 }
 
 interface StorageResourceAttribute extends AttributeBase {
@@ -158,6 +199,8 @@ export type {
   BooleanMetaSchema,
   NumberMetaSchema,
   StringMetaSchema,
+  LinkMetaSchema,
+  LinksMetaSchema,
   ComponentsAttributeMetaSchema,
   BooleanAttributeType,
   NumberAttributeType,

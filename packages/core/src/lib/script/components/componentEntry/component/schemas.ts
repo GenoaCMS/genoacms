@@ -1,22 +1,6 @@
-import type { JSONSchemaType } from 'ajv'
-import type {
-  BooleanAttribute,
-  BooleanMetaSchema,
-  ComponentEntryCreation,
-  ComponentEntryAttributes,
-  ComponentsAttribute,
-  LinkAttribute,
-  MarkdownAttribute,
-  NumberAttribute,
-  NumberMetaSchema,
-  RichTextAttribute,
-  StorageResourceAttribute,
-  StringAttribute,
-  StringMetaSchema,
-  TextAttribute
-} from './types'
+import type { Schema } from '@exodus/schemasafe'
 
-const booleanMetaSchema: JSONSchemaType<BooleanMetaSchema> = {
+const booleanMetaSchema: Schema = {
   type: 'object',
   properties: {
     type: { type: 'string', const: 'boolean' },
@@ -28,7 +12,7 @@ const booleanMetaSchema: JSONSchemaType<BooleanMetaSchema> = {
   required: ['type', 'title', 'description', 'required', 'default']
 }
 
-const numberMetaSchema: JSONSchemaType<NumberMetaSchema> = {
+const numberMetaSchema: Schema = {
   type: 'object',
   properties: {
     type: { type: 'string', const: 'number' },
@@ -43,7 +27,7 @@ const numberMetaSchema: JSONSchemaType<NumberMetaSchema> = {
   required: ['type', 'title', 'description', 'required', 'default']
 }
 
-const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
+const stringMetaSchema: Schema = {
   type: 'object',
   properties: {
     type: { type: 'string', const: 'string' },
@@ -59,7 +43,70 @@ const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
   required: ['type', 'title']
 }
 
-const componentsAttributeMetaSchema: JSONSchemaType<ComponentsAttributeMetaSchema> = {
+const linkMetaSchema: Schema = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', const: 'object' },
+    properties: {
+      type: 'object',
+      properties: {
+        isExternal: {
+          type: 'object',
+          properties: { type: { type: 'string', const: 'boolean' } },
+          required: ['type']
+        },
+        url: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['string', 'null']
+              }
+            }
+          },
+          required: ['type']
+        },
+        pageName: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['string', 'null']
+              }
+            }
+          },
+          required: ['type']
+        }
+      }
+    },
+    required: {
+      type: 'array',
+      items: { type: 'string' }
+    }
+  },
+  required: ['type', 'properties', 'required']
+}
+
+const linksMetaSchema: Schema = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', const: 'array' },
+    title: { type: 'string' },
+    description: { type: 'string' },
+    items: linkMetaSchema,
+    default: { type: ['array', 'null'], items: linkMetaSchema },
+    minItems: { type: ['number', 'null'] },
+    maxItems: { type: ['number', 'null'] },
+    required: { type: 'boolean' }
+  },
+  required: ['type', 'title']
+}
+
+const componentsAttributeMetaSchema: Schema = {
   type: 'object',
   properties: {
     type: { type: 'string', const: 'array' },
@@ -81,7 +128,7 @@ const componentsAttributeMetaSchema: JSONSchemaType<ComponentsAttributeMetaSchem
   required: ['type', 'title', 'items', 'required']
 }
 
-const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
+const booleanAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -91,7 +138,7 @@ const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
+const numberAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -102,7 +149,7 @@ const numberAttributeSchema: JSONSchemaType<NumberAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
+const stringAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -112,7 +159,7 @@ const stringAttributeSchema: JSONSchemaType<StringAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const textAttributeSchema: JSONSchemaType<TextAttribute> = {
+const textAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -122,7 +169,7 @@ const textAttributeSchema: JSONSchemaType<TextAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
+const markdownAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -132,7 +179,7 @@ const markdownAttributeSchema: JSONSchemaType<MarkdownAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
+const richTextAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -142,17 +189,17 @@ const richTextAttributeSchema: JSONSchemaType<RichTextAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const linkAttributeSchema: JSONSchemaType<LinkAttribute> = {
+const linkAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
     type: { type: 'string', const: 'link' },
-    schema: stringMetaSchema
+    schema: linksMetaSchema
   },
   required: ['uid', 'type', 'schema']
 }
 
-const storageResourceAttributeSchema: JSONSchemaType<StorageResourceAttribute> = {
+const storageResourceAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -167,7 +214,7 @@ const storageResourceAttributeSchema: JSONSchemaType<StorageResourceAttribute> =
   required: ['uid', 'name', 'type']
 }
 
-const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
+const componentsAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -180,7 +227,7 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   required: ['uid', 'type', 'schema']
 }
 
-const componentEntryAttributesSchema: JSONSchemaType<ComponentEntryAttributes> = {
+const componentEntryAttributesSchema: Schema = {
   type: 'object',
   additionalProperties: {
     oneOf: [
@@ -198,7 +245,7 @@ const componentEntryAttributesSchema: JSONSchemaType<ComponentEntryAttributes> =
   required: []
 }
 
-const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
+const componentEntrySchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
@@ -210,7 +257,7 @@ const componentEntrySchema: JSONSchemaType<ComponentEntry> = {
   required: ['uid', 'name', 'attributes', 'history', 'future']
 }
 
-const componentEntryCreationSchema: JSONSchemaType<ComponentEntryCreation> = {
+const componentEntryCreationSchema: Schema = {
   type: 'object',
   properties: {
     name: {
@@ -222,6 +269,7 @@ const componentEntryCreationSchema: JSONSchemaType<ComponentEntryCreation> = {
 }
 
 export {
+  linksMetaSchema,
   booleanAttributeSchema,
   numberAttributeSchema,
   stringAttributeSchema,

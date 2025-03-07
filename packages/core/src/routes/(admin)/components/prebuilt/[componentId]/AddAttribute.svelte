@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { LinkMetaSchema, StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'
   import { Modal } from 'flowbite-svelte'
@@ -29,7 +30,7 @@
     required: false,
     default: null
   }
-  const stringSchemaInit = {
+  const stringSchemaInit: StringMetaSchema = {
     type: 'string',
     title: '',
     description: '',
@@ -39,6 +40,25 @@
     format: '',
     required: false,
     default: ''
+  }
+  const linkSchemaInit: LinkMetaSchema = {
+    type: 'object',
+    properties: {
+      isExternal: { type: 'boolean' },
+      url: { type: ['string', 'null'] },
+      pageName: { type: ['string', 'null'] }
+    },
+    required: ['isExternal']
+  }
+  const linksSchemaInit: LinksMetaSchema = {
+    type: 'array',
+    title: '',
+    description: '',
+    items: linkSchemaInit,
+    default: [],
+    minItems: null,
+    maxItems: null,
+    required: false
   }
   const componentsSchemaInit = {
     type: 'array',
@@ -59,7 +79,7 @@
     { name: 'text', icon: 'textarea-t', schema: stringSchemaInit },
     { name: 'markdown', icon: 'markdown', schema: stringSchemaInit },
     { name: 'richText', icon: 'file-richtext', schema: stringSchemaInit },
-    { name: 'link', icon: 'link-45deg', schema: stringSchemaInit },
+    { name: 'link', icon: 'link-45deg', schema: linksSchemaInit },
     { name: 'storageResource', icon: 'cloud', schema: { type: 'object' } },
     { name: 'components', icon: 'box', schema: componentsSchemaInit }
   ]
