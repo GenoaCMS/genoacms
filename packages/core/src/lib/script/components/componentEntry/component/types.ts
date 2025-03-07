@@ -59,6 +59,20 @@ interface StringMetaSchema {
   default: string
 }
 
+interface ComponentsAttributeMetaSchema {
+  type: 'array',
+  title: string,
+  description: string,
+  items: {
+    type: 'string',
+    enum?: Array<string>
+  },
+  default?: Array<string> | null,
+  minItems?: number,
+  maxItems?: number,
+  required: boolean
+}
+
 interface BooleanAttribute extends AttributeBase {
   type: BooleanAttributeType,
   schema: JSONSchemaType<BooleanMetaSchema>
@@ -106,7 +120,7 @@ interface ComponentsAttribute extends AttributeBase {
   component: string,
   maxComponents: number,
   allowedComponents: Array<string>,
-  schema: {}
+  schema: JSONSchemaType<ComponentsAttributeMetaSchema>
 }
 
 type Attribute<T extends AttributeType = AttributeType> =
@@ -144,6 +158,7 @@ export type {
   BooleanMetaSchema,
   NumberMetaSchema,
   StringMetaSchema,
+  ComponentsAttributeMetaSchema,
   BooleanAttributeType,
   NumberAttributeType,
   StringAttributeType,

@@ -40,6 +40,18 @@
     required: false,
     default: ''
   }
+  const componentsSchemaInit = {
+    type: 'array',
+    title: '',
+    description: '',
+    items: {
+      type: 'string'
+    },
+    default: [],
+    minItems: null,
+    maxItems: null,
+    required: false
+  }
   const types = [
     { name: 'boolean', icon: 'toggle-on', schema: booleanSchemaInit },
     { name: 'number', icon: '123', schema: numberSchemaInit },
@@ -49,7 +61,7 @@
     { name: 'richText', icon: 'file-richtext', schema: stringSchemaInit },
     { name: 'link', icon: 'link-45deg', schema: stringSchemaInit },
     { name: 'storageResource', icon: 'cloud', schema: { type: 'object' } },
-    { name: 'components', icon: 'box', schema: { type: 'array' } }
+    { name: 'components', icon: 'box', schema: componentsSchemaInit }
   ]
   function add (type: string, schema: Record<string, unknown>) {
     const uid = crypto.randomUUID()

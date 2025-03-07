@@ -48,7 +48,7 @@ const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
   properties: {
     type: { type: 'string', const: 'string' },
     title: { type: 'string' },
-    description: { type: 'string', default: '' }, // Allow undefined/null
+    description: { type: 'string', default: '' },
     minLength: { type: ['number', 'null'] },
     maxLength: { type: ['number', 'null'] },
     pattern: { type: 'string', default: '' },
@@ -57,6 +57,28 @@ const stringMetaSchema: JSONSchemaType<StringMetaSchema> = {
     default: { type: 'string', default: '' }
   },
   required: ['type', 'title']
+}
+
+const componentsAttributeMetaSchema: JSONSchemaType<ComponentsAttributeMetaSchema> = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', const: 'array' },
+    title: { type: 'string' },
+    description: { type: 'string' },
+    items: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', const: 'string' },
+        enum: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['type']
+    },
+    default: { type: ['array', 'null'] },
+    minItems: { type: ['number', 'null'] },
+    maxItems: { type: ['number', 'null'] },
+    required: { type: 'boolean' }
+  },
+  required: ['type', 'title', 'items', 'required']
 }
 
 const booleanAttributeSchema: JSONSchemaType<BooleanAttribute> = {
@@ -149,21 +171,13 @@ const componentsAttributeSchema: JSONSchemaType<ComponentsAttribute> = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    name: { type: 'string' },
-    description: { type: 'string' },
-    isRequired: { type: 'boolean' },
     type: {
       type: 'string',
       const: 'components'
     },
-    component: { type: 'string' },
-    maxComponents: { type: 'number' },
-    allowedComponents: {
-      type: 'array',
-      items: { type: 'string' }
-    }
+    schema: componentsAttributeMetaSchema
   },
-  required: ['uid', 'name', 'type']
+  required: ['uid', 'type', 'schema']
 }
 
 const componentEntryAttributesSchema: JSONSchemaType<ComponentEntryAttributes> = {

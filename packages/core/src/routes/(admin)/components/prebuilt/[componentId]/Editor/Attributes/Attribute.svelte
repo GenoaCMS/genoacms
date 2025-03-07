@@ -102,7 +102,11 @@
   {:else if attribute.type === 'storageResource'}
     <StorageResourceAttribute />
   {:else if attribute.type === 'components'}
-    <ComponentsAttribute />
+    <ComponentsAttribute
+      bind:default={value.schema.default}
+      bind:minItems={value.schema.minItems}
+      bind:maxItems={value.schema.maxItems}
+    />
   {/if}
   <Label>
     Is required:
