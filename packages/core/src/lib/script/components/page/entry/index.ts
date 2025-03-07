@@ -5,7 +5,6 @@ import type {
   ComponentsAttributeType,
   ComponentEntryReference
 } from '$lib/script/components/componentEntry/component/types'
-import { attributeToSchema } from '$lib/script/components/componentEntry/attribute/index.server'
 import { getComponentEntry } from '$lib/script/components/componentEntry/io.server'
 import type {
   AttributeData,
@@ -50,9 +49,9 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
   return {
     uid: attribute.uid,
-    name: attribute.name,
+    name: attribute.schema.title,
     type: attribute.type,
-    schema: await attributeToSchema(attribute),
+    schema: attribute.schema,
     value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
   }
 }
@@ -198,9 +197,9 @@ const deserializeAttributeData = async (data: AttributeData<AttributeType,
   }
   return {
     uid: data.uid,
-    name: data.name,
+    name: data.schema.title,
     type: data.type,
-    schema: await attributeToSchema(attribute),
+    schema: attribute.schema,
     value: data.value
   }
 }

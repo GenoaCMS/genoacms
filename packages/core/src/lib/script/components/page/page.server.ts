@@ -11,7 +11,7 @@ import { join } from 'path'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
 import { deserializeComponentNode } from './entry'
 
-const pageEntriesPath = join('.genoacms', 'pages', 'entries')
+const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
 const pageReadableTreePath = join('.genoacms', 'pages', 'readables')
 
 const listOrCreatePageList = async () => {

@@ -1,6 +1,8 @@
 import {
-  createComponentEntry,
-  listOrCreatePreBuiltComponentList
+  listOrCreateComponentEntryList
+} from '$lib/script/components/componentEntry/io.server'
+import {
+  createComponentEntry
 } from '$lib/script/components/componentEntry/component.server'
 import { type Actions, redirect } from '@sveltejs/kit'
 import { superValidate, message } from 'sveltekit-superforms'
@@ -10,7 +12,7 @@ import { componentEntryCreationSchema } from '$lib/script/components/componentEn
 const componentEntryCreationValidator = schemasafe(componentEntryCreationSchema)
 
 export const load = async () => {
-  const componentEntries = await listOrCreatePreBuiltComponentList()
+  const componentEntries = await listOrCreateComponentEntryList()
   const creationForm = superValidate(componentEntryCreationValidator)
   return {
     componentEntries,

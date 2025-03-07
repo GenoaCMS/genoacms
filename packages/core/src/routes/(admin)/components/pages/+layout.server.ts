@@ -1,11 +1,11 @@
 import type { PageServerLoad } from './$types'
 import { listOrCreatePageList } from '$lib/script/components/page/page.server'
-import { listOrCreatePreBuiltComponentList } from '$lib/script/components/componentEntry/component.server'
+import { listOrCreateComponentEntryList } from '$lib/script/components/componentEntry/io.server'
 
 export const load: PageServerLoad = async () => {
   const [pages, componentSchemas] = await Promise.all([
     listOrCreatePageList(),
-    listOrCreatePreBuiltComponentList()
+    listOrCreateComponentEntryList()
   ])
 
   return {
