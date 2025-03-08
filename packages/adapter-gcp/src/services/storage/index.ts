@@ -57,7 +57,7 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
   files = files.filter((file) => !file.name.endsWith('.folderPlaceholder'))
 
   return {
-    files: files.map((file) => {
+    files: files.filter(f => f.name !== name).map((file) => {
       return {
         name: file.name,
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
