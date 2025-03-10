@@ -47,12 +47,13 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
 }
 
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
+  console.log(attribute.schema)
   return {
     uid: attribute.uid,
     name: attribute.schema.title,
     type: attribute.type,
     schema: attribute.schema,
-    value: 'defaultValue' in attribute ? attribute?.defaultValue : generateAttributeDefaultValue(attribute.type)
+    value: attribute.schema.default ? attribute.schema.default : generateAttributeDefaultValue(attribute.type)
   }
 }
 
@@ -190,14 +191,15 @@ const serializePageEntry = (page: PageEntry): PageEntry<IsSerializable> => {
   }
 }
 
-const deserializeAttributeData = async (data: AttributeData<AttributeType,
-  IsSerializable> | undefined, attribute: Attribute): Promise<AttributeData> => {
+const deserializeAttributeData = async (
+  data: AttributeData<AttributeType, IsSerializable> | undefined,
+  attribute: Attribute): Promise<AttributeData> => {
   if (!data) {
     return await generateAttributeData(attribute)
   }
   return {
     uid: data.uid,
-    name: data.schema.title,
+    name: attribute.schema.title,
     type: data.type,
     schema: attribute.schema,
     value: data.value

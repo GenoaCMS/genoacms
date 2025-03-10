@@ -65,7 +65,8 @@
     title: '',
     description: '',
     items: {
-      type: 'string'
+      type: 'string',
+      enum: []
     },
     default: [],
     minItems: null,
