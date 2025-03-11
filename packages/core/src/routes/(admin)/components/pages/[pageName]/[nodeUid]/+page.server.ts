@@ -25,7 +25,7 @@ const updatePage = async (pageName: string, data: FormData, generateTree: boolea
   const componentNodeText = data.get('componentNode')
   if (!isString(componentNodeText)) return fail(400, { reason: 'no-diff' })
   const componentNode = JSON.parse(componentNodeText)
-  console.log(componentNode)
+  console.log('aaaa', componentNode)
 
   let page = await getPageEntry(pageName)
   page = updateComponentNode(page, componentNode)

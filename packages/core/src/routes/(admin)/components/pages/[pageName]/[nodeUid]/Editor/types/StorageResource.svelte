@@ -4,7 +4,7 @@
   } from '$lib/script/components/page/entry/types'
   import { Card } from 'flowbite-svelte'
   import { ITC } from '$lib/script/utils'
-  import { onDestroy } from 'svelte' 
+  import { onDestroy } from 'svelte'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
   import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
   import type { SelectionInitData } from '$lib/script/storage/SelectionStore'

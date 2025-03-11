@@ -45,7 +45,7 @@
   $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
 </script>
 
-<Card padding="sm">
+<Card size="none" padding="sm">
     <h3 class="text-xl pb-3">
         {data.name}
     </h3>

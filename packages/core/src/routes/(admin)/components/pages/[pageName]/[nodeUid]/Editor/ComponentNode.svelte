@@ -2,9 +2,15 @@
   import type { ComponentNode } from '$lib/script/components/page/entry/types'
   import Attribute from './Attribute.svelte'
 
-  export let node: ComponentNode
+  interface Props {
+    node: ComponentNode
+  }
+  let { node = $bindable() }: Props = $props()
+  const attributeArray = $derived(Object.values(node.data))
 
-  $: attributeArray = Object.values(node.data)
+  function updateAttribute (uid, value) {
+    node.data[uid].value = value
+  }
 </script>
 
 <div>
@@ -12,8 +18,8 @@
         {node.name}
     </h2>
     <div>
-        {#each attributeArray as attribute (attribute.name)}
-            <Attribute bind:attribute />
+        {#each attributeArray as attribute (attribute.uid)}
+            <Attribute {attribute} onupdate={updateAttribute}/>
         {/each}
     </div>
 </div>

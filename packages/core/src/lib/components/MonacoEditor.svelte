@@ -5,12 +5,14 @@
   interface Props {
     language: 'markdown' | 'javascript',
     value: string,
-    class?: string
+    class?: string,
+    onvalue?: (v: string) => void
   }
   let {
     language = 'markdown',
     value = $bindable(),
-    class: additionalClasses = ''
+    class: additionalClasses = '',
+    onvalue = () => {}
   }: Props = $props()
   let editorInstance: monaco.editor.IStandaloneCodeEditor
 
@@ -26,7 +28,9 @@
       }
     })
     editorInstance.onDidChangeModelContent(() => {
-      value = editorInstance.getValue()
+      const currentValue = editorInstance.getValue()
+      value = currentValue
+      onvalue(currentValue)
     })
   }
   const monacoEditor = (node: HTMLDivElement): Action => {

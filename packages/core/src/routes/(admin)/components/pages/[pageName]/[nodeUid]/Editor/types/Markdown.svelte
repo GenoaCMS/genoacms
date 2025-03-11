@@ -5,14 +5,20 @@
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
 
-  export let data: AttributeData<MarkdownAttributeType>
-  let isModalOpen = false
-  const toggleModal = () => {
+  interface Props {
+    data: AttributeData<MarkdownAttributeType>,
+    onvalue: (v: string) => void
+  }
+  const { data, onvalue }: Props = $props()
+
+  let isModalOpen = $state(false)
+
+  function toggleModal () {
     isModalOpen = !isModalOpen
   }
 </script>
 
-<Card padding="sm">
+<Card padding="sm" size="none">
     <h3 class="text-xl pb-3">
         {data.name}
     </h3>
@@ -25,7 +31,7 @@
        bodyClass="p-0">
     <div class="h-[80vh] w-full flex">
         <div class="w-1/2 border-e">
-            <MonacoEditor language="markdown" bind:value={data.value} />
+            <MonacoEditor language="markdown" value={data.value} {onvalue}/>
         </div>
         <div class="w-1/2 p-4">
             <MarkdownViewer markdown={data.value} />

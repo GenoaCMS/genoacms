@@ -3,9 +3,18 @@
   import type { BooleanAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Toggle } from 'flowbite-svelte'
 
-  export let data: AttributeData<BooleanAttributeType>
+  interface Props {
+    data: AttributeData<BooleanAttributeType>,
+    onvalue: (v: boolean) => void
+  }
+  const { data, onvalue }: Props = $props()
+
+  function onchange (e: CustomEvent<boolean>) {
+    data.value = e.target.checked
+    onvalue(data.value)
+  }
 </script>
 
-<Toggle bind:checked={data.value} required={!data.schema.nullable}>
+<Toggle checked={data.value} {onchange} required={!data.schema.nullable}>
     <span class="text-xl">{data.name}</span>
 </Toggle>

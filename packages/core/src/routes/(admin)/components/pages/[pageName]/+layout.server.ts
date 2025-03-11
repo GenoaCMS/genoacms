@@ -12,6 +12,7 @@ export const load = async ({ params }) => {
   try {
     serializedPage = await getPageEntry(pageName)
   } catch (e) {
+    console.log(e)
     return error(404, { message: `No page named "${pageName}"` })
   }
   try {

@@ -37,6 +37,7 @@
         toastSuccess('Redid')
       }
     }
+    $: console.log(data.node)
 </script>
 
 <div class="h-full flex flex-col p-4">

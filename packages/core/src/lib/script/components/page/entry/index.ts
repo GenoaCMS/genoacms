@@ -30,6 +30,7 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
     case 'text':
     case 'markdown':
     case 'richText':
+      return ''
     case 'link':
       return {
         isExternal: false,
@@ -47,7 +48,6 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
 }
 
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
-  console.log(attribute.schema)
   return {
     uid: attribute.uid,
     name: attribute.schema.title,

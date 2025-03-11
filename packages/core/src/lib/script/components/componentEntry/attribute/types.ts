@@ -11,11 +11,17 @@ type StringAttributeValue = string
 type TextAttributeValue = StringAttributeValue
 type MarkdownAttributeValue = StringAttributeValue
 type RichTextAttributeValue = StringAttributeValue
-interface LinkAttributeValue<T extends boolean = boolean> {
-  isExternal: T,
-  url: T extends true ? string : undefined,
-  pageName: T extends false ? string : undefined
+interface InternalLinkAttributeValue {
+  isExternal: false,
+  pageName: string,
+  url: ''
 }
+interface ExternalLinkAttributeValue {
+  isExternal: true,
+  pageName: '',
+  url: string
+}
+type LinkAttributeValue = InternalLinkAttributeValue | ExternalLinkAttributeValue
 type StorageResourceAttributeValue = ObjectReference
 type ComponentNodeReference = string
 type ComponentsAttributeValue = Array<ComponentNodeReference>
