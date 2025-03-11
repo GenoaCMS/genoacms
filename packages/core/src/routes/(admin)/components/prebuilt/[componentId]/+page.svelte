@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Attribute as AttributeT } from '$lib/script/components/componentEntry/component/types'
     import TopPanel from '$lib/components/TopPanel.svelte'
-    import SuperDebug, { superForm } from 'sveltekit-superforms'
+    import { superForm } from 'sveltekit-superforms'
     import ChangeName from './ChangeName.svelte'
     import { formConfig } from '$lib/script/forms'
     import Submit from './Submit.svelte'
@@ -14,7 +14,7 @@
 
     const { data } = $props()
     const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
-    const { form, constraints, errors, enhance, submit } = superForm(data.updateForm, {
+    const { form, enhance, submit } = superForm(data.updateForm, {
       ...formConfig,
       dataType: 'json',
       validators: componentEntryValidator,
@@ -32,7 +32,6 @@
         return $f
       })
     }
-    $inspect($form)
 </script>
 
 <TopPanel>
@@ -49,10 +48,10 @@
   </svelte:fragment>
 </TopPanel>
 
-<form id="update-form" method="post" action="?/update" use:enhance class="p-4">
-  {#each Object.values($form.attributes) as attribute (attribute.uid)}
-    <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
-  {/each}
-</form>
-
-<SuperDebug data={{ $form, $constraints, $errors }} />
+<div class="container mx-auto">
+  <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
+    {#each Object.values($form.attributes) as attribute (attribute.uid)}
+      <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
+    {/each}
+  </form>
+</div>

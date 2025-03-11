@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Input, Label } from 'flowbite-svelte'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
+  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
 
   interface Props {
     default: string,
@@ -22,19 +23,21 @@
   Default:
   <MonacoEditor language="markdown" bind:value={d} class="min-h-[10rem]" />
 </Label>
-<Label class="pb-2">
-  Minimum length:
-  <Input type="number" bind:value={minLength} />
-</Label>
-<Label class="pb-2">
-  Maximum length:
-  <Input type="number" bind:value={maxLength} />
-</Label>
-<Label class="pb-2">
-  Regex pattern:
-  <Input type="text" bind:value={pattern} />
-</Label>
-<Label class="pb-2">
-  Format:
-  <Input type="text" bind:value={format} />
-</Label>
+<ParalelInputs>
+  <Label>
+    Minimum length:
+    <Input type="number" bind:value={minLength} />
+  </Label>
+  <Label>
+    Maximum length:
+    <Input type="number" bind:value={maxLength} />
+  </Label>
+  <Label>
+    Regex pattern:
+    <Input type="text" bind:value={pattern} />
+  </Label>
+  <Label>
+    Format:
+    <Input type="text" bind:value={format} />
+  </Label>
+</ParalelInputs>

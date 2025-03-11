@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label } from 'flowbite-svelte'
 
   interface Props {
@@ -14,15 +15,17 @@
   Default:
   <Input type="number" bind:value={d} />
 </Label>
-<Label>
-  Minimum value:
-  <Input type="number" bind:value={minimum} />
-</Label>
-<Label>
-  Maximum value:
-  <Input type="number" bind:value={maximum} />
-</Label>
-<Label>
-  Steps:
-  <Input type="number" bind:value={multipleOf} />
-</Label>
+<ParalelInputs>
+  <Label>
+    Minimum value:
+    <Input type="number" bind:value={minimum} />
+  </Label>
+  <Label>
+    Maximum value:
+    <Input type="number" bind:value={maximum} />
+  </Label>
+  <Label>
+    Steps:
+    <Input type="number" bind:value={multipleOf} />
+  </Label>
+</ParalelInputs>

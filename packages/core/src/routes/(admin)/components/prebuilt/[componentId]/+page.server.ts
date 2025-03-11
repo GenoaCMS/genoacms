@@ -30,6 +30,7 @@ export const actions = {
     if (!form.valid) return message(form, { status: 'fail', text: 'Failed to update a component' })
     // TODO: get previous stade, create diff
     await uploadComponentEntry(form.data as ComponentEntry)
+    return message(form, { status: 'success', text: 'Component updated' })
   },
   undo: async ({ request }) => {
   },

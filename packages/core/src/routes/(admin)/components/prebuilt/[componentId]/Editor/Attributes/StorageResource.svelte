@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label } from 'flowbite-svelte'
 
   interface Props {
@@ -14,16 +15,13 @@
   }: Props = $props()
 </script>
 
-<div class="flex justify-between items-center">
+<ParalelInputs>
   <Label>
     Minimum resources:
     <Input type="number" bind:value={minItems} />
   </Label>
-  <div>
-    -
-  </div>
   <Label>
     Maximum resources
     <Input type="number" bind:value={maxItems} />
   </Label>
-</div>
+</ParalelInputs>
