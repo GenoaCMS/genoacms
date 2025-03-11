@@ -57,7 +57,7 @@
   </div>
     <div class="flex flex-col">
         {#each childNodes as childComponentNode}
-            <Subcomponent bind:node={childComponentNode}/>
+            <Subcomponent node={childComponentNode}/>
         {/each}
     </div>
     <div class="w-full flex py-3">
