@@ -95,8 +95,32 @@ interface LinksMetaSchema {
   description: string,
   items: LinkMetaSchema,
   default?: Array<LinkAttributeValue> | null,
-  minItems?: number,
-  maxItems?: number,
+  minItems?: number | null,
+  maxItems?: number | null,
+  required: boolean
+}
+
+interface StorageResourceMetaSchema {
+  type: 'object',
+  properties: {
+    bucket: {
+      type: 'string'
+    },
+    name: {
+      type: 'string'
+    }
+  },
+  required: ['bucket', 'name']
+}
+
+interface StorageResourcesMetaSchema {
+  type: 'array',
+  title: string,
+  description: string,
+  items: StorageResourceMetaSchema,
+  default?: Array<StorageObject> | null,
+  minItems?: number | null,
+  maxItems?: number | null,
   required: boolean
 }
 
@@ -153,7 +177,7 @@ interface LinkAttribute extends AttributeBase {
 
 interface StorageResourceAttribute extends AttributeBase {
   type: StorageResourceAttributeType,
-  schema: {}
+  schema: StorageResourcesMetaSchema
 }
 
 interface ComponentsAttribute extends AttributeBase {
@@ -164,17 +188,16 @@ interface ComponentsAttribute extends AttributeBase {
   schema: JSONSchemaType<ComponentsAttributeMetaSchema>
 }
 
-type Attribute<T extends AttributeType = AttributeType> =
-  T extends BooleanAttributeType ? BooleanAttribute :
-    T extends NumberAttributeType ? NumberAttribute :
-      T extends StringAttributeType ? StringAttribute :
-        T extends TextAttributeType ? TextAttribute :
-          T extends MarkdownAttributeType ? MarkdownAttribute :
-            T extends RichTextAttributeType ? RichTextAttribute :
-              T extends LinkAttributeType ? LinkAttribute :
-                T extends StorageResourceAttributeType ? StorageResourceAttribute :
-                  T extends ComponentsAttributeType ? ComponentsAttribute :
-                    never
+type Attribute =
+  BooleanAttribute
+  | NumberAttribute
+  | StringAttribute
+  | TextAttribute
+  | MarkdownAttribute
+  | RichTextAttribute
+  | LinkAttribute
+  | StorageResourceAttribute
+  | ComponentsAttribute
 
 type ComponentEntryReference = string
 
@@ -201,6 +224,8 @@ export type {
   StringMetaSchema,
   LinkMetaSchema,
   LinksMetaSchema,
+  StorageResourceMetaSchema,
+  StorageResourcesMetaSchema,
   ComponentsAttributeMetaSchema,
   BooleanAttributeType,
   NumberAttributeType,

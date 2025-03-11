@@ -1,6 +1,6 @@
 <script lang='ts'>
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
-  import { Button, Card, Checkbox, Dropdown, Input, Label } from 'flowbite-svelte'
+  import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea } from 'flowbite-svelte'
   import BooleanAttribute from './Boolean.svelte'
   import NumberAttribute from './Number.svelte'
   import StringAttribute from './String.svelte'
@@ -52,13 +52,20 @@
       </Dropdown>
     </div>
   </div>
-  <Label>
-    Name:
-    <Input bind:value={value.schema.title} />
-  </Label>
+  <div class="flex items-center">
+    <Label class="flex-grow">
+      Name:
+      <Input bind:value={value.schema.title} />
+    </Label>
+    <div class="ms-4 mt-auto">
+      <Checkbox bind:checked={value.schema.required}>
+        Is required
+      </Checkbox>
+    </div>
+  </div>
   <Label>
     Description:
-    <Input bind:value={value.schema.description} />
+    <Textarea bind:value={value.schema.description} />
   </Label>
   {#if attribute.type === 'boolean'}
     <BooleanAttribute
@@ -112,8 +119,4 @@
       bind:maxItems={value.schema.maxItems}
     />
   {/if}
-  <Label>
-    Is required:
-    <Checkbox bind:checked={value.schema.required} />
-  </Label>
 </Card>

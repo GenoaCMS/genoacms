@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LinkMetaSchema, StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
+  import type { LinkMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'
   import { Modal } from 'flowbite-svelte'
@@ -60,6 +60,28 @@
     maxItems: null,
     required: false
   }
+  const storageResourceSchemaInit: StorageResourceMetaSchema = {
+    type: 'object',
+    properties: {
+      bucket: {
+        type: 'string'
+      },
+      name: {
+        type: 'string'
+      }
+    },
+    required: ['bucket', 'name']
+  }
+  const storageResourcesSchemaInit: StorageResourcesMetaSchema = {
+    type: 'array',
+    title: '',
+    description: '',
+    items: storageResourceSchemaInit,
+    default: [],
+    minItems: null,
+    maxItems: null,
+    required: false
+  }
   const componentsSchemaInit = {
     type: 'array',
     title: '',
@@ -81,7 +103,7 @@
     { name: 'markdown', icon: 'markdown', schema: stringSchemaInit },
     { name: 'richText', icon: 'file-richtext', schema: stringSchemaInit },
     { name: 'link', icon: 'link-45deg', schema: linksSchemaInit },
-    { name: 'storageResource', icon: 'cloud', schema: { type: 'object' } },
+    { name: 'storageResource', icon: 'cloud', schema: storageResourcesSchemaInit },
     { name: 'components', icon: 'box', schema: componentsSchemaInit }
   ]
   function add (type: string, schema: Record<string, unknown>) {

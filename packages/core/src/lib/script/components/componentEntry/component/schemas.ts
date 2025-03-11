@@ -106,6 +106,48 @@ const linksMetaSchema: Schema = {
   required: ['type', 'title']
 }
 
+const storageResourceMetaSchema: Schema = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', const: 'object' },
+    properties: {
+      type: 'object',
+      properties: {
+        bucket: {
+          type: 'object',
+          properties: { type: { type: 'string', const: 'string' } },
+          required: ['type']
+        },
+        name: {
+          type: 'object',
+          properties: { type: { type: 'string', const: 'string' } },
+          required: ['type']
+        }
+      }
+    },
+    required: {
+      type: 'array',
+      items: { type: 'string', enum: ['bucket', 'name'] }
+    }
+  },
+  required: ['type', 'properties', 'required']
+}
+
+const storageResourcesMetaSchema: Schema = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', const: 'array' },
+    title: { type: 'string' },
+    description: { type: 'string' },
+    items: storageResourceMetaSchema,
+    default: { type: ['array', 'null'], items: storageResourceMetaSchema },
+    minItems: { type: ['number', 'null'] },
+    maxItems: { type: ['number', 'null'] },
+    required: { type: 'boolean' }
+  },
+  required: ['type', 'title']
+}
+
 const componentsAttributeMetaSchema: Schema = {
   type: 'object',
   properties: {
@@ -203,15 +245,13 @@ const storageResourceAttributeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string' },
-    name: { type: 'string' },
-    description: { type: 'string' },
-    isRequired: { type: 'boolean' },
     type: {
       type: 'string',
       const: 'storageResource'
-    }
+    },
+    schema: storageResourcesMetaSchema
   },
-  required: ['uid', 'name', 'type']
+  required: ['uid', 'type', 'schema']
 }
 
 const componentsAttributeSchema: Schema = {
@@ -270,6 +310,7 @@ const componentEntryCreationSchema: Schema = {
 
 export {
   linksMetaSchema,
+  storageResourcesMetaSchema,
   booleanAttributeSchema,
   numberAttributeSchema,
   stringAttributeSchema,
