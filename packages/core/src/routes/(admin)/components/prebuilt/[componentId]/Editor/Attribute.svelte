@@ -1,6 +1,7 @@
 <script lang='ts'>
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
   import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea } from 'flowbite-svelte'
+  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
   import BooleanAttribute from './Boolean.svelte'
   import NumberAttribute from './Number.svelte'
   import StringAttribute from './String.svelte'
@@ -19,6 +20,7 @@
   let { attribute = $bindable(), onvalue, ondelete }: Props = $props()
   const value = $state(attribute)
   let isDropdownOpen = $state(false)
+
   function toggleDropdown () {
     isDropdownOpen = !isDropdownOpen
   }
@@ -33,12 +35,12 @@
 <Card size="none" class="mb-4">
   <div class="w-full flex justify-between">
     <div class="flex">
+      <AttributeTypeIcon type={value.type} />
       <!--button aria-label="Dragger" type="button" use:dragHandle> TODO: think about order
         <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
       </button-->
     </div>
     <div>
-      {value.type}
     </div>
     <div class="flex">
       <Button color="none" onclick={toggleDropdown}>

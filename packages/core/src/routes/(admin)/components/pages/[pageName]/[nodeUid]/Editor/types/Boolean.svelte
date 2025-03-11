@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { BooleanAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import { Toggle } from 'flowbite-svelte'
+  import { Card, Toggle } from 'flowbite-svelte'
+  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<BooleanAttributeType>,
@@ -15,6 +16,14 @@
   }
 </script>
 
-<Toggle checked={data.value} {onchange} required={!data.schema.nullable}>
+<Card padding="sm" size="none" shadow={false}>
+  <div class="flex">
+  <div class="me-auto flex">
+    <div class="me-3">
+      <AttributeTypeIcon type={data.type} />
+    </div>
     <span class="text-xl">{data.name}</span>
-</Toggle>
+  </div>
+  <Toggle checked={data.value} {onchange} required={!data.schema.nullable}/>
+  </div>
+</Card>

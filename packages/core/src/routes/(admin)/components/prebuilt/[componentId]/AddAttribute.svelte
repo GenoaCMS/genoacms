@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { LinkMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
+  import { getAttributeTypeIcon } from '$lib/components/components/utils'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'
   import { Modal } from 'flowbite-svelte'
@@ -96,15 +97,15 @@
     required: false
   }
   const types = [
-    { name: 'boolean', icon: 'toggle-on', schema: booleanSchemaInit },
-    { name: 'number', icon: '123', schema: numberSchemaInit },
-    { name: 'string', icon: 'type', schema: stringSchemaInit },
-    { name: 'text', icon: 'textarea-t', schema: stringSchemaInit },
-    { name: 'markdown', icon: 'markdown', schema: stringSchemaInit },
-    { name: 'richText', icon: 'file-richtext', schema: stringSchemaInit },
-    { name: 'link', icon: 'link-45deg', schema: linksSchemaInit },
-    { name: 'storageResource', icon: 'cloud', schema: storageResourcesSchemaInit },
-    { name: 'components', icon: 'box', schema: componentsSchemaInit }
+    { name: 'boolean', schema: booleanSchemaInit },
+    { name: 'number', schema: numberSchemaInit },
+    { name: 'string', schema: stringSchemaInit },
+    { name: 'text', schema: stringSchemaInit },
+    { name: 'markdown', schema: stringSchemaInit },
+    { name: 'richText', schema: stringSchemaInit },
+    { name: 'link', schema: linksSchemaInit },
+    { name: 'storageResource', schema: storageResourcesSchemaInit },
+    { name: 'components', schema: componentsSchemaInit }
   ]
   function add (type: string, schema: Record<string, unknown>) {
     const uid = crypto.randomUUID()
@@ -127,9 +128,11 @@
   <Modal title="New attribute" bind:open={isModalOpen}>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 overflow-auto">
       {#each types as type}
+        {@const icon = getAttributeTypeIcon(type.name)}
         <CardLink
-          icon={type.icon}
+          icon={icon.icon}
           text={type.name}
+          class="text-{icon.color}"
           onclick={() => {
             add(type.name, type.schema)
             isModalOpen = false

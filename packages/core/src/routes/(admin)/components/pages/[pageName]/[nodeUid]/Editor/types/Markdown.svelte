@@ -4,6 +4,7 @@
   import { Button, Card, Modal } from 'flowbite-svelte'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
+  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<MarkdownAttributeType>,
@@ -18,23 +19,28 @@
   }
 </script>
 
-<Card padding="sm" size="none">
+<Card padding="sm" size="none" shadow={false}>
+  <div class="flex">
+    <div class="me-3">
+      <AttributeTypeIcon type={data.type} />
+    </div>
     <h3 class="text-xl pb-3">
-        {data.name}
+      {data.name}
     </h3>
-    <Button color="light" on:click={toggleModal} class="w-full">
-        Open markdown editor
-    </Button>
+  </div>
+  <Button color="light" on:click={toggleModal} class="w-full">
+    Open markdown editor
+  </Button>
 </Card>
 
 <Modal bind:open={isModalOpen} title="Edit {data.name}" size="xl"
-       bodyClass="p-0">
-    <div class="h-[80vh] w-full flex">
-        <div class="w-1/2 border-e">
-            <MonacoEditor language="markdown" value={data.value} {onvalue}/>
-        </div>
-        <div class="w-1/2 p-4">
-            <MarkdownViewer markdown={data.value} />
-        </div>
+  bodyClass="p-0">
+  <div class="h-[80vh] w-full flex">
+    <div class="w-1/2 border-e">
+      <MonacoEditor language="markdown" value={data.value} {onvalue}/>
     </div>
+    <div class="w-1/2 p-4">
+      <MarkdownViewer markdown={data.value} />
+    </div>
+  </div>
 </Modal>

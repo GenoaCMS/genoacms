@@ -7,7 +7,7 @@
     import Submit from './Submit.svelte'
     import Redo from './Redo.svelte'
     import Undo from './Undo.svelte'
-    import Attribute from './Editor/Attributes/Attribute.svelte'
+    import Attribute from './Editor/Attribute.svelte'
     import { schemasafe } from 'sveltekit-superforms/adapters'
     import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
     import AddAttribute from './AddAttribute.svelte'

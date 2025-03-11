@@ -8,6 +8,7 @@
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
   import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
   import type { SelectionInitData } from '$lib/script/storage/SelectionStore'
+  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   export let data: AttributeData<StorageResourceAttributeType>
   const selectionId = crypto.randomUUID()
@@ -40,14 +41,19 @@
   $: isSelected = data.value.bucket && data.value.name
 </script>
 
-<Card href={selectHref} target="_blank" padding="sm">
+<Card href={selectHref} target="_blank" padding="sm" size="none" shadow={false}>
+  <div class="flex">
+    <div class="me-3">
+      <AttributeTypeIcon type={data.type} />
+    </div>
     <h3 class="text-xl pb-3">
-        {data.name}
+      {data.name}
     </h3>
-    {#if isSelected}
-        Bucket: {data.value.bucket}<br>
-        Filename: {data.value.name}
-    {:else}
-        File not selected yet
-    {/if}
+  </div>
+  {#if isSelected}
+    Bucket: {data.value.bucket}<br>
+    Filename: {data.value.name}
+  {:else}
+    File not selected yet
+  {/if}
 </Card>

@@ -13,6 +13,7 @@
   import Subcomponent from './Subcomponent.svelte'
   import { invalidateAll } from '$app/navigation'
   import { Card, Modal } from 'flowbite-svelte'
+  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   export let data: AttributeData<ComponentsAttributeType>
   let isModalOpen = false
@@ -45,10 +46,15 @@
   $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
 </script>
 
-<Card size="none" padding="sm">
+<Card padding="sm" size="none" shadow={false}>
+  <div class="flex">
+    <div class="me-3">
+      <AttributeTypeIcon type={data.type} />
+    </div>
     <h3 class="text-xl pb-3">
-        {data.name}
+      {data.name}
     </h3>
+  </div>
     <div class="flex flex-col">
         {#each childNodes as childComponentNode}
             <Subcomponent bind:node={childComponentNode}/>
