@@ -98,7 +98,11 @@
   {:else if attribute.type === 'richText'}
     <RichTextAttribute />
   {:else if attribute.type === 'link'}
-    <LinkAttribute />
+    <LinkAttribute
+      bind:default={value.schema.default}
+      bind:minItems={value.schema.minItems}
+      bind:maxItems={value.schema.maxItems}
+    />
   {:else if attribute.type === 'storageResource'}
     <StorageResourceAttribute />
   {:else if attribute.type === 'components'}
