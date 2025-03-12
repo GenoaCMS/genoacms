@@ -1,6 +1,6 @@
 {
 	"name": "@genoacms/core",
-	"version": "0.0.17",
+	"version": "0.0.18",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/GenoaCMS/core.git"
@@ -69,7 +69,7 @@
 	},
 	"type": "module",
 	"devDependencies": {
-		"@genoacms/adapter-gcp": "0.7.1-fix.6",
+		"@genoacms/adapter-gcp": "0.7.1-fix.7",
 		"@genoacms/authentication-adapter-array": "^0.7.1",
 		"@genoacms/cli": "^0.0.11",
 		"dotenv": "^16.4.5"
