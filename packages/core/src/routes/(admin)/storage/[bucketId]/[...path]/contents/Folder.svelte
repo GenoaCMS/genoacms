@@ -12,4 +12,4 @@
   const searchParams = $derived('?' + page.url.searchParams.toString() || '')
 </script>
 
-<CardLink text={name || path} href="/storage/{bucketId}/{currentPath}|->{path}/contents{searchParams}" icon="folder"/>
+<CardLink text={name || path} href="/storage/{bucketId}/{currentPath}{page.data.delimiter}{path}/contents{searchParams}" icon="folder"/>

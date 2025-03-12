@@ -8,8 +8,9 @@ import {
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
 import { fail, type Actions } from '@sveltejs/kit'
+import { config } from '@genoacms/cloudabstraction'
 
-const delimiter = '|->'
+const delimiter = config.storage?.pathDelimiter || '|->'
 
 const removePathDelimiter = (path: string) => path.replaceAll(delimiter, '')
 
@@ -39,6 +40,7 @@ export const load = async ({ params }) => {
 
   return {
     bucketId,
+    delimiter,
     navigationPath: path,
     path: removePathDelimiter(path),
     parentPath: resolveParentPath(bucketId, path),
