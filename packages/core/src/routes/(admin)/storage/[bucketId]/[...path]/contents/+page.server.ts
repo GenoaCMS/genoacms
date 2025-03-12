@@ -7,13 +7,15 @@ import {
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
-import { fail } from '@sveltejs/kit'
+import { fail, type Actions } from '@sveltejs/kit'
 
-const removePathDelimiter = (path: string) => path.replaceAll('|->', '')
+const delimiter = '|->'
 
-const pathToSegments = (path: string) => path.split('|->')
+const removePathDelimiter = (path: string) => path.replaceAll(delimiter, '')
 
-const segmentsToPath = (segments: Array<string>) => segments.join('|->')
+const pathToSegments = (path: string) => path.split(delimiter)
+
+const segmentsToPath = (segments: Array<string>) => segments.join(delimiter)
 
 const resolveParentPath = (bucketId: string, path: string) => {
   const pathSegments = pathToSegments(path)
@@ -57,7 +59,9 @@ export const actions = {
     const data = await request.formData()
     const directoryName = data.get('directoryName')
     if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
-    const directoryPath = join(path, directoryName)
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
+    const cleanPath = removePathDelimiter(path)
+    const directoryPath = join(cleanPath, directoryName)
 
     await createDirectory({
       bucket: bucketId,
@@ -72,12 +76,15 @@ export const actions = {
       bucketId,
       path
     } = params
+    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
     const data = await request.formData()
     const fileName = data.get('fileName')
+    const cleanPath = removePathDelimiter(path)
     if (!isString(fileName)) return fail(400, { reason: 'missing-file-name' })
     await deleteObject({
       bucket: bucketId,
-      name: join(path, fileName)
+      name: join(cleanPath, fileName)
     })
   },
   uploadObject: async ({
@@ -88,6 +95,9 @@ export const actions = {
       bucketId,
       path
     } = params
+    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
+    const cleanPath = removePathDelimiter(path)
     const data = await request.formData()
     const files = data.getAll('files[]') as Array<File>
     if (files.length === 0) return
@@ -95,7 +105,7 @@ export const actions = {
     for (const file of files) {
       const reference = {
         bucket: bucketId,
-        name: join(path, file.name)
+        name: join(cleanPath, file.name)
       }
       uploads = [
         ...uploads,
@@ -104,4 +114,4 @@ export const actions = {
     }
     await Promise.all(uploads)
   }
-}
+} satisfies Actions
