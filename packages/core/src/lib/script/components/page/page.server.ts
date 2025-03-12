@@ -48,7 +48,8 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
 
 const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
   const readableTree = await pageEntryToReadableTree(page)
-  return uploadInternalObjectJSON(join(pageReadableTreePath, page.name), JSON.stringify(readableTree))
+  console.log('readableTree', readableTree)
+  return uploadInternalObjectJSON(join(pageReadableTreePath, page.name), readableTree)
 }
 
 export {
