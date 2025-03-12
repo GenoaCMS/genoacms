@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { JSONSchemaType } from 'ajv'
   import type { InputValue, Constraints, Errors } from './types'
-  import StorageResources from './StorageResource/StorageResources.svelte'
-  import StorageResource from './StorageResource/StorageResource.svelte'
+  import StorageResources from '$lib/components/editors/StorageResource/StorageResources.svelte'
+  import StorageResource from '$lib/components/editors/StorageResource/StorageResource.svelte'
   import UuidInput from './UUIDInput.svelte'
   import MarkdownInput from './MarkdownInput.svelte'
   import ArrayInput from './ArrayInput.svelte'
