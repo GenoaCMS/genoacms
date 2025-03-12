@@ -1,6 +1,8 @@
+type ObjectName = string
+
 interface ObjectReference {
   bucket: string
-  name: string
+  name: ObjectName
 }
 
 interface StorageObject {
@@ -27,4 +29,14 @@ interface DirectoryListingParams {
 interface DirectoryContents {
   files: StorageObject[]
   directories: string[]
+}
+
+export type {
+  ObjectName,
+  ObjectReference,
+  StorageObject,
+  ObjectPayload,
+  ObjectData,
+  DirectoryListingParams,
+  DirectoryContents
 }
