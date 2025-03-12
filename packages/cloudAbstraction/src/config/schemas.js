@@ -20,24 +20,40 @@ const nullableStorageResource = {
   ]
 }
 
-const reference = {
-  type: 'object',
-  title: 'reference',
-  properties: {
-    database: {
-      type: 'string'
-    },
-    collection: {
-      type: 'string'
-    },
-    id: {
-      type: 'string'
+function globalReference ({ type = 'string', format }) {
+  const refType = {
+    type: 'object',
+    title: 'globalReference',
+    properties: {
+      database: {
+        type: 'string'
+      },
+      collection: {
+        type: 'string'
+      },
+      id: {
+        type
+      }
     }
   }
+  if (format) refType.properties.id.format = format
+  return refType
+}
+
+// Foreign key
+function reference ({ type = 'string', format, collection }) {
+  const refType = {
+    type,
+    title: 'reference',
+    description: collection
+  }
+  if (format) refType.format = format
+  return refType
 }
 
 export {
   storageResource,
   nullableStorageResource,
+  globalReference,
   reference
 }
