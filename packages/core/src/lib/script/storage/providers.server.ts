@@ -43,6 +43,11 @@ async function createDirectory (reference: ObjectReference) {
   return await provider.createDirectory(reference)
 }
 
+async function deleteDirectory (reference: ObjectReference) {
+  const provider = await getProviderByBucketName(reference.bucket)
+  return await provider.deleteDirectory(reference)
+}
+
 export {
   createDirectory,
   deleteObject,
@@ -50,5 +55,6 @@ export {
   getPublicURL,
   getSignedURL,
   listDirectory,
-  uploadObject
+  uploadObject,
+  deleteDirectory
 }

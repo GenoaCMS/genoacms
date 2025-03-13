@@ -3,7 +3,8 @@ import {
   deleteObject,
   listDirectory,
   processDirectoryContents,
-  uploadObject
+  uploadObject,
+  deleteDirectory
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
@@ -70,6 +71,25 @@ export const actions = {
       name: directoryPath
     })
   },
+  deleteDirectory: async ({
+    params,
+    request
+  }) => {
+    const {
+      bucketId,
+      path
+    } = params
+    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
+    const data = await request.formData()
+    const directoryName = data.get('directoryName')
+    if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
+    const cleanPath = removePathDelimiter(path)
+    await deleteDirectory({
+      bucket: bucketId,
+      name: join(cleanPath, directoryName)
+    })
+  },
   deleteFile: async ({
     params,
     request
@@ -82,8 +102,8 @@ export const actions = {
     if (!isString(path)) return fail(400, { reason: 'missing-path' })
     const data = await request.formData()
     const fileName = data.get('fileName')
-    const cleanPath = removePathDelimiter(path)
     if (!isString(fileName)) return fail(400, { reason: 'missing-file-name' })
+    const cleanPath = removePathDelimiter(path)
     await deleteObject({
       bucket: bucketId,
       name: join(cleanPath, fileName)

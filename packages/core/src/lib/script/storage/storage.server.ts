@@ -13,7 +13,8 @@ import {
   getPublicURL,
   getSignedURL,
   listDirectory,
-  uploadObject
+  uploadObject,
+  deleteDirectory
 } from './providers.server'
 
 const getBucketReferences = () => {
@@ -129,5 +130,6 @@ export {
   uploadInternalObjectJSON,
   uploadInternalObjectFlatted,
   processDirectoryContents,
-  deleteInternalObject
+  deleteInternalObject,
+  deleteDirectory
 }
