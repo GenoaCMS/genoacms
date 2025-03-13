@@ -88,6 +88,16 @@ const deleteDirectory: Adapter['deleteDirectory'] = async ({ bucket, name }) => 
   await Promise.all(deletePromises)
 }
 
+const moveDirectory: Adapter['moveDirectory'] = async ({ bucket, name }, newName) => {
+  const bucketInstance = getBucket(bucket)
+  const [files] = await bucketInstance.getFiles({ prefix: name })
+  const movePromises = files.map(async (file) => {
+    const newFileName = file.name.replace(name, newName)
+    await file.move(newFileName)
+  })
+  await Promise.all(movePromises)
+}
+
 export {
   getObject,
   getPublicURL,
@@ -97,5 +107,6 @@ export {
   deleteObject,
   listDirectory,
   createDirectory,
-  deleteDirectory
+  deleteDirectory,
+  moveDirectory
 }
