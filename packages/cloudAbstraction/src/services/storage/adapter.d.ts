@@ -16,6 +16,7 @@ type deleteObject = (reference: ObjectReference) => Promise<void>
 type listDirectory = (reference: ObjectReference, params?: DirectoryListingParams) => Promise<DirectoryContents>
 type createDirectory = (reference: ObjectReference) => Promise<void>
 type deleteDirectory = (reference: ObjectReference) => Promise<void>
+type moveDirectory = (reference: ObjectReference, destination: ObjectName) => Promise<void>
 
 interface Adapter {
   getObject: getObject
@@ -27,6 +28,7 @@ interface Adapter {
   listDirectory: listDirectory
   createDirectory: createDirectory
   deleteDirectory: deleteDirectory
+  moveDirectory: moveDirectory
 }
 
 export default Adapter
