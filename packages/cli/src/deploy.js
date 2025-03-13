@@ -5,7 +5,6 @@ import { copyBuild } from './utils.js'
 import buildConfig from '@genoacms/cloudabstraction/configBuilder'
 import { spinner } from '@clack/prompts'
 
-const isProd = !process.argv.includes('--dev')
 const exec = promisify(execCb)
 
 async function deploy () {

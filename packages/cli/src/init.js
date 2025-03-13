@@ -8,6 +8,8 @@ import { intro, outro, select, spinner } from '@clack/prompts'
 
 const exec = promisify(execCb)
 
+const isDev = process.argv.includes('--dev')
+process.env.DEV = isDev ? 'true' : 'false'
 let packageManager = ''
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
