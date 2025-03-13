@@ -6,7 +6,7 @@ declare module '@genoacms/adapter-*/storage' {
   const getSignedURL: Adapter.getSignedURL
   const getPublicURL: Adapter.getPublicURL
   const uploadObject: Adapter.uploadObject
-  const renameObject: Adapter.renameObject
+  const moveObject: Adapter.moveObject
   const deleteObject: Adapter.deleteObject
   const listDirectory: Adapter.listDirectory
   const createDirectory: Adapter.createDirectory
@@ -16,7 +16,7 @@ declare module '@genoacms/adapter-*/storage' {
     getSignedURL,
     getPublicURL,
     uploadObject,
-    renameObject,
+    moveObject,
     deleteObject,
     listDirectory,
     createDirectory,
