@@ -36,7 +36,7 @@ const uploadObject: Adapter['uploadObject'] = async ({ bucket, name }, stream, o
   await file.save(stream, options)
 }
 
-const renameObject: Adapter['renameObject'] = async ({ bucket, name }, newName) => {
+const moveObject: Adapter['moveObject'] = async ({ bucket, name }, newName) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
   await file.move(newName)
@@ -93,7 +93,7 @@ export {
   getPublicURL,
   getSignedURL,
   uploadObject,
-  renameObject,
+  moveObject,
   deleteObject,
   listDirectory,
   createDirectory,

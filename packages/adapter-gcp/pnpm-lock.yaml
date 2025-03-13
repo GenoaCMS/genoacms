@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@genoacms/cloudabstraction':
-        specifier: ^0.7.7
-        version: 0.7.7(@rollup/plugin-commonjs@28.0.3(rollup@4.35.0))(@rollup/plugin-json@6.1.0(rollup@4.35.0))(@rollup/plugin-node-resolve@15.3.1(rollup@4.35.0))(rollup@4.35.0)
+        specifier: ^0.7.8
+        version: 0.7.8(@rollup/plugin-commonjs@28.0.3(rollup@4.35.0))(@rollup/plugin-json@6.1.0(rollup@4.35.0))(@rollup/plugin-node-resolve@15.3.1(rollup@4.35.0))(rollup@4.35.0)
       '@genoacms/sveltekit-adapter-cloud-run-functions':
         specifier: ^1.0.0
         version: 1.0.0(@sveltejs/kit@2.19.0(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.22.6)(vite@5.4.14(@types/node@22.13.10)))(svelte@5.22.6)(vite@5.4.14(@types/node@22.13.10)))
@@ -223,8 +223,8 @@ packages:
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
-  '@genoacms/cloudabstraction@0.7.7':
-    resolution: {integrity: sha512-xxAEa21vreFm1n64eaoZsrGWw4SkFmaxa5/gsIzOG7CJnLgq/DCKXDa1Kb/LrHdU9YWF51nM4p95t+eVy7KErA==}
+  '@genoacms/cloudabstraction@0.7.8':
+    resolution: {integrity: sha512-W/YekR4k39pm7jLjTEIsD/9/BRskeUewNhK1BhhzopuaIOr/cyL/aMTS8e4Z2rTuE3ySfjiPHDEjoEGDqn5obg==}
     peerDependencies:
       '@rollup/plugin-commonjs': ^26.0.1
       '@rollup/plugin-json': ^6.1.0
@@ -2457,7 +2457,7 @@ snapshots:
 
   '@eslint/js@8.57.1': {}
 
-  '@genoacms/cloudabstraction@0.7.7(@rollup/plugin-commonjs@28.0.3(rollup@4.35.0))(@rollup/plugin-json@6.1.0(rollup@4.35.0))(@rollup/plugin-node-resolve@15.3.1(rollup@4.35.0))(rollup@4.35.0)':
+  '@genoacms/cloudabstraction@0.7.8(@rollup/plugin-commonjs@28.0.3(rollup@4.35.0))(@rollup/plugin-json@6.1.0(rollup@4.35.0))(@rollup/plugin-node-resolve@15.3.1(rollup@4.35.0))(rollup@4.35.0)':
     dependencies:
       '@rollup/plugin-commonjs': 28.0.3(rollup@4.35.0)
       '@rollup/plugin-json': 6.1.0(rollup@4.35.0)
