@@ -5,6 +5,7 @@ import { copyBuild } from './utils.js'
 import buildConfig from '@genoacms/cloudabstraction/configBuilder'
 import { spinner } from '@clack/prompts'
 
+const isProd = !process.argv.includes('--dev')
 const exec = promisify(execCb)
 
 async function deploy () {
@@ -15,7 +16,10 @@ async function deploy () {
 
   buildingCMS.start('Building CMS code')
   if (isProd) {
-    await exec('npm explore @genoacms/core -- npm run build')
+    await exec('npm explore @genoacms/core -- npm run build', { env: {
+        ...process.env,
+        GENOA_BUILD: 'true'
+    }})
     await copyBuild()
   } else {
     await exec('npm run build')
