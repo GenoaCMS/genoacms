@@ -7,6 +7,7 @@
   import DirectoryCreation from './DirectoryCreation.svelte'
   import ObjectUpload from './ObjectUpload.svelte'
   import ConfirmSelection from './ConfirmSelection.svelte'
+  import ConfirmMove from './ConfirmMove.svelte'
   import Grid from '$lib/components/Grid.svelte'
 
   const { data } = $props()
@@ -18,6 +19,7 @@
         {data.path}
     </h1>
     <svelte:fragment slot="right">
+        <ConfirmMove/>
         <ConfirmSelection {selection}/>
         <DirectoryCreation/>
         <ObjectUpload/>
@@ -32,7 +34,7 @@
     {/each}
     {#each data.contents.files as item}
         <div class="col-span-1">
-            <File name={item.filename} signedURL={item.signedURL}/>
+            <File name={item.name} filename={item.filename} signedURL={item.signedURL}/>
         </div>
     {/each}
 </Grid>

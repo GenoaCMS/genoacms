@@ -1,10 +1,15 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
+
   type Props = {
-    onclick: () => void
+    onclick?: () => void,
+    children?: Snippet
   }
-  const { onclick, ...restProps }: Props = $props()
+  const { onclick = () => {}, children, ...restProps }: Props = $props()
 </script>
 
-<button {onclick} class="w-full border-b p-2" {...restProps}>
-    <slot/>
-</button>
+<div>
+  <button {onclick} class="w-full border-b p-2" {...restProps}>
+    {@render children?.()}
+  </button>
+</div>

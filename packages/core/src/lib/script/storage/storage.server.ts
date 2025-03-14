@@ -7,13 +7,14 @@ import type {
 import { streamToString } from '$lib/script/utils.server'
 import { parse as parseFlatted, stringify as stringifyFlatted } from 'flatted'
 import {
-  createDirectory,
-  deleteObject,
   getObject,
+  uploadObject,
+  moveObject,
+  deleteObject,
   getPublicURL,
   getSignedURL,
   listDirectory,
-  uploadObject,
+  createDirectory,
   deleteDirectory
 } from './providers.server'
 
@@ -22,6 +23,11 @@ const getBucketReferences = () => {
 }
 
 const defaultBucketId = config.storage.defaultBucket
+
+const fullyQualifiedNameToPath = (name: string): string => {
+  const lastIndexOfSlash = name.lastIndexOf('/')
+  return lastIndexOfSlash === -1 ? name : name.slice(0, lastIndexOfSlash)
+}
 
 const fullyQualifiedNameToFilename = (name: string): string => {
   if (name[name.length - 1] === '/') name = name.slice(0, -1)
@@ -114,12 +120,12 @@ const deleteInternalObject = async (path: string) => {
 export {
   getBucketReferences,
   defaultBucketId,
-  createDirectory,
-  deleteObject,
   getObject,
-  getPublicURL,
-  listDirectory,
   uploadObject,
+  moveObject,
+  deleteObject,
+  getPublicURL,
+  fullyQualifiedNameToPath,
   fullyQualifiedNameToFilename,
   isDirectoryExisting,
   listOrCreateDirectory,
@@ -131,5 +137,7 @@ export {
   uploadInternalObjectFlatted,
   processDirectoryContents,
   deleteInternalObject,
+  listDirectory,
+  createDirectory,
   deleteDirectory
 }

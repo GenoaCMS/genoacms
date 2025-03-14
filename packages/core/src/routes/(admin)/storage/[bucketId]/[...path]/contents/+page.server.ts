@@ -4,12 +4,16 @@ import {
   listDirectory,
   processDirectoryContents,
   uploadObject,
-  deleteDirectory
+  moveObject,
+  deleteDirectory,
+  fullyQualifiedNameToPath,
+  fullyQualifiedNameToFilename
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
 import { fail, type Actions } from '@sveltejs/kit'
 import { config } from '@genoacms/cloudabstraction'
+import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 
 const delimiter = config.storage?.pathDelimiter || '|->'
 
@@ -135,5 +139,34 @@ export const actions = {
       ]
     }
     await Promise.all(uploads)
+  },
+  move: async ({
+    params,
+    request
+  }) => {
+    const {
+      bucketId,
+      path
+    } = params
+    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
+    const data = await request.formData()
+    const contentsString = data.get('contents')
+    if (!isString(contentsString)) return fail(400, { reason: 'missing-file-name' })
+    const contents = JSON.parse(contentsString) as Array<ObjectReference>
+    const processedContents = contents.map(c => {
+      return {
+        ...c,
+        path: fullyQualifiedNameToPath(c.name),
+        filename: fullyQualifiedNameToFilename(c.name)
+      }
+    })
+    const objectsToMove = processedContents.filter(o => o.bucket === bucketId && o.path !== path)
+    const moves: Array<Promise<void>> = []
+    const cleanPath = removePathDelimiter(path)
+    for (const object of objectsToMove) {
+      moves.push(moveObject(object, join(cleanPath, object.filename)))
+    }
+    await Promise.all(moves)
   }
 } satisfies Actions

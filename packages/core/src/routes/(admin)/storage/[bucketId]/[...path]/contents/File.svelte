@@ -1,20 +1,26 @@
 <script lang="ts">
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { page } from '$app/state'
+  import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
+  import moveRune from '$lib/script/storage/MoveRune.svelte'
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
-  import { invalidateAll } from '$app/navigation'
   import Selectable from './Selectable.svelte'
-  import { page } from '$app/stores'
 
   type Props = {
-    name: string
+    name: string,
+    filename: string,
     signedURL: string
   }
-  const { name, signedURL }: Props = $props()
+  const { name, filename, signedURL }: Props = $props()
   let contextMenuEvent: MouseEvent | null = $state(null)
-  function openContextMenu (event) {
+  const deleteFormId = $derived(`deleteFile-form-${name}`)
+  const object: ObjectReference = $derived({ bucket: page.data.bucketId, name })
+
+  function openContextMenu (event: MouseEvent) {
     contextMenuEvent = event
   }
   function enhanceDeletion () {
@@ -29,17 +35,24 @@
       invalidateAll()
     }
   }
+  function startMove () {
+    moveRune.start(object)
+  }
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
-    <form action="?/deleteFile" method="post" use:enhance={enhanceDeletion}>
-        <input type="text" name="fileName" value={name} hidden/>
-        <ContextMenuItem type="submit">
-            Delete
-        </ContextMenuItem>
-    </form>
+  <ContextMenuItem type="submit" form={deleteFormId}>
+    Delete
+  </ContextMenuItem>
+  <ContextMenuItem onclick={startMove}>
+    Move
+  </ContextMenuItem>
 </ContextMenu>
 
-<Selectable {name} path={$page.data.path}>
-    <CardLink href={signedURL} target="_blank" text={name} icon="file-earmark" oncontextmenu={openContextMenu}/>
+<Selectable {filename} path={page.data.path}>
+    <CardLink href={signedURL} target="_blank" text={filename} icon="file-earmark" oncontextmenu={openContextMenu}/>
 </Selectable>
+
+<form id={deleteFormId} action="?/deleteFile" method="post" use:enhance={enhanceDeletion}>
+  <input type="text" name="fileName" value={filename} hidden/>
+</form>
