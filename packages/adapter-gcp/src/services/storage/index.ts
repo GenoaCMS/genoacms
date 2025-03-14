@@ -1,5 +1,6 @@
 import type {
   Adapter,
+  ObjectReference,
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { type File } from '@google-cloud/storage'
@@ -71,7 +72,13 @@ const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listing
         lastModified: new Date(file.metadata.updated as string)
       } satisfies StorageObject
     }),
-    directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name).map(i => i.replace(name, ''))
+    directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name).map(i => {
+      const object: ObjectReference = {
+        bucket,
+        name: i
+      }
+      return object
+    })
   }
 }
 
