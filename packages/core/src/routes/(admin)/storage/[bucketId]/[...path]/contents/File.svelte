@@ -9,6 +9,7 @@
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import Selectable from './Selectable.svelte'
+  import RenameModal from './RenameModal.svelte'
 
   type Props = {
     name: string,
@@ -19,7 +20,11 @@
   let contextMenuEvent: MouseEvent | null = $state(null)
   const deleteFormId = $derived(`deleteFile-form-${name}`)
   const object: ObjectReference = $derived({ bucket: page.data.bucketId, name })
+  let isRenameModalOpen = $state(false)
 
+  function toggleRenameModal () {
+    isRenameModalOpen = !isRenameModalOpen
+  }
   function openContextMenu (event: MouseEvent) {
     contextMenuEvent = event
   }
@@ -41,11 +46,14 @@
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
-  <ContextMenuItem type="submit" form={deleteFormId}>
-    Delete
+  <ContextMenuItem onclick={toggleRenameModal}>
+    Rename
   </ContextMenuItem>
   <ContextMenuItem onclick={startMove}>
     Move
+  </ContextMenuItem>
+  <ContextMenuItem type="submit" form={deleteFormId}>
+    Delete
   </ContextMenuItem>
 </ContextMenu>
 
@@ -53,6 +61,7 @@
     <CardLink href={signedURL} target="_blank" text={filename} icon="file-earmark" oncontextmenu={openContextMenu}/>
 </Selectable>
 
+<RenameModal isDirectory={false} name={filename} bind:isModalOpen={isRenameModalOpen}/>
 <form id={deleteFormId} action="?/deleteFile" method="post" use:enhance={enhanceDeletion}>
   <input type="text" name="fileName" value={filename} hidden/>
 </form>

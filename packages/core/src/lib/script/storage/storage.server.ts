@@ -15,6 +15,7 @@ import {
   getSignedURL,
   listDirectory,
   createDirectory,
+  moveDirectory,
   deleteDirectory
 } from './providers.server'
 
@@ -139,5 +140,6 @@ export {
   deleteInternalObject,
   listDirectory,
   createDirectory,
+  moveDirectory,
   deleteDirectory
 }

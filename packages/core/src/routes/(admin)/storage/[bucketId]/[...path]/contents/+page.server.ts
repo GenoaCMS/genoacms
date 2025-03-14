@@ -7,7 +7,8 @@ import {
   moveObject,
   deleteDirectory,
   fullyQualifiedNameToPath,
-  fullyQualifiedNameToFilename
+  fullyQualifiedNameToFilename,
+  moveDirectory
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
@@ -168,5 +169,33 @@ export const actions = {
       moves.push(moveObject(object, join(cleanPath, object.filename)))
     }
     await Promise.all(moves)
+  },
+  rename: async ({
+    params,
+    request
+  }) => {
+    const {
+      bucketId,
+      path
+    } = params
+    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    if (!isString(path)) return fail(400, { reason: 'missing-path' })
+    const data = await request.formData()
+    const isDirectory = Boolean(data.get('isDirectory'))
+    const name = data.get('name')
+    const newName = data.get('newName')
+    if (!isString(name)) return fail(400, { reason: 'missing-name' })
+    if (!isString(newName)) return fail(400, { reason: 'missing-new-name' })
+    const cleanPath = removePathDelimiter(path)
+    const reference = {
+      bucket: bucketId,
+      name: join(cleanPath, name)
+    }
+    const newPath = join(cleanPath, newName)
+    if (isDirectory) {
+      await moveDirectory(reference, newPath)
+    } else {
+      await moveObject(reference, newPath)
+    }
   }
 } satisfies Actions

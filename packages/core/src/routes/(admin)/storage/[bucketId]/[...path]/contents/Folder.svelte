@@ -7,6 +7,7 @@
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
+  import RenameModal from './RenameModal.svelte'
 
   type Props = {
     bucketId: string,
@@ -16,8 +17,13 @@
   }
   const { bucketId, currentPath, path, name }: Props = $props()
   const searchParams = $derived('?' + page.url.searchParams.toString() || '')
+  const deleteFormId = $derived(`deleteDirectory-form-${name}`)
   let contextMenuEvent: MouseEvent | null = $state(null)
+  let isRenameModalOpen = $state(false)
 
+  function toggleRenameModal () {
+    isRenameModalOpen = !isRenameModalOpen
+  }
   function openContextMenu (event: MouseEvent) {
     contextMenuEvent = event
   }
@@ -41,12 +47,12 @@
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
-    <form action="?/deleteDirectory" method="post" use:enhance={enhanceDeletion}>
-        <input type="text" name="directoryName" value={name} hidden/>
-        <ContextMenuItem type="submit">
-            Delete
-        </ContextMenuItem>
-    </form>
+  <ContextMenuItem onclick={toggleRenameModal}>
+    Rename
+  </ContextMenuItem>
+  <ContextMenuItem form={deleteFormId} type="submit">
+    Delete
+  </ContextMenuItem>
 </ContextMenu>
 
 <CardLink
@@ -55,3 +61,13 @@
   icon="folder"
   oncontextmenu={openContextMenu}
 />
+
+<RenameModal isDirectory={true} {name} bind:isModalOpen={isRenameModalOpen}/>
+<form
+  id={deleteFormId}
+  method="post"
+  action="?/deleteDirectory"
+  use:enhance={enhanceDeletion}
+  hidden>
+  <input type="text" name="directoryName" value={name} />
+</form>
