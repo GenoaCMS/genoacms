@@ -158,6 +158,7 @@ export const actions = {
     const processedContents = contents.map(c => {
       return {
         ...c,
+        isDirectory: c.name.endsWith('/'),
         path: fullyQualifiedNameToPath(c.name),
         filename: fullyQualifiedNameToFilename(c.name)
       }
@@ -166,7 +167,10 @@ export const actions = {
     const moves: Array<Promise<void>> = []
     const cleanPath = removePathDelimiter(path)
     for (const object of objectsToMove) {
-      moves.push(moveObject(object, join(cleanPath, object.filename)))
+      const move = object.isDirectory ? moveDirectory : moveObject
+      const newPath = join(cleanPath, object.filename, object.isDirectory ? '/' : '')
+      const promise = move(object, newPath)
+      moves.push(promise)
     }
     await Promise.all(moves)
   },
@@ -192,10 +196,7 @@ export const actions = {
       name: join(cleanPath, name)
     }
     const newPath = join(cleanPath, newName)
-    if (isDirectory) {
-      await moveDirectory(reference, newPath)
-    } else {
-      await moveObject(reference, newPath)
-    }
+    const move = isDirectory ? moveDirectory : moveObject
+    await move(reference, newPath)
   }
 } satisfies Actions

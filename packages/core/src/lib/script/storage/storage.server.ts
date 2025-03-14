@@ -71,19 +71,9 @@ const uploadInternalObjectFlatted = async (path: string, data: any) => uploadObj
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
 
 interface ProcessedDirectory {
-  directories: Array<{
-    path: string,
-    name: string
-  }>,
+  directories: Array<ObjectReference>,
   files: Array<ProcessedFile>
 }
-
-const processDirectoryNames = (directories: Array<string>) => directories.map(directory => {
-  return {
-    path: directory,
-    name: fullyQualifiedNameToFilename(directory).replaceAll('/', '')
-  }
-})
 
 const processFile = async (bucketId: string, file: StorageObject): Promise<ProcessedFile> => {
   return {
@@ -102,7 +92,7 @@ const processFiles = async (bucketId: string, files: Array<StorageObject>) => {
 }
 
 const processDirectoryContents = async (bucketId: string, contents: DirectoryContents): Promise<ProcessedDirectory> => {
-  const directories = processDirectoryNames(contents.directories)
+  const directories = contents.directories
   const files = await processFiles(bucketId, contents.files)
   return {
     directories,

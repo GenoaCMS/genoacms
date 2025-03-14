@@ -9,7 +9,6 @@
   import Grid from '$lib/components/Grid.svelte'
 
   const { data } = $props()
-
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
@@ -27,7 +26,7 @@
 <Grid>
     {#each data.contents.directories as item}
         <div class="col-span-1">
-            <Directory currentPath={data.navigationPath} bucketId={data.bucketId} {...item}/>
+            <Directory path={data.path} navigationPath={data.navigationPath} reference={item}/>
         </div>
     {/each}
     {#each data.contents.files as item}
