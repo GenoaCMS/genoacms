@@ -4,7 +4,7 @@
   import { page } from '$app/state'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import moveRune from '$lib/script/storage/MoveRune.svelte'
+  import selection from '$lib/script/storage/SelectionRune.svelte'
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
@@ -41,7 +41,11 @@
     }
   }
   function startMove () {
-    moveRune.start(object)
+    if (!selection.isEmpty) {
+      toastError('Clear selection first')
+      return
+    }
+    selection.select(object)
   }
 </script>
 
