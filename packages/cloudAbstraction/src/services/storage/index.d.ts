@@ -45,6 +45,7 @@ export type {
   ObjectReference,
   StorageObject,
   ObjectPayload,
+  UploadOptions,
   ObjectData,
   DirectoryListingParams,
   DirectoryContents

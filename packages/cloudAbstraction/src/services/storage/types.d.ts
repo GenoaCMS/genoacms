@@ -28,7 +28,7 @@ interface DirectoryListingParams {
 
 interface DirectoryContents {
   files: StorageObject[]
-  directories: string[]
+  directories: ObjectReference[]
 }
 
 export type {
@@ -36,6 +36,7 @@ export type {
   ObjectReference,
   StorageObject,
   ObjectPayload,
+  UploadOptions,
   ObjectData,
   DirectoryListingParams,
   DirectoryContents
