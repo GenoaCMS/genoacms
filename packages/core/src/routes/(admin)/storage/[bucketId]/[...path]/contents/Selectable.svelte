@@ -6,13 +6,15 @@
 
     type Props = {
       name: string,
-      children: Snippet
+      children: Snippet,
+      isDirectory?: boolean
     }
-    export const { name, children }: Props = $props()
+    export const { name, children, isDirectory = false }: Props = $props()
     const reference: ObjectReference = $derived({
       bucket: page.params.bucketId,
       name
     })
+    const canSelect: boolean = $derived(!isDirectory || selection.allowDirectories)
     const isSelected = $derived(selection.isSelected(reference))
 
     function select () {
@@ -22,11 +24,13 @@
 
 <div class="w-auto h-auto relative z-[1]">
   {@render children()}
-  <button onclick={select} aria-label="select-{name}" class="absolute top-0 start-0 p-2">
-    <i
-      class="bi text-2xl transition-all"
-      class:bi-square={!isSelected}
-      class:bi-check-square={isSelected}
-    ></i>
-  </button>
+  {#if canSelect}
+    <button onclick={select} aria-label="select-{name}" class="absolute top-0 start-0 p-2">
+      <i
+        class="bi text-2xl transition-all"
+        class:bi-square={!isSelected}
+        class:bi-check-square={isSelected}
+      ></i>
+    </button>
+  {/if}
 </div>

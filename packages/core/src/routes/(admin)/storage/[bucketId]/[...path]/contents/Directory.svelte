@@ -8,6 +8,7 @@
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import RenameModal from './RenameModal.svelte'
+  import Selectable from './Selectable.svelte'
 
   type Props = {
     bucketId: string,
@@ -55,12 +56,14 @@
   </ContextMenuItem>
 </ContextMenu>
 
-<CardLink
-  text={name || path}
-  href="/storage/{bucketId}/{currentPath}{page.data.delimiter}{path}/contents{searchParams}"
-  icon="folder"
-  oncontextmenu={openContextMenu}
-/>
+<Selectable name={path} isDirectory>
+  <CardLink
+    text={name || path}
+    href="/storage/{bucketId}/{currentPath}{page.data.delimiter}{path}/contents{searchParams}"
+    icon="folder"
+    oncontextmenu={openContextMenu}
+  />
+</Selectable>
 
 <RenameModal isDirectory={true} {name} bind:isModalOpen={isRenameModalOpen}/>
 <form

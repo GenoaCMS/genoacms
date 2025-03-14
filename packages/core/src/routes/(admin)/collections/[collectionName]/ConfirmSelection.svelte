@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
+  import type { SelectActionRune } from '$lib/script/database/SelectActionRune.svelte'
   import { getContext } from 'svelte'
-  import selection from '$lib/script/storage/SelectionRune.svelte'
+  import selection from '$lib/script/database/SelectionRune.svelte'
 
   const selectAction: SelectActionRune = getContext('select')
   function confirmSelection () {

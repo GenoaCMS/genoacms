@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
-    import selection from '$lib/script/storage/SelectionRune.svelte'
+    import type { SelectActionRune } from '$lib/script/database/SelectActionRune.svelte'
+    import selection from '$lib/script/database/SelectionRune.svelte'
     import { getContext, type Snippet } from 'svelte'
 
     type Props = {

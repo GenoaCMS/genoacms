@@ -1,20 +1,13 @@
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 import { SvelteSet } from 'svelte/reactivity'
 
 interface SelectionParameters {
-  maxItems: number,
-  allowDirectories: boolean
+  maxItems: number
 }
 
-function isDirectory (ref: ObjectReference) {
-  return ref.name.endsWith('/')
-}
-
-class Selection <T extends ObjectReference> {
+class Selection <T extends string | number> {
   #selectionSet: Set<string> = new SvelteSet()
   #parameters: SelectionParameters = $state({
-    maxItems: 0,
-    allowDirectories: true
+    maxItems: 0
   })
 
   setParameters (parameters: SelectionParameters) {
@@ -38,25 +31,14 @@ class Selection <T extends ObjectReference> {
     return this.#selectionSet.size < this.#parameters.maxItems
   }
 
-  get allowDirectories () {
-    return this.#parameters.allowDirectories
-  }
-
   select (reference: T) {
-    if (!this.canSelect ||
-      (!this.allowDirectories && isDirectory(reference))) return
     const referenceString = JSON.stringify(reference)
     if (this.#selectionSet.has(referenceString)) {
       this.#selectionSet.delete(referenceString)
       return
     }
+    if (!this.canSelect) return
     this.#selectionSet.add(referenceString)
-  }
-
-  bulkSelect (references: Array<T>) {
-    for (const reference of references) {
-      this.select(reference)
-    }
   }
 
   isSelected (reference: T) {

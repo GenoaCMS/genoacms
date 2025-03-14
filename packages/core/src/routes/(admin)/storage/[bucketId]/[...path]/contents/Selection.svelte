@@ -1,13 +1,30 @@
 <script lang="ts">
+  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
   import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
   import selection from '$lib/script/storage/SelectionRune.svelte'
   import { getContext } from 'svelte'
+  import { page } from '$app/state'
 
-  type Props = {
-    selectAll: () => void
-  }
-  const { selectAll }: Props = $props()
   const selectAction: SelectActionRune = getContext('select')
+  function selectAll () {
+    const selectionAddition: Array<ObjectReference> = []
+    const bucket = page.data.bucketId
+    for (const file of page.data.contents.files) {
+      const reference: ObjectReference = {
+        bucket,
+        name: file.name
+      }
+      selectionAddition.push(reference)
+    }
+    for (const directory of page.data.contents.directories) {
+      const reference: ObjectReference = {
+        bucket,
+        name: directory.path
+      }
+      selectionAddition.push(reference)
+    }
+    selection.bulkSelect(selectionAddition)
+  }
   function submitSelectAction () {
     selectAction.submit()
   }

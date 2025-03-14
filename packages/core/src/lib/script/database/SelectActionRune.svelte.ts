@@ -1,10 +1,10 @@
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
 import selection, { type SelectionParameters } from './SelectionRune.svelte'
 import { ITC } from '$lib/script/utils'
 
+type DocumentReference = Array<string | number>
 interface SelectionInitData {
   parameters: SelectionParameters,
-  defaultValue: Array<ObjectReference> | undefined
+  defaultValue: Array<DocumentReference> | undefined
 }
 
 class SelectActionRune {
@@ -20,7 +20,6 @@ class SelectActionRune {
   async #init () {
     this.#itc.send('selectionInit')
     const initData = await this.#itc.once('selectionInitData') as SelectionInitData
-    initData.parameters.allowDirectories = false
     selection.setParameters(initData.parameters)
     selection.load(initData.defaultValue)
   }

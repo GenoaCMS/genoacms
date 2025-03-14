@@ -1,7 +1,7 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
   import File from './File.svelte'
-  import Folder from './Folder.svelte'
+  import Directory from './Directory.svelte'
   import DirectoryCreation from './DirectoryCreation.svelte'
   import ObjectUpload from './ObjectUpload.svelte'
   import Selection from './Selection.svelte'
@@ -9,9 +9,7 @@
   import Grid from '$lib/components/Grid.svelte'
 
   const { data } = $props()
-  function selectAll () {
-    console.log('all')
-  }
+
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
@@ -20,7 +18,7 @@
     </h1>
     <svelte:fragment slot="right">
         <ConfirmMove/>
-        <Selection {selectAll}/>
+        <Selection />
         <DirectoryCreation/>
         <ObjectUpload/>
     </svelte:fragment>
@@ -29,7 +27,7 @@
 <Grid>
     {#each data.contents.directories as item}
         <div class="col-span-1">
-            <Folder currentPath={data.navigationPath} bucketId={data.bucketId} {...item}/>
+            <Directory currentPath={data.navigationPath} bucketId={data.bucketId} {...item}/>
         </div>
     {/each}
     {#each data.contents.files as item}
