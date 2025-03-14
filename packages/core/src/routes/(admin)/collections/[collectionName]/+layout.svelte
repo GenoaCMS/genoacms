@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SelectionStore from '$lib/script/storage/SelectionStore'
+  import SelectActionRune from '$lib/script/storage/SelectActionRune.svelte'
   import { setContext } from 'svelte'
 
-  const { data } = $props()
-  const selection = SelectionStore(data.selectionId)
-  setContext('selection', selection)
+  const { data, children } = $props()
+  const selection = new SelectActionRune(data.selectionId)
+  setContext('select', selection)
 </script>
 
-<slot/>
+{@render children?.()}

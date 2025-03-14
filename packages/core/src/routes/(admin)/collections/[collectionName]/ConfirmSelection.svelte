@@ -1,12 +1,20 @@
 <script lang="ts">
-  import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
+  import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
   import { getContext } from 'svelte'
+  import selection from '$lib/script/storage/SelectionRune.svelte'
 
-  const selection: SelectionStoreT = getContext('selection')
+  const selectAction: SelectActionRune = getContext('select')
+  function confirmSelection () {
+    selectAction.submit()
+  }
 </script>
 
-{#if selection.isSelecting && !$selection.isEmpty}
-    <button role="button" onclick={selection.submit} class="h-full flex items-center px-3">
-     <i class="bi bi-check-all text-2xl hover:text-warning transition-all"/>
+{#if selectAction.isActive && !selection.isEmpty}
+    <button
+    type="button"
+    onclick={confirmSelection}
+    aria-label="Confirm selection"
+    class="h-full flex items-center px-3">
+     <i class="bi bi-check-all text-2xl hover:text-warning transition-all"></i>
     </button>
 {/if}

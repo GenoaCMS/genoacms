@@ -1,17 +1,17 @@
 <script lang="ts">
-  import type { SelectionStoreT } from '$lib/script/storage/SelectionStore'
-  import { getContext } from 'svelte'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import File from './File.svelte'
   import Folder from './Folder.svelte'
   import DirectoryCreation from './DirectoryCreation.svelte'
   import ObjectUpload from './ObjectUpload.svelte'
-  import ConfirmSelection from './ConfirmSelection.svelte'
+  import Selection from './Selection.svelte'
   import ConfirmMove from './ConfirmMove.svelte'
   import Grid from '$lib/components/Grid.svelte'
 
   const { data } = $props()
-  const selection: SelectionStoreT = getContext('selection')
+  function selectAll () {
+    console.log('all')
+  }
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
@@ -20,7 +20,7 @@
     </h1>
     <svelte:fragment slot="right">
         <ConfirmMove/>
-        <ConfirmSelection {selection}/>
+        <Selection {selectAll}/>
         <DirectoryCreation/>
         <ObjectUpload/>
     </svelte:fragment>

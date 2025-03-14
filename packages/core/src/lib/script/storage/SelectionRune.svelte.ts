@@ -1,23 +1,21 @@
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import { SvelteSet } from 'svelte/reactivity'
 
 interface SelectionParameters {
   maxItems: number
 }
 
 class Selection <T extends ObjectReference> {
-  #selectionSet: Set<string> = new Set()
-  #parameters: SelectionParameters = {
+  #selectionSet: Set<string> = new SvelteSet()
+  #parameters: SelectionParameters = $state({
     maxItems: 0
-  }
-
-  #hasInitialized: boolean = false
+  })
 
   setParameters (parameters: SelectionParameters) {
     this.#parameters = {
       ...this.#parameters,
       ...parameters
     }
-    this.#hasInitialized = true
   }
 
   get value (): Array<T> {
@@ -26,12 +24,10 @@ class Selection <T extends ObjectReference> {
   }
 
   get isEmpty (): boolean {
-    const referenceStrings = Array.from(this.#selectionSet.values())
-    return referenceStrings.length === 0
+    return this.#selectionSet.size === 0
   }
 
   get canSelect () {
-    if (!this.#hasInitialized) return false
     if (!this.#parameters.maxItems) return true
     return this.#selectionSet.size < this.#parameters.maxItems
   }
@@ -51,6 +47,10 @@ class Selection <T extends ObjectReference> {
     return this.#selectionSet.has(referenceString)
   }
 
+  clear () {
+    this.#selectionSet.clear()
+  }
+
   load (selection: Array<T> | undefined) {
     if (!selection) return
     for (const reference of selection) {
@@ -61,4 +61,5 @@ class Selection <T extends ObjectReference> {
 }
 
 export type { SelectionParameters }
-export default Selection
+const selection = new Selection()
+export default selection

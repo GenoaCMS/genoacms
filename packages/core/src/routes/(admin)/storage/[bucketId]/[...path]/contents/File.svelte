@@ -57,7 +57,7 @@
   </ContextMenuItem>
 </ContextMenu>
 
-<Selectable {filename} path={page.data.path}>
+<Selectable {name}>
     <CardLink href={signedURL} target="_blank" text={filename} icon="file-earmark" oncontextmenu={openContextMenu}/>
 </Selectable>
 
