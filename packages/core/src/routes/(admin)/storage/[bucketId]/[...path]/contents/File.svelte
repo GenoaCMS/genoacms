@@ -28,8 +28,17 @@
   </ContextMenuItem>
 </ContextMenu>
 
-<Selectable {name}>
-    <CardLink href={signedURL} target="_blank" text={filename} icon="file-earmark" oncontextmenu={openContextMenu}/>
-</Selectable>
+<div class="transition-all hover:scale-105">
+  <Selectable {name}>
+    <CardLink
+      href={signedURL}
+      target="_blank"
+      text={filename}
+      icon="file-earmark"
+      oncontextmenu={openContextMenu}
+      noscale
+    />
+  </Selectable>
+</div>
 
 <RenameModal isDirectory={false} name={filename} bind:isModalOpen={isRenameModalOpen}/>

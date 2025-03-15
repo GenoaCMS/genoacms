@@ -5,18 +5,19 @@
     icon: string
     text: string
     href?: string,
+    noscale?: boolean,
     oncontextmenu?: (event: MouseEvent) => void,
     onclick?: (event: MouseEvent) => void
   }
-  const { icon, text, href = '', oncontextmenu, onclick, ...rest }: Props = $props()
+  const { icon, text, href = '', noscale, oncontextmenu, onclick, ...rest }: Props = $props()
 </script>
 
 {#if href}
     <a {href} {onclick} {oncontextmenu} {...rest}>
-        <CardLinkContents {icon} {text} />
+        <CardLinkContents {icon} {text} {noscale} />
     </a>
 {:else}
     <button type="button" {onclick} {oncontextmenu} {...rest}>
-        <CardLinkContents {icon} {text} />
+        <CardLinkContents {icon} {text} {noscale} />
     </button>
 {/if}

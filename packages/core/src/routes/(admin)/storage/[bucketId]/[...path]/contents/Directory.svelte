@@ -33,13 +33,16 @@
   </ContextMenuItem>
 </ContextMenu>
 
-<Selectable name={reference.name} isDirectory>
-  <CardLink
-    text={prettyName}
-    href="/storage/{reference.bucket}/{navigationPath}{page.data.delimiter}{nameWithoutPrefix}/contents{searchParams}"
-    icon="folder"
-    oncontextmenu={openContextMenu}
-  />
-</Selectable>
+<div class="transition-all hover:scale-105">
+  <Selectable name={reference.name} isDirectory>
+    <CardLink
+      text={prettyName}
+      href="/storage/{reference.bucket}/{navigationPath}{page.data.delimiter}{nameWithoutPrefix}/contents{searchParams}"
+      icon="folder"
+      oncontextmenu={openContextMenu}
+      noscale
+    />
+  </Selectable>
+</div>
 
 <RenameModal isDirectory={true} name={prettyName} bind:isModalOpen={isRenameModalOpen}/>
