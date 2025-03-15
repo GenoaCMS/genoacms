@@ -67,8 +67,7 @@ export const actions = {
     const data = await request.formData()
     const directoryName = data.get('directoryName')
     if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
-    const cleanPath = removePathDelimiter(path)
+    const cleanPath = removePathDelimiter(path || '')
     const directoryPath = join(cleanPath, directoryName)
 
     await createDirectory({
@@ -85,8 +84,7 @@ export const actions = {
       path
     } = params
     if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
-    const cleanPath = removePathDelimiter(path)
+    const cleanPath = removePathDelimiter(path || '')
     const data = await request.formData()
     const files = data.getAll('files[]') as Array<File>
     if (files.length === 0) return
@@ -142,14 +140,13 @@ export const actions = {
       path
     } = params
     if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
     const data = await request.formData()
     const isDirectory = Boolean(data.get('isDirectory'))
     const name = data.get('name')
     const newName = data.get('newName')
     if (!isString(name)) return fail(400, { reason: 'missing-name' })
     if (!isString(newName)) return fail(400, { reason: 'missing-new-name' })
-    const cleanPath = removePathDelimiter(path)
+    const cleanPath = removePathDelimiter(path || '')
     const reference = {
       bucket: bucketId,
       name: join(cleanPath, name)
