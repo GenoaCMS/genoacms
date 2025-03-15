@@ -76,44 +76,6 @@ export const actions = {
       name: directoryPath
     })
   },
-  deleteDirectory: async ({
-    params,
-    request
-  }) => {
-    const {
-      bucketId,
-      path
-    } = params
-    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
-    const data = await request.formData()
-    const directoryName = data.get('directoryName')
-    if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
-    const cleanPath = removePathDelimiter(path)
-    await deleteDirectory({
-      bucket: bucketId,
-      name: join(cleanPath, directoryName)
-    })
-  },
-  deleteFile: async ({
-    params,
-    request
-  }) => {
-    const {
-      bucketId,
-      path
-    } = params
-    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
-    const data = await request.formData()
-    const fileName = data.get('fileName')
-    if (!isString(fileName)) return fail(400, { reason: 'missing-file-name' })
-    const cleanPath = removePathDelimiter(path)
-    await deleteObject({
-      bucket: bucketId,
-      name: join(cleanPath, fileName)
-    })
-  },
   uploadObject: async ({
     params,
     request
@@ -128,16 +90,13 @@ export const actions = {
     const data = await request.formData()
     const files = data.getAll('files[]') as Array<File>
     if (files.length === 0) return
-    let uploads: Array<Promise<void>> = []
+    const uploads: Array<Promise<void>> = []
     for (const file of files) {
       const reference = {
         bucket: bucketId,
         name: join(cleanPath, file.name)
       }
-      uploads = [
-        ...uploads,
-        uploadObject(reference, file.stream())
-      ]
+      uploads.push(uploadObject(reference, file.stream()))
     }
     await Promise.all(uploads)
   },
@@ -198,5 +157,20 @@ export const actions = {
     const newPath = join(cleanPath, newName)
     const move = isDirectory ? moveDirectory : moveObject
     await move(reference, newPath)
+  },
+  delete: async ({
+    request
+  }) => {
+    const data = await request.formData()
+    const contentsString = data.get('contents')
+    if (!isString(contentsString)) return fail(400, { reason: 'missing-contents' })
+    const contents: Array<ObjectReference> = JSON.parse(contentsString)
+    const deletes: Array<Promise<void>> = []
+    for (const reference of contents) {
+      const isDirectory = reference.name.endsWith('/')
+      const deleteF = isDirectory ? deleteDirectory : deleteObject
+      deletes.push(deleteF(reference))
+    }
+    await Promise.all(deletes)
   }
 } satisfies Actions

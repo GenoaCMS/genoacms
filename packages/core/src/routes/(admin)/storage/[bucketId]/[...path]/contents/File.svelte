@@ -1,10 +1,4 @@
 <script lang="ts">
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
-  import { page } from '$app/state'
-  import { invalidateAll } from '$app/navigation'
-  import { enhance } from '$app/forms'
-  import selection from '$lib/script/storage/SelectionRune.svelte'
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
@@ -18,8 +12,6 @@
   }
   const { name, filename, signedURL }: Props = $props()
   let contextMenuEvent: MouseEvent | null = $state(null)
-  const deleteFormId = $derived(`deleteFile-form-${name}`)
-  const object: ObjectReference = $derived({ bucket: page.data.bucketId, name })
   let isRenameModalOpen = $state(false)
 
   function toggleRenameModal () {
@@ -28,36 +20,11 @@
   function openContextMenu (event: MouseEvent) {
     contextMenuEvent = event
   }
-  function enhanceDeletion () {
-    const alert = alertPending('Deleting file')
-    return async ({ result }) => {
-      alert.close()
-      if (result.type !== 'success') {
-        toastError('Deletion failed')
-        return
-      }
-      toastSuccess('File deleted')
-      invalidateAll()
-    }
-  }
-  function startMove () {
-    if (!selection.isEmpty) {
-      toastError('Clear selection first')
-      return
-    }
-    selection.select(object)
-  }
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
   <ContextMenuItem onclick={toggleRenameModal}>
     Rename
-  </ContextMenuItem>
-  <ContextMenuItem onclick={startMove}>
-    Move
-  </ContextMenuItem>
-  <ContextMenuItem type="submit" form={deleteFormId}>
-    Delete
   </ContextMenuItem>
 </ContextMenu>
 
@@ -66,6 +33,3 @@
 </Selectable>
 
 <RenameModal isDirectory={false} name={filename} bind:isModalOpen={isRenameModalOpen}/>
-<form id={deleteFormId} action="?/deleteFile" method="post" use:enhance={enhanceDeletion}>
-  <input type="text" name="fileName" value={filename} hidden/>
-</form>

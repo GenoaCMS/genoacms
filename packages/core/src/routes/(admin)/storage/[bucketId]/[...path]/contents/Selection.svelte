@@ -19,7 +19,7 @@
     for (const directory of page.data.contents.directories) {
       const reference: ObjectReference = {
         bucket,
-        name: directory.path
+        name: directory.name
       }
       selectionAddition.push(reference)
     }

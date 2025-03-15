@@ -1,10 +1,6 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-  import { invalidateAll } from '$app/navigation'
-  import { alertPending, confirmationModal, toastError, toastSuccess } from '$lib/script/alert'
   import { page } from '$app/state'
-  import { enhance } from '$app/forms'
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
@@ -18,9 +14,8 @@
   }
   const { path, navigationPath, reference }: Props = $props()
   const searchParams = $derived('?' + page.url.searchParams.toString() || '')
-  const deleteFormId = $derived(`deleteDirectory-form-${reference.name}`)
   const nameWithoutPrefix = $derived(reference.name.replace(path, ''))
-  const prettyName = $derived(nameWithoutPrefix.replace('/', ''))
+  const prettyName = $derived(nameWithoutPrefix.replace('/', '') || '/')
   let contextMenuEvent: MouseEvent | null = $state(null)
   let isRenameModalOpen = $state(false)
 
@@ -30,31 +25,11 @@
   function openContextMenu (event: MouseEvent) {
     contextMenuEvent = event
   }
-  const enhanceDeletion: SubmitFunction = async ({ cancel }) => {
-    const confirmation = await confirmationModal(`Do you want to delete directory "${prettyName}"?`)
-    if (!confirmation.isConfirmed) {
-      cancel()
-      return
-    }
-    const alert = alertPending('Deleting directory')
-    return async ({ result }) => {
-      alert.close()
-      if (result.type !== 'success') {
-        toastError('Deletion failed')
-        return
-      }
-      toastSuccess('File deleted')
-      invalidateAll()
-    }
-  }
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
   <ContextMenuItem onclick={toggleRenameModal}>
     Rename
-  </ContextMenuItem>
-  <ContextMenuItem form={deleteFormId} type="submit">
-    Delete
   </ContextMenuItem>
 </ContextMenu>
 
@@ -68,11 +43,3 @@
 </Selectable>
 
 <RenameModal isDirectory={true} name={prettyName} bind:isModalOpen={isRenameModalOpen}/>
-<form
-  id={deleteFormId}
-  method="post"
-  action="?/deleteDirectory"
-  use:enhance={enhanceDeletion}
-  hidden>
-  <input type="text" name="directoryName" value={prettyName} />
-</form>

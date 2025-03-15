@@ -7,6 +7,7 @@
   import Selection from './Selection.svelte'
   import ConfirmMove from './ConfirmMove.svelte'
   import Grid from '$lib/components/Grid.svelte'
+  import Delete from './Delete.svelte'
 
   const { data } = $props()
 </script>
@@ -17,6 +18,7 @@
     </h1>
     <svelte:fragment slot="right">
         <ConfirmMove/>
+        <Delete />
         <Selection />
         <DirectoryCreation/>
         <ObjectUpload/>

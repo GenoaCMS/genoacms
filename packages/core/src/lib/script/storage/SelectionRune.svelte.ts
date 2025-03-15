@@ -6,6 +6,11 @@ interface SelectionParameters {
   allowDirectories: boolean
 }
 
+interface TypeCounts {
+  directories: number,
+  files: number
+}
+
 function isDirectory (ref: ObjectReference) {
   return ref.name.endsWith('/')
 }
@@ -40,6 +45,19 @@ class Selection <T extends ObjectReference> {
 
   get allowDirectories () {
     return this.#parameters.allowDirectories
+  }
+
+  get countsByType (): TypeCounts {
+    let directories = 0
+    let files = 0
+    for (const reference of this.value) {
+      if (isDirectory(reference)) {
+        directories++
+      } else {
+        files++
+      }
+    }
+    return { directories, files }
   }
 
   select (reference: T) {
