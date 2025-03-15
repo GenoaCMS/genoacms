@@ -8,13 +8,17 @@ interface SelectionInitData {
 }
 
 class SelectActionRune {
-  #itc: typeof this.isActive extends true ? ITC : undefined
-  isActive: boolean = $state(false)
+  #itc: ITC
+  #isActive: boolean = $state(false)
   constructor (selectionId: string | null) {
     if (!selectionId) return
-    this.isActive = true
+    this.#isActive = true
     this.#itc = new ITC(selectionId)
     this.#init()
+  }
+
+  get isActive () {
+    return this.#isActive
   }
 
   async #init () {
@@ -26,7 +30,7 @@ class SelectActionRune {
   }
 
   async submit () {
-    if (!this.isActive) return
+    if (!this.#isActive) return
     this.#itc.send('selectionDone', selection.value)
     await this.#itc.once('selectionKill')
     window.close()
