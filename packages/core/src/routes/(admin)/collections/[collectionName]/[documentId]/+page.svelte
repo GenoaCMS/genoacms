@@ -1,10 +1,16 @@
 <script lang="ts">
+  import { activityTracker } from '$lib/script/activity/client'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import Delete from './Delete.svelte'
   import Update from './Update.svelte'
   import Editor from '../Editor/Editor.svelte'
 
   const { data } = $props()
+  activityTracker.add({
+    type: 'collections',
+    collection: data.document.reference.collection.name,
+    document: data.document.reference.id
+  })
 </script>
 
 <TopPanel>
