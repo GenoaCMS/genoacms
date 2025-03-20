@@ -28,6 +28,7 @@ interface DatabaseInit {
 
 type DatabaseProvider<Extension extends object = object> = Extension & {
   name: string
+  adapterPath: string
   adapter: Promise<Adapter>
 }
 

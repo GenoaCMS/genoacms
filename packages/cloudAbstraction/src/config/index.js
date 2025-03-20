@@ -5,5 +5,23 @@ import { configPath } from './paths.js'
  */
 const config = (await import(configPath)).default
 
-export default config
+/**
+ * @param {string} type
+ * @param {string} adapterPath
+ * @returns {import('./genoa.config.d.ts').Provider}
+ */
+function getProvider (type, adapterPath) {
+  /**
+   * @type{undefined | import('./genoa.config.d.ts').Provider}
+  */
+  const provider = config[type].providers.find((provider) => provider.adapterPath === adapterPath &&
+    provider.isInitialized !== true)
+  if (!provider) {
+    throw new Error(`Unable to get the provider for ${type} with path ${adapterPath}`)
+  }
+  provider.isInitialized = true
+  return provider
+}
+
+export { config, getProvider }
 export { storageResource, reference } from './schemas.js'

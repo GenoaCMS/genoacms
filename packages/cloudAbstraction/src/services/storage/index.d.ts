@@ -28,6 +28,7 @@ declare module '@genoacms/adapter-*/storage' {
 
 type StorageProvider<Extension extends object = object> = Extension & {
   name: string
+  adapterPath: string
   adapter: Promise<typeof Adapter>
 }
 

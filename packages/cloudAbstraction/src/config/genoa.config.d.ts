@@ -1,7 +1,8 @@
-import type { AuthorizationProvider } from './services/authorization/index.d.ts'
-import type { AuthenticationProvider } from './services/authentication/index.d'
-import type { DatabaseInit, DatabaseProvider } from './services/database/index.d'
-import type { BucketInit, StorageProvider } from './services/storage/index.d'
+import type { AuthorizationProvider } from '../services/authorization/index.d.ts'
+import type { AuthenticationProvider } from '../services/authentication/index.d'
+import type { DatabaseInit, DatabaseProvider } from '../services/database/index.d'
+import type { BucketInit, StorageProvider } from '../services/storage/index.d'
+import type { DeploymentProvider } from '../services/deployment/index.js'
 
 type Config<Extension extends object = object> = Extension & {
   authorization: {
@@ -17,7 +18,7 @@ type Config<Extension extends object = object> = Extension & {
     providers: DatabaseProvider[]
   }
   deployment: {
-    adapterPath: string
+    providers: DeploymentProvider[]
   }
   storage: {
     defaultBucket: string
@@ -27,4 +28,13 @@ type Config<Extension extends object = object> = Extension & {
   [key: string]: any
 }
 
-export default Config
+type Provider = AuthorizationProvider
+| AuthenticationProvider
+| DatabaseProvider
+| StorageProvider
+| DeploymentProvider
+
+export type {
+  Config,
+  Provider
+}
