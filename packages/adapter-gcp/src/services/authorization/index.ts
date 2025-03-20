@@ -1,14 +1,14 @@
-import type { Adapter, AuthorizationProvider } from '@genoacms/cloudabstraction/authorization'
-import config from '../../config.js'
+import type { Adapter } from '@genoacms/cloudabstraction/authorization'
+import type { AuthorizationProvider } from '../../genoa.config.js'
+import { getProvider } from '@genoacms/cloudabstraction'
 import { ProjectsClient } from '@google-cloud/resource-manager'
 
-const PROVIDER_NAME = '@genoacms/adapter-gcp/authorization'
-const authorizationConfig = config.authorization.providers.find((provider: AuthorizationProvider) => provider.name === PROVIDER_NAME)
-if (!authorizationConfig) throw new Error('authorization-provider-not-found')
-const projectId = authorizationConfig.projectId
+const ADAPTER_PATH = '@genoacms/adapter-gcp/authorization'
+const provider = getProvider('authorization', ADAPTER_PATH) as AuthorizationProvider
+const projectId = provider.projectId
 const resourceManager = new ProjectsClient({
   projectId,
-  credentials: authorizationConfig.credentials
+  credentials: provider.credentials
 })
 
 const isEmailAdmins: Adapter.isEmailAdmins = async (email: string) => {

@@ -1,18 +1,21 @@
-import config from '../../config.js'
+import type { google } from '@google-cloud/functions/build/protos/protos.js'
+import { type DeploymentProvider } from '../../genoa.config.js'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { v2 } from '@google-cloud/functions'
 import archiver from 'archiver'
-import type { google } from '@google-cloud/functions/build/protos/protos.js'
+import { getProvider } from '@genoacms/cloudabstraction'
 type IStorageSource = google.cloud.functions.v2.IStorageSource
 
+const ADAPTER_PATH = '@genoacms/adapter-gcp/deployment'
 const { FunctionServiceClient } = v2
+const provider = getProvider('deployment', ADAPTER_PATH) as DeploymentProvider
 const functionsClient = new FunctionServiceClient({
-  credentials: config.deployment.credentials
+  credentials: provider.credentials
 })
-const projectId = config.deployment.projectId
-const region = config.deployment.region
+const projectId = provider.projectId
+const region = provider.region
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 

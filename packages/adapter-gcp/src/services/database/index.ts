@@ -1,22 +1,23 @@
 import type {
   Adapter,
-  DatabaseProvider,
   CollectionSnapshot,
   Document,
   DocumentReference,
   DocumentSnapshot,
   UpdateSnapshot
 } from '@genoacms/cloudabstraction/database'
-import config from '../../config.js'
+import type {
+  DatabaseProvider
+} from '../../genoa.config.js'
 import { Firestore } from '@google-cloud/firestore'
+import { getProvider } from '@genoacms/cloudabstraction'
 
-const PROVIDER_NAME = '@genoacms/adapter-gcp/database'
-const firestoreConfig = config.database.providers.find((provider: DatabaseProvider) => provider.name === PROVIDER_NAME)
-if (!firestoreConfig) throw new Error('firestore-provider-not-found')
+const ADAPTER_PATH = '@genoacms/adapter-gcp/database'
+const provider = getProvider('database', ADAPTER_PATH) as DatabaseProvider
 const firestore = new Firestore({
-  credentials: firestoreConfig.credentials,
-  databaseId: firestoreConfig.databaseId,
-  projectId: firestoreConfig.projectId
+  credentials: provider.credentials,
+  databaseId: provider.databaseId,
+  projectId: provider.projectId
 })
 
 const createDocument: Adapter['createDocument'] = async (reference, data) => {

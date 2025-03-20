@@ -1,4 +1,8 @@
-import type Config from '@genoacms/cloudabstraction/src/genoa.config.js'
+import type { Config as ConfigG } from '@genoacms/cloudabstraction/src/genoa.config.js'
+import type { AuthorizationProvider as AuthorizationProviderG } from '@genoacms/cloudabstraction/authorization'
+import type { DatabaseProvider as DatabaseProviderG } from '@genoacms/cloudabstraction/database'
+import type { DeploymentProvider as DeploymentProviderG } from '@genoacms/cloudabstraction/deployment'
+import type { StorageProvider as StorageProviderG } from '@genoacms/cloudabstraction/storage'
 
 interface Credentials {
   type: string
@@ -14,17 +18,33 @@ interface Credentials {
   'universe_domain': string
 }
 
-interface DatabaseConfig {
+interface AuthorizationProvider extends AuthorizationProviderG {
+  projectId: string
+  credentials: Credentials
+}
+
+interface DatabaseProvider extends DatabaseProviderG {
+  projectId: string
   credentials: Credentials
   databaseId: string
   region: string
 }
-
-interface StorageConfig {
+interface DeploymentProvider extends DeploymentProviderG {
+  projectId: string
   credentials: Credentials
-  buckets: string[]
+  region: string
 }
 
-interface ConfigGCP extends Config<object, object, DatabaseConfig, StorageConfig> {}
+interface StorageProvider extends StorageProviderG {
+  credentials: Credentials
+}
 
-export default ConfigGCP
+interface Config extends ConfigG<object, AuthorizationProvider, DatabaseProvider, StorageProvider> {}
+
+export type {
+  Config,
+  AuthorizationProvider,
+  DatabaseProvider,
+  DeploymentProvider,
+  StorageProvider
+}
