@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/authentication-adapter-array",
-  "version": "0.8.2",
+  "version": "0.8.2-fix.1",
   "description": "Adapter for authentication using array of credential for genoacms",
   "main": "src/index.js",
   "type": "module",
