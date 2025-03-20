@@ -1,7 +1,8 @@
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { config as genoaConfig } from '@genoacms/cloudabstraction'
 
-const { svelteKitAdapter } = await genoaConfig.deployment.adapter
+const BUILD_PROVIDER = process.env['BUILD_PROVIDER'] || 0
+const { svelteKitAdapter } = await genoaConfig.deployment.providers[BUILD_PROVIDER].adapter
 const adapter = (await import(svelteKitAdapter)).default
 
 /** @type {import('@sveltejs/kit').Config} */
