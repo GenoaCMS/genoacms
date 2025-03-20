@@ -1,9 +1,10 @@
-import credentials from './serviceAccount.json' assert { type: 'json' }
+import credentials from './serviceAccount.json' with { type: 'json' }
 import authCredentials from './authCredentials.js'
 import { collections } from '../collections.js'
 
 const firestore = {
-  name: '@genoacms/adapter-gcp/database',
+  name: 'firestore',
+  adapterPath: '@genoacms/adapter-gcp/database',
   adapter: import('@genoacms/adapter-gcp/database'),
   region: 'eu-west3',
   databaseId: '(default)',
@@ -11,14 +12,15 @@ const firestore = {
   credentials
 }
 const cloudStorage = {
-  name: '@genoacms/adapter-gcp/storage',
+  name: 'FIM-gcs',
+  adapterPath: '@genoacms/adapter-gcp/storage',
   adapter: import('@genoacms/adapter-gcp/storage'),
   projectId: 'genoacms',
   credentials
 }
 
 /**
- * @type {import('@genoacms/cloudabstraction').genoaConfig}
+ * @type {import('@genoacms/cloudabstraction').Config}
  */
 const config = {
   authentication: {
@@ -35,7 +37,7 @@ const config = {
   authorization: {
     providers: [
       {
-        name: '@genoacms/adapter-gcp/authorization',
+        adapterPath: '@genoacms/adapter-gcp/authorization',
         adapter: import('@genoacms/adapter-gcp/authorization'),
         projectId: 'genoacms',
         credentials
@@ -47,7 +49,7 @@ const config = {
     databases: [
       {
         name: 'firestore',
-        providerName: '@genoacms/adapter-gcp/database',
+        providerName: 'firestore',
         collections
       }
     ],
@@ -56,21 +58,23 @@ const config = {
     ]
   },
   deployment: {
-    adapter: import('@genoacms/adapter-gcp/deployment'),
-    projectId: 'genoacms',
-    region: 'europe-west3',
-    credentials
+    providers: [{
+      adapter: import('@genoacms/adapter-gcp/deployment'),
+      projectId: 'genoacms',
+      region: 'europe-west3',
+      credentials
+    }]
   },
   storage: {
     defaultBucket: 'genoacms',
     buckets: [
       {
         name: 'genoacms',
-        providerName: '@genoacms/adapter-gcp/storage'
+        providerName: 'FIM-gcs'
       },
       {
         name: 'genoacms-public',
-        providerName: '@genoacms/adapter-gcp/storage'
+        providerName: 'FIM-gcs'
       }
     ],
     providers: [
