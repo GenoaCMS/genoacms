@@ -1,6 +1,5 @@
 import { collections } from './collections.js'
 
-
 /**
  * @type {import('@genoacms/cloudabstraction').Config}
  */
@@ -16,6 +15,7 @@ const config = {
     ],
     providers: [{
       name: 'postgres',
+      adapter: import('../src/index.js'),
       adapterPath: '@genoacms/adapter-postgres',
       provider: 'postgres',
       config: {
@@ -27,6 +27,19 @@ const config = {
       }
     }]
   },
+  testDocuments: [{
+    id: crypto.randomUUID(),
+    name: 'Test documnet 1',
+    description: 'desc but changed',
+    sections: []
+  }, {
+    id: crypto.randomUUID(),
+    name: 'Test documnet 2',
+    description: 'Another description',
+    sections: [{
+
+    }]
+  }]
 }
 
 export default config

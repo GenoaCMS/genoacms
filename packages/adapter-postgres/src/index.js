@@ -1,4 +1,4 @@
-import { config, getProvider } from '@genoacms/cloudabstraction'
+import { getProvider } from '@genoacms/cloudabstraction'
 import knex from 'knex'
 /**
  * @import {Adapter} from '@genoacms/cloudabstraction/database'
@@ -11,19 +11,27 @@ const sql = knex({
   connection: { user: provider.config.username, ...provider.config }
 })
 
-async function testConnection () {
-  const test = await sql('Test').select('*')
-  console.log(test)
-}
-
 /**
   * @type {Adapter['createDocument']}
   */
 const createDocument = async function (reference, document) {
   const tableName = reference?.name
+  const primaryKeyProperty = reference?.primaryKey?.key
   if (!tableName) throw new Error('Missing table name when inserting a document')
   if (!document) throw new Error(`Inserting empty document to ${tableName}`)
+  if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+
   await sql(tableName).insert(document)
+
+  const documentReference = {
+    collection: reference,
+    id: document[primaryKeyProperty]
+  }
+
+  return {
+    reference: documentReference,
+    data: document
+  }
 }
 
 /**
@@ -51,7 +59,10 @@ const getDocument = async function (reference) {
     .select('*')
     .where(primaryKeyProperty, primaryKeyValue)
     .first()
-  return document
+  return {
+    reference,
+    data: document
+  }
 }
 
 /**
@@ -67,6 +78,11 @@ const updateDocument = async function (reference, document) {
   if (!document) throw new Error(`Updating empty document to ${tableName}`)
 
   await sql(tableName).update(document).where(primaryKeyProperty, primaryKeyValue)
+
+  return {
+    reference,
+    data: document
+  }
 }
 
 /**
@@ -82,28 +98,6 @@ const deleteDocument = async function (reference) {
 
   await sql(tableName).delete().where(primaryKeyProperty, primaryKeyValue)
 }
-// console.log(config.database)
-const collection = config.database.databases[0].collections[0]
-const testDocument = {
-  id: crypto.randomUUID(),
-  name: 'test',
-  description: 'desc',
-  sections: []
-}
-console.log(collection)
-
-// console.log(sql)
-// testConnection()
-// createDocument(collection, testDocument)
-// getCollection(collection)
-// console.log(await getDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }))
-// await updateDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }, {
-//  id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d',
-//  name: 'test',
-//  description: 'desc but changed',
-//  sections: []
-// })
-console.log(await deleteDocument({ id: 'f3aac7ef-776c-4e28-8a48-6ddfeccd3677', collection }))
 
 export {
   createDocument,

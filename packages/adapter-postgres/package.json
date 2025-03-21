@@ -1,21 +1,22 @@
 {
   "name": "@genoacms/adapter-postgres",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "GenoaCMS database adapter for postgres",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js"
   },
   "author": "Filip Holcik",
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.8.2",
+    "@genoacms/cloudabstraction": "^0.8.3",
     "knex": "^3.1.0",
     "pg": "^8.14.1"
   },
   "devDependencies": {
     "eslint": "^9.22.0",
-    "neostandard": "^0.12.1"
+    "neostandard": "^0.12.1",
+    "vitest": "^3.0.9"
   }
 }
