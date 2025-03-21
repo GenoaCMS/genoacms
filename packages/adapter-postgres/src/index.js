@@ -20,17 +20,38 @@ async function testConnection () {
   * @type {Adapter['createDocument']}
   */
 const createDocument = async function (reference, document) {
-  await sql(reference.name).insert(document)
-  console.log('inserted')
+  const tableName = reference?.name
+  if (!tableName) throw new Error('Missing table name when inserting a document')
+  if (!document) throw new Error(`Inserting empty document to ${tableName}`)
+  await sql(tableName).insert(document)
 }
 
 /**
   * @type {Adapter['getCollection']}
   */
 const getCollection = async function (reference, queryParams = {}) {
-  const rows = await sql(reference.name).select('*')
-  console.log(rows)
+  const tableName = reference?.name
+  if (!tableName) throw new Error('Missing table name when listing collection')
+  const rows = await sql(tableName).select('*')
   return rows
+}
+
+/**
+  * @type {Adapter['getDocument']}
+  */
+const getDocument = async function (reference) {
+  const tableName = reference?.collection?.name
+  const primaryKeyProperty = reference?.collection?.primaryKey?.key
+  const primaryKeyValue = reference?.id
+  if (!tableName) throw new Error(`Missing table name in reference ${reference?.id}`)
+  if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+  if (!primaryKeyValue) throw new Error(`Missing id of queried document from ${tableName}`)
+
+  const document = await sql(tableName)
+    .select('*')
+    .where(primaryKeyProperty, primaryKeyValue)
+    .first()
+  return document
 }
 
 // console.log(config.database)
@@ -46,7 +67,8 @@ console.log(collection)
 // console.log(sql)
 // testConnection()
 // createDocument(collection, testDocument)
-getCollection(collection)
+// getCollection(collection)
+console.log(await getDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }))
 
 export {
   createDocument,

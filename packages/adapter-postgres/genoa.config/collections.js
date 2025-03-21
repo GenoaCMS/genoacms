@@ -70,7 +70,7 @@ const zigzagSection = {
 
 const references = {
   name: 'References',
-  primaryKey: 'id',
+  primaryKey: { key: 'id', schema: {} },
   schema: {
     type: 'object',
     properties: {
