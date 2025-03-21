@@ -1,9 +1,10 @@
 import { suite, it, expect } from 'vitest'
 import { config } from '@genoacms/cloudabstraction'
 
-const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = await import(config.database.adapterPath)
+const provider = config.database.providers[0]
+const { createDocument, deleteDocument, getCollection, getDocument, updateDocument } = await provider.adapter
 
-const testCollection = config.collections[0]
+const testCollection = config.database.databases[0].collections[0]
 const testDocuments = config.testDocuments
 
 suite('complex test', async () => {

@@ -2,8 +2,9 @@ import { suite, expect, it } from 'vitest'
 import { config } from '@genoacms/cloudabstraction'
 import { Buffer } from 'buffer'
 
-const { getObject, uploadObject, deleteObject, listDirectory } = await import(config.storage.adapterPath)
-const bucket = config.storage.defaultBucket
+const provider = config.storage.providers[0]
+const { getObject, uploadObject, deleteObject, listDirectory } = await provider.adapter
+const bucket = provider.defaultBucket
 
 suite('complex test', async () => {
   const testingString = 'Storage adapter'
