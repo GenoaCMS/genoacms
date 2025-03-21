@@ -69,6 +69,19 @@ const updateDocument = async function (reference, document) {
   await sql(tableName).update(document).where(primaryKeyProperty, primaryKeyValue)
 }
 
+/**
+  * @type {Adapter['deleteDocument']}
+  */
+const deleteDocument = async function (reference) {
+  const tableName = reference?.collection?.name
+  const primaryKeyProperty = reference?.collection?.primaryKey?.key
+  const primaryKeyValue = reference?.id
+  if (!tableName) throw new Error(`Missing table name in reference ${reference?.id}`)
+  if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+  if (!primaryKeyValue) throw new Error(`Missing id of deleted document from ${tableName}`)
+
+  await sql(tableName).delete().where(primaryKeyProperty, primaryKeyValue)
+}
 // console.log(config.database)
 const collection = config.database.databases[0].collections[0]
 const testDocument = {
@@ -90,10 +103,12 @@ console.log(collection)
 //  description: 'desc but changed',
 //  sections: []
 // })
+console.log(await deleteDocument({ id: 'f3aac7ef-776c-4e28-8a48-6ddfeccd3677', collection }))
 
 export {
   createDocument,
   getCollection,
   getDocument,
-  updateDocument
+  updateDocument,
+  deleteDocument
 }
