@@ -1,0 +1,16 @@
+{
+  "name": "@genoacms/adapter-postgres",
+  "version": "0.8.2",
+  "description": "GenoaCMS database adapter for postgres",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Filip Holcik",
+  "license": "ISC",
+  "dependencies": {
+    "@genoacms/cloudabstraction": "^0.8.2",
+    "postgres": "^3.4.5"
+  }
+}
