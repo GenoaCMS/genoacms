@@ -54,6 +54,21 @@ const getDocument = async function (reference) {
   return document
 }
 
+/**
+  * @type {Adapter['updateDocument']}
+  */
+const updateDocument = async function (reference, document) {
+  const tableName = reference?.collection?.name
+  const primaryKeyProperty = reference?.collection?.primaryKey?.key
+  const primaryKeyValue = reference?.id
+  if (!tableName) throw new Error(`Missing table name in reference ${reference?.id}`)
+  if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+  if (!primaryKeyValue) throw new Error(`Missing id of updated document from ${tableName}`)
+  if (!document) throw new Error(`Updating empty document to ${tableName}`)
+
+  await sql(tableName).update(document).where(primaryKeyProperty, primaryKeyValue)
+}
+
 // console.log(config.database)
 const collection = config.database.databases[0].collections[0]
 const testDocument = {
@@ -68,9 +83,17 @@ console.log(collection)
 // testConnection()
 // createDocument(collection, testDocument)
 // getCollection(collection)
-console.log(await getDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }))
+// console.log(await getDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }))
+// await updateDocument({ id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d', collection }, {
+//  id: 'ee1b6b2e-97d2-4d65-8c55-583221c56b1d',
+//  name: 'test',
+//  description: 'desc but changed',
+//  sections: []
+// })
 
 export {
   createDocument,
-  getCollection
+  getCollection,
+  getDocument,
+  updateDocument
 }
