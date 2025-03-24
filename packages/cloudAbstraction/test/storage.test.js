@@ -4,11 +4,12 @@ import { Buffer } from 'buffer'
 
 const provider = config.storage.providers[0]
 const { getObject, uploadObject, deleteObject, listDirectory } = await provider.adapter
-const bucket = provider.defaultBucket
+const bucket = config.storage.defaultBucket
 
 suite('complex test', async () => {
   const testingString = 'Storage adapter'
-  const fileName = 'GenoaCMS/test.txt'
+  const fileDirectory = 'GenoaCMS/'
+  const fileName = `${fileDirectory}test.txt`
   it('is uploading an object', async () => {
     const response = await uploadObject({
       bucket,
@@ -17,7 +18,7 @@ suite('complex test', async () => {
     expect(response).toBeUndefined()
   })
   it('is looking for uploaded object', async () => {
-    const dir = await listDirectory({ bucket, name: fileName })
+    const dir = await listDirectory({ bucket, name: fileDirectory })
     /**
      * @type {import('../dist/config.js').StorageObject}
      */
