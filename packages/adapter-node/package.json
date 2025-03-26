@@ -1,0 +1,25 @@
+{
+  "name": "@genoacms/adapter-node",
+  "version": "0.8.3",
+  "type": "module",
+  "description": "Deployment adapter for nodejs",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/adapter-node.git"
+  },
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "@sveltejs/adapter-node": "^1.0.0"
+  },
+  "dependencies": {
+    "@genoacms/cloudabstraction": "^0.8.3"
+  }
+}
