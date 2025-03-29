@@ -26,7 +26,7 @@ const config = {
   authentication: {
     providers: [
       {
-        name: '@genoacms/authentication-adapter-array',
+        adapterPath: '@genoacms/authentication-adapter-array',
         adapter: import('@genoacms/authentication-adapter-array'),
         credentials: authCredentials
       }
@@ -58,12 +58,19 @@ const config = {
     ]
   },
   deployment: {
-    providers: [{
-      adapter: import('@genoacms/adapter-gcp/deployment'),
-      projectId: 'genoacms',
-      region: 'europe-west3',
-      credentials
-    }]
+    providers: [
+      {
+        name: 'local',
+        adapter: import('@genoacms/adapter-node')
+      },
+      {
+        name: 'gcp',
+        adapter: import('@genoacms/adapter-gcp/deployment'),
+        projectId: 'genoacms',
+        region: 'europe-west3',
+        credentials
+      }
+    ]
   },
   storage: {
     defaultBucket: 'genoacms',
