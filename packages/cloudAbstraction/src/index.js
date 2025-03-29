@@ -1,1 +1,1 @@
-export { config, getProvider, getDeploymentProvidej } from './config/index.js'
+export { config, getProvider, getDeploymentProvider } from './config/index.js'
