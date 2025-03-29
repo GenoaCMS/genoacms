@@ -37,7 +37,7 @@ async function runMode(mode) {
         }
         case 'deploy': {
             const deploy = (await import('./deploy.js')).default
-            await deploy()
+            await deploy(args[1])
             break
         }
         case 'database': {
