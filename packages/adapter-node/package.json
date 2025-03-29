@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-node",
-  "version": "0.8.3-test.1",
+  "version": "0.8.3-test.2",
   "type": "module",
   "description": "Deployment adapter for nodejs",
   "main": "src/index.js",
@@ -16,10 +16,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "peerDependencies": {
-    "@sveltejs/adapter-node": "^1.0.0"
-  },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.8.3"
+    "@genoacms/cloudabstraction": "^0.8.3",
+    "@sveltejs/adapter-node": "^5.2.12"
   }
 }
