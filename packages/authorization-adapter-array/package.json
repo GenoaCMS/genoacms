@@ -1,0 +1,22 @@
+{
+  "name": "@genoacms/authorization-adapter-array",
+  "version": "0.8.9",
+  "description": "Adapter for authorization using array of users for genoacms",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/authorization-adapter-array.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@genoacms/cloudabstraction": "0.8.9"
+  }
+}
