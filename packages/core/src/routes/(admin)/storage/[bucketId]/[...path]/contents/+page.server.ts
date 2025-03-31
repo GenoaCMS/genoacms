@@ -94,7 +94,7 @@ export const actions = {
         bucket: bucketId,
         name: join(cleanPath, file.name)
       }
-      uploads.push(uploadObject(reference, file.stream()))
+      uploads.push(uploadObject(reference, file.arrayBuffer))
     }
     await Promise.all(uploads)
   },
