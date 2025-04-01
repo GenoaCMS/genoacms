@@ -12,6 +12,7 @@ import {
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
+import { readableStreamToReadable } from '$lib/script/utils.server'
 import { fail, type Actions } from '@sveltejs/kit'
 import { config } from '@genoacms/cloudabstraction'
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
@@ -94,7 +95,9 @@ export const actions = {
         bucket: bucketId,
         name: join(cleanPath, file.name)
       }
-      uploads.push(uploadObject(reference, file.arrayBuffer))
+      const nodejsStream = readableStreamToReadable(file.stream())
+      const uploadOperation = uploadObject(reference, nodejsStream)
+      uploads.push(uploadOperation)
     }
     await Promise.all(uploads)
   },
@@ -107,7 +110,6 @@ export const actions = {
       path
     } = params
     if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    if (!isString(path)) return fail(400, { reason: 'missing-path' })
     const data = await request.formData()
     const contentsString = data.get('contents')
     if (!isString(contentsString)) return fail(400, { reason: 'missing-file-name' })
@@ -122,7 +124,7 @@ export const actions = {
     })
     const objectsToMove = processedContents.filter(o => o.bucket === bucketId && o.path !== path)
     const moves: Array<Promise<void>> = []
-    const cleanPath = removePathDelimiter(path)
+    const cleanPath = removePathDelimiter(path || '')
     for (const object of objectsToMove) {
       const move = object.isDirectory ? moveDirectory : moveObject
       const newPath = join(cleanPath, object.filename, object.isDirectory ? '/' : '')
