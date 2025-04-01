@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-node",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "type": "module",
   "description": "Deployment adapter for nodejs",
   "main": "src/index.js",
@@ -14,7 +14,7 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.8.9",
+    "@genoacms/cloudabstraction": "0.8.10",
     "@sveltejs/adapter-node": "^5.2.12"
   }
 }
