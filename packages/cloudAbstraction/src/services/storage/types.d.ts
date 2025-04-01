@@ -11,7 +11,7 @@ interface StorageObject {
   lastModified: Date
 }
 
-type ObjectPayload = string | Buffer | NodeJS.ReadableStream
+type ObjectPayload = NodeJS.ReadableStream
 
 interface UploadOptions {
   gzip?: boolean
