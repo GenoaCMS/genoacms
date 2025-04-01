@@ -39,9 +39,19 @@ const createDocument = async function (reference, document) {
   */
 const getCollection = async function (reference, queryParams = {}) {
   const tableName = reference?.name
+  const primaryKeyProperty = reference?.primaryKey?.key
   if (!tableName) throw new Error('Missing table name when listing collection')
+  if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
   const rows = await sql(tableName).select('*')
-  return rows
+  return rows.map(r => {
+    return {
+      reference: {
+        collection: reference,
+        id: r[reference.primaryKey.key]
+      },
+      data: r
+    }
+  })
 }
 
 /**
