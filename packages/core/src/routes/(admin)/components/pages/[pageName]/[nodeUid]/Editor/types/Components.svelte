@@ -6,7 +6,7 @@
     ComponentEntry
   } from '$lib/script/components/componentEntry/component/types'
   import type { JSONSchemaType } from 'ajv'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import Component from './Component.svelte'
   import { enhance } from '$app/forms'
   import { toastError } from '$lib/script/alert'
@@ -15,8 +15,12 @@
   import { Card, Modal } from 'flowbite-svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
-  export let data: AttributeData<ComponentsAttributeType>
-  let isModalOpen = false
+  interface Props {
+    data: AttributeData<ComponentsAttributeType>
+  }
+  const { data }: Props = $props()
+  let isModalOpen = $state(false)
+
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
@@ -42,8 +46,8 @@
       invalidateAll()
     }
   }
-  $: possibleSubcomponents = getPossibleSubcomponents($page.data.componentSchemas, data.schema)
-  $: childNodes = getChildNodes(data.value, $page.data.page.contents.nodes)
+  const possibleSubcomponents = $derived(getPossibleSubcomponents(page.data.componentSchemas, data.schema))
+  const childNodes = $derived(getChildNodes(data.value, page.data.page.contents.nodes))
 </script>
 
 <Card padding="sm" size="none" shadow={false}>
@@ -61,7 +65,7 @@
         {/each}
     </div>
     <div class="w-full flex py-3">
-        <button type="button" on:click={toggleModal} class="mx-auto" aria-label="Add component">
+        <button type="button" onclick={toggleModal} class="mx-auto" aria-label="Add component">
             <i class="bi bi-plus-circle text-4xl"></i>
         </button>
     </div>

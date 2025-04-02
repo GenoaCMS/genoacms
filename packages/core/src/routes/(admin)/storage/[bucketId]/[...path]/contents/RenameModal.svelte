@@ -39,7 +39,7 @@
       <input type="hidden" name="name" value={name} />
       <Label class="pb-2">
         New name:
-        <Input name="newName" value={name} class="w-full" autofocus/>
+        <Input name="newName" value={name} class="w-full" />
       </Label>
       <Button type="submit" color="light">
         Rename

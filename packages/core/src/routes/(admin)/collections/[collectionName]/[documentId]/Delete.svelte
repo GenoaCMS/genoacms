@@ -17,7 +17,7 @@
 </script>
 
 <form action="?/delete" method="POST" use:enhance={enhanceDelete}>
-  <button type="submit" class="h-full flex items-center px-3">
-    <i class="bi bi-trash text-2xl hover:text-warning transition-all"/>
+  <button type="submit" class="h-full flex items-center px-3" aria-label="Delete">
+    <i class="bi bi-trash text-2xl hover:text-warning transition-all"></i>
   </button>
 </form>

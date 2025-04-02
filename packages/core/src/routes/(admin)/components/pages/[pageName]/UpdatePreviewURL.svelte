@@ -4,8 +4,12 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import type { SubmitFunction } from '@sveltejs/kit'
 
-  export let value: string
-  let isModalOpen = false
+  interface Props {
+    value: string
+  }
+  let { value }: Props = $props()
+  let isModalOpen = $state(false)
+
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
@@ -24,7 +28,7 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal} aria-label="Update preview URL">
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Update preview URL">
     <i class="bi bi-input-cursor-text text-2xl hover:text-warning transition-all"></i>
 </button>
 

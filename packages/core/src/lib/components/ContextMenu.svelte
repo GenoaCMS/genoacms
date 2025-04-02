@@ -1,10 +1,12 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import Portal from '$lib/components/Portal.svelte'
 
   type Props = {
+    children?: Snippet,
     opener: MouseEvent | null
   }
-  const { opener = $bindable(null) }: Props = $props()
+  const { children, opener = $bindable(null) }: Props = $props()
   let isOpen = $state(false)
   let style: string = $state('')
   let screenWidth: number = $state(0)
@@ -46,7 +48,7 @@
         <div bind:clientWidth={menuWidth} class="absolute min-w-[8rem] w-auto bg-light dark:bg-dark shadow-lg border border-b-0 flex flex-col z-10"
              {style}>
             <div class="text-nowrap">
-                <slot/>
+              {@render children?.()}
             </div>
         </div>
     </Portal>

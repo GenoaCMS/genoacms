@@ -12,8 +12,8 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal}>
-    <i class="bi bi-trash3 text-2xl hover:text-red-600 transition-all"/>
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Delete component">
+    <i class="bi bi-trash3 text-2xl hover:text-red-600 transition-all"></i>
 </button>
 
 <Portal>

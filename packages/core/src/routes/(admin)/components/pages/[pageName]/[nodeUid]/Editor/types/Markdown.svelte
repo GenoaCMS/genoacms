@@ -28,7 +28,7 @@
       {data.name}
     </h3>
   </div>
-  <Button color="light" on:click={toggleModal} class="w-full">
+  <Button color="light" onclick={toggleModal} class="w-full">
     Open markdown editor
   </Button>
 </Card>

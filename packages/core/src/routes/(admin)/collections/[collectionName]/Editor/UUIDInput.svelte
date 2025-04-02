@@ -16,7 +16,9 @@
 
 <ButtonGroup class="w-full">
   <InputAddon>
-    <button type="button" on:click={generateUUID}><i class="bi bi-dice-5-fill"></i></button>
+    <button type="button" onclick={generateUUID} aria-label="Generate UUID">
+      <i class="bi bi-dice-5-fill"></i>
+    </button>
   </InputAddon>
   <Input
     {value}

@@ -73,7 +73,7 @@
 
 <div class="w-full flex mt-3">
   <div class="mx-auto">
-    <Button on:click={addItem} color="blue" class="flex min-w-[10rem]">
+    <Button onclick={addItem} color="blue" class="flex min-w-[10rem]">
       <span class="me-auto">
         Add item
       </span>

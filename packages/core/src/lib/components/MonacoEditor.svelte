@@ -43,4 +43,4 @@
   }
 </script>
 
-<div use:monacoEditor class="h-full w-full {additionalClasses}" autofocus></div>
+<div use:monacoEditor class="h-full w-full {additionalClasses}"></div>

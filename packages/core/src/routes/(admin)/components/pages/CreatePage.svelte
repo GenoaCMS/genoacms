@@ -4,8 +4,12 @@
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select } from 'flowbite-svelte'
 
-  export let components: Array<ComponentEntry>
-  let isModalOpen = false
+  interface Props {
+    components: Array<ComponentEntry>
+  }
+  const { components }: Props = $props()
+  let isModalOpen = $state(false)
+
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
@@ -24,7 +28,7 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal} aria-label="Create page">
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Create page">
     <i class="bi bi-window-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 

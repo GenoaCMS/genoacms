@@ -18,7 +18,7 @@
   }
   const { editorForm, schema, action, onsuccess = () => {}, onerror = () => {} }: Props = $props()
   const properties = $derived(extractProperties(schema.properties))
-  const validators = $derived(schemasafe(schema, { config: { formats } }))
+  const validators = schemasafe(schema, { config: { formats } })
   const { form, errors, constraints, enhance } = superForm(editorForm, {
     ...formConfig,
     dataType: 'json',

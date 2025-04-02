@@ -15,8 +15,8 @@
   const disabled = $derived(code === $formChange.uncommitedCode)
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal}>
-    <i class="bi bi-rocket-takeoff text-2xl hover:text-primary transition-all"/>
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Commit">
+    <i class="bi bi-rocket-takeoff text-2xl hover:text-primary transition-all"></i>
 </button>
 
 <Portal>
