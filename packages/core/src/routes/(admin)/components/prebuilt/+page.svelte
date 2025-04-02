@@ -11,9 +11,9 @@
     <h1 class="text-2xl">
         Prebuilt component management
     </h1>
-    <svelte:fragment slot="right">
+    {#snippet right()}
         <CreateComponentSchema creationForm={data.creationForm}/>
-    </svelte:fragment>
+    {/snippet}
 </TopPanel>
 
 <Grid>

@@ -5,16 +5,16 @@
     import NewDocument from './NewDocument.svelte'
     import ConfirmSelection from './ConfirmSelection.svelte'
 
-    export let data
+    const { data } = $props()
 </script>
 <TopPanel>
   <h1 class="text-2xl">
     Collection: {data.collectionReference.name}
   </h1>
-  <svelte:fragment slot="right">
+  {#snippet right()}
     <ConfirmSelection />
     <NewDocument collectionReference={data.collectionReference}/>
-  </svelte:fragment>
+  {/snippet}
 </TopPanel>
 <Header schema={data.collectionReference.schema}/>
 {#each data.documents as documentSnap}

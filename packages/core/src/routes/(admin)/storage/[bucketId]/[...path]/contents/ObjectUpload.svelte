@@ -24,8 +24,8 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" onclick={toggleModal}>
-    <i class="bi bi-upload text-2xl hover:text-warning transition-all"/>
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Upload object">
+    <i class="bi bi-upload text-2xl hover:text-warning transition-all"></i>
 </button>
 
 <Portal>

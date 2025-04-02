@@ -20,10 +20,10 @@
     <span class="me-2">of</span>
     <span class="text-warning">{data.document.reference.collection.name}</span>
   </h1>
-  <svelte:fragment slot="right">
+  {#snippet right()}
     <Delete />
     <Update />
-  </svelte:fragment>
+  {/snippet}
 </TopPanel>
 
 <Editor

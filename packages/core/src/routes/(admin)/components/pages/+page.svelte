@@ -11,9 +11,9 @@
     <h1 class="text-2xl">
         Pages
     </h1>
-    <svelte:fragment slot="right">
+    {#snippet right()}
         <CreatePage components={data.componentSchemas}/>
-    </svelte:fragment>
+    {/snippet}
 </TopPanel>
 
 <Grid>

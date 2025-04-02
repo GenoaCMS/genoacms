@@ -39,13 +39,13 @@
     Component:
     {$form.name}
   </div>
-  <svelte:fragment slot="right">
+  {#snippet right()}
     <ChangeName bind:name={$form.name} onrename={submit}/>
     <Undo />
     <Redo />
     <AddAttribute onadd={updateAttribute} />
     <Submit />
-  </svelte:fragment>
+  {/snippet}
 </TopPanel>
 
 <div class="container mx-auto">

@@ -8,12 +8,12 @@
 </script>
 
 <TopPanel>
-   <h1 class="text-2xl">
-       Component editor
-   </h1>
-    <svelte:fragment slot="right">
+    <h1 class="text-2xl">
+      Component editor
+    </h1>
+    {#snippet right()}
       <CreateComponent createForm={data.createForm}/>
-    </svelte:fragment>
+    {/snippet}
 </TopPanel>
 
 <Grid>

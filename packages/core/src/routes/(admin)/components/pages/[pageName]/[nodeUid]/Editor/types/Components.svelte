@@ -61,8 +61,8 @@
         {/each}
     </div>
     <div class="w-full flex py-3">
-        <button type="button" on:click={toggleModal} class="mx-auto">
-            <i class="bi bi-plus-circle text-4xl"/>
+        <button type="button" on:click={toggleModal} class="mx-auto" aria-label="Add component">
+            <i class="bi bi-plus-circle text-4xl"></i>
         </button>
     </div>
 </Card>

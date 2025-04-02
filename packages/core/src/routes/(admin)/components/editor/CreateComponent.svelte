@@ -9,8 +9,8 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal}>
-    <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"/>
+<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Create component">
+    <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 
 <Modal title="Create a new component" bind:open={isModalOpen}>

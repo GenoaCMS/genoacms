@@ -16,13 +16,13 @@
     <h1 class="text-2xl">
         {data.path}
     </h1>
-    <svelte:fragment slot="right">
+    {#snippet right()}
         <ConfirmMove/>
         <Delete />
         <Selection />
         <DirectoryCreation/>
         <ObjectUpload/>
-    </svelte:fragment>
+    {/snippet}
 </TopPanel>
 
 <Grid>

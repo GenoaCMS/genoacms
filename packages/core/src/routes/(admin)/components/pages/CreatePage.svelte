@@ -24,8 +24,8 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" on:click={toggleModal}>
-    <i class="bi bi-window-plus text-2xl hover:text-warning transition-all"/>
+<button class="h-full flex items-center px-3" on:click={toggleModal} aria-label="Create page">
+    <i class="bi bi-window-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 
 <Modal title="Create a new page" bind:open={isModalOpen}>

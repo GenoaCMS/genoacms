@@ -30,8 +30,8 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" onclick={toggleDirectoryCreationModal}>
-    <i class="bi bi-folder-plus text-2xl text-white hover:text-warning transition-all"/>
+<button class="h-full flex items-center px-3" onclick={toggleDirectoryCreationModal} aria-label="Create directory">
+    <i class="bi bi-folder-plus text-2xl text-white hover:text-warning transition-all"></i>
 </button>
 
 <Portal>

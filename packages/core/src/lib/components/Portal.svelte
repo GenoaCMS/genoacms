@@ -1,6 +1,11 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import { onMount, onDestroy } from 'svelte'
 
+  interface Props {
+    children?: Snippet,
+  }
+  let { children, ...restProps }: Props = $props()
   let targetElement: HTMLDivElement
   let child: HTMLDivElement
 
@@ -19,6 +24,6 @@
   onDestroy(removeTarget)
 </script>
 
-<div bind:this={targetElement} {...$$restProps}>
-    <slot />
+<div bind:this={targetElement} {...restProps}>
+  {@render children?.()}
 </div>

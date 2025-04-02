@@ -12,10 +12,10 @@
    <h1 class="text-2xl">
        Component: {data.component.name}
    </h1>
-    <svelte:fragment slot="right">
-      <DeleteComponent deletionForm={data.deletionForm} name={data.component.name}/>
-      <CommitComponent commitForm={data.commitForm} changeForm={data.changeForm} code={data.componentDefinition.code}/>
-    </svelte:fragment>
+  {#snippet right()}
+    <DeleteComponent deletionForm={data.deletionForm} name={data.component.name}/>
+    <CommitComponent commitForm={data.commitForm} changeForm={data.changeForm} code={data.componentDefinition.code}/>
+  {/snippet}
 </TopPanel>
 
 <Editor changeForm={data.changeForm} language={data.componentDefinition.language}/>

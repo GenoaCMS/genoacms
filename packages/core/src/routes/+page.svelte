@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Button, Card } from 'flowbite-svelte'
-  export let data
 </script>
 
 <div class="h-full w-full flex items-center justify-center">
