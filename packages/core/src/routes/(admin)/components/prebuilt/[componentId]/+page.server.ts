@@ -19,6 +19,7 @@ export const load: PageServerLoad = async ({ params }) => {
   const updateForm = await superValidate(componentEntry, componentEntryValidator)
 
   return {
+    id: componentId,
     updateForm
   }
 }

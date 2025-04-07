@@ -11,17 +11,20 @@ interface CollectionsActivityRecord extends ActivityRecordBase {
   collection: string,
   document: string
 }
-interface ComponentEntryActivityRecord extends ActivityRecordBase{
+interface ComponentEntryActivityRecord extends ActivityRecordBase {
   type: 'componentEntry',
-  componentId: string
+  componentId: string,
+  componentName: string
 }
 interface ComponentCodeActivityRecord extends ActivityRecordBase {
   type: 'componentCode',
-  componentId: string
+  componentId: string,
+  componentName: string
 }
 interface PageActivityRecord extends ActivityRecordBase {
   type: 'page',
-  pageId: string
+  pageId: string,
+  pageName: string
 }
 type ActivityRecord = StorageActivityRecord
 | CollectionsActivityRecord

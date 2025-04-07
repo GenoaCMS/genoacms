@@ -1,15 +1,16 @@
 <script lang="ts">
     import type { Attribute as AttributeT } from '$lib/script/components/componentEntry/component/types'
-    import TopPanel from '$lib/components/TopPanel.svelte'
-    import { superForm } from 'sveltekit-superforms'
-    import ChangeName from './ChangeName.svelte'
     import { formConfig } from '$lib/script/forms'
+    import { superForm } from 'sveltekit-superforms'
+    import { schemasafe } from 'sveltekit-superforms/adapters'
+    import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
+    import { activityTracker } from '$lib/script/activity/client'
+    import TopPanel from '$lib/components/TopPanel.svelte'
+    import ChangeName from './ChangeName.svelte'
     import Submit from './Submit.svelte'
     import Redo from './Redo.svelte'
     import Undo from './Undo.svelte'
     import Attribute from './Editor/Attribute.svelte'
-    import { schemasafe } from 'sveltekit-superforms/adapters'
-    import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
     import AddAttribute from './AddAttribute.svelte'
 
     const { data } = $props()
@@ -32,6 +33,12 @@
         return $f
       })
     }
+    activityTracker.add({
+      type: 'componentEntry',
+      timestamp: Date.now(),
+      componentId: data.id,
+      componentName: $form.name
+    })
 </script>
 
 <TopPanel>

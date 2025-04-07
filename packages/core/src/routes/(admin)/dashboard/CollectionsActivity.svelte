@@ -9,7 +9,7 @@
 </script>
 
 <CardLink
-  text="Document in {record.collection}"
+  text="Doc in {record.collection}"
   icon="collection"
   href="/collections/{record.collection}/{record.document}"
 />
