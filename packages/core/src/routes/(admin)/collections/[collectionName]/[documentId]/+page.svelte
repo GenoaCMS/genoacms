@@ -8,6 +8,7 @@
   const { data } = $props()
   activityTracker.add({
     type: 'collections',
+    timestamp: Date.now(),
     collection: data.document.reference.collection.name,
     document: data.document.reference.id
   })

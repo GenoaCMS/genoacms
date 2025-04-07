@@ -5,7 +5,6 @@
   import Grid from '$lib/components/Grid.svelte'
 
   const { data } = $props()
-  $inspect(activityTracker.records)
 </script>
 
 <div class="p-9 border-b border-dark-info w-full flex flex-wrap">
