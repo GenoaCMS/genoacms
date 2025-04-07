@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { activityTracker } from '$lib/script/activity/client'
+  import { onNavigate } from '$app/navigation'
+  import { page } from '$app/state'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import File from './File.svelte'
   import Directory from './Directory.svelte'
@@ -10,6 +13,19 @@
   import Delete from './Delete.svelte'
 
   const { data } = $props()
+  const sessionId = page.url.searchParams.get('sessionId') || crypto.randomUUID()
+  function trackActivity ({ bucketId, navigationPath }) {
+    activityTracker.add({
+      type: 'storage',
+      timestamp: Date.now(),
+      sessionId,
+      bucket: bucketId,
+      path: navigationPath
+    })
+  }
+  onNavigate(() => {
+    trackActivity(data)
+  })
 </script>
 
 <TopPanel hrefBack={data.parentPath}>

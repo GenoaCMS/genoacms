@@ -3,6 +3,7 @@
   import CollectionsActivity from './CollectionsActivity.svelte'
   import ComponentEntryActivity from './ComponentEntryActivity.svelte'
   import ComponentCodeActivity from './ComponentCodeActivity.svelte'
+  import StorageActivity from './StorageActivity.svelte'
 
   interface Props {
     record: ActivityRecord
@@ -16,4 +17,6 @@
   <ComponentEntryActivity {record} />
 {:else if record.type === 'componentCode'}
   <ComponentCodeActivity {record} />
+{:else if record.type === 'storage'}
+  <StorageActivity {record} />
 {/if}

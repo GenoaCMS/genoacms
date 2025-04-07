@@ -8,7 +8,7 @@ function areActivitiesSame (a: ActivityRecord, b: ActivityRecord): boolean {
   ) return a.collection === b.collection && a.document === b.document
   if (
     a.type === 'storage' && b.type === 'storage'
-  ) return a.bucket === b.bucket && a.path === b.path
+  ) return a.bucket === b.bucket && a.sessionId === b.sessionId
   if (
     (a.type === 'componentEntry' && b.type === 'componentEntry') ||
     (a.type === 'componentCode' && b.type === 'componentCode')

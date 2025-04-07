@@ -3,6 +3,7 @@ interface ActivityRecordBase {
 }
 interface StorageActivityRecord extends ActivityRecordBase {
   type: 'storage',
+  sessionId: string,
   bucket: string,
   path: string
 }
