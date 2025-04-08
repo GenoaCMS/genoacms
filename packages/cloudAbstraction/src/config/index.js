@@ -36,4 +36,3 @@ function getDeploymentProvider (name) {
 }
 
 export { config, getProvider, getDeploymentProvider }
-export { storageResource, reference } from './schemas.js'

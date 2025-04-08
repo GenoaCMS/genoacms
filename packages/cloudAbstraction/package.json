@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/cloudabstraction",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
     "name": "Filip Holčík",
@@ -37,6 +37,9 @@
       "import": "./src/services/authentication/index.js",
       "types": "./src/services/authentication/index.d.ts"
     },
+    "./config": {
+      "import": "./src/config/index.js"
+    },
     "./configBuilder": {
       "import": "./src/config/builder.js"
     },
@@ -47,6 +50,9 @@
     "./deployment": {
       "import": "./src/services/deployment/index.js",
       "types": "./src/services/deployment/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./src/config/schemas.js"
     },
     "./storage": {
       "import": "./src/services/storage/index.js",
