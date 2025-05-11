@@ -14,8 +14,7 @@ const provider = getProvider('deployment', ADAPTER_PATH) as DeploymentProvider
 const functionsClient = new FunctionServiceClient({
   credentials: provider.credentials
 })
-const projectId = provider.projectId
-const region = provider.region
+const { projectId, region, functionName } = provider
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -120,7 +119,7 @@ async function deploy (): Promise<void> {
   ]
   await createZip(buildDirectoryPath, injectArchivePaths, ignoreArchivePaths, buildArchivePath)
   const functionStorageSource = await uploadSource(buildArchivePath)
-  await deployFunction('genoacms', functionStorageSource)
+  await deployFunction(functionName ?? 'genoacms', functionStorageSource)
 }
 
 export default deploy

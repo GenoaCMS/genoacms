@@ -33,6 +33,7 @@ interface DeploymentProvider extends DeploymentProviderG {
   projectId: string
   credentials: Credentials
   region: string
+  functionName: string
 }
 
 interface StorageProvider extends StorageProviderG {
