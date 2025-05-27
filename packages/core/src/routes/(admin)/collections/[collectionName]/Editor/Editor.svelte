@@ -23,6 +23,7 @@
     ...formConfig,
     dataType: 'json',
     resetForm: false,
+    invalidateAll: action === '?/create',
     validators,
     validationMethod: 'oninput',
     onUpdate ({ form }) {
