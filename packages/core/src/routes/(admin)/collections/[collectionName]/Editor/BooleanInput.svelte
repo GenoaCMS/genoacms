@@ -15,7 +15,7 @@
   const v = $state(value)
   const onchange: FormEventHandler<HTMLInputElement> = (event) => {
     const element = event.target as HTMLInputElement
-    onvalue(Boolean(element.value))
+    onvalue(Boolean(element.checked))
   }
 </script>
 
