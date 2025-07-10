@@ -46,8 +46,12 @@
       invalidateAll()
     }
   }
+  function deleteNode (uid: string) {
+    // TODO: implement delete
+  }
   const possibleSubcomponents = $derived(getPossibleSubcomponents(page.data.componentSchemas, data.schema))
   const childNodes = $derived(getChildNodes(data.value, page.data.page.contents.nodes))
+  $inspect(possibleSubcomponents)
 </script>
 
 <Card padding="sm" size="none" shadow={false}>
@@ -60,8 +64,8 @@
     </h3>
   </div>
     <div class="flex flex-col">
-        {#each childNodes as childComponentNode}
-            <Subcomponent node={childComponentNode}/>
+        {#each childNodes as childComponentNode (childComponentNode.uid)}
+            <Subcomponent node={childComponentNode} ondelete={deleteNode}/>
         {/each}
     </div>
     <div class="w-full flex py-3">
@@ -73,7 +77,7 @@
 
 <Modal title="Add a new component" bind:open={isModalOpen}>
     <div class="w-full grid grid-cols-4 gap-5 p-5">
-        {#each possibleSubcomponents as componentSchema}
+        {#each possibleSubcomponents as componentSchema (componentSchema.uid)}
             <form action="?/addChildNode" method="post" use:enhance={addComponent} class="col-span-1">
                 <input type="hidden" name="attributeUID" value={data.uid}>
                 <Component schema={componentSchema}/>
