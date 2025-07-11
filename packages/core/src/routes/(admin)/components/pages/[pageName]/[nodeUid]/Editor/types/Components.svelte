@@ -1,6 +1,5 @@
 <script lang="ts">
-  import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
-  import type { ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type {
     ComponentsAttributeType,
     ComponentEntry
@@ -16,9 +15,10 @@
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
-    data: AttributeData<ComponentsAttributeType>
+    data: AttributeData<ComponentsAttributeType>,
+    onvalue: (data: AttributeData<ComponentsAttributeType>['value']) => void
   }
-  const { data }: Props = $props()
+  const { data, onvalue }: Props = $props()
   let isModalOpen = $state(false)
 
   const toggleModal = () => {
@@ -27,14 +27,6 @@
   const getPossibleSubcomponents = (components: Array<ComponentEntry>, dataSchema: JSONSchemaType<Array<string>>) => {
     if (dataSchema.items.enum.length === 0) return components
     return components.filter((component) => dataSchema.items.enum.includes(component.name))
-  }
-  const getChildNodes = (childNodeUIDs: Array<ComponentNodeReference>, allNodes: Record<ComponentNodeReference, ComponentNode>) => {
-    const childNodes = []
-    for (const childNodeUID of childNodeUIDs) {
-      const childNode = allNodes[childNodeUID]
-      if (childNode) childNodes.push(childNode)
-    }
-    return childNodes
   }
   const addComponent = () => {
     isModalOpen = false
@@ -47,11 +39,12 @@
     }
   }
   function deleteNode (uid: string) {
-    // TODO: implement delete
+    const index = data.value.indexOf(uid)
+    data.value.splice(index, 1)
+    onvalue(data.value)
   }
   const possibleSubcomponents = $derived(getPossibleSubcomponents(page.data.componentSchemas, data.schema))
-  const childNodes = $derived(getChildNodes(data.value, page.data.page.contents.nodes))
-  $inspect(possibleSubcomponents)
+  const allNodes = page.data.page.contents.nodes
 </script>
 
 <Card padding="sm" size="none" shadow={false}>
@@ -64,8 +57,9 @@
     </h3>
   </div>
     <div class="flex flex-col">
-        {#each childNodes as childComponentNode (childComponentNode.uid)}
-            <Subcomponent node={childComponentNode} ondelete={deleteNode}/>
+        {#each data.value as nodeUid (nodeUid)}
+          {@const node = allNodes[nodeUid]}
+          <Subcomponent {node} ondelete={deleteNode}/>
         {/each}
     </div>
     <div class="w-full flex py-3">

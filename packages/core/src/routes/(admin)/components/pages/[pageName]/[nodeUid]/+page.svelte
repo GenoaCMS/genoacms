@@ -4,7 +4,8 @@
     import { enhance } from '$app/forms'
     import { invalidateAll } from '$app/navigation'
 
-    export let data
+    const { data } = $props()
+    let currentNode = $state(data.node)
     const enhanceUpdate = () => {
       alertPending('Saving')
       return async ({ result }) => {
@@ -37,7 +38,12 @@
         toastSuccess('Redid')
       }
     }
-    $: console.log(data.node)
+    function updateAttribute (uid: string, value) {
+      currentNode.data[uid].value = value
+    }
+    $effect(() => {
+      currentNode = data.node
+    })
 </script>
 
 <div class="h-full flex flex-col p-4">
@@ -45,15 +51,15 @@
         Contents:
     </div>
     <div class="flex-grow">
-        <ComponentNode bind:node={data.node} />
+        <ComponentNode node={currentNode} onupdate={updateAttribute}/>
     </div>
 </div>
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>
-    <input type="text" name="componentNode" value={JSON.stringify(data.node)} />
+    <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="build-form" action="?/updateAndGenerateTree" method="post" use:enhance={enhanceUpdate} hidden>
-    <input type="text" name="componentNode" value={JSON.stringify(data.node)} />
+    <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="undo-form" action="?/undo" method="post" use:enhance={enhanceUndo} hidden>
 </form>

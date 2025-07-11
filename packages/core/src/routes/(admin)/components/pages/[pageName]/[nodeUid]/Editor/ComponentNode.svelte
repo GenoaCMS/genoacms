@@ -1,16 +1,13 @@
 <script lang="ts">
-  import type { ComponentNode } from '$lib/script/components/page/entry/types'
+  import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
   import Attribute from './Attribute.svelte'
 
   interface Props {
-    node: ComponentNode
+    node: ComponentNode,
+    onupdate: (uid: string, val: AttributeData<never>['value']) => void
   }
-  let { node = $bindable() }: Props = $props()
+  let { node = $bindable(), onupdate }: Props = $props()
   const attributeArray = $derived(Object.values(node.data))
-
-  function updateAttribute (uid, value) {
-    node.data[uid].value = value
-  }
 </script>
 
 <div>
@@ -19,7 +16,7 @@
     </h2>
     <div>
         {#each attributeArray as attribute (attribute.uid)}
-            <Attribute {attribute} onupdate={updateAttribute}/>
+          <Attribute {attribute} {onupdate}/>
         {/each}
     </div>
 </div>
