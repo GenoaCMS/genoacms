@@ -6,13 +6,14 @@
   } from '$lib/script/components/componentEntry/component/types'
   import type { JSONSchemaType } from 'ajv'
   import { page } from '$app/state'
-  import Component from './Component.svelte'
   import { enhance } from '$app/forms'
   import { toastError } from '$lib/script/alert'
-  import Subcomponent from './Subcomponent.svelte'
   import { invalidateAll } from '$app/navigation'
+  import Component from './Component.svelte'
+  import Subcomponent from './Subcomponent.svelte'
   import { Card, Modal } from 'flowbite-svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import Sortable from '$lib/components/Sortable.svelte'
 
   interface Props {
     data: AttributeData<ComponentsAttributeType>,
@@ -57,10 +58,12 @@
     </h3>
   </div>
     <div class="flex flex-col">
-        {#each data.value as nodeUid (nodeUid)}
-          {@const node = allNodes[nodeUid]}
+      <Sortable data={data.value} onorder={onvalue}>
+        {#snippet item(id)}
+          {@const node = allNodes[id]}
           <Subcomponent {node} ondelete={deleteNode}/>
-        {/each}
+        {/snippet}
+      </Sortable>
     </div>
     <div class="w-full flex py-3">
         <button type="button" onclick={toggleModal} class="mx-auto" aria-label="Add component">
