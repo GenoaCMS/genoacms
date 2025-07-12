@@ -21,6 +21,7 @@
   }
   const { data, onvalue }: Props = $props()
   let isModalOpen = $state(false)
+  const allNodes = $derived(page.data.page.contents.nodes)
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
@@ -45,7 +46,6 @@
     onvalue(data.value)
   }
   const possibleSubcomponents = $derived(getPossibleSubcomponents(page.data.componentSchemas, data.schema))
-  const allNodes = page.data.page.contents.nodes
 </script>
 
 <Card padding="sm" size="none" shadow={false}>

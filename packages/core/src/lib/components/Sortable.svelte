@@ -9,6 +9,7 @@
   }
   const flipDurationMs = 300
   const { data, item, onorder }: Props = $props()
+  let items = $state([])
 
   function getItems (data) {
     return data.map((item) => {
@@ -18,7 +19,6 @@
       }
     })
   }
-  let items = $state(getItems(data))
   function handleDndConsider (e: CustomEvent) {
     items = e.detail.items
   }
