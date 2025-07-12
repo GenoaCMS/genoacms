@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import '$lib/css/app.css'
+    import '../app.css'
     import 'bootstrap-icons/font/bootstrap-icons.css'
 
     interface Props {
