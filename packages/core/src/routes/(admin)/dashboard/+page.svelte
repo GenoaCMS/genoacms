@@ -7,7 +7,7 @@
   const { data } = $props()
 </script>
 
-<div class="p-9 border-b border-dark-info w-full flex flex-wrap">
+<div class="p-9 border-b border-info w-full flex flex-wrap">
   <div>
     <h1 class="text-xl md:text-2xl m-2">
       Welcome {data.user.email}

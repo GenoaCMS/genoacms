@@ -6,7 +6,7 @@
 
 </script>
 
-<div class="sticky z-0 top-0 bottom-0 h-screen flex flex-col justify-center p-5">
+<div class="sticky z-0 top-0 bottom-0 h-screen flex flex-col justify-center dark:bg-gray-800 p-5">
   <div class="my-auto">
     {#each pages as page}
       <NavbarItem {...page}/>

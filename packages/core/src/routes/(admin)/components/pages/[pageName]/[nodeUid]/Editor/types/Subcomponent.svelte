@@ -19,21 +19,17 @@
 </script>
 
 <Card padding="sm" size="none">
-  <div class="flex items-center gap-6">
+  <div class="flex flex-wrap items-center gap-6">
     <div class="me-auto">
       {node.name} <span class="text-xs">#{node.uid.substring(0, 5)}</span>
     </div>
-    <div>
+    <div class="ms-auto flex gap-6">
       <a href={node.uid} aria-label="Edit">
         <i class="bi bi-pencil-square text-2xl m-auto"></i>
       </a>
-    </div>
-    <div>
       <button aria-label="Dragger" type="button" use:dragHandle>
         <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
       </button>
-    </div>
-    <div>
       <button aria-label="Delete" type="button" onclick={deleteNode}>
         <i class="bi bi-trash text-2xl m-auto text-red-700"></i>
       </button>

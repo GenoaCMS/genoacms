@@ -32,7 +32,7 @@
   })
 </script>
 
-<Card size="none" class="mb-4">
+<Card class="mb-4 p-4 max-w-full">
   <div class="w-full flex justify-between">
     <div class="flex">
       <AttributeTypeIcon type={value.type} />
