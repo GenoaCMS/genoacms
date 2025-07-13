@@ -42,7 +42,7 @@
             <Label>
                 Component:
                 <Select name="componentUID" class="w-full">
-                    {#each components as component}
+                    {#each components as component (component.uid)}
                         <option value={component.uid}>{component.name}</option>
                     {/each}
                 </Select>

@@ -14,7 +14,7 @@
   }
 </script>
 
-<div class="h-full flex flex-col">
+<div class="h-full flex flex-col @container">
   <TopPanel hrefBack="" onclick={backClickAction}>
     <h1 class="text-2xl">
       {data.page.name}
@@ -28,8 +28,8 @@
     {/snippet}
   </TopPanel>
 
-  <div class="flex-grow grid md:grid-cols-6">
-    <div class="order-1 md:order-0 md:col-span-4 flex justify-center items-center bg-light dark:bg-dark-light border-x dark:border-dark p-4">
+  <div class="flex-grow grid lg:grid-cols-6">
+    <div class="order-1 lg:order-0 lg:col-span-4 flex justify-center items-center bg-light dark:bg-dark-light border-x dark:border-dark p-4">
       {#if data.page.previewURL}
         <iframe src={data.page.previewURL} title="Preview" class="w-full h-full border"></iframe>
       {:else}
@@ -38,7 +38,7 @@
         </div>
       {/if}
     </div>
-    <div class="order-0 md:order-1 md:col-span-2">
+    <div class="order-0 lg:order-1 lg:col-span-2">
       {@render children?.()}
     </div>
   </div>

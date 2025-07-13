@@ -18,7 +18,7 @@
   }
 </script>
 
-<Card padding="sm" size="none">
+<Card size="xl" shadow="none" class="p-3 mt-1">
   <div class="flex flex-wrap items-center gap-6">
     <div class="me-auto">
       {node.name} <span class="text-xs">#{node.uid.substring(0, 5)}</span>

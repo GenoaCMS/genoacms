@@ -16,7 +16,7 @@
   }
 </script>
 
-<Card padding="sm" size="none" shadow={false}>
+<Card size="xl" class="p-4">
   <div class="flex">
   <div class="me-auto flex">
     <div class="me-3">

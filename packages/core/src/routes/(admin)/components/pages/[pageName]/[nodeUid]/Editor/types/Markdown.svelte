@@ -19,7 +19,7 @@
   }
 </script>
 
-<Card padding="sm" size="none" shadow={false}>
+<Card size="xl" class="p-4">
   <div class="flex">
     <div class="me-3">
       <AttributeTypeIcon type={data.type} />

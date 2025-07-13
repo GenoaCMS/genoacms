@@ -41,7 +41,7 @@
   $: isSelected = data.value.bucket && data.value.name
 </script>
 
-<Card href={selectHref} target="_blank" padding="sm" size="none" shadow={false}>
+<Card href={selectHref} target="_blank" size="xl" class="p-4">
   <div class="flex">
     <div class="me-3">
       <AttributeTypeIcon type={data.type} />
