@@ -47,9 +47,6 @@
 </script>
 
 <div class="h-full flex flex-col p-4">
-    <div class="text-2xl">
-        Contents:
-    </div>
     <div class="flex-grow">
         <ComponentNode node={currentNode} onupdate={updateAttribute}/>
     </div>

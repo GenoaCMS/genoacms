@@ -28,7 +28,7 @@
   }
 </script>
 
-<button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Update preview URL">
+<button class="h-full flex items-center cursor-pointer px-3" onclick={toggleModal} aria-label="Update preview URL">
     <i class="bi bi-input-cursor-text text-2xl hover:text-warning transition-all"></i>
 </button>
 

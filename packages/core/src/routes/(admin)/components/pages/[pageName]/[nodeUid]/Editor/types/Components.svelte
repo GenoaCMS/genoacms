@@ -66,7 +66,7 @@
       </Sortable>
     </div>
     <div class="w-full flex py-3">
-        <button type="button" onclick={toggleModal} class="mx-auto" aria-label="Add component">
+        <button type="button" onclick={toggleModal} class="cursor-pointer mx-auto" aria-label="Add component">
             <i class="bi bi-plus-circle text-4xl"></i>
         </button>
     </div>
