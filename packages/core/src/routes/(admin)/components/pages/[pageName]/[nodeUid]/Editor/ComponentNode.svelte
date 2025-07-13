@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import { Button } from 'flowbite-svelte'
 
   interface Props {
     node: ComponentNode,
@@ -10,8 +11,6 @@
   }
   let { node = $bindable(), onupdate }: Props = $props()
   const attributeArray = $derived(Object.values(node.data))
-  const componentEntry = $derived(page.data.page.contents.nodes[node.entryReference])
-$inspect(node, componentEntry)
 </script>
 
 <div>
@@ -25,6 +24,11 @@ $inspect(node, componentEntry)
     <span class="text-sm text-dark/70">
       #{node.uid.substring(0, 5)}
     </span>
+  <div class="ms-auto">
+    <Button color="light" class="cursor-pointer">
+      Go to component
+    </Button>
+  </div>
   </div>
     <div>
         {#each attributeArray as attribute (attribute.uid)}

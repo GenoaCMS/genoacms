@@ -1,5 +1,5 @@
 import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
-import type { ComponentEntry } from '../componentEntry/component/types'
+import type { ComponentEntry, ComponentType } from '../componentEntry/component/types'
 
 import { deleteComponentEntry, getComponentEntry, uploadComponentEntry } from '../componentEntry/io.server'
 import {
@@ -27,9 +27,10 @@ async function createComponentDefinition (uid: string) {
   }
   await uploadComponentDefinition(emptyComponentDefinition)
 }
-async function createComponentEntry (uid: string, name: string) {
+async function createComponentEntry (uid: string, type: ComponentType, name: string) {
   const emptyComponentEntry: ComponentEntry = {
     uid,
+    type,
     name,
     attributes: {},
     history: [],
@@ -44,7 +45,7 @@ async function createComponent (name: string) {
     name
   }
 
-  await createComponentEntry(uid, name)
+  await createComponentEntry(uid, 'coded', name)
   await createComponentDefinition(uid)
   await uploadComponent(component)
 

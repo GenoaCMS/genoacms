@@ -47,9 +47,9 @@
 </script>
 
 <div class="h-full flex flex-col p-4">
-    <div class="flex-grow">
-        <ComponentNode node={currentNode} onupdate={updateAttribute}/>
-    </div>
+  <div class="flex-grow">
+    <ComponentNode node={currentNode} onupdate={updateAttribute}/>
+  </div>
 </div>
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>

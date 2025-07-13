@@ -10,6 +10,7 @@ type RichTextAttributeType = 'richText'
 type LinkAttributeType = 'link'
 type StorageResourceAttributeType = 'storageResource'
 type ComponentsAttributeType = 'components'
+type ComponentType = 'prebuilt' | 'coded'
 
 type AttributeType =
   BooleanAttributeType
@@ -207,6 +208,7 @@ type AttributesChange = Array<Diff<ComponentEntryAttributes>>
 
 interface ComponentEntry {
   uid: ComponentEntryReference,
+  type: ComponentType,
   name: string,
   attributes: ComponentEntryAttributes,
   history: Array<AttributesChange>,
@@ -219,6 +221,7 @@ interface ComponentEntryCreation {
 
 export type {
   AttributeReference,
+  ComponentType,
   BooleanMetaSchema,
   NumberMetaSchema,
   StringMetaSchema,
