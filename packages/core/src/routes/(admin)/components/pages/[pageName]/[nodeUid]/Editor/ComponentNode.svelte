@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
+  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
@@ -11,6 +12,8 @@
   }
   let { node = $bindable(), onupdate }: Props = $props()
   const attributeArray = $derived(Object.values(node.data))
+  const componentEntry: ComponentEntry = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
+  const componentEntryURL = $derived(componentEntry.type === 'coded' ? `/components/editor/${componentEntry.uid}` : `/components/prebuilt/${componentEntry.uid}`)
 </script>
 
 <div>
@@ -25,7 +28,7 @@
       #{node.uid.substring(0, 5)}
     </span>
   <div class="ms-auto">
-    <Button color="light" class="cursor-pointer">
+    <Button href={componentEntryURL} target="_blank" color="light" class="cursor-pointer">
       Go to component
     </Button>
   </div>
