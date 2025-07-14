@@ -27,10 +27,15 @@ const listOrCreateComponentEntryList = async (): Promise<Array<ComponentEntry>> 
 
 const getComponentEntry = async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
   const potentialComponentEntry = await getInternalObjectFlatted(join(prebuiltSchemaPath, reference)) as unknown
+  potentialComponentEntry.attributeOrder = potentialComponentEntry?.attributeOrder || []
   if (!validateComponentEntry(potentialComponentEntry)) {
     return null
   }
-  return potentialComponentEntry as ComponentEntry
+  const componentEntry = potentialComponentEntry as ComponentEntry
+  if (componentEntry.attributeOrder.length === 0) {
+    componentEntry.attributeOrder = Object.keys(componentEntry.attributes)
+  }
+  return componentEntry
 }
 
 const uploadComponentEntry = async (entry: ComponentEntry) => uploadInternalObjectFlatted(join(prebuiltSchemaPath, entry.uid), entry)

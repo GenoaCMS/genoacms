@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Attribute as AttributeT } from '$lib/script/components/componentEntry/component/types'
+    import type { AttributeReference, Attribute as AttributeT } from '$lib/script/components/componentEntry/component/types'
     import { formConfig } from '$lib/script/forms'
     import { superForm } from 'sveltekit-superforms'
     import { schemasafe } from 'sveltekit-superforms/adapters'
@@ -13,6 +13,7 @@
     import Attribute from './Editor/Attribute.svelte'
     import AddAttribute from './AddAttribute.svelte'
     import DeleteComponent from './DeleteComponent.svelte'
+    import Sortable from '$lib/components/Sortable.svelte'
 
     const { data } = $props()
     const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
@@ -22,6 +23,13 @@
       validators: componentEntryValidator,
       resetForm: false
     })
+    function addAttribute (attribute: AttributeT) {
+      form.update($f => {
+        $f.attributes[attribute.uid] = attribute
+        $f.attributeOrder.push(attribute.uid)
+        return $f
+      })
+    }
     function updateAttribute (attribute: AttributeT) {
       form.update($f => {
         $f.attributes[attribute.uid] = attribute
@@ -31,6 +39,13 @@
     function deleteAttribute (uid: string) {
       form.update($f => {
         delete $f.attributes[uid]
+        $f.attributeOrder = $f.attributeOrder.filter(id => id !== uid)
+        return $f
+      })
+    }
+    function reorder (newOrder: Array<AttributeReference>) {
+      form.update($f => {
+        $f.attributeOrder = newOrder
         return $f
       })
     }
@@ -52,15 +67,18 @@
     <ChangeName bind:name={$form.name} onrename={submit}/>
     <Undo />
     <Redo />
-    <AddAttribute onadd={updateAttribute} />
+    <AddAttribute onadd={addAttribute} />
     <Submit />
   {/snippet}
 </TopPanel>
 
 <div class="container mx-auto">
   <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
-    {#each Object.values($form.attributes) as attribute (attribute.uid)}
-      <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
-    {/each}
+    <Sortable data={$form.attributeOrder} onorder={reorder}>
+      {#snippet item(attributeUid)}
+        {@const attribute = $form.attributes[attributeUid]}
+        <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
+      {/snippet}
+    </Sortable>
   </form>
 </div>

@@ -1,5 +1,6 @@
 <script lang='ts'>
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
+  import { dragHandle } from 'svelte-dnd-action'
   import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea } from 'flowbite-svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
   import BooleanAttribute from './Boolean.svelte'
@@ -28,7 +29,7 @@
     ondelete(value.uid)
   }
   $effect(() => {
-    onvalue(value)
+    // onvalue(value) TODO: fix propagating value
   })
 </script>
 
@@ -36,16 +37,26 @@
   <div class="w-full flex justify-between">
     <div class="flex">
       <AttributeTypeIcon type={value.type} />
-      <!--button aria-label="Dragger" type="button" use:dragHandle> TODO: think about order
-        <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
-      </button-->
+
     </div>
     <div>
     </div>
     <div class="flex">
-      <Button color="none" onclick={toggleDropdown}>
+      <button
+        aria-label="Dragger"
+        type="button"
+        class="m-3"
+        use:dragHandle
+      >
+        <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
+      </button>
+      <button
+        aria-label="Open menu"
+        type="button"
+        class="m-3"
+        onclick={toggleDropdown}>
         <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
-      </Button>
+      </button>
       <Dropdown open={isDropdownOpen}>
         <Button color="red" class="flex" onclick={deleteAttribute}>
           <span>Delete</span>

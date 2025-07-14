@@ -211,6 +211,7 @@ interface ComponentEntry {
   type: ComponentType,
   name: string,
   attributes: ComponentEntryAttributes,
+  attributeOrder: Array<AttributeReference>,
   history: Array<AttributesChange>,
   future: Array<AttributesChange>
 }
