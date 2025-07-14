@@ -18,7 +18,11 @@
   }
 </script>
 
-<button aria-label="Change name" class="h-full flex items-center px-3" onclick={toggleModal}>
+<button
+  aria-label="Change name"
+  class="h-full flex items-center px-3 cursor-pointer"
+  onclick={toggleModal}
+>
   <i class="bi bi-input-cursor-text text-2xl hover:text-warning transition-all"></i>
 </button>
 

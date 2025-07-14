@@ -119,7 +119,10 @@
 
 </script>
 
-<button type="button" aria-label="Add attribute" class="h-full flex items-center px-3"
+<button
+  type="button"
+  aria-label="Add attribute"
+  class="h-full flex items-center px-3 cursor-pointer"
   onclick={toggleModal}>
   <i class="bi bi-plus-circle text-2xl hover:text-warning transition-all"></i>
 </button>
@@ -127,7 +130,7 @@
 <Portal>
   <Modal title="New attribute" bind:open={isModalOpen}>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 overflow-auto">
-      {#each types as type}
+      {#each types as type (type.name)}
         {@const icon = getAttributeTypeIcon(type.name)}
         <CardLink
           icon={icon.icon}
