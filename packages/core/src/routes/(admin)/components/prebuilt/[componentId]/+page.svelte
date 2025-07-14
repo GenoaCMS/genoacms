@@ -12,6 +12,7 @@
     import Undo from './Undo.svelte'
     import Attribute from './Editor/Attribute.svelte'
     import AddAttribute from './AddAttribute.svelte'
+    import DeleteComponent from './DeleteComponent.svelte'
 
     const { data } = $props()
     const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
@@ -47,6 +48,7 @@
     {$form.name}
   </div>
   {#snippet right()}
+    <DeleteComponent name={$form.name} />
     <ChangeName bind:name={$form.name} onrename={submit}/>
     <Undo />
     <Redo />

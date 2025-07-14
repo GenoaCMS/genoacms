@@ -37,9 +37,8 @@ export const actions = {
   },
   redo: async ({ request }) => {
   },
-  delete: async ({ request, params }) => {
+  delete: async ({ params }) => {
     const { componentId } = params
-    const data = await request.formData()
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
     await deleteComponentEntry(componentId)
     return redirect(307, '.')
