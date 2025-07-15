@@ -58,7 +58,7 @@
     </h3>
   </div>
     <div class="flex flex-col">
-      <Sortable data={data.value} onorder={onvalue}>
+      <Sortable data={data.value} onorder={onvalue} isId>
         {#snippet item(id)}
           {@const node = allNodes[id]}
           <Subcomponent {node} ondelete={deleteNode}/>

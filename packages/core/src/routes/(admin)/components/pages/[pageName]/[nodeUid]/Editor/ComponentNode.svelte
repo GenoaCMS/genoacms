@@ -11,7 +11,6 @@
     onupdate: (uid: string, val: AttributeData<never>['value']) => void
   }
   let { node = $bindable(), onupdate }: Props = $props()
-  const attributeArray = $derived(Object.values(node.data))
   const componentEntry: ComponentEntry = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
   const componentEntryURL = $derived(componentEntry.type === 'coded' ? `/components/editor/${componentEntry.uid}` : `/components/prebuilt/${componentEntry.uid}`)
 </script>
@@ -34,7 +33,8 @@
   </div>
   </div>
     <div>
-        {#each attributeArray as attribute (attribute.uid)}
+        {#each componentEntry.attributeOrder as attributeUid (attributeUid)}
+          {@const attribute = node.data[attributeUid]}
           <Attribute {attribute} {onupdate}/>
         {/each}
     </div>
