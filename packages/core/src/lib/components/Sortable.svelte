@@ -5,24 +5,29 @@
   interface Props {
     data: Array<unknown>,
     item: Snippet<unknown>,
+    isId?: boolean,
+    idField?: string,
     onorder: (d: Array<unknown>) => void
   }
   const flipDurationMs = 300
-  const { data, item, onorder }: Props = $props()
+  const { data, item, isId, idField, onorder }: Props = $props()
   let items = $state([])
+  let isSorting = $state(false)
 
   function getItems (data) {
     return data.map((item) => {
       return {
-        id: crypto.randomUUID(),
+        id: isId ? item : idField ? data[idField] : crypto.randomUUID(),
         data: item
       }
     })
   }
   function handleDndConsider (e: CustomEvent) {
+    isSorting = true
     items = e.detail.items
   }
   function handleDndFinalize (e: CustomEvent) {
+    isSorting = false
     items = e.detail.items
     onorder(extractData(items))
   }
@@ -30,7 +35,7 @@
     return items.map(i => i.data)
   }
   $effect(() => {
-    items = getItems(data)
+    if (!isSorting) items = getItems(data)
   })
 </script>
 

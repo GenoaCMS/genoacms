@@ -29,7 +29,7 @@
     ondelete(value.uid)
   }
   $effect(() => {
-    // onvalue(value) TODO: fix propagating value
+    onvalue(value)
   })
 </script>
 
@@ -68,7 +68,7 @@
   <div class="flex items-center">
     <Label class="flex-grow">
       Name:
-      <Input bind:value={value.schema.title} />
+      <Input bind:value={value.schema.title}/>
     </Label>
     <div class="ms-4 mt-auto">
       <Checkbox bind:checked={value.schema.required}>

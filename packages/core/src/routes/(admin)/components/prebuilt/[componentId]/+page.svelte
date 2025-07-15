@@ -74,7 +74,7 @@
 
 <div class="container mx-auto">
   <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
-    <Sortable data={$form.attributeOrder} onorder={reorder}>
+    <Sortable data={$form.attributeOrder} onorder={reorder} isId>
       {#snippet item(attributeUid)}
         {@const attribute = $form.attributes[attributeUid]}
         <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
