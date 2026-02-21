@@ -53,7 +53,7 @@
   }
 </script>
 
-<Card class="w-full" size="none">
+<Card class="w-full p-4 sm:p-6" size="xl">
   <div class="w-full flex">
     <div class="flex">
       <button aria-label="Dragger" type="button" use:dragHandle>

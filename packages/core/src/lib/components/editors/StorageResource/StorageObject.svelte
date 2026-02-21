@@ -9,7 +9,7 @@
   const { resource, deleteResource }: Props = $props()
 </script>
 
-<Card target="_top" padding="sm" class="min-w-full mb-2">
+<Card target="_top" class="min-w-full mb-2 p-4" onclick={(e) => e.preventDefault()}>
   <div class="flex">
     <div class="flex-grow">
       <div class="flex justify-center items-center">
@@ -22,7 +22,7 @@
       </div>
     </div>
     <div class="w-auto h-auto my-auto">
-      <Button onclick={() => deleteResource(resource)}>
+      <Button class="cursor-pointer" onclick={() => deleteResource(resource)}>
         <i class="bi bi-x-circle text-2xl text-warning"></i>
       </Button>
     </div>

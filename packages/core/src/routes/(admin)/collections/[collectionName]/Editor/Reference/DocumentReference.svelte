@@ -9,7 +9,7 @@
   const { reference, deleteReference }: Props = $props()
 </script>
 
-<Card target="_blank" padding="sm" class="min-w-full mb-2">
+<Card target="_blank" class="min-w-full p-4 mb-2">
   <div class="flex">
     <div class="flex-grow whitespace-nowrap">
       {reference}
