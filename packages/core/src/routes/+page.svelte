@@ -3,7 +3,7 @@
 </script>
 
 <div class="h-full w-full flex items-center justify-center">
-  <Card class="min-w-[35%] min-h-[30%] flex">
+  <Card class="min-w-[35%] min-h-[30%] flex p-4">
     <h1 class="text-xl">
       Welcome to <strong>GenoaCMS</strong>
     </h1>
