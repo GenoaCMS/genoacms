@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import ts from 'typescript-eslint'
 import neostandard from 'neostandard'
 import svelteConfig from './svelte.config.js'
-const gitignorePath = fileURLToPath(new URL("./.gitignore", import.meta.url))
+const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url))
 
 export default ts.config(
   includeIgnoreFile(gitignorePath),
@@ -16,23 +16,23 @@ export default ts.config(
   ...svelte.configs.recommended,
   {
     languageOptions: {
-	  globals: {
-	    ...globals.browser,
-	    ...globals.node
-	  }
-	}
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      }
+    }
   },
   {
-    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
-    ignores: ["eslint.config.js", "svelte.config.js"],
+    files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+    ignores: ['eslint.config.js', 'svelte.config.js'],
 
     languageOptions: {
-	  parserOptions: {
-	    projectService: true,
-	    extraFileExtensions: ['.svelte'],
-	    parser: ts.parser,
-	    svelteConfig
-	  }
-	}
+      parserOptions: {
+        projectService: true,
+        extraFileExtensions: ['.svelte'],
+        parser: ts.parser,
+        svelteConfig
+      }
+    }
   }
 )
