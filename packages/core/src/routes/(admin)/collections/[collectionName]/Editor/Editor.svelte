@@ -3,8 +3,7 @@
   import { superForm, type SuperForm } from 'sveltekit-superforms'
   import { extractProperties } from '../utils'
   import { toastSuccess, toastError } from '$lib/script/alert'
-  import { Label } from 'flowbite-svelte'
-  import Input from '../Editor/Input.svelte'
+  import Prop from './Prop.svelte'
   import { formConfig } from '$lib/script/forms'
   import { schemasafe } from 'sveltekit-superforms/adapters'
   import { formats } from '$lib/script/database/validators'
@@ -48,16 +47,13 @@
 
 <form id="document-form" {action} method="post" use:enhance class="p-3">
   {#each properties as property}
-    {@const type = schema.properties[property.name]}
-    <Label>
-      {property.name}:
-      <Input
-        schema={type}
-        value={$form[property.name]}
-        onvalue={(value) => updateProperty(property.name, value)}
-        errors={$errors[property.name]}
-        constraints={$constraints[property.name]}
-      />
-    </Label>
+    <Prop
+      name={property.name}
+      schema={schema.properties[property.name]}
+      value={$form[property.name]}
+      errors={$errors[property.name]}
+      constraints={$constraints[property.name]}
+      onvalue={(value) => updateProperty(property.name, value)}
+    />
   {/each}
 </form>
