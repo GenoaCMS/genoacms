@@ -24,7 +24,7 @@
   <Modal open={isModalOpen} title="New document">
       <Editor
         editorForm={page.data.form}
-        schema={collectionReference.schema}
+        {collectionReference}
         action="?/create"
         onsuccess={toggleModal}
       />

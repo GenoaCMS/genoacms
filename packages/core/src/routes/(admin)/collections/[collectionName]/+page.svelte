@@ -16,7 +16,7 @@
     <NewDocument collectionReference={data.collectionReference}/>
   {/snippet}
 </TopPanel>
-<Header schema={data.collectionReference.schema}/>
+<Header collectionReference={data.collectionReference}/>
 {#each data.documents as documentSnap}
     <Document {...documentSnap}/>
 {/each}

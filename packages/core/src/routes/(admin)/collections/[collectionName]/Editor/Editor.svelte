@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JSONSchemaType } from 'ajv'
+  import type { CollectionReference } from '@genoacms/cloudabstraction/database'
   import { superForm, type SuperForm } from 'sveltekit-superforms'
   import { extractProperties } from '../utils'
   import { toastSuccess, toastError } from '$lib/script/alert'
@@ -10,14 +10,14 @@
 
   interface Props {
     editorForm: SuperForm<unknown>,
-    schema: JSONSchemaType<unknown>,
+    collectionReference: CollectionReference,
     action: '?/create' | '?/update',
     onsuccess?: () => void,
     onerror?: () => void
   }
-  const { editorForm, schema, action, onsuccess = () => {}, onerror = () => {} }: Props = $props()
-  const properties = $derived(extractProperties(schema.properties))
-  const validators = schemasafe(schema, { config: { formats } })
+  const { editorForm, collectionReference, action, onsuccess = () => {}, onerror = () => {} }: Props = $props()
+  const properties = $derived(extractProperties(collectionReference))
+  const validators = schemasafe(collectionReference.schema, { config: { formats } })
   const { form, errors, constraints, enhance } = superForm(editorForm, {
     ...formConfig,
     dataType: 'json',
@@ -49,7 +49,7 @@
   {#each properties as property}
     <Prop
       name={property.name}
-      schema={schema.properties[property.name]}
+      schema={collectionReference.schema.properties[property.name]}
       value={$form[property.name]}
       errors={$errors[property.name]}
       constraints={$constraints[property.name]}

@@ -29,6 +29,6 @@
 
 <Editor
   editorForm={data.form}
-  schema={data.document.reference.collection.schema}
+  collectionReference={data.document.reference.collection}
   action="?/update"
 />

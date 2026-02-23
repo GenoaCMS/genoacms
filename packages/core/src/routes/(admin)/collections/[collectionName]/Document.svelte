@@ -3,17 +3,19 @@
   import { extractProperties } from './utils'
   import Selectable from './Selectable.svelte'
 
-  export let reference: DocumentReference<CollectionReference>
-  export let data
-  const schema = reference.collection.schema
-  const properties = extractProperties(schema.properties)
+  interface Props {
+    reference: DocumentReference<CollectionReference>
+    data
+  }
+  const { reference, data }: Props = $props()
+  const properties = extractProperties(reference.collection, { preview: true })
 </script>
 
 <Selectable id={reference.id}>
   <a href="{reference.collection.name}/{reference.id}">
     <div class="flex">
-      {#each properties as property}
-        <div class="flex-grow w-full text-center py-2 border-b-2 border-light">
+      {#each properties as property (property.name)}
+        <div class="flex-grow w-full text-start py-2 border-b-2 border-light px-4">
           {#if property.type === 'array'}
             {(data[property.name] || []).length} items
           {:else}
