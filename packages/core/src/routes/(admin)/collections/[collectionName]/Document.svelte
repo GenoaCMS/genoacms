@@ -19,7 +19,7 @@
           {#if property.type === 'array'}
             {(data[property.name] || []).length} items
           {:else}
-            {data[property.name] || ''}
+            {data[property.name] ?? ''}
           {/if}
         </div>
       {/each}
