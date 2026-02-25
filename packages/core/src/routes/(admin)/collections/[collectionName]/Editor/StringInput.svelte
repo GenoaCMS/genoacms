@@ -18,6 +18,7 @@
     const element = event.target as HTMLInputElement
     onvalue(element.value)
   }
+  if (value === undefined) onvalue('')
 </script>
 
 {constraints}

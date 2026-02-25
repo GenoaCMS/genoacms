@@ -18,6 +18,7 @@
     const element = event.target as HTMLInputElement
     onvalue(Number(element.value))
   }
+  if (value === undefined) onvalue(0)
 </script>
 
 <Input

@@ -17,6 +17,7 @@
     const element = event.target as HTMLInputElement
     onvalue(Boolean(element.checked))
   }
+  if (value === undefined) onvalue(false)
 </script>
 
 <Checkbox

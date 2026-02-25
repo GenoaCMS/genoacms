@@ -16,6 +16,7 @@
   const oninput: FormEventHandler<HTMLTextAreaElement> = (e) => {
     onvalue((e.target as HTMLTextAreaElement).value)
   }
+  if (value === undefined) onvalue('')
 </script>
 
 <Textarea
