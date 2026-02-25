@@ -9,9 +9,8 @@
     onvalue: (e: MarkdownValue) => void
   }
   const { value, errors, onvalue }: Props = $props()
-  let v = $state(value)
+  let v = $state(value || '')
   $effect(() => onvalue(v))
-  if (value === undefined) onvalue('')
 </script>
 
 <div class="w-full min-h-[15rem] flex border">
