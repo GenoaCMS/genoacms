@@ -8,16 +8,18 @@
 </script>
 
 <TopPanel>
-    <h1 class="text-2xl">
-      Component editor
-    </h1>
-    {#snippet right()}
-      <CreateComponent createForm={data.createForm}/>
-    {/snippet}
+  <h1 class="text-2xl">Component editor</h1>
+  {#snippet right()}
+    <CreateComponent />
+  {/snippet}
 </TopPanel>
 
 <Grid>
-  {#each data.components as component}
-    <CardLink text={component.name} icon="file-earmark-code" href="editor/{component.uid}"/>
+  {#each data.components as component (component.uid)}
+    <CardLink
+      text={component.name}
+      icon="file-earmark-code"
+      href="editor/{component.uid}"
+    />
   {/each}
 </Grid>
