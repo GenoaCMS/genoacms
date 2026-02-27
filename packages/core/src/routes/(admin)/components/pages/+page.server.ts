@@ -1,9 +1,18 @@
+import type { PageServerLoad } from './$types'
 import {
-  uploadPageEntry
+  uploadPageEntry, listOrCreatePageList
 } from '$lib/script/components/page/page.server'
 import { fail, redirect } from '@sveltejs/kit'
 import { createPageEntry } from '$lib/script/components/page/entry'
 import { isString } from '$lib/script/utils'
+
+export const load: PageServerLoad = async () => {
+  const pages = await listOrCreatePageList()
+
+  return {
+    pages
+  }
+}
 
 export const actions = {
   createPage: async ({ request }) => {

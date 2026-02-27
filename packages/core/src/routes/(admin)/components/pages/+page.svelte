@@ -4,7 +4,7 @@
   import Grid from '$lib/components/Grid.svelte'
   import CreatePage from './CreatePage.svelte'
 
-  export let data
+  const { data } = $props()
 </script>
 
 <TopPanel>
