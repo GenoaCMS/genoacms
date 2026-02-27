@@ -1,5 +1,5 @@
-<script lang="ts" generics="">
-  import type { ArrayValue, InputValue, Constraints, Errors } from './types'
+<script lang="ts" generics>
+  import type { ArrayValue, InputValue } from './types'
   import type { JSONSchemaType } from 'ajv'
   import { Button } from 'flowbite-svelte'
   import Input from './Input.svelte'
@@ -7,15 +7,13 @@
   import { flip } from 'svelte/animate'
   import { confirmationModal } from '$lib/script/alert'
 
-  type wrappedT = { id: string, value: InputValue }
-  type Props = {
-    schema: JSONSchemaType<InputValue>
-    value?: ArrayValue,
-    constraints: Constraints,
-    errors: Errors,
-    onvalue: (e: ArrayValue) => void
+  type wrappedT = { id: string; value: InputValue }
+  interface Props {
+    schema: JSONSchemaType<ArrayValue>;
+    value?: ArrayValue;
+    onvalue: (e: ArrayValue) => void;
   }
-  const { schema, value, constraints, errors, onvalue }: Props = $props()
+  const { schema, value, onvalue }: Props = $props()
   let items: Array<wrappedT> = $state(toWrappedValue(value || []))
   const flipDurationMs = 300
 
@@ -24,7 +22,9 @@
     updateValue()
   }
   async function deleteItem (index: number) {
-    const confirmation = await confirmationModal('Are you sure you want to delete this item?')
+    const confirmation = await confirmationModal(
+      'Are you sure you want to delete this item?'
+    )
     if (!confirmation.isConfirmed) return
     items.splice(index, 1)
     updateValue()
@@ -52,17 +52,21 @@
 </script>
 
 <div
-  use:dragHandleZone={{ items, flipDurationMs, dropFromOthersDisabled: true, dropTargetStyle: { outline: '' } }}
+  use:dragHandleZone={{
+    items,
+    flipDurationMs,
+    dropFromOthersDisabled: true,
+    dropTargetStyle: { outline: '' },
+  }}
   onconsider={handleDndConsider}
-  onfinalize={handleDndFinalize}>
+  onfinalize={handleDndFinalize}
+>
   {#each items as item, index (item.id)}
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
         <Input
-          schema={schema.items}
+          schema={schema.items as JSONSchemaType<InputValue>}
           value={item.value}
-          constraints={constraints}
-          errors={errors?.[index]}
           onvalue={(v) => updateItemValue(index, v)}
           ondelete={() => deleteItem(index)}
         />
@@ -74,9 +78,7 @@
 <div class="w-full flex mt-3">
   <div class="mx-auto">
     <Button onclick={addItem} color="blue" class="flex min-w-[10rem]">
-      <span class="me-auto">
-        Add item
-      </span>
+      <span class="me-auto"> Add item </span>
       <i class="bi bi-plus text-2xl"></i>
     </Button>
   </div>

@@ -1,41 +1,39 @@
 <script lang="ts">
-  import type { ObjectValue, Constraints, Errors } from './types'
+  import type { ObjectValue } from './types'
   import type { JSONSchemaType } from 'ajv'
   import { Button, ButtonGroup, Card, Dropdown, Label } from 'flowbite-svelte'
   import Input from './Input.svelte'
   import { extractProperties } from '../utils'
   import { dragHandle } from 'svelte-dnd-action'
 
-  type Props = {
+  interface Props {
     schema: JSONSchemaType<ObjectValue>
-    value: ObjectValue,
-    constraints: Constraints,
-    errors: Errors,
-    onvalue: (e: ObjectValue) => void,
+    value: ObjectValue
+    onvalue: (e: ObjectValue) => void
     ondelete: () => void
   }
 
-  const { schema, value, constraints, errors, onvalue, ondelete }: Props = $props()
+  let { schema, value = {}, onvalue, ondelete }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
-  let v: ObjectValue = $state(value || {})
   let selectedSchema = $state(pickUpSchemaFromValue())
-  const objectSchema = $derived(discriminator ? schema.oneOf[selectedSchema] : schema)
+  const objectSchema = $derived(
+    discriminator ? schema.oneOf[selectedSchema] : schema
+  )
   const properties = $derived(extractProperties(objectSchema.properties))
-  let isDropdownOpen = $state(false)
 
-  function toggleDropdown () {
-    isDropdownOpen = !isDropdownOpen
-  }
   function selectSchema (index: number) {
     selectedSchema = index
-    v = removeOldProperties(v)
-    onvalue(v)
+    value = removeOldProperties(value)
+    onvalue(value)
   }
   function pickUpSchemaFromValue () {
     if (!discriminator) return 0
-    const valueDiscriminator: string | undefined = v[discriminator]
+    const valueDiscriminator: string | undefined = value[discriminator]
     if (!valueDiscriminator) return 0
-    const index = schema.oneOf.findIndex((item) => item.properties[discriminator].const === valueDiscriminator)
+    const index = schema.oneOf.findIndex(
+      (item: any) =>
+        item.properties[discriminator].const === valueDiscriminator
+    )
     return index === -1 ? 0 : index
   }
   function removeOldProperties (v: ObjectValue): ObjectValue {
@@ -47,9 +45,9 @@
     }
     return v
   }
-  function updateValue (name: string, value: ObjectValue) {
-    v[name] = value
-    onvalue(v)
+  function updateValue (name: string, newVal: ObjectValue) {
+    value[name] = newVal
+    onvalue(value)
   }
 </script>
 
@@ -64,7 +62,11 @@
       {#if discriminator}
         <ButtonGroup>
           {#each schema.oneOf as item, index}
-            <Button onclick={() => selectSchema(index)} color="blue" outline={index !== selectedSchema}>
+            <Button
+              onclick={() => selectSchema(index)}
+              color="blue"
+              outline={index !== selectedSchema}
+            >
               {item.properties[discriminator].const}
             </Button>
           {/each}
@@ -72,10 +74,12 @@
       {/if}
     </div>
     <div class="flex">
-      <Button color="none" onclick={toggleDropdown}>
+      <Button
+        class="bg-transparent text-gray-900 border-none shadow-none hover:bg-transparent p-0"
+      >
         <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
       </Button>
-      <Dropdown open={isDropdownOpen}>
+      <Dropdown>
         <Button color="red" class="flex" onclick={ondelete}>
           <span>Delete</span>
           <i class="bi bi-trash ms-2"></i>
@@ -88,11 +92,11 @@
     {@const schema = objectSchema.properties[property.name]}
     <Label>
       {property.name}:
-      <Input {schema}
-        value={v[property.name]}
-        constraints={constraints?.[property.name]}
-        errors={errors?.[property.name]}
-        onvalue={(v) => updateValue(property.name, v)}/>
+      <Input
+        {schema}
+        value={value[property.name]}
+        onvalue={(v) => updateValue(property.name, v)}
+      />
     </Label>
   {/each}
 </Card>

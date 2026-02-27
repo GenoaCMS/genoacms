@@ -1,59 +1,29 @@
-<script lang="ts">
+<script lang="ts" generics="T extends object">
   import type { CollectionReference } from '@genoacms/cloudabstraction/database'
-  import { superForm, type SuperForm } from 'sveltekit-superforms'
   import { extractProperties } from '../utils'
-  import { toastSuccess, toastError } from '$lib/script/alert'
   import Prop from './Prop.svelte'
-  import { formConfig } from '$lib/script/forms'
-  import { schemasafe } from 'sveltekit-superforms/adapters'
-  import { formats } from '$lib/script/database/validators'
 
   interface Props {
-    editorForm: SuperForm<unknown>,
-    collectionReference: CollectionReference,
-    action: '?/create' | '?/update',
-    onsuccess?: () => void,
-    onerror?: () => void
+    collectionReference: CollectionReference;
+    value?: T,
+    onvalue?: (value: T) => T
   }
-  const { editorForm, collectionReference, action, onsuccess = () => {}, onerror = () => {} }: Props = $props()
+  const { collectionReference, value = {}, onvalue }: Props = $props()
   const properties = $derived(extractProperties(collectionReference))
-  const validators = schemasafe(collectionReference.schema, { config: { formats } })
-  const { form, errors, constraints, enhance } = superForm(editorForm, {
-    ...formConfig,
-    dataType: 'json',
-    resetForm: false,
-    invalidateAll: action === '?/create',
-    validators,
-    validationMethod: 'oninput',
-    onUpdate ({ form }) {
-      if (!form.message) return
-      if (form.message.status === 'success') {
-        onsuccess()
-        toastSuccess(form.message.text)
-      } else {
-        onerror()
-        toastError(form.message.text)
-      }
-    }
-  })
-  function updateProperty (name: string, value: unknown) {
-    form.update(($form) => {
-      $form[name] = value
-      return $form
-    })
+
+  function updateProperty (name: string, propValue: unknown) {
+    value[name] = propValue
+    onvalue(value)
   }
-  $inspect($errors, $constraints)
 </script>
 
-<form id="document-form" {action} method="post" use:enhance class="p-3">
+<div class="p-3">
   {#each properties as property}
     <Prop
       name={property.name}
       schema={collectionReference.schema.properties[property.name]}
-      value={$form[property.name]}
-      errors={$errors[property.name]}
-      constraints={$constraints[property.name]}
+      value={value[property.name]}
       onvalue={(value) => updateProperty(property.name, value)}
     />
   {/each}
-</form>
+</div>

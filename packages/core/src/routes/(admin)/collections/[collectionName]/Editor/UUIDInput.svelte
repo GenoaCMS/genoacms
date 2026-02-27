@@ -1,12 +1,11 @@
 <script lang="ts">
   import { ButtonGroup, Input, InputAddon } from 'flowbite-svelte'
 
-  type Props = {
-    value: string,
-    errors: Array<string> | undefined,
+  interface Props {
+    value: string
     onvalue: (e: string) => void
   }
-  let { value, errors, onvalue }: Props = $props()
+  let { value, onvalue }: Props = $props()
 
   function generateUUID () {
     value = crypto.randomUUID()
@@ -22,7 +21,6 @@
   </InputAddon>
   <Input
     {value}
-    aria-invalid={errors ? 'true' : undefined}
-    color={errors ? 'red' : 'base'}
-    oninput={e => onvalue(e.target.value)}/>
+    oninput={(e) => onvalue((e.target as HTMLInputElement).value)}
+  />
 </ButtonGroup>
