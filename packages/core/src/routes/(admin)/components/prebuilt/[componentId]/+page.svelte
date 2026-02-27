@@ -1,70 +1,62 @@
 <script lang="ts">
-    import type { AttributeReference, Attribute as AttributeT } from '$lib/script/components/componentEntry/component/types'
-    import { formConfig } from '$lib/script/forms'
-    import { superForm } from 'sveltekit-superforms'
-    import { schemasafe } from 'sveltekit-superforms/adapters'
-    import { componentEntrySchema } from '$lib/script/components/componentEntry/component/schemas'
-    import { activityTracker } from '$lib/script/activity/client'
-    import TopPanel from '$lib/components/TopPanel.svelte'
-    import ChangeName from './ChangeName.svelte'
-    import Submit from './Submit.svelte'
-    import Redo from './Redo.svelte'
-    import Undo from './Undo.svelte'
-    import Attribute from './Editor/Attribute.svelte'
-    import AddAttribute from './AddAttribute.svelte'
-    import DeleteComponent from './DeleteComponent.svelte'
-    import Sortable from '$lib/components/Sortable.svelte'
+  import type {
+    AttributeReference,
+    Attribute as AttributeT,
+  } from '$lib/script/components/componentEntry/component/types'
+  import { activityTracker } from '$lib/script/activity/client'
+  import TopPanel from '$lib/components/TopPanel.svelte'
+  import ChangeName from './ChangeName.svelte'
+  import Submit from './Submit.svelte'
+  import Redo from './Redo.svelte'
+  import Undo from './Undo.svelte'
+  import Attribute from './Editor/Attribute.svelte'
+  import AddAttribute from './AddAttribute.svelte'
+  import DeleteComponent from './DeleteComponent.svelte'
+  import Sortable from '$lib/components/Sortable.svelte'
+  import { updateComponent } from './update.remote.js'
+    import { toastError, toastSuccess } from '$lib/script/alert'
 
-    const { data } = $props()
-    const componentEntryValidator = schemasafe(componentEntrySchema, { config: { includeErrors: true } })
-    const { form, enhance, submit } = superForm(data.updateForm, {
-      ...formConfig,
-      dataType: 'json',
-      validators: componentEntryValidator,
-      resetForm: false
-    })
-    function addAttribute (attribute: AttributeT) {
-      form.update($f => {
-        $f.attributes[attribute.uid] = attribute
-        $f.attributeOrder.push(attribute.uid)
-        return $f
-      })
+  const { data } = $props()
+  const form = $state(data.componentEntry)
+
+  async function submit () {
+    const result = await updateComponent(form)
+    if (result.status === 'success') {
+      toastSuccess(result.text)
+    } else {
+      toastError(result.text)
     }
-    function updateAttribute (attribute: AttributeT) {
-      form.update($f => {
-        $f.attributes[attribute.uid] = attribute
-        return $f
-      })
-    }
-    function deleteAttribute (uid: string) {
-      form.update($f => {
-        delete $f.attributes[uid]
-        $f.attributeOrder = $f.attributeOrder.filter(id => id !== uid)
-        return $f
-      })
-    }
-    function reorder (newOrder: Array<AttributeReference>) {
-      form.update($f => {
-        $f.attributeOrder = newOrder
-        return $f
-      })
-    }
-    activityTracker.add({
-      type: 'componentEntry',
-      timestamp: Date.now(),
-      componentId: data.id,
-      componentName: $form.name
-    })
+  }
+  function addAttribute (attribute: AttributeT) {
+    form.attributes[attribute.uid] = attribute
+    form.attributeOrder.push(attribute.uid)
+  }
+  function updateAttribute (attribute: AttributeT) {
+    form.attributes[attribute.uid] = attribute
+  }
+  function deleteAttribute (uid: string) {
+    delete form.attributes[uid]
+    form.attributeOrder = form.attributeOrder.filter((id) => id !== uid)
+  }
+  function reorder (newOrder: Array<AttributeReference>) {
+    form.attributeOrder = newOrder
+  }
+  activityTracker.add({
+    type: 'componentEntry',
+    timestamp: Date.now(),
+    componentId: data.id,
+    componentName: form.name,
+  })
 </script>
 
 <TopPanel>
   <div class="text-2xl">
     Component:
-    {$form.name}
+    {form.name}
   </div>
   {#snippet right()}
-    <DeleteComponent name={$form.name} />
-    <ChangeName bind:name={$form.name} onrename={submit}/>
+    <DeleteComponent name={form.name} />
+    <ChangeName bind:name={form.name} onrename={submit} />
     <Undo />
     <Redo />
     <AddAttribute onadd={addAttribute} />
@@ -73,11 +65,22 @@
 </TopPanel>
 
 <div class="container mx-auto">
-  <form id="update-form" method="post" action="?/update" use:enhance class="p-4">
-    <Sortable data={$form.attributeOrder} onorder={reorder} isId>
+  <form
+    id="update-form"
+    onsubmit={(e) => {
+      e.preventDefault()
+      submit()
+    }}
+    class="p-4"
+  >
+    <Sortable data={form.attributeOrder} onorder={reorder} isId>
       {#snippet item(attributeUid)}
-        {@const attribute = $form.attributes[attributeUid]}
-        <Attribute {attribute} onvalue={updateAttribute} ondelete={deleteAttribute} />
+        {@const attribute = form.attributes[attributeUid]}
+        <Attribute
+          {attribute}
+          onvalue={updateAttribute}
+          ondelete={deleteAttribute}
+        />
       {/snippet}
     </Sortable>
   </form>
