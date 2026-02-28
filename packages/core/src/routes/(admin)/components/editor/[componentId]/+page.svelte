@@ -11,18 +11,25 @@
     type: 'componentCode',
     timestamp: Date.now(),
     componentId: data.component.uid,
-    componentName: data.component.name
+    componentName: data.component.name,
   })
 </script>
 
 <TopPanel>
-   <h1 class="text-2xl">
-       Component: {data.component.name}
-   </h1>
+  <h1 class="text-2xl">
+    Component: {data.component.name}
+  </h1>
   {#snippet right()}
-    <DeleteComponent deletionForm={data.deletionForm} name={data.component.name}/>
-    <CommitComponent commitForm={data.commitForm} changeForm={data.changeForm} code={data.componentDefinition.code}/>
+    <DeleteComponent uid={data.component.uid} name={data.component.name} />
+    <CommitComponent
+      componentId={data.component.uid}
+      changeForm={data.changeForm}
+      code={data.componentDefinition.code}
+    />
   {/snippet}
 </TopPanel>
 
-<Editor changeForm={data.changeForm} language={data.componentDefinition.language}/>
+<Editor
+  changeForm={data.changeForm}
+  language={data.componentDefinition.language}
+/>

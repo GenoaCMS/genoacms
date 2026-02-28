@@ -72,6 +72,7 @@ async function createComponentCommit (order: ComponentCommitOrder, definition: C
 }
 
 async function commitComponentDefinition (order: ComponentCommitOrder) {
+  // TODO: fix
   const [definition, component, entry] = await Promise.all([
     getComponentDefiniton(order.componentId),
     getComponent(order.componentId),
@@ -93,6 +94,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
 }
 
 async function deleteComponent (component: Component): Promise<void> {
+  // TODO: fix
   const deletionTasks = [
     deleteComponentDefinition(component.uid),
     deleteComponentEntry(component.uid),
