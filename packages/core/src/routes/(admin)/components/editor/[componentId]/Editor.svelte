@@ -1,32 +1,25 @@
 <script lang="ts">
-  import type { ComponentCodeChange } from '$lib/script/components/editor/types'
-  import { superForm, type SuperForm } from 'sveltekit-superforms'
-  import { formConfig } from '$lib/script/forms'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
+  import { changeComponentRemote } from './change.remote.js'
 
   interface Props {
-    changeForm: SuperForm<ComponentCodeChange>,
+    uid: string
+    code?: string
     language: 'javascript'
   }
-  const { changeForm, language }: Props = $props()
-  const { form, enhance, submit } = superForm(changeForm, { ...formConfig, dataType: 'json' })
-  let code = $state($form.uncommitedCode as string || '')
-  let updateTimeout: ReturnType<typeof setTimeout>
+  let { uid, code = $bindable(''), language }: Props = $props()
 
-  function updateFormCode (code: string) {
-    form.update(
-      ($form) => {
-        $form.uncommitedCode = code
-        return $form
-      },
-      { taint: false }
-    )
-    console.log($form.uncommitedCode)
-    submit()
-  }
-  function scheduleCodeUpdate (code: string) {
+  let formElement: HTMLFormElement
+  let updateTimeout: ReturnType<typeof setTimeout>
+  const enhance = changeComponentRemote.enhance(async ({ submit }) => {
+    await submit()
+  })
+
+  function scheduleCodeUpdate (currentCode: string) {
     clearTimeout(updateTimeout)
-    updateTimeout = setTimeout(() => updateFormCode(code), 1000)
+    updateTimeout = setTimeout(() => {
+      if (formElement) formElement.requestSubmit()
+    }, 1000)
   }
 
   $effect(() => {
@@ -35,10 +28,10 @@
 </script>
 
 <div class="flex w-full h-[93%]">
-  <MonacoEditor {language} bind:value={code}/>
+  <MonacoEditor {language} bind:value={code} />
 </div>
 
-<form action="?/change" method="post" use:enhance hidden>
-  <input type="text" name="uid" value={$form.uid}>
-  <input type="text" name="uncommitedCode" value={$form.uncommitedCode} class="whitespace-pre">
+<form bind:this={formElement} {...enhance} hidden>
+  <input type="hidden" name="uid" value={uid} />
+  <input type="hidden" name="uncommitedCode" value={code} />
 </form>

@@ -1,13 +1,16 @@
 <script lang="ts">
   import { Button, Input, Label, Modal } from 'flowbite-svelte'
-  import { superForm } from 'sveltekit-superforms'
   import Portal from '$lib/components/Portal.svelte'
   import DiffEditor from '$lib/components/DiffEditor.svelte'
   import { commitComponentRemote } from './commit.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert'
 
-  const { componentId, changeForm, code } = $props()
-  const { form: formChange } = superForm(changeForm)
+  interface Props {
+    componentId: string
+    uncommitedCode: string
+    code: string
+  }
+  const { componentId, uncommitedCode, code }: Props = $props()
 
   let isModalOpen = $state(false)
   let message = $state('')
@@ -28,7 +31,7 @@
     }
   })
 
-  const disabled = $derived(code === $formChange.uncommitedCode)
+  const disabled = $derived(code === uncommitedCode)
 </script>
 
 <button
@@ -45,7 +48,8 @@
     <div class="w-full h-[50rem]">
       <DiffEditor
         originalValue={code}
-        modifiedValue={$formChange.uncommitedCode}
+        modifiedValue={uncommitedCode}
+        language="javascript"
       />
     </div>
     <div class="flex w-3/4 mx-auto">

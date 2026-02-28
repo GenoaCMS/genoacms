@@ -6,13 +6,17 @@
   import Editor from './Editor.svelte'
   import CommitComponent from './CommitComponent.svelte'
 
-  const { data }: PageData = $props()
+  const { data }: { data: PageData } = $props()
   activityTracker.add({
     type: 'componentCode',
     timestamp: Date.now(),
     componentId: data.component.uid,
     componentName: data.component.name,
   })
+
+  let uncommitedCode = $state(
+    (data.componentDefinition.uncommitedCode as string) || ''
+  )
 </script>
 
 <TopPanel>
@@ -23,13 +27,14 @@
     <DeleteComponent uid={data.component.uid} name={data.component.name} />
     <CommitComponent
       componentId={data.component.uid}
-      changeForm={data.changeForm}
+      {uncommitedCode}
       code={data.componentDefinition.code}
     />
   {/snippet}
 </TopPanel>
 
 <Editor
-  changeForm={data.changeForm}
+  uid={data.component.uid}
+  bind:code={uncommitedCode}
   language={data.componentDefinition.language}
 />
