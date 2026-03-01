@@ -2,7 +2,7 @@
   import { Modal, Button, Input, Label, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
   import { createComponent } from './create.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { goto } from '$app/navigation'
 
   let name = $state('')

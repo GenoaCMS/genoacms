@@ -1,6 +1,6 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
 
   function enhanceLogout () {
     const processing = alertPending('Logging out')

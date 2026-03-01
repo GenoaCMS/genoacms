@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
   import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'

@@ -2,7 +2,7 @@
   import type { SubmitFunction } from '@sveltejs/kit'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import selection from '$lib/script/storage/SelectionRune.svelte'
 
   const isPossible = $derived(!selection.isEmpty)

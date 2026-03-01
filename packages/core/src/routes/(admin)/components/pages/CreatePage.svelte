@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select, } from '$lib/components/ui/index'
 

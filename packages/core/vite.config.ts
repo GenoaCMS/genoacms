@@ -16,6 +16,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['sweetalert2']
+    include: []
   }
 })

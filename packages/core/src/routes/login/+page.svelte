@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Input, } from '$lib/components/ui/index.ts'
   import { applyAction, enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
 
   const enhanceLogin = () => {
     const pending = alertPending('Logging in')

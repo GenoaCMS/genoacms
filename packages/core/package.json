@@ -61,7 +61,6 @@
 		"runed": "^0.25.0",
 		"svelte": "^5.53.5",
 		"svelte-dnd-action": "^0.9.69",
-		"sweetalert2": "^11.6.13",
 		"tailwindcss": "^4.1.4",
 		"ts-morph": "^25.0.1",
 		"tslib": "^2.4.1",

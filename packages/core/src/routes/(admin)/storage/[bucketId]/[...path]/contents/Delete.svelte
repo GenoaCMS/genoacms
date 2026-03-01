@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
   import { invalidateAll } from '$app/navigation'
-  import { alertPending, confirmationModal, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, confirmationModal, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { enhance } from '$app/forms'
   import selection from '$lib/script/storage/SelectionRune.svelte'
 

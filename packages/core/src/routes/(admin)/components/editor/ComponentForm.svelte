@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { toastError, toastSuccess } from '$lib/script/alert'
-  import { Button, Input, Label, } from '$lib/components/ui/index.ts'
+  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { Button, Input, Label } from '$lib/components/ui/index'
   import type { SubmitFunction } from '@sveltejs/kit'
 
   let isSubmitting = $state(false)
@@ -33,5 +33,5 @@
     Name:
     <Input type="text" name="name" />
   </Label>
-  <Button preset="tonal" class="w-full"  type="submit">Create</Button>
+  <Button preset="tonal" class="w-full" type="submit">Create</Button>
 </form>

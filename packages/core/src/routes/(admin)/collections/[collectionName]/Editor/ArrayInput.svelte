@@ -5,7 +5,7 @@
   import Input from './Input.svelte'
   import { dragHandleZone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
-  import { confirmationModal } from '$lib/script/alert'
+  import { confirmationModal } from '$lib/script/alert.svelte'
 
   type wrappedT = { id: string; value: InputValue }
   interface Props {

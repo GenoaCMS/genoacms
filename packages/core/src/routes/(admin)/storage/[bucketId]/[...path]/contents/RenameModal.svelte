@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
   import Portal from '$lib/components/Portal.svelte'

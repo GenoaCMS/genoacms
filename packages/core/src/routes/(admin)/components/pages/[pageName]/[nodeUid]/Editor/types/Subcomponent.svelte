@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ComponentNode as ComponentNodeT } from '$lib/script/components/page/entry/types'
   import { Card } from '$lib/components/ui/index'
-  import { confirmationModal } from '$lib/script/alert'
+  import { confirmationModal } from '$lib/script/alert.svelte'
   import { dragHandle } from 'svelte-dnd-action'
 
   interface Props {

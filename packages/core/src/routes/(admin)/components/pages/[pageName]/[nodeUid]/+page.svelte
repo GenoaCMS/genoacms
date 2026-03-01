@@ -1,6 +1,6 @@
 <script lang="ts">
     import ComponentNode from './Editor/ComponentNode.svelte'
-    import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
+    import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { enhance } from '$app/forms'
     import { invalidateAll } from '$app/navigation'
 

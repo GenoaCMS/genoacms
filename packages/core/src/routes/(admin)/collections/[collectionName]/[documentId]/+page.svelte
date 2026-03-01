@@ -6,7 +6,7 @@
   import Update from './Update.svelte'
   import Editor from '../Editor/Editor.svelte'
   import { updateDoc } from './update.remote'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
 
   const { data }: { data: PageData } = $props()
   const document = $derived(data.document!)

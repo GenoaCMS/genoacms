@@ -5,7 +5,7 @@
   import Editor from './Editor/Editor.svelte'
   import { createDoc } from './create.remote'
   import { goto } from '$app/navigation'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
 
   interface Props {
     collectionReference: CollectionReference;

@@ -7,7 +7,7 @@
   import type { JSONSchemaType } from 'ajv'
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
-  import { toastError } from '$lib/script/alert'
+  import { toastError } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
   import Component from './Component.svelte'
   import Subcomponent from './Subcomponent.svelte'

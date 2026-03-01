@@ -14,7 +14,7 @@
   import DeleteComponent from './DeleteComponent.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
   import { updateComponent } from './update.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { tick } from 'svelte'
 
   const { data } = $props()
