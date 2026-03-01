@@ -3,7 +3,7 @@
 </script>
 
 <div class="h-full w-full flex items-center justify-center">
-  <Card class="min-w-[35%] min-h-[30%] flex p-4">
+  <Card class="flex-col min-w-[35%] min-h-[30%] flex p-4">
     <h1 class="text-xl">
       Welcome to <strong>GenoaCMS</strong>
     </h1>
@@ -13,10 +13,10 @@
       </div>
     </div>
     <div class="flex flex-col">
-      <Button preset="tonal" class="mt-auto" href="https://genoacms.github.io/docs" target="_blank">
+      <Button preset="outlined" class="mt-auto" href="https://genoacms.github.io/docs" target="_blank">
         Read documentation
       </Button>
-      <Button preset="tonal" class="mt-3" href="/login">
+      <Button preset="outlined" class="mt-3" href="/login">
         Login
       </Button>
     </div>

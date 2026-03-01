@@ -18,7 +18,7 @@
   function getPresetClass (p: string) {
     if (className.includes('preset-')) return '' // If class overrides the preset colors
     if (p === 'filled') return 'preset-filled-primary-500'
-    if (p === 'tonal') return 'preset-tonal-light'
+    if (p === 'tonal') return 'preset-tonal-surface'
     if (p === 'outlined') return 'preset-outlined-surface-300-700'
     return 'preset-filled-primary-500'
   }
