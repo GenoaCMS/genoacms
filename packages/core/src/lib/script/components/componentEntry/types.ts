@@ -1,4 +1,4 @@
-import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
+import { Checkbox, Input, NumberInput } from '$lib/components/ui/index'
 import type { AttributeType } from '$lib/script/components/componentEntry/component/types'
 
 interface InputConfig<T extends AttributeType> {

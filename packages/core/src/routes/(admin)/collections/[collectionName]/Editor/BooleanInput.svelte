@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { BooleanValue } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import { Checkbox } from 'flowbite-svelte'
+  import { Checkbox } from '$lib/components/ui/index'
 
   interface Props {
     schema: JSONSchemaType<BooleanValue>;

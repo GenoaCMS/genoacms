@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox, Label } from 'flowbite-svelte'
+  import { Checkbox, Label } from '$lib/components/ui/index'
 
   interface Props {
     default: boolean

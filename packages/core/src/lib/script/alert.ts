@@ -1,5 +1,8 @@
 import alert from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
+import { createToaster } from '@skeletonlabs/skeleton-svelte'
+
+const toaster = createToaster()
 
 const Toast = alert.mixin({
   customClass: {
@@ -25,17 +28,11 @@ function alertPending (message?: string) {
 }
 
 function toastSuccess (message: string) {
-  Toast.fire({
-    icon: 'success',
-    title: message
-  })
+  toaster.success({ title: message })
 }
 
 function toastError (message: string) {
-  Toast.fire({
-    icon: 'error',
-    title: message
-  })
+  toaster.error({ title: message })
 }
 
 function confirmationModal (message: string) {
@@ -55,6 +52,7 @@ function confirmationModal (message: string) {
 }
 
 export {
+  toaster,
   Toast,
   alertPending,
   toastSuccess,

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { alertPending, Toast } from '$lib/script/alert'
+  import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
 
   let isDirectoryCreationModalOpen = $state(false)
@@ -15,16 +15,10 @@
     return async ({ result }) => {
       alert.close()
       if (result.type !== 'success') {
-        Toast.fire({
-          icon: 'error',
-          title: 'Failed to create directory'
-        })
+        toastError('Failed to create directory')
         return
       }
-      Toast.fire({
-        icon: 'success',
-        title: 'Directory created'
-      })
+      toastSuccess('Directory created')
       invalidateAll()
     }
   }
@@ -41,7 +35,7 @@
         Name:
         <Input id="directoryName" name="directoryName" class="w-full"/>
       </Label>
-      <Button type="submit" color="light">
+      <Button preset="tonal" type="submit">
         Create
       </Button>
     </form>

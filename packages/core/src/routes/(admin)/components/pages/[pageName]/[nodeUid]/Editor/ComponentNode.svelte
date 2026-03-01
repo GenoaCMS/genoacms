@@ -4,7 +4,7 @@
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
-  import { Button } from 'flowbite-svelte'
+  import { Button, } from '$lib/components/ui/index'
 
   interface Props {
     node: ComponentNode,
@@ -27,7 +27,7 @@
       #{node.uid.substring(0, 5)}
     </span>
   <div class="ms-auto">
-    <Button href={componentEntryURL} target="_blank" color="light" class="cursor-pointer">
+    <Button preset="outlined" class="cursor-pointer" href={componentEntryURL} target="_blank">
       Go to component
     </Button>
   </div>

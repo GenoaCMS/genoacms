@@ -4,7 +4,7 @@
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
   import Portal from '$lib/components/Portal.svelte'
-  import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
 
   type Props = {
     name: string,
@@ -41,7 +41,7 @@
         New name:
         <Input name="newName" value={name} class="w-full" />
       </Label>
-      <Button type="submit" color="light">
+      <Button preset="tonal" type="submit">
         Rename
       </Button>
     </form>

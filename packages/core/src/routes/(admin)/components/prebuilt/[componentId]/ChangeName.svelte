@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Modal } from 'flowbite-svelte'
+  import { Button, Input, Modal, } from '$lib/components/ui/index'
 
   interface Props {
     name: string
@@ -30,7 +30,7 @@
   <div class="flex w-3/4 mx-auto">
     <form {onsubmit} class="w-full">
       <Input type="text" class="w-full" name="name" bind:value={name}/>
-      <Button type="submit" color="light" class="w-full mt-2">
+      <Button preset="tonal" class="w-full mt-2" type="submit">
         Change
       </Button>
     </form>

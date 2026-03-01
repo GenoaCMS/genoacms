@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ButtonGroup, Input, InputAddon } from 'flowbite-svelte'
+  import { ButtonGroup, Input, InputAddon } from '$lib/components/ui/index'
 
   interface Props {
     value: string

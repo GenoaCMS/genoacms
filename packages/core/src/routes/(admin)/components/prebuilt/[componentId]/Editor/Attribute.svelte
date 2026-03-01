@@ -1,7 +1,7 @@
 <script lang='ts'>
   import type { Attribute } from '$lib/script/components/componentEntry/component/types'
   import { dragHandle } from 'svelte-dnd-action'
-  import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea } from 'flowbite-svelte'
+  import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea, } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
   import BooleanAttribute from './Boolean.svelte'
   import NumberAttribute from './Number.svelte'
@@ -20,11 +20,7 @@
   }
   let { attribute = $bindable(), onvalue, ondelete }: Props = $props()
   const value = $state(attribute)
-  let isDropdownOpen = $state(false)
 
-  function toggleDropdown () {
-    isDropdownOpen = !isDropdownOpen
-  }
   function deleteAttribute () {
     ondelete(value.uid)
   }
@@ -50,15 +46,8 @@
       >
         <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
       </button>
-      <button
-        aria-label="Open menu"
-        type="button"
-        class="m-3"
-        onclick={toggleDropdown}>
-        <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
-      </button>
-      <Dropdown open={isDropdownOpen}>
-        <Button color="red" class="flex" onclick={deleteAttribute}>
+      <Dropdown>
+        <Button preset="filled" class="!bg-error-500 flex" onclick={deleteAttribute}>
           <span>Delete</span>
           <i class="bi bi-trash ms-2"></i>
         </Button>

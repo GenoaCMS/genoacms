@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card } from 'flowbite-svelte'
+  import { Button, Card } from '$lib/components/ui/index'
 
   type T = string | number | boolean
   type Props = {

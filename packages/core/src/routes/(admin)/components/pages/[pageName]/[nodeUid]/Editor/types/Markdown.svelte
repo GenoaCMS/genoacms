@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { MarkdownAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import { Button, Card, Modal } from 'flowbite-svelte'
+  import { Button, Card, Modal, } from '$lib/components/ui/index'
   import MonacoEditor from '$lib/components/MonacoEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
@@ -28,7 +28,7 @@
       {data.name}
     </h3>
   </div>
-  <Button color="light" onclick={toggleModal} class="w-full">
+  <Button preset="outlined" class="w-full" onclick={toggleModal}>
     Open markdown editor
   </Button>
 </Card>

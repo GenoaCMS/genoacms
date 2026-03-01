@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Modal, Button, Input, Label } from 'flowbite-svelte'
+  import { Modal, Button, Input, Label, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
   import { createComponent } from './create.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert'
@@ -45,7 +45,7 @@
           Component name:
           <Input type="text" class="w-full" name="name" bind:value={name} />
         </Label>
-        <Button type="submit" color="light" class="w-full mt-2">Create</Button>
+        <Button preset="tonal" class="w-full mt-2" type="submit">Create</Button>
       </form>
     </div>
   </Modal>

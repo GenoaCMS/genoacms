@@ -1,7 +1,7 @@
 <script lang="ts" generics>
   import type { ArrayValue, InputValue } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import { Button } from 'flowbite-svelte'
+  import { Button } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import { dragHandleZone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
@@ -77,7 +77,7 @@
 
 <div class="w-full flex mt-3">
   <div class="mx-auto">
-    <Button onclick={addItem} color="blue" class="flex min-w-[10rem]">
+    <Button onclick={addItem} class="flex min-w-[10rem]">
       <span class="me-auto"> Add item </span>
       <i class="bi bi-plus text-2xl"></i>
     </Button>

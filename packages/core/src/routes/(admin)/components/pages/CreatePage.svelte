@@ -2,7 +2,7 @@
   import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { applyAction, enhance } from '$app/forms'
-  import { Button, Input, Label, Modal, Select } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, Select, } from '$lib/components/ui/index'
 
   interface Props {
     components: Array<ComponentEntry>
@@ -47,7 +47,7 @@
                     {/each}
                 </Select>
             </Label>
-            <Button type="submit" color="light" class="w-full mt-3">
+            <Button preset="tonal" class="w-full mt-3" type="submit">
                 Create
             </Button>
         </form>

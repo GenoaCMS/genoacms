@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { NumberValue } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import { Input } from 'flowbite-svelte'
+  import { Input } from '$lib/components/ui/index'
 
   interface Props {
     schema: JSONSchemaType<NumberValue>

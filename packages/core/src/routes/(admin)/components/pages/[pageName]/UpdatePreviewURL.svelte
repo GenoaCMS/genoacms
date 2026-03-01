@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import type { SubmitFunction } from '@sveltejs/kit'
 
@@ -39,7 +39,7 @@
                 Preview URL:
                 <Input type="url" name="value" {value} class="w-full"/>
             </Label>
-            <Button type="submit" color="light" class="mt-4 w-full">
+            <Button preset="tonal" class="mt-4 w-full" type="submit">
                 Edit
             </Button>
         </form>

@@ -14,7 +14,8 @@
   import DeleteComponent from './DeleteComponent.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
   import { updateComponent } from './update.remote.js'
-    import { toastError, toastSuccess } from '$lib/script/alert'
+  import { toastError, toastSuccess } from '$lib/script/alert'
+  import { tick } from 'svelte'
 
   const { data } = $props()
   const form = $state(data.componentEntry)
@@ -34,9 +35,10 @@
   function updateAttribute (attribute: AttributeT) {
     form.attributes[attribute.uid] = attribute
   }
-  function deleteAttribute (uid: string) {
-    delete form.attributes[uid]
+  async function deleteAttribute (uid: string) {
     form.attributeOrder = form.attributeOrder.filter((id) => id !== uid)
+    await tick()
+    delete form.attributes[uid]
   }
   function reorder (newOrder: Array<AttributeReference>) {
     form.attributeOrder = newOrder

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CollectionReference } from '@genoacms/cloudabstraction/database'
-  import { Button, Modal } from 'flowbite-svelte'
+  import { Button, Modal, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
   import Editor from './Editor/Editor.svelte'
   import { createDoc } from './create.remote'
@@ -60,14 +60,12 @@
 </button>
 
 <Portal>
-  <Modal open={isModalOpen} title="New document">
+  <Modal bind:open={isModalOpen} title="New document">
     <Editor {collectionReference} {onvalue} />
-    <Button
+    <Button preset="outlined" class="w-full mt-2"
       type="button"
       onclick={submit}
       disabled={isSubmitting}
-      color="light"
-      class="w-full mt-2"
     >
       {isSubmitting ? 'Creating...' : 'Create'}
     </Button>

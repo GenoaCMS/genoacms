@@ -3,7 +3,7 @@
   import type { LinkAttributeType } from '$lib/script/components/componentEntry/component/types'
   import type { LinkAttributeValue } from '$lib/script/components/componentEntry/attribute/types'
   import Link from './Link.svelte'
-  import { Card } from 'flowbite-svelte'
+  import { Card } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
@@ -42,8 +42,10 @@
     {/if}
   {/each}
   {#if showAddLink}
-    <button class="mt-4" onclick={addLink} aria-label="Add link">
-      <i class="bi bi-plus-circle text-4xl"></i>
-    </button>
+    <div class="flex">
+      <button class="mt-4 mx-auto" onclick={addLink} aria-label="Add link">
+        <i class="bi bi-plus-circle text-4xl"></i>
+      </button>
+    </div>
   {/if}
 </Card>

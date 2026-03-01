@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { JSONSchemaType } from 'ajv'
-  import { Label } from 'flowbite-svelte'
+  import { Label } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import type { InputValue } from './types'
 

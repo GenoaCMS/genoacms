@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ObjectValue } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import { Button, ButtonGroup, Card, Dropdown, Label } from 'flowbite-svelte'
+  import { Button, ButtonGroup, Card, Dropdown, Label, } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import { extractProperties } from '../utils'
   import { dragHandle } from 'svelte-dnd-action'
@@ -74,13 +74,8 @@
       {/if}
     </div>
     <div class="flex">
-      <Button
-        class="bg-transparent text-gray-900 border-none shadow-none hover:bg-transparent p-0"
-      >
-        <i class="bi bi-three-dots-vertical text-2xl m-auto"></i>
-      </Button>
       <Dropdown>
-        <Button color="red" class="flex" onclick={ondelete}>
+        <Button preset="filled" class="!bg-error-500 flex" onclick={ondelete}>
           <span>Delete</span>
           <i class="bi bi-trash ms-2"></i>
         </Button>

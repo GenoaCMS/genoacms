@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
 
   const { name } = $props()
@@ -23,7 +23,7 @@
                 To confirm deletion, type "{name}":
             </Label>
             <Input type="text" name="name" bind:value={confirmName} required/>
-            <Button color="red" type="submit" class="w-full mt-2" disabled={name !== confirmName}>
+            <Button preset="filled" class="!bg-error-500 w-full mt-2" type="submit" disabled={name !== confirmName}>
                 Yes, delete {name}
             </Button>
         </form>

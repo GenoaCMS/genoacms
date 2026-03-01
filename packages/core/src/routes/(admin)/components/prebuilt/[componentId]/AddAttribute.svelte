@@ -3,7 +3,7 @@
   import { getAttributeTypeIcon } from '$lib/components/components/utils'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'
-  import { Modal } from 'flowbite-svelte'
+  import { Modal } from '$lib/components/ui/index'
 
   let isModalOpen = $state(false)
 

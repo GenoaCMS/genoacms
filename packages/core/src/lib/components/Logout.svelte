@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Button } from 'flowbite-svelte'
   import { applyAction, enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
 
@@ -18,7 +17,11 @@
 </script>
 
 <form action="/?/logout" method="post" use:enhance={enhanceLogout}>
-  <Button type="subbmit" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xl p-2">
+  <button
+    class="btn-icon preset-tonal hover:preset-filled-surface-50-950"
+    type="submit"
+    aria-label="Logout"
+  >
     <i class="bi bi-box-arrow-right"></i>
-  </Button>
+  </button>
 </form>

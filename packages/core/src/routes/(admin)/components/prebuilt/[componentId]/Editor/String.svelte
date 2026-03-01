@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Label } from 'flowbite-svelte'
+  import { Input, Label } from '$lib/components/ui/index'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
 
   interface Props {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button } from 'flowbite-svelte'
+  import { Button, } from '$lib/components/ui/index'
 
   type Props = {
     selectionId: string
@@ -16,12 +16,12 @@
 </script>
 
 <div class="min-w-full w-full flex">
-  <Button href={selectHref} target="_blank" outline
+  <Button preset="outlined" href={selectHref} target="_blank"
     class="flex-grow flex items-center justify-center hover:text-warning transition-all shadow">
     <i class="bi bi-folder-symlink text-2xl"></i>
   </Button>
   {#if !hideDeleteButton}
-    <Button onclick={clear} color="light" outline class="hover:text-warning transition-all ms-2 shadow">
+    <Button preset="outlined" onclick={clear} class="hover:text-warning transition-all ms-2 shadow">
       <i class="bi bi-trash text-2xl"></i>
     </Button>
   {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Label, Modal } from 'flowbite-svelte'
+  import { Button, Input, Label, Modal, } from '$lib/components/ui/index.ts'
   import Portal from '$lib/components/Portal.svelte'
   import DiffEditor from '$lib/components/DiffEditor.svelte'
   import { commitComponentRemote } from './commit.remote.js'
@@ -63,7 +63,7 @@
           {disabled}
           required
         />
-        <Button color="light" type="submit" class="w-full mt-2" {disabled}>
+        <Button preset="tonal" class="w-full mt-2"  type="submit" {disabled}>
           Commit
         </Button>
       </form>

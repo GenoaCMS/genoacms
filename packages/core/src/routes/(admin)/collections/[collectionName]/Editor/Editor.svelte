@@ -17,8 +17,8 @@
   }
 </script>
 
-<div class="p-3">
-  {#each properties as property}
+<div class="">
+  {#each properties as property (property.name)}
     <Prop
       name={property.name}
       schema={collectionReference.schema.properties[property.name]}

@@ -3,7 +3,7 @@ import type {
   InputConfig
 } from './types'
 import type { PartialSchema } from 'ajv/dist/types/json-schema'
-import { Checkbox, Input, NumberInput } from 'flowbite-svelte'
+import { Checkbox, Input, NumberInput } from '$lib/components/ui/index'
 import { componentEntryAttributesSchema } from '$lib/script/components/componentEntry/component/schemas'
 import type { Attribute, AttributeType } from '$lib/script/components/componentEntry/component/types'
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input } from 'flowbite-svelte'
+  import { Button, Input, } from '$lib/components/ui/index.ts'
   import { applyAction, enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
 
@@ -26,6 +26,6 @@
     <form class="w-full md:w-2/3 xl:w-1/3 p-5" method="post" use:enhance={enhanceLogin}>
         <Input label="Username" type="text" name="username" placeholder="Username" class="mb-3"/>
         <Input label="Password" type="password" name="password" placeholder="Password" class="mb-3"/>
-        <Button type="submit" color="light" size="lg" class="w-full mt-4">Login</Button>
+        <Button preset="outlined" class="w-full mt-4" type="submit">Login</Button>
     </form>
 </div>

@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { TextValue } from './types'
   import type { JSONSchemaType } from 'ajv'
-  import type { FormEventHandler } from 'svelte/elements'
-  import { Textarea } from 'flowbite-svelte'
+  import { Textarea } from '$lib/components/ui/index'
 
   interface Props {
     schema: JSONSchemaType<TextValue>

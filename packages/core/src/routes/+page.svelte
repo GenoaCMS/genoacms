@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card } from 'flowbite-svelte'
+  import { Button, Card, } from '$lib/components/ui/index'
 </script>
 
 <div class="h-full w-full flex items-center justify-center">
@@ -13,10 +13,10 @@
       </div>
     </div>
     <div class="flex flex-col">
-      <Button href="https://genoacms.github.io/docs" target="_blank" color="light" class="mt-auto">
+      <Button preset="tonal" class="mt-auto" href="https://genoacms.github.io/docs" target="_blank">
         Read documentation
       </Button>
-      <Button href="/login" color="light" class="mt-3">
+      <Button preset="tonal" class="mt-3" href="/login">
         Login
       </Button>
     </div>

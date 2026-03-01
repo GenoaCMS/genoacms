@@ -1,6 +1,6 @@
 <script lang="ts">
   import ComponentForm from './ComponentForm.svelte'
-  import { Modal } from 'flowbite-svelte'
+  import { Modal } from '$lib/components/ui/index.ts'
 
   let isModalOpen = $state(false)
   const toggleModal = () => {

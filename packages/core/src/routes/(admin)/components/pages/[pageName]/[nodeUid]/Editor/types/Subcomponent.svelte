@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ComponentNode as ComponentNodeT } from '$lib/script/components/page/entry/types'
-  import { Card } from 'flowbite-svelte'
+  import { Card } from '$lib/components/ui/index'
   import { confirmationModal } from '$lib/script/alert'
   import { dragHandle } from 'svelte-dnd-action'
 
@@ -18,7 +18,7 @@
   }
 </script>
 
-<Card size="xl" shadow="none" class="p-3 mt-1">
+<Card class="p-3 mt-1">
   <div class="flex flex-wrap items-center gap-6">
     <div class="me-auto">
       {node.name} <span class="text-xs text-dark/70">#{node.uid.substring(0, 5)}</span>

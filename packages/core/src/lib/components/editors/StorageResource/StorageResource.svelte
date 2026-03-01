@@ -5,7 +5,7 @@
   import { ITC } from '$lib/script/utils'
   import StorageObject from './StorageObject.svelte'
   import EditSelection from './EditSelection.svelte'
-  import { Helper } from 'flowbite-svelte'
+  import { Helper } from '$lib/components/ui/index'
 
   type Props = {
     value: ResourceValue,

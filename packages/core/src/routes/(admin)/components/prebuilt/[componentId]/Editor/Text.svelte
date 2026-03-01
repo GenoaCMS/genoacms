@@ -1,6 +1,6 @@
 <script lang="ts">
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import { Input, Label, Textarea } from 'flowbite-svelte'
+  import { Input, Label, Textarea } from '$lib/components/ui/index'
 
   interface Props {
     default: string,

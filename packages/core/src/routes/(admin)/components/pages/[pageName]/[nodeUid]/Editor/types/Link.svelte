@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { LinkAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import { Card, Input, Select, Toggle } from 'flowbite-svelte'
+  import { Card, Input, Select, Toggle } from '$lib/components/ui/index'
   import { page } from '$app/state'
 
   interface Props {

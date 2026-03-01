@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal } from 'flowbite-svelte'
+    import { Button, Input, Label, Modal, } from '$lib/components/ui/index.ts'
     import Portal from '$lib/components/Portal.svelte'
     import { toastError, toastSuccess } from '$lib/script/alert'
     import { deleteComponentRemote } from './delete.remote.js'
@@ -47,7 +47,7 @@
 
         <input type="hidden" name="uid" value={uid} />
         <Input type="text" bind:value={confirmationName} required />
-        <Button color="red" type="submit" class="w-full mt-2">
+        <Button preset="filled" class="!bg-error-500 w-full mt-2"  type="submit">
           Yes, delete {name}
         </Button>
       </form>

@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Modal } from 'flowbite-svelte'
+  import { Button, Input, Modal, } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
 
   let isModalOpen = $state(false)
@@ -32,7 +32,7 @@
   <Modal title="Upload files" bind:open={isModalOpen}>
     <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col p-4">
       <Input name="files[]" type="file" multiple required class="w-full my-2"/>
-      <Button type="submit" color="light" class="w-full">
+      <Button preset="tonal" class="w-full" type="submit">
         Upload
       </Button>
     </form>

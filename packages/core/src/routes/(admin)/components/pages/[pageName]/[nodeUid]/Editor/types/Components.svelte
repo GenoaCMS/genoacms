@@ -11,7 +11,7 @@
   import { invalidateAll } from '$app/navigation'
   import Component from './Component.svelte'
   import Subcomponent from './Subcomponent.svelte'
-  import { Card, Modal } from 'flowbite-svelte'
+  import { Card, Modal } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
 

@@ -1,15 +1,15 @@
-import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
 import type { PageServerLoad } from '../$types'
 import {
   deleteComponentEntry,
-  getComponentEntry,
-  uploadComponentEntry
+  getComponentEntry
 } from '$lib/script/components/componentEntry/io.server'
-import { fail, type Actions, redirect } from '@sveltejs/kit'
+import { fail, type Actions, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
+
 export const load: PageServerLoad = async ({ params }) => {
   const { componentId } = params
   const componentEntry = await getComponentEntry(componentId)
+  if (!componentEntry) error(404, 'No component entry')
 
   return {
     id: componentId,

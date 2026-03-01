@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { BooleanAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import { Card, Toggle } from 'flowbite-svelte'
+  import { Card, Toggle } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {

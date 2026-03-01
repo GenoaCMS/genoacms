@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-  import { Button, Card } from 'flowbite-svelte'
+  import { Button, Card } from '$lib/components/ui/index'
 
   type Props = {
     resource: ObjectReference

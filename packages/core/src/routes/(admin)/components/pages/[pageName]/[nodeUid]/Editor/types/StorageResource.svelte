@@ -2,7 +2,7 @@
   import type {
     AttributeData
   } from '$lib/script/components/page/entry/types'
-  import { Card } from 'flowbite-svelte'
+  import { Card } from '$lib/components/ui/index'
   import { ITC } from '$lib/script/utils'
   import { onDestroy } from 'svelte'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
@@ -41,19 +41,21 @@
   $: isSelected = data.value.bucket && data.value.name
 </script>
 
-<Card href={selectHref} target="_blank" size="xl" class="p-4">
-  <div class="flex">
-    <div class="me-3">
-      <AttributeTypeIcon type={data.type} />
+<a href={selectHref} target="_blank">
+  <Card class="p-4">
+    <div class="flex">
+      <div class="me-3">
+        <AttributeTypeIcon type={data.type} />
+      </div>
+      <h3 class="text-xl pb-3">
+        {data.name}
+      </h3>
     </div>
-    <h3 class="text-xl pb-3">
-      {data.name}
-    </h3>
-  </div>
-  {#if isSelected}
-    Bucket: {data.value.bucket}<br>
-    Filename: {data.value.name}
-  {:else}
-    File not selected yet
-  {/if}
-</Card>
+    {#if isSelected}
+      Bucket: {data.value.bucket}<br>
+      Filename: {data.value.name}
+    {:else}
+      File not selected yet
+    {/if}
+  </Card>
+</a>
