@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { SubmitFunction } from '@sveltejs/kit'
   import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { applyAction, enhance } from '$app/forms'
@@ -13,7 +14,7 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const enhanceCreation = () => {
+  const enhanceCreation: SubmitFunction = () => {
     const alert = alertPending('Creating')
     return async ({ result }) => {
       alert.close()

@@ -17,7 +17,9 @@
 </TopPanel>
 
 <Grid>
-    {#each data.pages as page (page)}
+  {#await data.pages then pages}
+    {#each pages as page (page)}
         <Page name={page}/>
     {/each}
+  {/await}
 </Grid>
