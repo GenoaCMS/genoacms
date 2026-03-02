@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { CollectionReference } from '@genoacms/cloudabstraction/database'
-  import { extractProperties } from './utils'
+  import { extractDocumentProperties } from './utils'
 
   interface Props {
     collectionReference: CollectionReference
   }
 
   const { collectionReference }: Props = $props()
-  const properties = extractProperties(collectionReference, { preview: true })
+  const properties = $derived(extractDocumentProperties(collectionReference, { preview: true }))
 </script>
 
 <div class="bg-light dark:bg-transparent text-start flex border-b border-s border-dark dark:border-light px-4">

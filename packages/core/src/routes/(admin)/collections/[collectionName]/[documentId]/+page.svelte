@@ -62,7 +62,9 @@
   {/snippet}
 </TopPanel>
 
-<Editor
-  collectionReference={document.reference.collection}
-  value={documentData}
-  {onvalue}/>
+<div class="px-4">
+  <Editor
+    collectionReference={document.reference.collection}
+    value={documentData}
+    {onvalue}/>
+</div>

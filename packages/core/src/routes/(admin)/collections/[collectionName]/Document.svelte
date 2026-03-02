@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CollectionReference, DocumentReference } from '@genoacms/cloudabstraction/database'
-  import { extractProperties } from './utils'
+  import { extractDocumentProperties } from './utils'
   import Selectable from './Selectable.svelte'
 
   interface Props {
@@ -8,7 +8,7 @@
     data
   }
   const { reference, data }: Props = $props()
-  const properties = extractProperties(reference.collection, { preview: true })
+  const properties = $derived(extractDocumentProperties(reference.collection, { preview: true }))
 </script>
 
 <Selectable id={reference.id}>

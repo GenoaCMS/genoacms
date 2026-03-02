@@ -19,7 +19,7 @@
   const objectSchema = $derived(
     discriminator ? schema.oneOf[selectedSchema] : schema
   )
-  const properties = $derived(extractProperties(objectSchema.properties))
+  const properties = $derived(extractProperties(objectSchema))
 
   function selectSchema (index: number) {
     selectedSchema = index

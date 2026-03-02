@@ -9,9 +9,9 @@
 
   type wrappedT = { id: string; value: InputValue }
   interface Props {
-    schema: JSONSchemaType<ArrayValue>;
-    value?: ArrayValue;
-    onvalue: (e: ArrayValue) => void;
+    schema: JSONSchemaType<ArrayValue>
+    value?: ArrayValue
+    onvalue: (e: ArrayValue) => void
   }
   const { schema, value, onvalue }: Props = $props()
   let items: Array<wrappedT> = $state(toWrappedValue(value || []))

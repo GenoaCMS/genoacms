@@ -1,4 +1,6 @@
-const extractProperties = (reference, { preview }: { preview?: boolean } = {}) => {
+import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+
+const extractDocumentProperties = (reference: CollectionReference, { preview }: { preview?: boolean } = {}) => {
   const array = []
   const properties = reference.schema.properties
   for (const key in properties) {
@@ -12,6 +14,19 @@ const extractProperties = (reference, { preview }: { preview?: boolean } = {}) =
   return array
 }
 
+const extractProperties = (schema) => {
+  const properties = schema.properties
+  const array = []
+  for (const key in properties) {
+    array.push({
+      name: key,
+      ...properties[key]
+    })
+  }
+  return array
+}
+
 export {
+  extractDocumentProperties,
   extractProperties
 }

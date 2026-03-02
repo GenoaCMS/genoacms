@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends object">
   import type { CollectionReference } from '@genoacms/cloudabstraction/database'
-  import { extractProperties } from '../utils'
+  import { extractDocumentProperties } from '../utils'
   import Prop from './Prop.svelte'
 
   interface Props {
@@ -9,7 +9,7 @@
     onvalue?: (value: T) => T
   }
   const { collectionReference, value = {}, onvalue }: Props = $props()
-  const properties = $derived(extractProperties(collectionReference))
+  const properties = $derived(extractDocumentProperties(collectionReference))
 
   function updateProperty (name: string, propValue: unknown) {
     value[name] = propValue
