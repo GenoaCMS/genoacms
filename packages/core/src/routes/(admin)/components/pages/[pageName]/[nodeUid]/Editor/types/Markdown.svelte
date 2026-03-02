@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { MarkdownAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import { Button, Card, Modal, } from '$lib/components/ui/index'
-  import MonacoEditor from '$lib/components/MonacoEditor.svelte'
+  import { Button, Card, Modal } from '$lib/components/ui/index'
+  import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
-    data: AttributeData<MarkdownAttributeType>,
+    data: AttributeData<MarkdownAttributeType>
     onvalue: (v: string) => void
   }
   const { data, onvalue }: Props = $props()
@@ -33,11 +33,15 @@
   </Button>
 </Card>
 
-<Modal bind:open={isModalOpen} title="Edit {data.name}" size="xl"
-  bodyClass="p-0">
+<Modal
+  bind:open={isModalOpen}
+  title="Edit {data.name}"
+  size="xl"
+  bodyClass="p-0"
+>
   <div class="h-[80vh] w-full flex">
     <div class="w-1/2 border-e">
-      <MonacoEditor language="markdown" value={data.value} {onvalue}/>
+      <CodeEditor language="markdown" value={data.value} {onvalue} />
     </div>
     <div class="w-1/2 p-4">
       <MarkdownViewer markdown={data.value} />

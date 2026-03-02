@@ -8,7 +8,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,ts}']
   },
   ssr: {
-    noExternal: ['monaco-editor']
+    noExternal: []
   },
   server: {
     fs: {

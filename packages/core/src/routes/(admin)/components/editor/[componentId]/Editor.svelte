@@ -1,11 +1,11 @@
 <script lang="ts">
-  import MonacoEditor from '$lib/components/MonacoEditor.svelte'
+  import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
   import { changeComponentRemote } from './change.remote.js'
 
   interface Props {
-    uid: string
-    code?: string
-    language: 'javascript'
+    uid: string;
+    code?: string;
+    language: 'javascript';
   }
   let { uid, code = $bindable(''), language }: Props = $props()
 
@@ -28,7 +28,7 @@
 </script>
 
 <div class="flex w-full h-[93%]">
-  <MonacoEditor {language} bind:value={code} />
+  <CodeEditor {language} bind:value={code} />
 </div>
 
 <form bind:this={formElement} {...enhance} hidden>

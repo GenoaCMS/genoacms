@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
+  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
-  import DiffEditor from '$lib/components/DiffEditor.svelte'
+  import DiffEditor from '$lib/components/ui/DiffEditor.svelte'
   import { commitComponentRemote } from './commit.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
 
   interface Props {
-    componentId: string
-    uncommitedCode: string
-    code: string
+    componentId: string;
+    uncommitedCode: string;
+    code: string;
   }
   const { componentId, uncommitedCode, code }: Props = $props()
 
@@ -45,7 +45,7 @@
 
 <Portal>
   <Modal title="Commit changes" bind:open={isModalOpen} size="xl">
-    <div class="w-full h-[50rem]">
+    <div class="w-full">
       <DiffEditor
         originalValue={code}
         modifiedValue={uncommitedCode}
@@ -63,7 +63,7 @@
           {disabled}
           required
         />
-        <Button preset="tonal" class="w-full mt-2" type="submit" {disabled}>
+        <Button preset="outlined" class="w-full mt-2" type="submit" {disabled}>
           Commit
         </Button>
       </form>
