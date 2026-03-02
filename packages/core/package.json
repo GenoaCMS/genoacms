@@ -41,7 +41,6 @@
 		"@types/estree": "^1.0.6",
 		"@types/highland": "^2.13.0",
 		"@types/jsdom": "^21.1.6",
-		"autoprefixer": "^10.4.17",
 		"bootstrap-icons": "^1.11.3",
 		"codemirror": "^6.0.2",
 		"deep-diff": "^1.0.2",
