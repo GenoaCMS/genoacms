@@ -1,4 +1,6 @@
 <script lang="ts">
+    import type { SubmitFunction } from '@sveltejs/kit'
+    import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
     import ComponentNode from './Editor/ComponentNode.svelte'
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { enhance } from '$app/forms'
@@ -6,7 +8,7 @@
 
     const { data } = $props()
     let currentNode = $state(data.node)
-    const enhanceUpdate = () => {
+    const enhanceUpdate: SubmitFunction = () => {
       alertPending('Saving')
       return async ({ result }) => {
         if (result.type !== 'success') {
@@ -16,7 +18,7 @@
         toastSuccess('Saved')
       }
     }
-    const enhanceUndo = async () => {
+    const enhanceUndo: SubmitFunction = async () => {
       alertPending('Undoing')
       return async ({ result }) => {
         if (result.type !== 'success') {
@@ -27,7 +29,7 @@
         toastSuccess('Undid')
       }
     }
-    const enhanceRedo = () => {
+    const enhanceRedo: SubmitFunction = () => {
       alertPending('Redoing')
       return async ({ result }) => {
         if (result.type !== 'success') {
@@ -38,7 +40,7 @@
         toastSuccess('Redid')
       }
     }
-    function updateAttribute (uid: string, value) {
+    function updateAttribute (uid: string, value: AttributeValue) {
       currentNode.data[uid].value = value
     }
     $effect(() => {
