@@ -1,7 +1,6 @@
-import type { JSONSchemaType } from 'ajv'
-import type { CodeChange, Component, ComponentCodeChange, ComponentCommit, ComponentCommitOrder, ComponentCreation, ComponentDefinition, ComponentDeletion } from './types'
+import type { Schema } from '@exodus/schemasafe'
 
-const componentCreationSchema: JSONSchemaType<ComponentCreation> = {
+const componentCreationSchema: Schema = {
   type: 'object',
   properties: {
     name: { type: 'string' }
@@ -9,7 +8,7 @@ const componentCreationSchema: JSONSchemaType<ComponentCreation> = {
   required: ['name']
 }
 
-const componentDeletionSchema: JSONSchemaType<ComponentDeletion> = {
+const componentDeletionSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
@@ -18,7 +17,7 @@ const componentDeletionSchema: JSONSchemaType<ComponentDeletion> = {
   required: ['uid', 'name']
 }
 
-const componentSchema: JSONSchemaType<Component> = {
+const componentSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
@@ -27,9 +26,9 @@ const componentSchema: JSONSchemaType<Component> = {
   required: ['uid', 'name']
 }
 
-const codeChangeSchema: JSONSchemaType<CodeChange> = {}
+const codeChangeSchema: Schema = {}
 
-const componentDefinitionSchema: JSONSchemaType<ComponentDefinition> = {
+const componentDefinitionSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
@@ -48,7 +47,7 @@ const componentDefinitionSchema: JSONSchemaType<ComponentDefinition> = {
   required: ['uid', 'language', 'uncommitedCode', 'code', 'history', 'future']
 }
 
-const componentCodeChangeSchema: JSONSchemaType<ComponentCodeChange> = {
+const componentCodeChangeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
@@ -57,7 +56,7 @@ const componentCodeChangeSchema: JSONSchemaType<ComponentCodeChange> = {
   required: ['uid', 'uncommitedCode']
 }
 
-const componentCommitOrderSchema: JSONSchemaType<ComponentCommitOrder> = {
+const componentCommitOrderSchema: Schema = {
   type: 'object',
   properties: {
     componentId: { type: 'string', format: 'uuid' },
@@ -66,7 +65,7 @@ const componentCommitOrderSchema: JSONSchemaType<ComponentCommitOrder> = {
   required: ['componentId', 'message']
 }
 
-const componentCommitSchema: JSONSchemaType<ComponentCommit> = {
+const componentCommitSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },

@@ -1,5 +1,5 @@
 import type { Diff } from 'deep-diff'
-import type { JSONSchemaType } from 'ajv'
+import type { Schema } from '@exodus/schemasafe'
 
 type BooleanAttributeType = 'boolean'
 type NumberAttributeType = 'number'
@@ -141,12 +141,12 @@ interface ComponentsAttributeMetaSchema {
 
 interface BooleanAttribute extends AttributeBase {
   type: BooleanAttributeType,
-  schema: JSONSchemaType<BooleanMetaSchema>
+  schema: Schema
 }
 
 interface NumberAttribute extends AttributeBase {
   type: NumberAttributeType,
-  schema: JSONSchemaType<NumberMetaSchema>,
+  schema: Schema,
   decimalPlaces: number
 }
 
@@ -186,7 +186,7 @@ interface ComponentsAttribute extends AttributeBase {
   component: string,
   maxComponents: number,
   allowedComponents: Array<string>,
-  schema: JSONSchemaType<ComponentsAttributeMetaSchema>
+  schema: Schema
 }
 
 type Attribute =

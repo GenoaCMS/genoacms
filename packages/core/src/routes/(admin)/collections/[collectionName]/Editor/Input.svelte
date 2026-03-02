@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JSONSchemaType } from 'ajv'
+  import type { Schema } from '@exodus/schemasafe'
   import type { InputValue } from './types'
   import StorageResources from '$lib/components/editors/StorageResource/StorageResources.svelte'
   import StorageResource from '$lib/components/editors/StorageResource/StorageResource.svelte'
@@ -16,10 +16,10 @@
   import TextInput from './TextInput.svelte'
 
   interface Props {
-    schema: JSONSchemaType<InputValue>;
-    value: InputValue;
-    onvalue: (e: InputValue) => void;
-    ondelete?: () => void;
+    schema: Schema
+    value: InputValue
+    onvalue: (e: InputValue) => void
+    ondelete?: () => void
   }
   let {
     schema,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, } from '$lib/components/ui/index.ts'
+  import { Button, Input, } from '$lib/components/ui/index'
   import { applyAction, enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
 

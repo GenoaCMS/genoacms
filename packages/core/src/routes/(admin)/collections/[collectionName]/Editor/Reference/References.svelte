@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JSONSchemaType } from 'ajv'
+  import type { Schema } from '@exodus/schemasafe'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
   import EditSelection from './EditSelection.svelte'
@@ -7,9 +7,9 @@
 
   type T = string | number | boolean
   type Props = {
-    schema: JSONSchemaType<T>
-    value: Array<T> | undefined,
-    onvalue: (value: Array<T>) => void
+    schema: Schema;
+    value: Array<T> | undefined;
+    onvalue: (value: Array<T>) => void;
   }
   const { schema, value, onvalue }: Props = $props()
   let references: Array<T> = $state(value || [])
@@ -25,8 +25,8 @@
     references = []
     updateValue()
   }
-  function getReferenceCollectionId (schema: JSONSchemaType<T>) {
-    if (!schema.description) throw new Error('For reference use helper function')
+  function getReferenceCollectionId (schema: Schema) {
+    if (!schema.description) { throw new Error('For reference use helper function') }
     const collection = schema.description
     return collection
   }
@@ -36,14 +36,14 @@
 
   itc.on('selectionInit', async () => {
     const parameters = {
-      maxItems: 0
+      maxItems: 0,
     }
     const selectionInitData = {
       parameters,
-      defaultValue: $state.snapshot(references)
+      defaultValue: $state.snapshot(references),
     }
     itc.send('selectionInitData', selectionInitData)
-    const selection = await itc.once('selectionDone') as Array<T>
+    const selection = (await itc.once('selectionDone')) as Array<T>
     itc.send('selectionKill')
     if (selection.length < 1) return
     references = selection
@@ -57,11 +57,16 @@
 
 <div class="flex flex-col">
   {#each references as reference, index (index)}
-    <DocumentReference {reference} {deleteReference}/>
+    <DocumentReference {reference} {deleteReference} />
   {:else}
     <div class="text-center text-xl w-auto m-auto pb-3 pt-2">
       No documents selected yet
     </div>
   {/each}
-  <EditSelection {selectionId} {collectionId} hideDeleteButton clear={clearReferences}/>
+  <EditSelection
+    {selectionId}
+    {collectionId}
+    hideDeleteButton
+    clear={clearReferences}
+  />
 </div>

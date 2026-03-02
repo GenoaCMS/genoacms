@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { StringValue } from './types'
-  import type { JSONSchemaType } from 'ajv'
+  import type { Schema } from '@exodus/schemasafe'
   import { Input } from '$lib/components/ui/index'
 
   interface Props {
-    schema: JSONSchemaType<StringValue>
+    schema: Schema
     value: StringValue
     onvalue: (e: StringValue) => void
   }

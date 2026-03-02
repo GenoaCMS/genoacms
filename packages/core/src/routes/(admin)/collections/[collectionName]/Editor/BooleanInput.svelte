@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { BooleanValue } from './types'
-  import type { JSONSchemaType } from 'ajv'
+  import type { Schema } from '@exodus/schemasafe'
   import { Checkbox } from '$lib/components/ui/index'
 
   interface Props {
-    schema: JSONSchemaType<BooleanValue>;
+    schema: Schema;
     value: BooleanValue;
     onvalue: (e: BooleanValue) => void;
   }

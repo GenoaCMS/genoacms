@@ -1,33 +1,22 @@
-import type { JSONSchemaType } from 'ajv'
-import type {
-  BooleanAttributeValue,
-  ComponentsAttributeValue,
-  LinkAttributeValue,
-  MarkdownAttributeValue,
-  NumberAttributeValue,
-  RichTextAttributeValue,
-  StorageResourceAttributeValue,
-  StringAttributeValue,
-  TextAttributeValue
-} from '$lib/script/components/componentEntry/attribute/types'
+import type { Schema } from '@exodus/schemasafe'
 
-const booleanValueSchema: JSONSchemaType<BooleanAttributeValue> = {
+const booleanValueSchema: Schema = {
   type: 'boolean'
 }
 
-const numberValueSchema: JSONSchemaType<NumberAttributeValue> = {
+const numberValueSchema: Schema = {
   type: 'number'
 }
 
-const stringValueSchema: JSONSchemaType<StringAttributeValue> = {
+const stringValueSchema: Schema = {
   type: 'string'
 }
 
-const textValueSchema: JSONSchemaType<TextAttributeValue> = stringValueSchema
-const markdownValueSchema: JSONSchemaType<MarkdownAttributeValue> = stringValueSchema
-const richTextValueSchema: JSONSchemaType<RichTextAttributeValue> = stringValueSchema
+const textValueSchema: Schema = stringValueSchema
+const markdownValueSchema: Schema = stringValueSchema
+const richTextValueSchema: Schema = stringValueSchema
 
-const linkValueSchema: JSONSchemaType<LinkAttributeValue> = {
+const linkValueSchema: Schema = {
   type: 'object',
   properties: {
     isExternal: { type: 'boolean' },
@@ -37,7 +26,7 @@ const linkValueSchema: JSONSchemaType<LinkAttributeValue> = {
   required: ['isExternal']
 }
 
-const storageResourceValueSchema: JSONSchemaType<StorageResourceAttributeValue> = {
+const storageResourceValueSchema: Schema = {
   type: 'object',
   properties: {
     bucket: { type: 'string' },
@@ -46,7 +35,7 @@ const storageResourceValueSchema: JSONSchemaType<StorageResourceAttributeValue> 
   required: ['bucket', 'name']
 }
 
-const componentsValueSchema: JSONSchemaType<ComponentsAttributeValue> = {
+const componentsValueSchema: Schema = {
   type: 'array',
   items: {
     type: 'string',

@@ -1,6 +1,6 @@
 <script lang="ts" generics>
   import type { ArrayValue, InputValue } from './types'
-  import type { JSONSchemaType } from 'ajv'
+  import type { Schema } from '@exodus/schemasafe'
   import { Button } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import { dragHandleZone } from 'svelte-dnd-action'
@@ -9,7 +9,7 @@
 
   type wrappedT = { id: string; value: InputValue }
   interface Props {
-    schema: JSONSchemaType<ArrayValue>
+    schema: Schema,
     value?: ArrayValue
     onvalue: (e: ArrayValue) => void
   }

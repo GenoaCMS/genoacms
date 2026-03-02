@@ -1,13 +1,19 @@
 <script lang="ts">
   import type { ObjectValue } from './types'
-  import type { JSONSchemaType } from 'ajv'
-  import { Button, ButtonGroup, Card, Dropdown, Label, } from '$lib/components/ui/index'
+  import type { Schema } from '@exodus/schemasafe'
+  import {
+    Button,
+    ButtonGroup,
+    Card,
+    Dropdown,
+    Label,
+  } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import { extractProperties } from '../utils'
   import { dragHandle } from 'svelte-dnd-action'
 
   interface Props {
-    schema: JSONSchemaType<ObjectValue>
+    schema: Schema
     value: ObjectValue
     onvalue: (e: ObjectValue) => void
     ondelete: () => void
@@ -49,6 +55,7 @@
     value[name] = newVal
     onvalue(value)
   }
+
 </script>
 
 <Card class="w-full p-4 sm:p-6" size="xl">
