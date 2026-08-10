@@ -28,13 +28,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Each step runs even when an earlier one failed, and the root scripts use
+      # --no-bail, so one run reports every problem instead of one per push.
+      # The job still fails overall if any step does.
       - name: Lint
         run: pnpm run lint
 
       - name: Type check
+        if: always()
         run: pnpm run check
 
       - name: Build
+        if: always()
         run: pnpm run build
 
       # `pnpm run test` is deliberately not run here. The adapter suites talk to
