@@ -1,0 +1,19 @@
+<script lang="ts">
+  import type { Schema } from '@exodus/schemasafe'
+  import { Label } from '$lib/components/ui/index'
+  import Input from './Input.svelte'
+  import type { InputValue } from './types'
+
+  interface Props {
+    name: string
+    schema: Schema
+    value: InputValue
+    onvalue: (value: InputValue) => void
+  }
+  const { name, schema, value, onvalue }: Props = $props()
+</script>
+
+<Label>
+  {name}:
+  <Input {schema} {value} {onvalue} />
+</Label>
