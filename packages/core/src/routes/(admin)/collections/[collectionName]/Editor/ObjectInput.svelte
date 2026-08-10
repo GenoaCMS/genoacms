@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ObjectValue } from './types'
-  import type { Schema } from '@exodus/schemasafe'
+  import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
   import {
     Button,
     ButtonGroup,
@@ -13,7 +13,7 @@
   import { dragHandle } from 'svelte-dnd-action'
 
   interface Props {
-    schema: Schema
+    schema: SchemaObject
     value: ObjectValue
     onvalue: (e: ObjectValue) => void
     ondelete: () => void
@@ -21,9 +21,15 @@
 
   let { schema, value = {}, onvalue, ondelete }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
+  // a discriminated schema lists its alternatives under oneOf
+  const variants = $derived(
+    (schema.oneOf ?? [])
+      .map(asSchemaObject)
+      .filter((variant) => variant !== undefined)
+  )
   let selectedSchema = $state(pickUpSchemaFromValue())
   const objectSchema = $derived(
-    discriminator ? schema.oneOf[selectedSchema] : schema
+    discriminator ? variants[selectedSchema] ?? schema : schema
   )
   const properties = $derived(extractProperties(objectSchema))
 
@@ -36,9 +42,10 @@
     if (!discriminator) return 0
     const valueDiscriminator: string | undefined = value[discriminator]
     if (!valueDiscriminator) return 0
-    const index = schema.oneOf.findIndex(
-      (item: any) =>
-        item.properties[discriminator].const === valueDiscriminator
+    const index = variants.findIndex(
+      (variant) =>
+        asSchemaObject(variant.properties?.[discriminator])?.const ===
+        valueDiscriminator
     )
     return index === -1 ? 0 : index
   }
@@ -68,13 +75,13 @@
     <div class="m-auto">
       {#if discriminator}
         <ButtonGroup>
-          {#each schema.oneOf as item, index}
+          {#each variants as variant, index}
             <Button
               onclick={() => selectSchema(index)}
               color="blue"
               outline={index !== selectedSchema}
             >
-              {item.properties[discriminator].const}
+              {asSchemaObject(variant.properties?.[discriminator])?.const}
             </Button>
           {/each}
         </ButtonGroup>
@@ -90,15 +97,17 @@
     </div>
   </div>
 
-  {#each properties as property (objectSchema.properties[property.name])}
-    {@const schema = objectSchema.properties[property.name]}
-    <Label>
-      {property.name}:
-      <Input
-        {schema}
-        value={value[property.name]}
-        onvalue={(v) => updateValue(property.name, v)}
-      />
-    </Label>
+  {#each properties as property (property.name)}
+    {@const schema = asSchemaObject(objectSchema.properties?.[property.name])}
+    {#if schema}
+      <Label>
+        {property.name}:
+        <Input
+          {schema}
+          value={value[property.name]}
+          onvalue={(v) => updateValue(property.name, v)}
+        />
+      </Label>
+    {/if}
   {/each}
 </Card>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ResourcesValue, Errors } from '../types'
   import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-  import type { Schema } from '@exodus/schemasafe'
+  import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
   import StorageObject from './StorageObject.svelte'
@@ -9,9 +9,9 @@
   import { Helper } from '$lib/components/ui/index'
 
   type Props = {
-    schema: Schema;
+    schema: SchemaObject;
     value: ResourcesValue;
-    errors: Errors;
+    errors?: Errors;
     onvalue: (value: ResourcesValue) => void;
   }
   const { schema, value, errors, onvalue }: Props = $props()

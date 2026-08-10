@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { StringValue } from './types'
+  import type { InputValue } from './types'
 
   type Props = {
-    constValue: StringValue
-    onvalue: (e: StringValue) => void
+    constValue: InputValue
+    onvalue: (e: InputValue) => void
   }
   const { constValue, onvalue }: Props = $props()
 

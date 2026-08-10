@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Schema } from '@exodus/schemasafe'
+  import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'
   import EditSelection from './EditSelection.svelte'
@@ -7,7 +7,7 @@
 
   type T = string | number | boolean
   type Props = {
-    schema: Schema;
+    schema: SchemaObject;
     value: Array<T> | undefined;
     onvalue: (value: Array<T>) => void;
   }
@@ -25,7 +25,7 @@
     references = []
     updateValue()
   }
-  function getReferenceCollectionId (schema: Schema) {
+  function getReferenceCollectionId (schema: SchemaObject) {
     if (!schema.description) { throw new Error('For reference use helper function') }
     const collection = schema.description
     return collection

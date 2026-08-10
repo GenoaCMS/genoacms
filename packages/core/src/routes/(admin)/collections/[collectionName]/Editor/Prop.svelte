@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { Schema } from '@exodus/schemasafe'
+  import type { SchemaObject } from '$lib/script/schema'
   import { Label } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import type { InputValue } from './types'
 
   interface Props {
     name: string
-    schema: Schema
+    schema: SchemaObject
     value: InputValue
     onvalue: (value: InputValue) => void
   }

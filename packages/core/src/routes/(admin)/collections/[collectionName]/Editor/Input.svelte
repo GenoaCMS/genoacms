@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Schema } from '@exodus/schemasafe'
+  import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
   import type { InputValue } from './types'
   import StorageResources from '$lib/components/editors/StorageResource/StorageResources.svelte'
   import StorageResource from '$lib/components/editors/StorageResource/StorageResource.svelte'
@@ -16,7 +16,7 @@
   import TextInput from './TextInput.svelte'
 
   interface Props {
-    schema: Schema
+    schema: SchemaObject
     value: InputValue
     onvalue: (e: InputValue) => void
     ondelete?: () => void
@@ -29,6 +29,10 @@
     },
     ondelete = () => {},
   }: Props = $props()
+
+  // `items` may be absent or a tuple in JSON Schema; the editor only handles
+  // the single-schema form
+  const items = $derived(asSchemaObject(schema.items))
 </script>
 
 {#if schema.title === 'reference'}
@@ -45,9 +49,9 @@
   <NumberInput {schema} {value} {onvalue} />
 {:else if schema.type === 'boolean'}
   <BooleanInput {schema} {value} {onvalue} />
-{:else if schema.type === 'array' && schema.items.title === 'reference'}
-  <References schema={schema.items} {value} {onvalue} />
-{:else if schema.type === 'array' && schema.items.title === 'storageResource'}
+{:else if schema.type === 'array' && items?.title === 'reference'}
+  <References schema={items} {value} {onvalue} />
+{:else if schema.type === 'array' && items?.title === 'storageResource'}
   <StorageResources {schema} {value} {onvalue} />
 {:else if schema.title === 'storageResource'}
   <StorageResource {value} {onvalue} />
@@ -56,5 +60,5 @@
 {:else if schema.type === 'object'}
   <ObjectInput {schema} {value} {onvalue} {ondelete} />
 {:else if schema.const}
-  <Const constValue={schema.const} {onvalue} />
+  <Const constValue={schema.const as InputValue} {onvalue} />
 {/if}

@@ -26,7 +26,11 @@ type AttributeType =
 type AttributeReference = string
 
 interface AttributeBase {
+  // stable identity, preserved across re-analysis so page relations survive
   uid: AttributeReference
+  // derived from the component function's parameter name, and the key under
+  // which the attribute is stored in ComponentEntryAttributes
+  name: string
 }
 
 interface BooleanMetaSchema {

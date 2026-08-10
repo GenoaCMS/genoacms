@@ -1,6 +1,6 @@
 <script lang="ts" generics>
   import type { ArrayValue, InputValue } from './types'
-  import type { Schema } from '@exodus/schemasafe'
+  import type { SchemaObject } from '$lib/script/schema'
   import { Button } from '$lib/components/ui/index'
   import Input from './Input.svelte'
   import { dragHandleZone } from 'svelte-dnd-action'
@@ -9,7 +9,7 @@
 
   type wrappedT = { id: string; value: InputValue }
   interface Props {
-    schema: Schema,
+    schema: SchemaObject,
     value?: ArrayValue
     onvalue: (e: ArrayValue) => void
   }
@@ -65,7 +65,7 @@
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
         <Input
-          schema={schema.items as Schema}
+          schema={schema.items as SchemaObject}
           value={item.value}
           onvalue={(v) => updateItemValue(index, v)}
           ondelete={() => deleteItem(index)}

@@ -9,7 +9,7 @@
 
   type Props = {
     value: ResourceValue,
-    errors: Errors,
+    errors?: Errors,
     onvalue: (value: ResourceValue) => void
   }
   const { value, errors, onvalue }: Props = $props()

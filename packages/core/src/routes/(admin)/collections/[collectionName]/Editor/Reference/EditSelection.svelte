@@ -5,7 +5,7 @@
     selectionId: string
     collectionId: string
     hideDeleteButton?: boolean,
-    clear: () => void
+    clear?: () => void
   }
   const { selectionId, collectionId, hideDeleteButton = false, clear }: Props = $props()
   const selectHref = $derived(buildSelectURL(selectionId, collectionId))
