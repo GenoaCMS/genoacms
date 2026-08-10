@@ -80,9 +80,9 @@ function serve_prerendered() {
  */
 function parseRequest(cloudRunRequest) {
 	const protocol = cloudRunRequest.headers['x-forwarded-proto'] || 'http';
-  const hostname = cloudRunRequest.headers['x-forwarded-host'] || cloudRunRequest.headers['host'];
+	const hostname = cloudRunRequest.headers['x-forwarded-host'] || cloudRunRequest.headers['host'];
 	const host = `${protocol}://${hostname}`;
-	const {href, pathname, searchParams} = new URL(cloudRunRequest.url || '', host);
+	const { href, pathname, searchParams } = new URL(cloudRunRequest.url || '', host);
 	const request = new Request(href, {
 		method: cloudRunRequest.method,
 		headers: parseHeaders(cloudRunRequest.headers),
@@ -91,7 +91,7 @@ function parseRequest(cloudRunRequest) {
 		path: pathname,
 		query: searchParams
 	});
-  return request;
+	return request;
 }
 /**
  * @param {import('http').IncomingHttpHeaders} headers
@@ -102,9 +102,7 @@ function parseHeaders(headers) {
 	const finalHeaders = {};
 
 	for (const [key, value] of Object.entries(headers)) {
-		finalHeaders[key] = Array.isArray(value)
-			? value.join(',')
-			: value;
+		finalHeaders[key] = Array.isArray(value) ? value.join(',') : value;
 	}
 
 	return finalHeaders;
@@ -123,12 +121,12 @@ const ssr = async (req, res) => {
 		return;
 	}
 
-  setResponse(
+	setResponse(
 		res,
 		await server.respond(request, {
 			platform: { req },
 			getClientAddress: () => {
-        return request.headers.get('x-forwarded-for');
+				return request.headers.get('x-forwarded-for');
 			}
 		})
 	);

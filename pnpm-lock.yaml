@@ -256,6 +256,9 @@ importers:
       '@codemirror/merge':
         specifier: ^6.12.0
         version: 6.12.2
+      '@codemirror/state':
+        specifier: ^6.7.1
+        version: 6.7.1
       '@exodus/schemasafe':
         specifier: ^1.3.0
         version: 1.3.0
@@ -383,9 +386,15 @@ importers:
       '@genoacms/cli':
         specifier: workspace:^
         version: link:../cli
+      '@genoacms/sveltekit-adapter-cloud-run-functions':
+        specifier: workspace:^
+        version: link:../sveltekit-adapter-cloud-run-functions
       '@playwright/test':
         specifier: ^1.28.1
         version: 1.62.1
+      '@sveltejs/adapter-node':
+        specifier: ^5.2.12
+        version: 5.5.7(@sveltejs/kit@2.70.2(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.56.8(@typescript-eslint/types@8.66.0))(vite@7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)))(svelte@5.56.8(@typescript-eslint/types@8.66.0))(typescript@5.9.3)(vite@7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)))
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -395,6 +404,9 @@ importers:
       eslint-plugin-svelte:
         specifier: ^3.0.0
         version: 3.22.0(eslint@9.39.5(jiti@2.7.0))(svelte@5.56.8(@typescript-eslint/types@8.66.0))
+      globals:
+        specifier: ^14.0.0
+        version: 14.0.0
       neostandard:
         specifier: ^0.12.1
         version: 0.12.2(@typescript-eslint/utils@8.66.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.66.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
