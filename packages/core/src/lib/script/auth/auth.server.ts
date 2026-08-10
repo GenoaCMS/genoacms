@@ -1,6 +1,6 @@
 import { config } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
-import { CompactSign, jwtVerify } from 'jose'
+import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
 import { loginWithEmailAndPassword, isEmailAdmins } from './providers.server'
 
 const { cookieName, JWTSecret } = await config.authentication
@@ -27,7 +27,7 @@ async function login (email: string, password: string, cookies: Cookies) {
   cookies.set(cookieName, token, { path: '/' })
 }
 
-async function verifyAuthCookie (cookies: Cookies) {
+async function verifyAuthCookie (cookies: Cookies): Promise<JWTPayload | false> {
   const authCookie = cookies.get(cookieName)
   if (!authCookie) return false
   const result = await jwtVerify(authCookie, new TextEncoder().encode(JWTSecret))

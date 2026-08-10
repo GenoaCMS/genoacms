@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isNullable } from '$lib/script/schema'
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { TextAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Textarea, Card } from '$lib/components/ui/index'
@@ -25,5 +26,5 @@
     </h3>
   </div>
     <Textarea type="text" bind:value={data.value} maxlength={data.schema.maxLength || undefined}
-              required={!data.schema.nullable} {oninput}/>
+              required={!isNullable(data.schema)} {oninput}/>
 </Card>

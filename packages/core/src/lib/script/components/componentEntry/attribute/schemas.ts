@@ -20,8 +20,8 @@ const linkValueSchema: Schema = {
   type: 'object',
   properties: {
     isExternal: { type: 'boolean' },
-    url: { type: 'string', nullable: true },
-    pageName: { type: 'string', nullable: true }
+    url: { type: ['string', 'null'] },
+    pageName: { type: ['string', 'null'] }
   },
   required: ['isExternal']
 }

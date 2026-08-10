@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isNullable } from '$lib/script/schema'
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { NumberAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Input, Card } from '$lib/components/ui/index'
@@ -26,5 +27,5 @@
   </div>
     <Input type="number" bind:value={data.value} min={data.schema.minimum || undefined}
            max={data.schema.maximum || undefined} step={data.schema.multipleOf || undefined}
-           required={!data.schema.nullable} {oninput}/>
+           required={!isNullable(data.schema)} {oninput}/>
 </Card>

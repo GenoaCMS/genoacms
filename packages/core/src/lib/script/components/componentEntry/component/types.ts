@@ -83,12 +83,10 @@ interface LinkMetaSchema {
       type: 'boolean'
     },
     url: {
-      type: 'string',
-      nullable: true
+      type: ['string', 'null']
     },
     pageName: {
-      type: 'string',
-      nullable: true
+      type: ['string', 'null']
     }
   },
   required: ['isExternal']

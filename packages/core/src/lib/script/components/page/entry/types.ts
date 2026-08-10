@@ -1,4 +1,4 @@
-import type { Schema } from '@exodus/schemasafe'
+import type { SchemaObject } from '$lib/script/schema'
 import type { Diff } from 'deep-diff'
 import type { AttributeReference, AttributeType, ComponentEntryReference } from '$lib/script/components/componentEntry/component/types'
 import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
@@ -11,7 +11,7 @@ interface AttributeData<T extends AttributeType = AttributeType,
   uid: AttributeReference,
   name: string,
   type: T,
-  schema: isSerializable extends true ? undefined : Schema,
+  schema: isSerializable extends true ? undefined : SchemaObject,
   value: V
 }
 

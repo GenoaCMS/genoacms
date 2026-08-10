@@ -21,5 +21,15 @@ function asSchemaObject (schema: Schema | Schema[] | undefined): SchemaObject | 
   return schema
 }
 
-export { asSchemaObject }
+/**
+ * Whether a schema accepts null. JSON Schema expresses this by listing "null"
+ * among the allowed types — there is no `nullable` keyword (that is OpenAPI 3.0,
+ * which @exodus/schemasafe does not implement and would silently ignore).
+ */
+function isNullable (schema: SchemaObject): boolean {
+  const { type } = schema
+  return Array.isArray(type) ? type.includes('null') : type === 'null'
+}
+
+export { asSchemaObject, isNullable }
 export type { SchemaObject }

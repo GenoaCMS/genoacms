@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isNullable } from '$lib/script/schema'
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type { BooleanAttributeType } from '$lib/script/components/componentEntry/component/types'
   import { Card, Toggle } from '$lib/components/ui/index'
@@ -24,6 +25,6 @@
     </div>
     <span class="text-xl">{data.name}</span>
   </div>
-  <Toggle checked={data.value} {onchange} required={!data.schema.nullable}/>
+  <Toggle checked={data.value} {onchange} required={!isNullable(data.schema)}/>
   </div>
 </Card>
