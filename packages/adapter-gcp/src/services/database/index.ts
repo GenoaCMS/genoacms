@@ -37,17 +37,12 @@ const getCollection: Adapter['getCollection'] = async (reference) => {
   const documents: CollectionSnapshot<typeof reference> = []
 
   collection.forEach(document => {
-    const documentData: Document<typeof reference.schema> = {}
-    Object.keys(reference.schema.properties).forEach(key => {
-      documentData[key] = document.get(key)
-    })
-
     documents.push({
       reference: {
         collection: reference,
         id: document.id
       },
-      data: document.data() as Document<typeof reference.schema>
+      data: document.data() as Document<typeof reference>
     })
   })
   return documents
