@@ -21,12 +21,12 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test:all": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
-    "test:database": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
-    "test:storage": "npm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
+    "test:all": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
+    "test:database": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
+    "test:storage": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "^0.8.2",
+    "@genoacms/cloudabstraction": "workspace:^",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/functions": "^3.4.0",
     "@google-cloud/resource-manager": "^5.1.0",
@@ -46,7 +46,7 @@
     "vitest": "^1.0.4"
   },
   "peerDependencies": {
-		"@genoacms/sveltekit-adapter-cloud-run-functions": "^1.0.0"
+		"@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
   },
   "files": [
     "src",

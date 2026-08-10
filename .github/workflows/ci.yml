@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run check
+
+      - name: Build
+        run: pnpm run build
+
+      # `pnpm run test` is deliberately not run here. The adapter suites talk to
+      # live providers (MinIO, Postgres, AWS, GCP) and need credentials, the CLI's
+      # test script launches the interactive CLI, and core's needs Playwright
+      # browsers. None of these ever ran in CI as separate repos either. Run them
+      # per package on demand, e.g. `pnpm --filter @genoacms/adapter-postgres test`.
+      # Wiring them up as service containers / seeded credentials is follow-up work.

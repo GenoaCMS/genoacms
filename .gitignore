@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.svelte-kit/
+.sveltepress/
+coverage/
+packages/core/package/
+packages/sveltekit-adapter-cloud-run-functions/files/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# secrets and local credentials
+.env
+.env.*
+!.env.example
+serviceAccount.json
+credentials.json
+authCredentials.js
+
+# editors / os
+.idea/
+.DS_Store

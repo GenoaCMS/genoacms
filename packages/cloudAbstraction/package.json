@@ -15,9 +15,6 @@
     "url": "https://github.com/GenoaCMS/cloudAbstraction/issues"
   },
   "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
-  "publishConfig": {
-    "directory": "./src"
-  },
   "files": [
     "src",
     "test"
