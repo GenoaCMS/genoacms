@@ -75,21 +75,23 @@ function serve_prerendered() {
 }
 
 /**
- * @param {import('http').IncomingMessage} cloudRunRequest
+ * Cloud Run Functions augments the incoming request with the unparsed body,
+ * which `http.IncomingMessage` does not declare.
+ *
+ * @param {import('http').IncomingMessage & { rawBody?: Uint8Array<ArrayBuffer> }} cloudRunRequest
  * @returns {Request}
  */
 function parseRequest(cloudRunRequest) {
 	const protocol = cloudRunRequest.headers['x-forwarded-proto'] || 'http';
 	const hostname = cloudRunRequest.headers['x-forwarded-host'] || cloudRunRequest.headers['host'];
 	const host = `${protocol}://${hostname}`;
-	const { href, pathname, searchParams } = new URL(cloudRunRequest.url || '', host);
+	// href already carries protocol, host, path and query, so they do not need
+	// repeating in the init — RequestInit has no such fields and ignored them.
+	const { href } = new URL(cloudRunRequest.url || '', host);
 	const request = new Request(href, {
 		method: cloudRunRequest.method,
 		headers: parseHeaders(cloudRunRequest.headers),
-		body: cloudRunRequest.rawBody ?? null,
-		host,
-		path: pathname,
-		query: searchParams
+		body: cloudRunRequest.rawBody ?? null
 	});
 	return request;
 }
