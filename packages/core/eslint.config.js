@@ -21,6 +21,15 @@ export default ts.config(
         ...globals.browser,
         ...globals.node
       }
+    },
+    rules: {
+      // an underscore prefix marks a binding as deliberately unused — used for
+      // parameters that exist to document a signature that is not implemented yet
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }]
     }
   },
   {

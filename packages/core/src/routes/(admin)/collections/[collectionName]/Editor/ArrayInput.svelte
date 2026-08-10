@@ -65,7 +65,7 @@
     <div class="flex mt-1" animate:flip={{ duration: flipDurationMs }}>
       <div class="flex-grow">
         <Input
-          schema={schema.items as JSONSchemaType<InputValue>}
+          schema={schema.items as Schema}
           value={item.value}
           onvalue={(v) => updateItemValue(index, v)}
           ondelete={() => deleteItem(index)}

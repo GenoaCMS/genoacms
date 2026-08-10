@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LinkMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
+  import type { LinkMetaSchema, LinksMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import { getAttributeTypeIcon } from '$lib/components/components/utils'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'

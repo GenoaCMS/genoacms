@@ -16,7 +16,6 @@
   }
   const { schema, value, errors, onvalue }: Props = $props()
   let resources: ResourcesValue = $state(value || [])
-  const minItems = $derived(schema.minItems || 0)
   const maxItems = $derived(schema.maxItems || 0)
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)

@@ -15,7 +15,7 @@
     await submit()
   })
 
-  function scheduleCodeUpdate (currentCode: string) {
+  function scheduleCodeUpdate (_currentCode: string) {
     clearTimeout(updateTimeout)
     updateTimeout = setTimeout(() => {
       if (formElement) formElement.requestSubmit()

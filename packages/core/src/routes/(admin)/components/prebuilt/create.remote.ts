@@ -2,7 +2,6 @@ import { command } from '$app/server'
 import { validator } from '@exodus/schemasafe'
 import { componentEntryCreationSchema } from '$lib/script/components/componentEntry/component/schemas'
 import { createComponentEntry } from '$lib/script/components/componentEntry/component.server'
-import type { ComponentEntryCreation } from '$lib/script/components/componentEntry/component/types'
 
 const validate = validator(componentEntryCreationSchema)
 

@@ -16,7 +16,7 @@ export const updateDoc = command('unchecked', async (data: { collectionName: str
 
     await updateDocument({ collection: collectionReference, id: documentId }, documentData)
     return { status: 'success', text: 'Document updated' }
-  } catch (e) {
+  } catch {
     return { status: 'fail', text: 'Error updating document' }
   }
 })

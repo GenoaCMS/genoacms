@@ -9,7 +9,7 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
   let areCredentialsValid = false
   try {
     areCredentialsValid = await loginWithEmailAndPassword(email, password)
-  } catch (e) {
+  } catch {
     return false
   }
   if (!areCredentialsValid) return false

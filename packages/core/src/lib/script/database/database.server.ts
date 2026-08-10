@@ -23,7 +23,7 @@ function getCollectionReferences () {
 async function getCollectionReference (name: string): Promise<CollectionReference> {
   try {
     return await getObjectJSON({ name: `${collectionsDirectory}/${name}`, bucket: defaultBucketId })
-  } catch (error) {}
+  } catch {}
   const filtered = predefinedCollections.filter(obj => obj.name === name)
   if (filtered.length === 0) throw new Error('collection/not-found')
   return filtered[0]

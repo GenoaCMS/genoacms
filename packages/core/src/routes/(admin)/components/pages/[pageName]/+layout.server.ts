@@ -17,7 +17,7 @@ export const load = async ({ params }) => {
   }
   try {
     page = await deserializePageEntry(serializedPage)
-  } catch (e) {
+  } catch {
     return error(500, { message: `Failed to deserialize page "${pageName}"` })
   }
   return {

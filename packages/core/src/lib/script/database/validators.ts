@@ -43,10 +43,10 @@
 // TODO: Implement validators
 
 const formats = {
-  reference: (reference: string) => {
+  reference: (_reference: string) => {
     return true
   },
-  markdown: (markdown: string) => {
+  markdown: (_markdown: string) => {
     return true
   },
   storageResource: (resource: any): resource is { bucket: string, name: string } => {
@@ -56,7 +56,7 @@ const formats = {
     if (!resource.name) return false
     return true
   },
-  text: (text: string) => {
+  text: (_text: string) => {
     return true
   }
 }

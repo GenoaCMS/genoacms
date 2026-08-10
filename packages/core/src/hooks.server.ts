@@ -7,7 +7,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   let payload
   try {
     payload = await verifyAuthCookie(event.cookies)
-  } catch (e) {
+  } catch {
     event.cookies.delete(cookieName, {
       path: '/'
     })

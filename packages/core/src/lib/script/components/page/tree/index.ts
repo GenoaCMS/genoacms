@@ -33,7 +33,7 @@ const getStorageResourceURL = async (reference: ObjectReference) => {
   let url: string
   try {
     url = await getPublicURL(reference)
-  } catch (e) {
+  } catch {
     return ''
   }
   return url

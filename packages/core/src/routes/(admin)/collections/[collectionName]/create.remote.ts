@@ -16,7 +16,7 @@ export const createDoc = command('unchecked', async (data: { collectionName: str
 
     const documentInfo: any = await createDocument(collectionReference, documentData)
     return { status: 'success', text: 'Document created', id: documentInfo.reference?.id || documentInfo.id }
-  } catch (e) {
+  } catch {
     return { status: 'fail', text: 'Error creating document' }
   }
 })

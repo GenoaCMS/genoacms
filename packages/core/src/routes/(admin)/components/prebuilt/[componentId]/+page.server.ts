@@ -18,9 +18,9 @@ export const load: PageServerLoad = async ({ params }) => {
 }
 
 export const actions = {
-  undo: async ({ request }) => {
+  undo: async () => {
   },
-  redo: async ({ request }) => {
+  redo: async () => {
   },
   delete: async ({ params }) => {
     const { componentId } = params
