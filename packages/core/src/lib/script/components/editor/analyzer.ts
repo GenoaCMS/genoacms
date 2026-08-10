@@ -19,13 +19,15 @@ interface AttributeCodeType {
 
 /**
  * Type arguments in component code are optional and positional, so any of them
- * may be absent. These keep an omitted argument as undefined rather than NaN,
- * which is what the meta-schemas expect for "not set".
+ * may be absent. "Not set" is null rather than undefined because these objects
+ * are JSON-serialised before being validated and stored, and JSON.stringify
+ * drops undefined keys — which would fail the required fields in
+ * componentEntrySchema.
  */
-function optionalNumber (raw: string | undefined): number | undefined {
-  if (raw === undefined || raw.trim() === '') return undefined
+function optionalNumber (raw: string | undefined): number | null {
+  if (raw === undefined || raw.trim() === '') return null
   const parsed = Number(raw)
-  return Number.isNaN(parsed) ? undefined : parsed
+  return Number.isNaN(parsed) ? null : parsed
 }
 
 function optionalString (raw: string | undefined): string {
@@ -93,7 +95,7 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
           minimum: optionalNumber(attributeType.arguments[0]),
           maximum: optionalNumber(attributeType.arguments[1]),
           multipleOf: optionalNumber(attributeType.arguments[2]),
-          default: optionalNumber(attributeType.arguments[4]) ?? 0
+          default: optionalNumber(attributeType.arguments[4])
         }
       }
     case 'StringAttribute':

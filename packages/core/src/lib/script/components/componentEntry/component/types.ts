@@ -44,19 +44,19 @@ interface NumberMetaSchema {
   type: 'number',
   title: string,
   description: string,
-  minimum?: number,
-  maximum?: number,
-  multipleOf?: number,
+  minimum?: number | null,
+  maximum?: number | null,
+  multipleOf?: number | null,
   required: boolean,
-  default: number
+  default: number | null
 }
 
 interface StringMetaSchema {
   type: 'string',
   title: string,
   description: string,
-  minLength?: number,
-  maxLength?: number,
+  minLength?: number | null,
+  maxLength?: number | null,
   pattern?: string,
   format?: string,
   required: boolean,
@@ -96,9 +96,9 @@ interface LinksMetaSchema {
   title: string,
   description: string,
   items: LinkMetaSchema,
-  default?: Array<LinkAttributeValue>,
-  minItems?: number,
-  maxItems?: number,
+  default?: Array<LinkAttributeValue> | null,
+  minItems?: number | null,
+  maxItems?: number | null,
   required: boolean
 }
 
@@ -120,9 +120,9 @@ interface StorageResourcesMetaSchema {
   title: string,
   description: string,
   items: StorageResourceMetaSchema,
-  default?: Array<StorageObject>,
-  minItems?: number,
-  maxItems?: number,
+  default?: Array<StorageObject> | null,
+  minItems?: number | null,
+  maxItems?: number | null,
   required: boolean
 }
 
@@ -134,9 +134,9 @@ interface ComponentsAttributeMetaSchema {
     type: 'string',
     enum?: Array<string>
   },
-  default?: Array<string>,
-  minItems?: number,
-  maxItems?: number,
+  default?: Array<string> | null,
+  minItems?: number | null,
+  maxItems?: number | null,
   required: boolean
 }
 

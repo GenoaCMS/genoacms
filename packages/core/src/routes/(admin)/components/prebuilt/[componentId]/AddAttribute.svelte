@@ -25,18 +25,18 @@
     type: 'number',
     title: '',
     description: '',
-    minimum: undefined,
-    maximum: undefined,
-    multipleOf: undefined,
+    minimum: null,
+    maximum: null,
+    multipleOf: null,
     required: false,
-    default: undefined
+    default: null
   }
   const stringSchemaInit: StringMetaSchema = {
     type: 'string',
     title: '',
     description: '',
-    minLength: undefined,
-    maxLength: undefined,
+    minLength: null,
+    maxLength: null,
     pattern: '',
     format: '',
     required: false,
@@ -57,8 +57,8 @@
     description: '',
     items: linkSchemaInit,
     default: [],
-    minItems: undefined,
-    maxItems: undefined,
+    minItems: null,
+    maxItems: null,
     required: false
   }
   const storageResourceSchemaInit: StorageResourceMetaSchema = {
@@ -79,8 +79,8 @@
     description: '',
     items: storageResourceSchemaInit,
     default: [],
-    minItems: undefined,
-    maxItems: undefined,
+    minItems: null,
+    maxItems: null,
     required: false
   }
   const componentsSchemaInit = {
@@ -92,8 +92,8 @@
       enum: []
     },
     default: [],
-    minItems: undefined,
-    maxItems: undefined,
+    minItems: null,
+    maxItems: null,
     required: false
   }
   // each entry pairs an attribute type with the meta-schema it starts from

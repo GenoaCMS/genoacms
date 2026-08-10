@@ -1,6 +1,6 @@
 <script lang="ts">
     interface Props {
-      value?: string | number
+      value?: string | number | null
       class?: string
       [key: string]: any
     }
