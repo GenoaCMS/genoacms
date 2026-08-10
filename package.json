@@ -26,7 +26,7 @@
     "docs:dev": "pnpm --filter @genoacms/docs dev",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm --filter=\"!@genoacms/docs\" -r run build && changeset publish"
+    "release": "changeset publish"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",

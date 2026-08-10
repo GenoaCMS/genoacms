@@ -21,6 +21,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
+    "prepublishOnly": "pnpm run build",
     "test:all": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
     "test:database": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
     "test:storage": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
