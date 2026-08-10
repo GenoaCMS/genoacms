@@ -1,0 +1,58 @@
+{
+  "name": "@genoacms/adapter-aws",
+  "version": "0.6.2-fix.3",
+  "description": "Adapter for abstraction layer for GenoaCMS",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GenoaCMS/adapter-aws.git"
+  },
+  "license": "ISC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test:all": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
+    "test:database": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
+    "test:storage": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-api-gateway": "^3.598.0",
+    "@aws-sdk/client-dynamodb": "^3.436.0",
+    "@aws-sdk/client-iam": "^3.540.0",
+    "@aws-sdk/client-lambda": "^3.540.0",
+    "@aws-sdk/client-s3": "^3.436.0",
+    "@aws-sdk/lib-storage": "^3.540.0",
+    "@aws-sdk/s3-request-presigner": "^3.509.0",
+    "@genoacms/cloudabstraction": "^0.6.2",
+    "archiver": "^7.0.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1",
+    "eslint": "^8.52.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-n": "^16.2.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "jsdoc": "^4.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
+  },
+  "exports": {
+    "./authorization": {
+      "import": "./src/services/authorization/index.js"
+    },
+    "./database": {
+      "import": "./src/services/database/index.js"
+    },
+    "./deployment": {
+      "import": "./src/services/deployment/index.js"
+    },
+    "./storage": {
+      "import": "./src/services/storage/index.js"
+    }
+  }
+}

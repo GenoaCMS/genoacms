@@ -1,0 +1,249 @@
+/**
+ * @typedef {import('@genoacms/cloudabstraction/database').Adapter} Adapter
+ */
+import {
+  GetItemCommand,
+  DynamoDBClient,
+  PutItemCommand,
+  DeleteItemCommand,
+  ScanCommand
+} from '@aws-sdk/client-dynamodb'
+import { config } from '@genoacms/cloudabstraction'
+import { v4 as uuid4 } from 'uuid'
+
+const client = new DynamoDBClient({
+  region: config.database.region,
+  credentials: config.database.credentials
+})
+
+/**
+ * @param {import('@genoacms/cloudabstraction').database.Document} document
+ * @returns {import('@aws-sdk/client-dynamodb').AttributeValueMap
+ */
+function documentToDynamoItem (document) {
+  const item = {}
+  for (const [key, value] of Object.entries(document)) {
+    item[key] = convertToDynamoAttribute(value)
+  }
+  return item
+}
+
+/**
+ * @param {any} value
+ * @returns {import('@aws-sdk/client-dynamodb').AttributeValue}
+ */
+function convertToDynamoAttribute (value) {
+  switch (typeof value) {
+    case 'string':
+      return { S: value }
+    case 'number':
+      return { N: value.toString() }
+    case 'boolean':
+      return { BOOL: value }
+    case 'object':
+      if (Array.isArray(value)) {
+        return { L: value.map(convertToDynamoAttribute) }
+      } else if (value === null) {
+        return { NULL: true }
+      } else {
+        return { M: documentToDynamoItem(value) }
+      }
+    default:
+      throw new Error('unsupported-type')
+  }
+}
+
+/**
+ * @param {import('@aws-sdk/client-dynamodb').AttributeValueMap} item
+ * @returns {import('@genoacms/cloudabstraction').database.Document}
+ */
+function dynamoItemToObject (item) {
+  const document = {}
+  for (const [key, value] of Object.entries(item)) {
+    document[key] = dynamoAttributeToObject(value)
+  }
+  return document
+}
+
+/**
+ * @param {import('@aws-sdk/client-dynamodb').AttributeValue} value
+ * @returns {any}
+ */
+function dynamoAttributeToObject (value) {
+  const typeKey = Object.keys(value)[0]
+  switch (typeKey) {
+    case 'S':
+      return value.S
+    case 'N':
+      return Number(value.N)
+    case 'BOOL':
+      return value.BOOL
+    case 'L':
+      return value.L.map(dynamoAttributeToObject)
+    case 'M':
+      return dynamoItemToObject(value.M)
+    case 'NULL':
+      return null
+    default:
+      throw new Error('unsupported-type')
+  }
+}
+
+function generateID ({ primaryKey }) {
+  return {
+    [primaryKey.key]: uuid4()
+  }
+}
+
+/**
+ * @type {Adapter.createDocument}
+ */
+async function createDocument ({ name, primaryKey, schema }, document) {
+  const documentToCreate = {
+    ...generateID({ primaryKey }),
+    ...document
+  }
+  const Item = documentToDynamoItem(documentToCreate)
+  const command = new PutItemCommand({
+    TableName: name,
+    Item
+  })
+  try {
+    await client.send(command)
+    /**
+     * @type {import('@genoacms/cloudabstraction/database').DocumentSnapshot<typeof collection>}
+     */
+    const snapshot = {
+      reference: {
+        collection: {
+          name,
+          primaryKey,
+          schema
+        },
+        id: documentToCreate[primaryKey.key]
+      },
+      data: document
+    }
+    return snapshot
+  } catch (err) {
+    throw new Error('document-creation-failed')
+  }
+}
+
+/**
+ * @type {Adapter.getCollection}
+ */
+async function getCollection (reference) {
+  const command = new ScanCommand({
+    TableName: reference.name
+  })
+  try {
+    const response = await client.send(command)
+    const documents = []
+    for (const document of response.Items) {
+      let id
+      if (reference.primaryKey.schema.type === 'string') {
+        id = document[reference.primaryKey.key].S
+      } else {
+        id = document[reference.primaryKey.key].N
+      }
+      documents.push({
+        reference: {
+          collection: reference,
+          id
+        },
+        data: dynamoItemToObject(document)
+      })
+    }
+    return documents
+  } catch (err) {
+    throw new Error('collection-fetching-failed')
+  }
+}
+
+/**
+ * @type {Adapter.getDocument}
+ */
+async function getDocument ({ collection, id }) {
+  const Key = documentToDynamoItem({
+    [collection.primaryKey.key]: id
+  })
+  const command = new GetItemCommand({
+    TableName: collection.name,
+    Key
+  })
+  try {
+    const response = await client.send(command)
+    const object = dynamoItemToObject(response.Item)
+    delete object[collection.primaryKey.key]
+    /**
+     * @type {import('@genoacms/cloudabstraction/database').DocumentSnapshot<typeof collection>}
+     */
+    const snapshot = {
+      reference: {
+        collection,
+        id
+      },
+      data: object
+    }
+    return snapshot
+  } catch (err) {
+    throw new Error('document-fetching-failed')
+  }
+}
+
+/**
+ * @type {Adapter.updateDocument}
+ */
+async function updateDocument (reference, document) {
+  const Key = documentToDynamoItem({
+    [reference.collection.primaryKey.key]: reference.id
+  })
+  const Item = {
+    ...documentToDynamoItem(document),
+    ...Key
+  }
+  const command = new PutItemCommand({
+    TableName: reference.collection.name,
+    Item
+  })
+  try {
+    await client.send(command)
+    /**
+     * @type {import('@genoacms/cloudabstraction/database').UpdateSnapshot<typeof reference.collection>}
+     */
+    const snapshot = {
+      reference,
+      data: document
+    }
+    return snapshot
+  } catch (err) {
+    throw new Error('document-updating-failed')
+  }
+}
+
+/**
+ * @type {Adapter.deleteDocument}
+ */
+async function deleteDocument ({ collection, id }) {
+  const Key = documentToDynamoItem({
+    [collection.primaryKey.key]: id
+  })
+  const command = new DeleteItemCommand({
+    TableName: collection.name,
+    Key
+  })
+  try {
+    await client.send(command)
+  } catch (err) {
+    throw new Error('document-deletion-failed')
+  }
+}
+
+export {
+  createDocument,
+  getCollection,
+  getDocument,
+  updateDocument,
+  deleteDocument
+}
