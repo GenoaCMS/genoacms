@@ -10,7 +10,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/authorization-adapter-array.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/authorization-adapter-array"
   },
   "license": "ISC",
   "dependencies": {

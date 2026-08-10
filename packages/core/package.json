@@ -3,7 +3,8 @@
 	"version": "0.0.37",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/GenoaCMS/core.git"
+		"url": "git+https://github.com/GenoaCMS/genoacms.git",
+		"directory": "packages/core"
 	},
 	"author": {
 		"name": "Filip Holčík",

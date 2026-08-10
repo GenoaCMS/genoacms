@@ -13,9 +13,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/adapter-minio.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-minio"
   },
-  "homepage": "https://github.com/GenoaCMS/adapter-minio#readme",
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/adapter-minio#readme",
   "license": "ISC",
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",

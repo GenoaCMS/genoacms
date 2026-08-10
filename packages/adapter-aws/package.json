@@ -8,7 +8,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/GenoaCMS/adapter-aws.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-aws"
   },
   "license": "ISC",
   "main": "index.js",

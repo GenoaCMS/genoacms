@@ -8,13 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/cloudAbstraction.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/cloudAbstraction"
   },
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/GenoaCMS/cloudAbstraction/issues"
+    "url": "https://github.com/GenoaCMS/genoacms/issues"
   },
-  "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/cloudAbstraction#readme",
   "files": [
     "src",
     "test"

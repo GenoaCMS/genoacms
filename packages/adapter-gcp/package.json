@@ -5,7 +5,8 @@
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/adapter-gcp.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-gcp"
   },
   "author": {
     "name": "Filip Holčík",
@@ -13,9 +14,9 @@
   },
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/GenoaCMS/adapter-gcp/issues"
+    "url": "https://github.com/GenoaCMS/genoacms/issues"
   },
-  "homepage": "https://github.com/GenoaCMS/adapter-gcp#readme",
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/adapter-gcp#readme",
   "publishConfig": {
     "provenance": true
   },

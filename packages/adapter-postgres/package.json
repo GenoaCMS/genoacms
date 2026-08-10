@@ -13,9 +13,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/adapter-postgres.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-postgres"
   },
-  "homepage": "https://github.com/GenoaCMS/adapter-postgres#readme",
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/adapter-postgres#readme",
   "license": "ISC",
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",

@@ -27,6 +27,12 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org/
 
+      # changesets shells out to `npm publish`, and OIDC trusted publishing needs
+      # npm >= 11.5.1. Node 22 bundles npm 10.9.x, which has no OIDC support at
+      # all — it goes straight to token auth and fails with ENEEDAUTH.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@^11.5.1
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -41,5 +47,9 @@ jobs:
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No NODE_AUTH_TOKEN: publishing goes through OIDC trusted publishing,
+          # configured per package on npmjs.com. setup-node writes an .npmrc line
+          # of `_authToken=${NODE_AUTH_TOKEN}`, so passing an unset secret leaves
+          # an empty token there for npm to trip over. To go back to token auth,
+          # add the secret and restore this line.
           NPM_CONFIG_PROVENANCE: true

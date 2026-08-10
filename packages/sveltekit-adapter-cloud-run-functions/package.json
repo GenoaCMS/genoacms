@@ -12,7 +12,8 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/GenoaCMS/sveltekit-adapter-cloud-run-functions"
+		"url": "git+https://github.com/GenoaCMS/genoacms.git",
+		"directory": "packages/sveltekit-adapter-cloud-run-functions"
 	},
 	"license": "MIT",
 	"type": "module",

@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GenoaCMS/adapter-node.git"
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-node"
   },
   "author": {
     "name": "Filip Holčík",
