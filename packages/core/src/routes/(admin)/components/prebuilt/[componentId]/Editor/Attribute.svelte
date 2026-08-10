@@ -69,18 +69,18 @@
     Description:
     <Textarea bind:value={value.schema.description} />
   </Label>
-  {#if attribute.type === 'boolean'}
+  {#if value.type === 'boolean'}
     <BooleanAttribute
       bind:default={value.schema.default}
     />
-  {:else if attribute.type === 'number'}
+  {:else if value.type === 'number'}
     <NumberAttribute
       bind:default={value.schema.default}
       bind:minimum={value.schema.minimum}
       bind:maximum={value.schema.maximum}
       bind:multipleOf={value.schema.multipleOf}
     />
-  {:else if attribute.type === 'string'}
+  {:else if value.type === 'string'}
     <StringAttribute
       bind:default={value.schema.default}
       bind:minLength={value.schema.minLength}
@@ -88,7 +88,7 @@
       bind:pattern={value.schema.pattern}
       bind:format={value.schema.format}
     />
-  {:else if attribute.type === 'text'}
+  {:else if value.type === 'text'}
     <TextAttribute
       bind:default={value.schema.default}
       bind:minLength={value.schema.minLength}
@@ -96,7 +96,7 @@
       bind:pattern={value.schema.pattern}
       bind:format={value.schema.format}
     />
-  {:else if attribute.type === 'markdown'}
+  {:else if value.type === 'markdown'}
     <MarkdownAttribute
       bind:default={value.schema.default}
       bind:minLength={value.schema.minLength}
@@ -104,17 +104,27 @@
       bind:pattern={value.schema.pattern}
       bind:format={value.schema.format}
     />
-  {:else if attribute.type === 'richText'}
-    <RichTextAttribute />
-  {:else if attribute.type === 'link'}
+  {:else if value.type === 'richText'}
+    <RichTextAttribute
+      bind:default={value.schema.default}
+      bind:minLength={value.schema.minLength}
+      bind:maxLength={value.schema.maxLength}
+      bind:pattern={value.schema.pattern}
+      bind:format={value.schema.format}
+    />
+  {:else if value.type === 'link'}
     <LinkAttribute
       bind:default={value.schema.default}
       bind:minItems={value.schema.minItems}
       bind:maxItems={value.schema.maxItems}
     />
-  {:else if attribute.type === 'storageResource'}
-    <StorageResourceAttribute />
-  {:else if attribute.type === 'components'}
+  {:else if value.type === 'storageResource'}
+    <StorageResourceAttribute
+      bind:default={value.schema.default}
+      bind:minItems={value.schema.minItems}
+      bind:maxItems={value.schema.maxItems}
+    />
+  {:else if value.type === 'components'}
     <ComponentsAttribute
       bind:default={value.schema.default}
       bind:minItems={value.schema.minItems}

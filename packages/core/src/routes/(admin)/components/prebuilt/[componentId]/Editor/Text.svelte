@@ -1,13 +1,14 @@
 <script lang="ts">
+  import type { StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label, Textarea } from '$lib/components/ui/index'
 
   interface Props {
-    default: string,
-    minLength: number,
-    maxLength: number,
-    pattern: string,
-    format: string
+    default: StringMetaSchema['default'],
+    minLength: StringMetaSchema['minLength'],
+    maxLength: StringMetaSchema['maxLength'],
+    pattern: StringMetaSchema['pattern'],
+    format: StringMetaSchema['format']
   }
   let { default: d = $bindable(), minLength = $bindable(), maxLength = $bindable(), pattern = $bindable(), format = $bindable() }: Props = $props()
 </script>

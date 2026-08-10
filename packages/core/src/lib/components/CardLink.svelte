@@ -3,6 +3,7 @@
 
   type Props = {
     icon: string
+    class?: string
     text: string
     href?: string,
     noscale?: boolean,

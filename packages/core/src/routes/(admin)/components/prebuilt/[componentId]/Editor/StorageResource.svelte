@@ -1,11 +1,12 @@
 <script lang="ts">
+  import type { StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label } from '$lib/components/ui/index'
 
   interface Props {
-    default: Array<string>,
-    maxItems: number,
-    minItems: number
+    default: StorageResourcesMetaSchema['default'],
+    maxItems: StorageResourcesMetaSchema['maxItems'],
+    minItems: StorageResourcesMetaSchema['minItems']
   }
 
   let {

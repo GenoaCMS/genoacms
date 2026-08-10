@@ -1,14 +1,15 @@
 <script lang="ts">
+  import type { StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import { Input, Label } from '$lib/components/ui/index'
   import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
 
   interface Props {
-    default: string;
-    minLength: number;
-    maxLength: number;
-    pattern: string;
-    format: string;
+    default: StringMetaSchema['default'];
+    minLength: StringMetaSchema['minLength'];
+    maxLength: StringMetaSchema['maxLength'];
+    pattern: StringMetaSchema['pattern'];
+    format: StringMetaSchema['format'];
   }
   let {
     default: d = $bindable(),

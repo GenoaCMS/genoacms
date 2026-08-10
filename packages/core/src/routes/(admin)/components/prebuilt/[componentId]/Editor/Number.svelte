@@ -1,12 +1,13 @@
 <script lang="ts">
+  import type { NumberMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label } from '$lib/components/ui/index'
 
   interface Props {
-    default: number,
-    minimum: number,
-    maximum: number,
-    multipleOf: number
+    default: NumberMetaSchema['default'],
+    minimum: NumberMetaSchema['minimum'],
+    maximum: NumberMetaSchema['maximum'],
+    multipleOf: NumberMetaSchema['multipleOf']
   }
   let { default: d = $bindable(), minimum = $bindable(), maximum = $bindable(), multipleOf = $bindable() }: Props = $props()
 </script>

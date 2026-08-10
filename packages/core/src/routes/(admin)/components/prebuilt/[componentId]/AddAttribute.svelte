@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LinkMetaSchema, LinksMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
+  import type { Attribute, AttributeType, LinkMetaSchema, LinksMetaSchema, StringMetaSchema, StorageResourceMetaSchema, StorageResourcesMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import { getAttributeTypeIcon } from '$lib/components/components/utils'
   import CardLink from '$lib/components/CardLink.svelte'
   import Portal from '$lib/components/Portal.svelte'
@@ -8,7 +8,7 @@
   let isModalOpen = $state(false)
 
   interface Props {
-    onadd: (attributeInit: Record<string, unknown>) => void
+    onadd: (attribute: Attribute) => void
   }
   const { onadd }: Props = $props()
   const toggleModal = () => {
@@ -25,18 +25,18 @@
     type: 'number',
     title: '',
     description: '',
-    minimum: null,
-    maximum: null,
-    multipleOf: null,
+    minimum: undefined,
+    maximum: undefined,
+    multipleOf: undefined,
     required: false,
-    default: null
+    default: undefined
   }
   const stringSchemaInit: StringMetaSchema = {
     type: 'string',
     title: '',
     description: '',
-    minLength: null,
-    maxLength: null,
+    minLength: undefined,
+    maxLength: undefined,
     pattern: '',
     format: '',
     required: false,
@@ -57,8 +57,8 @@
     description: '',
     items: linkSchemaInit,
     default: [],
-    minItems: null,
-    maxItems: null,
+    minItems: undefined,
+    maxItems: undefined,
     required: false
   }
   const storageResourceSchemaInit: StorageResourceMetaSchema = {
@@ -79,8 +79,8 @@
     description: '',
     items: storageResourceSchemaInit,
     default: [],
-    minItems: null,
-    maxItems: null,
+    minItems: undefined,
+    maxItems: undefined,
     required: false
   }
   const componentsSchemaInit = {
@@ -92,11 +92,12 @@
       enum: []
     },
     default: [],
-    minItems: null,
-    maxItems: null,
+    minItems: undefined,
+    maxItems: undefined,
     required: false
   }
-  const types = [
+  // each entry pairs an attribute type with the meta-schema it starts from
+  const types: Array<{ name: AttributeType, schema: object }> = [
     { name: 'boolean', schema: booleanSchemaInit },
     { name: 'number', schema: numberSchemaInit },
     { name: 'string', schema: stringSchemaInit },
@@ -107,14 +108,13 @@
     { name: 'storageResource', schema: storageResourcesSchemaInit },
     { name: 'components', schema: componentsSchemaInit }
   ]
-  function add (type: string, schema: Record<string, unknown>) {
+  function add (type: AttributeType, schema: object) {
     const uid = crypto.randomUUID()
-    const init = {
-      uid,
-      type,
-      schema
-    }
-    onadd(init)
+    // prebuilt attributes have no component code to derive a name from, and the
+    // user-facing label lives in schema.title, so they are keyed by uid.
+    // The cast is needed because TypeScript cannot correlate `type` with the
+    // matching meta-schema across the `types` array.
+    onadd({ uid, name: uid, type, schema } as Attribute)
   }
 
 </script>

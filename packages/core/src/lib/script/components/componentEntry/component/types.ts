@@ -1,5 +1,4 @@
 import type { Diff } from 'deep-diff'
-import type { Schema } from '@exodus/schemasafe'
 
 type BooleanAttributeType = 'boolean'
 type NumberAttributeType = 'number'
@@ -56,8 +55,8 @@ interface StringMetaSchema {
   type: 'string',
   title: string,
   description: string,
-  minLength?: number | null,
-  maxLength?: number | null,
+  minLength?: number,
+  maxLength?: number,
   pattern?: string,
   format?: string,
   required: boolean,
@@ -97,9 +96,9 @@ interface LinksMetaSchema {
   title: string,
   description: string,
   items: LinkMetaSchema,
-  default?: Array<LinkAttributeValue> | null,
-  minItems?: number | null,
-  maxItems?: number | null,
+  default?: Array<LinkAttributeValue>,
+  minItems?: number,
+  maxItems?: number,
   required: boolean
 }
 
@@ -121,9 +120,9 @@ interface StorageResourcesMetaSchema {
   title: string,
   description: string,
   items: StorageResourceMetaSchema,
-  default?: Array<StorageObject> | null,
-  minItems?: number | null,
-  maxItems?: number | null,
+  default?: Array<StorageObject>,
+  minItems?: number,
+  maxItems?: number,
   required: boolean
 }
 
@@ -135,7 +134,7 @@ interface ComponentsAttributeMetaSchema {
     type: 'string',
     enum?: Array<string>
   },
-  default?: Array<string> | null,
+  default?: Array<string>,
   minItems?: number,
   maxItems?: number,
   required: boolean
@@ -143,12 +142,12 @@ interface ComponentsAttributeMetaSchema {
 
 interface BooleanAttribute extends AttributeBase {
   type: BooleanAttributeType,
-  schema: Schema
+  schema: BooleanMetaSchema
 }
 
 interface NumberAttribute extends AttributeBase {
   type: NumberAttributeType,
-  schema: Schema,
+  schema: NumberMetaSchema,
   decimalPlaces: number
 }
 
@@ -157,10 +156,11 @@ interface StringAttribute extends AttributeBase {
   schema: StringMetaSchema
 }
 
+// text shares StringMetaSchema with string/markdown/richText; maxLength and the
+// default live inside the schema as they do for every other attribute
 interface TextAttribute extends AttributeBase {
   type: TextAttributeType,
-  maxLength: number,
-  defaultValue: string
+  schema: StringMetaSchema
 }
 
 interface MarkdownAttribute extends AttributeBase {
@@ -188,7 +188,7 @@ interface ComponentsAttribute extends AttributeBase {
   component: string,
   maxComponents: number,
   allowedComponents: Array<string>,
-  schema: Schema
+  schema: ComponentsAttributeMetaSchema
 }
 
 type Attribute =

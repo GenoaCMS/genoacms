@@ -1,4 +1,12 @@
-import type { Attribute, AttributeBase, BooleanAttribute, ComponentEntry, ComponentEntryAttributes } from '../componentEntry/component/types'
+import type {
+  Attribute,
+  AttributeBase,
+  BooleanAttribute,
+  ComponentEntry,
+  ComponentEntryAttributes,
+  LinksMetaSchema,
+  StorageResourcesMetaSchema
+} from '../componentEntry/component/types'
 import type { FunctionDeclaration, ParameterDeclaration } from 'ts-morph'
 
 import { Project } from 'ts-morph'
@@ -7,6 +15,29 @@ import { ComponentCodeError } from './errors'
 interface AttributeCodeType {
   name: string
   arguments: Array<string>
+}
+
+/**
+ * Type arguments in component code are optional and positional, so any of them
+ * may be absent. These keep an omitted argument as undefined rather than NaN,
+ * which is what the meta-schemas expect for "not set".
+ */
+function optionalNumber (raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.trim() === '') return undefined
+  const parsed = Number(raw)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+function optionalString (raw: string | undefined): string {
+  return raw?.trim() ?? ''
+}
+
+// every attribute's meta-schema carries the fields the editor's shared header
+// binds to: title, description and required
+interface MetaSchemaBase {
+  title: string
+  description: string
+  required: boolean
 }
 
 function parseAttributeType (text: string): AttributeCodeType {
@@ -28,16 +59,26 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
 
   const attributeBase: AttributeBase = {
     uid: crypto.randomUUID(),
-    name,
-    description: '',
-    isRequired: attributeType.arguments[1] === 'true'
+    name
   }
+  // title defaults to the parameter name; description and required are not
+  // expressible in component code and are edited in the CMS afterwards
+  const metaBase: MetaSchemaBase = {
+    title: name,
+    description: '',
+    required: attributeType.arguments[1] === 'true'
+  }
+
   switch (attributeType.name) {
     case 'BooleanAttribute': {
       const attribute: BooleanAttribute = {
         ...attributeBase,
         type: 'boolean',
-        defaultValue: attributeType.arguments[0] === 'true'
+        schema: {
+          ...metaBase,
+          type: 'boolean',
+          default: attributeType.arguments[0] === 'true'
+        }
       }
       return attribute
     }
@@ -45,59 +86,123 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
       return {
         ...attributeBase,
         type: 'number',
-        min: parseFloat(attributeType.arguments[0]),
-        max: parseFloat(attributeType.arguments[1]),
-        step: parseFloat(attributeType.arguments[2]),
-        decimalPlaces: parseFloat(attributeType.arguments[3]),
-        defaultValue: parseFloat(attributeType.arguments[4])
+        decimalPlaces: optionalNumber(attributeType.arguments[3]) ?? 0,
+        schema: {
+          ...metaBase,
+          type: 'number',
+          minimum: optionalNumber(attributeType.arguments[0]),
+          maximum: optionalNumber(attributeType.arguments[1]),
+          multipleOf: optionalNumber(attributeType.arguments[2]),
+          default: optionalNumber(attributeType.arguments[4]) ?? 0
+        }
       }
     case 'StringAttribute':
       return {
         ...attributeBase,
         type: 'string',
-        regex: attributeType.arguments[0],
-        maxLength: parseFloat(attributeType.arguments[1]),
-        defaultValue: attributeType.arguments[2]
+        schema: {
+          ...metaBase,
+          type: 'string',
+          pattern: optionalString(attributeType.arguments[0]),
+          maxLength: optionalNumber(attributeType.arguments[1]),
+          default: optionalString(attributeType.arguments[2])
+        }
       }
     case 'TextAttribute':
       return {
         ...attributeBase,
         type: 'text',
-        maxLength: parseFloat(attributeType.arguments[0]),
-        defaultValue: attributeType.arguments[1]
+        schema: {
+          ...metaBase,
+          type: 'string',
+          maxLength: optionalNumber(attributeType.arguments[0]),
+          default: optionalString(attributeType.arguments[1])
+        }
       }
     case 'MarkdownAttribute':
       return {
         ...attributeBase,
         type: 'markdown',
-        defaultValue: attributeType.arguments[0]
+        schema: {
+          ...metaBase,
+          type: 'string',
+          format: 'markdown',
+          default: optionalString(attributeType.arguments[0])
+        }
       }
     case 'RichTextAttribute':
       return {
         ...attributeBase,
         type: 'richText',
-        defaultValue: attributeType.arguments[0]
+        schema: {
+          ...metaBase,
+          type: 'string',
+          default: optionalString(attributeType.arguments[0])
+        }
       }
     case 'LinkAttribute':
       return {
         ...attributeBase,
-        type: 'link'
+        type: 'link',
+        schema: linksMetaSchema(metaBase)
       }
     case 'StorageResourceAttribute':
       return {
         ...attributeBase,
-        type: 'storageResource'
+        type: 'storageResource',
+        schema: storageResourcesMetaSchema(metaBase)
       }
-    case 'ComponentsAttribute':
+    case 'ComponentsAttribute': {
+      const allowedComponents = optionalString(attributeType.arguments[2])
+        .split('|')
+        .filter((component) => component !== '')
       return {
         ...attributeBase,
         type: 'components',
-        component: attributeType.arguments[0],
-        maxComponents: parseInt(attributeType.arguments[1]),
-        allowedComponents: attributeType.arguments[2].split('|')
+        component: optionalString(attributeType.arguments[0]),
+        maxComponents: optionalNumber(attributeType.arguments[1]) ?? 0,
+        allowedComponents,
+        schema: {
+          ...metaBase,
+          type: 'array',
+          items: { type: 'string', enum: allowedComponents },
+          maxItems: optionalNumber(attributeType.arguments[1])
+        }
       }
+    }
     default: {
       throw new ComponentCodeError('invalid-attribute-type', `Invalid attribute type ${attributeType.name}`)
+    }
+  }
+}
+
+function linksMetaSchema (metaBase: MetaSchemaBase): LinksMetaSchema {
+  return {
+    ...metaBase,
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        isExternal: { type: 'boolean' },
+        url: { type: ['string', 'null'] },
+        pageName: { type: ['string', 'null'] }
+      },
+      required: ['isExternal']
+    }
+  }
+}
+
+function storageResourcesMetaSchema (metaBase: MetaSchemaBase): StorageResourcesMetaSchema {
+  return {
+    ...metaBase,
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        bucket: { type: 'string' },
+        name: { type: 'string' }
+      },
+      required: ['bucket', 'name']
     }
   }
 }

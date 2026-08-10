@@ -1,11 +1,12 @@
 <script lang="ts">
+  import type { LinksMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import { Input, Label } from '$lib/components/ui/index'
 
   interface Props {
-    default: Array<string>,
-    maxItems: number,
-    minItems: number
+    default: LinksMetaSchema['default'],
+    maxItems: LinksMetaSchema['maxItems'],
+    minItems: LinksMetaSchema['minItems']
   }
 
   let {
