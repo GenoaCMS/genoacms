@@ -1,0 +1,80 @@
+{
+  "name": "@genoacms/cloudabstraction",
+  "version": "0.8.11",
+  "description": "Types for abstract cloud for GenoaCMS",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/cloudAbstraction.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GenoaCMS/cloudAbstraction/issues"
+  },
+  "homepage": "https://github.com/GenoaCMS/cloudAbstraction#readme",
+  "publishConfig": {
+    "directory": "./src"
+  },
+  "files": [
+    "src",
+    "test"
+  ],
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    },
+    "./authorization": {
+      "import": "./src/services/authorization/index.js",
+      "types": "./src/services/authorization/index.d.ts"
+    },
+    "./authentication": {
+      "import": "./src/services/authentication/index.js",
+      "types": "./src/services/authentication/index.d.ts"
+    },
+    "./config": {
+      "import": "./src/config/index.js"
+    },
+    "./configBuilder": {
+      "import": "./src/config/builder.js"
+    },
+    "./database": {
+      "import": "./src/services/database/index.js",
+      "types": "./src/services/database/index.d.ts"
+    },
+    "./deployment": {
+      "import": "./src/services/deployment/index.js",
+      "types": "./src/services/deployment/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./src/config/schemas.js"
+    },
+    "./storage": {
+      "import": "./src/services/storage/index.js",
+      "types": "./src/services/storage/index.d.ts"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "ajv": "^8.12.0",
+    "eslint": "^8.52.0",
+    "eslint-config-standard-with-typescript": "^39.1.1",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-n": "^16.2.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "vitest": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.18.0"
+  }
+}
