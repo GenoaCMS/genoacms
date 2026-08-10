@@ -57,4 +57,3 @@ export type {
   ComponentCommitOrder,
   ComponentCommit
 }
-

@@ -5,7 +5,7 @@
   interface Props {
     children?: Snippet,
   }
-  let { children, ...restProps }: Props = $props()
+  const { children, ...restProps }: Props = $props()
   let targetElement: HTMLDivElement
   let child: HTMLDivElement
 

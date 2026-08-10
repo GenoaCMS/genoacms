@@ -1,13 +1,13 @@
 <script lang="ts">
-    import type { Snippet } from "svelte";
+    import type { Snippet } from 'svelte'
 
     interface Props {
-        class?: string;
-        children?: Snippet;
-        [key: string]: any;
+      class?: string;
+      children?: Snippet;
+      [key: string]: any;
     }
 
-    let { class: className = "", children, ...rest }: Props = $props();
+    const { class: className = '', children, ...rest }: Props = $props()
 </script>
 
 <label class="label {className}" {...rest}>

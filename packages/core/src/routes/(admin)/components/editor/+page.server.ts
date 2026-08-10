@@ -7,7 +7,7 @@ import { fail, redirect } from '@sveltejs/kit'
 
 const validate = validator(componentCreationSchema as any, { formats })
 
-export async function load() {
+export async function load () {
   const components = await listOrCreateComponentList()
   return {
     components

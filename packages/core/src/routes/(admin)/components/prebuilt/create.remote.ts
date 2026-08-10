@@ -7,9 +7,9 @@ import type { ComponentEntryCreation } from '$lib/script/components/componentEnt
 const validate = validator(componentEntryCreationSchema)
 
 export const createComponent = command('unchecked', async (data: any) => {
-    const isValid = validate(data)
-    if (!isValid) return { status: 'fail', text: 'Invalid data' }
+  const isValid = validate(data)
+  if (!isValid) return { status: 'fail', text: 'Invalid data' }
 
-    const componentEntry = await createComponentEntry(data)
-    return { status: 'success', text: 'Component created', uid: componentEntry.uid }
+  const componentEntry = await createComponentEntry(data)
+  return { status: 'success', text: 'Component created', uid: componentEntry.uid }
 })
