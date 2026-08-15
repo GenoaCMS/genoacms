@@ -108,6 +108,22 @@ const permissionDefinitions = {
 
 type Permission = keyof typeof permissionDefinitions
 
+/**
+ * The permissions declared with a given scope.
+ *
+ * Derived from the table rather than listed again, so a permission whose scope changes moves
+ * between these types automatically and every call site demanding it is re-checked.
+ */
+type PermissionWithScope<S extends PermissionScope> = {
+  [K in Permission]: (typeof permissionDefinitions)[K]['scope'] extends S ? K : never
+}[Permission]
+
+/** Permissions decidable without naming a resource. */
+type InstancePermission = PermissionWithScope<'instance'>
+
+/** Permissions that are not a decision until a bucket or collection is named. */
+type ResourceScopedPermission = Exclude<Permission, InstancePermission>
+
 const permissions = Object.keys(permissionDefinitions) as Permission[]
 
 /**
@@ -136,8 +152,12 @@ function getPermissionDomain (permission: Permission): PermissionDomain {
 
 /**
  * Whether a permission requires a resource to be named before it can be decided.
+ *
+ * A type predicate rather than a plain boolean, so that code iterating over the whole permission
+ * space — the permission matrix above all — narrows to the right overload instead of reaching for
+ * a cast.
  */
-function isResourceScoped (permission: Permission): boolean {
+function isResourceScoped (permission: Permission): permission is ResourceScopedPermission {
   return getPermissionScope(permission) !== 'instance'
 }
 
@@ -160,5 +180,7 @@ export type {
   Permission,
   PermissionScope,
   PermissionDomain,
-  PermissionDefinition
+  PermissionDefinition,
+  InstancePermission,
+  ResourceScopedPermission
 }
