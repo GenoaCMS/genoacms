@@ -27,10 +27,6 @@
       "import": "./src/index.js",
       "types": "./src/index.d.ts"
     },
-    "./authorization": {
-      "import": "./src/services/authorization/index.js",
-      "types": "./src/services/authorization/index.d.ts"
-    },
     "./authentication": {
       "import": "./src/services/authentication/index.js",
       "types": "./src/services/authentication/index.d.ts"

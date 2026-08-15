@@ -21,10 +21,6 @@ async function callProvidersFunction (providers: Array<object>, functionName: st
   return settled.filter(result => result.status === 'fulfilled').map(result => result.value)
 }
 
-function isAnyTrue (bools: Array<boolean>) {
-  return bools.some(bool => bool === true)
-}
-
 function firstNonNull<T> (values: Array<T | null>): T | null {
   return values.find(value => value !== null) ?? null
 }
@@ -33,6 +29,5 @@ export {
   getProviders,
   getProvider,
   callProvidersFunction,
-  isAnyTrue,
   firstNonNull
 }

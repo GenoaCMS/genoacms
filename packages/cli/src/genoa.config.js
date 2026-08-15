@@ -8,10 +8,6 @@ const config = {
     adapter: import('%authentication-adapter%')
     // TODO: configure authentication
   },
-  authorization: {
-    adapter: import('%authorization-adapter%')
-    // TODO: configure authorization
-  },
   database: {
     adapter: import('%database-adapter%')
     // TODO: configure database

@@ -61,10 +61,6 @@ const config = defineConfig({
                   to: '/reference/cloudabstraction/authentication/',
                 },
                 {
-                  title: 'Authorization',
-                  to: '/reference/cloudabstraction/authorization/',
-                },
-                {
                   title: 'Database',
                   to: '/reference/cloudabstraction/database/',
                 },

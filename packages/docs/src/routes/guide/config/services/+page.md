@@ -26,17 +26,17 @@ Some cloud hosting services strip cookies from requests and allow only specific 
 To reduce risk of token compromise, set the JWT secret to have unique value.
 :::
 
-## Authorization
+:::note[Authorization is not a service]
+Authorization used to be a service with cloud adapters, on the assumption that a deployment could
+inherit access control from its cloud platform's IAM. It has been removed. Cloud IAM can grant
+"read bucket X"; it cannot express which collections or which fields a principal may reach, it
+would require a cloud identity for every copywriter and translator, and permissions such as
+`pages:publish` have no meaning outside GenoaCMS.
 
-This service is responsible for checking whether the user has permission to access GenoaCMS. In current state of GenoaCMS, it is just a simple check for user role.
-
-### Config type
-
-```ts
-authorization: {
-    providers: AuthorizationProvider[]
-}
-```
+Authentication is federated because *"who are you?"* is a standardised question. Authorization
+answers *"what may you do in this application?"*, so it is a core module of GenoaCMS with no
+adapters and no configuration stanza.
+:::
 
 ## Security
 

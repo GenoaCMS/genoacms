@@ -34,16 +34,6 @@ const config = {
     cookieName: '__session',
     JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
   },
-  authorization: {
-    providers: [
-      {
-        adapterPath: '@genoacms/adapter-gcp/authorization',
-        adapter: import('@genoacms/adapter-gcp/authorization'),
-        projectId: 'genoacms',
-        credentials
-      }
-    ]
-  },
   security: {
     adminSubject: 'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01'
   },

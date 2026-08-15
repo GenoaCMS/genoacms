@@ -2,7 +2,7 @@
 title: Configuration
 ---
 
-GenoaCMS is structured by services, those are: authentication, authorization, database, deployment and storage. Each service is configurable. 
+GenoaCMS is structured by services, those are: authentication, database, deployment and storage. Each service is configurable. 
 
 The config file is a JS file exporting default object with structure `genoaConfig` defined in package `@genoacms/cloudabstraction`. 
 
@@ -23,11 +23,6 @@ const config = {
     ],
     cookieName: '__session',
     JWTSecret: 'mySuperSecretKey'
-  },
-  authorization: {
-    providers: [
-      { adapter: import('package'), ... }
-    ]
   },
   database: {
     databases: [

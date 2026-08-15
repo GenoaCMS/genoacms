@@ -121,7 +121,6 @@ async function prepareConfig (adapterSuite, authenticationAdapter) {
     const adapterSuitePackage = adapterSuiteToPackageName(adapterSuite)
     const authenticationAdapterPackage = authenticationAdapterToPackageName(authenticationAdapter)
     const preparedConfig = config.replace('%authentication-adapter%', authenticationAdapterPackage)
-        .replace('%authorization-adapter%', adapterSuitePackage + '/authorization')
         .replace('%database-adapter%', adapterSuitePackage + '/database')
         .replace('%storage-adapter%', adapterSuitePackage + '/storage')
     const workDir = process.cwd()
