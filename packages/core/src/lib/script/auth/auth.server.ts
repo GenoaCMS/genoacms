@@ -1,25 +1,27 @@
 import { config } from '@genoacms/cloudabstraction'
+import type { authentication } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
 import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
-import { loginWithEmailAndPassword, isEmailAdmins } from './providers.server'
+import { authenticate, isEmailAdmins } from './providers.server'
 
 const { cookieName, JWTSecret } = await config.authentication
 
-async function authenticateAndAuthorize (email: string, password: string): Promise<boolean> {
-  let areCredentialsValid = false
+async function authenticateAndAuthorize (email: string, password: string): Promise<authentication.Identity | null> {
+  let identity = null
   try {
-    areCredentialsValid = await loginWithEmailAndPassword(email, password)
+    identity = await authenticate(email, password)
   } catch {
-    return false
+    return null
   }
-  if (!areCredentialsValid) return false
-  return await isEmailAdmins(email)
+  if (!identity) return null
+  if (!await isEmailAdmins(identity.email)) return null
+  return identity
 }
 
 async function login (email: string, password: string, cookies: Cookies) {
-  const authResult = await authenticateAndAuthorize(email, password)
-  if (!authResult) throw new Error('invalid-credentials')
-  const payloadText = JSON.stringify({ email }) // TODO: expiration
+  const identity = await authenticateAndAuthorize(email, password)
+  if (!identity) throw new Error('invalid-credentials')
+  const payloadText = JSON.stringify({ sub: identity.subject, email: identity.email }) // TODO: expiration
   const encoder = new TextEncoder()
   const token = await new CompactSign(encoder.encode(payloadText))
     .setProtectedHeader({ alg: 'HS256' })

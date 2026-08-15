@@ -1,3 +1,5 @@
+import type { Identity } from './types.d'
+
 export declare namespace Adapter {
-  type loginWithEmailAndPassword = (email: string, password: string) => Promise<boolean>
+  type authenticate = (email: string, password: string) => Promise<Identity | null>
 }

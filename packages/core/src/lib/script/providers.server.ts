@@ -25,9 +25,14 @@ function isAnyTrue (bools: Array<boolean>) {
   return bools.some(bool => bool === true)
 }
 
+function firstNonNull<T> (values: Array<T | null>): T | null {
+  return values.find(value => value !== null) ?? null
+}
+
 export {
   getProviders,
   getProvider,
   callProvidersFunction,
-  isAnyTrue
+  isAnyTrue,
+  firstNonNull
 }
