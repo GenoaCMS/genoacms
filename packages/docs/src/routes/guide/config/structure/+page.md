@@ -56,6 +56,9 @@ const config = {
     providers: [
       { name: 'myStorageProvider', adapter: import('package'), ... }
     ]
+  },
+  security: {
+    adminSubject: 'the-subject-of-the-seed-administrator'
   }
 }
 

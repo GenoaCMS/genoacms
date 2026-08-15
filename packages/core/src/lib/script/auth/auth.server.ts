@@ -2,7 +2,8 @@ import { config } from '@genoacms/cloudabstraction'
 import type { authentication } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
 import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
-import { authenticate, isEmailAdmins } from './providers.server'
+import { authenticate } from './providers.server'
+import { isSeedAdmin } from '../authorization/seedAdmin.server'
 
 const { cookieName, JWTSecret } = await config.authentication
 
@@ -14,7 +15,7 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
     return null
   }
   if (!identity) return null
-  if (!await isEmailAdmins(identity.email)) return null
+  if (!isSeedAdmin(identity.subject)) return null
   return identity
 }
 

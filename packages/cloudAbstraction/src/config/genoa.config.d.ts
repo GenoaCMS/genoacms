@@ -20,6 +20,14 @@ type Config<Extension extends object = object> = Extension & {
   deployment: {
     providers: DeploymentProvider[]
   }
+  security: {
+    /**
+     * Subject of the seed administrator. Tier-1 configuration is the root of authority:
+     * this identity is authorized without consulting any storage manifest, and is the only
+     * one that can act before verified manifests exist.
+     */
+    adminSubject: string
+  }
   storage: {
     defaultBucket: string
     buckets: BucketInit[]

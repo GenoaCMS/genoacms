@@ -38,6 +38,28 @@ authorization: {
 }
 ```
 
+## Security
+
+Not a service — a plain configuration stanza. It declares the seed administrator, the identity
+that bootstraps the permission system.
+
+### Config type
+
+```ts
+security: {
+    adminSubject: string
+}
+```
+
+`adminSubject` is the `subject` of an identity as issued by the authentication adapter, never an
+email address. It is resolved from `genoa.config` alone, so it remains authoritative on an instance
+whose stored authorization data is missing or cannot be trusted.
+
+:::caution[Configuration is the root of authority]
+`genoa.config` is written before deployment and is not modifiable at runtime. Nothing the CMS
+stores can grant the seed administrator's authority to another identity.
+:::
+
 ## Database
 
 Service responsible for managing data storage. It is possible to define multiple databases and multiple providers.
