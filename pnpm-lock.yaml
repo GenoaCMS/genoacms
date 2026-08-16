@@ -266,6 +266,9 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@noble/hashes':
+        specifier: ^2.3.0
+        version: 2.3.0
       '@noble/post-quantum':
         specifier: ^0.7.0
         version: 0.7.0
@@ -311,6 +314,9 @@ importers:
       bootstrap-icons:
         specifier: ^1.11.3
         version: 1.13.1
+      canonicalize:
+        specifier: ^4.0.0
+        version: 4.0.0
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
@@ -3692,6 +3698,11 @@ packages:
 
   caniuse-lite@1.0.30001809:
     resolution: {integrity: sha512-xxWVywk6a6Arlk+hymeycyn/VgqEfLDxupvhH/xiY5SJ/18kmi9o6MiO320DCUzypORHLtvh0I4i04tUhCNHNQ==}
+
+  canonicalize@4.0.0:
+    resolution: {integrity: sha512-FEdXzwWs+N3rZqEqpqleiY9M1A6IAf9oo1zHFABnLW9FcJ/jzsu+G/Ks3Hq3FglmPKe80GeGBw8ZXLEnwPB0vQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   catharsis@0.9.0:
     resolution: {integrity: sha512-prMTQVpcns/tzFgFVkVp6ak6RykZyWb3gu8ckUpd6YkTlacOd3DXGJjIpD4Q6zJirizvaiAjSSHlOsA+6sNh2A==}
@@ -11324,6 +11335,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001809: {}
+
+  canonicalize@4.0.0: {}
 
   catharsis@0.9.0:
     dependencies:
