@@ -11,7 +11,12 @@ interface StorageObject {
   lastModified: Date
 }
 
-type ObjectPayload = NodeJS.ReadableStream
+/**
+ * Adapters accept a string or buffer as readily as a stream, and the CMS writes its own JSON
+ * documents as strings. The declaration previously named only the stream, which every internal
+ * write then contradicted.
+ */
+type ObjectPayload = string | Buffer | NodeJS.ReadableStream
 
 /**
  * An opaque token identifying one version of an object — a GCS generation, an S3 or MinIO etag.
