@@ -35,7 +35,9 @@ const config = {
   security: {
     // TODO: set to the subject of the seed administrator, as issued by the
     // authentication adapter. This identity bootstraps the permission system.
-    adminSubject: ''
+    adminSubject: '',
+    // Seeds the signed security policy document at first start.
+    subordinateKeyRotationDays: 90
   },
   // TODO: configure collections
 }

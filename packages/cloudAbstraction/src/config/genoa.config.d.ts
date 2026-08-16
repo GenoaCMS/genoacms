@@ -33,6 +33,14 @@ type Config<Extension extends object = object> = Extension & {
      * one that can act before verified manifests exist.
      */
     adminSubject: string
+    /**
+     * Default lifetime of a subordinate signing key, in days.
+     *
+     * Tier-1 supplies the *default*; the live value lives in the signed security policy document
+     * (`.genoacms/security/policy.json`), which this seeds at first start. Declared here rather
+     * than embedded in code so no limit is a constant.
+     */
+    subordinateKeyRotationDays?: number
   }
   storage: {
     defaultBucket: string

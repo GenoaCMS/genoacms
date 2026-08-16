@@ -59,6 +59,7 @@ vi.mock('$lib/script/authorization/seedAdmin.server', () => ({
 }))
 
 const registryPath = '.genoacms/keys/public.json'
+const policyPath = '.genoacms/security/policy.json'
 const rolesPath = '.genoacms/security/roles.json'
 const usersPath = '.genoacms/security/users.json'
 
@@ -114,6 +115,35 @@ describe('bootstrapping a fresh instance', () => {
   it('records the registry sequence high-water mark outside the bucket', async () => {
     await bootstrap()
     expect(secrets.get('GENOACMS_KEY_REGISTRY_SEQUENCE')).toBe('1')
+  })
+
+  it('creates the security policy document from the Tier-1 default', async () => {
+    await bootstrap()
+    expect(objects.has(policyPath)).toBe(true)
+    const stored = JSON.parse(objects.get(policyPath) as string)
+    expect(stored).toMatchObject({
+      type: 'genoacms.securityPolicy.v1',
+      payload: { subordinateKeyRotationDays: 90 }
+    })
+  })
+
+  it('signs the policy with the root, not with a subordinate key', async () => {
+    // The policy governs the subordinate keys — when they rotate, and later what ceilings constrain
+    // the code they sign. A subordinate signing it could rewrite the rule that retires it.
+    await bootstrap()
+    const policy = JSON.parse(objects.get(policyPath) as string)
+    const registry = JSON.parse(objects.get(registryPath) as string)
+    expect(policy.alg).toBe('SLH-DSA-SHA2-128s')
+    expect(policy.keyId).toBe(registry.keyId)
+    expect(policy.keyId).not.toBe(registry.payload.current)
+  })
+
+  it('completes without recursing, since a root-signed policy needs no subordinate key', async () => {
+    // Deciding whether to rotate reads the policy; writing it with a subordinate key would have
+    // required the very decision being made.
+    await expect(bootstrap()).resolves.toBeUndefined()
+    expect(objects.has(policyPath)).toBe(true)
+    expect(objects.has(registryPath)).toBe(true)
   })
 
   it('is idempotent — a restart changes nothing', async () => {
