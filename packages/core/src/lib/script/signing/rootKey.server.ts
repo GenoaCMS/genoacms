@@ -3,6 +3,7 @@ import { getOrClaimSecret } from '$lib/script/secrets/providers.server'
 import { getAlgorithm, ROOT_ALGORITHM, type Keypair } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { fromBase64, toBase64, type SigningKey } from './envelope'
+import { ROOT_SEED_SECRET } from './secretNames'
 
 /**
  * The root trust anchor.
@@ -16,8 +17,6 @@ import { fromBase64, toBase64, type SigningKey } from './envelope'
  * secret manager stands in for a keypair; holding the seed is equivalent to holding the key, so
  * nothing is given away by storing the smaller thing.
  */
-
-const ROOT_SEED_SECRET = 'GENOACMS_ROOT_KEY_SEED'
 
 const algorithm = getAlgorithm(ROOT_ALGORITHM)
 
@@ -97,7 +96,6 @@ async function getRootPublicKey (): Promise<{ keyId: string, alg: string, public
 }
 
 export {
-  ROOT_SEED_SECRET,
   keypairFromSeed,
   loadRootKey,
   getRootSigningKey,

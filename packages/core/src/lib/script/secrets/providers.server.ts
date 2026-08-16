@@ -48,6 +48,17 @@ async function deleteSecret (key: string): Promise<boolean> {
   return await adapter.deleteSecret(key)
 }
 
+/**
+ * Writes only if the key does not exist. Resolves `true` for the one caller that created it.
+ *
+ * Prefer `getOrClaimSecret` when the point is to end up with a value; this is for callers that need
+ * to know whether the name was free, and for whom a taken name is an error rather than a race lost.
+ */
+async function setSecretIfAbsent (key: string, value: string): Promise<boolean> {
+  assertValidSecretKey(key)
+  return await adapter.setSecretIfAbsent(key, value)
+}
+
 const CLAIM_POLL_ATTEMPTS = 25
 const CLAIM_POLL_INTERVAL_MS = 200
 
@@ -98,5 +109,6 @@ export {
   getSecret,
   setSecret,
   deleteSecret,
+  setSecretIfAbsent,
   getOrClaimSecret
 }
