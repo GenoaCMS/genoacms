@@ -48,6 +48,10 @@
     "./schemas": {
       "import": "./src/config/schemas.js"
     },
+    "./secrets": {
+      "import": "./src/services/secrets/index.js",
+      "types": "./src/services/secrets/index.d.ts"
+    },
     "./storage": {
       "import": "./src/services/storage/index.js",
       "types": "./src/services/storage/index.d.ts"

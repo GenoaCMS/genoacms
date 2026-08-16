@@ -69,6 +69,10 @@ const config = defineConfig({
                   to: '/reference/cloudabstraction/deployment/',
                 },
                 {
+                  title: 'Secrets',
+                  to: '/reference/cloudabstraction/secrets/',
+                },
+                {
                   title: 'Storage',
                   to: '/reference/cloudabstraction/storage/',
                 }
