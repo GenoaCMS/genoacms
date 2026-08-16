@@ -41,6 +41,22 @@ type Config<Extension extends object = object> = Extension & {
      * than embedded in code so no limit is a constant.
      */
     subordinateKeyRotationDays?: number
+    /**
+     * Roles written into `roles.json` at first start.
+     *
+     * Seeding only: the manifest owns them afterwards, so an administrator editing a role at
+     * runtime does not find it reverted by the next deployment. Shaped as the manifest is —
+     * role name to grants.
+     */
+    roles?: Record<string, Array<{ permission: string, resource: unknown }>>
+    /** Access token lifetime in minutes. Seeds the security policy document. */
+    accessTokenMinutes?: number
+    /**
+     * How long resolved grants are cached per subject, in seconds.
+     *
+     * The window during which a revoked permission is still honoured. Seeds the policy document.
+     */
+    grantCacheSeconds?: number
   }
   storage: {
     defaultBucket: string

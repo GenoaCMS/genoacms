@@ -1,10 +1,12 @@
 import { config } from '@genoacms/cloudabstraction'
 import type { authentication } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
-import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
+import { randomUUID } from 'node:crypto'
 import { authenticate } from './providers.server'
 import { resolvePrincipal } from '../authorization/resolution.server'
 import { resolveSecretReference } from '../secrets/references.server'
+import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
 
 const { cookieName } = config.authentication
 const JWTSecret = await resolveSecretReference(config.authentication.JWTSecret, 'authentication.JWTSecret')
@@ -28,12 +30,25 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
 async function login (email: string, password: string, cookies: Cookies) {
   const identity = await authenticateAndAuthorize(email, password)
   if (!identity) throw new Error('invalid-credentials')
-  const payloadText = JSON.stringify({ sub: identity.subject, email: identity.email }) // TODO: expiration
-  const encoder = new TextEncoder()
-  const token = await new CompactSign(encoder.encode(payloadText))
+
+  // Identity only. Grants are resolved per request and cached, so the cookie stays a few hundred
+  // bytes however many permissions the principal holds — and a revoked permission stops being
+  // honoured at the cache window rather than at token expiry.
+  const { accessTokenMinutes } = await loadSecurityPolicy()
+  const token = await new SignJWT({ email: identity.email })
     .setProtectedHeader({ alg: 'HS256' })
-    .sign(encoder.encode(JWTSecret))
-  cookies.set(cookieName, token, { path: '/' })
+    .setSubject(identity.subject)
+    .setIssuedAt()
+    .setJti(randomUUID())
+    .setExpirationTime(`${accessTokenMinutes}m`)
+    .sign(new TextEncoder().encode(JWTSecret))
+
+  cookies.set(cookieName, token, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  })
 }
 
 async function verifyAuthCookie (cookies: Cookies): Promise<JWTPayload | false> {

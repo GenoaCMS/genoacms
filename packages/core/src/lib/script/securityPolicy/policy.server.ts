@@ -8,7 +8,14 @@ import {
 import { sign, type DocumentType } from '$lib/script/signing/envelope'
 import { readRootSignedDocument } from '$lib/script/signing/signedDocument.server'
 import { getRootSigningKey } from '$lib/script/signing/rootKey.server'
-import { parseSecurityPolicy, MIN_ROTATION_DAYS, MAX_ROTATION_DAYS, type SecurityPolicy } from './policy'
+import {
+  parseSecurityPolicy,
+  MIN_ROTATION_DAYS,
+  MAX_ROTATION_DAYS,
+  MIN_ACCESS_TOKEN_MINUTES,
+  MAX_ACCESS_TOKEN_MINUTES,
+  type SecurityPolicy
+} from './policy'
 import type { JsonValue } from '$lib/script/signing/canonical'
 
 /**
@@ -36,12 +43,15 @@ const POLICY_DOCUMENT: DocumentType = 'genoacms.securityPolicy.v1'
  * from the file its administrator is reading.
  */
 function defaultPolicy (): SecurityPolicy {
-  const configured = config.security.subordinateKeyRotationDays ?? 90
-  const parsed = parseSecurityPolicy({ subordinateKeyRotationDays: configured })
+  const parsed = parseSecurityPolicy({
+    subordinateKeyRotationDays: config.security.subordinateKeyRotationDays ?? 90,
+    accessTokenMinutes: config.security.accessTokenMinutes ?? 15,
+    grantCacheSeconds: config.security.grantCacheSeconds ?? 30
+  })
   if (!parsed.ok) {
     throw new Error(
-      'security-policy/invalid-default: security.subordinateKeyRotationDays must be an integer ' +
-      `between ${MIN_ROTATION_DAYS} and ${MAX_ROTATION_DAYS}, found ${String(configured)}`
+      `security-policy/invalid-default: ${parsed.reason}. Check the security stanza in genoa.config ` +
+      `(rotation ${MIN_ROTATION_DAYS}-${MAX_ROTATION_DAYS} days, token ${MIN_ACCESS_TOKEN_MINUTES}-${MAX_ACCESS_TOKEN_MINUTES} minutes)`
     )
   }
   return parsed.policy

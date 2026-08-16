@@ -21,6 +21,21 @@ interface SecurityPolicy {
    * embedded. The Tier-1 declaration supplies the default; this document holds the live value.
    */
   subordinateKeyRotationDays: number
+  /**
+   * Access token lifetime in minutes.
+   *
+   * Short by design: it is the window during which a revoked permission is still honoured, since
+   * grants travel inside the token (§4.2.1b.4).
+   */
+  accessTokenMinutes: number
+  /**
+   * How long resolved grants are cached per subject.
+   *
+   * A security parameter rather than a tuning one: it is the window during which a permission
+   * removed from a role is still honoured. It can be short, because a miss costs one storage read
+   * rather than a re-authentication.
+   */
+  grantCacheSeconds: number
 }
 
 type PolicyParseResult =
@@ -32,6 +47,16 @@ const MAX_ROTATION_DAYS = 365
 /** Below a day, an instance would rotate faster than it could plausibly publish and cache. */
 const MIN_ROTATION_DAYS = 1
 
+/** Beyond a day the token stops being "short-lived" and revocation stops meaning much. */
+const MAX_ACCESS_TOKEN_MINUTES = 1_440
+/** Below a minute, clock skew between nodes starts rejecting tokens that were just issued. */
+const MIN_ACCESS_TOKEN_MINUTES = 1
+
+/** Beyond five minutes a revoked permission outlives the incident it was revoked for. */
+const MAX_GRANT_CACHE_SECONDS = 300
+/** Zero is permitted: it means resolve every request, which is correct but costs a read each time. */
+const MIN_GRANT_CACHE_SECONDS = 0
+
 function isPlainObject (value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -39,7 +64,7 @@ function isPlainObject (value: unknown): value is Record<string, unknown> {
 function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   if (!isPlainObject(payload)) return { ok: false, reason: 'policy is not an object' }
 
-  const { subordinateKeyRotationDays, ...rest } = payload
+  const { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, ...rest } = payload
   if (Object.keys(rest).length > 0) {
     // A field this version does not know is a document from a version that does. Guessing at it
     // would mean acting on a policy only half understood.
@@ -55,7 +80,27 @@ function parseSecurityPolicy (payload: unknown): PolicyParseResult {
     }
   }
 
-  return { ok: true, policy: { subordinateKeyRotationDays } }
+  if (typeof accessTokenMinutes !== 'number' || !Number.isInteger(accessTokenMinutes)) {
+    return { ok: false, reason: 'policy.accessTokenMinutes is not an integer' }
+  }
+  if (accessTokenMinutes < MIN_ACCESS_TOKEN_MINUTES || accessTokenMinutes > MAX_ACCESS_TOKEN_MINUTES) {
+    return {
+      ok: false,
+      reason: `policy.accessTokenMinutes must be between ${MIN_ACCESS_TOKEN_MINUTES} and ${MAX_ACCESS_TOKEN_MINUTES}`
+    }
+  }
+
+  if (typeof grantCacheSeconds !== 'number' || !Number.isInteger(grantCacheSeconds)) {
+    return { ok: false, reason: 'policy.grantCacheSeconds is not an integer' }
+  }
+  if (grantCacheSeconds < MIN_GRANT_CACHE_SECONDS || grantCacheSeconds > MAX_GRANT_CACHE_SECONDS) {
+    return {
+      ok: false,
+      reason: `policy.grantCacheSeconds must be between ${MIN_GRANT_CACHE_SECONDS} and ${MAX_GRANT_CACHE_SECONDS}`
+    }
+  }
+
+  return { ok: true, policy: { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds } }
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -73,6 +118,10 @@ function isRotationDue (policy: SecurityPolicy, createdAt: number, now: number):
 export {
   MIN_ROTATION_DAYS,
   MAX_ROTATION_DAYS,
+  MIN_ACCESS_TOKEN_MINUTES,
+  MAX_ACCESS_TOKEN_MINUTES,
+  MIN_GRANT_CACHE_SECONDS,
+  MAX_GRANT_CACHE_SECONDS,
   DAY_MS,
   parseSecurityPolicy,
   isRotationDue
