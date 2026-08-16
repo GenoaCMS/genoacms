@@ -58,6 +58,17 @@ vi.mock('$lib/script/authorization/seedAdmin.server', () => ({
   isSeedAdmin: (subject: string) => subject === 'admin-subject'
 }))
 
+const declaredRoles: { value: unknown } = { value: undefined }
+
+vi.mock('@genoacms/cloudabstraction', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  const real = actual.config as { security: Record<string, unknown> }
+  return {
+    ...actual,
+    config: { ...real, security: { ...real.security, get roles () { return declaredRoles.value } } }
+  }
+})
+
 const registryPath = '.genoacms/keys/public.json'
 const policyPath = '.genoacms/security/policy.json'
 const rolesPath = '.genoacms/security/roles.json'
@@ -239,4 +250,86 @@ describe('rotating the root trust anchor', () => {
     const registry = JSON.parse(objects.get(registryPath) as string)
     expect(registry.payload.keys.map((k: { keyId: string }) => k.keyId)).not.toContain(roles.keyId)
   })
+})
+
+describe('seeding roles from Tier-1 configuration', () => {
+  beforeEach(() => {
+    freshState()
+    declaredRoles.value = undefined
+  })
+
+  const rolesPayload = (): Record<string, unknown> =>
+    JSON.parse(objects.get(rolesPath) as string).payload.roles
+
+  it('creates an empty roles manifest when nothing is declared', async () => {
+    await runBootstrap()
+    expect(rolesPayload()).toEqual({})
+  }, 30_000)
+
+  it('writes the declared roles into the manifest at first start', async () => {
+    declaredRoles.value = { Editor: [{ permission: 'pages:content_edit', resource: '*' }] }
+    await runBootstrap()
+    expect(rolesPayload()).toEqual({ Editor: [{ permission: 'pages:content_edit', resource: '*' }] })
+  }, 30_000)
+
+  it('signs the seeded manifest like any other', async () => {
+    declaredRoles.value = { Editor: [{ permission: 'pages:publish', resource: '*' }] }
+    await runBootstrap()
+    const stored = JSON.parse(objects.get(rolesPath) as string)
+    expect(stored.type).toBe('genoacms.roles.v1')
+    expect(typeof stored.signature).toBe('string')
+  }, 30_000)
+
+  /** Re-signs roles.json properly, as the configuration service will once it exists. */
+  const rewriteRolesValidly = async (roles: Record<string, unknown>): Promise<void> => {
+    const { getAlgorithm, SUBORDINATE_ALGORITHM } = await import('./signing/algorithms')
+    const { sign, fromBase64 } = await import('./signing/envelope')
+    const registry = JSON.parse(objects.get(registryPath) as string)
+    const keyId = registry.payload.current as string
+    const seed = fromBase64(secrets.get(`GENOACMS_SUBORDINATE_KEY_SEED_${keyId}`) as string)
+    const keypair = getAlgorithm(SUBORDINATE_ALGORITHM).generateKeypair(seed)
+    const envelope = sign('genoacms.roles.v1', { roles } as never, {
+      alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey
+    })
+    objects.set(rolesPath, JSON.stringify(envelope))
+  }
+
+  it('does not re-apply on a later start, so a runtime edit is not reverted', async () => {
+    // Seeding, not authority: the manifest owns the roles once it exists. The rewrite has to be
+    // properly signed — an edited payload would simply be rejected, which would make this pass for
+    // the wrong reason.
+    declaredRoles.value = { Editor: [{ permission: 'pages:publish', resource: '*' }] }
+    await runBootstrap()
+    await rewriteRolesValidly({})
+
+    vi.resetModules()
+    await runBootstrap()
+
+    expect(JSON.parse(objects.get(rolesPath) as string).payload.roles).toEqual({})
+  }, 30_000)
+
+  it('does not reseed configured roles when a manifest is rejected', async () => {
+    // Replacement is recovery and must grant nothing. Restoring configured roles at the moment
+    // tampering is detected would hand back permissions exactly when least should be assumed.
+    declaredRoles.value = { Editor: [{ permission: 'pages:publish', resource: '*' }] }
+    await runBootstrap()
+
+    const tampered = JSON.parse(objects.get(rolesPath) as string)
+    tampered.payload.roles = { Sneaky: [{ permission: '*', resource: '*' }] }
+    objects.set(rolesPath, JSON.stringify(tampered))
+
+    vi.resetModules()
+    const { loadAuthorizationSource } = await import('./authorization/resolution.server')
+    await loadAuthorizationSource()
+
+    expect(JSON.parse(objects.get(rolesPath) as string).payload.roles).toEqual({})
+  }, 30_000)
+
+  it('fails startup on a malformed declaration rather than ignoring it', async () => {
+    // Silently skipping would leave an instance with fewer permissions than its configuration
+    // describes, and nothing to say so.
+    declaredRoles.value = { Editor: [{ permission: 'not:a:permission', resource: '*' }] }
+    const { loadAuthorizationSource } = await import('./authorization/resolution.server')
+    await expect(loadAuthorizationSource()).rejects.toThrow(/security\/invalid-roles/)
+  }, 30_000)
 })

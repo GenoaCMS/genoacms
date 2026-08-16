@@ -1,3 +1,4 @@
+import { config } from '@genoacms/cloudabstraction'
 import { isSeedAdmin } from './seedAdmin.server'
 import {
   quarantineManifest,
@@ -40,6 +41,34 @@ function reportAuthorizationAlert (message: string): void {
 const EMPTY_ROLES: JsonValue = { roles: {} }
 const EMPTY_USERS: JsonValue = { users: {} }
 
+/**
+ * The roles a new instance starts with, declared in Tier-1 configuration.
+ *
+ * **Seeding, not authority.** These are written once, when `roles.json` does not exist. The manifest
+ * owns them afterwards, so an administrator editing a role at runtime does not find it reverted by
+ * the next deployment — roles are runtime configuration (§4.2.5), and Tier-1 only says where to
+ * begin.
+ *
+ * A rejected manifest is **not** reseeded from here. Replacement is a recovery path and grants
+ * nothing; restoring configured roles at the moment tampering is detected would hand back
+ * permissions precisely when the least should be assumed.
+ *
+ * A malformed declaration fails startup rather than being skipped: it is Tier-1 configuration an
+ * operator wrote deliberately, and silently ignoring it would leave an instance with fewer
+ * permissions than its configuration describes, with nothing to say so.
+ */
+function configuredRoles (): JsonValue {
+  const declared = config.security.roles
+  if (declared === undefined || Object.keys(declared).length === 0) return EMPTY_ROLES
+
+  const payload = { roles: declared } as unknown as JsonValue
+  const parsed = parseRolesManifest(payload)
+  if (!parsed.ok) {
+    throw new Error(`security/invalid-roles: security.roles in genoa.config is not valid: ${parsed.reason}`)
+  }
+  return payload
+}
+
 type ManifestVerdict<T> =
   | { ok: true, value: T }
   | { ok: false, reason: string }
@@ -78,16 +107,21 @@ const replaceManifest = async (path: string, type: DocumentType, empty: JsonValu
  * or the registry being *unreachable* is not a verdict — those propagate, because replacing on a
  * transient failure would destroy authorization data merely because it could not be read.
  */
+/**
+ * @param initial what to write when the manifest is absent — the configured starting state
+ * @param empty   what to write when one is rejected — nothing, regardless of configuration
+ */
 async function loadManifest<T> (
   path: string,
   type: DocumentType,
   parse: (raw: unknown) => ManifestParseResult<T>,
+  initial: JsonValue,
   empty: JsonValue
 ): Promise<ManifestVerdict<T>> {
-  const emptyValue = (): T => {
-    const parsed = parse(empty)
-    // Our own constant. If it does not parse, the schema and the constant have diverged.
-    if (!parsed.ok) throw new Error(`manifest/empty-template-invalid: ${path}: ${parsed.reason}`)
+  const valueOf = (template: JsonValue): T => {
+    const parsed = parse(template)
+    // Our own template. If it does not parse, the schema and the template have diverged.
+    if (!parsed.ok) throw new Error(`manifest/template-invalid: ${path}: ${parsed.reason}`)
     return parsed.value
   }
 
@@ -96,9 +130,9 @@ async function loadManifest<T> (
     raw = await readRawManifest(path)
   } catch {
     // Absent — first start, or someone deleted it. Create it signed, so the unsigned state never
-    // exists. Losing the race to create is not a failure: the winner also wrote an empty manifest.
-    await createEmptyManifest(path, type, empty)
-    return { ok: true, value: emptyValue() }
+    // exists. Losing the race to create is not a failure: the winner wrote the same thing.
+    await createEmptyManifest(path, type, initial)
+    return { ok: true, value: valueOf(initial) }
   }
 
   const rejected = async (reason: string): Promise<ManifestVerdict<T>> => {
@@ -141,10 +175,14 @@ async function loadManifest<T> (
  * it is a state in which permissions cannot be resolved correctly.
  */
 async function loadAuthorizationSource (): Promise<{ source: AuthorizationSource, warnings: string[] }> {
-  const roles = await loadManifest<Role[]>(rolesManifestPath, ROLES_DOCUMENT, parseRolesManifest, EMPTY_ROLES)
+  const roles = await loadManifest<Role[]>(
+    rolesManifestPath, ROLES_DOCUMENT, parseRolesManifest, configuredRoles(), EMPTY_ROLES
+  )
   if (!roles.ok) return { source: { available: false, reason: roles.reason }, warnings: [] }
 
-  const users = await loadManifest<UserRecord[]>(usersManifestPath, USERS_DOCUMENT, parseUsersManifest, EMPTY_USERS)
+  const users = await loadManifest<UserRecord[]>(
+    usersManifestPath, USERS_DOCUMENT, parseUsersManifest, EMPTY_USERS, EMPTY_USERS
+  )
   if (!users.ok) return { source: { available: false, reason: users.reason }, warnings: [] }
 
   return { source: { available: true, roles: roles.value, users: users.value }, warnings: [] }
