@@ -25,6 +25,7 @@ const successor = makeKey(2)
 
 const registryWith = (...keys: Array<typeof signer>): KeyRegistry => {
   const parsed = parseKeyRegistry({
+    sequence: 1,
     current: keys[0].keyId,
     keys: keys.map(key => ({
       keyId: key.keyId,

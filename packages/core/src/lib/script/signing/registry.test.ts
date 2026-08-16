@@ -32,7 +32,7 @@ const second = makeEntry(2, 2_000)
 
 const entry = ({ keypair: _k, ...rest }: ReturnType<typeof makeEntry>) => rest
 
-const validRegistry = (): unknown => ({ current: first.keyId, keys: [entry(first)] })
+const validRegistry = (): unknown => ({ sequence: 1, current: first.keyId, keys: [entry(first)] })
 
 describe('a valid registry', () => {
   it('parses', () => {
@@ -42,6 +42,7 @@ describe('a valid registry', () => {
 
   it('accepts a superseded key alongside the current one', () => {
     const result = parseKeyRegistry({
+      sequence: 1,
       current: second.keyId,
       keys: [{ ...entry(first), supersededAt: 2_000 }, entry(second)]
     })
@@ -80,43 +81,43 @@ describe('entries that must be rejected', () => {
   it('rejects a keyId that does not derive from its public key', () => {
     // The substitution this check exists for: an attacker's key published under an id that existing
     // signed artifacts already reference.
-    rejects({ current: first.keyId, keys: [{ ...entry(first), publicKey: second.publicKey }] },
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: second.publicKey }] },
       /does not derive/)
   })
 
   it('rejects a public key of the wrong size for its algorithm', () => {
-    rejects({ current: first.keyId, keys: [{ ...entry(first), publicKey: toBase64(new Uint8Array(10)) }] },
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: toBase64(new Uint8Array(10)) }] },
       /expected 1952|does not derive/)
   })
 
   it('rejects a public key that is not base64', () => {
-    rejects({ current: first.keyId, keys: [{ ...entry(first), publicKey: 'not base64!!' }] }, /not base64/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: 'not base64!!' }] }, /not base64/)
   })
 
   it('rejects an unknown algorithm', () => {
-    rejects({ current: first.keyId, keys: [{ ...entry(first), alg: 'RSA-2048' }] }, /not a known algorithm/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), alg: 'RSA-2048' }] }, /not a known algorithm/)
   })
 
   it('rejects a current key that is marked superseded', () => {
     // A key cannot both be the one to sign with and one that has stopped signing.
-    rejects({ current: first.keyId, keys: [{ ...entry(first), supersededAt: 5_000 }] }, /marked superseded/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), supersededAt: 5_000 }] }, /marked superseded/)
   })
 
   it('rejects a current key that is not listed', () => {
-    rejects({ current: second.keyId, keys: [entry(first)] }, /not among its keys/)
+    rejects({ sequence: 1, current: second.keyId, keys: [entry(first)] }, /not among its keys/)
   })
 
   it('rejects a duplicated keyId', () => {
-    rejects({ current: first.keyId, keys: [entry(first), entry(first)] }, /twice/)
+    rejects({ sequence: 1, current: first.keyId, keys: [entry(first), entry(first)] }, /twice/)
   })
 
   it('rejects null supersededAt rather than treating it as omitted', () => {
     // §3.6.3: omitted and null are different documents with different digests.
-    rejects({ current: first.keyId, keys: [{ ...entry(first), supersededAt: null }] }, /supersededAt/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), supersededAt: null }] }, /supersededAt/)
   })
 
   it('rejects unexpected fields on an entry', () => {
-    rejects({ current: first.keyId, keys: [{ ...entry(first), trusted: true }] }, /unexpected fields/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), trusted: true }] }, /unexpected fields/)
   })
 
   it('rejects unexpected fields on the registry', () => {
@@ -124,7 +125,7 @@ describe('entries that must be rejected', () => {
   })
 
   it('rejects an empty key list', () => {
-    rejects({ current: first.keyId, keys: [] }, /empty/)
+    rejects({ sequence: 1, current: first.keyId, keys: [] }, /empty/)
   })
 
   it.each([null, 'a string', 42, []])('rejects the non-registry value %s', (payload) => {
@@ -134,12 +135,12 @@ describe('entries that must be rejected', () => {
   it('fails whole when one entry of several is bad', () => {
     // Keeping the entries that happen to validate would let whoever corrupted one choose which
     // keys survive.
-    rejects({ current: first.keyId, keys: [entry(first), { ...entry(second), publicKey: 'nope!' }] },
+    rejects({ sequence: 1, current: first.keyId, keys: [entry(first), { ...entry(second), publicKey: 'nope!' }] },
       /keys\[1\]/)
   })
 
   it('rejects a non-integer timestamp', () => {
-    rejects({ current: first.keyId, keys: [{ ...entry(first), createdAt: 'yesterday' }] }, /createdAt/)
+    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), createdAt: 'yesterday' }] }, /createdAt/)
   })
 })
 
@@ -191,6 +192,7 @@ describe('algorithm agility', () => {
     const rootAlg = getAlgorithm(ROOT_ALGORITHM)
     const legacy = rootAlg.generateKeypair(new Uint8Array(rootAlg.lengths.seed).fill(9))
     const result = parseKeyRegistry({
+      sequence: 1,
       current: first.keyId,
       keys: [
         { keyId: deriveKeyId(legacy.publicKey), alg: ROOT_ALGORITHM, publicKey: toBase64(legacy.publicKey), createdAt: 1, supersededAt: 2 },
@@ -257,6 +259,7 @@ describe('revocation', () => {
 
   it('rejects a registry whose current key is revoked', () => {
     const result = parseKeyRegistry({
+      sequence: 1,
       current: first.keyId,
       keys: [{ ...entry(first), revokedAt: 3_000 }]
     })
@@ -272,5 +275,45 @@ describe('revocation', () => {
     const once = withRevokedKey(rotated(), first.keyId, 3_000)
     const twice = withRevokedKey(once, first.keyId, 9_000)
     expect(findKey(twice, first.keyId)?.revokedAt).toBe(3_000)
+  })
+})
+
+describe('the monotonic sequence', () => {
+  const base = (): KeyRegistry => {
+    const parsed = parseKeyRegistry(validRegistry())
+    if (!parsed.ok) throw new Error(parsed.reason)
+    return parsed.registry
+  }
+
+  it('advances on rotation', () => {
+    expect(withRotatedKey(base(), entry(second), 2_000).sequence).toBe(2)
+  })
+
+  it('advances on revocation', () => {
+    const rotated = withRotatedKey(base(), entry(second), 2_000)
+    expect(withRevokedKey(rotated, first.keyId, 3_000).sequence).toBe(3)
+  })
+
+  it('never decreases across a series of changes', () => {
+    // The property rollback detection rests on: a later registry always carries a higher sequence.
+    const third = makeEntry(3, 3_000)
+    const one = base()
+    const two = withRotatedKey(one, entry(second), 2_000)
+    const three = withRevokedKey(two, first.keyId, 2_500)
+    const four = withRotatedKey(three, entry(third), 3_000)
+    expect([one.sequence, two.sequence, three.sequence, four.sequence]).toEqual([1, 2, 3, 4])
+  })
+
+  it('is carried inside the signed payload, so it cannot be edited without breaking the signature', () => {
+    // Asserted structurally: the sequence is a field of the registry, which is what gets signed.
+    expect(Object.keys(base())).toContain('sequence')
+  })
+
+  it.each([0, -1, 1.5, '1', null])('rejects the invalid sequence %s', (sequence) => {
+    expect(parseKeyRegistry({ sequence, current: first.keyId, keys: [entry(first)] }).ok).toBe(false)
+  })
+
+  it('rejects a registry with no sequence at all', () => {
+    expect(parseKeyRegistry({ current: first.keyId, keys: [entry(first)] }).ok).toBe(false)
   })
 })

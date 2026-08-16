@@ -16,6 +16,7 @@ const first = makeKey(1)
 const second = makeKey(2)
 
 const registryOf = (...keys: Array<typeof first>): KeyRegistry => ({
+  sequence: 1,
   current: keys[keys.length - 1].keyId,
   keys: keys.map(key => ({
     keyId: key.keyId,

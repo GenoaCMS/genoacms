@@ -27,8 +27,18 @@ function subordinateSeedSecret (keyId: string): string {
   return `${SUBORDINATE_SEED_PREFIX}${keyId}`
 }
 
+/**
+ * The highest key-registry sequence ever observed.
+ *
+ * Held here rather than beside the registry precisely because the secrets service is outside the
+ * bucket: a high-water mark stored in the bucket could be rolled back together with the registry it
+ * is supposed to date, which would leave it attesting to nothing.
+ */
+const REGISTRY_SEQUENCE_SECRET = 'GENOACMS_KEY_REGISTRY_SEQUENCE'
+
 export {
   ROOT_SEED_SECRET,
   SUBORDINATE_SEED_PREFIX,
+  REGISTRY_SEQUENCE_SECRET,
   subordinateSeedSecret
 }

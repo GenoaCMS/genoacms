@@ -8,6 +8,7 @@ import { loadRootKey, getRootSigningKey } from './rootKey.server'
 import { createSubordinateKey, forgetSubordinateKey } from './subordinateKey.server'
 import { sign, verify } from './envelope'
 import { parseKeyRegistry, toPayload, withRotatedKey, withRevokedKey, type KeyRegistry } from './registry'
+import { checkAndAdvance, recordPublished } from './registrySequence.server'
 
 /**
  * Reading and writing `.genoacms/keys/public.json`.
@@ -65,6 +66,17 @@ async function loadRegistry (): Promise<RegistryLoadResult> {
   const parsed = parseKeyRegistry(verified.payload)
   if (!parsed.ok) return { ok: false, reason: `registry-invalid: ${parsed.reason}`, absent: false }
 
+  // A valid signature does not date a document. Without this an adversary who kept an older
+  // registry could restore it and undo a revocation, replaying a signature that still verifies.
+  const sequence = await checkAndAdvance(parsed.registry.sequence)
+  if (!sequence.ok) {
+    return {
+      ok: false,
+      reason: `registry-rollback: sequence ${sequence.seen} is below the highest seen (${sequence.mark})`,
+      absent: false
+    }
+  }
+
   return { ok: true, value: { registry: parsed.registry, version } }
 }
 
@@ -82,6 +94,10 @@ async function writeRegistry (registry: KeyRegistry, expected?: string): Promise
     envelope,
     expected === undefined ? { ifAbsent: true } : { ifVersion: expected }
   )
+  // Deliberately after the write. A crash here leaves the mark behind the registry, which the next
+  // load repairs; recording first would leave it ahead, and the instance would reject its own
+  // current registry and be unable to verify anything.
+  await recordPublished(registry.sequence)
 }
 
 /**
@@ -103,6 +119,7 @@ async function loadOrBootstrapRegistry (): Promise<LoadedRegistry> {
 
   const key = await createSubordinateKey()
   const registry: KeyRegistry = {
+    sequence: 1,
     current: key.keyId,
     keys: [{
       keyId: key.keyId,

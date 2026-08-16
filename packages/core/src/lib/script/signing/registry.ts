@@ -29,6 +29,14 @@ interface SubordinateKeyEntry {
 }
 
 interface KeyRegistry {
+  /**
+   * Monotonic, incremented on every publication.
+   *
+   * A signature says a document came from this instance, not when. Without a sequence, restoring an
+   * older registry replays a perfectly valid signature and undoes whatever it recorded — a
+   * revocation, above all.
+   */
+  sequence: number
   /** The key new signatures are made with. A verifier never reads this. */
   current: string
   /** Every key that can still verify — current and superseded alike. */
@@ -101,8 +109,9 @@ function parseEntry (value: unknown, index: number): SubordinateKeyEntry | strin
 function parseKeyRegistry (payload: unknown): RegistryParseResult {
   if (!isPlainObject(payload)) return { ok: false, reason: 'registry is not an object' }
 
-  const { current, keys, ...rest } = payload
+  const { sequence, current, keys, ...rest } = payload
   if (Object.keys(rest).length > 0) return { ok: false, reason: `registry has unexpected fields: ${Object.keys(rest).join(', ')}` }
+  if (!isPositiveInteger(sequence) || sequence < 1) return { ok: false, reason: 'registry.sequence is not a positive integer' }
   if (typeof current !== 'string' || current.length === 0) return { ok: false, reason: 'registry.current is missing' }
   if (!Array.isArray(keys)) return { ok: false, reason: 'registry.keys is not an array' }
   if (keys.length === 0) return { ok: false, reason: 'registry.keys is empty' }
@@ -131,7 +140,7 @@ function parseKeyRegistry (payload: unknown): RegistryParseResult {
     return { ok: false, reason: `registry.current ${current} is revoked` }
   }
 
-  return { ok: true, registry: { current, keys: parsed } }
+  return { ok: true, registry: { sequence, current, keys: parsed } }
 }
 
 function findKey (registry: KeyRegistry, keyId: string): SubordinateKeyEntry | undefined {
@@ -172,7 +181,7 @@ function withRotatedKey (
   const keys = registry.keys.map(existing => existing.keyId === registry.current && existing.supersededAt === undefined
     ? { ...existing, supersededAt: at }
     : existing)
-  return { current: entry.keyId, keys: [...keys, entry] }
+  return { sequence: registry.sequence + 1, current: entry.keyId, keys: [...keys, entry] }
 }
 
 /**
@@ -190,6 +199,7 @@ function withRevokedKey (registry: KeyRegistry, keyId: string, at: number): KeyR
     throw new Error(`registry/unknown-key: ${keyId}`)
   }
   return {
+    sequence: registry.sequence + 1,
     current: registry.current,
     keys: registry.keys.map(entry => entry.keyId === keyId && entry.revokedAt === undefined
       ? { ...entry, revokedAt: at }
