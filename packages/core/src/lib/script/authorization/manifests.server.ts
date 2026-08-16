@@ -1,14 +1,12 @@
 import { join } from 'path'
 import {
-  getInternalObjectJSON,
+  defaultBucketId,
+  getObjectString,
   uploadInternalObjectJSON
 } from '$lib/script/storage/storage.server'
 import {
-  parseRolesManifest,
-  parseUsersManifest,
   serializeRolesManifest,
   serializeUsersManifest,
-  type ManifestParseResult,
   type UserRecord
 } from './manifests'
 import type { Role } from './roles'
@@ -22,37 +20,18 @@ import type { Role } from './roles'
  * `config:users:manage`, and it belongs to the configuration service that calls these functions,
  * not to the storage primitive underneath them.
  *
- * **Nothing here verifies a signature.** The readers are named accordingly: what they return is
- * untrusted content that has been parsed, not content that may be acted upon. Verification and
- * the fail-closed resolution around it are a separate layer, and naming these functions for what
- * they actually do is what stops that layer from being skipped by accident.
+ * Reading yields **raw bytes, not parsed objects**: a signature attests to what was written, so
+ * verification has to run before parsing. Trust and parsing therefore live together one layer up,
+ * in `resolution.server.ts`, and there is no function here that returns usable authorization data.
  */
 
 const securityDirectory = join('.genoacms', 'security')
 const rolesManifestPath = join(securityDirectory, 'roles.json')
 const usersManifestPath = join(securityDirectory, 'users.json')
 
-async function readManifest<T> (
-  path: string,
-  parse: (raw: unknown) => ManifestParseResult<T>
-): Promise<ManifestParseResult<T>> {
-  let raw: unknown
-  try {
-    raw = await getInternalObjectJSON(path)
-  } catch (error) {
-    // Absent and unreadable are the same condition to a caller that must fail closed, but the
-    // reason is carried through for the operational alert that reports it.
-    return { ok: false, reason: `manifest-unreadable: ${path}: ${(error as Error).message}` }
-  }
-  return parse(raw)
-}
-
-async function readUnverifiedRolesManifest (): Promise<ManifestParseResult<Role[]>> {
-  return await readManifest(rolesManifestPath, parseRolesManifest)
-}
-
-async function readUnverifiedUsersManifest (): Promise<ManifestParseResult<UserRecord[]>> {
-  return await readManifest(usersManifestPath, parseUsersManifest)
+/** Throws when the object is absent or unreadable; the caller decides what that means. */
+async function readRawManifest (path: string): Promise<string> {
+  return await getObjectString({ bucket: defaultBucketId, name: path })
 }
 
 async function writeRolesManifest (roles: Role[]): Promise<void> {
@@ -67,8 +46,7 @@ export {
   securityDirectory,
   rolesManifestPath,
   usersManifestPath,
-  readUnverifiedRolesManifest,
-  readUnverifiedUsersManifest,
+  readRawManifest,
   writeRolesManifest,
   writeUsersManifest
 }

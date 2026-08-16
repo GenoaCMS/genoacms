@@ -120,6 +120,7 @@ export {
   fullyQualifiedNameToFilename,
   isDirectoryExisting,
   listOrCreateDirectory,
+  getObjectString,
   getObjectJSON,
   getObjectFlatted,
   getInternalObjectJSON,

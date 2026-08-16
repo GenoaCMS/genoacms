@@ -3,7 +3,7 @@ import type { authentication } from '@genoacms/cloudabstraction'
 import { type Cookies } from '@sveltejs/kit'
 import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
 import { authenticate } from './providers.server'
-import { isSeedAdmin } from '../authorization/seedAdmin.server'
+import { resolvePrincipal } from '../authorization/resolution.server'
 
 const { cookieName, JWTSecret } = await config.authentication
 
@@ -15,7 +15,11 @@ async function authenticateAndAuthorize (email: string, password: string): Promi
     return null
   }
   if (!identity) return null
-  if (!isSeedAdmin(identity.subject)) return null
+  // Valid credentials are not admission: the identity must also be a principal of this instance,
+  // which is the seed administrator or a user the authorization data names. A known user holding
+  // no roles may sign in and will simply be denied every operation.
+  const { known } = await resolvePrincipal(identity.subject)
+  if (!known) return null
   return identity
 }
 
