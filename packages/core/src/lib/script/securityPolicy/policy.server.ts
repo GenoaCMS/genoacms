@@ -46,7 +46,8 @@ function defaultPolicy (): SecurityPolicy {
   const parsed = parseSecurityPolicy({
     subordinateKeyRotationDays: config.security.subordinateKeyRotationDays ?? 90,
     accessTokenMinutes: config.security.accessTokenMinutes ?? 15,
-    grantCacheSeconds: config.security.grantCacheSeconds ?? 30
+    grantCacheSeconds: config.security.grantCacheSeconds ?? 30,
+    refreshTokenDays: config.security.refreshTokenDays ?? 14
   })
   if (!parsed.ok) {
     throw new Error(

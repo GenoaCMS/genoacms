@@ -9,9 +9,9 @@ import {
 } from './policy'
 
 const policy = (days: number): SecurityPolicy =>
-  ({ subordinateKeyRotationDays: days, accessTokenMinutes: 15, grantCacheSeconds: 30 })
+  ({ subordinateKeyRotationDays: days, accessTokenMinutes: 15, grantCacheSeconds: 30, refreshTokenDays: 14 })
 const complete = (over: Record<string, unknown> = {}): unknown =>
-  ({ subordinateKeyRotationDays: 90, accessTokenMinutes: 15, grantCacheSeconds: 30, ...over })
+  ({ subordinateKeyRotationDays: 90, accessTokenMinutes: 15, grantCacheSeconds: 30, refreshTokenDays: 14, ...over })
 const withDays = (days: unknown): unknown => complete({ subordinateKeyRotationDays: days })
 
 describe('parseSecurityPolicy', () => {
@@ -54,7 +54,7 @@ describe('accessTokenMinutes', () => {
   })
 
   it('rejects a policy that omits it', () => {
-    expect(parseSecurityPolicy({ subordinateKeyRotationDays: 90, grantCacheSeconds: 30 }).ok).toBe(false)
+    expect(parseSecurityPolicy({ subordinateKeyRotationDays: 90, grantCacheSeconds: 30, refreshTokenDays: 14 }).ok).toBe(false)
   })
 })
 
@@ -73,7 +73,7 @@ describe('grantCacheSeconds', () => {
   })
 
   it('rejects a policy that omits it', () => {
-    expect(parseSecurityPolicy({ subordinateKeyRotationDays: 90, accessTokenMinutes: 15 }).ok).toBe(false)
+    expect(parseSecurityPolicy({ subordinateKeyRotationDays: 90, accessTokenMinutes: 15, refreshTokenDays: 14 }).ok).toBe(false)
   })
 })
 

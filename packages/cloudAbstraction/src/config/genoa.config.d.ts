@@ -51,6 +51,8 @@ type Config<Extension extends object = object> = Extension & {
      * The window during which a revoked permission is still honoured. Seeds the policy document.
      */
     grantCacheSeconds?: number
+    /** Refresh token lifetime in days. Seeds the security policy document. */
+    refreshTokenDays?: number
   }
   storage: {
     defaultBucket: string

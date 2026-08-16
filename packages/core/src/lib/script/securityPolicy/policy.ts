@@ -36,6 +36,8 @@ interface SecurityPolicy {
    * rather than a re-authentication.
    */
   grantCacheSeconds: number
+  /** Refresh token lifetime in days — how long a session survives without re-authenticating. */
+  refreshTokenDays: number
 }
 
 type PolicyParseResult =
@@ -57,6 +59,10 @@ const MAX_GRANT_CACHE_SECONDS = 300
 /** Zero is permitted: it means resolve every request, which is correct but costs a read each time. */
 const MIN_GRANT_CACHE_SECONDS = 0
 
+/** Beyond a year a "session" is a standing credential. */
+const MAX_REFRESH_TOKEN_DAYS = 365
+const MIN_REFRESH_TOKEN_DAYS = 1
+
 function isPlainObject (value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -64,7 +70,7 @@ function isPlainObject (value: unknown): value is Record<string, unknown> {
 function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   if (!isPlainObject(payload)) return { ok: false, reason: 'policy is not an object' }
 
-  const { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, ...rest } = payload
+  const { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, refreshTokenDays, ...rest } = payload
   if (Object.keys(rest).length > 0) {
     // A field this version does not know is a document from a version that does. Guessing at it
     // would mean acting on a policy only half understood.
@@ -100,7 +106,20 @@ function parseSecurityPolicy (payload: unknown): PolicyParseResult {
     }
   }
 
-  return { ok: true, policy: { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds } }
+  if (typeof refreshTokenDays !== 'number' || !Number.isInteger(refreshTokenDays)) {
+    return { ok: false, reason: 'policy.refreshTokenDays is not an integer' }
+  }
+  if (refreshTokenDays < MIN_REFRESH_TOKEN_DAYS || refreshTokenDays > MAX_REFRESH_TOKEN_DAYS) {
+    return {
+      ok: false,
+      reason: `policy.refreshTokenDays must be between ${MIN_REFRESH_TOKEN_DAYS} and ${MAX_REFRESH_TOKEN_DAYS}`
+    }
+  }
+
+  return {
+    ok: true,
+    policy: { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, refreshTokenDays }
+  }
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -122,6 +141,8 @@ export {
   MAX_ACCESS_TOKEN_MINUTES,
   MIN_GRANT_CACHE_SECONDS,
   MAX_GRANT_CACHE_SECONDS,
+  MIN_REFRESH_TOKEN_DAYS,
+  MAX_REFRESH_TOKEN_DAYS,
   DAY_MS,
   parseSecurityPolicy,
   isRotationDue
