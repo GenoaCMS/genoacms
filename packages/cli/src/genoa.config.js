@@ -5,7 +5,12 @@
  */
 const config = {
   authentication: {
-    adapter: import('%authentication-adapter%')
+    adapter: import('%authentication-adapter%'),
+    cookieName: '__session',
+    // A reference to the secrets service, never the key itself: this file is
+    // committed, and this key signs every session token.
+    // TODO: set GENOACMS_JWT_SECRET in .env to a long random value
+    JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
     // TODO: configure authentication
   },
   database: {

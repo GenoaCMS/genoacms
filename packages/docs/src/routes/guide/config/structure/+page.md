@@ -22,7 +22,7 @@ const config = {
       { adapter: import('package'), ... }
     ],
     cookieName: '__session',
-    JWTSecret: 'mySuperSecretKey'
+    JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
   },
   database: {
     databases: [

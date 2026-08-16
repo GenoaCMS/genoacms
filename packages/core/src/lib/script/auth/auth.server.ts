@@ -4,8 +4,10 @@ import { type Cookies } from '@sveltejs/kit'
 import { CompactSign, jwtVerify, type JWTPayload } from 'jose'
 import { authenticate } from './providers.server'
 import { resolvePrincipal } from '../authorization/resolution.server'
+import { resolveSecretReference } from '../secrets/references.server'
 
-const { cookieName, JWTSecret } = await config.authentication
+const { cookieName } = config.authentication
+const JWTSecret = await resolveSecretReference(config.authentication.JWTSecret, 'authentication.JWTSecret')
 
 async function authenticateAndAuthorize (email: string, password: string): Promise<authentication.Identity | null> {
   let identity = null

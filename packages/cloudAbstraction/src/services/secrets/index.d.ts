@@ -29,6 +29,20 @@ type SecretProvider<Extension extends object = object> = Extension & {
 }
 
 /**
+ * A pointer to a secret, used where `genoa.config` would otherwise carry the value itself.
+ *
+ * The wrapper object exists so that a configuration file can never be ambiguous about what it
+ * holds: `{ secret: 'X' }` is unmistakably a reference, where a bare string would leave the reader
+ * guessing whether `X` is the secret or its name — and guessing wrong in the safe direction means
+ * committing a credential.
+ */
+interface SecretReference {
+  secret: string
+}
+
+declare function isSecretReference (value: unknown): value is SecretReference
+
+/**
  * The portable key rule every adapter enforces — the intersection of what the secret managers
  * accept, so a key valid in development stays valid in production.
  */
@@ -39,10 +53,12 @@ declare function assertValidSecretKey (key: string): void
 export {
   SECRET_KEY_PATTERN,
   isValidSecretKey,
-  assertValidSecretKey
+  assertValidSecretKey,
+  isSecretReference
 }
 
 export type {
   Adapter,
-  SecretProvider
+  SecretProvider,
+  SecretReference
 }

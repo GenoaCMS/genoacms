@@ -29,8 +29,21 @@ function assertValidSecretKey (key) {
   }
 }
 
+/**
+ * Whether a configuration value is a pointer to a secret rather than the secret itself.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isSecretReference (value) {
+  return typeof value === 'object' &&
+    value !== null &&
+    typeof (/** @type {{ secret?: unknown }} */ (value).secret) === 'string'
+}
+
 export {
   SECRET_KEY_PATTERN,
   isValidSecretKey,
-  assertValidSecretKey
+  assertValidSecretKey,
+  isSecretReference
 }

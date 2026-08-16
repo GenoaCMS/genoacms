@@ -14,7 +14,7 @@ This service is responsible for checking whether the user is who they claim to b
 authentication: {
     providers: AuthenticationProvider[]
     cookieName: string
-    JWTSecret: string
+    JWTSecret: SecretReference
 }
 ```
 
@@ -22,8 +22,19 @@ authentication: {
 Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid breaking auth, set the cookie name to a value that is not stripped.
 :::
 
-:::warning[Change JWT secret]
-To reduce risk of token compromise, set the JWT secret to have unique value.
+`JWTSecret` is a **reference**, never the key itself:
+
+```ts
+JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
+```
+
+The value is resolved from the [secrets service](/reference/cloudabstraction/secrets/) at startup. `genoa.config` is committed
+to a repository, so a literal here would put the key that signs every session token into version
+control. Startup fails with a message naming the setting if the secret is absent, rather than
+falling back to anything.
+
+:::warning[Use a unique value per instance]
+Give each instance its own long random secret. Changing it invalidates every existing session.
 :::
 
 :::note[Authorization is not a service]
