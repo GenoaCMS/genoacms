@@ -4,6 +4,7 @@ import { getAlgorithm, ROOT_ALGORITHM, type Keypair } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { fromBase64, toBase64, type SigningKey } from './envelope'
 import { ROOT_SEED_SECRET } from './secretNames'
+import { deriveSessionKey } from './derivedKeys'
 
 /**
  * The root trust anchor.
@@ -43,6 +44,8 @@ function keypairFromSeed (encodedSeed: string): Keypair {
 
 interface RootKey {
   alg: typeof ROOT_ALGORITHM
+  /** Seed-derived key for signing session tokens. Kept here so the seed itself never leaves. */
+  sessionKey: Uint8Array
   keyId: string
   publicKey: Uint8Array
   secretKey: Uint8Array
@@ -68,6 +71,7 @@ async function loadRootKey (): Promise<RootKey> {
 
   cached = {
     alg: ROOT_ALGORITHM,
+    sessionKey: deriveSessionKey(fromBase64(value) as Uint8Array),
     keyId: deriveKeyId(keypair.publicKey),
     publicKey: keypair.publicKey,
     secretKey: keypair.secretKey,
@@ -89,6 +93,17 @@ async function getRootSigningKey (): Promise<SigningKey> {
   return { alg: root.alg, keyId: root.keyId, secretKey: root.secretKey }
 }
 
+/**
+ * The key that signs session tokens, derived from the root seed.
+ *
+ * Exposed instead of the seed, so the seed stays inside this module. Rotating the root changes it,
+ * which invalidates every live session — correct, since the root is rotated when it may have been
+ * exposed and a key derived from an exposed seed should not outlive it.
+ */
+async function getSessionKey (): Promise<Uint8Array> {
+  return (await loadRootKey()).sessionKey
+}
+
 /** The trust anchor a consumer embeds — 32 bytes, base64. */
 async function getRootPublicKey (): Promise<{ keyId: string, alg: string, publicKey: string }> {
   const root = await loadRootKey()
@@ -96,6 +111,7 @@ async function getRootPublicKey (): Promise<{ keyId: string, alg: string, public
 }
 
 export {
+  getSessionKey,
   keypairFromSeed,
   loadRootKey,
   getRootSigningKey,

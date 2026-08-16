@@ -14,7 +14,6 @@ This service is responsible for checking whether the user is who they claim to b
 authentication: {
     providers: AuthenticationProvider[]
     cookieName: string
-    JWTSecret: SecretReference
 }
 ```
 
@@ -22,19 +21,10 @@ authentication: {
 Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid breaking auth, set the cookie name to a value that is not stripped.
 :::
 
-`JWTSecret` is a **reference**, never the key itself:
-
-```ts
-JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
-```
-
-The value is resolved from the [secrets service](/reference/cloudabstraction/secrets/) at startup. `genoa.config` is committed
-to a repository, so a literal here would put the key that signs every session token into version
-control. Startup fails with a message naming the setting if the secret is absent, rather than
-falling back to anything.
-
-:::warning[Use a unique value per instance]
-Give each instance its own long random secret. Changing it invalidates every existing session.
+:::note[There is no session secret to configure]
+Session tokens are signed with a key derived from the root signing seed, so nothing stores or
+configures it. Rotating the root therefore signs everyone out — which is intended, since the root is
+rotated when it may have been exposed.
 :::
 
 :::note[Authorization is not a service]
@@ -111,12 +101,11 @@ secret manager in a deployment; the contract is identical, so only the configura
 
 | Key | Purpose |
 | :--- | :--- |
-| `GENOACMS_JWT_SECRET` | Signs session tokens. Changing it signs everyone out. |
 | `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
 | `GENOACMS_SUBORDINATE_KEY_SEED_…` | One per signing key, named by its key id. |
 | `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key registry being restored. |
 
-GenoaCMS creates all of these itself; only `GENOACMS_JWT_SECRET` has to be set by hand.
+GenoaCMS creates all of these itself. Nothing here has to be set by hand.
 
 :::note[Subordinate seeds accumulate]
 Keys rotate on an interval, so a new `GENOACMS_SUBORDINATE_KEY_SEED_…` appears each time. A seed is

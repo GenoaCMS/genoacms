@@ -12,7 +12,6 @@ type Config<Extension extends object = object> = Extension & {
   authentication: {
     providers: AuthenticationProvider[]
     cookieName: string
-    JWTSecret: SecretReference
   }
   database: {
     databases: DatabaseInit[]

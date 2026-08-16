@@ -5,11 +5,10 @@ import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 import { randomUUID } from 'node:crypto'
 import { authenticate } from './providers.server'
 import { resolvePrincipal } from '../authorization/resolution.server'
-import { resolveSecretReference } from '../secrets/references.server'
 import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
+import { getSessionKey } from '$lib/script/signing/rootKey.server'
 
 const { cookieName } = config.authentication
-const JWTSecret = await resolveSecretReference(config.authentication.JWTSecret, 'authentication.JWTSecret')
 
 async function authenticateAndAuthorize (email: string, password: string): Promise<authentication.Identity | null> {
   let identity = null
@@ -41,7 +40,7 @@ async function login (email: string, password: string, cookies: Cookies) {
     .setIssuedAt()
     .setJti(randomUUID())
     .setExpirationTime(`${accessTokenMinutes}m`)
-    .sign(new TextEncoder().encode(JWTSecret))
+    .sign(await getSessionKey())
 
   cookies.set(cookieName, token, {
     path: '/',
@@ -54,7 +53,7 @@ async function login (email: string, password: string, cookies: Cookies) {
 async function verifyAuthCookie (cookies: Cookies): Promise<JWTPayload | false> {
   const authCookie = cookies.get(cookieName)
   if (!authCookie) return false
-  const result = await jwtVerify(authCookie, new TextEncoder().encode(JWTSecret))
+  const result = await jwtVerify(authCookie, await getSessionKey())
   return result.payload
 }
 

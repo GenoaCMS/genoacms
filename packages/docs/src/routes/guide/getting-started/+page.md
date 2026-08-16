@@ -28,23 +28,11 @@ The `genoa.config/index.js` file is the main [configuration](/guide/config/struc
 Leverage ability to split configuration into multiple files and subdirectories. 
 :::
 
-## Set the session secret
-
-`genoa.config` holds a *reference* to the key that signs session tokens, never the key itself — the
-configuration file is committed to your repository, and the key must not be. The generated config
-points at `GENOACMS_JWT_SECRET`, which the default [secrets provider](/guide/config/services) reads
-from `.env`:
-
-```bash
-echo "GENOACMS_JWT_SECRET=$(openssl rand -base64 32)" >> .env
-```
-
-GenoaCMS refuses to start until this exists, naming the setting rather than falling back to a
-default — a predictable session key would let anyone forge a session.
-
-:::caution[Keep `.env` out of version control]
-Add `.env` to `.gitignore`. In a deployment, use a real secret manager instead; only the
-configuration changes.
+:::note[Nothing to configure for secrets]
+A `.env` file is created for local development. GenoaCMS writes what it needs there itself on first
+start — signing key seeds and internal state — so there is nothing to set by hand. In a deployment,
+point the secrets service at a real secret manager instead; see
+[services](/guide/config/services).
 :::
 
 When the configuration is done, you can verify it by running the CMS locally with the following command:

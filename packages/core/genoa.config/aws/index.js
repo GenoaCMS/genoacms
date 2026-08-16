@@ -14,10 +14,7 @@ const config = {
   authentication: {
     adapter: import('@genoacms/authentication-adapter-array'),
     credentials: authCredentials,
-    cookieName: '__session',
-    // Resolved from the secrets service at startup. Never a literal: genoa.config is
-    // committed, and this key signs every session token.
-    JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
+    cookieName: '__session'
   },
   secrets: {
     providers: [

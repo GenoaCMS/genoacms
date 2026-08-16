@@ -21,8 +21,7 @@ const config = {
     providers: [
       { adapter: import('package'), ... }
     ],
-    cookieName: '__session',
-    JWTSecret: { secret: 'GENOACMS_JWT_SECRET' }
+    cookieName: '__session'
   },
   database: {
     databases: [

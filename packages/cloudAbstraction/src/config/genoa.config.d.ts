@@ -2,18 +2,12 @@ import type { AuthenticationProvider } from '../services/authentication/index.d'
 import type { DatabaseInit, DatabaseProvider } from '../services/database/index.d'
 import type { BucketInit, StorageProvider } from '../services/storage/index.d'
 import type { DeploymentProvider } from '../services/deployment/index.js'
-import type { SecretProvider, SecretReference } from '../services/secrets/index.d'
+import type { SecretProvider } from '../services/secrets/index.d'
 
 type Config<Extension extends object = object> = Extension & {
   authentication: {
     providers: AuthenticationProvider[]
     cookieName: string
-    /**
-     * A reference to the session-signing key held in the secrets service — never the key itself.
-     * `genoa.config` is committed to a repository, so a literal here is a credential in version
-     * control, and one that signs every session token.
-     */
-    JWTSecret: SecretReference
   }
   database: {
     databases: DatabaseInit[]
