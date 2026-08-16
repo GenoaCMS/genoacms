@@ -6,11 +6,13 @@ declare module '@genoacms/adapter-*/secrets' {
   const getSecret: Adapter.getSecret
   const setSecret: Adapter.setSecret
   const deleteSecret: Adapter.deleteSecret
+  const setSecretIfAbsent: Adapter.setSecretIfAbsent
 
   export {
     getSecret,
     setSecret,
-    deleteSecret
+    deleteSecret,
+    setSecretIfAbsent
   }
 }
 

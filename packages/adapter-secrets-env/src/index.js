@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, writeFile, unlink } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { getProvider } from '@genoacms/cloudabstraction'
 import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
@@ -19,6 +19,9 @@ const FILE_MODE = 0o600
 
 const providerConfig = getProvider('secrets', ADAPTER_PATH)
 const envPath = resolve(providerConfig.path ?? DEFAULT_ENV_PATH)
+const lockPath = `${envPath}.lock`
+const LOCK_TIMEOUT_MS = 5_000
+const LOCK_POLL_MS = 20
 
 /**
  * Serialises writes. Each one is a read-modify-write of the whole file, so two concurrent writes
@@ -76,7 +79,12 @@ await loadIntoEnvironment()
  */
 async function getSecret (key) {
     assertValidSecretKey(key)
-    return process.env[key]
+    const fromEnvironment = process.env[key]
+    if (fromEnvironment !== undefined) return fromEnvironment
+    // `process.env` was populated once, at load. Another process may have written the key since —
+    // which is exactly what happens to whoever loses an atomic claim, and reading a stale absence
+    // there would make it conclude the winner had abandoned the claim and fail startup.
+    return parseEntries(await readEnvFile()).get(key)
 }
 
 /**
@@ -105,8 +113,58 @@ async function deleteSecret (key) {
     })
 }
 
+/**
+ * Claims a key, atomically across processes.
+ *
+ * The in-process write queue is not enough here: two `genoacms` processes on one machine share the
+ * file but not the queue. An exclusive lock file is the cross-process primitive — `wx` fails with
+ * `EEXIST` for whoever loses — and the whole read-check-write happens while holding it.
+ *
+ * @type {import('@genoacms/cloudabstraction').secrets.Adapter.setSecretIfAbsent}
+ */
+async function setSecretIfAbsent (key, value) {
+    assertValidSecretKey(key)
+    return await enqueueWrite(async () => {
+        await acquireLock()
+        try {
+            const content = await readEnvFile()
+            if (parseEntries(content).has(key) || process.env[key] !== undefined) return false
+            await writeEnvFile(upsertEntry(content, key, value))
+            process.env[key] = value
+            return true
+        } finally {
+            await releaseLock()
+        }
+    })
+}
+
+async function acquireLock () {
+    const deadline = Date.now() + LOCK_TIMEOUT_MS
+    for (;;) {
+        try {
+            await writeFile(lockPath, String(process.pid), { flag: 'wx', mode: FILE_MODE })
+            return
+        } catch (error) {
+            if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'EEXIST') throw error
+            if (Date.now() > deadline) {
+                throw new Error(`secrets-env/lock-timeout: ${lockPath} is held; remove it if no process owns it`)
+            }
+            await new Promise(resolveDelay => setTimeout(resolveDelay, LOCK_POLL_MS))
+        }
+    }
+}
+
+async function releaseLock () {
+    try {
+        await unlink(lockPath)
+    } catch (error) {
+        if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error
+    }
+}
+
 export {
     getSecret,
     setSecret,
-    deleteSecret
+    deleteSecret,
+    setSecretIfAbsent
 }

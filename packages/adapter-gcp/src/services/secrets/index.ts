@@ -87,6 +87,33 @@ const setSecret: Adapter.setSecret = async (key: string, value: string) => {
   return true
 }
 
+/**
+ * Claims a key, atomically.
+ *
+ * `createSecret` is the primitive: the name is unique within the project, so exactly one concurrent
+ * caller creates it and the rest receive `ALREADY_EXISTS`. Creating the name and writing its value
+ * are two calls, so a crash between them leaves a name holding nothing — the caller is responsible
+ * for polling and failing rather than reading that as absence.
+ */
+const setSecretIfAbsent: Adapter.setSecretIfAbsent = async (key: string, value: string) => {
+  assertValidSecretKey(key)
+  try {
+    await client.createSecret({
+      parent,
+      secretId: key,
+      secret: { replication: { automatic: {} } }
+    })
+  } catch (error) {
+    if (hasStatusCode(error, ALREADY_EXISTS)) return false
+    throw error
+  }
+  await client.addSecretVersion({
+    parent: secretName(key),
+    payload: { data: Buffer.from(value, 'utf-8') }
+  })
+  return true
+}
+
 /** Removes the secret and every version of it. Resolves `false` when it was already absent. */
 const deleteSecret: Adapter.deleteSecret = async (key: string) => {
   assertValidSecretKey(key)
@@ -102,5 +129,6 @@ const deleteSecret: Adapter.deleteSecret = async (key: string) => {
 export {
   getSecret,
   setSecret,
-  deleteSecret
+  deleteSecret,
+  setSecretIfAbsent
 }
