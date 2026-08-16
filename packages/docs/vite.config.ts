@@ -46,6 +46,18 @@ const config = defineConfig({
                   title: 'Services',
                   to: '/guide/config/services/',
                 }]
+            },
+            {
+              title: 'Operations',
+              items: [
+                {
+                  title: 'What GenoaCMS stores',
+                  to: '/guide/storage-layout/',
+                },
+                {
+                  title: 'CLI',
+                  to: '/guide/cli/',
+                }]
             }
           ],
           '/reference/': [

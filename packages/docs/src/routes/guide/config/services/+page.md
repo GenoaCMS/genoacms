@@ -59,6 +59,7 @@ that bootstraps the permission system.
 ```ts
 security: {
     adminSubject: string
+    subordinateKeyRotationDays?: number   // default 90
 }
 ```
 
@@ -69,6 +70,17 @@ whose stored authorization data is missing or cannot be trusted.
 :::caution[Configuration is the root of authority]
 `genoa.config` is written before deployment and is not modifiable at runtime. Nothing the CMS
 stores can grant the seed administrator's authority to another identity.
+:::
+
+`subordinateKeyRotationDays` sets how long a signing key stays current — see
+[key rotation](/guide/cli).
+
+:::note[It is a seed value, not the live one]
+This stanza supplies the values a new instance starts from. They are then held in a signed document
+in the bucket ([`security/policy.json`](/guide/storage-layout)), which is what a running instance
+reads and what an administrator changes at runtime.
+
+Editing `genoa.config` afterwards therefore has no effect on an instance that has already started.
 :::
 
 ## Secrets
@@ -101,6 +113,18 @@ secret manager in a deployment; the contract is identical, so only the configura
 | :--- | :--- |
 | `GENOACMS_JWT_SECRET` | Signs session tokens. Changing it signs everyone out. |
 | `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
+| `GENOACMS_SUBORDINATE_KEY_SEED_…` | One per signing key, named by its key id. |
+| `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key registry being restored. |
+
+GenoaCMS creates all of these itself; only `GENOACMS_JWT_SECRET` has to be set by hand.
+
+:::note[Subordinate seeds accumulate]
+Keys rotate on an interval, so a new `GENOACMS_SUBORDINATE_KEY_SEED_…` appears each time. A seed is
+only needed to *sign*, so seeds for superseded keys can be removed — the public key stays in
+`.genoacms/keys/public.json`, and everything that key signed keeps verifying. Removing the seed of
+the **current** key breaks signing until the next rotation, so check
+[`keys/public.json`](/guide/storage-layout) for which key is current before pruning.
+:::
 
 ### The root signing key
 
