@@ -13,12 +13,33 @@ interface StorageObject {
 
 type ObjectPayload = NodeJS.ReadableStream
 
+/**
+ * An opaque token identifying one version of an object — a GCS generation, an S3 or MinIO etag.
+ *
+ * **Opaque on purpose.** These are not comparable, orderable, or meaningful across providers;
+ * treating a version as a number or a timestamp would produce code that works against one adapter
+ * and fails subtly against another. It may only be passed back to `uploadObject`.
+ */
+type ObjectVersion = string
+
 interface UploadOptions {
   gzip?: boolean
+  /**
+   * Write only if the object still has this version. A stale token is rejected rather than
+   * overwriting, which is what prevents one writer silently erasing another's update.
+   */
+  ifVersion?: ObjectVersion
+  /** Write only if the object does not exist. Exactly one of any number of racing callers wins. */
+  ifAbsent?: boolean
 }
 
 interface ObjectData {
   data: NodeJS.ReadableStream
+  /**
+   * The version read, for passing to a later conditional write. Absent when the adapter cannot
+   * supply one, in which case `ifVersion` cannot be used against that object.
+   */
+  version?: ObjectVersion
 }
 
 interface DirectoryListingParams {
@@ -36,6 +57,7 @@ export type {
   ObjectReference,
   StorageObject,
   ObjectPayload,
+  ObjectVersion,
   UploadOptions,
   ObjectData,
   DirectoryListingParams,

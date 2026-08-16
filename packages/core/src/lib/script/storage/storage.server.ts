@@ -2,7 +2,8 @@ import { config } from '@genoacms/cloudabstraction'
 import type {
   DirectoryContents,
   ObjectReference,
-  StorageObject
+  StorageObject,
+  UploadOptions
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
 import { parse as parseFlatted, stringify as stringifyFlatted } from 'flatted'
@@ -63,9 +64,27 @@ const getObjectFlatted = async (reference: ObjectReference) => {
   const text = await getObjectString(reference)
   return parseFlatted(text)
 }
+/**
+ * Reads an internal object together with the version token needed to write it back conditionally.
+ *
+ * Without the token a read-modify-write on a shared document is a lost update waiting to happen:
+ * two writers both read, both write, and the second silently erases the first with nothing
+ * recording that it did.
+ */
+const getInternalObjectStringVersioned = async (path: string): Promise<{ text: string, version?: string }> => {
+  const file = await getObject({ bucket: defaultBucketId, name: path })
+  return { text: await streamToString(file.data), version: file.version }
+}
+
+const getInternalObjectJSONVersioned = async (path: string): Promise<{ data: unknown, version?: string }> => {
+  const { text, version } = await getInternalObjectStringVersioned(path)
+  return { data: JSON.parse(text), version }
+}
+
 const getInternalObjectJSON = (path: string) => getObjectJSON({ bucket: defaultBucketId, name: path })
 const getInternalObjectFlatted = (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
-const uploadInternalObjectJSON = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data))
+const uploadInternalObjectJSON = async (path: string, data: any, options?: UploadOptions) =>
+  uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data), options)
 const uploadInternalObjectFlatted = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data))
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
@@ -122,6 +141,8 @@ export {
   listOrCreateDirectory,
   getObjectString,
   getObjectJSON,
+  getInternalObjectStringVersioned,
+  getInternalObjectJSONVersioned,
   getObjectFlatted,
   getInternalObjectJSON,
   getInternalObjectFlatted,

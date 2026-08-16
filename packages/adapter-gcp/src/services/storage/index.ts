@@ -4,14 +4,32 @@ import type {
   StorageObject
 } from '@genoacms/cloudabstraction/storage'
 import { type File } from '@google-cloud/storage'
+import { PreconditionFailedError } from '@genoacms/cloudabstraction/storage'
 import { getBucket } from './storage.js'
 
+/**
+ * Reads the object together with its generation, so a later write can assert it.
+ *
+ * The generation costs one metadata call, because `createReadStream` hands back a stream before the
+ * response has been seen and cannot report it. The call is skipped rather than failed when metadata
+ * is unavailable: a missing version only removes the ability to write conditionally, and a download
+ * should not fail for the sake of a token the caller may not want.
+ */
 const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
 
+  let version: string | undefined
+  try {
+    const [metadata] = await file.getMetadata()
+    version = metadata.generation === undefined ? undefined : String(metadata.generation)
+  } catch {
+    version = undefined
+  }
+
   return {
-    data: file.createReadStream()
+    data: file.createReadStream(),
+    version
   }
 }
 
@@ -31,10 +49,30 @@ const getSignedURL: Adapter['getSignedURL'] = async ({ bucket, name }, expires) 
   return url
 }
 
+/** GCS reports a failed precondition as HTTP 412. */
+const PRECONDITION_FAILED = 412
+
 const uploadObject: Adapter['uploadObject'] = async ({ bucket, name }, stream, options) => {
   const bucketInstance = getBucket(bucket)
   const file = bucketInstance.file(name)
-  await file.save(stream, options)
+
+  const { ifVersion, ifAbsent, ...saveOptions } = options ?? {}
+  // `ifGenerationMatch: 0` matches only an object that does not exist yet, which is how GCS spells
+  // an atomic create.
+  const generation = ifAbsent === true ? 0 : ifVersion === undefined ? undefined : Number(ifVersion)
+
+  try {
+    await file.save(stream, generation === undefined
+      ? saveOptions
+      : { ...saveOptions, preconditionOpts: { ifGenerationMatch: generation } })
+  } catch (error) {
+    if ((error as { code?: number }).code === PRECONDITION_FAILED) {
+      throw new PreconditionFailedError({ bucket, name }, ifAbsent === true
+        ? 'object already exists'
+        : 'object changed since it was read')
+    }
+    throw error
+  }
 }
 
 const moveObject: Adapter['moveObject'] = async ({ bucket, name }, newName) => {
