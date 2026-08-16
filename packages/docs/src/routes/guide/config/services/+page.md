@@ -95,6 +95,50 @@ lookup order.
 secret manager in a deployment; the contract is identical, so only the configuration changes.
 :::
 
+### What GenoaCMS stores here
+
+| Key | Purpose |
+| :--- | :--- |
+| `GENOACMS_JWT_SECRET` | Signs session tokens. Changing it signs everyone out. |
+| `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
+
+### The root signing key
+
+On first start GenoaCMS generates a **root trust anchor** — the key at the top of its signing chain
+— and stores its seed as `GENOACMS_ROOT_KEY_SEED`. A line naming the new key's id is written to the
+log when this happens:
+
+```
+[genoacms:signing] generated a new root trust anchor, keyId 9f2c41ab8d7e0355.
+```
+
+Only the seed is stored; the keypair is derived from it at startup. That keeps one short value in
+the secret manager rather than a multi-kilobyte key, and holding the seed is equivalent to holding
+the key, so nothing is given away by storing the smaller thing.
+
+:::caution[Back up the seed, and treat it as the key]
+Losing `GENOACMS_ROOT_KEY_SEED` means losing the trust anchor. GenoaCMS would generate a new one on
+the next start, and every consumer holding the old public key would then reject everything this
+instance signs — recoverable only by redeploying those consumers.
+
+Anyone who can read the seed can sign as your instance. It belongs in a secret manager with the same
+care as a production database credential, never in the repository.
+:::
+
+:::note[Starting several instances at once is safe]
+Instances that start together do not each generate a key. Creation is an atomic claim: exactly one
+wins, and the others wait briefly and adopt its key. An instance that cannot obtain a value fails to
+start rather than inventing its own — which would leave two instances signing with keys that
+disagree, invisible until a consumer rejected a legitimate artifact.
+
+If startup reports that a key was claimed but never given a value, an earlier instance died part-way
+through first-time setup. Delete the key from the secret store so it can be created again.
+:::
+
+To provision the key yourself instead of letting it be generated — for a multi-region deployment, or
+to keep the anchor under existing key management — write the seed to the secret store before first
+start. GenoaCMS generates one only when none is present.
+
 ## Database
 
 Service responsible for managing data storage. It is possible to define multiple databases and multiple providers.

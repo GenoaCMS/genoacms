@@ -19,8 +19,21 @@ export declare namespace Adapter {
   type getSecret = (key: string) => Promise<string | undefined>
   type setSecret = (key: string, value: string) => Promise<boolean>
   type deleteSecret = (key: string) => Promise<boolean>
+  type setSecretIfAbsent = (key: string, value: string) => Promise<boolean>
 }
 ```
+
+`setSecretIfAbsent` writes only if the key does not exist, **atomically**. Exactly one of any number
+of racing callers resolves `true`. It exists so that instances starting concurrently cannot each
+generate a root signing key and disagree about which one consumers should trust — a failure that is
+invisible until a legitimate artifact is rejected in the field.
+
+:::caution[A claimed key may briefly hold nothing]
+Providers that create a key and write its value in two calls can be interrupted between them. A
+caller that loses the claim must poll for a bounded period and then **fail**, never read an empty
+result as "not configured" — doing so would generate a second key, which is the outcome the
+operation prevents.
+:::
 
 `getSecret` resolves to `undefined` for a key that does not exist rather than rejecting — absence is
 an ordinary answer, not a failure. `deleteSecret` resolves to `false` when the key was already
@@ -36,7 +49,7 @@ behaviour would defeat the abstraction.
 | AWS Secrets Manager | `GetSecretValueCommand` | `PutSecretValueCommand` | `DeleteSecretCommand` |
 | Azure Key Vault | `getSecret` | `setSecret` | `beginDeleteSecret` |
 | HashiCorp Vault | `read('secret/data/…')` | `write('secret/data/…')` | `delete('secret/data/…')` |
-| Local `.env` emulator | `process.env[key]` | write the key to `.env` | remove the key from `.env` |
+| Local `.env` emulator | `process.env[key]`, then the file | write the key to `.env` | remove the key from `.env` |
 
 ## Module
 
