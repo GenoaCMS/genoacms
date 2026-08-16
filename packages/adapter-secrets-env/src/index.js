@@ -1,7 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { getProvider } from '@genoacms/cloudabstraction'
-import { assertValidKey, parseEntries, removeEntry, upsertEntry } from './envFile.js'
+import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+import { parseEntries, removeEntry, upsertEntry } from './envFile.js'
 
 /**
  * Secrets emulator backed by a `.env` file.
@@ -74,7 +75,7 @@ await loadIntoEnvironment()
  * @type {import('@genoacms/cloudabstraction').secrets.Adapter.getSecret}
  */
 async function getSecret (key) {
-    assertValidKey(key)
+    assertValidSecretKey(key)
     return process.env[key]
 }
 
@@ -82,7 +83,7 @@ async function getSecret (key) {
  * @type {import('@genoacms/cloudabstraction').secrets.Adapter.setSecret}
  */
 async function setSecret (key, value) {
-    assertValidKey(key)
+    assertValidSecretKey(key)
     return await enqueueWrite(async () => {
         await writeEnvFile(upsertEntry(await readEnvFile(), key, value))
         process.env[key] = value
@@ -94,7 +95,7 @@ async function setSecret (key, value) {
  * @type {import('@genoacms/cloudabstraction').secrets.Adapter.deleteSecret}
  */
 async function deleteSecret (key) {
-    assertValidKey(key)
+    assertValidSecretKey(key)
     return await enqueueWrite(async () => {
         const { content, existed } = removeEntry(await readEnvFile(), key)
         await writeEnvFile(content)

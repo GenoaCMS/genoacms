@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
 import {
-    assertValidKey,
     parseEntries,
     parseValue,
     removeEntry,
@@ -160,12 +160,12 @@ describe('removeEntry', () => {
 
 describe('key validation', () => {
     it.each(['A', 'a', '_a', 'GENOACMS_ROOT_KEY', 'a1'])('accepts %s', (key) => {
-        expect(() => assertValidKey(key)).not.toThrow()
+        expect(() => assertValidSecretKey(key)).not.toThrow()
     })
 
     it.each(['', '1a', 'a-b', 'a.b', 'a b', 'a:b', 'küche', 'a/b'])('rejects %j', (key) => {
         // Rejected rather than normalised: folding 'a-b' and 'a_b' together would merge two secrets.
-        expect(() => assertValidKey(key)).toThrow(/invalid-secret-key/)
+        expect(() => assertValidSecretKey(key)).toThrow(/invalid-secret-key/)
     })
 
     it('rejects an invalid key on write rather than corrupting the file', () => {

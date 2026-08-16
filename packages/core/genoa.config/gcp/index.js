@@ -35,6 +35,17 @@ const config = {
     JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
   },
   secrets: {
+    // Development default. For a real GCP deployment replace this with Secret Manager:
+    //
+    //   {
+    //     name: 'secret-manager',
+    //     adapterPath: '@genoacms/adapter-gcp/secrets',
+    //     adapter: import('@genoacms/adapter-gcp/secrets'),
+    //     projectId: 'genoacms',
+    //     credentials
+    //   }
+    //
+    // Only one provider may be configured, so this is a replacement rather than an addition.
     providers: [
       {
         name: 'local',

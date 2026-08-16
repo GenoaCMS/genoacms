@@ -28,6 +28,20 @@ type SecretProvider<Extension extends object = object> = Extension & {
   adapter: Promise<typeof Adapter>
 }
 
+/**
+ * The portable key rule every adapter enforces — the intersection of what the secret managers
+ * accept, so a key valid in development stays valid in production.
+ */
+declare const SECRET_KEY_PATTERN: RegExp
+declare function isValidSecretKey (key: string): boolean
+declare function assertValidSecretKey (key: string): void
+
+export {
+  SECRET_KEY_PATTERN,
+  isValidSecretKey,
+  assertValidSecretKey
+}
+
 export type {
   Adapter,
   SecretProvider

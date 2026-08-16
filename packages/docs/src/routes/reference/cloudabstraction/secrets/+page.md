@@ -68,6 +68,35 @@ authority: with two, `setSecret` has no defensible answer to *"written where?"*,
 in one but not the other would make behaviour depend on lookup order.
 :::
 
+## Key names
+
+Keys must match `[A-Za-z_][A-Za-z0-9_]*`.
+
+This is the **intersection** of what the secret managers accept, not the limit of any one of them:
+GCP allows `-`, AWS allows `/` and `.`, and an environment variable allows neither. Fixing the
+intersection is what makes a key that works against the `.env` emulator in development still work
+against a cloud secret manager in production.
+
+The rule is exported from `@genoacms/cloudabstraction/secrets` so every adapter enforces the same
+one, and an invalid key throws rather than being normalised — folding `a-b` and `a_b` onto a single
+name would silently merge two distinct secrets.
+
+## Available adapters
+
+| Adapter | Notes |
+| :--- | :--- |
+| `@genoacms/adapter-secrets-env` | Development only. Plaintext `.env` file. |
+| `@genoacms/adapter-gcp/secrets` | GCP Secret Manager. Requires `projectId` and `credentials`. |
+
+:::note[Versioning is not part of the contract]
+Secret Manager is versioned; this contract is not. A write adds a version and a read always takes
+`latest`, so superseded versions accumulate — invisible to GenoaCMS, but still billed and still
+readable by anyone with project access. Set a retention policy at the project level if that matters.
+
+Building the contract on version history would have left it unimplementable against stores that have
+none.
+:::
+
 :::note[Backend only]
 Secrets are read on the GenoaCMS server. Dynamic components and consumer client SDKs have no access
 to them.

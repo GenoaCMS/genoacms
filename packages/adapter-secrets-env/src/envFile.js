@@ -12,22 +12,9 @@
  * secrets are base64 — and supporting them would make line-oriented rewriting unsound.
  */
 
+import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+
 const ENTRY_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/
-
-/**
- * Keys are restricted to the portable subset every secret manager accepts. Rejecting is deliberate:
- * normalising `a-b` and `a_b` to one name would silently merge two distinct secrets.
- */
-const KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
-
-/**
- * @param {string} key
- */
-function assertValidKey (key) {
-    if (!KEY_PATTERN.test(key)) {
-        throw new Error(`invalid-secret-key: '${key}' must match ${KEY_PATTERN.source}`)
-    }
-}
 
 /**
  * @param {string} raw
@@ -127,7 +114,7 @@ function joinLines (lines) {
  * @returns {string}
  */
 function upsertEntry (content, key, value) {
-    assertValidKey(key)
+    assertValidSecretKey(key)
     const entry = `${key}=${serializeValue(value)}`
     const lines = splitLines(content)
     const index = lines.findIndex(line => readEntryKey(line) === key)
@@ -141,7 +128,7 @@ function upsertEntry (content, key, value) {
  * @returns {{ content: string, existed: boolean }}
  */
 function removeEntry (content, key) {
-    assertValidKey(key)
+    assertValidSecretKey(key)
     const lines = splitLines(content)
     const remaining = lines.filter(line => readEntryKey(line) !== key)
     return {
@@ -151,7 +138,6 @@ function removeEntry (content, key) {
 }
 
 export {
-    assertValidKey,
     parseValue,
     serializeValue,
     parseEntries,
