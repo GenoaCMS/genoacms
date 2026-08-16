@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 
 /**
  * Drives the real bootstrap with storage and secrets replaced by in-memory stubs.
@@ -63,31 +63,41 @@ const policyPath = '.genoacms/security/policy.json'
 const rolesPath = '.genoacms/security/roles.json'
 const usersPath = '.genoacms/security/users.json'
 
-describe('bootstrapping a fresh instance', () => {
-  beforeEach(() => {
-    objects.clear()
-    secrets.clear()
-    vi.resetModules()
-  })
+const runBootstrap = async (): Promise<void> => {
+  const { ensureInstanceInitialised } = await import('./bootstrap.server')
+  await ensureInstanceInitialised()
+}
 
-  const bootstrap = async (): Promise<void> => {
-    const { ensureInstanceInitialised } = await import('./bootstrap.server')
-    await ensureInstanceInitialised()
-  }
+const freshState = (): void => {
+  objects.clear()
+  secrets.clear()
+  vi.resetModules()
+  // A spy set by one case would otherwise persist into the next, which is how the rotation cases
+  // first failed with "bucket unreachable".
+  vi.restoreAllMocks()
+}
+
+/**
+ * Bootstrapping signs several documents, and an SLH-DSA signature costs about a second. Running it
+ * once and asserting against the result keeps the file from sitting at the edge of the default
+ * timeout, where it fails intermittently rather than usefully.
+ */
+describe('bootstrapping a fresh instance', () => {
+  beforeAll(async () => {
+    freshState()
+    await runBootstrap()
+  }, 60_000)
 
   it('creates the root key seed', async () => {
-    await bootstrap()
     expect(secrets.get('GENOACMS_ROOT_KEY_SEED')).toBeDefined()
   })
 
   it('creates the key registry', async () => {
-    await bootstrap()
     expect(objects.has(registryPath)).toBe(true)
   })
 
   it('creates both authorization manifests, signed and empty', async () => {
     // The thing that was missing: a fresh instance had none of these, and nothing said so.
-    await bootstrap()
     expect(objects.has(rolesPath)).toBe(true)
     expect(objects.has(usersPath)).toBe(true)
 
@@ -100,25 +110,21 @@ describe('bootstrapping a fresh instance', () => {
   })
 
   it('signs the manifests with the registry\'s current subordinate key', async () => {
-    await bootstrap()
     const registry = JSON.parse(objects.get(registryPath) as string)
     const roles = JSON.parse(objects.get(rolesPath) as string)
     expect(roles.keyId).toBe(registry.payload.current)
   })
 
   it('stores a seed for that subordinate key', async () => {
-    await bootstrap()
     const registry = JSON.parse(objects.get(registryPath) as string)
     expect(secrets.has(`GENOACMS_SUBORDINATE_KEY_SEED_${registry.payload.current}`)).toBe(true)
   })
 
   it('records the registry sequence high-water mark outside the bucket', async () => {
-    await bootstrap()
     expect(secrets.get('GENOACMS_KEY_REGISTRY_SEQUENCE')).toBe('1')
   })
 
   it('creates the security policy document from the Tier-1 default', async () => {
-    await bootstrap()
     expect(objects.has(policyPath)).toBe(true)
     const stored = JSON.parse(objects.get(policyPath) as string)
     expect(stored).toMatchObject({
@@ -130,7 +136,6 @@ describe('bootstrapping a fresh instance', () => {
   it('signs the policy with the root, not with a subordinate key', async () => {
     // The policy governs the subordinate keys — when they rotate, and later what ceilings constrain
     // the code they sign. A subordinate signing it could rewrite the rule that retires it.
-    await bootstrap()
     const policy = JSON.parse(objects.get(policyPath) as string)
     const registry = JSON.parse(objects.get(registryPath) as string)
     expect(policy.alg).toBe('SLH-DSA-SHA2-128s')
@@ -141,23 +146,26 @@ describe('bootstrapping a fresh instance', () => {
   it('completes without recursing, since a root-signed policy needs no subordinate key', async () => {
     // Deciding whether to rotate reads the policy; writing it with a subordinate key would have
     // required the very decision being made.
-    await expect(bootstrap()).resolves.toBeUndefined()
     expect(objects.has(policyPath)).toBe(true)
     expect(objects.has(registryPath)).toBe(true)
   })
+})
+
+describe('re-running bootstrap', () => {
+  beforeEach(freshState)
 
   it('is idempotent — a restart changes nothing', async () => {
-    await bootstrap()
+    await runBootstrap()
     const first = new Map(objects)
     const firstSeed = secrets.get('GENOACMS_ROOT_KEY_SEED')
 
     vi.resetModules()
-    await bootstrap()
+    await runBootstrap()
 
     expect(secrets.get('GENOACMS_ROOT_KEY_SEED')).toBe(firstSeed)
     expect(objects.get(registryPath)).toBe(first.get(registryPath))
     expect(objects.get(rolesPath)).toBe(first.get(rolesPath))
-  })
+  }, 30_000)
 
   it('does not reject when storage is unreachable, so the seed admin can still sign in', async () => {
     const { ensureInstanceInitialised } = await import('./bootstrap.server')
@@ -165,5 +173,70 @@ describe('bootstrapping a fresh instance', () => {
     vi.spyOn(storage, 'uploadInternalObjectJSON').mockRejectedValue(new Error('bucket unreachable'))
 
     await expect(ensureInstanceInitialised()).resolves.toBeUndefined()
+  }, 30_000)
+})
+
+describe('rotating the root trust anchor', () => {
+  interface StoredRegistry { keyId: string, payload: { current: string, sequence: number } }
+  let before: { rootSeed?: string, registry: StoredRegistry, roles: string }
+  let result: { keyId: string, publicKey: string, subordinateKeyId: string, sequence: number }
+
+  // Bootstrap and rotate are several root signatures at ~1.2s each; done once for all of the
+  // assertions below rather than per case.
+  beforeAll(async () => {
+    freshState()
+    await runBootstrap()
+    before = {
+      rootSeed: secrets.get('GENOACMS_ROOT_KEY_SEED'),
+      registry: JSON.parse(objects.get(registryPath) as string),
+      roles: objects.get(rolesPath) as string
+    }
+    const { rotateRootKey } = await import('./signing/rootRotation.server')
+    result = await rotateRootKey()
+  }, 60_000)
+
+  it('replaces the stored root seed', async () => {
+    expect(secrets.get('GENOACMS_ROOT_KEY_SEED')).not.toBe(before.rootSeed)
+  })
+
+  it('reports a 32 byte public key for consumers to embed', async () => {
+    expect(Buffer.from(result.publicKey, 'base64')).toHaveLength(32)
+  })
+
+  it('re-signs the registry under the new root', async () => {
+    const after = JSON.parse(objects.get(registryPath) as string)
+    expect(after.keyId).toBe(result.keyId)
+    expect(after.keyId).not.toBe(before.registry.keyId)
+  })
+
+  it('discards the previous subordinate keys', async () => {
+    // A compromised root could have signed a registry naming keys the adversary controls, and once
+    // the anchor that vouched for them is untrusted nothing tells those from the legitimate ones.
+    const after = JSON.parse(objects.get(registryPath) as string)
+    expect(after.payload.keys).toHaveLength(1)
+    expect(after.payload.current).toBe(result.subordinateKeyId)
+    expect(after.payload.keys.map((k: { keyId: string }) => k.keyId))
+      .not.toContain(before.registry.payload.current)
+  })
+
+  it('re-signs the security policy, which is also root-signed', async () => {
+    const policy = JSON.parse(objects.get(policyPath) as string)
+    expect(policy.keyId).toBe(result.keyId)
+  })
+
+  it('continues the sequence from the high-water mark, not from the old registry', async () => {
+    // After the root changes the old registry cannot be verified, so its sequence may not be
+    // believed. Continuing from the mark preserves rollback detection across the rotation.
+    expect(result.sequence).toBeGreaterThan(before.registry.payload.sequence)
+    expect(secrets.get('GENOACMS_KEY_REGISTRY_SEQUENCE')).toBe(String(result.sequence))
+  })
+
+  it('leaves the manifests unverifiable, which is the stated cost', async () => {
+    // The manifest bytes are untouched by rotation itself...
+    expect(objects.get(rolesPath)).toBe(before.roles)
+    // ...but they are signed by a key the new registry no longer lists.
+    const roles = JSON.parse(objects.get(rolesPath) as string)
+    const registry = JSON.parse(objects.get(registryPath) as string)
+    expect(registry.payload.keys.map((k: { keyId: string }) => k.keyId)).not.toContain(roles.keyId)
   })
 })

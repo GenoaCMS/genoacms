@@ -7,7 +7,7 @@
 		"directory": "packages/core"
 	},
 	"author": {
-		"name": "Filip Holčík",
+		"name": "Filip Hol\u010d\u00edk",
 		"email": "filip.holcik.official@gmail.com"
 	},
 	"license": "ISC",
@@ -22,7 +22,8 @@
 		"lint": "eslint .",
 		"test:integration": "playwright test",
 		"test:unit": "vitest run",
-		"test:unit:watch": "vitest"
+		"test:unit:watch": "vitest",
+		"rotate-root": "vite-node scripts/rotate-root.ts"
 	},
 	"dependencies": {
 		"@codemirror/lang-javascript": "^6.2.4",
@@ -87,6 +88,7 @@
 		"globals": "^14.0.0",
 		"neostandard": "^0.12.1",
 		"svelte-check": "^4.4.4",
-		"typescript-eslint": "^8.26.1"
+		"typescript-eslint": "^8.26.1",
+		"vite-node": "^6.0.0"
 	}
 }

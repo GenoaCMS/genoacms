@@ -19,6 +19,9 @@ async function selectMode () {
             value: 'database',
             label: 'Configure database'
         }, {
+            value: 'rotate-root',
+            label: 'Rotate the root trust anchor'
+        }, {
             value: 'exit',
             label: 'Exit'
         }]
@@ -43,6 +46,11 @@ async function runMode(mode) {
         case 'database': {
             const database = (await import('./database.js')).default
             await database()
+            break
+        }
+        case 'rotate-root': {
+            const rotateRoot = (await import('./rotateRoot.js')).default
+            await rotateRoot()
             break
         }
         case 'exit':
