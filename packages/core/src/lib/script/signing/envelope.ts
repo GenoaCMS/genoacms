@@ -16,7 +16,8 @@ const DOCUMENT_TYPES = [
   'genoacms.roles.v1',
   'genoacms.users.v1',
   'genoacms.keyRegistry.v1',
-  'genoacms.securityPolicy.v1'
+  'genoacms.securityPolicy.v1',
+  'genoacms.session.v1'
 ] as const
 
 type DocumentType = typeof DOCUMENT_TYPES[number]

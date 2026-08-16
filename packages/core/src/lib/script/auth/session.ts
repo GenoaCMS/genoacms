@@ -14,6 +14,13 @@ import { sha256 } from '@noble/hashes/sha2.js'
 interface SessionFamily {
   familyId: string
   subject: string
+  /**
+   * Display metadata, carried so a renewed access token can present it.
+   *
+   * Held here rather than recovered from the expired token: this record is signed, so the value is
+   * authentic, where an unverified decode would let a forged cookie put any address on screen.
+   */
+  email: string
   /** Digest of the token that is currently valid. */
   currentHash: string
   /**
@@ -95,6 +102,7 @@ function rotated (family: SessionFamily, nextToken: string, now: number): Sessio
 function newFamily (
   familyId: string,
   subject: string,
+  email: string,
   token: string,
   now: number,
   lifetimeDays: number
@@ -102,6 +110,7 @@ function newFamily (
   return {
     familyId,
     subject,
+    email,
     currentHash: hashToken(token),
     generation: 1,
     createdAt: now,
@@ -119,17 +128,18 @@ const isTimestamp = (value: unknown): value is number =>
 /** Parses a stored family record. A malformed one is rejected, never partially believed. */
 function parseSessionFamily (payload: unknown): SessionFamily | undefined {
   if (!isPlainObject(payload)) return undefined
-  const { familyId, subject, currentHash, previousHash, rotatedAt, generation, createdAt, expiresAt, ...rest } = payload
+  const { familyId, subject, email, currentHash, previousHash, rotatedAt, generation, createdAt, expiresAt, ...rest } = payload
   if (Object.keys(rest).length > 0) return undefined
   if (typeof familyId !== 'string' || familyId.length === 0) return undefined
   if (typeof subject !== 'string' || subject.length === 0) return undefined
+  if (typeof email !== 'string') return undefined
   if (typeof currentHash !== 'string' || currentHash.length === 0) return undefined
   if (previousHash !== undefined && typeof previousHash !== 'string') return undefined
   if (rotatedAt !== undefined && !isTimestamp(rotatedAt)) return undefined
   if (!isTimestamp(generation) || generation < 1) return undefined
   if (!isTimestamp(createdAt) || !isTimestamp(expiresAt)) return undefined
 
-  const family: SessionFamily = { familyId, subject, currentHash, generation, createdAt, expiresAt }
+  const family: SessionFamily = { familyId, subject, email, currentHash, generation, createdAt, expiresAt }
   if (previousHash !== undefined) family.previousHash = previousHash
   if (rotatedAt !== undefined) family.rotatedAt = rotatedAt
   return family

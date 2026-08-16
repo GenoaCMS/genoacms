@@ -11,7 +11,7 @@ import {
 } from './session'
 
 const NOW = 1_700_000_000_000
-const family = (): SessionFamily => newFamily('fam-1', 'subject-1', 'token-a', NOW, 14)
+const family = (): SessionFamily => newFamily('fam-1', 'subject-1', 'admin@example.com', 'token-a', NOW, 14)
 
 describe('hashToken', () => {
   it('stores a digest, not the token', () => {

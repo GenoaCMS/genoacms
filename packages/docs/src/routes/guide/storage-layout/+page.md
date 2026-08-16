@@ -14,6 +14,7 @@ files from unexpected ones.
 │   ├── policy.json            security settings
 │   ├── roles.json             what each role may do
 │   ├── users.json             who holds which roles
+│   ├── sessions/              one record per signed-in session
 │   └── rejected/              documents that failed verification
 └── components/                component definitions and revisions
 ```
@@ -60,6 +61,26 @@ What each role may do, and which roles each user holds. Signed by the current su
 Both are created **empty**. A new instance therefore grants nobody anything, and the seed
 administrator — resolved from `genoa.config` alone, never from these files — signs in to build the
 first roles.
+
+### `security/sessions/`
+
+One object per signed-in session, named for its family identifier:
+
+```
+.genoacms/security/sessions/8f14e45f-ceea-467a-9b1e-7a12c0e7a1d4.json
+```
+
+A record holds the **hash** of the session's current refresh token, never the token itself, so a
+copy of this directory does not let anyone sign in as its users. Records are signed like every other
+document — without that, write access to the bucket would be enough to mint a session.
+
+Signing out deletes the record. So does presenting a refresh token that has already been used, which
+is treated as a stolen session: the record goes and everyone holding a token for it, legitimate or
+not, has to sign in again.
+
+Expired records are harmless — the expiry is inside the signed payload, so an expired one grants
+nothing whether or not anything has got around to deleting it. Deleting the directory signs everyone
+out; nothing else is lost.
 
 ### `security/rejected/`
 

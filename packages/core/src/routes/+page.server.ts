@@ -6,8 +6,9 @@ export async function load ({ locals }) {
 }
 
 export const actions = {
-  logout: function ({ cookies }) {
-    logout(cookies)
+  logout: async function ({ cookies }) {
+    // Awaited before redirecting: the family must be gone from storage, not merely from the browser.
+    await logout(cookies)
     redirect(303, '/')
   }
 }

@@ -18,7 +18,24 @@ authentication: {
 ```
 
 :::info[Ensure cookie name is valid]
-Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid breaking auth, set the cookie name to a value that is not stripped.
+Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid
+breaking auth, set the cookie name to a value that is not stripped.
+
+On **Firebase Hosting** and behind **Google Cloud CDN**, only a cookie named `__session` reaches the
+backend:
+
+```ts
+authentication: {
+    cookieName: '__session'
+}
+```
+
+Getting this wrong does not fail loudly. Sign-in works, and then every renewal is dropped, so users
+are signed out roughly every `accessTokenMinutes` with nothing in the logs to explain it.
+
+GenoaCMS keeps the whole session — access token, refresh token, and the family it belongs to — in
+this **one** cookie, so a host that forwards a single cookie is enough. It stays well inside the
+4096-byte limit.
 :::
 
 :::note[There is no session secret to configure]
