@@ -52,6 +52,11 @@ const config = {
       { name: 'myStorageProvider', adapter: import('package'), ... }
     ]
   },
+  secrets: {
+    providers: [
+      { name: 'local', adapter: import('@genoacms/adapter-secrets-env') }
+    ]
+  },
   security: {
     adminSubject: 'the-subject-of-the-seed-administrator'
   }

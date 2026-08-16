@@ -175,6 +175,16 @@ importers:
         specifier: ^3.0.9
         version: 3.2.7(@types/debug@4.1.13)(@types/node@20.19.43)(jiti@2.7.0)(jsdom@24.1.3)(lightningcss@1.32.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
 
+  packages/adapter-secrets-env:
+    dependencies:
+      '@genoacms/cloudabstraction':
+        specifier: workspace:^
+        version: link:../cloudAbstraction
+    devDependencies:
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@20.19.43)(jiti@2.7.0)(jsdom@24.1.3)(lightningcss@1.32.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
+
   packages/authentication-adapter-array:
     dependencies:
       '@genoacms/cloudabstraction':
@@ -368,6 +378,9 @@ importers:
       '@genoacms/adapter-node':
         specifier: workspace:^
         version: link:../adapter-node
+      '@genoacms/adapter-secrets-env':
+        specifier: workspace:^
+        version: link:../adapter-secrets-env
       '@genoacms/authentication-adapter-array':
         specifier: workspace:^
         version: link:../authentication-adapter-array

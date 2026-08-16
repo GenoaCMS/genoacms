@@ -1,0 +1,37 @@
+{
+  "name": "@genoacms/adapter-secrets-env",
+  "version": "0.1.0",
+  "description": "Development secrets adapter for GenoaCMS, backed by a .env file",
+  "main": "src/index.js",
+  "type": "module",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/adapter-secrets-env"
+  },
+  "license": "ISC",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    },
+    "./secrets": {
+      "import": "./src/index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genoacms/cloudabstraction": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  }
+}

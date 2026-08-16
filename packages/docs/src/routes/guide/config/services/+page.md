@@ -60,6 +60,30 @@ whose stored authorization data is missing or cannot be trusted.
 stores can grant the seed administrator's authority to another identity.
 :::
 
+## Secrets
+
+Service responsible for holding credentials that must not live in the primary storage bucket or in
+`genoa.config` — signing keys, the JWT secret, database and storage credentials.
+
+### Config type
+
+```ts
+secrets: {
+    providers: SecretProvider[]
+}
+```
+
+:::caution[Exactly one provider]
+Only one secret store may be configured. A secret store is a single authority: with two, a write has
+no defensible target, and a key present in one but not the other would make behaviour depend on
+lookup order.
+:::
+
+:::warning[The .env adapter is for development]
+`@genoacms/adapter-secrets-env` keeps secrets in plaintext in your project directory. Use a real
+secret manager in a deployment; the contract is identical, so only the configuration changes.
+:::
+
 ## Database
 
 Service responsible for managing data storage. It is possible to define multiple databases and multiple providers.

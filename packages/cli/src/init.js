@@ -134,6 +134,9 @@ async function init () {
     const isNpmPackage = existsSync('package.json')
     if (!isNpmPackage) await initNpmProject()
     await installPackage('@genoacms/core')
+    // The .env secrets adapter is always installed: the config template references it, and a
+    // project cannot start without a secrets provider.
+    await installPackage('@genoacms/adapter-secrets-env')
     const adapterSuite = await selectAdapterSuite()
     await installAdapterSuite(adapterSuite)
     const authenticationAdapter = await selectAuthenticationAdapter()

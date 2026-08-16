@@ -2,6 +2,7 @@ import type { AuthenticationProvider } from '../services/authentication/index.d'
 import type { DatabaseInit, DatabaseProvider } from '../services/database/index.d'
 import type { BucketInit, StorageProvider } from '../services/storage/index.d'
 import type { DeploymentProvider } from '../services/deployment/index.js'
+import type { SecretProvider } from '../services/secrets/index.d'
 
 type Config<Extension extends object = object> = Extension & {
   authentication: {
@@ -15,6 +16,10 @@ type Config<Extension extends object = object> = Extension & {
   }
   deployment: {
     providers: DeploymentProvider[]
+  }
+  secrets: {
+    /** Exactly one. A secret store is a single authority — see the secrets service reference. */
+    providers: SecretProvider[]
   }
   security: {
     /**
@@ -40,6 +45,7 @@ type Config<Extension extends object = object> = Extension & {
 }
 
 type Provider = AuthenticationProvider
+| SecretProvider
 | DatabaseProvider
 | StorageProvider
 | DeploymentProvider
