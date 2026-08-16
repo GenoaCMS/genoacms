@@ -114,6 +114,20 @@ function readEnvelope (candidate: unknown): SignedEnvelope | string {
 }
 
 /**
+ * The envelope's header, **before** anything about it has been established.
+ *
+ * A verifier needs the `keyId` to fetch the key it will then verify against, so this much has to be
+ * read untrusted — there is no way around it. The name says so, and the fields are used for lookup
+ * only: `verify` re-reads them from the envelope and binds them into the digest, so a lie told here
+ * makes the signature fail rather than taking effect.
+ */
+function peekUnverifiedHeader (candidate: unknown): { alg: AlgorithmName, keyId: string, type: DocumentType } | undefined {
+  const envelope = readEnvelope(candidate)
+  if (typeof envelope === 'string') return undefined
+  return { alg: envelope.alg, keyId: envelope.keyId, type: envelope.type }
+}
+
+/**
  * Verifies an envelope against a public key, having been told which document it must be.
  *
  * `expectedType` is a parameter rather than something read from the envelope: a caller that
@@ -158,6 +172,7 @@ export {
   canonicalSignedObject,
   toBase64,
   fromBase64,
+  peekUnverifiedHeader,
   sign,
   verify
 }

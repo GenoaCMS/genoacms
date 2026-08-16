@@ -20,7 +20,7 @@ Two questions get asked of this module, and the files divide along them:
 | | Question | Answered by |
 | :--- | :--- | :--- |
 | **Decision** | Does this principal hold this permission? | `permissions` → `grants` → `roles` / `context` → `enforce` |
-| **Resolution** | What does this principal hold in the first place? | `manifests*` → `verifier` → `resolution*` |
+| **Resolution** | What does this principal hold in the first place? | `manifests*` → `signing/` → `resolution*` |
 
 Decision is pure and synchronous. Resolution reads storage and is where things fail closed.
 
@@ -41,14 +41,12 @@ Decision is pure and synchronous. Resolution reads storage and is where things f
              │
   storage    ├──► manifestSchemas.ts ──► manifests.ts ──► manifests.server.ts
              │                                │                    │
-  trust      │           verifier.ts          │                    │
-             │                │               │                    │
   resolution └──► resolution.ts               │                    │
                         │                     │                    │
                         └──► resolution.server.ts ◄────────────────┘
+                                 ▲       ▲
+              seedAdmin.server.ts ┘       └ ../signing  (envelope, key resolution)
                                     ▲
-                                    │  seedAdmin.server.ts
-                                    │
                               auth.server.ts (login)
 ```
 
@@ -75,10 +73,9 @@ exists; nothing outside `resolution.server.ts` knows that manifests are files in
 | :--- | :--- |
 | **`manifestSchemas.ts`** | JSON Schemas for `roles.json` and `users.json`. The permission enum is *derived from* `permissions.ts`, so schema and vocabulary cannot drift. Every object is closed. |
 | **`manifests.ts`** | Parsing and serialization of manifest content, and the `UserRecord` type. Pure — no bucket — so the fail-closed rules are directly testable. |
-| **`manifests.server.ts`** | Bucket paths and I/O. Reads **raw bytes, never parsed objects**, because a signature attests to what was written rather than to what a parser made of it. |
-| **`verifier.ts`** | The `ManifestVerifier` interface and the `manifestTrust` policy. Keeps `trusted` and `verified` as separate facts. Imports nothing. |
+| **`manifests.server.ts`** | Bucket paths, signed writes, and quarantine. Reads **raw bytes**, because a signature attests to what was written rather than to what a parser made of it. |
 | **`resolution.ts`** | Pure resolution: subject + authorization data → `AuthContext`. Owns the fail-closed rules and the handling of dangling role references. |
-| **`resolution.server.ts`** | Orchestration: read → verify → parse → resolve, plus the trust policy read from config and the operational alert. The only file here that knows about `@genoacms/cloudabstraction`. |
+| **`resolution.server.ts`** | Orchestration: read → verify → parse → resolve, plus quarantine-and-replace and the operational alert. |
 | **`seedAdmin.server.ts`** | `isSeedAdmin`, resolved from `genoa.config` alone. Tiny on purpose — it is the root of authority and should be readable at a glance. |
 
 ### The `.server.ts` boundary
@@ -102,35 +99,42 @@ login (auth.server.ts)
        ├─ isSeedAdmin?  ── yes ──►     wildcard grants, storage never touched
        └─ no
             ├─ readRawManifest()       roles.json, users.json
-            ├─ verifier.verify()       → decideTrust(policy)
-            ├─ JSON.parse + parse*()   schema validation
+            ├─ peekUnverifiedHeader()  keyId, for lookup only
+            ├─ resolveVerificationKey  via the root-signed key registry
+            ├─ verify()                signature over { alg, keyId, type, payload }
+            ├─ parse*()                schema validation
             └─ resolveSubject()        user → roles → grants
 ```
 
 The seed administrator short-circuits **before storage is read at all**: a recovery path that
 requires the bucket to be readable is no recovery path for a bucket that is not.
 
-Any failure along that chain — unreadable, untrusted, not JSON, schema-invalid — produces the same
-outcome: an unavailable source, which grants nothing. There is no branch on which a manifest that
-failed a check confers a permission.
+Any verdict along that chain — not JSON, not an envelope, unknown or revoked key, bad signature,
+schema-invalid — quarantines the document and replaces it, and the resolution grants nothing. There
+is no branch on which a manifest that failed a check confers a permission.
 
 ---
 
 ## Current seams
 
-**Manifests are not signed yet.** `verifier.ts` ships a placeholder that reports
-`no-manifest-verifier-configured` rather than pretending to verify, and `security.manifestTrust`
-decides what that means. While it is `'accept-unsigned'` (the current default), an actor able to
-write to the bucket out-of-band can edit authorization and the CMS will act on it.
+**Manifests are signed, and an unsigned one is not a state that exists.** Empty signed manifests are
+created on first start, so nothing ever reads a manifest without a signature. There is no setting
+that tolerates one — a `manifestTrust: 'accept-unsigned'` option existed briefly and was removed,
+because a setting permitting unverified authorization data is a setting that gets left enabled.
 
-Closing this means: implement `ManifestVerifier`, register it in `resolution.server.ts`, and flip
-the default to `'require-signature'`. Nothing above that layer changes.
+A manifest that fails verification is **quarantined** to `.genoacms/security/rejected/` and replaced
+with a fresh empty signed manifest. The outcome is the same seed-administrator-only recovery mode as
+rejecting it, but the administrator can sign in and rebuild rather than repairing storage by hand,
+and the rejected document survives as evidence.
+
+The distinction the read path turns on is **verdict versus outage**: a failed signature, an unknown
+key and a revoked key are verdicts, and the manifest is replaced. Storage or the key registry being
+*unreachable* propagates instead — replacing on a transient failure would destroy authorization data
+merely because it could not be read.
 
 **Grants are resolved at login only.** There is no request-time `AuthContext` yet — the session
-token still carries only `{ sub, email }`. Until the token carries resolved grants, `enforce.ts`
-has no context to be called with outside of tests.
-
----
+token still carries only `{ sub, email }`. Until the token carries resolved grants, `enforce.ts` has
+no context to be called with outside of tests.
 
 ## Not here yet
 

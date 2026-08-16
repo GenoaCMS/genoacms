@@ -4,7 +4,6 @@ import { WILDCARD } from './grants'
 import { hasPermission } from './enforce'
 import { permissions, isResourceScoped, type Permission } from './permissions'
 import type { AuthContext } from './context'
-import { decideTrust, unverifiedManifestVerifier, DEFAULT_MANIFEST_TRUST, isManifestTrustPolicy } from './verifier'
 import type { Role } from './roles'
 import type { UserRecord } from './manifests'
 
@@ -152,39 +151,5 @@ describe('the seed administrator', () => {
   it('is marked so recovery mode is reportable', () => {
     expect(resolveSubject('admin', true, unavailable).context.isSeedAdmin).toBe(true)
     expect(resolveSubject('subject-1', false, available([], [user('subject-1', [])])).context.isSeedAdmin).toBe(false)
-  })
-})
-
-describe('manifest trust policy', () => {
-  it('defaults to accepting unsigned manifests while signing does not exist', () => {
-    expect(DEFAULT_MANIFEST_TRUST).toBe('accept-unsigned')
-  })
-
-  it('reports no verifier rather than pretending to verify', async () => {
-    const outcome = await unverifiedManifestVerifier.verify('roles.json', '{}')
-    expect(outcome.verified).toBe(false)
-    expect(outcome.reason).toContain('no-manifest-verifier-configured')
-  })
-
-  it('trusts an unverified manifest under accept-unsigned, but records that it is unverified', () => {
-    const decision = decideTrust({ verified: false, reason: 'no-verifier' }, 'accept-unsigned')
-    expect(decision.trusted).toBe(true)
-    expect(decision.trusted && decision.verified).toBe(false)
-  })
-
-  it('refuses an unverified manifest under require-signature', () => {
-    const decision = decideTrust({ verified: false, reason: 'no-verifier' }, 'require-signature')
-    expect(decision.trusted).toBe(false)
-  })
-
-  it('trusts a verified manifest under either policy', () => {
-    for (const policy of ['accept-unsigned', 'require-signature'] as const) {
-      const decision = decideTrust({ verified: true, reason: '' }, policy)
-      expect(decision).toEqual({ trusted: true, verified: true })
-    }
-  })
-
-  it.each(['', 'yes', 'require', 'accept_unsigned', null, undefined, 1])('rejects the invalid policy %s', (value) => {
-    expect(isManifestTrustPolicy(value)).toBe(false)
   })
 })

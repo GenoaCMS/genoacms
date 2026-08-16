@@ -33,13 +33,6 @@ type Config<Extension extends object = object> = Extension & {
      * one that can act before verified manifests exist.
      */
     adminSubject: string
-    /**
-     * What to do with an authorization manifest whose signature could not be verified.
-     *
-     * Defaults to `'accept-unsigned'` while manifest signing is not yet implemented. Becomes
-     * `'require-signature'` once the secrets service and key hierarchy exist.
-     */
-    manifestTrust?: 'accept-unsigned' | 'require-signature'
   }
   storage: {
     defaultBucket: string
