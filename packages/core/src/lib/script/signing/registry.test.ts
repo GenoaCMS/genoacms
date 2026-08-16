@@ -3,13 +3,15 @@ import {
   parseKeyRegistry,
   findKey,
   findPublicKey,
+  isRevoked,
   currentKey,
   withRotatedKey,
+  withRevokedKey,
   type KeyRegistry
 } from './registry'
 import { getAlgorithm, SUBORDINATE_ALGORITHM, ROOT_ALGORITHM } from './algorithms'
 import { deriveKeyId } from './keyId'
-import { toBase64 } from './envelope'
+import { toBase64, sign, verify } from './envelope'
 
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 
@@ -196,5 +198,79 @@ describe('algorithm agility', () => {
       ]
     })
     expect(result.ok).toBe(true)
+  })
+})
+
+describe('revocation', () => {
+  const rotated = (): KeyRegistry => {
+    const parsed = parseKeyRegistry(validRegistry())
+    if (!parsed.ok) throw new Error(parsed.reason)
+    return withRotatedKey(parsed.registry, entry(second), 2_000)
+  }
+
+  it('stops a revoked key resolving, so nothing it signed verifies', () => {
+    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
+    expect(findPublicKey(revoked, first.keyId)).toBeUndefined()
+  })
+
+  it('rejects a forged artifact signed by a leaked key after rotation', () => {
+    // The attack: rotation alone leaves the old key verifying, so whoever holds it can sign a new
+    // roles.json granting themselves everything. Revocation is what actually stops it.
+    const forged = sign('genoacms.roles.v1',
+      { roles: { SuperAdmin: [{ permission: '*', resource: '*' }] } },
+      { alg: SUBORDINATE_ALGORITHM, keyId: first.keyId, secretKey: first.keypair.secretKey })
+
+    const superseded = rotated()
+    const beforeRevocation = findPublicKey(superseded, first.keyId)
+    expect(beforeRevocation).toBeDefined()
+    expect(verify(forged, 'genoacms.roles.v1', beforeRevocation as Uint8Array).valid).toBe(true)
+
+    const revoked = withRevokedKey(superseded, first.keyId, 3_000)
+    expect(findPublicKey(revoked, first.keyId)).toBeUndefined()
+  })
+
+  it('keeps the entry, so the revocation is published rather than inferred from absence', () => {
+    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
+    expect(findKey(revoked, first.keyId)?.revokedAt).toBe(3_000)
+    expect(isRevoked(findKey(revoked, first.keyId) as never)).toBe(true)
+  })
+
+  it('leaves other keys resolving', () => {
+    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
+    expect(findPublicKey(revoked, second.keyId)).toBeDefined()
+  })
+
+  it('refuses to revoke the current key, which would leave nothing able to sign the registry', () => {
+    const parsed = parseKeyRegistry(validRegistry())
+    if (!parsed.ok) throw new Error(parsed.reason)
+    expect(() => withRevokedKey(parsed.registry, first.keyId, 3_000)).toThrow(/cannot-revoke-current/)
+  })
+
+  it('refuses to revoke a key it does not list', () => {
+    expect(() => withRevokedKey(rotated(), 'deadbeefdeadbeef', 3_000)).toThrow(/unknown-key/)
+  })
+
+  it('produces a registry that still parses', () => {
+    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
+    expect(parseKeyRegistry(JSON.parse(JSON.stringify(revoked))).ok).toBe(true)
+  })
+
+  it('rejects a registry whose current key is revoked', () => {
+    const result = parseKeyRegistry({
+      current: first.keyId,
+      keys: [{ ...entry(first), revokedAt: 3_000 }]
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects null revokedAt rather than treating it as omitted', () => {
+    const result = parseKeyRegistry({ current: first.keyId, keys: [{ ...entry(first), revokedAt: null }] })
+    expect(result.ok).toBe(false)
+  })
+
+  it('does not re-date an already revoked key', () => {
+    const once = withRevokedKey(rotated(), first.keyId, 3_000)
+    const twice = withRevokedKey(once, first.keyId, 9_000)
+    expect(findKey(twice, first.keyId)?.revokedAt).toBe(3_000)
   })
 })

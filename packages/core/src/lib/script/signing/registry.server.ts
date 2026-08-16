@@ -5,9 +5,9 @@ import {
 } from '$lib/script/storage/storage.server'
 import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
 import { loadRootKey, getRootSigningKey } from './rootKey.server'
-import { createSubordinateKey } from './subordinateKey.server'
+import { createSubordinateKey, forgetSubordinateKey } from './subordinateKey.server'
 import { sign, verify } from './envelope'
-import { parseKeyRegistry, toPayload, withRotatedKey, type KeyRegistry } from './registry'
+import { parseKeyRegistry, toPayload, withRotatedKey, withRevokedKey, type KeyRegistry } from './registry'
 
 /**
  * Reading and writing `.genoacms/keys/public.json`.
@@ -141,12 +141,40 @@ async function rotateSubordinateKey (): Promise<KeyRegistry> {
   return rotated
 }
 
+/**
+ * Revokes a subordinate key, rotating first when it is the one currently signing.
+ *
+ * Rotating first is not tidiness: the registry recording the revocation must itself be signed, and
+ * the instance needs a key it still trusts to do it. The revoked key's seed is discarded too —
+ * useless against an adversary who already holds a copy, but it stops this instance from ever
+ * signing with it again.
+ *
+ * **Everything the revoked key signed stops verifying**, so any document it signed must be re-signed
+ * with the live key. The manifests are re-signed by the caller once manifest signing exists.
+ */
+async function revokeSubordinateKey (keyId: string): Promise<KeyRegistry> {
+  let { registry, version } = await loadOrBootstrapRegistry()
+
+  if (registry.current === keyId) {
+    await rotateSubordinateKey()
+    const reloaded = await loadOrBootstrapRegistry()
+    registry = reloaded.registry
+    version = reloaded.version
+  }
+
+  const revoked = withRevokedKey(registry, keyId, Date.now())
+  await writeRegistry(revoked, version)
+  await forgetSubordinateKey(keyId)
+  return revoked
+}
+
 export {
   registryPath,
   loadRegistry,
   writeRegistry,
   loadOrBootstrapRegistry,
-  rotateSubordinateKey
+  rotateSubordinateKey,
+  revokeSubordinateKey
 }
 
 export type {
