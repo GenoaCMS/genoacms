@@ -23,7 +23,8 @@
 		"test:integration": "playwright test",
 		"test:unit": "vitest run",
 		"test:unit:watch": "vitest",
-		"rotate-root": "vite-node scripts/rotate-root.ts"
+		"rotate-root": "vite-node scripts/rotate-root.ts",
+		"generate-permission-matrix": "vite-node scripts/generate-permission-matrix.ts"
 	},
 	"dependencies": {
 		"@codemirror/lang-javascript": "^6.2.4",
