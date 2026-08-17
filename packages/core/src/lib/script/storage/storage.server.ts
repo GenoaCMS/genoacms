@@ -6,6 +6,11 @@ import type {
   UploadOptions
 } from '@genoacms/cloudabstraction/storage'
 import { streamToString } from '$lib/script/utils.server'
+import {
+  fullyQualifiedNameToPath,
+  fullyQualifiedNameToFilename,
+  isDirectoryExisting
+} from './paths'
 import { parse as parseFlatted, stringify as stringifyFlatted } from 'flatted'
 import {
   getObject,
@@ -25,22 +30,6 @@ const getBucketReferences = () => {
 }
 
 const defaultBucketId = config.storage.defaultBucket
-
-const fullyQualifiedNameToPath = (name: string): string => {
-  const lastIndexOfSlash = name.lastIndexOf('/')
-  return lastIndexOfSlash === -1 ? name : name.slice(0, lastIndexOfSlash)
-}
-
-const fullyQualifiedNameToFilename = (name: string): string => {
-  if (name[name.length - 1] === '/') name = name.slice(0, -1)
-
-  const lastIndexOfSlash = name.lastIndexOf('/')
-  return lastIndexOfSlash === -1 ? name : name.slice(lastIndexOfSlash + 1)
-}
-
-const isDirectoryExisting = (directory: DirectoryContents) => {
-  return directory.directories.length > 0 || directory.files.length > 0
-}
 
 const listOrCreateDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
   const componentList = await listDirectory(reference)

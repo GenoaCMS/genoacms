@@ -1,15 +1,15 @@
 import {
-  createDirectory,
-  deleteObject,
-  listDirectory,
-  processDirectoryContents,
-  uploadObject,
-  moveObject,
-  deleteDirectory,
-  fullyQualifiedNameToPath,
-  fullyQualifiedNameToFilename,
-  moveDirectory
-} from '$lib/script/storage/storage.server'
+  createUserDirectory,
+  deleteUserObject,
+  listUserDirectory,
+  processUserDirectoryContents,
+  uploadUserObject,
+  moveUserObject,
+  deleteUserDirectory,
+  moveUserDirectory
+} from '$lib/script/storage/user.server'
+import { fullyQualifiedNameToPath, fullyQualifiedNameToFilename } from '$lib/script/storage/paths'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { join } from 'path'
 import { isString } from '$lib/script/utils'
 import { readableStreamToReadable } from '$lib/script/utils.server'
@@ -34,13 +34,14 @@ const resolveParentPath = (bucketId: string, path: string) => {
   return newPath
 }
 
-export const load = async ({ params }) => {
+export const load = async ({ params, locals }) => {
+  const ctx = requireAuthContext(locals)
   const {
     bucketId,
     path
   } = params
 
-  const contents = await listDirectory({
+  const contents = await listUserDirectory(ctx, {
     bucket: bucketId,
     name: removePathDelimiter(path)
   })
@@ -51,15 +52,17 @@ export const load = async ({ params }) => {
     navigationPath: path,
     path: removePathDelimiter(path),
     parentPath: resolveParentPath(bucketId, path),
-    contents: await processDirectoryContents(bucketId, contents)
+    contents: await processUserDirectoryContents(ctx, bucketId, contents)
   }
 }
 
 export const actions = {
   createDirectory: async ({
     params,
-    request
+    request,
+    locals
   }) => {
+    const ctx = requireAuthContext(locals)
     const {
       bucketId,
       path
@@ -71,15 +74,17 @@ export const actions = {
     const cleanPath = removePathDelimiter(path || '')
     const directoryPath = join(cleanPath, directoryName)
 
-    await createDirectory({
+    await createUserDirectory(ctx, {
       bucket: bucketId,
       name: directoryPath
     })
   },
   uploadObject: async ({
     params,
-    request
+    request,
+    locals
   }) => {
+    const ctx = requireAuthContext(locals)
     const {
       bucketId,
       path
@@ -96,15 +101,17 @@ export const actions = {
         name: join(cleanPath, file.name)
       }
       const nodejsStream = readableStreamToReadable(file.stream())
-      const uploadOperation = uploadObject(reference, nodejsStream)
+      const uploadOperation = uploadUserObject(ctx, reference, nodejsStream)
       uploads.push(uploadOperation)
     }
     await Promise.all(uploads)
   },
   move: async ({
     params,
-    request
+    request,
+    locals
   }) => {
+    const ctx = requireAuthContext(locals)
     const {
       bucketId,
       path
@@ -126,17 +133,19 @@ export const actions = {
     const moves: Array<Promise<void>> = []
     const cleanPath = removePathDelimiter(path || '')
     for (const object of objectsToMove) {
-      const move = object.isDirectory ? moveDirectory : moveObject
+      const move = object.isDirectory ? moveUserDirectory : moveUserObject
       const newPath = join(cleanPath, object.filename, object.isDirectory ? '/' : '')
-      const promise = move(object, newPath)
+      const promise = move(ctx, object, newPath)
       moves.push(promise)
     }
     await Promise.all(moves)
   },
   rename: async ({
     params,
-    request
+    request,
+    locals
   }) => {
+    const ctx = requireAuthContext(locals)
     const {
       bucketId,
       path
@@ -154,12 +163,14 @@ export const actions = {
       name: join(cleanPath, name)
     }
     const newPath = join(cleanPath, newName)
-    const move = isDirectory ? moveDirectory : moveObject
-    await move(reference, newPath)
+    const move = isDirectory ? moveUserDirectory : moveUserObject
+    await move(ctx, reference, newPath)
   },
   delete: async ({
-    request
+    request,
+    locals
   }) => {
+    const ctx = requireAuthContext(locals)
     const data = await request.formData()
     const contentsString = data.get('contents')
     if (!isString(contentsString)) return fail(400, { reason: 'missing-contents' })
@@ -167,8 +178,8 @@ export const actions = {
     const deletes: Array<Promise<void>> = []
     for (const reference of contents) {
       const isDirectory = reference.name.endsWith('/')
-      const deleteF = isDirectory ? deleteDirectory : deleteObject
-      deletes.push(deleteF(reference))
+      const deleteF = isDirectory ? deleteUserDirectory : deleteUserObject
+      deletes.push(deleteF(ctx, reference))
     }
     await Promise.all(deletes)
   }
