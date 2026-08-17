@@ -70,17 +70,24 @@ const databasePermissions = {
  * or per-page grants, and inventing them here would put a scope in the vocabulary that no service
  * function could resolve.
  *
+ * Reads are explicit here, as they are in the storage and database domains. Without
+ * `pages:read` and `components:prebuilt:read` there was no permission a check could name, so every
+ * principal the instance knew could open every draft — and a read-restricted role was not
+ * expressible at all.
+ *
  * `components:dynamic:commit` is the highest-value permission in the system: it runs static
  * analysis, compiles a bundle, signs it, and publishes an executable that consumers will run.
  * Because containment of a determined author is not claimed, restricting this permission to a
  * small trusted set is itself a compensating control.
  */
 const contentPermissions = {
+  'components:prebuilt:read': { domain: 'content', scope: 'instance' },
   'components:prebuilt:register': { domain: 'content', scope: 'instance' },
   'components:prebuilt:modify': { domain: 'content', scope: 'instance' },
   'components:dynamic:view_code': { domain: 'content', scope: 'instance' },
   'components:dynamic:edit': { domain: 'content', scope: 'instance' },
   'components:dynamic:commit': { domain: 'content', scope: 'instance' },
+  'pages:read': { domain: 'content', scope: 'instance' },
   'pages:content_edit': { domain: 'content', scope: 'instance' },
   'pages:structure_edit': { domain: 'content', scope: 'instance' },
   'pages:publish': { domain: 'content', scope: 'instance' },

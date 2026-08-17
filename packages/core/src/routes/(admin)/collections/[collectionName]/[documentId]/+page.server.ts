@@ -1,23 +1,27 @@
 import { redirect } from '@sveltejs/kit'
-import { deleteDocument, getCollectionReference, getDocument } from '$lib/script/database/database.server'
-import type { PageServerLoad } from './$types'
+import { deleteUserDocument, getUserCollectionReference, getUserDocument } from '$lib/script/database/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
+import type { PageServerLoad, RequestEvent } from './$types'
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
+  const ctx = requireAuthContext(locals)
   const { collectionName, documentId } = params
-  const collection = await getCollectionReference(collectionName)
-  const document = await getDocument({ collection, id: documentId })
+  const collection = await getUserCollectionReference(ctx, collectionName)
+  const document = await getUserDocument(ctx, { collection, id: documentId })
   return {
     document
   }
 }
 
-async function deleteDoc ({ params }: { params: any }) {
+async function deleteDoc ({ params, locals }: RequestEvent) {
+  const ctx = requireAuthContext(locals)
   const { collectionName, documentId } = params
 
-  const collectionReference = await getCollectionReference(collectionName)
+  // Reading the collection needs read; removing the document needs delete. Both are checked.
+  const collectionReference = await getUserCollectionReference(ctx, collectionName)
   const documentReference = { collection: collectionReference, id: documentId }
 
-  await deleteDocument(documentReference)
+  await deleteUserDocument(ctx, documentReference)
   redirect(307, '.')
 }
 

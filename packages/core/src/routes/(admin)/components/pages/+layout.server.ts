@@ -1,8 +1,9 @@
-import type { PageServerLoad } from './$types'
-import { listOrCreateComponentEntryList } from '$lib/script/components/componentEntry/io.server'
+import type { LayoutServerLoad } from './$types'
+import { listUserComponentEntries } from '$lib/script/components/componentEntry/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 
-export const load: PageServerLoad = async () => {
-  const componentSchemas = await listOrCreateComponentEntryList()
+export const load: LayoutServerLoad = async ({ locals }) => {
+  const componentSchemas = await listUserComponentEntries(requireAuthContext(locals))
 
   return {
     componentSchemas
