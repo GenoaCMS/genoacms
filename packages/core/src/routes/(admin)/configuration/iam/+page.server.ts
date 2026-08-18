@@ -44,9 +44,14 @@ function parseGrants (raw: FormDataEntryValue | null): Grant[] | undefined {
   }
 }
 
-function parseRoleNames (raw: FormDataEntryValue | null): string[] | undefined {
-  if (!isString(raw)) return undefined
-  return raw.split(',').map(name => name.trim()).filter(name => name.length > 0)
+/**
+ * The selected role names.
+ *
+ * Read as repeated fields rather than one delimited string: a delimiter would have to be escaped,
+ * and a role name containing it would be torn in two with nothing reporting that it happened.
+ */
+function selectedRoleNames (data: FormData): string[] {
+  return data.getAll('roles').filter(isString).filter(name => name.length > 0)
 }
 
 export const actions = {
@@ -89,7 +94,7 @@ export const actions = {
     const data = await request.formData()
     const subject = data.get('subject')
     const email = data.get('email')
-    const roles = parseRoleNames(data.get('roles')) ?? []
+    const roles = selectedRoleNames(data)
 
     if (!isString(subject) || subject.length === 0) return fail(400, { reason: 'user/subject-required' })
 
@@ -104,12 +109,10 @@ export const actions = {
     const ctx = requireAuthContext(locals)
     const data = await request.formData()
     const subject = data.get('subject')
-    const roles = parseRoleNames(data.get('roles'))
-
     if (!isString(subject)) return fail(400, { reason: 'user/subject-required' })
-    if (roles === undefined) return fail(400, { reason: 'user/roles-malformed' })
 
-    return report(await assignUserAccountRoles(ctx, subject, roles))
+    // An empty selection is a legitimate instruction: it strips every role from the account.
+    return report(await assignUserAccountRoles(ctx, subject, selectedRoleNames(data)))
   },
 
   removeAccount: async ({ request, locals }) => {

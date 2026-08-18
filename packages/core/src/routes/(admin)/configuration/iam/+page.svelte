@@ -2,7 +2,6 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import Grid from '$lib/components/Grid.svelte'
   import LockNotice from './LockNotice.svelte'
-  import RefusalNotice from './RefusalNotice.svelte'
   import RoleCard from './RoleCard.svelte'
   import AccountCard from './AccountCard.svelte'
   import CreateRole from './CreateRole.svelte'
@@ -12,7 +11,10 @@
   import AssignRoles from './AssignRoles.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
 
-  const { data, form } = $props()
+  const { data } = $props()
+
+  // Declared roles are assignable even though they cannot be edited, so the selector offers both.
+  const roleNames = $derived(data.roles.map(entry => entry.role.name))
 </script>
 
 <TopPanel>
@@ -25,7 +27,7 @@
         <CreateRole />
       </PermissionGate>
       <PermissionGate permission="config:users:manage">
-        <CreateAccount />
+        <CreateAccount available={roleNames} />
       </PermissionGate>
     {/if}
   {/snippet}
@@ -33,7 +35,6 @@
 
 <div class="p-4">
   <LockNotice locked={data.locked} />
-  <RefusalNotice reason={form?.reason} />
 
   <section class="mb-8">
     <h2 class="text-xl mb-3">Roles</h2>
@@ -46,8 +47,9 @@
               action="?/deleteRole"
               field="name"
               value={role.name}
-              label="Delete"
-              confirmation={`Delete the role "${role.name}"? Anyone holding it loses what it granted.`}
+              confirmation={`Delete the role "${role.name}". Anyone holding it loses what it granted.`}
+              success="Role deleted"
+              failure="Role not deleted"
             />
           {/snippet}
         </RoleCard>
@@ -72,14 +74,15 @@
               <!-- Assignment needs both permissions, which the service checks; the gate mirrors the
                    narrower of the two so the control is not offered to someone holding only one. -->
               <PermissionGate permission="config:roles:manage">
-                <AssignRoles subject={account.subject} current={account.roles} />
+                <AssignRoles subject={account.subject} current={account.roles} available={roleNames} />
               </PermissionGate>
               <DangerousAction
                 action="?/removeAccount"
                 field="subject"
                 value={account.subject}
-                label="Remove"
-                confirmation={`Remove ${account.subject}? They lose access immediately.`}
+                                confirmation={`Remove ${account.subject}. They lose access immediately.`}
+                success="Account removed"
+                failure="Account not removed"
               />
             {/snippet}
           </AccountCard>

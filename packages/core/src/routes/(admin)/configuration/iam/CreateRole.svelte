@@ -1,51 +1,36 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Modal, Button, Input, Label, Textarea, Helper } from '$lib/components/ui/index'
+  import { Modal, Button, Input, Label } from '$lib/components/ui/index'
   import Portal from '$lib/components/Portal.svelte'
+  import GrantEditor from './GrantEditor.svelte'
+  import { enhanceWithToast } from './formToast'
 
   let open = $state(false)
 </script>
 
-<button
-  aria-label="New role"
-  class="h-full flex items-center px-3"
-  onclick={() => { open = true }}
->
+<button aria-label="New role" class="h-full flex items-center px-3" onclick={() => { open = true }}>
   <i class="bi bi-person-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 
 <Portal>
-  <Modal title="New role" bind:open>
-    <form
-      method="POST"
-      action="?/createRole"
-      class="w-3/4 mx-auto space-y-3"
-      use:enhance={() => async ({ update }) => {
-        await update()
-        open = false
-      }}
-    >
-      <div>
-        <Label for="role-name">Name</Label>
-        <Input id="role-name" name="name" required placeholder="Copywriter" />
-      </div>
+  <Modal size="lg" title="New role" bind:open>
+    <div class="flex w-3/4 mx-auto">
+      <form
+        method="POST"
+        action="?/createRole"
+        class="w-full"
+        use:enhance={enhanceWithToast('Role created', 'Role not created', () => { open = false })}
+      >
+        <Label class="text-xl">
+          Name:
+          <Input type="text" class="w-full" name="name" required placeholder="Copywriter" />
+        </Label>
 
-      <div>
-        <Label for="role-grants">Grants</Label>
-        <Textarea
-          id="role-grants"
-          name="grants"
-          rows={5}
-          required
-          value={'[\n  { "permission": "pages:read", "resource": "*" }\n]'}
-        />
-        <Helper>
-          A JSON array. <code>resource</code> is <code>"*"</code> for anywhere, or
-          <code>&lbrace; "scope": "bucket", "id": "media" &rbrace;</code> to name one.
-        </Helper>
-      </div>
+        <p class="text-xl mt-4 mb-2">Grants:</p>
+        <GrantEditor />
 
-      <Button type="submit">Create role</Button>
-    </form>
+        <Button preset="tonal" class="w-full mt-4" type="submit">Create</Button>
+      </form>
+    </div>
   </Modal>
 </Portal>
