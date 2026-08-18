@@ -39,7 +39,7 @@
   <Portal>
     <Popover.Positioner>
       <Popover.Content
-        class="card preset-filled-surface-100-900 shadow-lg {className}"
+        class="card preset-filled-surface-50-950 border border-surface-200-800 shadow-xl {className}"
         onclick={closeMenu}
         {...rest}
       >

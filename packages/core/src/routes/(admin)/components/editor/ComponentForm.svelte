@@ -33,5 +33,5 @@
     Name:
     <Input type="text" name="name" />
   </Label>
-  <Button preset="tonal" class="w-full" type="submit">Create</Button>
+  <Button preset="filled" class="w-full mt-4" type="submit">Create</Button>
 </form>

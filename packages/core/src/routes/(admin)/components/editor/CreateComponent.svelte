@@ -17,7 +17,7 @@
 </button>
 
 <Modal title="Create a new component" bind:open={isModalOpen}>
-  <div class="flex w-3/4 mx-auto">
+  <div class="w-full">
     <ComponentForm />
   </div>
 </Modal>

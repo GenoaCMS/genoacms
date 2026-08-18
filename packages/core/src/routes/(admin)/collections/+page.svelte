@@ -11,8 +11,6 @@
         Collections
     </hi>
 </TopPanel>
-<div class="bg-dark text-warning">
-</div>
 
 <Grid>
     {#each data.collectionReferences as collection}

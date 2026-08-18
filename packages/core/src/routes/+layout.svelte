@@ -38,6 +38,7 @@
   text-green-500
   text-blue-500
   text-lime-500
-  text-sky-500"
+  text-sky-500
+  text-primary-500"
   hidden
 ></div>

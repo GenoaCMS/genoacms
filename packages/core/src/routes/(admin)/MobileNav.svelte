@@ -5,7 +5,7 @@
 </script>
 
 <div
-  class="fixed bottom-0 left-0 w-full z-50 md:hidden block bg-surface-100-900 border-t border-surface-200-800"
+  class="fixed bottom-0 left-0 w-full z-50 md:hidden block bg-surface-50-950/95 backdrop-blur-md border-t border-surface-200-800"
 >
   <Navigation class="flex w-full justify-around items-center p-2">
     {#each pages as pageItem (pageItem.route)}

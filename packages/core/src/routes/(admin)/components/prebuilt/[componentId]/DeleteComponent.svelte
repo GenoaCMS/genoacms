@@ -1,7 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
+  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
 
   const { name } = $props()
   let confirmName = $state('')
@@ -12,12 +11,11 @@
 </script>
 
 <button class="h-full flex items-center px-3 cursor-pointer" onclick={toggleModal} aria-label="Delete component">
-    <i class="bi bi-trash3 text-2xl hover:text-red-600 transition-all"></i>
+    <i class="bi bi-trash3 text-2xl hover:text-error-500 transition-all"></i>
 </button>
 
-<Portal>
 <Modal title="Delete the component" bind:open={isModalOpen}>
-    <div class="flex w-3/4 mx-auto">
+    <div class="w-full">
         <form action="?/delete" method="post" use:enhance class="w-full">
             <Label class="mb-2">
                 To confirm deletion, type "{name}":
@@ -29,4 +27,3 @@
         </form>
     </div>
 </Modal>
-</Portal>

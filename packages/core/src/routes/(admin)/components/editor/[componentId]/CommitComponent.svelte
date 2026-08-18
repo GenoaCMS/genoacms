@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Button, Input, Label, Modal } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
   import DiffEditor from '$lib/components/ui/DiffEditor.svelte'
   import { commitComponentRemote } from './commit.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
@@ -43,30 +42,27 @@
   ></i>
 </button>
 
-<Portal>
-  <Modal title="Commit changes" bind:open={isModalOpen} size="xl">
-    <div class="w-full">
-      <DiffEditor
-        originalValue={code}
-        modifiedValue={uncommitedCode}
-        language="javascript"
+<Modal title="Commit changes" bind:open={isModalOpen} size="xl">
+  <div class="w-full space-y-4">
+    <DiffEditor
+      originalValue={code}
+      modifiedValue={uncommitedCode}
+      language="javascript"
+    />
+    <form {...enhance} class="w-full space-y-2" enctype="multipart/form-data">
+      <Label class="text-sm font-medium">Commit message:</Label>
+      <input type="hidden" name="componentId" value={componentId} />
+      <Input
+        type="text"
+        name="message"
+        bind:value={message}
+        {disabled}
+        placeholder="Describe your changes..."
+        required
       />
-    </div>
-    <div class="flex w-3/4 mx-auto">
-      <form {...enhance} class="w-full" enctype="multipart/form-data">
-        <Label class="mb-2">Commit message:</Label>
-        <input type="hidden" name="componentId" value={componentId} />
-        <Input
-          type="text"
-          name="message"
-          bind:value={message}
-          {disabled}
-          required
-        />
-        <Button preset="outlined" class="w-full mt-2" type="submit" {disabled}>
-          Commit
-        </Button>
-      </form>
-    </div>
-  </Modal>
-</Portal>
+      <Button preset="filled" class="w-full mt-4" type="submit" {disabled}>
+        Commit
+      </Button>
+    </form>
+  </div>
+</Modal>

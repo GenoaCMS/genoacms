@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
-    import Portal from '$lib/components/Portal.svelte'
+    import { Button, Input, Label, Modal } from '$lib/components/ui/index'
     import { toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { deleteComponentRemote } from './delete.remote.js'
     import { goto } from '$app/navigation'
@@ -30,12 +29,11 @@
     onclick={toggleModal}
     aria-label="Delete component"
 >
-  <i class="bi bi-trash3 text-2xl hover:text-red-600 transition-all"></i>
+  <i class="bi bi-trash3 text-2xl hover:text-error-500 transition-all"></i>
 </button>
 
-<Portal>
-  <Modal title="Delete the component" bind:open={isModalOpen}>
-    <div class="flex w-3/4 mx-auto">
+<Modal title="Delete the component" bind:open={isModalOpen}>
+  <div class="w-full">
       <form
         {...enhance}
         class="w-full"
@@ -53,4 +51,3 @@
       </form>
     </div>
   </Modal>
-</Portal>

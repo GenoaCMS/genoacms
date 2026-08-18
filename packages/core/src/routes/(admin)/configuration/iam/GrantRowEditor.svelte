@@ -26,7 +26,7 @@
   }
 </script>
 
-<div class="card preset-filled-surface-100-900 space-y-3 p-3">
+<div class="card preset-filled-surface-50-950 border border-surface-200-800 space-y-3 p-3">
   <Tabs value={category} onValueChange={(e) => chooseCategory(e.value)}>
     <Tabs.List>
       {#each grantCategories as option (option.id)}

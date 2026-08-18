@@ -3,6 +3,7 @@
 
   type Props = {
     icon: string
+    color?: string
     class?: string
     text: string
     href?: string,
@@ -10,15 +11,15 @@
     oncontextmenu?: (event: MouseEvent) => void,
     onclick?: (event: MouseEvent) => void
   }
-  const { icon, text, href = '', noscale, oncontextmenu, onclick, ...rest }: Props = $props()
+  const { icon, color, class: className = '', text, href = '', noscale, oncontextmenu, onclick, ...rest }: Props = $props()
 </script>
 
 {#if href}
-    <a {href} {onclick} {oncontextmenu} {...rest}>
-        <CardLinkContents {icon} {text} {noscale} />
+    <a {href} {onclick} {oncontextmenu} class={className} {...rest}>
+        <CardLinkContents {icon} {text} {color} {noscale} />
     </a>
 {:else}
-    <button type="button" {onclick} {oncontextmenu} {...rest}>
-        <CardLinkContents {icon} {text} {noscale} />
+    <button type="button" {onclick} {oncontextmenu} class={className} {...rest}>
+        <CardLinkContents {icon} {text} {color} {noscale} />
     </button>
 {/if}

@@ -7,8 +7,8 @@
 
 </script>
 
-<div class="sticky z-0 top-0 bottom-0 h-screen flex flex-col justify-center bg-surface-100-900/30 p-5">
-  <div class="my-auto">
+<div class="sticky top-0 h-screen flex flex-col justify-between p-4 w-56 lg:w-64">
+  <div class="my-auto space-y-1.5">
     {#each pages as page (page.route)}
       {#if page.permission}
         <PermissionGate permission={page.permission}>
@@ -19,7 +19,7 @@
       {/if}
     {/each}
   </div>
-  <div class="flex justify-between">
+  <div class="flex justify-between items-center pt-4 border-t border-surface-200-800">
     <DarkMode/>
     <Logout/>
   </div>

@@ -27,11 +27,11 @@
 </button>
 
 <Modal title="Change name" bind:open={isModalOpen}>
-  <div class="flex w-3/4 mx-auto">
-    <form {onsubmit} class="w-full">
-      <Input type="text" class="w-full" name="name" bind:value={name}/>
-      <Button preset="tonal" class="w-full mt-2" type="submit">
-        Change
+  <div class="w-full">
+    <form {onsubmit} class="w-full space-y-3">
+      <Input type="text" class="w-full" name="name" bind:value={name} required/>
+      <Button preset="filled" class="w-full mt-4" type="submit">
+        Save
       </Button>
     </form>
   </div>

@@ -1,10 +1,9 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
-  import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import Portal from '$lib/components/Portal.svelte'
-  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
+  import { invalidateAll } from '$app/navigation'
+  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
 
   type Props = {
     name: string,
@@ -28,22 +27,20 @@
   }
 </script>
 
-<Portal>
-  <Modal title="Rename" bind:open={isModalOpen}>
-    <form
-      action="?/rename"
-      method="post"
-      class="flex flex-col p-4"
-      use:enhance={enhanceRename}>
-      <input type="hidden" name="isDirectory" value={isDirectory}/>
-      <input type="hidden" name="name" value={name} />
-      <Label class="pb-2">
-        New name:
-        <Input name="newName" value={name} class="w-full" />
-      </Label>
-      <Button preset="tonal" type="submit">
-        Rename
-      </Button>
-    </form>
-  </Modal>
-</Portal>
+<Modal title="Rename" bind:open={isModalOpen}>
+  <form
+    action="?/rename"
+    method="post"
+    class="flex flex-col space-y-3"
+    use:enhance={enhanceRename}>
+    <input type="hidden" name="isDirectory" value={isDirectory}/>
+    <input type="hidden" name="name" value={name} />
+    <Label>
+      New name:
+      <Input name="newName" value={name} class="w-full mt-1" required />
+    </Label>
+    <Button preset="filled" class="w-full mt-4" type="submit">
+      Rename
+    </Button>
+  </form>
+</Modal>

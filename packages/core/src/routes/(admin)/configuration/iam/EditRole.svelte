@@ -1,7 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { Modal, Button } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
   import GrantEditor from './GrantEditor.svelte'
   import { enhanceWithToast } from './formToast'
   import type { Role } from '$lib/script/authorization/roles'
@@ -16,28 +15,26 @@
 
 <Button class="btn-sm" onclick={() => { open = true }}>Edit</Button>
 
-<Portal>
-  <Modal size="lg" title="Grants of {role.name}" bind:open>
-    <div class="flex w-3/4 mx-auto">
-      <form
-        method="POST"
-        action="?/updateRole"
-        class="w-full"
-        use:enhance={enhanceWithToast('Grants saved', 'Grants not saved', () => { open = false })}
-      >
-        <input type="hidden" name="name" value={role.name} />
+<Modal size="lg" title="Grants of {role.name}" bind:open>
+  <div class="w-full">
+    <form
+      method="POST"
+      action="?/updateRole"
+      class="w-full space-y-3"
+      use:enhance={enhanceWithToast('Grants saved', 'Grants not saved', () => { open = false })}
+    >
+      <input type="hidden" name="name" value={role.name} />
 
-        <!-- Seeded from what the role holds, so the editor shows the truth rather than a blank slate
-             the administrator would have to retype from memory. -->
-        <GrantEditor grants={role.grants} />
+      <!-- Seeded from what the role holds, so the editor shows the truth rather than a blank slate
+           the administrator would have to retype from memory. -->
+      <GrantEditor grants={role.grants} />
 
-        <p class="text-xs opacity-60 mt-2">
-          This replaces the whole set. Anything removed here stops being granted as soon as the cache
-          expires.
-        </p>
+      <p class="text-xs opacity-60">
+        This replaces the whole set. Anything removed here stops being granted as soon as the cache
+        expires.
+      </p>
 
-        <Button preset="tonal" class="w-full mt-4" type="submit">Save</Button>
-      </form>
-    </div>
-  </Modal>
-</Portal>
+      <Button preset="filled" class="w-full mt-4" type="submit">Save</Button>
+    </form>
+  </div>
+</Modal>

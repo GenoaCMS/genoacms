@@ -24,7 +24,7 @@ function getAttributeTypeIcon (type: AttributeType): AttributeTypeIcon {
     case 'storageResource':
       return { icon: 'cloud', color: 'sky-500' }
     case 'components':
-      return { icon: 'box', color: 'black' }
+      return { icon: 'box', color: 'primary-500' }
   }
 }
 

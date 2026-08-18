@@ -2,7 +2,6 @@
   import { attributeTypeInits } from '$lib/script/components/componentEntry/component/attributeInits'
   import { getAttributeTypeIcon } from '$lib/components/components/utils'
   import CardLink from '$lib/components/CardLink.svelte'
-  import Portal from '$lib/components/Portal.svelte'
   import { Modal } from '$lib/components/ui/index'
 
   let isModalOpen = $state(false)
@@ -34,21 +33,19 @@
   <i class="bi bi-plus-circle text-2xl hover:text-warning transition-all"></i>
 </button>
 
-<Portal>
-  <Modal title="New attribute" bind:open={isModalOpen}>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 overflow-auto">
-      {#each attributeTypeInits as type (type.name)}
-        {@const icon = getAttributeTypeIcon(type.name)}
-        <CardLink
-          icon={icon.icon}
-          text={type.name}
-          class="text-{icon.color}"
-          onclick={() => {
-            add(type.name, type.schema)
-            isModalOpen = false
-          }}
-        />
-      {/each}
-    </div>
-  </Modal>
-</Portal>
+<Modal title="New attribute" bind:open={isModalOpen}>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 overflow-auto">
+    {#each attributeTypeInits as type (type.name)}
+      {@const icon = getAttributeTypeIcon(type.name)}
+      <CardLink
+        icon={icon.icon}
+        color={icon.color}
+        text={type.name}
+        onclick={() => {
+          add(type.name, type.schema)
+          isModalOpen = false
+        }}
+      />
+    {/each}
+  </div>
+</Modal>

@@ -30,7 +30,7 @@
   {:else}
     <ul class="flex flex-wrap gap-1">
       {#each account.roles as name (name)}
-        <li class="text-xs px-2 py-0.5 rounded bg-surface-100-900">{name}</li>
+        <li class="text-xs px-2 py-0.5 rounded preset-tonal-surface border border-surface-200-800 font-medium">{name}</li>
       {/each}
     </ul>
   {/if}

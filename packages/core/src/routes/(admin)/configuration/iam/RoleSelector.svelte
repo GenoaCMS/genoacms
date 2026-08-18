@@ -29,7 +29,7 @@
 {#if available.length === 0}
   <p class="text-xs opacity-60">No roles exist yet. Create one first, then assign it.</p>
 {:else}
-  <div class="card preset-filled-surface-100-900 max-h-56 divide-y divide-surface-200-800 overflow-y-auto">
+  <div class="card preset-filled-surface-50-950 border border-surface-200-800 max-h-56 divide-y divide-surface-200-800 overflow-y-auto">
     {#each available as name (name)}
       <Switch
         name="roles"

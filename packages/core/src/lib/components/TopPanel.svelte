@@ -10,7 +10,7 @@
   const { children, right, hrefBack = '.', onclick = () => {} }: Props = $props()
 </script>
 
-<div class="sticky top-0 flex items-center preset-filled-surface-900-100 p-3">
+<div class="sticky top-0 z-10 flex items-center bg-surface-50-950/90 backdrop-blur-md border-b border-surface-200-800 p-3">
     <div class="flex-grow">
         {@render children?.()}
     </div>
