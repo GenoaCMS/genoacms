@@ -17,7 +17,7 @@ interface SubordinateKeyEntry {
   /** base64 */
   publicKey: string
   createdAt: number
-  /** Present only once the key has stopped being current. Omitted, never null (§3.6.3). */
+  /** Present only once the key has stopped being current. Omitted, never null. */
   supersededAt?: number
   /**
    * Present only once the private key is no longer trusted.

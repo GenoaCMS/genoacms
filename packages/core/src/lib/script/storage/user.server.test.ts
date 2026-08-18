@@ -7,7 +7,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
 /**
  * Enforcement in the user-facing storage layer.
  *
- * The claim under test is §4.2.6's: the check lives **with the operation**, so it holds however the
+ * The claim under test is that the check lives **with the operation**, so it holds however the
  * operation is reached — not at the route, where a new call site can forget it. Each case therefore
  * calls the service directly, the way a service-to-service caller would.
  *

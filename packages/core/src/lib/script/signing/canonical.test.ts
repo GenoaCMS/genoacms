@@ -54,7 +54,7 @@ describe('RFC 8785 canonical form', () => {
 })
 
 describe('the omitted-versus-null distinction', () => {
-  // §3.6.3: an unset constraint is omitted, never null. These must not collide.
+  // An unset constraint is omitted, never null. These must not collide.
   it('distinguishes an omitted key from a null one', () => {
     expect(canonicalString({})).not.toBe(canonicalString({ minimum: null }))
     expect(hex(digest({}))).not.toBe(hex(digest({ minimum: null })))

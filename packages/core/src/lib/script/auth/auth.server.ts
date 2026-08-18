@@ -151,7 +151,7 @@ async function verifiedPayload (cookies: Cookies): Promise<JWTPayload | undefine
  * The authenticated payload for a request, renewing the access token when it has expired.
  *
  * Renewal happens here rather than at an endpoint the client calls, because the access token
- * lifetime is short (§4.2.1) and nothing in a server-rendered admin interface is running to notice
+ * lifetime is short and nothing in a server-rendered admin interface is running to notice
  * it lapse — the next page load simply has to carry on.
  *
  * `undefined` means the request is anonymous, whether it arrived that way or lost its session.

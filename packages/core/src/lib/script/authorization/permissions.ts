@@ -21,7 +21,7 @@
 type PermissionScope = 'instance' | 'bucket' | 'collection'
 
 /**
- * The four functional domains of §4.2.2. Domain membership is not derivable from the permission
+ * The four functional domains. Domain membership is not derivable from the permission
  * string: `components:*` and `pages:*` both belong to the component and page service.
  */
 type PermissionDomain = 'storage' | 'database' | 'content' | 'configuration'

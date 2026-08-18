@@ -14,7 +14,7 @@ import {
 } from '$lib/script/authorization/administration.server'
 
 /**
- * The configuration service: administering roles and accounts (§4.2.2.4).
+ * The configuration service: administering roles and accounts.
  *
  * `administration.server` is the primary layer and stays unprivileged, matching the split used by
  * storage, database and content. Everything here takes an `AuthContext` first and checks a

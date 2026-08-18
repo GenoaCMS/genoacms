@@ -3,7 +3,7 @@ import { BUCKET, COLLECTION, matrixOperations, rolesUnderTest } from './permissi
 import type { AuthContext } from '$lib/script/authorization/context'
 
 /**
- * **E6 — the exhaustive permission matrix** (§4.4.6).
+ * **E6 — the exhaustive permission matrix.**
  *
  * Every (role × service-layer function) pair is invoked against the **real** gated service and
  * checked against an independently declared expectation. Two properties make this evidence rather
@@ -14,13 +14,13 @@ import type { AuthContext } from '$lib/script/authorization/context'
  *    only way a test can find a wrong mapping rather than confirm one.
  * 2. **Coverage is enforced by construction.** The operation table is checked against the modules'
  *    actual exports, so adding a service function without placing it in the matrix fails. A function
- *    that forgot its check appears as an *unexpected allow* — the fail-closed property of §4.2.6 is
- *    detectable by construction, exactly as the specification claims.
+ *    that forgot its check appears as an *unexpected allow* — the fail-closed property is
+ *    detectable by construction rather than by review.
  *
  * Only the primary (unprivileged) layers are stubbed. Nothing between the call and the check is
  * mocked, so a missing check has nowhere to hide.
  *
- * **Not covered here:** the field-level assertions §4.4.6 also lists — new-field default deny and
+ * **Not covered here:** the field-level assertions E6 also calls for — new-field default deny and
  * write-merge integrity — because field masking is step 17 and is not built. They are absent rather
  * than approximated, and E6 must report them as such.
  */
@@ -81,7 +81,8 @@ vi.mock('$lib/script/authorization/administration.server', () => ({
   removeAccount: async () => ({ ok: true })
 }))
 
-const { createAuthContext, createSeedAdminContext } = await import('$lib/script/authorization/context')
+const { createAuthContext } = await import('$lib/script/authorization/context')
+const { WILDCARD } = await import('$lib/script/authorization/grants')
 const { resolveSubject } = await import('$lib/script/authorization/resolution')
 const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
 
@@ -160,7 +161,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
 
 // ---------------------------------------------------------------------------------------------
 // The roles, and what each is expected to be allowed. Written by hand, from the taxonomy in
-// §4.2.2 — never derived from the checks under test.
+// the permission taxonomy — never derived from the checks under test.
 // ---------------------------------------------------------------------------------------------
 
 const operationNames = Object.keys(operations)
@@ -235,7 +236,7 @@ describe('the permission matrix', () => {
 
 describe('default deny', () => {
   it('refuses a principal with no grants at every service function', async () => {
-    // §4.4.6's first additional assertion, stated directly rather than inferred from the matrix.
+    // E6's first additional assertion, stated directly rather than inferred from the matrix.
     for (const operation of operationNames) {
       expect(await isAllowed('Nobody', operation)).toBe(false)
     }
@@ -243,15 +244,15 @@ describe('default deny', () => {
 
   it('is what an unknown principal resolves to, and what an unavailable source yields', () => {
     // The bridge between resolution and this matrix. `Nobody` above is shown to be denied at every
-    // function; this establishes that the two fail-closed paths of §4.2.4 both land there, so the
+    // function; this establishes that both fail-closed paths land there, so the
     // matrix covers them without re-running every cell.
-    const unknown = resolveSubject('never-provisioned', false, {
+    const unknown = resolveSubject('never-provisioned', {
       available: true, roles: [], users: []
     })
     expect(unknown.known).toBe(false)
     expect(unknown.context.grants).toEqual([])
 
-    const unavailable = resolveSubject('any-subject', false, {
+    const unavailable = resolveSubject('any-subject', {
       available: false, reason: 'manifest-rejected'
     })
     expect(unavailable.known).toBe(false)
@@ -261,14 +262,16 @@ describe('default deny', () => {
   })
 })
 
-describe('the seed administrator', () => {
+describe('a Tier-1 declared administrator', () => {
   it('is permitted everywhere, so recovery is always possible', async () => {
-    // §4.2.4: an instance whose manifests are unreadable must still have one identity that can act.
-    const seedAdmin = createSeedAdminContext('seed-admin')
+    // An instance whose manifests are unreadable must still have an identity that can act.
+    // It is now an ordinary declared assignment carrying the wildcard grant, resolved without
+    // storage, rather than a special-cased seed administrator.
+    const declaredAdmin = createAuthContext('declared-admin', [{ permission: WILDCARD, resource: WILDCARD }], true)
     for (const operation of operationNames) {
       let permitted = true
       try {
-        await operations[operation](seedAdmin)
+        await operations[operation](declaredAdmin)
       } catch (error) {
         if (!(error instanceof PermissionDeniedError)) throw error
         permitted = false

@@ -28,7 +28,7 @@ import {
  *
  * This module is the layer in front of it for operations a user actually performed — browsing a
  * bucket, uploading a file, deleting one. Every export takes an `AuthContext` as its first parameter
- * and checks a permission before delegating, so omitting the context is a *type error* (§4.2.6) and
+ * and checks a permission before delegating, so omitting the context is a *type error* and
  * the check lives with the operation rather than at the route.
  *
  * **Naming.** Each function is its primary counterpart with `User` in the name — `getObject` becomes

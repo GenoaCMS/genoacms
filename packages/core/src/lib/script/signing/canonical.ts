@@ -29,7 +29,7 @@ type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
  * other than what was handed over is worse than no signature, so an unrepresentable value is an
  * error rather than something to normalise away.
  *
- * It is also what §3.6.3 asks for in practice: a constraint that is unset must be **omitted**, and
+ * It is also what the schema requires in practice: a constraint that is unset must be **omitted**, and
  * omitting it has to be a deliberate act rather than an accidental `undefined`.
  */
 function assertSignable (value: unknown, path = '$', seen = new Set<object>()): void {
@@ -96,7 +96,7 @@ function canonicalBytes (payload: JsonValue): Uint8Array {
 /**
  * The 32-byte SHA-256 digest that is signed.
  *
- * §4.1.17 signs the digest rather than the canonical bytes. The lattice and hash-based schemes hash
+ * Signing covers the digest rather than the canonical bytes. The lattice and hash-based schemes hash
  * internally too, so this is one more hash than strictly needed — but it is what the specification
  * states, it is unambiguous to reimplement, and its security rests only on SHA-256 collision
  * resistance.

@@ -2,10 +2,10 @@ import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
 import type { Permission } from '$lib/script/authorization/permissions'
 
 /**
- * The E6 permission matrix: the roles under test and what each is expected to be allowed (§4.4.6).
+ * The E6 permission matrix: the roles under test and what each is expected to be allowed.
  *
  * **Data only, and deliberately separate from the test that runs it.** The expectations are written
- * by hand from the taxonomy in §4.2.2 — never derived from the `requirePermission` calls they check —
+ * by hand from the permission taxonomy — never derived from the `requirePermission` calls they check —
  * so the matrix is able to disagree with the implementation. A table generated from the code could
  * only ever confirm the code.
  *
@@ -14,7 +14,7 @@ import type { Permission } from '$lib/script/authorization/permissions'
  *
  * **The roles below are invented for this matrix.** GenoaCMS ships exactly one role, `SuperAdmin`
  * (`roles.ts`); everything else is defined by an operator at runtime. These stand in for the kinds of
- * role §4.2.2 describes — a copywriter, a designer, a storage manager — so the matrix exercises
+ * role the taxonomy describes — a copywriter, a designer, a storage manager — so the matrix exercises
  * realistic combinations. Nothing here is loaded by the CMS, which is why it sits in `evidence/`
  * rather than beside the authorization modules.
  */

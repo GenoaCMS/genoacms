@@ -112,7 +112,7 @@ describe('entries that must be rejected', () => {
   })
 
   it('rejects null supersededAt rather than treating it as omitted', () => {
-    // §3.6.3: omitted and null are different documents with different digests.
+    // Omitted and null are different documents with different digests.
     rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), supersededAt: null }] }, /supersededAt/)
   })
 

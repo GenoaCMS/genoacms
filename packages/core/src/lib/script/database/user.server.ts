@@ -18,7 +18,7 @@ import {
  * request exists and so before any principal does.
  *
  * Every export here takes an `AuthContext` first and checks a permission before delegating, so
- * omitting the context is a *type error* (§4.2.6) and the check lives with the operation rather than
+ * omitting the context is a *type error* and the check lives with the operation rather than
  * at the route. Each function is its primary counterpart with `User` in the name, so the two layers
  * are imported side by side without aliasing.
  *

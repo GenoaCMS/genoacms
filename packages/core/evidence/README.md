@@ -1,6 +1,6 @@
 # Evidence
 
-Inputs and suites for the thesis experiments of §4.4, kept out of `src/` because **none of it is
+Inputs and suites for the thesis experiments, kept out of `src/` because **none of it is
 loaded by the CMS**.
 
 The distinction matters: `permissionMatrix.ts` declares roles named `Copywriter`, `Designer`,
@@ -10,7 +10,7 @@ runtime.
 
 | File | Experiment | Role |
 | :--- | :--- | :--- |
-| `permissionMatrix.ts` | **E6** | The roles under test and their expected allow-lists, written by hand from §4.2.2 |
+| `permissionMatrix.ts` | **E6** | The roles under test and their expected allow-lists, written by hand from the permission taxonomy |
 | `permissionMatrix.test.ts` | **E6** | Invokes every (role × service function) pair against the real gated services |
 
 Expectations are **never derived from the code they check**, so the matrix is able to disagree with

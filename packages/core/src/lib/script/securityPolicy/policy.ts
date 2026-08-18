@@ -17,7 +17,7 @@ interface SecurityPolicy {
   /**
    * How long a subordinate signing key stays current before rotation.
    *
-   * Policy, never a constant in code — §4.1.15 is explicit that limits are configured rather than
+   * Policy, never a constant in code: limits are configured rather than
    * embedded. The Tier-1 declaration supplies the default; this document holds the live value.
    */
   subordinateKeyRotationDays: number
@@ -25,7 +25,7 @@ interface SecurityPolicy {
    * Access token lifetime in minutes.
    *
    * Short by design: it is the window during which a revoked permission is still honoured, since
-   * grants travel inside the token (§4.2.1b.4).
+   * grants travel inside the token.
    */
   accessTokenMinutes: number
   /**
