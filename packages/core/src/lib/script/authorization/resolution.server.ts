@@ -1,4 +1,3 @@
-import { config } from '@genoacms/cloudabstraction'
 import {
   quarantineManifest,
   readRawManifest,
@@ -13,7 +12,8 @@ import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
 import { peekUnverifiedHeader, verify, type DocumentType } from '$lib/script/signing/envelope'
 import { resolveVerificationKey } from '$lib/script/signing/keyResolution.server'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'
-import { parseDeclarations, mergeDeclarations, declarationsOnly, type Declarations } from './declared'
+import { mergeDeclarations, declarationsOnly } from './declared'
+import { readDeclarations } from './declared.server'
 import type { Role } from './roles'
 import type { JsonValue } from '$lib/script/signing/canonical'
 
@@ -40,27 +40,6 @@ function reportAuthorizationAlert (message: string): void {
 
 const EMPTY_ROLES: JsonValue = { roles: {} }
 const EMPTY_USERS: JsonValue = { users: {} }
-
-/**
- * The Tier-1 declarations, parsed once per read.
- *
- * **Merged when authorization is read, never written into the manifests.** Deleting
- * a declaration from `genoa.config` therefore removes it and revokes the access it granted; nothing
- * was persisted, so nothing is left behind to keep honouring.
- *
- * This supersedes the former seeding behaviour, where declarations were written into `roles.json`
- * at first start and owned by the manifest thereafter — under which a declaration could be edited
- * at runtime and a deleted one would survive.
- *
- * A malformed declaration fails rather than being skipped: it is Tier-1 configuration an operator
- * wrote deliberately, and ignoring it would leave an instance with less authority than its
- * configuration describes, with nothing to say so.
- */
-function declarations (): Declarations {
-  const parsed = parseDeclarations(config.security.roles, config.security.assignments)
-  if (!parsed.ok) throw new Error(`security/invalid-declarations: ${parsed.reason}`)
-  return parsed.value
-}
 
 type ManifestVerdict<T> =
   | { ok: true, value: T }
@@ -168,7 +147,7 @@ async function loadManifest<T> (
  * it is a state in which permissions cannot be resolved correctly.
  */
 async function loadAuthorizationSource (): Promise<{ source: AuthorizationSource, warnings: string[] }> {
-  const declared = declarations()
+  const declared = readDeclarations()
 
   const roles = await loadManifest<Role[]>(
     rolesManifestPath, ROLES_DOCUMENT, parseRolesManifest, EMPTY_ROLES, EMPTY_ROLES

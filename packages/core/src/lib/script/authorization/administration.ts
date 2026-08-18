@@ -8,7 +8,15 @@ import type { UserRecord } from './manifests'
  * rules that govern every other rule. They are pure so the invariants can be tested without a
  * bucket, a signing key, or a request.
  *
- * The invariant that matters is **referential integrity**: a user must never name a role that does
+ * Two invariants are enforced here.
+ *
+ * **Tier-1 declarations are immutable.** A role or assignment declared in configuration cannot be
+ * altered or removed at runtime, and a runtime entry cannot be created under a declared name. The
+ * refusal happens when the change is attempted rather than by reverting it later: reapplying
+ * declarations at startup would let an administrator edit a declared role, watch it work, and find
+ * it undone after the next deployment with nothing having explained why.
+ *
+ * The second is **referential integrity**: a user must never name a role that does
  * not exist. `resolveSubject` tolerates a dangling reference by warning and resolving the rest,
  * because at *read* time refusing would be a lockout. At *write* time there is no such excuse — the
  * administrator is here, and can be told.
@@ -28,8 +36,11 @@ const findUser = (users: UserRecord[], subject: string): UserRecord | undefined 
 const holdersOf = (users: UserRecord[], name: string): string[] =>
   users.filter(user => user.roles.includes(name)).map(user => user.subject)
 
-function addRole (roles: Role[], role: Role): AdministrationResult<Role[]> {
+function addRole (roles: Role[], role: Role, declared: Set<string>): AdministrationResult<Role[]> {
   if (role.name.length === 0) return { ok: false, reason: 'role/name-empty' }
+  // A runtime role under a declared name would be discarded by the merge and never take effect.
+  // Refusing says so, where accepting would store something that silently does nothing.
+  if (declared.has(role.name)) return { ok: false, reason: 'role/declared-in-configuration' }
   if (findRole(roles, role.name) !== undefined) return { ok: false, reason: 'role/already-exists' }
   return { ok: true, value: [...roles, role] }
 }
@@ -42,7 +53,8 @@ function addRole (roles: Role[], role: Role): AdministrationResult<Role[]> {
  * principal holding full authority — recoverable only through the Tier-1 seed administrator, which
  * is a recovery path, not a management strategy.
  */
-function replaceRole (roles: Role[], role: Role): AdministrationResult<Role[]> {
+function replaceRole (roles: Role[], role: Role, declared: Set<string>): AdministrationResult<Role[]> {
+  if (declared.has(role.name)) return { ok: false, reason: 'role/declared-in-configuration' }
   if (role.name === SUPER_ADMIN_ROLE_NAME) return { ok: false, reason: 'role/super-admin-immutable' }
   if (findRole(roles, role.name) === undefined) return { ok: false, reason: 'role/not-found' }
   return { ok: true, value: roles.map(existing => existing.name === role.name ? role : existing) }
@@ -55,7 +67,14 @@ function replaceRole (roles: Role[], role: Role): AdministrationResult<Role[]> {
  * accounts would change what those people can do as a side effect of an unrelated action, and the
  * administrator would have no record of whose authority just narrowed.
  */
-function removeRole (roles: Role[], users: UserRecord[], name: string): AdministrationResult<Role[]> {
+function removeRole (
+  roles: Role[],
+  users: UserRecord[],
+  name: string,
+  declared: Set<string>
+): AdministrationResult<Role[]> {
+  // Declared roles are removed by deleting the declaration, which revokes them everywhere at once.
+  if (declared.has(name)) return { ok: false, reason: 'role/declared-in-configuration' }
   if (name === SUPER_ADMIN_ROLE_NAME) return { ok: false, reason: 'role/super-admin-immutable' }
   if (findRole(roles, name) === undefined) return { ok: false, reason: 'role/not-found' }
 
@@ -82,9 +101,11 @@ function validateAssignment (roles: Role[], names: string[]): AdministrationResu
 function upsertUser (
   users: UserRecord[],
   roles: Role[],
-  record: UserRecord
+  record: UserRecord,
+  declared: Set<string>
 ): AdministrationResult<UserRecord[]> {
   if (record.subject.length === 0) return { ok: false, reason: 'user/subject-empty' }
+  if (declared.has(record.subject)) return { ok: false, reason: 'user/declared-in-configuration' }
 
   const assignment = validateAssignment(roles, record.roles)
   if (!assignment.ok) return assignment
@@ -98,8 +119,12 @@ function setUserRoles (
   users: UserRecord[],
   roles: Role[],
   subject: string,
-  names: string[]
+  names: string[],
+  declared: Set<string>
 ): AdministrationResult<UserRecord[]> {
+  // The declared assignment is the authority for this subject; changing it here would produce a
+  // stored record the merge then discards.
+  if (declared.has(subject)) return { ok: false, reason: 'user/declared-in-configuration' }
   const user = findUser(users, subject)
   if (user === undefined) return { ok: false, reason: 'user/not-found' }
 
@@ -120,7 +145,12 @@ function setUserRoles (
  * cannot be locked out by emptying them. Inventing a last-admin rule would add a special case that
  * protects against something the architecture already prevents.
  */
-function removeUser (users: UserRecord[], subject: string): AdministrationResult<UserRecord[]> {
+function removeUser (
+  users: UserRecord[],
+  subject: string,
+  declared: Set<string>
+): AdministrationResult<UserRecord[]> {
+  if (declared.has(subject)) return { ok: false, reason: 'user/declared-in-configuration' }
   if (findUser(users, subject) === undefined) return { ok: false, reason: 'user/not-found' }
   return { ok: true, value: users.filter(user => user.subject !== subject) }
 }

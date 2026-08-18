@@ -25,6 +25,7 @@ import {
   type AdministrationResult
 } from './administration'
 import type { Role } from './roles'
+import { readDeclarations } from './declared.server'
 import type { JsonValue } from '$lib/script/signing/canonical'
 
 /**
@@ -88,8 +89,13 @@ const loadUsers = async (): Promise<AdministrationResult<Loaded<UserRecord[]>>> 
  * than committing on an assumption that has since become false.
  */
 interface AdministrationState {
+  /** Stored roles only. Declared ones are not administered here and are never written. */
   roles: Role[]
   users: UserRecord[]
+  /** Role names Tier 1 declares, which the rules refuse to alter. */
+  declaredRoleNames: Set<string>
+  /** Subjects whose assignment Tier 1 declares. */
+  declaredSubjects: Set<string>
   rolesVersion?: string
   usersVersion?: string
 }
@@ -100,11 +106,15 @@ async function loadAdministrationState (): Promise<AdministrationResult<Administ
   const users = await loadUsers()
   if (!users.ok) return users
 
+  const declared = readDeclarations()
+
   return {
     ok: true,
     value: {
       roles: roles.value.value,
       users: users.value.value,
+      declaredRoleNames: new Set(declared.roles.map(role => role.name)),
+      declaredSubjects: new Set(declared.users.map(user => user.subject)),
       rolesVersion: roles.value.version,
       usersVersion: users.value.version
     }
@@ -168,22 +178,22 @@ async function applyToUsers (
 }
 
 const createRole = async (role: Role): Promise<AdministrationResult<void>> =>
-  await applyToRoles(state => addRole(state.roles, role))
+  await applyToRoles(state => addRole(state.roles, role, state.declaredRoleNames))
 
 const updateRole = async (role: Role): Promise<AdministrationResult<void>> =>
-  await applyToRoles(state => replaceRole(state.roles, role))
+  await applyToRoles(state => replaceRole(state.roles, role, state.declaredRoleNames))
 
 const deleteRole = async (name: string): Promise<AdministrationResult<void>> =>
-  await applyToRoles(state => removeRole(state.roles, state.users, name))
+  await applyToRoles(state => removeRole(state.roles, state.users, name, state.declaredRoleNames))
 
 const upsertAccount = async (record: UserRecord): Promise<AdministrationResult<void>> =>
-  await applyToUsers(state => upsertUser(state.users, state.roles, record))
+  await applyToUsers(state => upsertUser(state.users, state.roles, record, state.declaredSubjects))
 
 const assignAccountRoles = async (subject: string, names: string[]): Promise<AdministrationResult<void>> =>
-  await applyToUsers(state => setUserRoles(state.users, state.roles, subject, names))
+  await applyToUsers(state => setUserRoles(state.users, state.roles, subject, names, state.declaredSubjects))
 
 const removeAccount = async (subject: string): Promise<AdministrationResult<void>> =>
-  await applyToUsers(state => removeUser(state.users, subject))
+  await applyToUsers(state => removeUser(state.users, subject, state.declaredSubjects))
 
 export {
   loadRoles,

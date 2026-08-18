@@ -17,6 +17,12 @@ import type { AuthContext } from '$lib/script/authorization/context'
 
 const calls: string[] = []
 
+const locked = { value: false }
+
+vi.mock('$lib/script/authorization/declared.server', () => ({
+  isAdministrationLocked: () => locked.value
+}))
+
 vi.mock('$lib/script/authorization/administration.server', () => ({
   loadAdministrationState: async () => {
     calls.push('load')
@@ -49,6 +55,7 @@ const account = { subject: 's-1', email: 's-1@example.com', roles: [] }
 
 beforeEach(() => {
   calls.length = 0
+  locked.value = false
 })
 
 const expectDenied = async (operation: () => unknown): Promise<void> => {
@@ -117,5 +124,38 @@ describe('assigning roles to an account', () => {
   it('is allowed to a principal holding both', async () => {
     await configuration.assignUserAccountRoles(bothAdmin(), 's-1', ['Editor'])
     expect(calls).toEqual(['assign:s-1'])
+  })
+})
+
+describe('the Tier-1 lock', () => {
+  it('refuses every mutation when set', async () => {
+    locked.value = true
+
+    for (const attempt of [
+      () => configuration.createUserRole(bothAdmin(), role),
+      () => configuration.updateUserRole(bothAdmin(), role),
+      () => configuration.deleteUserRole(bothAdmin(), 'Editor'),
+      () => configuration.upsertUserAccount(bothAdmin(), account),
+      () => configuration.assignUserAccountRoles(bothAdmin(), 's-1', []),
+      () => configuration.removeUserAccount(bothAdmin(), 's-1')
+    ]) {
+      expect(await attempt()).toMatchObject({ ok: false, reason: 'administration/locked-by-configuration' })
+    }
+
+    // Refused before anything was written, not reported after the fact.
+    expect(calls).toEqual([])
+  })
+
+  it('still allows reading the assignment', async () => {
+    // The lock disables administration, not visibility: an operator has to be able to see what the
+    // instance is configured to do.
+    locked.value = true
+    expect(await configuration.listUserRolesAndAccounts(roleAdmin())).toMatchObject({ ok: true })
+  })
+
+  it('reports the missing permission ahead of the lock', async () => {
+    // Otherwise an unauthorized caller would learn the instance's configuration from the refusal.
+    locked.value = true
+    await expectDenied(() => configuration.createUserRole(nobody(), role))
   })
 })
