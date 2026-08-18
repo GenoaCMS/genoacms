@@ -54,10 +54,6 @@ vi.mock('$lib/script/utils.server', () => ({
   streamToString: async (data: string) => data
 }))
 
-vi.mock('$lib/script/authorization/seedAdmin.server', () => ({
-  isSeedAdmin: (subject: string) => subject === 'admin-subject'
-}))
-
 const declaredRoles: { value: unknown } = { value: undefined }
 
 vi.mock('@genoacms/cloudabstraction', async (importOriginal) => {
@@ -252,7 +248,7 @@ describe('rotating the root trust anchor', () => {
   })
 })
 
-describe('seeding roles from Tier-1 configuration', () => {
+describe('Tier-1 role declarations', () => {
   beforeEach(() => {
     freshState()
     declaredRoles.value = undefined
@@ -266,13 +262,30 @@ describe('seeding roles from Tier-1 configuration', () => {
     expect(rolesPayload()).toEqual({})
   }, 30_000)
 
-  it('writes the declared roles into the manifest at first start', async () => {
+  it('are never written into the manifest', async () => {
+    // Declarations are merged when authorization is read, not persisted. Writing
+    // them would leave a copy behind that survived deleting the declaration — and revoking access
+    // by deleting a line from genoa.config is the behaviour that depends on this.
     declaredRoles.value = { Editor: [{ permission: 'pages:content_edit', resource: '*' }] }
     await runBootstrap()
-    expect(rolesPayload()).toEqual({ Editor: [{ permission: 'pages:content_edit', resource: '*' }] })
+    expect(rolesPayload()).toEqual({})
   }, 30_000)
 
-  it('signs the seeded manifest like any other', async () => {
+  it('are in effect anyway, because resolution merges them', async () => {
+    // The other direction: absent from storage must not mean absent from authority, or the
+    // declaration would be decorative.
+    declaredRoles.value = { Editor: [{ permission: 'pages:content_edit', resource: '*' }] }
+    await runBootstrap()
+
+    const { loadAuthorizationSource } = await import('./authorization/resolution.server')
+    const { source } = await loadAuthorizationSource()
+
+    expect(source.available).toBe(true)
+    if (!source.available) throw new Error('unreachable')
+    expect(source.roles.map(role => role.name)).toEqual(['Editor'])
+  }, 30_000)
+
+  it('signs the empty manifest it creates like any other', async () => {
     declaredRoles.value = { Editor: [{ permission: 'pages:publish', resource: '*' }] }
     await runBootstrap()
     const stored = JSON.parse(objects.get(rolesPath) as string)
@@ -294,18 +307,19 @@ describe('seeding roles from Tier-1 configuration', () => {
     objects.set(rolesPath, JSON.stringify(envelope))
   }
 
-  it('does not re-apply on a later start, so a runtime edit is not reverted', async () => {
-    // Seeding, not authority: the manifest owns the roles once it exists. The rewrite has to be
-    // properly signed — an edited payload would simply be rejected, which would make this pass for
-    // the wrong reason.
+  it('leaves runtime-created roles in the manifest untouched', async () => {
+    // Declarations and stored roles coexist: Tier 1 is a floor, not a ceiling. The rewrite has to
+    // be properly signed — an edited payload would simply be rejected, which would make this pass
+    // for the wrong reason.
     declaredRoles.value = { Editor: [{ permission: 'pages:publish', resource: '*' }] }
     await runBootstrap()
-    await rewriteRolesValidly({})
+    await rewriteRolesValidly({ Runtime: [{ permission: 'pages:delete', resource: '*' }] })
 
     vi.resetModules()
     await runBootstrap()
 
-    expect(JSON.parse(objects.get(rolesPath) as string).payload.roles).toEqual({})
+    expect(JSON.parse(objects.get(rolesPath) as string).payload.roles)
+      .toEqual({ Runtime: [{ permission: 'pages:delete', resource: '*' }] })
   }, 30_000)
 
   it('does not reseed configured roles when a manifest is rejected', async () => {
@@ -325,11 +339,11 @@ describe('seeding roles from Tier-1 configuration', () => {
     expect(JSON.parse(objects.get(rolesPath) as string).payload.roles).toEqual({})
   }, 30_000)
 
-  it('fails startup on a malformed declaration rather than ignoring it', async () => {
+  it('fails on a malformed declaration rather than ignoring it', async () => {
     // Silently skipping would leave an instance with fewer permissions than its configuration
     // describes, and nothing to say so.
     declaredRoles.value = { Editor: [{ permission: 'not:a:permission', resource: '*' }] }
     const { loadAuthorizationSource } = await import('./authorization/resolution.server')
-    await expect(loadAuthorizationSource()).rejects.toThrow(/security\/invalid-roles/)
+    await expect(loadAuthorizationSource()).rejects.toThrow(/security\/invalid-declarations/)
   }, 30_000)
 })

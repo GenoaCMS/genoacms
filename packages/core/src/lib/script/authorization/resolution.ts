@@ -1,5 +1,5 @@
 import { composeGrants, type Role } from './roles'
-import { createAuthContext, createSeedAdminContext, type AuthContext } from './context'
+import { createAuthContext, type AuthContext } from './context'
 import type { UserRecord } from './manifests'
 
 /**
@@ -18,12 +18,23 @@ import type { UserRecord } from './manifests'
  * a resolver that must fail closed, and the reason is carried for the operational alert.
  */
 type AuthorizationSource =
-  | { available: true, roles: Role[], users: UserRecord[] }
+  | {
+    available: true
+    roles: Role[]
+    users: UserRecord[]
+    /**
+       * True when the stored authorization could not be read and only Tier-1 declarations remain.
+       *
+       * The resolver treats the two identically — a declared principal is resolved by the same code
+       * path as any other — and records the distinction only so recovery mode can be reported.
+       */
+    declarationsOnly?: boolean
+  }
   | { available: false, reason: string }
 
 interface Resolution {
   context: AuthContext
-  /** Whether the subject is a principal of this instance at all — the seed admin, or a known user. */
+  /** Whether the subject is a principal of this instance at all — declared, or a stored user. */
   known: boolean
   /** Conditions worth reporting that did not prevent resolution. */
   warnings: string[]
@@ -59,17 +70,20 @@ function deniedResolution (subject: string, warnings: string[]): Resolution {
 /**
  * Resolves a subject against the instance's authorization data.
  *
- * The seed administrator is decided **before the source is consulted at all**. That is the whole
- * point of siting seed authority in Tier-1 configuration: it is the way back into an instance
- * whose stored authorization is unreadable, and a recovery path that depends on the thing being
- * recovered from is not a recovery path.
+ * There is **no special case for an administrator**. Tier-1 declarations are merged into the source
+ * before it arrives here, so a principal declared in configuration is resolved by exactly the same
+ * code path as one stored in a manifest — the authority differs in where it was declared, never in
+ * how it is matched.
  *
- * Every other subject resolves to nothing unless a usable source names it. There is no branch on
- * which an unavailable source yields a permission.
+ * That is what makes an instance recoverable without a privileged identity: when the stored
+ * authorization cannot be read, the source contains the declarations alone, and the subjects
+ * configuration names still resolve. A recovery path that depends on the thing being recovered from
+ * would not be one.
+ *
+ * Every subject resolves to nothing unless a usable source names it. There is no branch on which an
+ * unavailable source yields a permission.
  */
-function resolveSubject (subject: string, isSeedAdmin: boolean, source: AuthorizationSource): Resolution {
-  if (isSeedAdmin) return { context: createSeedAdminContext(subject), known: true, warnings: [] }
-
+function resolveSubject (subject: string, source: AuthorizationSource): Resolution {
   if (!source.available) {
     return deniedResolution(subject, [`authorization-unavailable: ${source.reason}`])
   }
@@ -79,7 +93,11 @@ function resolveSubject (subject: string, isSeedAdmin: boolean, source: Authoriz
 
   const { resolved, missing } = resolveRoles(source.roles, user.roles)
   const warnings = missing.map(name => `unknown-role: '${name}' referenced by subject '${subject}'`)
-  return { context: createAuthContext(subject, composeGrants(resolved)), known: true, warnings }
+  return {
+    context: createAuthContext(subject, composeGrants(resolved), source.declarationsOnly ?? false),
+    known: true,
+    warnings
+  }
 }
 
 export {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { permissions, isResourceScoped, type Permission } from './permissions'
 import { WILDCARD, SUPER_ADMIN_GRANT, grantSatisfies, type Grant, type NamedResource } from './grants'
-import { createAuthContext, createSeedAdminContext, type AuthContext } from './context'
+import { createAuthContext, type AuthContext } from './context'
 import { composeGrants, superAdminRole, type Role } from './roles'
 import { PermissionDeniedError, hasPermission, requirePermission } from './enforce'
 
@@ -201,8 +201,10 @@ describe('misuse of a permission check', () => {
   })
 })
 
-describe('the seed administrator context', () => {
-  const context = createSeedAdminContext('admin-subject')
+describe('a declared administrator context', () => {
+  // What used to be the seed administrator: an ordinary context holding the wildcard grant, now
+  // produced by a Tier-1 assignment rather than by a special constructor.
+  const context = createAuthContext('admin-subject', [SUPER_ADMIN_GRANT], true)
 
   it('holds every permission without consulting a manifest', () => {
     for (const permission of permissions) {
@@ -210,13 +212,13 @@ describe('the seed administrator context', () => {
     }
   })
 
-  it('is marked, so recovery mode is distinguishable from a provisioned SuperAdmin', () => {
-    expect(context.isSeedAdmin).toBe(true)
-    expect(createAuthContext('someone', [SUPER_ADMIN_GRANT]).isSeedAdmin).toBe(false)
+  it('is marked, so recovery mode is distinguishable from ordinary operation', () => {
+    expect(context.fromDeclarationsOnly).toBe(true)
+    expect(createAuthContext('someone', [SUPER_ADMIN_GRANT]).fromDeclarationsOnly).toBe(false)
   })
 
   it('is matched by the ordinary grant path, not a short circuit', () => {
-    // Emptying the grants must deny; if seed status short-circuited, this would still allow.
+    // Emptying the grants must deny; if declared status short-circuited, this would still allow.
     const withoutGrants: AuthContext = { ...context, grants: [] }
     expect(check(withoutGrants, 'config:roles:manage')).toBe(false)
   })

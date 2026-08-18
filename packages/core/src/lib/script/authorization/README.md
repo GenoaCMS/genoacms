@@ -106,8 +106,15 @@ login (auth.server.ts)
             └─ resolveSubject()        user → roles → grants
 ```
 
-The seed administrator short-circuits **before storage is read at all**: a recovery path that
-requires the bucket to be readable is no recovery path for a bucket that is not.
+**Tier-1 declarations are merged into the source before resolution**, so a principal declared in
+`genoa.config` is resolved by the same code path as one stored in a manifest — the authority differs
+in where it was declared, never in how it is matched. When the stored authorization cannot be read,
+the source is the declarations alone, so the subjects configuration names still resolve: a recovery
+path that requires the bucket to be readable is no recovery path for a bucket that is not.
+
+There is no privileged identity. What was the seed administrator is now an ordinary Tier-1
+assignment carrying a role with full authority, which is also why a declaration
+cannot be edited at runtime — the attempt is refused when it is made.
 
 Any verdict along that chain — not JSON, not an envelope, unknown or revoked key, bad signature,
 schema-invalid — quarantines the document and replaces it, and the resolution grants nothing. There

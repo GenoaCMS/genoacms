@@ -1,4 +1,4 @@
-import { SUPER_ADMIN_GRANT, type Grant } from './grants'
+import type { Grant } from './grants'
 
 /**
  * The authorization context of a single principal.
@@ -12,31 +12,24 @@ interface AuthContext {
   subject: string
   grants: Grant[]
   /**
-   * Whether this authority came from Tier-1 configuration rather than a stored manifest.
+   * Whether this authority was resolved from Tier-1 declarations alone, the stored authorization
+   * being unreadable.
    *
-   * The matcher does not consult this: a seed administrator holds an ordinary wildcard grant and
-   * is matched by the same single code path as everyone else, so seed authority cannot drift away
-   * from normal matching. It is recorded so that recovery mode — an instance whose manifests are
-   * absent or failed verification — is distinguishable from a genuinely provisioned SuperAdmin,
-   * which the fail-closed operational alert needs to report.
+   * The matcher does not consult it: a declared principal holds ordinary grants and is matched by
+   * the same single code path as everyone else, so declared authority cannot drift away from normal
+   * matching. It is recorded so that **recovery mode** — an instance whose manifests are absent or
+   * failed verification — is distinguishable from ordinary operation, which the fail-closed
+   * operational alert needs to report.
    */
-  isSeedAdmin: boolean
+  fromDeclarationsOnly: boolean
 }
 
-function createAuthContext (subject: string, grants: Grant[]): AuthContext {
-  return { subject, grants, isSeedAdmin: false }
-}
-
-/**
- * The context of the Tier-1 seed administrator, authorized without consulting any manifest.
- */
-function createSeedAdminContext (subject: string): AuthContext {
-  return { subject, grants: [SUPER_ADMIN_GRANT], isSeedAdmin: true }
+function createAuthContext (subject: string, grants: Grant[], fromDeclarationsOnly = false): AuthContext {
+  return { subject, grants, fromDeclarationsOnly }
 }
 
 export {
-  createAuthContext,
-  createSeedAdminContext
+  createAuthContext
 }
 
 export type {

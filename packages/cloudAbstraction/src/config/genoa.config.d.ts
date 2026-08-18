@@ -22,12 +22,6 @@ type Config<Extension extends object = object> = Extension & {
   }
   security: {
     /**
-     * Subject of the seed administrator. Tier-1 configuration is the root of authority:
-     * this identity is authorized without consulting any storage manifest, and is the only
-     * one that can act before verified manifests exist.
-     */
-    adminSubject: string
-    /**
      * Default lifetime of a subordinate signing key, in days.
      *
      * Tier-1 supplies the *default*; the live value lives in the signed security policy document
@@ -36,13 +30,37 @@ type Config<Extension extends object = object> = Extension & {
      */
     subordinateKeyRotationDays?: number
     /**
-     * Roles written into `roles.json` at first start.
+     * Roles declared before deployment, as role name to grants.
      *
-     * Seeding only: the manifest owns them afterwards, so an administrator editing a role at
-     * runtime does not find it reverted by the next deployment. Shaped as the manifest is —
-     * role name to grants.
+     * **Authoritative, not seeding.** A role declared here is immutable at runtime: an attempt to
+     * alter or remove it through the CMS is refused when it is made. Runtime administration may
+     * still create roles this does not name.
+     *
+     * Declarations are merged when authorization is read, never written into `roles.json`. Deleting
+     * a role from here therefore removes it — and revokes the access it granted — rather than
+     * leaving an editable copy behind in storage.
      */
     roles?: Record<string, Array<{ permission: string, resource: unknown }>>
+    /**
+     * Role assignments declared before deployment, as subject to role names.
+     *
+     * Immutable at runtime on the same terms as `roles`, and resolved **without consulting
+     * storage** — which is what makes an instance recoverable when its `users.json` is absent or
+     * fails verification. Every subject named here can act on such an instance; nobody else can.
+     *
+     * This replaces the former `adminSubject`. A seed administrator is now an ordinary declared
+     * assignment carrying a role with full authority, rather than an identity special-cased ahead
+     * of the authorization data.
+     */
+    assignments?: Record<string, string[]>
+    /**
+     * Refuses **all** runtime role and assignment administration when true.
+     *
+     * For instances whose authorization should be fixed at deployment. Independent of the
+     * immutability above, which applies only to what this file declares: with this set, even roles
+     * created at runtime can no longer be changed.
+     */
+    lockRoles?: boolean
     /** Access token lifetime in minutes. Seeds the security policy document. */
     accessTokenMinutes?: number
     /**

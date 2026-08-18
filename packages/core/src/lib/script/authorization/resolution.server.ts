@@ -1,5 +1,4 @@
 import { config } from '@genoacms/cloudabstraction'
-import { isSeedAdmin } from './seedAdmin.server'
 import {
   quarantineManifest,
   readRawManifest,
@@ -14,6 +13,7 @@ import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
 import { peekUnverifiedHeader, verify, type DocumentType } from '$lib/script/signing/envelope'
 import { resolveVerificationKey } from '$lib/script/signing/keyResolution.server'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'
+import { parseDeclarations, mergeDeclarations, declarationsOnly, type Declarations } from './declared'
 import type { Role } from './roles'
 import type { JsonValue } from '$lib/script/signing/canonical'
 
@@ -31,7 +31,7 @@ import type { JsonValue } from '$lib/script/signing/canonical'
  */
 
 /**
- * §4.2.4 requires an instance running degraded to say so rather than doing it quietly.
+ * An instance running degraded must say so rather than doing it quietly.
  * A real alerting channel replaces this; the call sites do not change when it does.
  */
 function reportAuthorizationAlert (message: string): void {
@@ -42,31 +42,24 @@ const EMPTY_ROLES: JsonValue = { roles: {} }
 const EMPTY_USERS: JsonValue = { users: {} }
 
 /**
- * The roles a new instance starts with, declared in Tier-1 configuration.
+ * The Tier-1 declarations, parsed once per read.
  *
- * **Seeding, not authority.** These are written once, when `roles.json` does not exist. The manifest
- * owns them afterwards, so an administrator editing a role at runtime does not find it reverted by
- * the next deployment — roles are runtime configuration (§4.2.5), and Tier-1 only says where to
- * begin.
+ * **Merged when authorization is read, never written into the manifests.** Deleting
+ * a declaration from `genoa.config` therefore removes it and revokes the access it granted; nothing
+ * was persisted, so nothing is left behind to keep honouring.
  *
- * A rejected manifest is **not** reseeded from here. Replacement is a recovery path and grants
- * nothing; restoring configured roles at the moment tampering is detected would hand back
- * permissions precisely when the least should be assumed.
+ * This supersedes the former seeding behaviour, where declarations were written into `roles.json`
+ * at first start and owned by the manifest thereafter — under which a declaration could be edited
+ * at runtime and a deleted one would survive.
  *
- * A malformed declaration fails startup rather than being skipped: it is Tier-1 configuration an
- * operator wrote deliberately, and silently ignoring it would leave an instance with fewer
- * permissions than its configuration describes, with nothing to say so.
+ * A malformed declaration fails rather than being skipped: it is Tier-1 configuration an operator
+ * wrote deliberately, and ignoring it would leave an instance with less authority than its
+ * configuration describes, with nothing to say so.
  */
-function configuredRoles (): JsonValue {
-  const declared = config.security.roles
-  if (declared === undefined || Object.keys(declared).length === 0) return EMPTY_ROLES
-
-  const payload = { roles: declared } as unknown as JsonValue
-  const parsed = parseRolesManifest(payload)
-  if (!parsed.ok) {
-    throw new Error(`security/invalid-roles: security.roles in genoa.config is not valid: ${parsed.reason}`)
-  }
-  return payload
+function declarations (): Declarations {
+  const parsed = parseDeclarations(config.security.roles, config.security.assignments)
+  if (!parsed.ok) throw new Error(`security/invalid-declarations: ${parsed.reason}`)
+  return parsed.value
 }
 
 type ManifestVerdict<T> =
@@ -175,32 +168,45 @@ async function loadManifest<T> (
  * it is a state in which permissions cannot be resolved correctly.
  */
 async function loadAuthorizationSource (): Promise<{ source: AuthorizationSource, warnings: string[] }> {
+  const declared = declarations()
+
   const roles = await loadManifest<Role[]>(
-    rolesManifestPath, ROLES_DOCUMENT, parseRolesManifest, configuredRoles(), EMPTY_ROLES
+    rolesManifestPath, ROLES_DOCUMENT, parseRolesManifest, EMPTY_ROLES, EMPTY_ROLES
   )
-  if (!roles.ok) return { source: { available: false, reason: roles.reason }, warnings: [] }
+  const users = roles.ok
+    ? await loadManifest<UserRecord[]>(usersManifestPath, USERS_DOCUMENT, parseUsersManifest, EMPTY_USERS, EMPTY_USERS)
+    : undefined
 
-  const users = await loadManifest<UserRecord[]>(
-    usersManifestPath, USERS_DOCUMENT, parseUsersManifest, EMPTY_USERS, EMPTY_USERS
-  )
-  if (!users.ok) return { source: { available: false, reason: users.reason }, warnings: [] }
+  // Stored authorization unreadable — the recovery case that replaced the seed administrator. The
+  // declarations still resolve, because they never depended on storage, so the subjects
+  // configuration names can act while nobody else can. This is the whole reason a privileged
+  // identity is no longer needed.
+  if (!roles.ok || users === undefined || !users.ok) {
+    const reason = roles.ok ? (users?.ok === false ? users.reason : 'users-unavailable') : roles.reason
+    const merged = declarationsOnly(declared)
+    return {
+      source: { available: true, roles: merged.roles, users: merged.users, declarationsOnly: true },
+      warnings: [`stored-authorization-unavailable: ${reason}. Only Tier-1 declarations are in effect.`]
+    }
+  }
 
-  return { source: { available: true, roles: roles.value, users: users.value }, warnings: [] }
+  const merged = mergeDeclarations(declared, { roles: roles.value, users: users.value })
+  return {
+    source: { available: true, roles: merged.roles, users: merged.users },
+    warnings: []
+  }
 }
 
 /**
  * Resolves a subject to the permissions it holds on this instance.
  *
- * The seed administrator short-circuits **before storage is touched at all**. A recovery path that
- * needs the bucket to be readable is no recovery path for a bucket that is not.
+ * There is no privileged identity to short-circuit for. Tier-1 declarations are merged into the
+ * source, and remain in effect on their own when the stored authorization cannot be read — so the
+ * recovery path never depends on the bucket being readable.
  */
 async function resolvePrincipal (subject: string): Promise<Resolution> {
-  if (isSeedAdmin(subject)) {
-    return resolveSubject(subject, true, { available: false, reason: 'seed-administrator-not-consulted' })
-  }
-
   const { source, warnings } = await loadAuthorizationSource()
-  const resolution = resolveSubject(subject, false, source)
+  const resolution = resolveSubject(subject, source)
   const allWarnings = [...warnings, ...resolution.warnings]
   allWarnings.forEach(reportAuthorizationAlert)
   return { ...resolution, warnings: allWarnings }

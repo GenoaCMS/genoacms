@@ -54,7 +54,14 @@ const config = {
     ]
   },
   security: {
-    adminSubject: 'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01',
+    // Roles and assignments declared here are authoritative: immutable at runtime, and merged when
+    // authorization is read rather than written into the manifests. Deleting one revokes it.
+    roles: {
+      Administrator: [{ permission: '*', resource: '*' }]
+    },
+    assignments: {
+      'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01': ['Administrator']
+    },
     // Seeds the signed security policy document at first start; the live value lives there.
     subordinateKeyRotationDays: 90
   },
