@@ -1,6 +1,6 @@
 <script lang="ts">
   import TopPanel from '$lib/components/TopPanel.svelte'
-  import Grid from '$lib/components/Grid.svelte'
+  import GridLargeItems from '$lib/components/GridLargeItems.svelte'
   import LockNotice from './LockNotice.svelte'
   import RoleCard from './RoleCard.svelte'
   import AccountCard from './AccountCard.svelte'
@@ -38,11 +38,10 @@
 
   <section class="mb-8">
     <h2 class="text-xl mb-3">Roles</h2>
-    <Grid>
+    <GridLargeItems>
       {#each data.roles as entry (entry.role.name)}
         <RoleCard role={entry.role} editable={entry.editable}>
           {#snippet actions(role)}
-            <EditRole {role} />
             <DangerousAction
               action="?/deleteRole"
               field="name"
@@ -51,10 +50,11 @@
               success="Role deleted"
               failure="Role not deleted"
             />
+            <EditRole {role} />
           {/snippet}
         </RoleCard>
       {/each}
-    </Grid>
+    </GridLargeItems>
   </section>
 
   <section>
@@ -67,27 +67,27 @@
         <code>security.assignments</code> to be able to administer this instance.
       </p>
     {:else}
-      <Grid>
+      <GridLargeItems>
         {#each data.accounts as entry (entry.account.subject)}
           <AccountCard account={entry.account} editable={entry.editable}>
             {#snippet actions(account)}
+              <DangerousAction
+                action="?/removeAccount"
+                field="subject"
+                value={account.subject}
+                confirmation={`Remove ${account.subject}. They lose access immediately.`}
+                success="Account removed"
+                failure="Account not removed"
+              />
               <!-- Assignment needs both permissions, which the service checks; the gate mirrors the
                    narrower of the two so the control is not offered to someone holding only one. -->
               <PermissionGate permission="config:roles:manage">
                 <AssignRoles subject={account.subject} current={account.roles} available={roleNames} />
               </PermissionGate>
-              <DangerousAction
-                action="?/removeAccount"
-                field="subject"
-                value={account.subject}
-                                confirmation={`Remove ${account.subject}. They lose access immediately.`}
-                success="Account removed"
-                failure="Account not removed"
-              />
             {/snippet}
           </AccountCard>
         {/each}
-      </Grid>
+      </GridLargeItems>
     {/if}
   </section>
 </div>

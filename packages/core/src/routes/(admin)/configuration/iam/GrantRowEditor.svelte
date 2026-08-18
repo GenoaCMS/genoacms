@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Tabs, SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import { Tabs, Combobox, Portal, useListCollection, type ComboboxRootProps } from '@skeletonlabs/skeleton-svelte'
+  import { Input } from '$lib/components/ui/index'
   import { isResourceScoped, getPermissionScope } from '$lib/script/authorization/permissions'
   import { grantCategories, categoryOf, optionGroups } from './grantCategories'
   import type { GrantRow } from './grantRows'
@@ -23,6 +24,61 @@
     category = next
     // The chosen permission belongs to the category that was left, so it no longer applies.
     row.permission = ''
+    searchFilter = ''
+  }
+
+  interface ComboboxOption {
+    label: string
+    value: string
+    group: string
+  }
+
+  const allItems = $derived(
+    groups.flatMap((group) =>
+      group.options.map((opt) => ({
+        label: opt.label,
+        value: opt.permission,
+        group: group.label ?? 'Permissions'
+      }))
+    )
+  )
+
+  let searchFilter = $state('')
+
+  const filteredItems = $derived(
+    searchFilter.trim() === ''
+      ? allItems
+      : allItems.filter((item) =>
+          item.label.toLowerCase().includes(searchFilter.toLowerCase()) ||
+          item.value.toLowerCase().includes(searchFilter.toLowerCase())
+        )
+  )
+
+  const hasMultipleGroups = $derived(groups.length > 1 && groups.some((g) => Boolean(g.label)))
+
+  const collection = $derived(
+    useListCollection({
+      items: filteredItems,
+      itemToString: (item: ComboboxOption) => item.label,
+      itemToValue: (item: ComboboxOption) => item.value,
+      groupBy: hasMultipleGroups ? (item: ComboboxOption) => item.group : undefined
+    })
+  )
+
+  const onOpenChange = () => {
+    searchFilter = ''
+  }
+
+  const onInputValueChange: ComboboxRootProps['onInputValueChange'] = (event) => {
+    searchFilter = event.inputValue
+  }
+
+  const onValueChange: ComboboxRootProps['onValueChange'] = (event) => {
+    if (event.value && event.value[0]) {
+      row.permission = event.value[0] as typeof row.permission
+    } else {
+      row.permission = ''
+    }
   }
 </script>
 
@@ -40,49 +96,81 @@
   </Tabs>
 
   <div class="space-y-2">
-    {#each groups as group, index (index)}
-      {#if group.label}
-        <div class="text-xs font-medium opacity-70">{group.label}</div>
-      {/if}
-      <SegmentedControl
-        value={group.options.some((o) => o.permission === row.permission) ? row.permission : null}
-        onValueChange={(e) => { if (e.value) row.permission = e.value as typeof row.permission }}
-      >
-        <SegmentedControl.Control>
-          <SegmentedControl.Indicator />
-          {#each group.options as option (option.permission)}
-            <SegmentedControl.Item value={option.permission}>
-              <SegmentedControl.ItemText>{option.label}</SegmentedControl.ItemText>
-              <SegmentedControl.ItemHiddenInput />
-            </SegmentedControl.Item>
-          {/each}
-        </SegmentedControl.Control>
-      </SegmentedControl>
-    {/each}
+    <Combobox
+      placeholder="Select permission..."
+      {collection}
+      {onOpenChange}
+      {onInputValueChange}
+      value={row.permission ? [row.permission] : []}
+      {onValueChange}
+      inputBehavior="autohighlight"
+      openOnClick
+      positioning={{ sameWidth: true, gutter: 4 }}
+      class="w-full"
+    >
+      <Combobox.Control class="input-group grid-cols-[1fr_auto]">
+        <Combobox.Input class="ig-input" placeholder="Select permission..." />
+        <Combobox.Trigger class="ig-btn preset-tonal">
+          <i class="bi bi-chevron-down"></i>
+        </Combobox.Trigger>
+      </Combobox.Control>
+      <Portal>
+        <Combobox.Positioner class="z-[150]">
+          <Combobox.Content class="card bg-surface-50-950 border border-surface-200-800 p-1 shadow-xl max-h-60 overflow-y-auto z-[150]">
+            {#if hasMultipleGroups}
+              {#each collection.group() as [groupName, groupItems] (groupName)}
+                <Combobox.ItemGroup>
+                  <Combobox.ItemGroupLabel class="text-xs font-semibold text-surface-500 px-2 py-1">{groupName}</Combobox.ItemGroupLabel>
+                  {#each groupItems as item (item.value)}
+                    <Combobox.Item {item} class="px-2 py-1.5 rounded cursor-pointer hover:preset-tonal flex justify-between items-center text-sm">
+                      <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                      <Combobox.ItemIndicator>
+                        <i class="bi bi-check-lg"></i>
+                      </Combobox.ItemIndicator>
+                    </Combobox.Item>
+                  {/each}
+                </Combobox.ItemGroup>
+              {/each}
+            {:else}
+              {#each filteredItems as item (item.value)}
+                <Combobox.Item {item} class="px-2 py-1.5 rounded cursor-pointer hover:preset-tonal flex justify-between items-center text-sm">
+                  <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                  <Combobox.ItemIndicator>
+                    <i class="bi bi-check-lg"></i>
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
+              {/each}
+            {/if}
+          </Combobox.Content>
+        </Combobox.Positioner>
+      </Portal>
+    </Combobox>
   </div>
 
   {#if scoped}
-    <label class="label">
-      <span class="label-text">Applies to</span>
-      <div class="input-group grid-cols-[auto_1fr]">
-        <label class="ig-cell preset-tonal">
+    <div class="space-y-2 pt-1">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-surface-500">Applies to</span>
+        <label class="flex items-center space-x-2 text-xs font-medium cursor-pointer">
           <input type="checkbox" class="checkbox" bind:checked={row.anywhere} />
-          <span class="ml-2">Any</span>
+          <span>Any {scope}</span>
         </label>
-        <input
-          class="ig-input"
-          bind:value={row.resourceId}
-          placeholder="{scope} name"
-          disabled={row.anywhere}
-        />
       </div>
-    </label>
+
+      <Input
+        type="text"
+        bind:value={row.resourceId}
+        placeholder={row.anywhere ? `Applies to all ${scope}s` : `Specific ${scope} name`}
+        disabled={row.anywhere}
+        class="w-full {row.anywhere ? 'opacity-50' : ''}"
+      />
+    </div>
   {/if}
 
   <div class="flex justify-end border-t border-surface-200-800 pt-2">
     <button
       type="button"
-      class="flex items-center px-2"
+      class="flex items-center px-2 cursor-pointer"
       onclick={onremove}
       title="Remove grant"
       aria-label="Remove grant"

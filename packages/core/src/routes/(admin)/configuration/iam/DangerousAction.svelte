@@ -33,7 +33,7 @@
 
 <form method="POST" {action} use:enhance={enhanceDelete}>
   <input type="hidden" name={field} {value} />
-  <button type="submit" class="flex items-center px-2" aria-label="Delete">
+  <button type="submit" class="flex items-center px-2 cursor-pointer" aria-label="Delete">
     <i class="bi bi-trash text-xl text-error-500 hover:text-error-600 transition-all"></i>
   </button>
 </form>

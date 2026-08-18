@@ -7,7 +7,7 @@
   let open = $state(false)
 </script>
 
-<button aria-label="New role" class="h-full flex items-center px-3" onclick={() => { open = true }}>
+<button aria-label="New role" class="h-full flex items-center px-3 cursor-pointer" onclick={() => { open = true }}>
   <i class="bi bi-person-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 

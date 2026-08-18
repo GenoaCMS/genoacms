@@ -25,11 +25,11 @@
 </script>
 
 {#if rest.href}
-  <a class="btn {getPresetClass(preset)} {className}" {...rest}>
+  <a class="btn cursor-pointer {getPresetClass(preset)} {className}" {...rest}>
     {@render children?.()}
   </a>
 {:else}
-  <button class="btn {getPresetClass(preset)} {className}" {...rest}>
+  <button class="btn cursor-pointer {getPresetClass(preset)} {className}" {...rest}>
     {@render children?.()}
   </button>
 {/if}
