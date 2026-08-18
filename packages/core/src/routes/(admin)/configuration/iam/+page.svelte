@@ -8,7 +8,9 @@
   import CreateRole from './CreateRole.svelte'
   import CreateAccount from './CreateAccount.svelte'
   import DangerousAction from './DangerousAction.svelte'
+  import EditRole from './EditRole.svelte'
   import AssignRoles from './AssignRoles.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data, form } = $props()
 </script>
@@ -19,8 +21,12 @@
     <!-- A locked instance refuses every mutation, so offering the triggers would only invite a
          refusal the user cannot act on from here. -->
     {#if !data.locked}
-      <CreateRole />
-      <CreateAccount />
+      <PermissionGate permission="config:roles:manage">
+        <CreateRole />
+      </PermissionGate>
+      <PermissionGate permission="config:users:manage">
+        <CreateAccount />
+      </PermissionGate>
     {/if}
   {/snippet}
 </TopPanel>
@@ -35,6 +41,7 @@
       {#each data.roles as entry (entry.role.name)}
         <RoleCard role={entry.role} editable={entry.editable}>
           {#snippet actions(role)}
+            <EditRole {role} />
             <DangerousAction
               action="?/deleteRole"
               field="name"
@@ -62,7 +69,11 @@
         {#each data.accounts as entry (entry.account.subject)}
           <AccountCard account={entry.account} editable={entry.editable}>
             {#snippet actions(account)}
-              <AssignRoles subject={account.subject} current={account.roles} />
+              <!-- Assignment needs both permissions, which the service checks; the gate mirrors the
+                   narrower of the two so the control is not offered to someone holding only one. -->
+              <PermissionGate permission="config:roles:manage">
+                <AssignRoles subject={account.subject} current={account.roles} />
+              </PermissionGate>
               <DangerousAction
                 action="?/removeAccount"
                 field="subject"

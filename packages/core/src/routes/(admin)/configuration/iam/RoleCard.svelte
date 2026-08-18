@@ -24,6 +24,6 @@
   <GrantSummary grants={role.grants} />
 
   {#if editable && actions}
-    <div class="mt-3 flex gap-2">{@render actions(role)}</div>
+    <div class="mt-3 flex gap-2 flex-wrap items-center">{@render actions(role)}</div>
   {/if}
 </Card>

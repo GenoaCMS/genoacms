@@ -1,6 +1,7 @@
 import {
   listUserRolesAndAccounts,
   createUserRole,
+  updateUserRole,
   deleteUserRole,
   assignUserAccountRoles,
   upsertUserAccount,
@@ -59,6 +60,20 @@ export const actions = {
     if (grants === undefined) return fail(400, { reason: 'role/grants-malformed' })
 
     return report(await createUserRole(ctx, { name, grants }))
+  },
+
+  updateRole: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
+    const data = await request.formData()
+    const name = data.get('name')
+    const grants = parseGrants(data.get('grants'))
+
+    if (!isString(name) || name.length === 0) return fail(400, { reason: 'role/name-required' })
+    if (grants === undefined) return fail(400, { reason: 'role/grants-malformed' })
+
+    // The whole grant set is replaced, not merged: a grant removed from the editor must actually
+    // go, and a merge would make removal impossible through this form.
+    return report(await updateUserRole(ctx, { name, grants }))
   },
 
   deleteRole: async ({ request, locals }) => {
