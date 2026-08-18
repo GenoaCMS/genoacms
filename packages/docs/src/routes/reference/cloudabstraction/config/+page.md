@@ -26,7 +26,9 @@ type Config<Extension extends object = object> = Extension & {
     providers: StorageProvider[]
   }
   security: {
-    adminSubject: string
+    roles?: Record<string, Grant[]>
+    assignments?: Record<string, string[]>
+    lockRoles?: boolean
   }
   [key: string]: any
 }

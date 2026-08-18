@@ -31,8 +31,9 @@ them is signed**, so there is no window in which GenoaCMS reads its own configur
 authorization data without verifying it.
 
 If the bucket is empty after a first run, the instance could not reach it or the secret store — the
-startup log says which. GenoaCMS still starts in that state, deliberately, so the seed administrator
-can sign in and repair it.
+startup log says which. GenoaCMS still starts in that state, deliberately, so the administrators
+declared in `genoa.config` can sign in and repair it. Those declarations are resolved without reading
+the bucket, which is what makes them a way back in.
 
 ## The documents
 

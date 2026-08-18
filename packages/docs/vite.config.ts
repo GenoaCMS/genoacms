@@ -51,6 +51,10 @@ const config = defineConfig({
               title: 'Operations',
               items: [
                 {
+                  title: 'Roles and permissions',
+                  to: '/guide/authorization/',
+                },
+                {
                   title: 'What GenoaCMS stores',
                   to: '/guide/storage-layout/',
                 },

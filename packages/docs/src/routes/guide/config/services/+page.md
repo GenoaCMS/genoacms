@@ -58,26 +58,50 @@ adapters and no configuration stanza.
 
 ## Security
 
-Not a service — a plain configuration stanza. It declares the seed administrator, the identity
-that bootstraps the permission system.
+Not a service — a plain configuration stanza. It declares the roles and role assignments the
+instance starts from, and the identities that can administer it.
 
 ### Config type
 
 ```ts
 security: {
-    adminSubject: string
+    roles?: Record<string, Grant[]>
+    assignments?: Record<string, string[]>
+    lockRoles?: boolean
     subordinateKeyRotationDays?: number   // default 90
 }
 ```
 
-`adminSubject` is the `subject` of an identity as issued by the authentication adapter, never an
-email address. It is resolved from `genoa.config` alone, so it remains authoritative on an instance
-whose stored authorization data is missing or cannot be trusted.
+`roles` declares roles by name; `assignments` maps a **subject** to the roles it holds. A subject is
+the provider-issued identifier from the authentication service, never an email address.
 
-:::caution[Configuration is the root of authority]
-`genoa.config` is written before deployment and is not modifiable at runtime. Nothing the CMS
-stores can grant the seed administrator's authority to another identity.
+A new instance needs at least one assignment, or nobody can administer it:
+
+```ts
+security: {
+  roles: {
+    Administrator: [{ permission: '*', resource: '*' }]
+  },
+  assignments: {
+    'the-subject-of-your-first-administrator': ['Administrator']
+  }
+}
+```
+
+:::caution[Declarations are authoritative and immutable]
+What `genoa.config` declares cannot be changed through the CMS. Editing or deleting a declared role
+or assignment at runtime is **refused**, not silently reverted later.
+
+Both are resolved **without reading storage**, so they still apply on an instance whose stored
+authorization data is missing or cannot be trusted — which is what makes them the way back in.
+
+Removing a declaration removes it from the instance. Deleting a line here revokes the access it
+granted; it does not leave an editable copy behind.
 :::
+
+Runtime administration remains free to create roles and assignments that `genoa.config` does not
+name. Set `lockRoles: true` to disable runtime administration entirely, for an instance whose
+authorization should be fixed at deployment.
 
 `subordinateKeyRotationDays` sets how long a signing key stays current — see
 [key rotation](/guide/cli).

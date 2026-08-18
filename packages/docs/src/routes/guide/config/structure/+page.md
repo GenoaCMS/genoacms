@@ -57,7 +57,12 @@ const config = {
     ]
   },
   security: {
-    adminSubject: 'the-subject-of-the-seed-administrator'
+    roles: {
+      Administrator: [{ permission: '*', resource: '*' }]
+    },
+    assignments: {
+      'the-subject-of-your-first-administrator': ['Administrator']
+    }
   }
 }
 
