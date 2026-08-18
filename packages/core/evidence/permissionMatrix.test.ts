@@ -71,8 +71,15 @@ vi.mock('$lib/script/components/page/page.server', () => ({
   generateReadablePageTree: async () => {}
 }))
 
+vi.mock('$lib/script/authorization/declared.server', () => ({
+  isAdministrationLocked: () => false
+}))
+
 vi.mock('$lib/script/authorization/administration.server', () => ({
-  loadAdministrationState: async () => ({ ok: true, value: { roles: [], users: [] } }),
+  loadAdministrationState: async () => ({
+    ok: true,
+    value: { roles: [], users: [], declared: { roles: [], users: [] } }
+  }),
   createRole: async () => ({ ok: true }),
   updateRole: async () => ({ ok: true }),
   deleteRole: async () => ({ ok: true }),

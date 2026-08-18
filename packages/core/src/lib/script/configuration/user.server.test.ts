@@ -19,6 +19,17 @@ const calls: string[] = []
 
 const locked = { value: false }
 
+const storedRole = { name: 'RuntimeRole', grants: [] }
+const declaredRole = { name: 'DeclaredRole', grants: [] }
+const storedAccount = { subject: 'stored-1', email: 'stored-1@example.com', roles: [] }
+const declaredAccount = { subject: 'declared-1', email: '', roles: ['DeclaredRole'] }
+
+const stored = {
+  roles: [storedRole],
+  users: [storedAccount],
+  declared: { roles: [declaredRole], users: [declaredAccount] }
+}
+
 vi.mock('$lib/script/authorization/declared.server', () => ({
   isAdministrationLocked: () => locked.value
 }))
@@ -26,7 +37,7 @@ vi.mock('$lib/script/authorization/declared.server', () => ({
 vi.mock('$lib/script/authorization/administration.server', () => ({
   loadAdministrationState: async () => {
     calls.push('load')
-    return { ok: true, value: { roles: [], users: [] } }
+    return { ok: true, value: { roles: stored.roles, users: stored.users, declared: stored.declared } }
   },
   createRole: async (role: { name: string }) => { calls.push(`createRole:${role.name}`); return { ok: true } },
   updateRole: async (role: { name: string }) => { calls.push(`updateRole:${role.name}`); return { ok: true } },
@@ -92,6 +103,37 @@ describe('reading the assignment', () => {
   it('is allowed to a role administrator', async () => {
     await configuration.listUserRolesAndAccounts(roleAdmin())
     expect(calls).toEqual(['load'])
+  })
+
+  it('includes declared entries as well as stored ones', async () => {
+    // Listing only the stored ones would show a fresh instance as having no roles while a Tier-1
+    // declaration was in fact governing it.
+    const result = await configuration.listUserRolesAndAccounts(roleAdmin())
+    if (!result.ok) throw new Error('unreachable')
+
+    expect(result.value.roles.map(entry => entry.role.name)).toEqual(['DeclaredRole', 'RuntimeRole'])
+    expect(result.value.accounts.map(entry => entry.account.subject)).toEqual(['declared-1', 'stored-1'])
+  })
+
+  it('marks declared entries uneditable and stored ones editable', async () => {
+    // The screen must not offer a control the write path is certain to refuse.
+    const result = await configuration.listUserRolesAndAccounts(roleAdmin())
+    if (!result.ok) throw new Error('unreachable')
+
+    expect(result.value.roles.find(e => e.role.name === 'DeclaredRole')?.editable).toBe(false)
+    expect(result.value.roles.find(e => e.role.name === 'RuntimeRole')?.editable).toBe(true)
+    expect(result.value.accounts.find(e => e.account.subject === 'declared-1')?.editable).toBe(false)
+    expect(result.value.accounts.find(e => e.account.subject === 'stored-1')?.editable).toBe(true)
+  })
+
+  it('reports nothing editable, and says so, on a locked instance', async () => {
+    locked.value = true
+    const result = await configuration.listUserRolesAndAccounts(roleAdmin())
+    if (!result.ok) throw new Error('unreachable')
+
+    expect(result.value.locked).toBe(true)
+    expect(result.value.roles.every(entry => !entry.editable)).toBe(true)
+    expect(result.value.accounts.every(entry => !entry.editable)).toBe(true)
   })
 })
 

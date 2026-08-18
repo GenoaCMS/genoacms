@@ -99,6 +99,13 @@ function mergeDeclarations (declared: Declarations, stored: Declarations): Merge
   }
 }
 
+/** The names Tier 1 declares, which the administration rules refuse to alter. */
+const declaredRoleNames = (declared: Declarations): Set<string> =>
+  new Set(declared.roles.map(role => role.name))
+
+const declaredSubjects = (declared: Declarations): Set<string> =>
+  new Set(declared.users.map(user => user.subject))
+
 /** The declarations alone, for an instance whose stored authorization cannot be read. */
 const declarationsOnly = (declared: Declarations): MergedAuthorization =>
   mergeDeclarations(declared, { roles: [], users: [] })
@@ -106,7 +113,9 @@ const declarationsOnly = (declared: Declarations): MergedAuthorization =>
 export {
   parseDeclarations,
   mergeDeclarations,
-  declarationsOnly
+  declarationsOnly,
+  declaredRoleNames,
+  declaredSubjects
 }
 
 export type {

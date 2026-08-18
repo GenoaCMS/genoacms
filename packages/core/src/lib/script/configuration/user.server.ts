@@ -51,15 +51,65 @@ import {
 
 const LOCKED: AdministrationResult<never> = { ok: false, reason: 'administration/locked-by-configuration' }
 
-/** Roles and accounts as they currently stand, for an administration screen. */
+/**
+ * One entry as an administration screen needs to see it.
+ *
+ * `editable` is the answer to "may this be changed here", and it is computed once, on the server,
+ * from the same facts the write path checks. An interface that decided for itself would eventually
+ * disagree with the rules and offer a control that is certain to be refused.
+ */
+interface AdministrableRole {
+  role: Role
+  editable: boolean
+}
+
+interface AdministrableAccount {
+  account: UserRecord
+  editable: boolean
+}
+
+interface AdministrationView {
+  /** Declared and stored roles together. A screen showing only stored ones would misrepresent the instance. */
+  roles: AdministrableRole[]
+  accounts: AdministrableAccount[]
+  /** True when `security.lockRoles` disables runtime administration entirely. */
+  locked: boolean
+}
+
+/**
+ * Roles and accounts as they currently stand, for an administration screen.
+ *
+ * **Declared entries are included and marked uneditable**, rather than omitted. Omitting them would
+ * show a fresh instance as having no roles while a Tier-1 declaration was governing it, and would
+ * leave an administrator unable to see why a subject has authority.
+ */
 const listUserRolesAndAccounts = async (
   ctx: AuthContext
-): Promise<AdministrationResult<{ roles: Role[], users: UserRecord[] }>> => {
+): Promise<AdministrationResult<AdministrationView>> => {
   // Reading the assignment reveals who holds what, which is administrative information in itself.
   requirePermission(ctx, 'config:roles:manage')
+
   const state = await loadAdministrationState()
   if (!state.ok) return state
-  return { ok: true, value: { roles: state.value.roles, users: state.value.users } }
+
+  // Nothing is editable on a locked instance, declared or not.
+  const locked = isAdministrationLocked()
+  const editable = !locked
+
+  return {
+    ok: true,
+    value: {
+      roles: [
+        ...state.value.declared.roles.map(role => ({ role, editable: false })),
+        ...state.value.roles.map(role => ({ role, editable }))
+      ],
+      accounts: [
+        ...state.value.declared.users.map(account => ({ account, editable: false })),
+        ...state.value.users.map(account => ({ account, editable }))
+      ],
+      locked
+    }
+  }
 }
 
 const createUserRole = async (ctx: AuthContext, role: Role): Promise<AdministrationResult<void>> => {
