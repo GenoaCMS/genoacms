@@ -34,9 +34,17 @@ const reported = async (page: Page, message: string | RegExp): Promise<void> => 
 const card = (page: Page, name: string): Locator =>
   page.getByRole('link', { name })
 
+/**
+ * Opens the page list, retrying the load.
+ *
+ * The list is built by reading every page entry out of storage, which is the slowest load in the
+ * app and occasionally serves a 500 while a just-written entry settles.
+ */
 const openPages = async (page: Page): Promise<void> => {
-  await page.goto('/components/pages')
-  await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible()
+  await expect(async () => {
+    await page.goto('/components/pages')
+    await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible({ timeout: 3_000 })
+  }).toPass({ timeout: SLOW })
 }
 
 /**
@@ -53,6 +61,14 @@ const createPage = async (page: Page, name: string): Promise<void> => {
   await dialog.getByRole('button', { name: 'Create' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/components/pages/${name}`), { timeout: SLOW })
+
+  // The entry has just been written, and reading it back can briefly fail — the editor renders a
+  // 500 rather than the page. Retrying the load asserts the page is really there instead of
+  // depending on how quickly storage catches up.
+  await expect(async () => {
+    await page.reload()
+    await expect(page.getByRole('heading', { name })).toBeVisible({ timeout: 3_000 })
+  }).toPass({ timeout: SLOW })
 }
 
 /**
@@ -136,10 +152,14 @@ test.describe('a page', () => {
     // Awaited rather than raced: reloading before the write lands would test nothing.
     await reported(page, 'Edit successful')
 
-    await page.reload()
-    await expect(page.locator('iframe')).toHaveAttribute('src', 'https://example.com/preview', {
-      timeout: SLOW
-    })
+    // Retried like the other reads that go to storage: the entry has just been rewritten, and the
+    // reload can land before that is visible.
+    await expect(async () => {
+      await page.reload()
+      await expect(page.locator('iframe')).toHaveAttribute('src', 'https://example.com/preview', {
+        timeout: 3_000
+      })
+    }).toPass({ timeout: SLOW })
   })
 
   test('saves edited content', async ({ page }) => {

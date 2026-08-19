@@ -73,6 +73,16 @@ the fixture naming live in `tests/support/session.ts`.
 | `components.spec.ts` | the prebuilt catalogue, and the dynamic editor through commit |
 | `pages.spec.ts` | creating a page, its preview URL, saving content, and publishing |
 
+### Flakiness
+
+The config allows **one retry**, because these suites drive real cloud storage:
+listing and read-after-write are eventually consistent, so a write can succeed
+and the next read still miss it. The helpers retry the reads known to lag — page
+creation and the page list, which otherwise serve a 500 while an entry settles —
+and the retry covers the rest. Playwright reports a retried pass as *flaky*, so
+nothing is hidden. A test that fails twice is a real failure, and a rising flaky
+count means finding the lagging read rather than raising the retry count.
+
 ### Fixtures
 
 Every fixture these suites create is named with an **`e2e-` prefix** and a random
@@ -135,16 +145,20 @@ Two habits keep the suite honest:
   safe to delete.
 - **It is mutation-tested like the security guards are.** Deleting one
   `Switch.HiddenInput` must fail it (last checked: 6 tests fail), and removing
-  the `{#key open}` from `EditRole.svelte` must fail the reopen test.
+  the `{#if open}` from `Modal.svelte` must fail the reopen test.
 
-### The second failure it caught
+### The second failure it caught, and the fix it led to
 
-Modal contents stay mounted while the modal is closed, and the grant editor keeps
-its rows as local state seeded once from its prop. Saving a role therefore
-changed the stored grants and reloaded the page data, while the editor went on
-showing the rows it was built with — so reopening it looked empty until the page
-was refreshed. The callers key the editor on the modal's open state, which is the
-narrow fix; the underlying cause is shared by every modal in the app.
+The grant editor keeps its rows as local state, seeded once from its prop, and
+`Modal` used to render its children whether or not it was open. Saving a role
+therefore changed the stored grants and reloaded the page data while the editor
+went on showing the rows it was built with — so reopening it looked empty until
+the page was refreshed.
+
+That was fixed at the cause: `Modal` now mounts its contents only while open, so
+every modal in the app is re-seeded on open by construction rather than by each
+caller remembering to. The reopen tests are what made that change safe to
+make — and what would catch it regressing.
 
 Locators follow the *rendered* DOM rather than the component names, and the file
 says why at the top — a switch is a `<label>` wrapping a checkbox, combobox

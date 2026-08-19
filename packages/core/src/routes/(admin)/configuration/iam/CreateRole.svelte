@@ -32,12 +32,7 @@
       </Label>
 
       <p class="text-sm font-medium pt-2">Grants:</p>
-
-      <!-- Keyed on `open` for the same reason as the edit form: a closed modal stays mounted, so a
-           new role begun and abandoned would otherwise reappear the next time this is opened. -->
-      {#key open}
-        <GrantEditor {resources} />
-      {/key}
+      <GrantEditor {resources} />
 
       <Button preset="filled" class="w-full mt-4" type="submit">Create</Button>
     </form>

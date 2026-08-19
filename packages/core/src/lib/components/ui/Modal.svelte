@@ -62,7 +62,25 @@
                     >
                 {/if}
                 <Dialog.Description class="space-y-4">
-                    {@render children?.()}
+                    <!--
+                      Rendered only while open, so a closed modal has no contents in the document.
+
+                      Skeleton keeps the children mounted otherwise, which is not merely wasteful:
+                      a modal's contents almost always hold working state seeded from a prop — the
+                      grant editor's rows, a role selection, a form's fields — and state seeded once
+                      at mount goes stale the moment the data behind it changes. Saving a role and
+                      reopening its editor showed the values it was built with until the page was
+                      refreshed, and the same defect was latent in every other modal in the app.
+
+                      Mounting on open makes "the modal shows the current state" true by
+                      construction rather than by each caller remembering to re-seed. It also keeps
+                      portalled content — comboboxes, diff editors — out of the document until it
+                      is real, which is why several closed modals used to contribute duplicate
+                      listboxes and editors to the page.
+                    -->
+                    {#if open}
+                        {@render children?.()}
+                    {/if}
                 </Dialog.Description>
             </Dialog.Content>
         </Dialog.Positioner>

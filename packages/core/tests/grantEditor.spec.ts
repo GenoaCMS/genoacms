@@ -15,9 +15,10 @@ import credentials from '../genoa.config/gcp/authCredentials.js'
  * writing a role to the instance — these tests run against real infrastructure.
  *
  * **Locators follow the rendered DOM, not the component names.** Zag renders a switch as a `<label>`
- * wrapping a visually hidden `<input type="checkbox">`, so its role is `checkbox`. Combobox content
- * is portalled to `<body>`, and every role card on the page mounts its own editor, so several
- * closed listboxes exist at once — the open one is selected explicitly rather than by position.
+ * wrapping a visually hidden `<input type="checkbox">`, so its role is `checkbox`, and combobox
+ * content is portalled to `<body>` rather than nested in the dialog. The open listbox is still
+ * addressed by its state rather than by position: that is cheap, and it does not depend on only one
+ * modal's contents being mounted at a time.
  */
 
 const [account] = credentials
@@ -58,8 +59,8 @@ const composedGrants = async (dialog: Locator): Promise<unknown[]> =>
  * shares, so `pages:read` and `components:prebuilt:read` both read as "read" in the content
  * category. The permission string is what the grant will actually carry.
  *
- * The list is portalled out of the dialog, and every role card on the page mounts its own editor,
- * so the open listbox is addressed by its state rather than by position.
+ * The list is portalled out of the dialog rather than nested in it, so it is addressed by its own
+ * state rather than through the dialog.
  */
 const choosePermission = async (dialog: Locator, permission: string, row = 0): Promise<void> => {
   const page = dialog.page()

@@ -199,8 +199,8 @@ const createDynamic = async (page: Page, name: string): Promise<string> => {
  * keyboard the way an author would enter it.
  */
 const writeCode = async (page: Page, code: string): Promise<void> => {
-  // The commit modal holds a diff editor of its own and stays mounted while closed, so there are
-  // three editors on the page. The author's one is first.
+  // The commit modal holds a diff editor of its own, so once it is open there is more than one
+  // editor on the page. The author's is first either way.
   const editor = page.locator('.cm-content').first()
   await editor.click()
   await page.keyboard.press('ControlOrMeta+a')
