@@ -1,4 +1,4 @@
-import { hasPermission, requirePermission } from '$lib/script/authorization/enforce'
+import { hasAnyPermissionOn, requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import {
   getCollectionReferences,
@@ -42,13 +42,15 @@ const requireDelete = (ctx: AuthContext, collection: string): void =>
   requirePermission(ctx, 'db:collection:delete', collection)
 
 /**
- * The collections this principal may read, not every collection configured.
+ * The collections this principal holds some grant on, not every collection configured.
  *
  * Filters rather than denies, for the same reason the bucket list does: navigation should offer
- * only what the user could actually open, rather than names that lead to a denial.
+ * only what the user could actually act on, rather than names that lead to a denial. Filtered on
+ * **any** collection-scoped grant, matching the bucket catalogue — a principal who may write a
+ * collection but not read it must still see where their writes go.
  */
 const getUserCollectionReferences = (ctx: AuthContext): string[] =>
-  getCollectionReferences().filter(name => hasPermission(ctx, 'db:collection:read', name))
+  getCollectionReferences().filter(name => hasAnyPermissionOn(ctx, 'collection', name))
 
 const getUserCollectionReference = async (ctx: AuthContext, name: string) => {
   requireRead(ctx, name)

@@ -4,7 +4,7 @@ import type {
   ObjectPayload,
   UploadOptions
 } from '@genoacms/cloudabstraction/storage'
-import { hasPermission, requirePermission } from '$lib/script/authorization/enforce'
+import { hasAnyPermissionOn, requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import {
   getBucketReferences,
@@ -53,14 +53,18 @@ const requireDelete = (ctx: AuthContext, bucket: string): void =>
   requirePermission(ctx, 'storage:bucket:delete', bucket)
 
 /**
- * The buckets this principal may read, not every bucket configured.
+ * The buckets this principal holds some grant on, not every bucket configured.
  *
  * There is no `storage:bucket:list` permission — it was removed as redundant — so this filters
- * rather than denies. Navigation then offers only what the user could actually open, instead of
+ * rather than denies. Navigation then offers only what the user could actually act on, instead of
  * listing names that lead to a denial.
+ *
+ * **Any bucket-scoped grant, not `read` alone** (§4.2.2). A principal holding only
+ * `storage:bucket:write` must still see the bucket as an upload target; filtering on `read` would
+ * hide the destination of an upload they are permitted to perform.
  */
 const getUserBucketReferences = (ctx: AuthContext) =>
-  getBucketReferences().filter(bucket => hasPermission(ctx, 'storage:bucket:read', bucket.name))
+  getBucketReferences().filter(bucket => hasAnyPermissionOn(ctx, 'bucket', bucket.name))
 
 const uploadUserObject = async (
   ctx: AuthContext,

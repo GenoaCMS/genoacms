@@ -1,4 +1,5 @@
 import {
+  permissions,
   isResourceScoped,
   getPermissionScope,
   type Permission,
@@ -6,6 +7,7 @@ import {
   type ResourceScopedPermission
 } from './permissions'
 import { WILDCARD, grantSatisfies } from './grants'
+import type { ResourceScope } from './grants'
 import type { AuthContext } from './context'
 
 /**
@@ -69,6 +71,29 @@ function hasPermission (context: AuthContext, permission: Permission, resource?:
 }
 
 /**
+ * Whether the principal holds **any** permission of one resource scope over one resource.
+ *
+ * This is the question a *catalogue* asks. §4.2.2 states it directly: the bucket catalog is filtered
+ * over any bucket-scoped grant rather than `read` alone, because a principal holding only
+ * `storage:bucket:write` must still see the bucket as an upload target. Filtering on `read` would
+ * hide the destination of an upload the same principal is permitted to perform.
+ *
+ * It is not a weaker check than `requirePermission`, because it decides a different thing: whether a
+ * name appears in a list, not whether an operation proceeds. Every operation on the listed resource
+ * is demanded separately when it is attempted.
+ *
+ * Derived from the permission table rather than from a hand-written list, so a permission added to a
+ * scope is included here by construction rather than by someone remembering to add it.
+ */
+function hasAnyPermissionOn (context: AuthContext, scope: ResourceScope, resource: string): boolean {
+  return permissions.some(permission =>
+    isResourceScoped(permission) &&
+    getPermissionScope(permission) === scope &&
+    hasPermission(context, permission, resource)
+  )
+}
+
+/**
  * Demands a permission, throwing `PermissionDeniedError` when it is not held.
  *
  * It returns nothing by design: a check whose result can be ignored is a check that will be
@@ -85,5 +110,6 @@ function requirePermission (context: AuthContext, permission: Permission, resour
 export {
   PermissionDeniedError,
   hasPermission,
+  hasAnyPermissionOn,
   requirePermission
 }

@@ -149,7 +149,7 @@ describe('deleting', () => {
 })
 
 describe('getUserBucketReferences', () => {
-  it('returns only buckets the principal may read', () => {
+  it('returns only buckets the principal holds a grant on', () => {
     const context = contextWith([
       bucketGrant('storage:bucket:read', 'media'),
       bucketGrant('storage:bucket:read', 'archive')
@@ -163,8 +163,10 @@ describe('getUserBucketReferences', () => {
     expect(storage.getUserBucketReferences(nobody())).toEqual([])
   })
 
-  it('does not count a write grant as permission to see the bucket', () => {
-    expect(storage.getUserBucketReferences(writer()).map(b => b.name)).toEqual([])
+  it('shows a bucket the principal may write but not read', () => {
+    // §4.2.2: the catalogue is filtered over *any* bucket-scoped grant, not `read` alone. Filtering
+    // on read would hide the destination of an upload this principal is permitted to perform.
+    expect(storage.getUserBucketReferences(writer()).map(b => b.name)).toEqual(['media'])
   })
 
   it('returns every bucket to a wildcard grant', () => {

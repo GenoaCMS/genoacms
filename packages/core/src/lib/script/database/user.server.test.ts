@@ -128,7 +128,7 @@ describe('deleting', () => {
 })
 
 describe('getUserCollectionReferences', () => {
-  it('returns only collections the principal may read', () => {
+  it('returns only collections the principal holds a grant on', () => {
     const context = contextWith([
       collectionGrant('db:collection:read', 'articles'),
       collectionGrant('db:collection:read', 'products')
@@ -141,8 +141,10 @@ describe('getUserCollectionReferences', () => {
     expect(database.getUserCollectionReferences(nobody())).toEqual([])
   })
 
-  it('does not count a write grant as permission to see the collection', () => {
-    expect(database.getUserCollectionReferences(writer())).toEqual([])
+  it('shows a collection the principal may write but not read', () => {
+    // Matches the bucket catalogue: a principal who may write a collection must still see where
+    // their writes go. Every operation on it is demanded separately when it is attempted.
+    expect(database.getUserCollectionReferences(writer())).toEqual(['articles'])
   })
 
   it('returns every collection to a wildcard grant', () => {
