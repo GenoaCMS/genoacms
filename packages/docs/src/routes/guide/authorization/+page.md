@@ -164,7 +164,7 @@ collections, switched on from the ones this instance actually has:
 - "Any bucket" and "any collection" are available, and are **not** the default. They are the widest
   grant you can write, so they are worth choosing on purpose.
 - For `db:collection:read` and `db:collection:write`, each selected collection gets its own **field
-  switches** — see [Fields](#fields) above. "Every field" is a
+  switches** — see **Fields** above. "Every field" is a
   switch of its own, because it means something a list of all the current fields does not: it covers
   fields added later.
 

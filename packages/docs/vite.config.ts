@@ -45,6 +45,10 @@ const config = defineConfig({
                 {
                   title: 'Services',
                   to: '/guide/config/services/',
+                },
+                {
+                  title: 'Adapters',
+                  to: '/guide/adapters/',
                 }]
             },
             {
@@ -53,6 +57,10 @@ const config = defineConfig({
                 {
                   title: 'Roles and permissions',
                   to: '/guide/authorization/',
+                },
+                {
+                  title: 'Identity and sessions',
+                  to: '/guide/sessions/',
                 },
                 {
                   title: 'What GenoaCMS stores',
