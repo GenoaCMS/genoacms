@@ -59,10 +59,57 @@ credentials would make this suite runnable on a runner.
 link to login, the login form, and that `/dashboard` redirects away without a
 session.
 
-`tests/grantEditor.spec.ts` goes past login. It signs in as the account declared
-in `genoa.config/gcp/authCredentials.js`, which the array authentication adapter
-serves and `security.assignments` grants `Administrator` — so the "seeded user"
-this file used to say did not exist is simply the configured one.
+Everything else goes past login, signing in as the account declared in
+`genoa.config/gcp/authCredentials.js` — the array authentication adapter serves
+it and `security.assignments` grants it `Administrator`, so the "seeded user"
+this file used to say did not exist is simply the configured one. `signIn` and
+the fixture naming live in `tests/support/session.ts`.
+
+| suite | covers |
+| --- | --- |
+| `grantEditor.spec.ts` | the role editor: permission combobox, resource and field switches, re-opening a saved editor |
+| `storage.spec.ts` | directories, uploads, renaming, selection and deletion |
+| `collections.spec.ts` | the document round trip: create, edit, persist, delete |
+| `components.spec.ts` | the prebuilt catalogue, and the dynamic editor through commit |
+| `pages.spec.ts` | creating a page, its preview URL, saving content, and publishing |
+
+### Fixtures
+
+Every fixture these suites create is named with an **`e2e-` prefix** and a random
+suffix, and each test removes its own in `afterEach`. Nothing without that prefix
+is ever selected, renamed or deleted, so a test can only destroy what it made.
+Anything an interrupted run leaves behind is identifiable at a glance and safe to
+remove by hand.
+
+Two cleanups deliberately go **around** the interface, through the storage
+browser, because the interface cannot do them:
+
+- **Pages** have no delete action at all. `pages:delete` is in the permission
+  taxonomy with nothing consuming it, so `pages.spec.ts` removes the objects
+  under `.genoacms/pages/` itself. Publishing writes a readable tree, which the
+  same cleanup removes.
+- **Dynamic components** cannot be deleted — see the defect below — so
+  `components.spec.ts` removes their objects under `.genoacms/components/`,
+  including the prebuilt entry that creating one also registers.
+
+Both depend on the storage layout in `page.server.ts` and `editor/io.ts`, and are
+the first thing to check if fixtures start accumulating. Walk the storage browser
+by **clicking**, never by building a URL: paths are encoded with a `|->`
+delimiter, and a wrong URL lands somewhere empty while appearing to succeed —
+which is how the first version of this cleanup did nothing at all.
+
+### A defect these tests found, left failing on purpose
+
+**Deleting a dynamic component always reports success and never deletes.** The
+confirmation input in `editor/[componentId]/DeleteComponent.svelte` has no `name`
+attribute, so the typed name never reaches `delete.remote.ts`, which refuses
+because the name it received does not match. The client then shows
+"Component deleted" regardless, because its `enhance` handler never looks at what
+the server returned.
+
+`components.spec.ts` marks that test `test.fail()` rather than deleting or
+weakening it: the assertion is what the feature is supposed to do, and Playwright
+will report it as an unexpected **pass** the moment the form is fixed.
 
 ### Why the grant editor is tested here rather than in Vitest
 
