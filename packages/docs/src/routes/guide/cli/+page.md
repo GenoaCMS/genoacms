@@ -14,7 +14,32 @@ Run it with no command for an interactive menu.
 | `run` | Run the CMS locally. |
 | `deploy` | Deploy through the configured deployment adapter. |
 | `database` | Configure the database. |
+| `roles` | Compose a role or an assignment to paste into `genoa.config`. |
 | `rotate-root` | Replace the root trust anchor. **See below before running this.** |
+
+## Composing roles
+
+`roles` walks you through a declaration and prints it. It does not edit `genoa.config` — that file
+holds your adapters and credentials, and a tool that rewrites it can break them; printing gives you
+the part that is actually hard to get right.
+
+What is hard to get right is that **a mistyped permission is not an error anywhere**. The grant
+stores, the role looks correct in the interface, and the check it was meant to satisfy simply never
+matches. The same goes for a bucket name that does not exist. So neither is typed here:
+
+- permissions are chosen from the vocabulary, grouped by domain;
+- buckets and collections are chosen from the ones your `genoa.config` declares;
+- `db:collection:read` and `db:collection:write` can be narrowed to named fields.
+
+Paste the result into the `authorization` stanza — see [configuration](/guide/config/structure) for what
+declaring a role means, and [roles and permissions](/guide/authorization) for what the permissions
+do.
+
+:::note[It runs offline]
+Nothing is read from your bucket, so this works before an instance has ever started. If the config
+cannot be loaded at all, the command still runs and asks you to type resource names instead of
+offering them.
+:::
 
 ## Key rotation
 
