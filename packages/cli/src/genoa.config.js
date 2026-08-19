@@ -28,17 +28,19 @@ const config = {
       }
     ]
   },
-  security: {
-    // TODO: set to the subject of the seed administrator, as issued by the
-    // authentication adapter. This identity bootstraps the permission system.
-    // Declared roles and assignments are authoritative: immutable at runtime, and removed from the
+  authorization: {
+    // Authority, not seeding: what is declared here is immutable at runtime, and removed from the
     // instance when removed from here. At least one assignment is needed to administer a new site.
     roles: {
       Administrator: [{ permission: '*', resource: '*' }]
     },
     assignments: {
+      // TODO: the subject of your first administrator, as issued by the authentication
+      // adapter — never an email address. This bootstraps the permission system.
       // '<subject-from-your-authentication-provider>': ['Administrator']
-    },
+    }
+  },
+  security: {
     // Seeds the signed security policy document at first start.
     subordinateKeyRotationDays: 90
   },

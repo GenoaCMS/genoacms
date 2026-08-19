@@ -64,13 +64,23 @@ instance starts from, and the identities that can administer it.
 ### Config type
 
 ```ts
-security: {
+authorization: {
     roles?: Record<string, Grant[]>
     assignments?: Record<string, string[]>
     lockRoles?: boolean
+}
+
+security: {
+    accessTokenMinutes?: number           // default 15
+    refreshTokenDays?: number             // default 14
+    grantCacheSeconds?: number            // default 30
     subordinateKeyRotationDays?: number   // default 90
 }
 ```
+
+Two stanzas rather than one, because they behave oppositely: everything in `authorization` is
+**authority**, re-read on every resolution, while everything in `security` is a **seed** consumed
+once at first start.
 
 `roles` declares roles by name; `assignments` maps a **subject** to the roles it holds. A subject is
 the provider-issued identifier from the authentication service, never an email address.
@@ -78,7 +88,7 @@ the provider-issued identifier from the authentication service, never an email a
 A new instance needs at least one assignment, or nobody can administer it:
 
 ```ts
-security: {
+authorization: {
   roles: {
     Administrator: [{ permission: '*', resource: '*' }]
   },
@@ -100,14 +110,15 @@ granted; it does not leave an editable copy behind.
 :::
 
 Runtime administration remains free to create roles and assignments that `genoa.config` does not
-name. Set `lockRoles: true` to disable runtime administration entirely, for an instance whose
-authorization should be fixed at deployment.
+name. Set `authorization.lockRoles` to `true` to disable runtime administration entirely, for an
+instance whose authorization should be fixed at deployment — it sits beside the declarations because
+it governs exactly them.
 
-`subordinateKeyRotationDays` sets how long a signing key stays current — see
+`security.subordinateKeyRotationDays` sets how long a signing key stays current — see
 [key rotation](/guide/cli).
 
-:::note[It is a seed value, not the live one]
-This stanza supplies the values a new instance starts from. They are then held in a signed document
+:::note[These are seed values, not the live ones]
+The `security` stanza supplies the values a new instance starts from. They are then held in a signed document
 in the bucket ([`security/policy.json`](/guide/storage-layout)), which is what a running instance
 reads and what an administrator changes at runtime.
 

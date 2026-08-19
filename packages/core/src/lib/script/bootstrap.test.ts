@@ -58,10 +58,13 @@ const declaredRoles: { value: unknown } = { value: undefined }
 
 vi.mock('@genoacms/cloudabstraction', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
-  const real = actual.config as { security: Record<string, unknown> }
+  const real = actual.config as { authorization: Record<string, unknown> }
   return {
     ...actual,
-    config: { ...real, security: { ...real.security, get roles () { return declaredRoles.value } } }
+    config: {
+      ...real,
+      authorization: { ...real.authorization, get roles () { return declaredRoles.value } }
+    }
   }
 })
 

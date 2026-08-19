@@ -114,7 +114,7 @@ Roles and assignments declared in configuration are **authoritative**. A new ins
 one assignment, or nobody can administer it:
 
 ```ts
-security: {
+authorization: {
   roles: {
     Administrator: [{ permission: '*', resource: '*' }],
     Copywriter: [
@@ -139,7 +139,7 @@ What configuration declares cannot be changed from inside the CMS:
   not leave an editable copy behind.
 - Runtime administration is still free to create roles and assignments configuration does not name.
 
-Set `lockRoles: true` to disable runtime administration altogether.
+Set `authorization.lockRoles` to `true` to disable runtime administration altogether.
 
 :::note[This is also the way back in]
 Declarations are resolved **without reading the bucket**. If your authorization documents are

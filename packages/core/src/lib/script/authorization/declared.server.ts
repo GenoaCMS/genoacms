@@ -13,13 +13,16 @@ import { parseDeclarations, type Declarations } from './declared'
  * describes, with nothing to say so.
  */
 function readDeclarations (): Declarations {
-  const parsed = parseDeclarations(config.security.roles, config.security.assignments)
+  // Read defensively: the stanza is required by the type, so a TypeScript configuration cannot
+  // omit it, but a plain JavaScript one predating the move would otherwise throw here rather than
+  // simply declaring nothing.
+  const parsed = parseDeclarations(config.authorization?.roles, config.authorization?.assignments)
   if (!parsed.ok) throw new Error(`security/invalid-declarations: ${parsed.reason}`)
   return parsed.value
 }
 
 /** Whether runtime role and assignment administration is disabled for this instance. */
-const isAdministrationLocked = (): boolean => config.security.lockRoles === true
+const isAdministrationLocked = (): boolean => config.authorization?.lockRoles === true
 
 export {
   readDeclarations,

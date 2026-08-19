@@ -47,14 +47,14 @@ describe('parsing declarations', () => {
     const result = parseDeclarations({ Broken: [{ permission: 'not:a:permission', resource: WILDCARD }] }, undefined)
     expect(result).toMatchObject({ ok: false })
     if (result.ok) throw new Error('unreachable')
-    expect(result.reason).toContain('security.roles')
+    expect(result.reason).toContain('authorization.roles')
   })
 
   it('rejects a malformed assignment', () => {
     const result = parseDeclarations(undefined, { 'subject-1': 'Administrator' })
     expect(result).toMatchObject({ ok: false })
     if (result.ok) throw new Error('unreachable')
-    expect(result.reason).toContain('security.assignments')
+    expect(result.reason).toContain('authorization.assignments')
   })
 
   it('rejects a prototype-polluting role name', () => {

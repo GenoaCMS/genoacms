@@ -32,8 +32,8 @@ import {
  *
  * ## The Tier-1 lock
  *
- * `security.lockRoles` disables runtime administration entirely, for instances whose authorization
- * should be fixed at deployment. It is checked **after** the permission, so a principal without the
+ * `authorization.lockRoles` disables runtime administration entirely, for instances whose
+ * authorization should be fixed at deployment. It is checked **after** the permission, so a principal without the
  * permission is told it lacks the permission rather than learning that administration is disabled —
  * and a locked instance reports being locked rather than pretending the operation failed.
  *
@@ -76,7 +76,7 @@ interface AdministrationView {
   /** Declared and stored roles together. A screen showing only stored ones would misrepresent the instance. */
   roles: AdministrableRole[]
   accounts: AdministrableAccount[]
-  /** True when `security.lockRoles` disables runtime administration entirely. */
+  /** True when `authorization.lockRoles` disables runtime administration entirely. */
   locked: boolean
 }
 

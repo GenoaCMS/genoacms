@@ -17,7 +17,7 @@ by administrators who hold the governing permission.
 | :--- | :--- | :--- |
 | Lives in | your repository | `.genoacms/` in the primary bucket |
 | Changed by | a deployment | an administrator, at runtime |
-| Holds | adapters, credentials, roles, assignments, policy seeds | roles, accounts, security policy |
+| Holds | adapters, credentials, `authorization`, `security` seeds | roles, accounts, security policy |
 | Authority | **authoritative** | may add, may not override |
 
 Three rules follow, and they are the whole model:
@@ -37,18 +37,19 @@ change where the CMS stores things or which provider it talks to.
 
 ### Declarations, and seeds
 
-Two kinds of setting live in the `security` stanza, and they behave differently:
+Tier 1 holds two kinds of setting with opposite lifetimes, and they live in **two stanzas** so the
+shape of the file says which is which:
 
-- **Declarations** — `security.roles` and `security.assignments` — are authority. They are re-read on
-  every resolution, merged over stored state rather than written into it, and deleting one *removes*
+- **`authorization`** — `roles`, `assignments`, `lockRoles` — is authority. It is re-read on every
+  resolution, merged over stored state rather than written into it, and deleting a line *removes*
   what it granted.
-- **Seeds** — `accessTokenMinutes`, `refreshTokenDays`, `grantCacheSeconds`,
-  `subordinateKeyRotationDays` — supply the values a new instance starts from. After first start the
-  live values live in the signed security policy document, and editing `genoa.config` no longer
+- **`security`** — `accessTokenMinutes`, `refreshTokenDays`, `grantCacheSeconds`,
+  `subordinateKeyRotationDays` — supplies the values a new instance starts from. After first start
+  the live values live in the signed security policy document, and editing `genoa.config` no longer
   moves them.
 
-The distinction is per key rather than per tier, which is why it is worth stating: both sit in the
-same stanza and only one of them keeps applying.
+`lockRoles` sits with the declarations because it governs exactly them: whether what `authorization`
+declares may be added to at runtime.
 
 ## What is *not* a service
 
@@ -113,14 +114,16 @@ const config = {
       { name: 'local', adapter: import('@genoacms/adapter-secrets-env') }
     ]
   },
-  security: {
+  authorization: {
     // Authority: immutable at runtime, and removing a line revokes what it granted.
     roles: {
       Administrator: [{ permission: '*', resource: '*' }]
     },
     assignments: {
       'the-subject-of-your-first-administrator': ['Administrator']
-    },
+    }
+  },
+  security: {
     // Seeds: the values a new instance starts from.
     accessTokenMinutes: 15,
     refreshTokenDays: 14,

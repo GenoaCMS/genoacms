@@ -13,7 +13,7 @@ Every authorization decision is made against a **subject** — the stable identi
 authentication provider issues. Email addresses are display metadata: they change hands, they get
 reassigned, and a permission that rested on one would move with it.
 
-So the key in `security.assignments` is a subject, the key in `users.json` is a subject, and the
+So the key in `authorization.assignments` is a subject, the key in `users.json` is a subject, and the
 email beside it is there to render a name on screen.
 
 ## Two tokens, one cookie

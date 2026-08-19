@@ -61,7 +61,7 @@ session.
 
 Everything else goes past login, signing in as the account declared in
 `genoa.config/gcp/authCredentials.js` — the array authentication adapter serves
-it and `security.assignments` grants it `Administrator`, so the "seeded user"
+it and `authorization.assignments` grants it `Administrator`, so the "seeded user"
 this file used to say did not exist is simply the configured one. `signIn` and
 the fixture naming live in `tests/support/session.ts`.
 

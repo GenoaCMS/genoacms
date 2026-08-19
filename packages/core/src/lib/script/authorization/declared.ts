@@ -52,7 +52,7 @@ function parseDeclarations (
 ): DeclarationResult<Declarations> {
   const parsedRoles = parseRolesManifest({ roles: roles ?? {} })
   if (!parsedRoles.ok) {
-    return { ok: false, reason: `security.roles is not valid: ${parsedRoles.reason}` }
+    return { ok: false, reason: `authorization.roles is not valid: ${parsedRoles.reason}` }
   }
 
   // Assignments are shaped as the users manifest is, minus the email a declaration has no way to
@@ -68,7 +68,7 @@ function parseDeclarations (
 
   const parsedUsers = parseUsersManifest({ users })
   if (!parsedUsers.ok) {
-    return { ok: false, reason: `security.assignments is not valid: ${parsedUsers.reason}` }
+    return { ok: false, reason: `authorization.assignments is not valid: ${parsedUsers.reason}` }
   }
 
   return { ok: true, value: { roles: parsedRoles.value, users: parsedUsers.value } }

@@ -11,6 +11,7 @@ import type { AuthenticationProvider } from './services/authentication/index.d'
 import type { DatabaseInit, DatabaseProvider } from './services/database/index.d'
 import type { DeploymentProvider } from './services/deployment/index.js'
 import type { SecretProvider } from './services/secrets/index.d'
+import type { Permission } from './authorization/permissions.d'
 import type { BucketInit, StorageProvider } from './services/storage/index.d'
 
 type Config<Extension extends object = object> = Extension & {
@@ -29,16 +30,17 @@ type Config<Extension extends object = object> = Extension & {
     /** Exactly one. A secret store is a single authority. */
     providers: SecretProvider[]
   }
-  security: {
+  // Authority: re-read on every resolution, never consumed.
+  authorization: {
     /** Roles declared before deployment. Authoritative, and immutable at runtime. */
-    roles?: Record<string, Array<{ permission: string, resource: unknown }>>
+    roles?: Record<string, Array<{ permission: Permission, resource: unknown, fields?: string[] | '*' }>>
     /** Which subjects hold which roles. Resolved without reading storage. */
     assignments?: Record<string, string[]>
     /** Refuses all runtime role and assignment administration. */
     lockRoles?: boolean
-
-    // The rest seed the signed security policy document at first start; the live values are held
-    // there afterwards, and editing them here no longer moves a running instance.
+  }
+  // Seeds: consumed once, then owned by the signed security policy document.
+  security: {
     accessTokenMinutes?: number
     refreshTokenDays?: number
     grantCacheSeconds?: number
@@ -55,8 +57,8 @@ type Config<Extension extends object = object> = Extension & {
 export default Config
 ```
 
-:::note[There is no `authorization` key]
-Authorization is a core module rather than a service, so it has no providers to configure. What
-appears above under `security` is *authorization data* — roles and who holds them — not an adapter
-for deciding permissions. See [adapters](/guide/adapters).
+:::note[The `authorization` stanza is data, not a service]
+It declares roles and who holds them. There are no providers to configure and no adapter to choose:
+authorization is a core module, and only *who your users are* is delegated. See
+[adapters](/guide/adapters).
 :::

@@ -7,7 +7,7 @@
  */
 const explanations: Record<string, string> = {
   'administration/locked-by-configuration':
-    'This instance sets security.lockRoles. Change roles in genoa.config and redeploy.',
+    'This instance sets authorization.lockRoles. Change roles in genoa.config and redeploy.',
   'role/declared-in-configuration':
     'That role is declared in genoa.config. Change it there, not here.',
   'user/declared-in-configuration':

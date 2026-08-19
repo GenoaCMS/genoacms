@@ -64,7 +64,7 @@
            instance — worth saying plainly rather than rendering an empty grid. -->
       <p class="text-sm opacity-70">
         No accounts. Declare one in <code>genoa.config</code> under
-        <code>security.assignments</code> to be able to administer this instance.
+        <code>authorization.assignments</code> to be able to administer this instance.
       </p>
     {:else}
       <GridLargeItems>
