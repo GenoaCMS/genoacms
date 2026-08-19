@@ -27,8 +27,10 @@ import {
  * - `db:collection:write` — creating and updating documents
  * - `db:collection:delete` — deleting documents
  *
- * `db:collection:schema` governs changing a collection's shape. No service function here does that
- * yet, so it is deliberately unused rather than approximated by `write`.
+ * A `read` or `write` grant may additionally name **which fields** of the collection it covers.
+ * That restriction is **not applied here yet**: field-level masking — post-fetch projection on read,
+ * field-level merge on write — is step 17 of the authorization plan and is not built, so a grant
+ * naming fields currently permits the whole document. The gap is stated rather than implied.
  */
 
 type CollectionRef = Parameters<typeof getCollection>[0]

@@ -5,8 +5,9 @@ import type { UserRecord } from '$lib/script/authorization/manifests'
 import type { AdministrationResult } from '$lib/script/authorization/administration'
 import { isAdministrationLocked } from '$lib/script/authorization/declared.server'
 import { getBucketReferences } from '$lib/script/storage/storage.server'
-import { getCollectionReferences } from '$lib/script/database/database.server'
-import type { GrantableResources } from './resources'
+import { getCollectionReferences, getCollectionReference } from '$lib/script/database/database.server'
+import { collectionFields } from '$lib/script/database/fields'
+import type { GrantableCollection, GrantableResources } from './resources'
 import {
   loadAdministrationState,
   createRole,
@@ -140,13 +141,33 @@ const listUserRolesAndAccounts = async (
  * The bucket list is Tier-1 configuration and therefore complete. The collection list is read once at
  * startup by the primary database module, so a collection created since is absent until restart —
  * which is why a grant may still name every collection rather than one.
+ *
+ * Collections carry their **field names**, because a `read` or `write` grant may name fields, and an
+ * administrator choosing them needs the same guarantee as when choosing a collection: that what they
+ * pick exists.
  */
-const listGrantableResources = (ctx: AuthContext): GrantableResources => {
+const listGrantableResources = async (ctx: AuthContext): Promise<GrantableResources> => {
   requirePermission(ctx, 'config:roles:manage')
 
   return {
     buckets: getBucketReferences().map(bucket => bucket.name),
-    collections: getCollectionReferences()
+    collections: await Promise.all(getCollectionReferences().map(describeCollection))
+  }
+}
+
+/**
+ * One collection and the fields it declares.
+ *
+ * A definition that cannot be read yields a collection with no fields rather than propagating the
+ * failure: the collection is known to exist — it is in the catalogue — and taking the whole
+ * administration screen down over one unreadable definition would be a worse answer than offering
+ * the collection with nothing to refine it by.
+ */
+const describeCollection = async (name: string): Promise<GrantableCollection> => {
+  try {
+    return { name, fields: collectionFields(await getCollectionReference(name)) }
+  } catch {
+    return { name, fields: [] }
   }
 }
 

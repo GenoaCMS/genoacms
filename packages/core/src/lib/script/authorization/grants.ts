@@ -35,9 +35,44 @@ interface NamedResource {
  */
 type ResourceSelector = NamedResource | Wildcard
 
+/**
+ * Which fields of a collection a grant covers.
+ *
+ * `WILDCARD` names every field, including ones added to the collection later. An array names
+ * exactly the fields listed, so a field added afterwards is **not** among them — a restriction an
+ * operator wrote stays as narrow as they wrote it when the schema grows.
+ *
+ * A grant with no `fields` at all also means every field. That is what every grant written before
+ * field selection existed means, and reading it as "no fields" would silently revoke access that
+ * was granted. Absence is therefore the unrestricted case, and restriction is always explicit.
+ */
+type FieldSelector = string[] | Wildcard
+
+/**
+ * The permissions a field selection refines.
+ *
+ * Reading and writing address individual fields; deleting a document does not, so naming fields on
+ * a delete grant would describe nothing. Kept as a list rather than a scope on the permission table
+ * because it is a property of the grant, not of the permission's resource kind.
+ */
+const FIELD_SELECTABLE_PERMISSIONS = ['db:collection:read', 'db:collection:write'] as const
+
+const isFieldSelectable = (permission: PermissionSelector): boolean =>
+  (FIELD_SELECTABLE_PERMISSIONS as readonly string[]).includes(permission)
+
 interface Grant {
   permission: PermissionSelector
   resource: ResourceSelector
+  /**
+   * Which fields of the named collection this grant covers. Absent means every field.
+   *
+   * > **Not yet enforced.** Field-level masking — post-fetch projection on read, field-level merge
+   * > on write — is step 17 of the authorization plan and is not built. The service layer currently
+   * > ignores this, so a grant naming fields permits the whole document. It is carried and edited
+   * > now so that roles composed today survive that step, but until it lands the interface shows a
+   * > restriction the system does not apply. This is a **known gap**, recorded rather than implied.
+   */
+  fields?: FieldSelector
 }
 
 /** The grant held by `SuperAdmin`, and by the Tier-1 seed administrator. */
@@ -71,6 +106,9 @@ function selectsPermission (grant: Grant, permission: Permission): boolean {
  * selects every permission.
  */
 function grantSatisfies (grant: Grant, permission: Permission, resource?: string): boolean {
+  // `grant.fields` is deliberately not consulted: it restricts *which parts* of a document are
+  // readable, which is decided by projection and merge at the service layer (step 17), not by
+  // whether the operation proceeds. Answering it here would deny the whole operation instead.
   if (!selectsPermission(grant, permission)) return false
   if (!isNamedResource(grant.resource)) return true
   if (resource === undefined) return false
@@ -81,8 +119,10 @@ function grantSatisfies (grant: Grant, permission: Permission, resource?: string
 export {
   WILDCARD,
   SUPER_ADMIN_GRANT,
+  FIELD_SELECTABLE_PERMISSIONS,
   isPermissionSelector,
   isNamedResource,
+  isFieldSelectable,
   grantSatisfies
 }
 
@@ -92,5 +132,6 @@ export type {
   ResourceSelector,
   ResourceScope,
   NamedResource,
+  FieldSelector,
   Wildcard
 }

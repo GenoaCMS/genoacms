@@ -38,11 +38,26 @@ const resourceSelectorSchema: Schema = {
   ]
 }
 
+/**
+ * Which fields a grant covers: the wildcard, or exactly the names listed.
+ *
+ * Optional on the grant, because absence means every field — the meaning every grant written before
+ * field selection existed already carries. Requiring it would make every stored manifest invalid at
+ * once, which for authorization data means quarantined and replaced.
+ */
+const fieldSelectorSchema: Schema = {
+  anyOf: [
+    { type: 'string', const: WILDCARD },
+    { type: 'array', items: { type: 'string', minLength: 1 } }
+  ]
+}
+
 const grantSchema: Schema = {
   type: 'object',
   properties: {
     permission: permissionSelectorSchema,
-    resource: resourceSelectorSchema
+    resource: resourceSelectorSchema,
+    fields: fieldSelectorSchema
   },
   required: ['permission', 'resource'],
   additionalProperties: false
@@ -95,6 +110,7 @@ export {
   permissionSelectorSchema,
   namedResourceSchema,
   resourceSelectorSchema,
+  fieldSelectorSchema,
   grantSchema,
   rolesManifestSchema,
   usersManifestSchema

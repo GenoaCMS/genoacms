@@ -53,15 +53,20 @@ const storagePermissions = {
 } as const satisfies Record<string, PermissionDefinition>
 
 /**
- * Database permissions are scoped per collection. Field-level masking refines these further and
- * is declared against the collection schema rather than as additional permissions, so it does
- * not appear in this table.
+ * Database permissions are scoped per collection. Field-level restriction refines `read` and
+ * `write` further and is carried **on the grant** as a list of field names, not as additional
+ * permissions, so it does not appear in this table.
+ *
+ * There is deliberately no `db:collection:schema`. It was removed rather than left unused: it
+ * governed modifying a collection's shape, no service function performs that, and granting it
+ * across every collection described no capability an operator would deliberately hand out. Naming
+ * fields on a `read` or `write` grant expresses the thing it was reached for — which parts of a
+ * collection a role may see or change — against a resource that actually exists.
  */
 const databasePermissions = {
   'db:collection:read': { domain: 'database', scope: 'collection' },
   'db:collection:write': { domain: 'database', scope: 'collection' },
-  'db:collection:delete': { domain: 'database', scope: 'collection' },
-  'db:collection:schema': { domain: 'database', scope: 'collection' }
+  'db:collection:delete': { domain: 'database', scope: 'collection' }
 } as const satisfies Record<string, PermissionDefinition>
 
 /**

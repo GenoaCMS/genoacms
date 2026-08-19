@@ -25,7 +25,7 @@ export const load = async ({ locals }) => {
   // Both are governed by `config:roles:manage`, which the read above has already demanded, so this
   // cannot deny a caller who reached this line. The check stays on the service function regardless —
   // the route is not where the rule lives.
-  return { ...result.value, resources: listGrantableResources(ctx) }
+  return { ...result.value, resources: await listGrantableResources(ctx) }
 }
 
 /**

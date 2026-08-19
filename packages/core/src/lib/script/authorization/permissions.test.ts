@@ -20,7 +20,6 @@ describe('the permission table', () => {
       'db:collection:read',
       'db:collection:write',
       'db:collection:delete',
-      'db:collection:schema',
       'components:prebuilt:read',
       'components:prebuilt:register',
       'components:prebuilt:modify',

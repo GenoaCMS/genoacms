@@ -52,7 +52,11 @@ vi.mock('$lib/script/storage/storage.server', () => ({
 }))
 
 vi.mock('$lib/script/database/database.server', () => ({
-  getCollectionReferences: () => ['articles', 'products']
+  getCollectionReferences: () => ['articles', 'products', 'unreadable'],
+  getCollectionReference: async (name: string) => {
+    if (name === 'unreadable') throw new Error('collection/not-found')
+    return { name, schema: { properties: { title: {}, body: {} } } }
+  }
 }))
 
 const { createAuthContext } = await import('$lib/script/authorization/context')
@@ -146,20 +150,37 @@ describe('reading the assignment', () => {
 })
 
 describe('the grantable resource catalogue', () => {
-  it('is refused without config:roles:manage', () => {
+  it('is refused without config:roles:manage', async () => {
     // The disclosure decision, stated as a check rather than left to the route that calls it.
-    expect(() => configuration.listGrantableResources(nobody())).toThrow(PermissionDeniedError)
-    expect(() => configuration.listGrantableResources(accountAdmin())).toThrow(PermissionDeniedError)
+    await expect(configuration.listGrantableResources(nobody()))
+      .rejects.toBeInstanceOf(PermissionDeniedError)
+    await expect(configuration.listGrantableResources(accountAdmin()))
+      .rejects.toBeInstanceOf(PermissionDeniedError)
   })
 
-  it('is not narrowed by what the administrator may themselves access', () => {
+  it('is not narrowed by what the administrator may themselves access', async () => {
     // A role administrator commonly holds no storage or database grant at all. Filtering the
     // catalogue by their own access would show them an empty picker and force them back to typing a
     // name nothing checks.
-    expect(configuration.listGrantableResources(roleAdmin())).toEqual({
-      buckets: ['media', 'invoices'],
-      collections: ['articles', 'products']
-    })
+    const catalogue = await configuration.listGrantableResources(roleAdmin())
+
+    expect(catalogue.buckets).toEqual(['media', 'invoices'])
+    expect(catalogue.collections.map(collection => collection.name))
+      .toEqual(['articles', 'products', 'unreadable'])
+  })
+
+  it('carries the fields of each collection, for the field pickers', async () => {
+    const catalogue = await configuration.listGrantableResources(roleAdmin())
+
+    expect(catalogue.collections[0]).toEqual({ name: 'articles', fields: ['title', 'body'] })
+  })
+
+  it('still lists a collection whose definition cannot be read', async () => {
+    // One unreadable definition must not take the administration screen down with it. The
+    // collection is known to exist; there is simply nothing to refine the grant by.
+    const catalogue = await configuration.listGrantableResources(roleAdmin())
+
+    expect(catalogue.collections.at(-1)).toEqual({ name: 'unreadable', fields: [] })
   })
 })
 
