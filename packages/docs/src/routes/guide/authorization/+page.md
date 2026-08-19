@@ -12,7 +12,7 @@ standardised question in a way that *"what may you do here?"* is not.
 
 ## Permissions
 
-Twenty-two, in four domains. Permission names are fixed: you compose roles from them, you cannot
+Twenty-three, in four domains. Permission names are fixed: you compose roles from them, you cannot
 invent one.
 
 | Permission | Scope |
@@ -26,6 +26,7 @@ invent one.
 | `components:prebuilt:read` | instance |
 | `components:prebuilt:register` | instance |
 | `components:prebuilt:modify` | instance |
+| `components:dynamic:manage` | instance |
 | `components:dynamic:view_code` | instance |
 | `components:dynamic:edit` | instance |
 | `components:dynamic:commit` | instance |
@@ -50,6 +51,11 @@ A few are worth reading twice:
 - **Removing a prebuilt component needs `components:prebuilt:register`**, not `modify`. Removal is
   the inverse of registration, so a role meant to adjust a component's attributes cannot destroy one
   that pages depend on.
+- **`components:dynamic:manage` is about a component's existence**, not its source. Creating and
+  deleting need it; reading, editing and committing the code do not. Deleting destroys the source,
+  which is why editing alone does not permit it.
+- **Committing does not require editing.** A role can publish what others wrote without being able
+  to change it first, which is the point of keeping the two apart.
 - **There is no `db:collection:schema`.** Restricting a role to part of a collection is done by
   naming fields on its `read` and `write` grants, described below — not by a separate permission.
 

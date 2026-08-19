@@ -48,6 +48,14 @@ const matrixOperations = [
   'createUserDocument',
   'updateUserDocument',
   'deleteUserDocument',
+  // dynamic components
+  'listUserComponents',
+  'getUserComponent',
+  'getUserComponentDefinition',
+  'createUserComponent',
+  'updateUserComponentDefinition',
+  'commitUserComponentDefinition',
+  'deleteUserComponent',
   // prebuilt components
   'listUserComponentEntries',
   'getUserComponentEntry',
@@ -182,19 +190,63 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserPages', 'getUserPageEntry', 'saveUserPageContent', 'generateUserReadablePageTree'
     ]
   },
+  /** Reads source but cannot change it, which is what `view_code` exists to express. */
+  ComponentReviewer: {
+    grants: [instanceGrant('components:prebuilt:read'), instanceGrant('components:dynamic:view_code')],
+    allowed: [
+      'listUserComponentEntries', 'getUserComponentEntry',
+      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition'
+    ]
+  },
+  /** Authors code without being able to publish it, or to create and destroy components. */
+  ComponentAuthor: {
+    grants: [
+      instanceGrant('components:prebuilt:read'),
+      instanceGrant('components:dynamic:view_code'),
+      instanceGrant('components:dynamic:edit')
+    ],
+    allowed: [
+      'listUserComponentEntries', 'getUserComponentEntry',
+      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
+      'updateUserComponentDefinition'
+    ]
+  },
+  /**
+   * Publishes what others authored, without being able to alter it first.
+   *
+   * The arrangement `commit` exists to allow, and the reason committing is not additionally gated
+   * on `edit`.
+   */
+  ComponentPublisher: {
+    grants: [instanceGrant('components:dynamic:commit')],
+    allowed: ['commitUserComponentDefinition']
+  },
+  /** Creates and destroys coded components without being able to read or write their source. */
+  ComponentManager: {
+    grants: [instanceGrant('components:dynamic:manage')],
+    allowed: ['createUserComponent', 'deleteUserComponent']
+  },
   ComponentCurator: {
     grants: [
       instanceGrant('components:prebuilt:read'),
       instanceGrant('components:prebuilt:modify')
     ],
-    allowed: ['listUserComponentEntries', 'getUserComponentEntry', 'updateUserComponentEntry']
+    // The catalogue permission covers coded components too: their names are catalogue information,
+    // and what distinguishes them — their source — is `components:dynamic:view_code`.
+    allowed: [
+      'listUserComponentEntries', 'getUserComponentEntry', 'updateUserComponentEntry',
+      'listUserComponents', 'getUserComponent'
+    ]
   },
   ComponentRegistrar: {
     grants: [
       instanceGrant('components:prebuilt:read'),
       instanceGrant('components:prebuilt:register')
     ],
-    allowed: ['listUserComponentEntries', 'getUserComponentEntry', 'deleteUserComponentEntry']
+    allowed: [
+      'listUserComponentEntries', 'getUserComponentEntry', 'deleteUserComponentEntry',
+      'listUserComponents', 'getUserComponent'
+    ]
   },
   RoleAdministrator: {
     grants: [instanceGrant('config:roles:manage')],

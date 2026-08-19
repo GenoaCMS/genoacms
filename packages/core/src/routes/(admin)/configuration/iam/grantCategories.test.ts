@@ -71,7 +71,7 @@ describe('option labels', () => {
     expect(storage.map(o => o.label)).toEqual(['read', 'write', 'delete'])
 
     const dynamic = optionGroups('content')[2].options
-    expect(dynamic.map(o => o.label)).toEqual(['view code', 'edit', 'commit'])
+    expect(dynamic.map(o => o.label)).toEqual(['manage', 'view code', 'edit', 'commit'])
   })
 
   it('keep the segment that distinguishes, even when it is not the last', () => {

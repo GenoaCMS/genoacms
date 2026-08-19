@@ -84,11 +84,18 @@ const databasePermissions = {
  * analysis, compiles a bundle, signs it, and publishes an executable that consumers will run.
  * Because containment of a determined author is not claimed, restricting this permission to a
  * small trusted set is itself a compensating control.
+ *
+ * `components:dynamic:manage` governs a coded component's **existence** — creating one and deleting
+ * it — as distinct from authoring its source. The three that follow describe what may be done to
+ * code that already exists, and none of them answers whether a component may be brought into being
+ * or destroyed. Deleting in particular removes the source outright, which no amount of `edit`
+ * should imply.
  */
 const contentPermissions = {
   'components:prebuilt:read': { domain: 'content', scope: 'instance' },
   'components:prebuilt:register': { domain: 'content', scope: 'instance' },
   'components:prebuilt:modify': { domain: 'content', scope: 'instance' },
+  'components:dynamic:manage': { domain: 'content', scope: 'instance' },
   'components:dynamic:view_code': { domain: 'content', scope: 'instance' },
   'components:dynamic:edit': { domain: 'content', scope: 'instance' },
   'components:dynamic:commit': { domain: 'content', scope: 'instance' },

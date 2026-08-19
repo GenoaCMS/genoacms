@@ -23,6 +23,7 @@ describe('the permission table', () => {
       'components:prebuilt:read',
       'components:prebuilt:register',
       'components:prebuilt:modify',
+      'components:dynamic:manage',
       'components:dynamic:view_code',
       'components:dynamic:edit',
       'components:dynamic:commit',

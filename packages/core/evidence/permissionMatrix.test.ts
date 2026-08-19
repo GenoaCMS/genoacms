@@ -57,6 +57,16 @@ vi.mock('$lib/script/database/database.server', () => ({
   deleteDocument: async () => {}
 }))
 
+vi.mock('$lib/script/components/editor', () => ({
+  createComponent: async () => 'uid-1',
+  listOrCreateComponentList: async () => [],
+  getComponent: async () => ({ uid: 'uid-1', name: 'hero' }),
+  getComponentDefiniton: async () => ({ uid: 'uid-1', code: '', uncommitedCode: '' }),
+  updateComponentDefinition: async () => {},
+  commitComponentDefinition: async () => {},
+  deleteComponent: async () => {}
+}))
+
 vi.mock('$lib/script/components/componentEntry/io.server', () => ({
   listOrCreateComponentEntryList: async () => [],
   getComponentEntry: async () => null,
@@ -96,6 +106,7 @@ const { PermissionDeniedError } = await import('$lib/script/authorization/enforc
 const storage = await import('$lib/script/storage/user.server')
 const database = await import('$lib/script/database/user.server')
 const components = await import('$lib/script/components/componentEntry/user.server')
+const editor = await import('$lib/script/components/editor/user.server')
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
 
@@ -141,6 +152,17 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   createUserDocument: ctx => database.createUserDocument(ctx, collectionRef, {}),
   updateUserDocument: ctx => database.updateUserDocument(ctx, documentRef, {}),
   deleteUserDocument: ctx => database.deleteUserDocument(ctx, documentRef),
+
+  // dynamic components
+  listUserComponents: ctx => editor.listUserComponents(ctx),
+  getUserComponent: ctx => editor.getUserComponent(ctx, 'uid-1'),
+  getUserComponentDefinition: ctx => editor.getUserComponentDefinition(ctx, 'uid-1'),
+  createUserComponent: ctx => editor.createUserComponent(ctx, 'hero'),
+  updateUserComponentDefinition: ctx =>
+    editor.updateUserComponentDefinition(ctx, 'uid-1', definition => definition),
+  commitUserComponentDefinition: ctx =>
+    editor.commitUserComponentDefinition(ctx, { componentId: 'uid-1', message: 'm' } as never),
+  deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
   listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
@@ -202,6 +224,7 @@ describe('the matrix is complete over the service surface', () => {
     storage,
     database,
     components,
+    editor,
     pages: pagesService,
     configuration
   }
