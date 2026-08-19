@@ -2,12 +2,12 @@
   import PermissionPicker from './PermissionPicker.svelte'
   import ResourcePicker from './ResourcePicker.svelte'
   import { isResourceScoped, getResourceScope } from '$lib/script/authorization/permissions'
-  import type { ResourceScope } from '$lib/script/authorization/grants'
+  import type { ResourceScope, FieldSelector } from '$lib/script/authorization/grants'
   import type { GrantableResources } from '$lib/script/configuration/resources'
-  import type { GrantRow } from './grantRows'
+  import { rowSelectsFields, fieldsFor, withResource, withoutResource, type GrantRow } from './grantRows'
 
   /**
-   * One grant, as the two decisions it records: which permission, and what it applies to.
+   * One row of the grant editor: a permission, and what it applies to.
    *
    * Each decision is its own component; this composes them and owns nothing but the row.
    */
@@ -24,18 +24,35 @@
     permission !== '' && isResourceScoped(permission) ? getResourceScope(permission) : undefined
 
   const scope = $derived(scopeOf(row.permission))
+  const collections = $derived(resources.collections)
 
   /** The catalogue for the scope the chosen permission fixes. */
-  const available = $derived(scope === 'bucket' ? resources.buckets : resources.collections)
+  const available = $derived(
+    scope === 'bucket' ? resources.buckets : collections.map(collection => collection.name)
+  )
 
   /**
    * Changing the permission can change the *kind* of resource the grant names, and a bucket name
-   * left behind in a collection grant would be a resource that does not exist. The name is
+   * left behind in a collection grant would be a resource that does not exist. The selection is
    * therefore cleared whenever the scope it belonged to is no longer the one in force.
    */
   function choosePermission (next: GrantRow['permission']): void {
-    if (scopeOf(next) !== scopeOf(row.permission)) row.resourceId = ''
+    if (scopeOf(next) !== scopeOf(row.permission)) {
+      row.resources = []
+      row.fields = {}
+    }
     row.permission = next
+  }
+
+  function toggleResource (resource: string, on: boolean): void {
+    // The row is bound, so its fields are assigned rather than the binding replaced.
+    const next = on ? withResource(row, resource) : withoutResource(row, resource)
+    row.resources = next.resources
+    row.fields = next.fields
+  }
+
+  function chooseFields (resource: string, selection: FieldSelector): void {
+    row.fields = { ...row.fields, [resource]: selection }
   }
 </script>
 
@@ -46,10 +63,14 @@
     <ResourcePicker
       {scope}
       {available}
+      {collections}
+      selectsFields={rowSelectsFields(row)}
       anywhere={row.anywhere}
-      resourceId={row.resourceId}
+      selected={row.resources}
+      fieldsOf={(resource) => fieldsFor(row, resource)}
       onanywhere={(anywhere) => { row.anywhere = anywhere }}
-      onselect={(resourceId) => { row.resourceId = resourceId }}
+      ontoggle={toggleResource}
+      onfields={chooseFields}
     />
   {/if}
 

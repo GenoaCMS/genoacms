@@ -3,7 +3,7 @@ import { permissions, type Permission } from '$lib/script/authorization/permissi
 /**
  * The permission categories, as an administrator picks them.
  *
- * Twenty-three permissions in one list is a scan, not a choice. Choosing the category first cuts it
+ * Twenty-two permissions in one list is a scan, not a choice. Choosing the category first cuts it
  * to a handful, and the category is what an administrator already has in mind — "this role is about
  * pages".
  *
