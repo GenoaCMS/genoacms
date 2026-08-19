@@ -62,6 +62,7 @@ const matrixOperations = [
   'generateUserReadablePageTree',
   // configuration
   'listUserRolesAndAccounts',
+  'listGrantableResources',
   'createUserRole',
   'updateUserRole',
   'deleteUserRole',
@@ -91,6 +92,18 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     grants: [bucketGrant('storage:bucket:read')],
     allowed: ['getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents']
   },
+  /**
+   * Write without read. Present because the catalogue is filtered on *any* bucket-scoped grant
+   * rather than on `read` (§4.2.2): this role must still see the bucket it may upload to, and no
+   * other role in this table would catch the filter narrowing back to `read`.
+   */
+  StorageUploader: {
+    grants: [bucketGrant('storage:bucket:write')],
+    allowed: [
+      'getUserBucketReferences', 'uploadUserObject', 'createUserDirectory',
+      'moveUserObject', 'moveUserDirectory'
+    ]
+  },
   StorageContributor: {
     grants: [bucketGrant('storage:bucket:read'), bucketGrant('storage:bucket:write')],
     allowed: [
@@ -115,6 +128,13 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: [
       'getUserCollectionReferences', 'getUserCollectionReference',
       'getUserCollection', 'getUserDocument'
+    ]
+  },
+  /** The collection counterpart of `StorageUploader`, guarding the same catalogue property. */
+  DataWriter: {
+    grants: [collectionGrant('db:collection:write')],
+    allowed: [
+      'getUserCollectionReferences', 'createUserDocument', 'updateUserDocument'
     ]
   },
   DataEditor: {
@@ -178,7 +198,10 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   },
   RoleAdministrator: {
     grants: [instanceGrant('config:roles:manage')],
-    allowed: ['listUserRolesAndAccounts', 'createUserRole', 'updateUserRole', 'deleteUserRole']
+    allowed: [
+      'listUserRolesAndAccounts', 'listGrantableResources',
+      'createUserRole', 'updateUserRole', 'deleteUserRole'
+    ]
   },
   AccountAdministrator: {
     grants: [instanceGrant('config:users:manage')],
@@ -187,7 +210,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   IdentityAdministrator: {
     grants: [instanceGrant('config:users:manage'), instanceGrant('config:roles:manage')],
     allowed: [
-      'listUserRolesAndAccounts', 'createUserRole', 'updateUserRole', 'deleteUserRole',
+      'listUserRolesAndAccounts', 'listGrantableResources',
+      'createUserRole', 'updateUserRole', 'deleteUserRole',
       'upsertUserAccount', 'removeUserAccount', 'assignUserAccountRoles'
     ]
   },

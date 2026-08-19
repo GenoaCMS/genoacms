@@ -1,5 +1,6 @@
 import {
   listUserRolesAndAccounts,
+  listGrantableResources,
   createUserRole,
   updateUserRole,
   deleteUserRole,
@@ -14,13 +15,17 @@ import type { AdministrationResult } from '$lib/script/authorization/administrat
 import type { Grant } from '$lib/script/authorization/grants'
 
 export const load = async ({ locals }) => {
-  const result = await listUserRolesAndAccounts(requireAuthContext(locals))
+  const ctx = requireAuthContext(locals)
+  const result = await listUserRolesAndAccounts(ctx)
 
   // A read that failed is not an empty instance. Rendering empty lists would suggest the roles are
   // gone, when the manifests may simply be unreadable.
   if (!result.ok) error(503, result.reason)
 
-  return result.value
+  // Both are governed by `config:roles:manage`, which the read above has already demanded, so this
+  // cannot deny a caller who reached this line. The check stays on the service function regardless —
+  // the route is not where the rule lives.
+  return { ...result.value, resources: listGrantableResources(ctx) }
 }
 
 /**

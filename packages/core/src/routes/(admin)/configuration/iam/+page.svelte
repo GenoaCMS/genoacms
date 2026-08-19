@@ -24,7 +24,7 @@
          refusal the user cannot act on from here. -->
     {#if !data.locked}
       <PermissionGate permission="config:roles:manage">
-        <CreateRole />
+        <CreateRole resources={data.resources} />
       </PermissionGate>
       <PermissionGate permission="config:users:manage">
         <CreateAccount available={roleNames} />
@@ -50,7 +50,7 @@
               success="Role deleted"
               failure="Role not deleted"
             />
-            <EditRole {role} />
+            <EditRole {role} resources={data.resources} />
           {/snippet}
         </RoleCard>
       {/each}

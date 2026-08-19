@@ -4,6 +4,9 @@ import type { Role } from '$lib/script/authorization/roles'
 import type { UserRecord } from '$lib/script/authorization/manifests'
 import type { AdministrationResult } from '$lib/script/authorization/administration'
 import { isAdministrationLocked } from '$lib/script/authorization/declared.server'
+import { getBucketReferences } from '$lib/script/storage/storage.server'
+import { getCollectionReferences } from '$lib/script/database/database.server'
+import type { GrantableResources } from './resources'
 import {
   loadAdministrationState,
   createRole,
@@ -112,6 +115,41 @@ const listUserRolesAndAccounts = async (
   }
 }
 
+/**
+ * The buckets and collections a resource-scoped grant can name.
+ *
+ * Names only — no endpoint, no credential, no content. A grant over a bucket is not a decision until
+ * the bucket is named (§4.2.2), and an administrator composing one previously had to type the name
+ * with nothing checking it, so a typo produced a grant that silently never matched.
+ *
+ * ## Why `config:roles:manage` and not a storage or database permission
+ *
+ * This is a **disclosure decision**, and it is the widest of the three considered. A role
+ * administrator commonly holds no storage or database grant at all, so filtering the catalogue by the
+ * caller's own access — as the storage and database services do for their own navigation — would show
+ * them an empty picker and force them back to typing.
+ *
+ * What makes the wider rule defensible is stated plainly above: `config:roles:manage` **is**
+ * SuperAdmin by another route. A holder can grant themselves every permission over every resource and
+ * read the catalogue that way in one step, so withholding the names conceals nothing from them. It
+ * conceals the names only from principals who cannot obtain them anyway.
+ *
+ * A dedicated `config:resources:list` permission was rejected on the same grounds §4.2.2 rejects
+ * `storage:bucket:list`: it would decide nothing that `config:roles:manage` does not already decide.
+ *
+ * The bucket list is Tier-1 configuration and therefore complete. The collection list is read once at
+ * startup by the primary database module, so a collection created since is absent until restart —
+ * which is why a grant may still name every collection rather than one.
+ */
+const listGrantableResources = (ctx: AuthContext): GrantableResources => {
+  requirePermission(ctx, 'config:roles:manage')
+
+  return {
+    buckets: getBucketReferences().map(bucket => bucket.name),
+    collections: getCollectionReferences()
+  }
+}
+
 const createUserRole = async (ctx: AuthContext, role: Role): Promise<AdministrationResult<void>> => {
   requirePermission(ctx, 'config:roles:manage')
   if (isAdministrationLocked()) return LOCKED
@@ -168,6 +206,7 @@ const removeUserAccount = async (
 
 export {
   listUserRolesAndAccounts,
+  listGrantableResources,
   createUserRole,
   updateUserRole,
   deleteUserRole,
@@ -175,3 +214,8 @@ export {
   assignUserAccountRoles,
   removeUserAccount
 }
+
+export type {
+  GrantableResources
+}
+

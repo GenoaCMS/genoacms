@@ -2,12 +2,15 @@
   import GrantRowEditor from './GrantRowEditor.svelte'
   import { emptyRow, grantsToRows, rowsToGrants } from './grantRows'
   import type { Grant } from '$lib/script/authorization/grants'
+  import type { GrantableResources } from '$lib/script/configuration/resources'
 
   interface Props {
     /** Existing grants to edit. Empty when composing a new role. */
     grants?: Grant[]
+    /** The buckets and collections a resource-scoped grant may name. */
+    resources: GrantableResources
   }
-  const { grants = [] }: Props = $props()
+  const { grants = [], resources }: Props = $props()
 
   let rows = $state(grantsToRows(grants))
 
@@ -26,6 +29,7 @@
   {#each rows as _row, index (index)}
     <GrantRowEditor
       bind:row={rows[index]}
+      {resources}
       onremove={() => { rows = rows.filter((_, at) => at !== index) }}
     />
   {/each}

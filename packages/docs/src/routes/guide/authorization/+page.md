@@ -113,6 +113,30 @@ missing, or fail their signature check, the administrators named in `genoa.confi
 and repair the instance — and nobody else can.
 :::
 
+## Administering roles from the CMS
+
+**Configuration → Roles and access** lists every role and account, declared ones included. Declared
+entries appear marked as read-only rather than hidden, so you can see where a subject's authority
+comes from even though you cannot change it here.
+
+A grant is composed as two choices. First the permission, picked by category — storage, database,
+content, configuration. Then, if the permission is bucket- or collection-scoped, **which** bucket or
+collection, chosen from the ones this instance actually has:
+
+- The list is the instance's own catalogue, so a grant cannot name something that does not exist. A
+  mistyped name would otherwise produce a grant that looks granted and denies every request.
+- "Any bucket" and "any collection" are available, and are **not** the default. They are the widest
+  grant you can write, so they are worth choosing on purpose.
+
+:::note[Who can see the list of buckets and collections]
+Anyone holding `config:roles:manage` — the names only, no contents and no credentials. That
+permission is already full authority, as noted above, so hiding the names from its holder would
+protect nothing.
+:::
+
+Newly created collections appear after a restart: the collection list is read once when the instance
+starts.
+
 ## What happens when something is wrong
 
 GenoaCMS fails closed. Every one of these grants nothing:

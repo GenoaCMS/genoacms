@@ -158,6 +158,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
 
   // configuration
   listUserRolesAndAccounts: ctx => configuration.listUserRolesAndAccounts(ctx),
+  listGrantableResources: ctx => configuration.listGrantableResources(ctx),
   createUserRole: ctx => configuration.createUserRole(ctx, roleRecord),
   updateUserRole: ctx => configuration.updateUserRole(ctx, roleRecord),
   deleteUserRole: ctx => configuration.deleteUserRole(ctx, 'Editor'),

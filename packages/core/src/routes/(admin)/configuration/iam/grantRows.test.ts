@@ -19,6 +19,13 @@ describe('completeness', () => {
     expect(isIncomplete(emptyRow())).toBe(true)
   })
 
+  it('does not start a row applying to every resource', () => {
+    // The widest grant the editor can express must be chosen, not defaulted into. A resource-scoped
+    // permission on a fresh row is therefore incomplete until a resource is named.
+    expect(emptyRow().anywhere).toBe(false)
+    expect(isIncomplete(row({ permission: 'db:collection:schema' }))).toBe(true)
+  })
+
   it('treats an instance-scoped permission as complete on its own', () => {
     // There is no resource to name, so nothing further is required.
     expect(isIncomplete(row({ permission: 'pages:read' }))).toBe(false)

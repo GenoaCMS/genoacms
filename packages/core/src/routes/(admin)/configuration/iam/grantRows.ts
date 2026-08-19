@@ -1,4 +1,4 @@
-import { isResourceScoped, getPermissionScope, type Permission } from '$lib/script/authorization/permissions'
+import { isResourceScoped, getResourceScope, type Permission } from '$lib/script/authorization/permissions'
 import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
 
 /**
@@ -18,7 +18,17 @@ interface GrantRow {
   resourceId: string
 }
 
-const emptyRow = (): GrantRow => ({ permission: '', anywhere: true, resourceId: '' })
+/**
+ * A fresh row starts **named, not anywhere**.
+ *
+ * The wildcard resource is the widest grant the editor can express, and defaulting to it made the
+ * widest option the one reached by leaving a control alone. `db:collection:schema` showed why that
+ * is wrong: granted across every collection it describes no capability anyone would deliberately
+ * hand out, yet that was what the form produced by default.
+ *
+ * The row is consequently incomplete until a resource is chosen, which is the intended prompt.
+ */
+const emptyRow = (): GrantRow => ({ permission: '', anywhere: false, resourceId: '' })
 
 /** Whether the row still needs a resource before it can become a grant. */
 function isIncomplete (row: GrantRow): boolean {
@@ -36,8 +46,8 @@ function rowToGrant (row: GrantRow): Grant | undefined {
   }
   return {
     permission,
-    resource: { scope: getPermissionScope(permission), id: row.resourceId.trim() }
-  } as Grant
+    resource: { scope: getResourceScope(permission), id: row.resourceId.trim() }
+  }
 }
 
 function grantToRow (grant: Grant): GrantRow {

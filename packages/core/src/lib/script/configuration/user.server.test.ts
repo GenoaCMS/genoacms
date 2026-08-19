@@ -47,6 +47,14 @@ vi.mock('$lib/script/authorization/administration.server', () => ({
   removeAccount: async (subject: string) => { calls.push(`remove:${subject}`); return { ok: true } }
 }))
 
+vi.mock('$lib/script/storage/storage.server', () => ({
+  getBucketReferences: () => [{ name: 'media' }, { name: 'invoices' }]
+}))
+
+vi.mock('$lib/script/database/database.server', () => ({
+  getCollectionReferences: () => ['articles', 'products']
+}))
+
 const { createAuthContext } = await import('$lib/script/authorization/context')
 const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
 const configuration = await import('./user.server')
@@ -134,6 +142,24 @@ describe('reading the assignment', () => {
     expect(result.value.locked).toBe(true)
     expect(result.value.roles.every(entry => !entry.editable)).toBe(true)
     expect(result.value.accounts.every(entry => !entry.editable)).toBe(true)
+  })
+})
+
+describe('the grantable resource catalogue', () => {
+  it('is refused without config:roles:manage', () => {
+    // The disclosure decision, stated as a check rather than left to the route that calls it.
+    expect(() => configuration.listGrantableResources(nobody())).toThrow(PermissionDeniedError)
+    expect(() => configuration.listGrantableResources(accountAdmin())).toThrow(PermissionDeniedError)
+  })
+
+  it('is not narrowed by what the administrator may themselves access', () => {
+    // A role administrator commonly holds no storage or database grant at all. Filtering the
+    // catalogue by their own access would show them an empty picker and force them back to typing a
+    // name nothing checks.
+    expect(configuration.listGrantableResources(roleAdmin())).toEqual({
+      buckets: ['media', 'invoices'],
+      collections: ['articles', 'products']
+    })
   })
 })
 

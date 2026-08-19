@@ -168,6 +168,25 @@ function isResourceScoped (permission: Permission): permission is ResourceScoped
   return getPermissionScope(permission) !== 'instance'
 }
 
+/**
+ * The scope of a resource-scoped permission, narrowed to the kinds a resource can actually be.
+ *
+ * `getPermissionScope` answers for every permission and so must admit `instance`, which is not a
+ * kind of resource. Callers that have already established the permission is resource-scoped — the
+ * grant editor deciding whether to offer buckets or collections — would otherwise carry a cast.
+ *
+ * The guard is unreachable through the type, and is a runtime backstop for the same reason
+ * `assertResourceMatchesScope` has one: the alternative is a cast that would keep compiling if the
+ * taxonomy ever disagreed.
+ */
+function getResourceScope (permission: ResourceScopedPermission): Exclude<PermissionScope, 'instance'> {
+  const scope = getPermissionScope(permission)
+  if (scope === 'instance') {
+    throw new Error(`permission-scope-mismatch: '${permission}' is typed as resource-scoped but declared instance-scoped`)
+  }
+  return scope
+}
+
 function getPermissionsByDomain (domain: PermissionDomain): Permission[] {
   return permissions.filter(permission => getPermissionDomain(permission) === domain)
 }
@@ -178,6 +197,7 @@ export {
   isPermission,
   getPermissionDefinition,
   getPermissionScope,
+  getResourceScope,
   getPermissionDomain,
   isResourceScoped,
   getPermissionsByDomain

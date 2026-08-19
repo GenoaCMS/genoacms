@@ -3,6 +3,13 @@
   import { Modal, Button, Input, Label } from '$lib/components/ui/index'
   import GrantEditor from './GrantEditor.svelte'
   import { enhanceWithToast } from './formToast'
+  import type { GrantableResources } from '$lib/script/configuration/resources'
+
+  interface Props {
+    /** The buckets and collections a resource-scoped grant may name. */
+    resources: GrantableResources
+  }
+  const { resources }: Props = $props()
 
   let open = $state(false)
 </script>
@@ -25,7 +32,7 @@
       </Label>
 
       <p class="text-sm font-medium pt-2">Grants:</p>
-      <GrantEditor />
+      <GrantEditor {resources} />
 
       <Button preset="filled" class="w-full mt-4" type="submit">Create</Button>
     </form>
