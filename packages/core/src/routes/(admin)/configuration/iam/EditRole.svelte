@@ -29,8 +29,16 @@
       <input type="hidden" name="name" value={role.name} />
 
       <!-- Seeded from what the role holds, so the editor shows the truth rather than a blank slate
-           the administrator would have to retype from memory. -->
-      <GrantEditor grants={role.grants} {resources} />
+           the administrator would have to retype from memory.
+
+           Keyed on `open` so it is re-seeded every time the modal is opened. The editor keeps its
+           rows as local state — they have to be editable — and a closed modal's contents stay
+           mounted, so without this the rows would still be the ones built when the page first
+           loaded: a saved change would not appear until a refresh, and an abandoned edit would come
+           back as though it had been kept. -->
+      {#key open}
+        <GrantEditor grants={role.grants} {resources} />
+      {/key}
 
       <p class="text-xs opacity-60">
         This replaces the whole set. Anything removed here stops being granted as soon as the cache

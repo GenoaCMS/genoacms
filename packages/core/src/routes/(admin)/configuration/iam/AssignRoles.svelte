@@ -26,8 +26,12 @@
     >
       <input type="hidden" name="subject" value={subject} />
 
-      <!-- Seeded from what the account holds, so submitting unchanged is a no-op rather than a wipe. -->
-      <RoleSelector {available} selected={current} />
+      <!-- Seeded from what the account holds, so submitting unchanged is a no-op rather than a wipe.
+           Keyed on `open` for the same reason the grant editor is: the selection is local state and
+           a closed modal stays mounted, so a saved assignment would not show until a refresh. -->
+      {#key open}
+        <RoleSelector {available} selected={current} />
+      {/key}
 
       <Button preset="filled" class="w-full mt-4" type="submit">Save</Button>
     </form>
