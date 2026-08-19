@@ -57,4 +57,50 @@ credentials would make this suite runnable on a runner.
 
 `tests/smoke.spec.ts` covers only unauthenticated surface: the landing page, the
 link to login, the login form, and that `/dashboard` redirects away without a
-session. Anything past login needs a seeded user, which does not exist yet.
+session.
+
+`tests/grantEditor.spec.ts` goes past login. It signs in as the account declared
+in `genoa.config/gcp/authCredentials.js`, which the array authentication adapter
+serves and `security.assignments` grants `Administrator` — so the "seeded user"
+this file used to say did not exist is simply the configured one.
+
+### Why the grant editor is tested here rather than in Vitest
+
+Because the failure it guards against is invisible to everything else. Skeleton's
+`Switch` renders its visible parts as decoration and a **visually hidden input**
+as the real control. Omitting `Switch.HiddenInput` produces a switch that looks
+correct, compiles, passes `svelte-check` and `eslint`, and leaves every unit test
+green — while nothing on the screen can be clicked. That shipped once. Only
+driving a browser catches it.
+
+Two habits keep the suite honest:
+
+- **It writes as little as possible.** Every assertion reads the editor's hidden
+  `grants` field, which is derived from the rows as they are edited, so most
+  tests never submit a form. The suite runs against real buckets and a real
+  Firestore.
+
+  The exception is the `reopening an editor` group, which *has* to save: the bug
+  it guards against only appears once a save has reloaded the page data. Those
+  tests create a role of their own (`e2e-grant-reload`) rather than touching an
+  existing one, and an `afterEach` removes it whether or not the test got that
+  far. If you ever see that role in the interface, a run was interrupted — it is
+  safe to delete.
+- **It is mutation-tested like the security guards are.** Deleting one
+  `Switch.HiddenInput` must fail it (last checked: 6 tests fail), and removing
+  the `{#key open}` from `EditRole.svelte` must fail the reopen test.
+
+### The second failure it caught
+
+Modal contents stay mounted while the modal is closed, and the grant editor keeps
+its rows as local state seeded once from its prop. Saving a role therefore
+changed the stored grants and reloaded the page data, while the editor went on
+showing the rows it was built with — so reopening it looked empty until the page
+was refreshed. The callers key the editor on the modal's open state, which is the
+narrow fix; the underlying cause is shared by every modal in the app.
+
+Locators follow the *rendered* DOM rather than the component names, and the file
+says why at the top — a switch is a `<label>` wrapping a checkbox, combobox
+content is portalled to `<body>`, options are addressed by `data-value` because
+their labels are trimmed of shared segments, and every role card on the page
+mounts its own editor so several closed listboxes exist at once.

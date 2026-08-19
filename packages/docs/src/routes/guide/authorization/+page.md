@@ -12,7 +12,7 @@ standardised question in a way that *"what may you do here?"* is not.
 
 ## Permissions
 
-Twenty-three, in four domains. Permission names are fixed: you compose roles from them, you cannot
+Twenty-two, in four domains. Permission names are fixed: you compose roles from them, you cannot
 invent one.
 
 | Permission | Scope |
@@ -23,7 +23,6 @@ invent one.
 | `db:collection:read` | a collection |
 | `db:collection:write` | a collection |
 | `db:collection:delete` | a collection |
-| `db:collection:schema` | a collection |
 | `components:prebuilt:read` | instance |
 | `components:prebuilt:register` | instance |
 | `components:prebuilt:modify` | instance |
@@ -51,6 +50,8 @@ A few are worth reading twice:
 - **Removing a prebuilt component needs `components:prebuilt:register`**, not `modify`. Removal is
   the inverse of registration, so a role meant to adjust a component's attributes cannot destroy one
   that pages depend on.
+- **There is no `db:collection:schema`.** Restricting a role to part of a collection is done by
+  naming fields on its `read` and `write` grants, described below — not by a separate permission.
 
 :::caution[`config:roles:manage` is full authority]
 Whoever can administer roles can create a role holding every permission and assign it to themselves.
@@ -73,6 +74,31 @@ one**:
 
 The scope is part of the match, not decoration: a grant on the `media` *bucket* does not match a
 `media` *collection*.
+
+## Fields
+
+`db:collection:read` and `db:collection:write` can name **which fields** of a collection they cover.
+The two are named separately, which is how "may see the price but not change it" is written:
+
+```ts
+// may read the price, may only change the name
+{ permission: 'db:collection:read',  resource: { scope: 'collection', id: 'products' },
+  fields: ['name', 'price'] },
+{ permission: 'db:collection:write', resource: { scope: 'collection', id: 'products' },
+  fields: ['name'] }
+```
+
+A grant with **no** `fields` covers every field, including fields added to the collection later. A
+grant that names fields covers exactly those, so a field added later is not included — a restriction
+stays as narrow as you wrote it when the schema grows.
+
+Deleting a document does not address fields, so `db:collection:delete` takes no field list.
+
+:::caution[Not enforced yet]
+Field lists are stored and edited, but **the service layer does not apply them yet**. Projection on
+read and field-level merge on write are still to come. Until then, a grant naming fields permits the
+whole document — compose roles with the fields you intend, but do not rely on the restriction.
+:::
 
 ## Declaring roles in `genoa.config`
 
@@ -120,13 +146,19 @@ entries appear marked as read-only rather than hidden, so you can see where a su
 comes from even though you cannot change it here.
 
 A grant is composed as two choices. First the permission, picked by category — storage, database,
-content, configuration. Then, if the permission is bucket- or collection-scoped, **which** bucket or
-collection, chosen from the ones this instance actually has:
+content, configuration. Then, if the permission is bucket- or collection-scoped, **which** buckets or
+collections, switched on from the ones this instance actually has:
 
 - The list is the instance's own catalogue, so a grant cannot name something that does not exist. A
   mistyped name would otherwise produce a grant that looks granted and denies every request.
+- **One row can cover several resources.** "May read these three buckets" is one row; it is saved as
+  one grant per bucket.
 - "Any bucket" and "any collection" are available, and are **not** the default. They are the widest
   grant you can write, so they are worth choosing on purpose.
+- For `db:collection:read` and `db:collection:write`, each selected collection gets its own **field
+  switches** — see [Fields](#fields) above, including what is not yet enforced. "Every field" is a
+  switch of its own, because it means something a list of all the current fields does not: it covers
+  fields added later.
 
 :::note[Who can see the list of buckets and collections]
 Anyone holding `config:roles:manage` — the names only, no contents and no credentials. That
