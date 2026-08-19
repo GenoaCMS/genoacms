@@ -5,6 +5,7 @@
   import ContextMenu from '$lib/components/ContextMenu.svelte'
   import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
   import RenameModal from './RenameModal.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
   import Selectable from './Selectable.svelte'
 
   type Props = {
@@ -28,9 +29,12 @@
 </script>
 
 <ContextMenu bind:opener={contextMenuEvent}>
-  <ContextMenuItem onclick={toggleRenameModal}>
-    Rename
-  </ContextMenuItem>
+  <!-- A move relocates rather than removes, so renaming is a write. -->
+  <PermissionGate permission="storage:bucket:write" resource={page.params.bucketId}>
+    <ContextMenuItem onclick={toggleRenameModal}>
+      Rename
+    </ContextMenuItem>
+  </PermissionGate>
 </ContextMenu>
 
 <div class="transition-all hover:scale-105">

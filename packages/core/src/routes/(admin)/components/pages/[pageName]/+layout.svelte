@@ -5,6 +5,7 @@
   import Build from './Build.svelte'
   import Undo from './Undo.svelte'
   import Redo from './Redo.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { children, data } = $props()
 
@@ -20,11 +21,20 @@
       {data.page.name}
     </h1>
     {#snippet right()}
-      <Undo isEnabled={data.canUndo}/>
-      <Redo isEnabled={data.canRedo}/>
-      <Build />
-      <SavePageContents />
-      <UpdatePreviewURL bind:value={data.page.previewURL}/>
+      <!-- Each gate mirrors what the page service demands. Undo and redo need both edit
+           permissions, because a history entry does not record which kind of change it was;
+           publishing needs content editing as well, because it saves before it builds. -->
+      <PermissionGate permission={['pages:content_edit', 'pages:structure_edit']}>
+        <Undo isEnabled={data.canUndo}/>
+        <Redo isEnabled={data.canRedo}/>
+      </PermissionGate>
+      <PermissionGate permission={['pages:content_edit', 'pages:publish']}>
+        <Build />
+      </PermissionGate>
+      <PermissionGate permission="pages:content_edit">
+        <SavePageContents />
+        <UpdatePreviewURL bind:value={data.page.previewURL}/>
+      </PermissionGate>
     {/snippet}
   </TopPanel>
 

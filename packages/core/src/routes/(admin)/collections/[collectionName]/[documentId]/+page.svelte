@@ -4,6 +4,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import Delete from './Delete.svelte'
   import Update from './Update.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
   import Editor from '../Editor/Editor.svelte'
   import { updateDoc } from './update.remote'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
@@ -57,8 +58,13 @@
     <span class="text-warning">{document.reference.collection.name}</span>
   </h1>
   {#snippet right()}
-    <Delete />
-    <Update onclick={handleUpdate} {isSubmitting} />
+    <!-- Scoped to this document's collection, which is what the database service checks. -->
+    <PermissionGate permission="db:collection:delete" resource={document.reference.collection.name}>
+      <Delete />
+    </PermissionGate>
+    <PermissionGate permission="db:collection:write" resource={document.reference.collection.name}>
+      <Update onclick={handleUpdate} {isSubmitting} />
+    </PermissionGate>
   {/snippet}
 </TopPanel>
 

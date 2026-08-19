@@ -1,12 +1,20 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import { page } from '$app/state'
-  import { hasPermission } from '$lib/script/authorization/enforce'
-  import type { Permission } from '$lib/script/authorization/permissions'
+  import { isPermitted, type PermissionDemand } from '$lib/script/authorization/gate'
   import type { AuthContext } from '$lib/script/authorization/context'
 
+  /**
+   * Shows its children only to a principal holding what it demands.
+   *
+   * **Cosmetic, and only cosmetic** (§4.2.6). Every element hidden here is independently refused by
+   * the service it would reach, so this keeps the interface honest about what it offers rather than
+   * securing anything. The decision lives in `authorization/gate`, tested without rendering, and it
+   * uses the same matcher the server does — so the two cannot disagree about what a grant means.
+   */
   interface Props {
-    permission: Permission
+    /** One permission, or every permission in a list. */
+    permission: PermissionDemand
     /** Required for bucket- and collection-scoped permissions; omitted for instance-scoped ones. */
     resource?: string
     children: Snippet
@@ -16,11 +24,10 @@
   const { permission, resource, children, fallback }: Props = $props()
 
   /**
-   * Hiding is **cosmetic**, and deliberately so: the same permission is checked in the service
-   * this element would reach, so a user who forces the control through gets a denial rather than
-   * an action. This exists to keep the interface honest about what it offers, not to secure it.
+   * The principal's own grants, sent by the admin layout.
    *
-   * The matcher is the one the server uses, so the two cannot disagree about what a grant means.
+   * The subject is irrelevant to the decision — only the grants are matched — so it is left empty
+   * rather than shipped to the client for no reason.
    */
   const context = $derived({
     subject: '',
@@ -28,23 +35,7 @@
     fromDeclarationsOnly: false
   } satisfies AuthContext)
 
-  /**
-   * Fails closed rather than throwing.
-   *
-   * `hasPermission` refuses a resource-scoped permission checked without a resource, which is a
-   * programming error — but raising it here would take out the whole surrounding view over a hidden
-   * button. Hiding and warning degrades the interface; throwing removes it.
-   */
-  function check (): boolean {
-    try {
-      return (hasPermission as (c: AuthContext, p: Permission, r?: string) => boolean)(context, permission, resource)
-    } catch (error) {
-      console.warn(`[genoacms:ui] permission gate for '${permission}' could not be evaluated`, error)
-      return false
-    }
-  }
-
-  const permitted = $derived(check())
+  const permitted = $derived(isPermitted(context, permission, resource))
 </script>
 
 {#if permitted}
