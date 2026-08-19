@@ -100,11 +100,13 @@ stays as narrow as you wrote it when the schema grows.
 
 Deleting a document does not address fields, so `db:collection:delete` takes no field list.
 
-:::caution[Not enforced yet]
-Field lists are stored and edited, but **the service layer does not apply them yet**. Projection on
-read and field-level merge on write are still to come. Until then, a grant naming fields permits the
-whole document — compose roles with the fields you intend, but do not rely on the restriction.
-:::
+Two things follow from that, and both are worth knowing before you restrict a role:
+
+- **A field added to the collection later is not covered** by a grant that names fields. Restrict a
+  role and you are restricting it to the fields that existed when you wrote the grant.
+- **Omitting a field never erases it.** Writes merge against the stored record, so a user who cannot
+  write `wholesale_price` cannot clear it by saving a document without it. Only the fields they may
+  write are taken from what they submit.
 
 ## Declaring roles in `genoa.config`
 
@@ -162,7 +164,7 @@ collections, switched on from the ones this instance actually has:
 - "Any bucket" and "any collection" are available, and are **not** the default. They are the widest
   grant you can write, so they are worth choosing on purpose.
 - For `db:collection:read` and `db:collection:write`, each selected collection gets its own **field
-  switches** — see [Fields](#fields) above, including what is not yet enforced. "Every field" is a
+  switches** — see [Fields](#fields) above. "Every field" is a
   switch of its own, because it means something a list of all the current fields does not: it covers
   fields added later.
 

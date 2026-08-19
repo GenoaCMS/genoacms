@@ -66,11 +66,9 @@ interface Grant {
   /**
    * Which fields of the named collection this grant covers. Absent means every field.
    *
-   * > **Not yet enforced.** Field-level masking — post-fetch projection on read, field-level merge
-   * > on write — is step 17 of the authorization plan and is not built. The service layer currently
-   * > ignores this, so a grant naming fields permits the whole document. It is carried and edited
-   * > now so that roles composed today survive that step, but until it lands the interface shows a
-   * > restriction the system does not apply. This is a **known gap**, recorded rather than implied.
+   * Applied by the database service: unreadable fields are stripped after fetching, and writes
+   * merge against the stored record so an omitted field is preserved rather than cleared. The rules
+   * live in `authorization/fields`.
    */
   fields?: FieldSelector
 }
@@ -106,9 +104,9 @@ function selectsPermission (grant: Grant, permission: Permission): boolean {
  * selects every permission.
  */
 function grantSatisfies (grant: Grant, permission: Permission, resource?: string): boolean {
-  // `grant.fields` is deliberately not consulted: it restricts *which parts* of a document are
-  // readable, which is decided by projection and merge at the service layer (step 17), not by
-  // whether the operation proceeds. Answering it here would deny the whole operation instead.
+  // `grant.fields` is deliberately not consulted here: it restricts *which parts* of a document are
+  // readable, which the service layer decides by projection and merge. Answering it here would deny
+  // the whole operation instead of narrowing what it returns.
   if (!selectsPermission(grant, permission)) return false
   if (!isNamedResource(grant.resource)) return true
   if (resource === undefined) return false

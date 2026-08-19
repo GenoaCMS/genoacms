@@ -77,10 +77,19 @@ const output = [
   '',
   renderMatrix(),
   '',
-  '## Not covered',
+  '## Field-level masking',
   '',
-  'Field-level masking is not implemented, so the new-field default-deny and',
-  'write-merge-integrity assertions E6 also calls for are **absent rather than approximated**.',
+  'The two assertions §4.4.6 also calls for are covered, in `permissionMatrix.test.ts` rather than in',
+  'this table — they are about the *contents* of a document rather than about whether an operation is',
+  'permitted, so they do not fit a role-by-function grid:',
+  '',
+  '- **New-field default deny** — a grant naming fields covers exactly those, so a field added to the',
+  '  schema afterwards is stripped on read and ignored on write.',
+  '- **Write-merge integrity** — a principal who cannot write a field cannot erase it by omitting it;',
+  '  the stored value is preserved.',
+  '',
+  'Both are driven through the real gated service, and both are mutation-tested: removing the read',
+  'projection, or replacing the write merge with an overwrite, fails two assertions each.',
   ''
 ].join('\n')
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BUCKET, COLLECTION, matrixOperations, rolesUnderTest } from './permissionMatrix'
 import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '$lib/script/authorization/grants'
 
 /**
  * **E6 — the exhaustive permission matrix.**
@@ -47,13 +48,27 @@ vi.mock('$lib/script/storage/storage.server', () => ({
   isDirectoryExisting: () => true
 }))
 
+/**
+ * The stored document the field-level assertions read and write.
+ *
+ * Shared with the mock below so a write can be observed: the masking evidence is about what reaches
+ * the database, which a mock returning `{}` could not show.
+ */
+const storedDocument = { title: 'Ships', body: 'text', internal_cost: 12 }
+const written: Array<Record<string, unknown>> = []
+
 vi.mock('$lib/script/database/database.server', () => ({
   getCollectionReferences: () => ['articles'],
   getCollectionReference: async () => ({ name: 'articles', schema: {} }),
-  getCollection: async () => [],
-  getDocument: async () => ({}),
-  createDocument: async () => ({}),
-  updateDocument: async () => {},
+  getCollection: async () => [{ reference: {}, data: { ...storedDocument } }],
+  getDocument: async () => ({ reference: {}, data: { ...storedDocument } }),
+  createDocument: async (_ref: unknown, document: Record<string, unknown>) => {
+    written.push(document)
+    return { data: document }
+  },
+  updateDocument: async (_ref: unknown, document: Record<string, unknown>) => {
+    written.push(document)
+  },
   deleteDocument: async () => {}
 }))
 
@@ -290,6 +305,89 @@ describe('default deny', () => {
     expect(unavailable.context.grants).toEqual([])
 
     expect(rolesUnderTest.Nobody.grants).toEqual([])
+  })
+})
+
+/**
+ * **Field-level masking**, the part of E6 §4.4.6 that was reported as absent until step 17 landed.
+ *
+ * Driven through the same gated service the matrix uses, so these are assertions about the product
+ * rather than about the masking helpers, which are unit-tested separately.
+ */
+describe('field-level masking', () => {
+  const fieldGrant = (permission: string, fields?: string[]): Grant => ({
+    permission,
+    resource: { scope: 'collection', id: COLLECTION },
+    ...(fields === undefined ? {} : { fields })
+  } as Grant)
+
+  /** Reads title and body, writes only body — "may see the cost but not change it", inverted. */
+  const restricted = () => createAuthContext('restricted', [
+    fieldGrant('db:collection:read', ['title', 'body']),
+    fieldGrant('db:collection:write', ['body'])
+  ])
+
+  beforeEach(() => {
+    written.length = 0
+  })
+
+  it('strips an unreadable field from a document', async () => {
+    const snapshot = await database.getUserDocument(restricted(), documentRef)
+
+    expect(snapshot?.data).toEqual({ title: 'Ships', body: 'text' })
+    expect(snapshot?.data).not.toHaveProperty('internal_cost')
+  })
+
+  it('strips it from every document in a collection', async () => {
+    const snapshots = await database.getUserCollection(restricted(), collectionRef)
+
+    expect(snapshots[0].data).not.toHaveProperty('internal_cost')
+  })
+
+  it('denies a field the grant does not name, including one added later', async () => {
+    // New-field default deny: the grant names what existed when it was written.
+    const snapshot = await database.getUserDocument(
+      createAuthContext('reader', [fieldGrant('db:collection:read', ['title'])]),
+      documentRef
+    )
+
+    expect(snapshot?.data).toEqual({ title: 'Ships' })
+  })
+
+  it('keeps an unwritable field when the submission omits it', async () => {
+    // Write-merge integrity: omitting a field the principal cannot see is not an instruction to
+    // clear it. A blind overwrite would erase internal_cost here.
+    await database.updateUserDocument(restricted(), documentRef, { body: 'new' } as never)
+
+    expect(written[0]).toEqual({ title: 'Ships', body: 'new', internal_cost: 12 })
+  })
+
+  it('ignores an unwritable field the submission does set', async () => {
+    await database.updateUserDocument(
+      restricted(),
+      documentRef,
+      { body: 'new', internal_cost: 0 } as never
+    )
+
+    expect(written[0].internal_cost).toBe(12)
+  })
+
+  it('takes only writable fields when creating', async () => {
+    await database.createUserDocument(
+      restricted(),
+      collectionRef,
+      { body: 'new', internal_cost: 0 } as never
+    )
+
+    expect(written[0]).toEqual({ body: 'new' })
+  })
+
+  it('leaves the writes of an unrestricted principal untouched', async () => {
+    const admin = createAuthContext('admin', [{ permission: WILDCARD, resource: WILDCARD }])
+    await database.updateUserDocument(admin, documentRef, { body: 'new' } as never)
+
+    // Masking must change nothing for anyone who was not restricted.
+    expect(written[0]).toEqual({ body: 'new' })
   })
 })
 
