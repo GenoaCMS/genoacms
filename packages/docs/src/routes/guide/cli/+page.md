@@ -62,6 +62,10 @@ the entire reason the hierarchy has two levels.
 npx @genoacms/cli rotate-root
 ```
 
+This is the **root** only. Rotating and revoking the subordinate keys that sign your content is
+done in the CMS, under Configuration → [Signing keys](/guide/signing-keys), and costs no consumer
+any redeployment.
+
 **Rotating the root strands every deployed consumer until it is rebuilt.** The root public key is
 embedded in consumer applications; replacing it means everything this instance signs is rejected
 until those applications ship with the new key.

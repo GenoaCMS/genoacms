@@ -63,6 +63,10 @@ const config = defineConfig({
                   to: '/guide/sessions/',
                 },
                 {
+                  title: 'Signing keys',
+                  to: '/guide/signing-keys/',
+                },
+                {
                   title: 'What GenoaCMS stores',
                   to: '/guide/storage-layout/',
                 },

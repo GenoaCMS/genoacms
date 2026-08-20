@@ -56,6 +56,9 @@ A few are worth reading twice:
   which is why editing alone does not permit it.
 - **Committing does not require editing.** A role can publish what others wrote without being able
   to change it first, which is the point of keeping the two apart.
+- **`config:keys:manage` covers reading the key registry as well as changing it.** There is no
+  separate read permission: the registry is published for consumers to fetch, so there would be
+  nothing to withhold. See [signing keys](/guide/signing-keys).
 - **There is no `db:collection:schema`.** Restricting a role to part of a collection is done by
   naming fields on its `read` and `write` grants, described below — not by a separate permission.
 

@@ -100,6 +100,39 @@ vi.mock('$lib/script/authorization/declared.server', () => ({
   isAdministrationLocked: () => false
 }))
 
+/**
+ * A registry with one superseded key beside the current one, so revocation has something legitimate
+ * to name. Revoking the *current* key would take the rotate-first path, which is the primary
+ * layer's behaviour rather than an authorization question.
+ */
+const registryFixture = {
+  sequence: 3,
+  current: 'key-current',
+  keys: [
+    { keyId: 'key-old', alg: 'ML-DSA-65', publicKey: 'AA==', createdAt: 1, supersededAt: 2 },
+    { keyId: 'key-current', alg: 'ML-DSA-65', publicKey: 'BB==', createdAt: 2 }
+  ]
+}
+
+vi.mock('$lib/script/signing/keyResolution.server', () => ({
+  getRegistry: async () => registryFixture,
+  rotateSubordinateKey: async () => registryFixture,
+  revokeSubordinateKey: async () => registryFixture
+}))
+
+vi.mock('$lib/script/signing/rootKey.server', () => ({
+  getRootPublicKey: async () => ({ keyId: 'root-1', alg: 'SLH-DSA-SHA2-128s', publicKey: 'AA==' })
+}))
+
+vi.mock('$lib/script/securityPolicy/policy.server', () => ({
+  loadSecurityPolicy: async () => ({
+    subordinateKeyRotationDays: 90,
+    accessTokenMinutes: 15,
+    grantCacheSeconds: 30,
+    refreshTokenDays: 14
+  })
+}))
+
 vi.mock('$lib/script/authorization/administration.server', () => ({
   loadAdministrationState: async () => ({
     ok: true,
@@ -124,6 +157,7 @@ const components = await import('$lib/script/components/componentEntry/user.serv
 const editor = await import('$lib/script/components/editor/user.server')
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
+const signing = await import('$lib/script/signing/user.server')
 
 // ---------------------------------------------------------------------------------------------
 // The operation table: every gated service function, invoked for real.
@@ -201,7 +235,12 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   deleteUserRole: ctx => configuration.deleteUserRole(ctx, 'Editor'),
   upsertUserAccount: ctx => configuration.upsertUserAccount(ctx, accountRecord),
   assignUserAccountRoles: ctx => configuration.assignUserAccountRoles(ctx, 's-1', []),
-  removeUserAccount: ctx => configuration.removeUserAccount(ctx, 's-1')
+  removeUserAccount: ctx => configuration.removeUserAccount(ctx, 's-1'),
+
+  // signing keys
+  listUserSigningKeys: ctx => signing.listUserSigningKeys(ctx),
+  rotateUserSubordinateKey: ctx => signing.rotateUserSubordinateKey(ctx),
+  revokeUserSubordinateKey: ctx => signing.revokeUserSubordinateKey(ctx, 'key-old')
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -241,7 +280,8 @@ describe('the matrix is complete over the service surface', () => {
     components,
     editor,
     pages: pagesService,
-    configuration
+    configuration,
+    signing
   }
 
   it.each(Object.keys(services))('covers every export of the %s service', (name) => {

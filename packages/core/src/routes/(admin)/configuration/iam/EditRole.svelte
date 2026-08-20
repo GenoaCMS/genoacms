@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { Modal, Button } from '$lib/components/ui/index'
   import GrantEditor from './GrantEditor.svelte'
-  import { enhanceWithToast } from './formToast'
+  import { enhanceWithToast } from '../formToast'
   import type { Role } from '$lib/script/authorization/roles'
   import type { GrantableResources } from '$lib/script/configuration/resources'
 

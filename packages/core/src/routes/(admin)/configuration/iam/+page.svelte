@@ -6,7 +6,7 @@
   import AccountCard from './AccountCard.svelte'
   import CreateRole from './CreateRole.svelte'
   import CreateAccount from './CreateAccount.svelte'
-  import DangerousAction from './DangerousAction.svelte'
+  import DangerousAction from '../DangerousAction.svelte'
   import EditRole from './EditRole.svelte'
   import AssignRoles from './AssignRoles.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'

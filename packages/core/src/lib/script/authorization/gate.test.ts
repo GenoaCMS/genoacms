@@ -52,6 +52,31 @@ describe('several permissions', () => {
   })
 })
 
+describe('anyOf', () => {
+  const configuration: Permission[] = ['config:roles:manage', 'config:keys:manage']
+
+  it('permits a principal holding either, so a section index is not hidden from half its users', () => {
+    expect(isPermitted(contextWith([instance('config:roles:manage')]), { anyOf: configuration })).toBe(true)
+    expect(isPermitted(contextWith([instance('config:keys:manage')]), { anyOf: configuration })).toBe(true)
+  })
+
+  it('still hides it from a principal holding neither', () => {
+    expect(isPermitted(contextWith([instance('pages:read')]), { anyOf: configuration })).toBe(false)
+  })
+
+  it('does not change what a bare list means', () => {
+    // The two forms sit side by side in the same components. If a list ever started meaning `any`,
+    // every existing gate would silently widen.
+    expect(isPermitted(contextWith([instance('config:roles:manage')]), configuration)).toBe(false)
+  })
+
+  it('permits nothing when it names nothing', () => {
+    const admin = contextWith([{ permission: WILDCARD, resource: WILDCARD }])
+
+    expect(isPermitted(admin, { anyOf: [] })).toBe(false)
+  })
+})
+
 describe('a resource-scoped permission', () => {
   it('is decided against the named resource', () => {
     const context = contextWith([onBucket('storage:bucket:write', 'media')])

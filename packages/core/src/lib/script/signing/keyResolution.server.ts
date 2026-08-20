@@ -1,5 +1,9 @@
 import { KeyResolver } from './keyResolver'
-import { loadOrBootstrapRegistry, rotateSubordinateKey as rotateAndPublish } from './registry.server'
+import {
+  loadOrBootstrapRegistry,
+  rotateSubordinateKey as rotateAndPublish,
+  revokeSubordinateKey as revokeAndPublish
+} from './registry.server'
 import { loadSubordinateKey, toSigningKey } from './subordinateKey.server'
 import { currentKey, type KeyRegistry } from './registry'
 import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
@@ -96,9 +100,24 @@ async function rotateSubordinateKey (): Promise<KeyRegistry> {
   return rotated
 }
 
+/**
+ * Revokes, then drops the cache.
+ *
+ * Invalidating matters more here than for a rotation. A stale rotation costs nothing — the outgoing
+ * key still verifies — whereas a stale revocation means this instance goes on accepting signatures
+ * made by a key it has just published as untrusted, for as long as the cache lives. The revocation
+ * has to bite in the process that performed it, not merely in the document it wrote.
+ */
+async function revokeSubordinateKey (keyId: string): Promise<KeyRegistry> {
+  const revoked = await revokeAndPublish(keyId)
+  resolver.invalidate()
+  return revoked
+}
+
 export {
   resolveVerificationKey,
   getCurrentSigningKey,
   getRegistry,
-  rotateSubordinateKey
+  rotateSubordinateKey,
+  revokeSubordinateKey
 }

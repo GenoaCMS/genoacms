@@ -134,6 +134,17 @@ function isRotationDue (policy: SecurityPolicy, createdAt: number, now: number):
   return now - createdAt >= policy.subordinateKeyRotationDays * DAY_MS
 }
 
+/**
+ * The moment a key that became current at `createdAt` falls due.
+ *
+ * The same threshold `isRotationDue` compares against, exposed so an administration screen can state
+ * *when* rather than only *whether*. Derived from the one arithmetic rather than restated, so a
+ * screen cannot show a date the rotation would disagree with.
+ */
+function rotationDueAt (policy: SecurityPolicy, createdAt: number): number {
+  return createdAt + policy.subordinateKeyRotationDays * DAY_MS
+}
+
 export {
   MIN_ROTATION_DAYS,
   MAX_ROTATION_DAYS,
@@ -145,7 +156,8 @@ export {
   MAX_REFRESH_TOKEN_DAYS,
   DAY_MS,
   parseSecurityPolicy,
-  isRotationDue
+  isRotationDue,
+  rotationDueAt
 }
 
 export type {

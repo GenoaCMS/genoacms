@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { Modal, Button, Input, Label } from '$lib/components/ui/index'
   import GrantEditor from './GrantEditor.svelte'
-  import { enhanceWithToast } from './formToast'
+  import { enhanceWithToast } from '../formToast'
   import type { GrantableResources } from '$lib/script/configuration/resources'
 
   interface Props {

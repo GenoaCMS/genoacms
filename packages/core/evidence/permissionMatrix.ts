@@ -76,7 +76,11 @@ const matrixOperations = [
   'deleteUserRole',
   'upsertUserAccount',
   'assignUserAccountRoles',
-  'removeUserAccount'
+  'removeUserAccount',
+  // signing keys
+  'listUserSigningKeys',
+  'rotateUserSubordinateKey',
+  'revokeUserSubordinateKey'
 ] as const
 
 const bucketGrant = (permission: Permission): Grant =>
@@ -266,6 +270,17 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'createUserRole', 'updateUserRole', 'deleteUserRole',
       'upsertUserAccount', 'removeUserAccount', 'assignUserAccountRoles'
     ]
+  },
+  /**
+   * Administers the signing keys and nothing else.
+   *
+   * Present to make the absence of a `config:keys:read` visible: reading the registry sits in the
+   * same allow-list as rotating it, because the registry is published for consumers to fetch and a
+   * read permission would withhold nothing (§4.1.15).
+   */
+  KeyAdministrator: {
+    grants: [instanceGrant('config:keys:manage')],
+    allowed: ['listUserSigningKeys', 'rotateUserSubordinateKey', 'revokeUserSubordinateKey']
   },
   SuperAdmin: {
     grants: [{ permission: WILDCARD, resource: WILDCARD }],

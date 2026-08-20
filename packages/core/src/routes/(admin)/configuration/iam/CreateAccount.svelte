@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { Modal, Button, Input, Label, Helper } from '$lib/components/ui/index'
   import RoleSelector from './RoleSelector.svelte'
-  import { enhanceWithToast } from './formToast'
+  import { enhanceWithToast } from '../formToast'
 
   interface Props {
     /** Every role that exists, so the assignment can only name one of them. */

@@ -1,19 +1,22 @@
-import type { Permission } from '$lib/script/authorization/permissions'
+import type { PermissionDemand } from '$lib/script/authorization/gate'
 
 interface AdminPage {
   name: string
   route: string
   icon: string
   /**
-   * The permission that makes this destination useful.
+   * What makes this destination useful.
    *
    * Navigation is hidden without it — cosmetically. Every page behind these links resolves its own
    * context and is refused independently, so a typed URL reaches a denial rather than the page.
    *
    * Instance-scoped permissions only: a resource-scoped one would need a resource to check against,
    * and navigation names a section rather than a bucket.
+   *
+   * `anyOf` is for a section that is an **index** of others, each gated in turn behind it. It is
+   * never right for a link to a single operation, where any-of would offer a page certain to refuse.
    */
-  permission?: Permission
+  permission?: PermissionDemand
 }
 
 export const pages: AdminPage[] = [
@@ -43,9 +46,11 @@ export const pages: AdminPage[] = [
     icon: 'folder2'
   },
   {
+    // An index over sections governed by different permissions. Demanding both would hide it from
+    // every administrator who is not both; the cards inside are gated one by one.
     name: 'Configuration',
     route: '/configuration',
     icon: 'toggles',
-    permission: 'config:roles:manage'
+    permission: { anyOf: ['config:roles:manage', 'config:keys:manage'] }
   }
 ]

@@ -72,6 +72,32 @@ the fixture naming live in `tests/support/session.ts`.
 | `collections.spec.ts` | the document round trip: create, edit, persist, delete |
 | `components.spec.ts` | the prebuilt catalogue, and the dynamic editor through commit |
 | `pages.spec.ts` | creating a page, its preview URL, saving content, and publishing |
+| `keys.spec.ts` | the signing key registry: the root anchor, rotation, revocation |
+
+### How `keys.spec.ts` revokes without wrecking the instance
+
+Revocation is permanent and reaches backwards — every signature the key ever made stops verifying —
+so the suite applies the same rule as every other fixture: **it destroys only what it made.** The
+revocation test rotates first, which mints a key and supersedes it moments later, then revokes that
+key. Nothing published earlier was signed with it.
+
+Keys are the one fixture with no `e2e-` prefix, because nobody names them: a `keyId` derives from
+the key itself. Rotation is additive and superseded entries are never removed, so a run leaves two
+more rows in the registry — one superseded, one revoked — and nothing to clean up.
+
+### A whole class of defect these suites cannot see
+
+They run against `pnpm build && pnpm preview`. **The dev server is a different program**, and a
+defect that exists only there is invisible here. One did: the development secrets adapter writes
+`.env`, Vite watches the env files and restarts on a change, so every secret write killed the
+request that made it — rotating a key reported failure while the server appeared to crash, and
+revoking one published the revocation and *then* died, reporting a failure that had not happened.
+This suite passed the whole time.
+
+The fix is `envDir: false` in `vite.config.ts`, and the guard is `src/viteConfig.test.ts` — at the
+level where the cause lives, since no browser test driven at the preview build could ever reach it.
+Before adding an e2e test for something, it is worth asking whether the thing it guards is even
+present in the program the suite runs.
 
 ### Flakiness
 
