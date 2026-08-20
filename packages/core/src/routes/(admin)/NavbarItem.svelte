@@ -11,9 +11,11 @@
     const isActive = $derived(page.url.pathname.startsWith(route))
 </script>
 
-<Button preset="outlined" class="block py-4 px-4 lg:px-10 transition-all hover:scale-105 hover:shadow-lg m-2" href={route}>
-    <div class="flex items-center {isActive ? 'text-warning-600' : ''}">
-        <i class="bi bi-{icon} text-2xl h-[2rem] mx-3"></i>
-        {name}
-    </div>
+<Button
+  preset={isActive ? 'filled' : 'outlined'}
+  class="w-full flex items-center justify-start gap-3 py-3 px-4 transition-all {isActive ? 'shadow-xs' : 'hover:bg-surface-200-800/30'}"
+  href={route}
+>
+  <i class="bi bi-{icon} text-xl"></i>
+  <span class="font-medium text-sm">{name}</span>
 </Button>

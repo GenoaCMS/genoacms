@@ -2,8 +2,7 @@
   import { enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Modal, } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
+  import { Button, Input, Modal } from '$lib/components/ui/index'
 
   let isModalOpen = $state(false)
   function toggleModal () {
@@ -28,13 +27,11 @@
     <i class="bi bi-upload text-2xl hover:text-warning transition-all"></i>
 </button>
 
-<Portal>
-  <Modal title="Upload files" bind:open={isModalOpen}>
-    <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col p-4">
-      <Input name="files[]" type="file" multiple required class="w-full my-2"/>
-      <Button preset="tonal" class="w-full" type="submit">
-        Upload
-      </Button>
-    </form>
-  </Modal>
-</Portal>
+<Modal title="Upload files" bind:open={isModalOpen}>
+  <form enctype="multipart/form-data" action="?/uploadObject" method="post" use:enhance={enhanceUpload} class="flex flex-col space-y-3">
+    <Input name="files[]" type="file" multiple required class="w-full"/>
+    <Button preset="filled" class="w-full mt-4" type="submit">
+      Upload
+    </Button>
+  </form>
+</Modal>

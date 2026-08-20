@@ -31,7 +31,7 @@
     "@genoacms/cloudabstraction": "workspace:^",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/functions": "^3.4.0",
-    "@google-cloud/resource-manager": "^5.1.0",
+    "@google-cloud/secret-manager": "^7.0.0",
     "@google-cloud/storage": "^7.7.0",
     "archiver": "^7.0.0"
   },
@@ -48,7 +48,7 @@
     "vitest": "^1.0.4"
   },
   "peerDependencies": {
-		"@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
+    "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
   },
   "files": [
     "src",
@@ -56,13 +56,13 @@
     "dist"
   ],
   "exports": {
-    "./authorization": {
-      "import": "./dist/services/authorization/index.js",
-      "types": "./dist/services/authorization/index.d.ts"
-    },
     "./database": {
       "import": "./dist/services/database/index.js",
       "types": "./dist/services/database/index.d.ts"
+    },
+    "./secrets": {
+      "import": "./dist/services/secrets/index.js",
+      "types": "./dist/services/secrets/index.d.ts"
     },
     "./deployment": {
       "import": "./dist/services/deployment/index.js",

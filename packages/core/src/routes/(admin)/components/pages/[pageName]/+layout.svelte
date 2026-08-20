@@ -5,6 +5,7 @@
   import Build from './Build.svelte'
   import Undo from './Undo.svelte'
   import Redo from './Redo.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { children, data } = $props()
 
@@ -20,18 +21,27 @@
       {data.page.name}
     </h1>
     {#snippet right()}
-      <Undo isEnabled={data.canUndo}/>
-      <Redo isEnabled={data.canRedo}/>
-      <Build />
-      <SavePageContents />
-      <UpdatePreviewURL bind:value={data.page.previewURL}/>
+      <!-- Each gate mirrors what the page service demands. Undo and redo need both edit
+           permissions, because a history entry does not record which kind of change it was;
+           publishing needs content editing as well, because it saves before it builds. -->
+      <PermissionGate permission={['pages:content_edit', 'pages:structure_edit']}>
+        <Undo isEnabled={data.canUndo}/>
+        <Redo isEnabled={data.canRedo}/>
+      </PermissionGate>
+      <PermissionGate permission={['pages:content_edit', 'pages:publish']}>
+        <Build />
+      </PermissionGate>
+      <PermissionGate permission="pages:content_edit">
+        <SavePageContents />
+        <UpdatePreviewURL bind:value={data.page.previewURL}/>
+      </PermissionGate>
     {/snippet}
   </TopPanel>
 
   <div class="flex-grow grid lg:grid-cols-6">
-    <div class="order-1 lg:order-0 lg:col-span-4 flex justify-center items-center bg-light dark:bg-dark-light border-x dark:border-dark p-4">
+    <div class="order-1 lg:order-0 lg:col-span-4 flex justify-center items-center bg-surface-100-900/30 border-x border-surface-200-800 p-4">
       {#if data.page.previewURL}
-        <iframe src={data.page.previewURL} title="Preview" class="w-full h-full border"></iframe>
+        <iframe src={data.page.previewURL} title="Preview" class="w-full h-full border border-surface-200-800 rounded"></iframe>
       {:else}
         <div class="text-2xl">
           No preview URL set

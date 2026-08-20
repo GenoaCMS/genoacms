@@ -34,23 +34,21 @@
 </button>
 
 <Modal title="Create a new page" bind:open={isModalOpen}>
-    <div class="flex justify-center">
-        <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-3/4 mx-auto">
-            <Label>
-                Name:
-                <Input type="text" name="name" class="w-full"/>
-            </Label>
-            <Label>
-                Component:
-                <Select name="componentUID" class="w-full">
-                    {#each components as component (component.uid)}
-                        <option value={component.uid}>{component.name}</option>
-                    {/each}
-                </Select>
-            </Label>
-            <Button preset="tonal" class="w-full mt-3" type="submit">
-                Create
-            </Button>
-        </form>
-    </div>
+    <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-full space-y-3">
+        <Label>
+            Name:
+            <Input type="text" name="name" class="w-full" required/>
+        </Label>
+        <Label>
+            Component:
+            <Select name="componentUID" class="w-full">
+                {#each components as component (component.uid)}
+                    <option value={component.uid}>{component.name}</option>
+                {/each}
+            </Select>
+        </Label>
+        <Button preset="filled" class="w-full mt-4" type="submit">
+            Create
+        </Button>
+    </form>
 </Modal>

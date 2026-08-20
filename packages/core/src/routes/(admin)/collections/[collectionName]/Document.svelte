@@ -15,7 +15,7 @@
   <a href="{reference.collection.name}/{reference.id}">
     <div class="flex">
       {#each properties as property (property.name)}
-        <div class="flex-grow w-full text-start py-2 border-b-2 border-light px-4">
+        <div class="flex-grow w-full text-start py-2 border-b border-surface-200-800 px-4 text-sm">
           {#if property.type === 'array'}
             {(data[property.name] || []).length} items
           {:else}

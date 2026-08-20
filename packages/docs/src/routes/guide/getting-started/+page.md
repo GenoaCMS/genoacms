@@ -17,6 +17,7 @@ root
 ├── genoa.config/
 │   └── index.js
 ├── node_modules/
+├── .env
 ├── package.json
 └── package-lock.json
 ```
@@ -25,6 +26,13 @@ The `genoa.config/index.js` file is the main [configuration](/guide/config/struc
 
 :::tip[Break down the configuration]
 Leverage ability to split configuration into multiple files and subdirectories. 
+:::
+
+:::note[Nothing to configure for secrets]
+A `.env` file is created for local development. GenoaCMS writes what it needs there itself on first
+start — signing key seeds and internal state — so there is nothing to set by hand. In a deployment,
+point the secrets service at a real secret manager instead; see
+[services](/guide/config/services).
 :::
 
 When the configuration is done, you can verify it by running the CMS locally with the following command:

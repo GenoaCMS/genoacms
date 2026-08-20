@@ -1,14 +1,15 @@
 import type { PageServerLoad } from '../$types'
 import {
-  deleteComponentEntry,
-  getComponentEntry
-} from '$lib/script/components/componentEntry/io.server'
+  deleteUserComponentEntry,
+  getUserComponentEntry
+} from '$lib/script/components/componentEntry/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const { componentId } = params
-  const componentEntry = await getComponentEntry(componentId)
+  const componentEntry = await getUserComponentEntry(requireAuthContext(locals), componentId)
   if (!componentEntry) error(404, 'No component entry')
 
   return {
@@ -22,10 +23,11 @@ export const actions = {
   },
   redo: async () => {
   },
-  delete: async ({ params }) => {
+  delete: async ({ params, locals }) => {
+    const ctx = requireAuthContext(locals)
     const { componentId } = params
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
-    await deleteComponentEntry(componentId)
+    await deleteUserComponentEntry(ctx, componentId)
     return redirect(307, '.')
   }
 } satisfies Actions

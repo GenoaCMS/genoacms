@@ -1,5 +1,6 @@
-import { form } from '$app/server'
-import { updateComponentDefinition } from '$lib/script/components/editor'
+import { form, getRequestEvent } from '$app/server'
+import { updateUserComponentDefinition } from '$lib/script/components/editor/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { validator } from '@exodus/schemasafe'
 import { componentCodeChangeSchema } from '$lib/script/components/editor/schemas'
 import { formats } from '$lib/script/database/validators'
@@ -11,7 +12,9 @@ export const changeComponentRemote = form('unchecked', async (data: { uid: strin
   if (!isValid) return { status: 'fail', text: 'Invalid data' }
 
   try {
-    await updateComponentDefinition(data.uid, (d) => {
+    // A remote function has no `locals` parameter; the request context is fetched rather than passed.
+    const ctx = requireAuthContext(getRequestEvent().locals)
+    await updateUserComponentDefinition(ctx, data.uid, (d) => {
       d.uncommitedCode = data.uncommitedCode
       return d
     })

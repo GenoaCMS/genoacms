@@ -31,18 +31,41 @@ const config = {
         credentials: authCredentials
       }
     ],
-    cookieName: '__session',
-    JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
+    cookieName: '__session'
   },
-  authorization: {
+  secrets: {
+    // Development default. For a real GCP deployment replace this with Secret Manager:
+    //
+    //   {
+    //     name: 'secret-manager',
+    //     adapterPath: '@genoacms/adapter-gcp/secrets',
+    //     adapter: import('@genoacms/adapter-gcp/secrets'),
+    //     projectId: 'genoacms',
+    //     credentials
+    //   }
+    //
+    // Only one provider may be configured, so this is a replacement rather than an addition.
     providers: [
       {
-        adapterPath: '@genoacms/adapter-gcp/authorization',
-        adapter: import('@genoacms/adapter-gcp/authorization'),
-        projectId: 'genoacms',
-        credentials
+        name: 'local',
+        adapterPath: '@genoacms/adapter-secrets-env',
+        adapter: import('@genoacms/adapter-secrets-env')
       }
     ]
+  },
+  authorization: {
+    // Authority: immutable at runtime, merged when authorization is read rather than written into
+    // the manifests, and deleting one revokes what it granted.
+    roles: {
+      Administrator: [{ permission: '*', resource: '*' }]
+    },
+    assignments: {
+      'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01': ['Administrator']
+    }
+  },
+  security: {
+    // Seeds the signed security policy document at first start; the live value lives there.
+    subordinateKeyRotationDays: 90
   },
   database: {
     defaultDatabase: 'firestore',

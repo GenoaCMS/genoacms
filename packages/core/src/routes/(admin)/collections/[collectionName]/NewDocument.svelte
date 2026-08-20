@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { CollectionReference } from '@genoacms/cloudabstraction/database'
-  import { Button, Modal, } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
+  import { Button, Modal } from '$lib/components/ui/index'
   import Editor from './Editor/Editor.svelte'
   import { createDoc } from './create.remote'
   import { goto } from '$app/navigation'
@@ -55,19 +54,17 @@
   onclick={toggleModal}
 >
   <i
-    class="bi bi-plus-square text-2xl text-white hover:text-warning transition-all"
+    class="bi bi-plus-square text-2xl hover:text-warning transition-all"
   ></i>
 </button>
 
-<Portal>
-  <Modal bind:open={isModalOpen} title="New document">
-    <Editor {collectionReference} {onvalue} />
-    <Button preset="outlined" class="w-full mt-2"
-      type="button"
-      onclick={submit}
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? 'Creating...' : 'Create'}
-    </Button>
-  </Modal>
-</Portal>
+<Modal bind:open={isModalOpen} title="New document">
+  <Editor {collectionReference} {onvalue} />
+  <Button preset="filled" class="w-full mt-4"
+    type="button"
+    onclick={submit}
+    disabled={isSubmitting}
+  >
+    {isSubmitting ? 'Creating...' : 'Create'}
+  </Button>
+</Modal>

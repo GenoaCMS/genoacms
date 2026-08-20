@@ -33,15 +33,13 @@
 </button>
 
 <Modal title="Edit preview URL:" bind:open={isModalOpen}>
-    <div class="flex justify-center">
-        <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit} class="w-3/4 mx-auto">
-            <Label>
-                Preview URL:
-                <Input type="url" name="value" {value} class="w-full"/>
-            </Label>
-            <Button preset="tonal" class="mt-4 w-full" type="submit">
-                Edit
-            </Button>
-        </form>
-    </div>
+    <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit} class="w-full space-y-3">
+        <Label>
+            Preview URL:
+            <Input type="url" name="value" {value} class="w-full mt-1"/>
+        </Label>
+        <Button preset="filled" class="mt-4 w-full" type="submit">
+            Save
+        </Button>
+    </form>
 </Modal>

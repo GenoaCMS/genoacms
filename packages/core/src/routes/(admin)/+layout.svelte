@@ -9,12 +9,12 @@
   const { children }: Props = $props()
 </script>
 
-<div class="w-full h-full flex gap-0">
-    <div class="bg-light dark:bg-dark-light hidden md:block w-auto">
+<div class="w-full h-full flex min-h-screen bg-surface-50-950 text-surface-950-50">
+    <aside class="hidden md:flex flex-col h-screen shrink-0 bg-surface-100-900/30 border-r border-surface-200-800">
       <Navbar/>
-    </div>
-    <div class="flex-grow overflow-y-scroll">
+    </aside>
+    <main class="flex-grow overflow-y-auto min-w-0">
       {@render children?.()}
-    </div>
+    </main>
 </div>
 <MobileNav/>

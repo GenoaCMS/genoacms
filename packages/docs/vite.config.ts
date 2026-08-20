@@ -45,6 +45,34 @@ const config = defineConfig({
                 {
                   title: 'Services',
                   to: '/guide/config/services/',
+                },
+                {
+                  title: 'Adapters',
+                  to: '/guide/adapters/',
+                }]
+            },
+            {
+              title: 'Operations',
+              items: [
+                {
+                  title: 'Roles and permissions',
+                  to: '/guide/authorization/',
+                },
+                {
+                  title: 'Identity and sessions',
+                  to: '/guide/sessions/',
+                },
+                {
+                  title: 'Signing keys',
+                  to: '/guide/signing-keys/',
+                },
+                {
+                  title: 'What GenoaCMS stores',
+                  to: '/guide/storage-layout/',
+                },
+                {
+                  title: 'CLI',
+                  to: '/guide/cli/',
                 }]
             }
           ],
@@ -61,16 +89,16 @@ const config = defineConfig({
                   to: '/reference/cloudabstraction/authentication/',
                 },
                 {
-                  title: 'Authorization',
-                  to: '/reference/cloudabstraction/authorization/',
-                },
-                {
                   title: 'Database',
                   to: '/reference/cloudabstraction/database/',
                 },
                 {
                   title: 'Deployment',
                   to: '/reference/cloudabstraction/deployment/',
+                },
+                {
+                  title: 'Secrets',
+                  to: '/reference/cloudabstraction/secrets/',
                 },
                 {
                   title: 'Storage',

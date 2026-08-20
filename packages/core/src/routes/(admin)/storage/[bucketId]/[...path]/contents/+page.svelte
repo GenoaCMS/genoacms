@@ -11,6 +11,7 @@
   import ConfirmMove from './ConfirmMove.svelte'
   import Grid from '$lib/components/Grid.svelte'
   import Delete from './Delete.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data } = $props()
   const sessionId = page.url.searchParams.get('sessionId') || crypto.randomUUID()
@@ -33,11 +34,20 @@
         {data.path}
     </h1>
     {#snippet right()}
-        <ConfirmMove/>
-        <Delete />
+        <!-- Cosmetic: each control's operation is refused by the storage service on the same
+             permission, over this same bucket. Selection is not gated because selecting is not an
+             operation — what it enables is. -->
+        <PermissionGate permission="storage:bucket:write" resource={data.bucketId}>
+            <ConfirmMove/>
+        </PermissionGate>
+        <PermissionGate permission="storage:bucket:delete" resource={data.bucketId}>
+            <Delete />
+        </PermissionGate>
         <Selection />
-        <DirectoryCreation/>
-        <ObjectUpload/>
+        <PermissionGate permission="storage:bucket:write" resource={data.bucketId}>
+            <DirectoryCreation/>
+            <ObjectUpload/>
+        </PermissionGate>
     {/snippet}
 </TopPanel>
 

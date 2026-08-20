@@ -1,4 +1,5 @@
 interface Credentials {
+    subject: string,
     email: string,
     password: string
 }

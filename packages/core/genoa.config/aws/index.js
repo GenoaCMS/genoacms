@@ -14,13 +14,28 @@ const config = {
   authentication: {
     adapter: import('@genoacms/authentication-adapter-array'),
     credentials: authCredentials,
-    cookieName: '__session',
-    JWTSecret: 'genoacms123' // In real world deployment, pass from environment variable
+    cookieName: '__session'
   },
-  authorization: {
-    adapter: import('@genoacms/adapter-aws/authorization'),
-    region: 'eu-west-2',
-    credentials
+  secrets: {
+    providers: [
+      {
+        name: 'local',
+        adapterPath: '@genoacms/adapter-secrets-env',
+        adapter: import('@genoacms/adapter-secrets-env')
+      }
+    ]
+  },
+  security: {
+    // Roles and assignments declared here are authoritative: immutable at runtime, and merged when
+    // authorization is read rather than written into the manifests. Deleting one revokes it.
+    roles: {
+      Administrator: [{ permission: '*', resource: '*' }]
+    },
+    assignments: {
+      'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01': ['Administrator']
+    },
+    // Seeds the signed security policy document at first start; the live value lives there.
+    subordinateKeyRotationDays: 90
   },
   database: {
     adapter: import('@genoacms/adapter-aws/database'),

@@ -10,7 +10,7 @@
   const properties = $derived(extractDocumentProperties(collectionReference, { preview: true }))
 </script>
 
-<div class="bg-light dark:bg-transparent text-start flex border-b border-s border-dark dark:border-light px-4">
+<div class="bg-surface-100-900/40 text-start flex border-b border-s border-surface-200-800 px-4 py-2 font-medium text-xs">
     {#each properties as property (property.name)}
         <div class="flex-grow w-full">
             {property.name}

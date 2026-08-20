@@ -14,29 +14,195 @@ This service is responsible for checking whether the user is who they claim to b
 authentication: {
     providers: AuthenticationProvider[]
     cookieName: string
-    JWTSecret: string
 }
 ```
 
 :::info[Ensure cookie name is valid]
-Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid breaking auth, set the cookie name to a value that is not stripped.
+Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid
+breaking auth, set the cookie name to a value that is not stripped.
+
+On **Firebase Hosting** and behind **Google Cloud CDN**, only a cookie named `__session` reaches the
+backend:
+
+```ts
+authentication: {
+    cookieName: '__session'
+}
+```
+
+Getting this wrong does not fail loudly. Sign-in works, and then every renewal is dropped, so users
+are signed out roughly every `accessTokenMinutes` with nothing in the logs to explain it.
+
+GenoaCMS keeps the whole session — access token, refresh token, and the family it belongs to — in
+this **one** cookie, so a host that forwards a single cookie is enough. It stays well inside the
+4096-byte limit.
 :::
 
-:::warning[Change JWT secret]
-To reduce risk of token compromise, set the JWT secret to have unique value.
+:::note[There is no session secret to configure]
+Session tokens are signed with a key derived from the root signing seed, so nothing stores or
+configures it. Rotating the root therefore signs everyone out — which is intended, since the root is
+rotated when it may have been exposed.
 :::
 
-## Authorization
+:::note[Authorization is not a service]
+Authorization used to be a service with cloud adapters, on the assumption that a deployment could
+inherit access control from its cloud platform's IAM. It has been removed. Cloud IAM can grant
+"read bucket X"; it cannot express which collections or which fields a principal may reach, it
+would require a cloud identity for every copywriter and translator, and permissions such as
+`pages:publish` have no meaning outside GenoaCMS.
 
-This service is responsible for checking whether the user has permission to access GenoaCMS. In current state of GenoaCMS, it is just a simple check for user role.
+Authentication is federated because *"who are you?"* is a standardised question. Authorization
+answers *"what may you do in this application?"*, so it is a core module of GenoaCMS with no
+adapters and no configuration stanza.
+:::
+
+## Security
+
+Not a service — a plain configuration stanza. It declares the roles and role assignments the
+instance starts from, and the identities that can administer it.
 
 ### Config type
 
 ```ts
 authorization: {
-    providers: AuthorizationProvider[]
+    roles?: Record<string, Grant[]>
+    assignments?: Record<string, string[]>
+    lockRoles?: boolean
+}
+
+security: {
+    accessTokenMinutes?: number           // default 15
+    refreshTokenDays?: number             // default 14
+    grantCacheSeconds?: number            // default 30
+    subordinateKeyRotationDays?: number   // default 90
 }
 ```
+
+Two stanzas rather than one, because they behave oppositely: everything in `authorization` is
+**authority**, re-read on every resolution, while everything in `security` is a **seed** consumed
+once at first start.
+
+`roles` declares roles by name; `assignments` maps a **subject** to the roles it holds. A subject is
+the provider-issued identifier from the authentication service, never an email address.
+
+A new instance needs at least one assignment, or nobody can administer it:
+
+```ts
+authorization: {
+  roles: {
+    Administrator: [{ permission: '*', resource: '*' }]
+  },
+  assignments: {
+    'the-subject-of-your-first-administrator': ['Administrator']
+  }
+}
+```
+
+:::caution[Declarations are authoritative and immutable]
+What `genoa.config` declares cannot be changed through the CMS. Editing or deleting a declared role
+or assignment at runtime is **refused**, not silently reverted later.
+
+Both are resolved **without reading storage**, so they still apply on an instance whose stored
+authorization data is missing or cannot be trusted — which is what makes them the way back in.
+
+Removing a declaration removes it from the instance. Deleting a line here revokes the access it
+granted; it does not leave an editable copy behind.
+:::
+
+Runtime administration remains free to create roles and assignments that `genoa.config` does not
+name. Set `authorization.lockRoles` to `true` to disable runtime administration entirely, for an
+instance whose authorization should be fixed at deployment — it sits beside the declarations because
+it governs exactly them.
+
+`security.subordinateKeyRotationDays` sets how long a signing key stays current — see
+[key rotation](/guide/cli).
+
+:::note[These are seed values, not the live ones]
+The `security` stanza supplies the values a new instance starts from. They are then held in a signed document
+in the bucket ([`security/policy.json`](/guide/storage-layout)), which is what a running instance
+reads and what an administrator changes at runtime.
+
+Editing `genoa.config` afterwards therefore has no effect on an instance that has already started.
+:::
+
+## Secrets
+
+Service responsible for holding credentials that must not live in the primary storage bucket or in
+`genoa.config` — signing keys, the JWT secret, database and storage credentials.
+
+### Config type
+
+```ts
+secrets: {
+    providers: SecretProvider[]
+}
+```
+
+:::caution[Exactly one provider]
+Only one secret store may be configured. A secret store is a single authority: with two, a write has
+no defensible target, and a key present in one but not the other would make behaviour depend on
+lookup order.
+:::
+
+:::warning[The .env adapter is for development]
+`@genoacms/adapter-secrets-env` keeps secrets in plaintext in your project directory. Use a real
+secret manager in a deployment; the contract is identical, so only the configuration changes.
+:::
+
+### What GenoaCMS stores here
+
+| Key | Purpose |
+| :--- | :--- |
+| `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
+| `GENOACMS_SUBORDINATE_KEY_SEED_…` | One per signing key, named by its key id. |
+| `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key registry being restored. |
+
+GenoaCMS creates all of these itself. Nothing here has to be set by hand.
+
+:::note[Subordinate seeds accumulate]
+Keys rotate on an interval, so a new `GENOACMS_SUBORDINATE_KEY_SEED_…` appears each time. A seed is
+only needed to *sign*, so seeds for superseded keys can be removed — the public key stays in
+`.genoacms/keys/public.json`, and everything that key signed keeps verifying. Removing the seed of
+the **current** key breaks signing until the next rotation, so check
+[`keys/public.json`](/guide/storage-layout) for which key is current before pruning.
+:::
+
+### The root signing key
+
+On first start GenoaCMS generates a **root trust anchor** — the key at the top of its signing chain
+— and stores its seed as `GENOACMS_ROOT_KEY_SEED`. A line naming the new key's id is written to the
+log when this happens:
+
+```
+[genoacms:signing] generated a new root trust anchor, keyId 9f2c41ab8d7e0355.
+```
+
+Only the seed is stored; the keypair is derived from it at startup. That keeps one short value in
+the secret manager rather than a multi-kilobyte key, and holding the seed is equivalent to holding
+the key, so nothing is given away by storing the smaller thing.
+
+:::caution[Back up the seed, and treat it as the key]
+Losing `GENOACMS_ROOT_KEY_SEED` means losing the trust anchor. GenoaCMS would generate a new one on
+the next start, and every consumer holding the old public key would then reject everything this
+instance signs — recoverable only by redeploying those consumers.
+
+Anyone who can read the seed can sign as your instance. It belongs in a secret manager with the same
+care as a production database credential, never in the repository.
+:::
+
+:::note[Starting several instances at once is safe]
+Instances that start together do not each generate a key. Creation is an atomic claim: exactly one
+wins, and the others wait briefly and adopt its key. An instance that cannot obtain a value fails to
+start rather than inventing its own — which would leave two instances signing with keys that
+disagree, invisible until a consumer rejected a legitimate artifact.
+
+If startup reports that a key was claimed but never given a value, an earlier instance died part-way
+through first-time setup. Delete the key from the secret store so it can be created again.
+:::
+
+To provision the key yourself instead of letting it be generated — for a multi-region deployment, or
+to keep the anchor under existing key management — write the seed to the secret store before first
+start. GenoaCMS generates one only when none is present.
 
 ## Database
 

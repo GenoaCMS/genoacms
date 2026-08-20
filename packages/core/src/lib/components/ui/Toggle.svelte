@@ -20,18 +20,18 @@
     <div class="relative">
         <input type="checkbox" bind:checked class="sr-only" {...rest} />
         <div
-            class="block bg-surface-300 w-10 h-6 rounded-full transition-colors duration-200 ease-in-out {checked
+            class="block bg-surface-300-700 w-10 h-6 rounded-full transition-colors duration-200 ease-in-out {checked
               ? 'bg-primary-500'
               : ''}"
         ></div>
         <div
-            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out {checked
+            class="dot absolute left-1 top-1 bg-surface-50-950 w-4 h-4 rounded-full transition-transform duration-200 ease-in-out {checked
               ? 'transform translate-x-4'
               : ''}"
         ></div>
     </div>
     {#if children}
-        <div class="ml-3 text-surface-900 font-medium">
+        <div class="ml-3 text-surface-950-50 font-medium">
             {@render children?.()}
         </div>
     {/if}

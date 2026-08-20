@@ -5,6 +5,7 @@
   import DeleteComponent from './DeleteComponent.svelte'
   import Editor from './Editor.svelte'
   import CommitComponent from './CommitComponent.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data }: { data: PageData } = $props()
   activityTracker.add({
@@ -24,12 +25,18 @@
     Component: {data.component.name}
   </h1>
   {#snippet right()}
-    <DeleteComponent uid={data.component.uid} name={data.component.name} />
-    <CommitComponent
-      componentId={data.component.uid}
-      {uncommitedCode}
-      code={data.componentDefinition.code}
-    />
+    <!-- Deleting destroys the source, so it is governed by the component's existence rather than by
+         authoring; committing signs and publishes an executable and is its own permission. -->
+    <PermissionGate permission="components:dynamic:manage">
+      <DeleteComponent uid={data.component.uid} name={data.component.name} />
+    </PermissionGate>
+    <PermissionGate permission="components:dynamic:commit">
+      <CommitComponent
+        componentId={data.component.uid}
+        {uncommitedCode}
+        code={data.componentDefinition.code}
+      />
+    </PermissionGate>
   {/snippet}
 </TopPanel>
 

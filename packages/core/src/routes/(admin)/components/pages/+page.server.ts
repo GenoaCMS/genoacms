@@ -1,13 +1,14 @@
 import type { PageServerLoad } from './$types'
 import {
-  uploadPageEntry, listOrCreatePageList
-} from '$lib/script/components/page/page.server'
+  saveUserPageStructure, listUserPages
+} from '$lib/script/components/page/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, redirect, type Actions } from '@sveltejs/kit'
 import { createPageEntry } from '$lib/script/components/page/entry'
 import { isString } from '$lib/script/utils'
 
-export const load: PageServerLoad = async () => {
-  const pages = listOrCreatePageList()
+export const load: PageServerLoad = async ({ locals }) => {
+  const pages = listUserPages(requireAuthContext(locals))
 
   return {
     pages
@@ -15,7 +16,8 @@ export const load: PageServerLoad = async () => {
 }
 
 export const actions = {
-  createPage: async ({ request }) => {
+  createPage: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
     const data = await request.formData()
     const name = data.get('name')
     const componentUID = data.get('componentUID')
@@ -24,7 +26,7 @@ export const actions = {
       name,
       componentUID
     })
-    await uploadPageEntry(page)
+    await saveUserPageStructure(ctx, page)
     return redirect(307, `pages/${name}`)
   }
 } satisfies Actions

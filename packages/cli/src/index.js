@@ -19,6 +19,12 @@ async function selectMode () {
             value: 'database',
             label: 'Configure database'
         }, {
+            value: 'roles',
+            label: 'Compose a role declaration'
+        }, {
+            value: 'rotate-root',
+            label: 'Rotate the root trust anchor'
+        }, {
             value: 'exit',
             label: 'Exit'
         }]
@@ -43,6 +49,16 @@ async function runMode(mode) {
         case 'database': {
             const database = (await import('./database.js')).default
             await database()
+            break
+        }
+        case 'roles': {
+            const roles = (await import('./roles.js')).default
+            await roles()
+            break
+        }
+        case 'rotate-root': {
+            const rotateRoot = (await import('./rotateRoot.js')).default
+            await rotateRoot()
             break
         }
         case 'exit':

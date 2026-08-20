@@ -23,7 +23,7 @@
     <h3 class="text-2xl font-bold">
       {node.name}
     </h3>
-    <span class="text-sm text-dark/70">
+    <span class="text-sm opacity-70">
       #{node.uid.substring(0, 5)}
     </span>
   <div class="ms-auto">

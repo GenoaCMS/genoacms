@@ -18,18 +18,18 @@
   function getPresetClass (p: string) {
     if (className.includes('preset-')) return '' // If class overrides the preset colors
     if (p === 'filled') return 'preset-filled-primary-500'
-    if (p === 'tonal') return 'preset-tonal-surface'
-    if (p === 'outlined') return 'preset-outlined-surface-300-700'
+    if (p === 'tonal') return 'preset-tonal'
+    if (p === 'outlined') return 'preset-outlined-surface-200-800'
     return 'preset-filled-primary-500'
   }
 </script>
 
 {#if rest.href}
-  <a class="btn {getPresetClass(preset)} {className}" {...rest}>
+  <a class="btn cursor-pointer {getPresetClass(preset)} {className}" {...rest}>
     {@render children?.()}
   </a>
 {:else}
-  <button class="btn {getPresetClass(preset)} {className}" {...rest}>
+  <button class="btn cursor-pointer {getPresetClass(preset)} {className}" {...rest}>
     {@render children?.()}
   </button>
 {/if}

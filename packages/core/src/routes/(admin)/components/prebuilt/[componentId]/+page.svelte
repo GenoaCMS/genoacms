@@ -13,6 +13,7 @@
   import AddAttribute from './AddAttribute.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
   import { updateComponent } from './update.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { tick } from 'svelte'
@@ -57,12 +58,16 @@
     {form.name}
   </div>
   {#snippet right()}
-    <DeleteComponent name={form.name} />
-    <ChangeName bind:name={form.name} onrename={submit} />
-    <Undo />
-    <Redo />
-    <AddAttribute onadd={addAttribute} />
-    <Submit />
+    <PermissionGate permission="components:prebuilt:register">
+      <DeleteComponent name={form.name} />
+    </PermissionGate>
+    <PermissionGate permission="components:prebuilt:modify">
+      <ChangeName bind:name={form.name} onrename={submit} />
+      <Undo />
+      <Redo />
+      <AddAttribute onadd={addAttribute} />
+      <Submit />
+    </PermissionGate>
   {/snippet}
 </TopPanel>
 

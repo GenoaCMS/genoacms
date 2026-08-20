@@ -28,8 +28,8 @@
       "types": "./src/index.d.ts"
     },
     "./authorization": {
-      "import": "./src/services/authorization/index.js",
-      "types": "./src/services/authorization/index.d.ts"
+      "import": "./src/authorization/permissions.js",
+      "types": "./src/authorization/permissions.d.ts"
     },
     "./authentication": {
       "import": "./src/services/authentication/index.js",
@@ -51,6 +51,10 @@
     },
     "./schemas": {
       "import": "./src/config/schemas.js"
+    },
+    "./secrets": {
+      "import": "./src/services/secrets/index.js",
+      "types": "./src/services/secrets/index.d.ts"
     },
     "./storage": {
       "import": "./src/services/storage/index.js",

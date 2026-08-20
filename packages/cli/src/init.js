@@ -121,7 +121,6 @@ async function prepareConfig (adapterSuite, authenticationAdapter) {
     const adapterSuitePackage = adapterSuiteToPackageName(adapterSuite)
     const authenticationAdapterPackage = authenticationAdapterToPackageName(authenticationAdapter)
     const preparedConfig = config.replace('%authentication-adapter%', authenticationAdapterPackage)
-        .replace('%authorization-adapter%', adapterSuitePackage + '/authorization')
         .replace('%database-adapter%', adapterSuitePackage + '/database')
         .replace('%storage-adapter%', adapterSuitePackage + '/storage')
     const workDir = process.cwd()
@@ -135,6 +134,9 @@ async function init () {
     const isNpmPackage = existsSync('package.json')
     if (!isNpmPackage) await initNpmProject()
     await installPackage('@genoacms/core')
+    // The .env secrets adapter is always installed: the config template references it, and a
+    // project cannot start without a secrets provider.
+    await installPackage('@genoacms/adapter-secrets-env')
     const adapterSuite = await selectAdapterSuite()
     await installAdapterSuite(adapterSuite)
     const authenticationAdapter = await selectAuthenticationAdapter()

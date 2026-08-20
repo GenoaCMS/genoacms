@@ -1,4 +1,5 @@
 import type { Adapter } from './adapter.d'
+import type { Identity } from './types.d'
 
 type AuthenticationProvider<Extension extends object = object> = Extension & {
   name: string
@@ -8,5 +9,6 @@ type AuthenticationProvider<Extension extends object = object> = Extension & {
 
 export type {
   Adapter,
-  AuthenticationProvider
+  AuthenticationProvider,
+  Identity
 }

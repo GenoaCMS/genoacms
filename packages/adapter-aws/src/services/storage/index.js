@@ -13,6 +13,7 @@ import {
   getSignedUrl as getSignedUrlFromS3
 } from '@aws-sdk/s3-request-presigner'
 import { config } from '@genoacms/cloudabstraction'
+import { PreconditionFailedError } from '@genoacms/cloudabstraction/storage'
 import { join } from 'path'
 
 const client = new S3Client({
@@ -44,7 +45,9 @@ async function getObject ({ bucket, name }) {
   try {
     const response = await client.send(command)
     return {
-      data: response.Body
+      data: response.Body,
+      // The etag comes back with the read, so a version costs nothing here.
+      version: response.ETag
     }
   } catch (err) {
     console.error(err)
@@ -87,7 +90,12 @@ async function isObjectExisting ({ bucket, name }) {
 /**
  * @type {Adapter.uploadObject}
  */
-async function uploadObject ({ bucket, name }, content) {
+async function uploadObject ({ bucket, name }, content, options) {
+  const { ifVersion, ifAbsent } = options ?? {}
+  if (ifVersion !== undefined || ifAbsent === true) {
+    return await uploadObjectConditionally({ bucket, name }, content, { ifVersion, ifAbsent })
+  }
+
   const upload = new Upload({
     client,
     params: {
@@ -102,6 +110,50 @@ async function uploadObject ({ bucket, name }, content) {
   } catch (err) {
     throw new Error('upload-failed')
   }
+}
+
+/**
+ * A conditional write goes through `PutObject` rather than the multipart uploader.
+ *
+ * The condition has to be evaluated against the object as a whole, and multipart evaluates it only
+ * at completion — after the parts have been uploaded. Every document written conditionally here is
+ * a small JSON manifest, so the single-request path costs nothing and keeps the semantics exact.
+ *
+ * @param {import('@genoacms/cloudabstraction/storage').ObjectReference} reference
+ * @param {any} content
+ * @param {{ ifVersion?: string, ifAbsent?: boolean }} conditions
+ */
+async function uploadObjectConditionally ({ bucket, name }, content, { ifVersion, ifAbsent }) {
+  const command = new PutObjectCommand({
+    ...bucketToCommandInput(bucket),
+    Key: name,
+    Body: content,
+    // '*' matches any existing object, so requiring it to be absent is `IfNoneMatch: '*'`.
+    ...(ifAbsent === true ? { IfNoneMatch: '*' } : {}),
+    ...(ifVersion === undefined ? {} : { IfMatch: ifVersion })
+  })
+
+  try {
+    await client.send(command)
+  } catch (err) {
+    if (isPreconditionFailure(err)) {
+      throw new PreconditionFailedError({ bucket, name }, ifAbsent === true
+        ? 'object already exists'
+        : 'object changed since it was read')
+    }
+    throw err
+  }
+}
+
+/**
+ * S3 answers a failed `IfMatch` with 412, and a failed `IfNoneMatch` with 412 or 409 depending on
+ * whether the conflict was detected before or during the write.
+ *
+ * @param {unknown} error
+ */
+function isPreconditionFailure (error) {
+  const status = /** @type {{ $metadata?: { httpStatusCode?: number } }} */ (error)?.$metadata?.httpStatusCode
+  return status === 412 || status === 409
 }
 
 /**

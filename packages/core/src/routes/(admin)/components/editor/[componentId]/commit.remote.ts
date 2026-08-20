@@ -1,5 +1,6 @@
-import { form } from '$app/server'
-import { commitComponentDefinition } from '$lib/script/components/editor'
+import { form, getRequestEvent } from '$app/server'
+import { commitUserComponentDefinition } from '$lib/script/components/editor/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { ComponentDiffError } from '$lib/script/components/editor/errors'
 import { validator } from '@exodus/schemasafe'
 import { componentCommitOrderSchema } from '$lib/script/components/editor/schemas'
@@ -12,7 +13,8 @@ export const commitComponentRemote = form('unchecked', async (data: { componentI
   if (!isValid) return { status: 'fail', text: 'Invalid data' }
 
   try {
-    await commitComponentDefinition(data)
+    const ctx = requireAuthContext(getRequestEvent().locals)
+    await commitUserComponentDefinition(ctx, data)
   } catch (e: any) {
     console.log(e)
     if (e instanceof ComponentDiffError) return { status: 'fail', text: e.message }

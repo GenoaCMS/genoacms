@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Modal, Button, Input, Label, } from '$lib/components/ui/index'
-  import Portal from '$lib/components/Portal.svelte'
+  import { Modal, Button, Input, Label } from '$lib/components/ui/index'
   import { createComponent } from './create.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { goto } from '$app/navigation'
@@ -31,22 +30,20 @@
   <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"></i>
 </button>
 
-<Portal>
-  <Modal title="Register a new component" bind:open={isModalOpen}>
-    <div class="flex w-3/4 mx-auto">
-      <form
-        onsubmit={(e) => {
-          e.preventDefault()
-          submit()
-        }}
-        class="w-full"
-      >
-        <Label class="text-xl">
-          Component name:
-          <Input type="text" class="w-full" name="name" bind:value={name} />
-        </Label>
-        <Button preset="tonal" class="w-full mt-2" type="submit">Create</Button>
-      </form>
-    </div>
-  </Modal>
-</Portal>
+<Modal title="Register a new component" bind:open={isModalOpen}>
+  <div class="w-full">
+    <form
+      onsubmit={(e) => {
+        e.preventDefault()
+        submit()
+      }}
+      class="w-full space-y-3"
+    >
+      <Label class="text-sm">
+        Component name:
+        <Input type="text" class="w-full mt-1" name="name" bind:value={name} required />
+      </Label>
+      <Button preset="filled" class="w-full mt-4" type="submit">Create</Button>
+    </form>
+  </div>
+</Modal>

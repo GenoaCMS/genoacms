@@ -37,6 +37,23 @@ interface BucketInit {
   providerName: string
 }
 
+/**
+ * Raised when a conditional write (`ifVersion` / `ifAbsent`) was refused because the object was not
+ * in the expected state. An ordinary outcome of losing a race, not a fault.
+ */
+declare class PreconditionFailedError extends Error {
+  readonly reference: import('./types.d.ts').ObjectReference
+  readonly reason: string
+  constructor (reference: import('./types.d.ts').ObjectReference, reason: string)
+}
+
+declare function isPreconditionFailed (error: unknown): boolean
+
+export {
+  PreconditionFailedError,
+  isPreconditionFailed
+}
+
 export type {
   Adapter,
   StorageProvider,

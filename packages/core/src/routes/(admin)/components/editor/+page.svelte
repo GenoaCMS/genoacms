@@ -3,6 +3,7 @@
   import Grid from '$lib/components/Grid.svelte'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import CreateComponent from './CreateComponent.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data } = $props()
 </script>
@@ -10,7 +11,10 @@
 <TopPanel>
   <h1 class="text-2xl">Component editor</h1>
   {#snippet right()}
-    <CreateComponent />
+    <!-- Bringing a coded component into being, which is what the editor service demands. -->
+    <PermissionGate permission="components:dynamic:manage">
+      <CreateComponent />
+    </PermissionGate>
   {/snippet}
 </TopPanel>
 

@@ -1,11 +1,16 @@
-import { error, type Load } from '@sveltejs/kit'
-import { getComponent, getComponentDefiniton } from '$lib/script/components/editor'
+import { error } from '@sveltejs/kit'
+import { getUserComponent, getUserComponentDefinition } from '$lib/script/components/editor/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 
-export const load: Load = async ({ params }) => {
+export const load = async ({ params, locals }) => {
+  const ctx = requireAuthContext(locals)
   const componentId = params.componentId
-  if (!componentId || typeof componentId !== 'string') return error(404)
-  const component = await getComponent(componentId)
-  const componentDefinition = await getComponentDefiniton(component.uid)
+  if (typeof componentId !== 'string' || componentId.length === 0) return error(404)
+
+  // Reading the definition is what needs `view_code`; the component record itself is catalogue
+  // information, so the two are fetched through their own checks rather than one broad read.
+  const component = await getUserComponent(ctx, componentId)
+  const componentDefinition = await getUserComponentDefinition(ctx, component.uid)
 
   return {
     component,

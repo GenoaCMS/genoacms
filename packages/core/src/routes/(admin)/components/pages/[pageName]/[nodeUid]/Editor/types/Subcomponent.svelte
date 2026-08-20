@@ -21,7 +21,7 @@
 <Card class="p-3 mt-1">
   <div class="flex flex-wrap items-center gap-6">
     <div class="me-auto">
-      {node.name} <span class="text-xs text-dark/70">#{node.uid.substring(0, 5)}</span>
+      {node.name} <span class="text-xs opacity-70">#{node.uid.substring(0, 5)}</span>
     </div>
     <div class="ms-auto flex gap-6">
       <a href={node.uid} aria-label="Edit">

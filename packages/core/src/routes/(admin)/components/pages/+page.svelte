@@ -3,6 +3,7 @@
   import Page from './Page.svelte'
   import Grid from '$lib/components/Grid.svelte'
   import CreatePage from './CreatePage.svelte'
+  import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data } = $props()
 </script>
@@ -12,7 +13,10 @@
         Pages
     </h1>
     {#snippet right()}
-        <CreatePage components={data.componentSchemas}/>
+        <!-- Creating a page writes its structure. -->
+        <PermissionGate permission="pages:structure_edit">
+            <CreatePage components={data.componentSchemas}/>
+        </PermissionGate>
     {/snippet}
 </TopPanel>
 

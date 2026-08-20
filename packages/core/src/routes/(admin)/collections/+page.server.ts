@@ -1,7 +1,9 @@
-import { getCollectionReferences } from '$lib/script/database/database.server'
+import { getUserCollectionReferences } from '$lib/script/database/user.server'
+import { requireAuthContext } from '$lib/script/authorization/request.server'
 
-export async function load () {
-  const collectionReferences = getCollectionReferences()
+export async function load ({ locals }) {
+  // Filtered to what this principal may read, so navigation offers nothing that would be denied.
+  const collectionReferences = getUserCollectionReferences(requireAuthContext(locals))
   return {
     collectionReferences
   }

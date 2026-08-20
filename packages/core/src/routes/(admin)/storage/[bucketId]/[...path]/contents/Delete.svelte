@@ -33,7 +33,7 @@
 
 {#if isPossible}
   <button type="submit" form="delete-form" aria-label="Delete" class="h-full flex items-center px-3">
-    <i class="bi bi-trash3 text-2xl hover:text-red-500 transition-all"></i>
+    <i class="bi bi-trash3 text-2xl hover:text-error-500 transition-all"></i>
   </button>
 {/if}
 
