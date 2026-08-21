@@ -26,14 +26,20 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
+  /**
+   * The components this slot will accept.
+   *
+   * An **absent** `items.enum` means "any component", the same as an empty one. Unset constraints are
+   * omitted rather than written as an empty value, so a slot declared without a component list has no
+   * `enum` key at all — and reading `.length` off it threw, taking the editor down.
+   */
   const getPossibleSubcomponents = (
     components: Array<ComponentEntry>,
     dataSchema: Schema
   ) => {
-    if ((dataSchema as any).items.enum.length === 0) return components
-    return components.filter((component) =>
-      (dataSchema as any).items.enum.includes(component.name)
-    )
+    const allowed = (dataSchema as any).items?.enum
+    if (!Array.isArray(allowed) || allowed.length === 0) return components
+    return components.filter((component) => allowed.includes(component.name))
   }
   const addComponent = () => {
     isModalOpen = false
