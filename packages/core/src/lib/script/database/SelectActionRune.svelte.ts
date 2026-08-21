@@ -1,43 +1,18 @@
-import selection, { type SelectionParameters } from './SelectionRune.svelte'
-import { ITC } from '$lib/script/utils'
+import { SelectAction, type SelectionInitData } from '$lib/script/selection/SelectAction.svelte'
+import selection, { type SelectionParameters, type DocumentReference } from './SelectionRune.svelte'
 
-type DocumentReference = Array<string | number>
-interface SelectionInitData {
-  parameters: SelectionParameters,
-  defaultValue: Array<DocumentReference> | undefined
-}
-
-class SelectActionRune {
-  #itc: ITC
-  #isActive: boolean = $state(false)
+/**
+ * The collection browser's half of a selection window.
+ *
+ * Nothing is forced here: a document list holds one kind of thing, so there is no counterpart to
+ * storage's refusal of directories.
+ */
+class SelectActionRune extends SelectAction<DocumentReference, SelectionParameters> {
   constructor (selectionId: string | null) {
-    if (!selectionId) return
-    this.#isActive = true
-    this.#itc = new ITC(selectionId)
-    this.#init()
-  }
-
-  get isActive () {
-    return this.#isActive
-  }
-
-  async #init () {
-    this.#itc.send('selectionInit')
-    const initData = await this.#itc.once('selectionInitData') as SelectionInitData
-    selection.setParameters(initData.parameters)
-    selection.load(initData.defaultValue)
-  }
-
-  async submit () {
-    if (!this.#isActive) return
-    this.#itc.send('selectionDone', selection.value)
-    await this.#itc.once('selectionKill')
-    window.close()
+    super(selectionId, selection)
   }
 }
 
-export type {
-  SelectionInitData,
-  SelectActionRune
-}
+export type { SelectionInitData }
+export { SelectActionRune }
 export default SelectActionRune

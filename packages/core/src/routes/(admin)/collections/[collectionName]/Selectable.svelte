@@ -13,12 +13,12 @@
     const selectAction: SelectActionRune = getContext('select')
     // Documents are only selectable while a picker is open: there is no bulk action on the list
     // itself, so a checkbox outside that flow would select towards nothing.
-    const canSelect = $derived(selectAction.isActive && selection.canSelect)
+    const canSelect = $derived(selectAction.isActive && selection.canSelectMore)
 </script>
 
 <SelectionCheckbox
   isSelected={selection.isSelected(id)}
-  onselect={() => selection.select(id)}
+  onselect={() => selection.toggle(id)}
   label="Select {id}"
   {canSelect}
 >

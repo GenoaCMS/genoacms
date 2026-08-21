@@ -23,7 +23,7 @@
       }
       selectionAddition.push(reference)
     }
-    selection.bulkSelect(selectionAddition)
+    selection.selectAll(selectionAddition)
   }
   function submitSelectAction () {
     selectAction.submit()

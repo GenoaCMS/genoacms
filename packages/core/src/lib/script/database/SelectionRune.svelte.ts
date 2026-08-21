@@ -31,11 +31,13 @@ class DocumentSelection {
     return this.#selection.isEmpty
   }
 
-  get canSelect (): boolean {
+  /** Whether there is room for another, which is the only limit a document list has. */
+  get canSelectMore (): boolean {
     return this.#selection.canSelectMore
   }
 
-  select (reference: DocumentReference): void {
+  /** Selects, or deselects when already selected. */
+  toggle (reference: DocumentReference): void {
     this.#selection.toggle(reference)
   }
 

@@ -19,7 +19,7 @@
 
 <SelectionCheckbox
   isSelected={selection.isSelected(reference)}
-  onselect={() => selection.select(reference)}
+  onselect={() => selection.toggle(reference)}
   label="select-{name}"
   canSelect={!isDirectory || selection.allowDirectories}
 >

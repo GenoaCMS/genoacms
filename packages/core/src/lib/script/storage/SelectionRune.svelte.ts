@@ -47,7 +47,10 @@ class StorageSelection {
     return this.#selection.isEmpty
   }
 
-  get canSelect (): boolean {
+  /** Whether there is room for another. Not whether a given item may be selected — that is the
+   *  `canSelect` rule passed to the core, and conflating the two is why this is named for the
+   *  question it actually answers. */
+  get canSelectMore (): boolean {
     return this.#selection.canSelectMore
   }
 
@@ -69,11 +72,12 @@ class StorageSelection {
     return { directories, files }
   }
 
-  select (reference: ObjectReference): void {
+  /** Selects, or deselects when already selected. */
+  toggle (reference: ObjectReference): void {
     this.#selection.toggle(reference)
   }
 
-  bulkSelect (references: ObjectReference[]): void {
+  selectAll (references: ObjectReference[]): void {
     this.#selection.selectAll(references)
   }
 
