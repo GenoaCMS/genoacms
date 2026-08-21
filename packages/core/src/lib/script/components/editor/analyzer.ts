@@ -19,19 +19,58 @@ interface AttributeCodeType {
 
 /**
  * Type arguments in component code are optional and positional, so any of them
- * may be absent. "Not set" is null rather than undefined because these objects
- * are JSON-serialised before being validated and stored, and JSON.stringify
- * drops undefined keys — which would fail the required fields in
- * componentEntrySchema.
+ * may be absent.
+ *
+ * "Not set" is expressed by **omitting the key**. Neither alternative
+ * works: `null` canonicalizes to different bytes from an absent key, so two
+ * equivalent attributes would sign differently, and `undefined` is refused
+ * outright by the signer, which insists omission be a deliberate act rather
+ * than a dropped member.
+ *
+ * `parseFloat` was used here and is not safe for this: a missing argument
+ * yields `NaN`, which JSON cannot represent at all.
  */
-function optionalNumber (raw: string | undefined): number | null {
-  if (raw === undefined || raw.trim() === '') return null
+function optionalNumber (raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.trim() === '') return undefined
   const parsed = Number(raw)
-  return Number.isNaN(parsed) ? null : parsed
+  return Number.isNaN(parsed) ? undefined : parsed
 }
 
-function optionalString (raw: string | undefined): string {
-  return raw?.trim() ?? ''
+function optionalString (raw: string | undefined): string | undefined {
+  const trimmed = unquote(raw?.trim())
+  // An empty argument is an unsupplied one. Storing '' would be a second way to
+  // say "unset" beside omission, and two ways to say it is the ambiguity
+  // that makes two equivalent attributes sign differently.
+  return trimmed === undefined || trimmed === '' ? undefined : trimmed
+}
+
+/**
+ * The value of a string type argument, without the quotes that delimit it.
+ *
+ * The argument text arrives as it was written — `"hello"`, six characters — so
+ * storing it verbatim put the quotes inside the value. A default then rendered
+ * as `"hello"` and `ComponentsAttribute<"Card", 3, "Card|Hero">` yielded the
+ * allowed components `"Card` and `Hero"`, neither of which matches a component.
+ *
+ * Longstanding, and invisible until the shape came under a signature: what is
+ * signed is the value, so a stray quote is a different document.
+ */
+function unquote (raw: string | undefined): string | undefined {
+  if (raw === undefined || raw.length < 2) return raw
+  const first = raw[0]
+  const isQuoted = (first === '"' || first === "'" || first === '`') && raw.endsWith(first)
+  return isQuoted ? raw.slice(1, -1) : raw
+}
+
+/**
+ * A schema key, present only when its argument was supplied.
+ *
+ * Spread into the meta-schema so that an absent argument leaves no trace. The
+ * mapped return type keeps the key optional, so the result still satisfies the
+ * meta-schema interface.
+ */
+function optional<K extends string, T> (key: K, value: T | undefined): { [P in K]?: T } {
+  return (value === undefined ? {} : { [key]: value }) as { [P in K]?: T }
 }
 
 // every attribute's meta-schema carries the fields the editor's shared header
@@ -88,14 +127,15 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
       return {
         ...attributeBase,
         type: 'number',
-        decimalPlaces: optionalNumber(attributeType.arguments[3]) ?? 0,
         schema: {
           ...metaBase,
           type: 'number',
-          minimum: optionalNumber(attributeType.arguments[0]),
-          maximum: optionalNumber(attributeType.arguments[1]),
-          multipleOf: optionalNumber(attributeType.arguments[2]),
-          default: optionalNumber(attributeType.arguments[4])
+          ...optional('minimum', optionalNumber(attributeType.arguments[0])),
+          ...optional('maximum', optionalNumber(attributeType.arguments[1])),
+          ...optional('multipleOf', optionalNumber(attributeType.arguments[2])),
+          // display precision, which multipleOf does not express
+          ...optional('decimalPlaces', optionalNumber(attributeType.arguments[3])),
+          ...optional('default', optionalNumber(attributeType.arguments[4]))
         }
       }
     case 'StringAttribute':
@@ -105,9 +145,9 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
         schema: {
           ...metaBase,
           type: 'string',
-          pattern: optionalString(attributeType.arguments[0]),
-          maxLength: optionalNumber(attributeType.arguments[1]),
-          default: optionalString(attributeType.arguments[2])
+          ...optional('pattern', optionalString(attributeType.arguments[0])),
+          ...optional('maxLength', optionalNumber(attributeType.arguments[1])),
+          ...optional('default', optionalString(attributeType.arguments[2]))
         }
       }
     case 'TextAttribute':
@@ -117,8 +157,8 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
         schema: {
           ...metaBase,
           type: 'string',
-          maxLength: optionalNumber(attributeType.arguments[0]),
-          default: optionalString(attributeType.arguments[1])
+          ...optional('maxLength', optionalNumber(attributeType.arguments[0])),
+          ...optional('default', optionalString(attributeType.arguments[1]))
         }
       }
     case 'MarkdownAttribute':
@@ -129,7 +169,7 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
           ...metaBase,
           type: 'string',
           format: 'markdown',
-          default: optionalString(attributeType.arguments[0])
+          ...optional('default', optionalString(attributeType.arguments[0]))
         }
       }
     case 'RichTextAttribute':
@@ -139,7 +179,7 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
         schema: {
           ...metaBase,
           type: 'string',
-          default: optionalString(attributeType.arguments[0])
+          ...optional('default', optionalString(attributeType.arguments[0]))
         }
       }
     case 'LinkAttribute':
@@ -155,20 +195,22 @@ function parameterToAttribute (parameterNode: ParameterDeclaration): Attribute {
         schema: storageResourcesMetaSchema(metaBase)
       }
     case 'ComponentsAttribute': {
-      const allowedComponents = optionalString(attributeType.arguments[2])
+      // The first argument named the accepted component and nothing read it;
+      // items.enum carries that now.
+      const allowedComponents = (optionalString(attributeType.arguments[2]) ?? '')
         .split('|')
         .filter((component) => component !== '')
       return {
         ...attributeBase,
         type: 'components',
-        component: optionalString(attributeType.arguments[0]),
-        maxComponents: optionalNumber(attributeType.arguments[1]) ?? 0,
-        allowedComponents,
         schema: {
           ...metaBase,
           type: 'array',
-          items: { type: 'string', enum: allowedComponents },
-          maxItems: optionalNumber(attributeType.arguments[1])
+          items: {
+            type: 'string',
+            ...optional('enum', allowedComponents.length === 0 ? undefined : allowedComponents)
+          },
+          ...optional('maxItems', optionalNumber(attributeType.arguments[1]))
         }
       }
     }

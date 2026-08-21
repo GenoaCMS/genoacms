@@ -11,10 +11,15 @@ import type {
  * Starting meta-schemas for attributes added by hand in the prebuilt component
  * editor.
  *
- * Unset numeric constraints are null, not undefined. These objects are
- * JSON-serialised before being validated against componentEntrySchema and
- * stored, and JSON.stringify drops undefined keys — which fails the required
- * fields those schemas declare. attributeInits.test.ts guards this.
+ * An unset constraint is **omitted**, never null. Under RFC 8785,
+ * JCS({"minimum": null}) and JCS({}) are different byte streams and therefore
+ * different digests, so a client SDK that drops nulls and one that preserves
+ * them would disagree on every signature.
+ *
+ * This file previously did the opposite, because the schemas marked those keys
+ * required and JSON.stringify drops undefined. The schemas no longer require
+ * them and no longer accept null, so omission is now both possible and the only
+ * thing that validates. attributeInits.test.ts guards it in that direction.
  */
 
 const booleanSchemaInit = {
@@ -29,19 +34,13 @@ const numberSchemaInit = {
   type: 'number',
   title: '',
   description: '',
-  minimum: null,
-  maximum: null,
-  multipleOf: null,
-  required: false,
-  default: null
+  required: false
 }
 
 const stringSchemaInit: StringMetaSchema = {
   type: 'string',
   title: '',
   description: '',
-  minLength: null,
-  maxLength: null,
   pattern: '',
   format: '',
   required: false,
@@ -64,8 +63,6 @@ const linksSchemaInit: LinksMetaSchema = {
   description: '',
   items: linkSchemaInit,
   default: [],
-  minItems: null,
-  maxItems: null,
   required: false
 }
 
@@ -84,8 +81,6 @@ const storageResourcesSchemaInit: StorageResourcesMetaSchema = {
   description: '',
   items: storageResourceSchemaInit,
   default: [],
-  minItems: null,
-  maxItems: null,
   required: false
 }
 
@@ -98,8 +93,6 @@ const componentsSchemaInit = {
     enum: []
   },
   default: [],
-  minItems: null,
-  maxItems: null,
   required: false
 }
 

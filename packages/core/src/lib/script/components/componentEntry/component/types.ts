@@ -37,30 +37,42 @@ interface BooleanMetaSchema {
   title: string,
   description: string,
   required: boolean,
-  default: boolean,
+  default?: boolean,
 }
 
 interface NumberMetaSchema {
   type: 'number',
   title: string,
   description: string,
-  minimum?: number | null,
-  maximum?: number | null,
-  multipleOf?: number | null,
+  minimum?: number,
+  maximum?: number,
+  multipleOf?: number,
+  /**
+   * Display precision — a non-standard keyword, kept deliberately.
+   *
+   * Not a duplicate of `multipleOf`, which constrains the *value*: a component may accept any real
+   * number and still wish to render two decimals, so a step of 0.01 and a precision of 2 are
+   * different statements that can legitimately disagree. Deriving one from the other would silently
+   * change rendering for any component that set a step without a precision.
+   *
+   * It lives here rather than beside the schema so there is one place per fact. JSON Schema permits
+   * unknown keywords and JCS canonicalizes any JSON, so nothing downstream is harmed.
+   */
+  decimalPlaces?: number,
   required: boolean,
-  default: number | null
+  default?: number
 }
 
 interface StringMetaSchema {
   type: 'string',
   title: string,
   description: string,
-  minLength?: number | null,
-  maxLength?: number | null,
+  minLength?: number,
+  maxLength?: number,
   pattern?: string,
   format?: string,
   required: boolean,
-  default: string
+  default?: string
 }
 
 interface ExternalLink {
@@ -96,9 +108,9 @@ interface LinksMetaSchema {
   title: string,
   description: string,
   items: LinkMetaSchema,
-  default?: Array<LinkAttributeValue> | null,
-  minItems?: number | null,
-  maxItems?: number | null,
+  default?: Array<LinkAttributeValue>,
+  minItems?: number,
+  maxItems?: number,
   required: boolean
 }
 
@@ -120,9 +132,9 @@ interface StorageResourcesMetaSchema {
   title: string,
   description: string,
   items: StorageResourceMetaSchema,
-  default?: Array<StorageObject> | null,
-  minItems?: number | null,
-  maxItems?: number | null,
+  default?: Array<StorageObject>,
+  minItems?: number,
+  maxItems?: number,
   required: boolean
 }
 
@@ -134,9 +146,9 @@ interface ComponentsAttributeMetaSchema {
     type: 'string',
     enum?: Array<string>
   },
-  default?: Array<string> | null,
-  minItems?: number | null,
-  maxItems?: number | null,
+  default?: Array<string>,
+  minItems?: number,
+  maxItems?: number,
   required: boolean
 }
 
@@ -147,8 +159,7 @@ interface BooleanAttribute extends AttributeBase {
 
 interface NumberAttribute extends AttributeBase {
   type: NumberAttributeType,
-  schema: NumberMetaSchema,
-  decimalPlaces: number
+  schema: NumberMetaSchema
 }
 
 interface StringAttribute extends AttributeBase {
@@ -183,11 +194,11 @@ interface StorageResourceAttribute extends AttributeBase {
   schema: StorageResourcesMetaSchema
 }
 
+// maxComponents and allowedComponents lived here alongside maxItems and
+// items.enum, which say the same things; component named the accepted component
+// and nothing read it. All three are gone
 interface ComponentsAttribute extends AttributeBase {
   type: ComponentsAttributeType,
-  component: string,
-  maxComponents: number,
-  allowedComponents: Array<string>,
   schema: ComponentsAttributeMetaSchema
 }
 

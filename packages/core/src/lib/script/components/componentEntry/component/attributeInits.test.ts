@@ -13,7 +13,7 @@ import {
   componentsAttributeSchema,
   componentEntrySchema
 } from './schemas'
-import type { Schema } from '@exodus/schemasafe'
+import type { Json, Schema } from '@exodus/schemasafe'
 import type { AttributeType, ComponentType } from './types'
 
 const attributeSchemaByType: Record<AttributeType, Schema> = {
@@ -30,11 +30,11 @@ const attributeSchemaByType: Record<AttributeType, Schema> = {
 
 /** what AddAttribute.add() hands to onadd */
 function buildAttribute (type: AttributeType, schema: object) {
-  return { uid: 'test-uid', type, schema }
+  return { uid: 'test-uid', name: 'test-uid', type, schema }
 }
 
 /** everything is JSON-serialised before validation and storage */
-function roundTrip<T> (value: T): T {
+function roundTrip (value: unknown): Json {
   return JSON.parse(JSON.stringify(value))
 }
 
@@ -47,31 +47,45 @@ describe('attribute inits', () => {
     }
   )
 
-  // Regression guard. Unset numeric constraints must be null rather than
-  // undefined: JSON.stringify drops undefined keys, and the meta-schemas list
-  // several of those keys as required, so the attribute silently fails
-  // validation on save with "Invalid data".
+  // Regression guard, since inverted. An unset constraint must be *absent*:
+  // JCS({"minimum": null}) and JCS({}) are different byte streams, so admitting
+  // both shapes would mean two entries meaning the same thing sign differently.
   it.each(attributeTypeInits)(
-    'a new $name attribute keeps every key through JSON serialisation',
+    'a new $name attribute names no unset constraint at all',
     ({ schema }) => {
-      expect(Object.keys(roundTrip(schema))).toEqual(Object.keys(schema))
+      const unset = ['minimum', 'maximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems']
+      expect(Object.keys(roundTrip(schema) as object).filter(key => unset.includes(key))).toEqual([])
     }
   )
 
-  it('rejects a number attribute whose unset fields are undefined', () => {
+  it('rejects a number attribute whose unset fields are null', () => {
     const validate = validator(numberAttributeSchema)
-    const withUndefined = buildAttribute('number', {
+    const withNulls = buildAttribute('number', {
       type: 'number',
       title: 'MustNum',
       description: '',
       minimum: -2,
       maximum: 3,
-      multipleOf: undefined,
+      multipleOf: null,
       required: false,
-      default: undefined
+      default: null
     })
-    // proves the failure mode is real rather than hypothetical
-    expect(validate(roundTrip(withUndefined))).toBe(false)
+    // Proves the boundary really refuses null, rather than the inits merely
+    // happening not to write one. Without this the rule would rest on habit.
+    expect(validate(roundTrip(withNulls))).toBe(false)
+  })
+
+  it('rejects an attribute carrying a flat sibling the schema already expresses', () => {
+    // The other half of the rule: one place per fact. additionalProperties: false is
+    // what stops a producer quietly reintroducing the duplication.
+    const validate = validator(componentsAttributeSchema)
+    const withSibling = {
+      ...buildAttribute('components', {
+        type: 'array', title: 't', description: '', items: { type: 'string' }, required: false
+      }),
+      maxComponents: 3
+    }
+    expect(validate(roundTrip(withSibling))).toBe(false)
   })
 })
 

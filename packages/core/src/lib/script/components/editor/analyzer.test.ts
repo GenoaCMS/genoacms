@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { validator } from '@exodus/schemasafe'
 import { componentCodeToEntry } from './analyzer'
 import { ComponentCodeError } from './errors'
+import { componentEntrySchema } from '../componentEntry/component/schemas'
+import { attributeTypeInits } from '../componentEntry/component/attributeInits'
+import { digest } from '$lib/script/signing/canonical'
+import type { JsonValue } from '$lib/script/signing/canonical'
 import type { ComponentEntry } from '../componentEntry/component/types'
 
 /**
@@ -107,5 +112,81 @@ describe('componentCodeToEntry', () => {
     `)
     const second = analyse('function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
     expect(Object.keys(second.attributes)).toEqual(['heading'])
+  })
+
+  /**
+   * The attribute shape, at the producer.
+   *
+   * The analyzer is one of two things that build an attribute; `attributeInits`
+   * is the other. Both must produce the same shape, because a signature is over
+   * bytes and an attribute that differs by one absent key is a different
+   * document.
+   */
+  describe('the shape it writes', () => {
+    it('omits a constraint whose argument was not supplied', () => {
+      // Not null, and not NaN. `parseFloat` of a missing argument used to yield
+      // NaN, which JSON cannot represent at all.
+      //
+      // Declared without generics, which is how a type reaches the analyzer
+      // with no arguments — the case the file header describes.
+      const entry = componentCodeToEntry(
+        'Component',
+        'interface NumberAttribute { _brand: 0 }\nfunction Component (n: NumberAttribute) {}',
+        emptyEntry('Component')
+      )
+      const schema = entry.attributes.n.schema as unknown as Record<string, unknown>
+
+      expect(schema).not.toHaveProperty('minimum')
+      expect(schema).not.toHaveProperty('maximum')
+      expect(schema).not.toHaveProperty('multipleOf')
+      expect(schema).not.toHaveProperty('default')
+    })
+
+    it('writes a constraint that was supplied', () => {
+      const entry = analyse('function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
+
+      expect(entry.attributes.n.schema).toMatchObject({
+        minimum: 0, maximum: 10, multipleOf: 1, decimalPlaces: 2, default: 5
+      })
+    })
+
+    it('carries no flat sibling beside the schema', () => {
+      // maxComponents, allowedComponents and component all said what the schema
+      // says. Two representations inside a signed payload can disagree.
+      const entry = analyse('function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
+      const attribute = entry.attributes.i as unknown as Record<string, unknown>
+
+      expect(Object.keys(attribute).sort()).toEqual(['name', 'schema', 'type', 'uid'])
+      expect(attribute.schema).toMatchObject({
+        maxItems: 3, items: { type: 'string', enum: ['Card', 'Hero'] }
+      })
+    })
+
+    it('produces entries the boundary accepts', () => {
+      // The same schema the prebuilt editor's output is validated against, so
+      // the two producers are held to one standard rather than two.
+      const entry = analyse(`
+        function Component (
+          a: BooleanAttribute<true>,
+          b: NumberAttribute<0, 10, 1, 2, 5>,
+          c: StringAttribute<".*", 120, "hi">,
+          i: ComponentsAttribute<"Card", 3, "Card|Hero">
+        ) {}
+      `)
+
+      expect(validator(componentEntrySchema)(JSON.parse(JSON.stringify(entry)))).toBe(true)
+    })
+
+    it('agrees with attributeInits on the digest of an equivalent attribute', () => {
+      // The property Block A exists for, across both producers: one shape, one
+      // digest. Driven through the real RFC 8785 canonicalizer.
+      const analysed = analyse('function Component (a: BooleanAttribute<false>) {}')
+      const init = attributeTypeInits.find(({ name }) => name === 'boolean')
+
+      const fromAnalyzer = { ...analysed.attributes.a.schema, title: '', description: '' }
+      const digestOf = (value: unknown) => Buffer.from(digest(value as JsonValue)).toString('hex')
+
+      expect(digestOf(fromAnalyzer)).toBe(digestOf(init?.schema))
+    })
   })
 })

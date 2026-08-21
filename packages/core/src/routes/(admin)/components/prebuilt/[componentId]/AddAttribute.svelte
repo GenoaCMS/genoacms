@@ -15,8 +15,13 @@
   }
   function add (type: string, schema: object) {
     const uid = crypto.randomUUID()
+    // A prebuilt attribute has no component code to derive a name from, and its user-facing label
+    // lives in schema.title, so the uid stands in. `name` is not optional: AttributeBase declares
+    // it and the analyzer sets it, and omitting it here made prebuilt attributes a different shape
+    // from coded ones — which additionalProperties: false now rejects rather than tolerates.
     const init = {
       uid,
+      name: uid,
       type,
       schema
     }
