@@ -68,6 +68,7 @@ const matrixOperations = [
   'saveUserPageStructure',
   'revertUserPageEntry',
   'generateUserReadablePageTree',
+  'deleteUserPage',
   // configuration
   'listUserRolesAndAccounts',
   'listGrantableResources',
@@ -183,6 +184,11 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserPages', 'getUserPageEntry',
       'saveUserPageContent', 'saveUserPageStructure', 'revertUserPageEntry'
     ]
+  },
+  /** Removes pages without being able to write one, which is what pages:delete exists to express. */
+  PageRemover: {
+    grants: [instanceGrant('pages:delete')],
+    allowed: ['deleteUserPage']
   },
   Publisher: {
     grants: [

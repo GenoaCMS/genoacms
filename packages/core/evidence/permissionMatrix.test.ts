@@ -93,7 +93,8 @@ vi.mock('$lib/script/components/page/page.server', () => ({
   listOrCreatePageList: async () => [],
   getPageEntry: async () => ({ name: 'home' }),
   uploadPageEntry: async () => {},
-  generateReadablePageTree: async () => {}
+  generateReadablePageTree: async () => {},
+  deletePageEntry: async () => {}
 }))
 
 vi.mock('$lib/script/authorization/declared.server', () => ({
@@ -226,6 +227,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   saveUserPageStructure: ctx => pagesService.saveUserPageStructure(ctx, pageEntry),
   revertUserPageEntry: ctx => pagesService.revertUserPageEntry(ctx, pageEntry),
   generateUserReadablePageTree: ctx => pagesService.generateUserReadablePageTree(ctx, pageEntry),
+  deleteUserPage: ctx => pagesService.deleteUserPage(ctx, 'home'),
 
   // configuration
   listUserRolesAndAccounts: ctx => configuration.listUserRolesAndAccounts(ctx),
