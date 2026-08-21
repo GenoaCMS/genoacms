@@ -1,5 +1,16 @@
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-import { SvelteSet } from 'svelte/reactivity'
+import { Selection } from '$lib/script/selection/Selection.svelte'
+
+/**
+ * The storage browser's selection.
+ *
+ * Membership, ordering and the item cap come from the shared `Selection`. What is storage's own is
+ * kept here: whether directories may be selected, and the file/directory split a deletion prompt
+ * reads out.
+ *
+ * A **module singleton**, because the browser and the picker windows that reuse it address one
+ * selection per document rather than passing an instance down the tree.
+ */
 
 interface SelectionParameters {
   maxItems: number,
@@ -11,42 +22,40 @@ interface TypeCounts {
   files: number
 }
 
-function isDirectory (ref: ObjectReference) {
-  return ref.name.endsWith('/')
+function isDirectory (reference: ObjectReference): boolean {
+  return reference.name.endsWith('/')
 }
 
-class Selection <T extends ObjectReference> {
-  #selectionSet: Set<string> = new SvelteSet()
-  #parameters: SelectionParameters = $state({
-    maxItems: 0,
-    allowDirectories: true
+class StorageSelection {
+  #allowDirectories: boolean = $state(true)
+  #selection = new Selection<ObjectReference>({
+    // A reference is two fixed fields, so its JSON is a stable identity — the key this selection has
+    // always used.
+    canSelect: reference => this.#allowDirectories || !isDirectory(reference)
   })
 
-  setParameters (parameters: SelectionParameters) {
-    this.#parameters = {
-      ...this.#parameters,
-      ...parameters
-    }
+  setParameters (parameters: Partial<SelectionParameters>): void {
+    if (parameters.maxItems !== undefined) this.#selection.setMaxItems(parameters.maxItems)
+    if (parameters.allowDirectories !== undefined) this.#allowDirectories = parameters.allowDirectories
   }
 
-  get value (): Array<T> {
-    const referenceStrings = Array.from(this.#selectionSet.values())
-    return referenceStrings.map(item => JSON.parse(item))
+  get value (): ObjectReference[] {
+    return this.#selection.value
   }
 
   get isEmpty (): boolean {
-    return this.#selectionSet.size === 0
+    return this.#selection.isEmpty
   }
 
-  get canSelect () {
-    if (!this.#parameters.maxItems) return true
-    return this.#selectionSet.size < this.#parameters.maxItems
+  get canSelect (): boolean {
+    return this.#selection.canSelectMore
   }
 
-  get allowDirectories () {
-    return this.#parameters.allowDirectories
+  get allowDirectories (): boolean {
+    return this.#allowDirectories
   }
 
+  /** What a deletion prompt says out loud: "two directories and one file". */
   get countsByType (): TypeCounts {
     let directories = 0
     let files = 0
@@ -60,41 +69,27 @@ class Selection <T extends ObjectReference> {
     return { directories, files }
   }
 
-  select (reference: T) {
-    if (!this.canSelect ||
-      (!this.allowDirectories && isDirectory(reference))) return
-    const referenceString = JSON.stringify(reference)
-    if (this.#selectionSet.has(referenceString)) {
-      this.#selectionSet.delete(referenceString)
-      return
-    }
-    this.#selectionSet.add(referenceString)
+  select (reference: ObjectReference): void {
+    this.#selection.toggle(reference)
   }
 
-  bulkSelect (references: Array<T>) {
-    for (const reference of references) {
-      this.select(reference)
-    }
+  bulkSelect (references: ObjectReference[]): void {
+    this.#selection.selectAll(references)
   }
 
-  isSelected (reference: T) {
-    const referenceString = JSON.stringify(reference)
-    return this.#selectionSet.has(referenceString)
+  isSelected (reference: ObjectReference): boolean {
+    return this.#selection.isSelected(reference)
   }
 
-  clear () {
-    this.#selectionSet.clear()
+  clear (): void {
+    this.#selection.clear()
   }
 
-  load (selection: Array<T> | undefined) {
-    if (!selection) return
-    for (const reference of selection) {
-      const referenceString = JSON.stringify(reference)
-      this.#selectionSet.add(referenceString)
-    }
+  load (references: ObjectReference[] | undefined): void {
+    this.#selection.load(references)
   }
 }
 
-export type { SelectionParameters }
-const selection = new Selection()
+export type { SelectionParameters, TypeCounts }
+const selection = new StorageSelection()
 export default selection

@@ -3,6 +3,7 @@
     import type { Snippet } from 'svelte'
     import { page } from '$app/state'
     import selection from '$lib/script/storage/SelectionRune.svelte'
+    import SelectionCheckbox from '$lib/components/selection/SelectionCheckbox.svelte'
 
     type Props = {
       name: string,
@@ -14,23 +15,13 @@
       bucket: page.params.bucketId,
       name
     })
-    const canSelect: boolean = $derived(!isDirectory || selection.allowDirectories)
-    const isSelected = $derived(selection.isSelected(reference))
-
-    function select () {
-      selection.select(reference)
-    }
 </script>
 
-<div class="w-auto h-auto relative z-[1]">
+<SelectionCheckbox
+  isSelected={selection.isSelected(reference)}
+  onselect={() => selection.select(reference)}
+  label="select-{name}"
+  canSelect={!isDirectory || selection.allowDirectories}
+>
   {@render children()}
-  {#if canSelect}
-    <button onclick={select} aria-label="select-{name}" class="absolute top-0 start-0 p-2">
-      <i
-        class="bi text-2xl transition-all"
-        class:bi-square={!isSelected}
-        class:bi-check-square={isSelected}
-      ></i>
-    </button>
-  {/if}
-</div>
+</SelectionCheckbox>
