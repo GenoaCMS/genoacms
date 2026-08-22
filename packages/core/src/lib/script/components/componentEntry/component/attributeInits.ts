@@ -20,6 +20,13 @@ import type {
  * required and JSON.stringify drops undefined. The schemas no longer require
  * them and no longer accept null, so omission is now both possible and the only
  * thing that validates. attributeInits.test.ts guards it in that direction.
+ *
+ * **An empty value counts as unset too.** `pattern: ''` constrains nothing and
+ * `default: []` says what an absent default says, so writing either is a second
+ * way to express "not set". This file wrote them while the analyzer omitted
+ * them, which meant a component authored in code signed differently from the
+ * same component registered by hand. See `constraints.ts` for the shared rule
+ * the editors write through.
  */
 
 const booleanSchemaInit = {
@@ -41,10 +48,7 @@ const stringSchemaInit: StringMetaSchema = {
   type: 'string',
   title: '',
   description: '',
-  pattern: '',
-  format: '',
-  required: false,
-  default: ''
+  required: false
 }
 
 const linkSchemaInit: LinkMetaSchema = {
@@ -62,7 +66,6 @@ const linksSchemaInit: LinksMetaSchema = {
   title: '',
   description: '',
   items: linkSchemaInit,
-  default: [],
   required: false
 }
 
@@ -80,7 +83,6 @@ const storageResourcesSchemaInit: StorageResourcesMetaSchema = {
   title: '',
   description: '',
   items: storageResourceSchemaInit,
-  default: [],
   required: false
 }
 
@@ -89,10 +91,8 @@ const componentsSchemaInit = {
   title: '',
   description: '',
   items: {
-    type: 'string',
-    enum: []
+    type: 'string'
   },
-  default: [],
   required: false
 }
 

@@ -1,37 +1,40 @@
 <script lang="ts">
   import type { StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import { Input, Label, Textarea } from '$lib/components/ui/index'
+  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
+  import { Label, Textarea } from '$lib/components/ui/index'
+  import { setConstraint } from '$lib/script/components/componentEntry/component/constraints'
 
   interface Props {
-    default: StringMetaSchema['default'],
-    minLength: StringMetaSchema['minLength'],
-    maxLength: StringMetaSchema['maxLength'],
-    pattern: StringMetaSchema['pattern'],
-    format: StringMetaSchema['format']
+    schema: StringMetaSchema
   }
-  let { default: d = $bindable(), minLength = $bindable(), maxLength = $bindable(), pattern = $bindable(), format = $bindable() }: Props = $props()
+  const { schema }: Props = $props()
 </script>
 
 <Label>
   Default:
-  <Textarea bind:value={d} />
+  <!-- Not bound: an emptied default must remove the key, and `bind:` can only assign. -->
+  <Textarea
+    value={schema.default ?? ''}
+    oninput={(e: Event & { currentTarget: HTMLTextAreaElement }) =>
+      setConstraint(schema, 'default', e.currentTarget.value)}
+  />
 </Label>
 <ParalelInputs>
   <Label>
     Minimum length:
-    <Input type="number" bind:value={minLength} />
+    <ConstraintInput {schema} constraint="minLength" />
   </Label>
   <Label>
     Maximum length:
-    <Input type="number" bind:value={maxLength} />
+    <ConstraintInput {schema} constraint="maxLength" />
   </Label>
   <Label>
     Regex pattern:
-    <Input type="text" bind:value={pattern} />
+    <ConstraintInput {schema} constraint="pattern" kind="text" />
   </Label>
   <Label>
     Format:
-    <Input type="text" bind:value={format} />
+    <ConstraintInput {schema} constraint="format" kind="text" />
   </Label>
 </ParalelInputs>

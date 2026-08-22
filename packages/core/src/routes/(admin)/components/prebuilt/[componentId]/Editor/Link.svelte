@@ -1,28 +1,23 @@
 <script lang="ts">
   import type { LinksMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import { Input, Label } from '$lib/components/ui/index'
+  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
+  import { Label } from '$lib/components/ui/index'
 
+  // TODO: default value selector, !except recursion
   interface Props {
-    default: LinksMetaSchema['default'],
-    maxItems: LinksMetaSchema['maxItems'],
-    minItems: LinksMetaSchema['minItems']
+    schema: LinksMetaSchema
   }
-
-  let {
-    default: d = $bindable(), // TODO: default value selector, !except recursion
-    maxItems = $bindable(),
-    minItems = $bindable()
-  }: Props = $props()
+  const { schema }: Props = $props()
 </script>
 
 <ParalelInputs>
   <Label>
     Minimum links:
-    <Input type="number" bind:value={minItems} />
+    <ConstraintInput {schema} constraint="minItems" />
   </Label>
   <Label>
     Maximum links
-    <Input type="number" bind:value={maxItems} />
+    <ConstraintInput {schema} constraint="maxItems" />
   </Label>
 </ParalelInputs>

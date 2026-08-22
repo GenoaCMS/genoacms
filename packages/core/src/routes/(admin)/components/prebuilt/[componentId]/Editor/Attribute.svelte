@@ -74,61 +74,20 @@
       bind:default={value.schema.default}
     />
   {:else if value.type === 'number'}
-    <NumberAttribute
-      bind:default={value.schema.default}
-      bind:minimum={value.schema.minimum}
-      bind:maximum={value.schema.maximum}
-      bind:multipleOf={value.schema.multipleOf}
-    />
+    <NumberAttribute schema={value.schema} />
   {:else if value.type === 'string'}
-    <StringAttribute
-      bind:default={value.schema.default}
-      bind:minLength={value.schema.minLength}
-      bind:maxLength={value.schema.maxLength}
-      bind:pattern={value.schema.pattern}
-      bind:format={value.schema.format}
-    />
+    <StringAttribute schema={value.schema} />
   {:else if value.type === 'text'}
-    <TextAttribute
-      bind:default={value.schema.default}
-      bind:minLength={value.schema.minLength}
-      bind:maxLength={value.schema.maxLength}
-      bind:pattern={value.schema.pattern}
-      bind:format={value.schema.format}
-    />
+    <TextAttribute schema={value.schema} />
   {:else if value.type === 'markdown'}
-    <MarkdownAttribute
-      bind:default={value.schema.default}
-      bind:minLength={value.schema.minLength}
-      bind:maxLength={value.schema.maxLength}
-      bind:pattern={value.schema.pattern}
-      bind:format={value.schema.format}
-    />
+    <MarkdownAttribute schema={value.schema} />
   {:else if value.type === 'richText'}
-    <RichTextAttribute
-      bind:default={value.schema.default}
-      bind:minLength={value.schema.minLength}
-      bind:maxLength={value.schema.maxLength}
-      bind:pattern={value.schema.pattern}
-      bind:format={value.schema.format}
-    />
+    <RichTextAttribute schema={value.schema} />
   {:else if value.type === 'link'}
-    <LinkAttribute
-      bind:default={value.schema.default}
-      bind:minItems={value.schema.minItems}
-      bind:maxItems={value.schema.maxItems}
-    />
+    <LinkAttribute schema={value.schema} />
   {:else if value.type === 'storageResource'}
-    <StorageResourceAttribute
-      bind:default={value.schema.default}
-      bind:minItems={value.schema.minItems}
-      bind:maxItems={value.schema.maxItems}
-    />
+    <StorageResourceAttribute schema={value.schema} />
   {:else if value.type === 'components'}
-    <ComponentsAttribute
-      bind:default={value.schema.default}
-      bind:minItems={value.schema.minItems}
-      bind:maxItems={value.schema.maxItems}
-    />
+    <ComponentsAttribute schema={value.schema} />
   {/if}
 </Card>

@@ -178,8 +178,9 @@ describe('componentCodeToEntry', () => {
     })
 
     it('agrees with attributeInits on the digest of an equivalent attribute', () => {
-      // The property Block A exists for, across both producers: one shape, one
-      // digest. Driven through the real RFC 8785 canonicalizer.
+      // One shape, one digest, across both producers. Driven through the real
+      // RFC 8785 canonicalizer rather than a stand-in, since byte-exact
+      // agreement is the whole property.
       const analysed = analyse('function Component (a: BooleanAttribute<false>) {}')
       const init = attributeTypeInits.find(({ name }) => name === 'boolean')
 
@@ -187,6 +188,54 @@ describe('componentCodeToEntry', () => {
       const digestOf = (value: unknown) => Buffer.from(digest(value as JsonValue)).toString('hex')
 
       expect(digestOf(fromAnalyzer)).toBe(digestOf(init?.schema))
+    })
+  })
+
+  /**
+   * The same assertion across every attribute type, not only the one that
+   * happened to be written first.
+   *
+   * A component authored in code and the same component registered by hand must
+   * sign identically, or a consumer verifying one and re-deriving the other
+   * disagrees. The types carrying **optional constraints** are where this
+   * actually bites: those are the keys that can be present-as-null,
+   * present-as-undefined, or genuinely absent, and only the last one produces
+   * the digest the other producer produces.
+   *
+   * Each attribute is written with **no type arguments**, which is what makes
+   * the comparison fair — nothing is constrained on either side, so the two
+   * producers should be describing exactly the same thing.
+   */
+  describe('the two producers agree, per attribute type', () => {
+    /**
+     * The attribute types whose code form takes **no type arguments**, so an
+     * unconstrained attribute can be written in component source at all.
+     *
+     * The others declare required generics: `BooleanAttribute` on its own
+     * resolves to `any` and the analyzer rejects it, so there is no way to ask
+     * the analyzer for the unconstrained form to compare against. Their
+     * constrained forms are covered by the assertions above; this is the honest
+     * limit of the parametrised comparison rather than a gap being ignored.
+     */
+    const CODE_TYPE: Record<string, string> = {
+      link: 'LinkAttribute',
+      storageResource: 'StorageResourceAttribute'
+    }
+
+    const comparable = attributeTypeInits.filter(({ name }) => name in CODE_TYPE)
+
+    const digestOf = (value: unknown): string =>
+      Buffer.from(digest(value as JsonValue)).toString('hex')
+
+    it.each(comparable)('$name signs the same either way', ({ name, schema }) => {
+      const analysed = analyse(`function Component (a: ${CODE_TYPE[name]}) {}`)
+
+      // The analyzer names the attribute after its parameter and the init cannot
+      // know it, so the two labels are equalised rather than compared. Everything
+      // else — every constraint, present or absent — is the assertion.
+      const fromAnalyzer = { ...analysed.attributes.a.schema, title: '', description: '' }
+
+      expect(digestOf(fromAnalyzer)).toBe(digestOf(schema))
     })
   })
 })

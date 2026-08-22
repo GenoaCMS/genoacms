@@ -113,6 +113,33 @@ test.describe('a prebuilt component', () => {
     await page.reload()
     await expect(page.getByRole('textbox').first()).toBeVisible({ timeout: SLOW })
   })
+
+  test('saves a numeric constraint that was entered and then cleared', async ({ page }) => {
+    // An unset constraint is an **omitted key**, not a null one: component entries are signed over
+    // their canonical JSON, and `{"minimum": null}` and `{}` canonicalize to different bytes, so the
+    // two would sign differently. The boundary refuses null outright.
+    //
+    // Svelte binds an emptied `type="number"` input to `null` (`to_number('')`), so an author who
+    // types a minimum and then changes their mind writes exactly the value the schema now refuses.
+    // Clearing a field is the ordinary way to say "no constraint", and it must produce no key.
+    await registerComponent(page, name)
+
+    await page.getByRole('button', { name: 'Add attribute' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New attribute' })
+    await dialog.getByRole('button', { name: 'number' }).first().click()
+
+    const minimum = page.getByLabel('Minimum value:')
+    await minimum.fill('5')
+    await minimum.fill('')
+
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await reported(page, /updated|saved/i)
+
+    // Reloaded rather than trusted: what matters is that the entry was really stored, and that the
+    // field comes back empty rather than holding a value the author cleared.
+    await page.reload()
+    await expect(page.getByLabel('Minimum value:')).toHaveValue('', { timeout: SLOW })
+  })
 })
 
 // ---------------------------------------------------------------------------------------------

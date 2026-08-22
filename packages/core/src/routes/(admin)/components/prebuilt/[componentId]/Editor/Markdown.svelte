@@ -1,44 +1,42 @@
 <script lang="ts">
   import type { StringMetaSchema } from '$lib/script/components/componentEntry/component/types'
-  import { Input, Label } from '$lib/components/ui/index'
+  import { Label } from '$lib/components/ui/index'
   import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
+  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
+  import { setConstraint } from '$lib/script/components/componentEntry/component/constraints'
 
   interface Props {
-    default: StringMetaSchema['default'];
-    minLength: StringMetaSchema['minLength'];
-    maxLength: StringMetaSchema['maxLength'];
-    pattern: StringMetaSchema['pattern'];
-    format: StringMetaSchema['format'];
+    schema: StringMetaSchema
   }
-  let {
-    default: d = $bindable(),
-    minLength = $bindable(),
-    maxLength = $bindable(),
-    pattern = $bindable(),
-    format = $bindable(),
-  }: Props = $props()
+  const { schema }: Props = $props()
 </script>
 
 <Label class="pb-2">
   Default:
-  <CodeEditor language="markdown" bind:value={d} class="min-h-[10rem]" />
+  <!-- Reported through `onvalue` rather than bound, so an emptied default removes the key. -->
+  <CodeEditor
+    language="markdown"
+    value={schema.default ?? ''}
+    onvalue={(v: string) => setConstraint(schema, 'default', v)}
+    class="min-h-[10rem]"
+  />
 </Label>
 <ParalelInputs>
   <Label>
     Minimum length:
-    <Input type="number" bind:value={minLength} />
+    <ConstraintInput {schema} constraint="minLength" />
   </Label>
   <Label>
     Maximum length:
-    <Input type="number" bind:value={maxLength} />
+    <ConstraintInput {schema} constraint="maxLength" />
   </Label>
   <Label>
     Regex pattern:
-    <Input type="text" bind:value={pattern} />
+    <ConstraintInput {schema} constraint="pattern" kind="text" />
   </Label>
   <Label>
     Format:
-    <Input type="text" bind:value={format} />
+    <ConstraintInput {schema} constraint="format" kind="text" />
   </Label>
 </ParalelInputs>

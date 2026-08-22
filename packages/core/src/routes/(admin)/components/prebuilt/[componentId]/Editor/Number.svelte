@@ -1,32 +1,35 @@
 <script lang="ts">
   import type { NumberMetaSchema } from '$lib/script/components/componentEntry/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import { Input, Label } from '$lib/components/ui/index'
+  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
+  import { Label } from '$lib/components/ui/index'
 
+  /**
+   * The meta-schema is passed whole rather than one bindable constraint at a time, because an unset
+   * constraint is an **absent key** and only the object's owner can remove one. See
+   * `ConstraintInput`.
+   */
   interface Props {
-    default: NumberMetaSchema['default'],
-    minimum: NumberMetaSchema['minimum'],
-    maximum: NumberMetaSchema['maximum'],
-    multipleOf: NumberMetaSchema['multipleOf']
+    schema: NumberMetaSchema
   }
-  let { default: d = $bindable(), minimum = $bindable(), maximum = $bindable(), multipleOf = $bindable() }: Props = $props()
+  const { schema }: Props = $props()
 </script>
 
 <Label>
   Default:
-  <Input type="number" bind:value={d} />
+  <ConstraintInput {schema} constraint="default" />
 </Label>
 <ParalelInputs>
   <Label>
     Minimum value:
-    <Input type="number" bind:value={minimum} />
+    <ConstraintInput {schema} constraint="minimum" />
   </Label>
   <Label>
     Maximum value:
-    <Input type="number" bind:value={maximum} />
+    <ConstraintInput {schema} constraint="maximum" />
   </Label>
   <Label>
     Steps:
-    <Input type="number" bind:value={multipleOf} />
+    <ConstraintInput {schema} constraint="multipleOf" />
   </Label>
 </ParalelInputs>
