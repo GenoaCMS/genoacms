@@ -202,9 +202,15 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@genoacms/internal':
+        specifier: workspace:^
+        version: link:../internal
 
   packages/cloudAbstraction:
     dependencies:
+      '@genoacms/internal':
+        specifier: workspace:^
+        version: link:../internal
       '@rollup/plugin-commonjs':
         specifier: ^26.0.1
         version: 26.0.3(rollup@4.62.4)
@@ -266,6 +272,9 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@genoacms/internal':
+        specifier: workspace:^
+        version: link:../internal
       '@noble/hashes':
         specifier: ^2.3.0
         version: 2.3.0

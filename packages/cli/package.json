@@ -8,7 +8,7 @@
     "directory": "packages/cli"
   },
   "author": {
-    "name": "Filip Holčík",
+    "name": "Filip Hol\u010d\u00edk",
     "email": "filip.holcik.official@gmail.com"
   },
   "license": "ISC",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "@genoacms/cloudabstraction": "workspace:^"
+    "@genoacms/cloudabstraction": "workspace:^",
+    "@genoacms/internal": "workspace:^"
   }
 }

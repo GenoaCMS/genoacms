@@ -1,5 +1,5 @@
 import { select, text, confirm, isCancel, note, intro, outro, log } from '@clack/prompts'
-import { isResourceScoped, getPermissionScope } from '@genoacms/cloudabstraction/authorization'
+import { isResourceScoped, getPermissionScope } from '@genoacms/internal/authorization'
 import { permissionOptions, render } from './declaration.js'
 
 /**

@@ -3,7 +3,7 @@ import type { DatabaseInit, DatabaseProvider } from '../services/database/index.
 import type { BucketInit, StorageProvider } from '../services/storage/index.d'
 import type { DeploymentProvider } from '../services/deployment/index.js'
 import type { SecretProvider } from '../services/secrets/index.d'
-import type { Permission } from '../authorization/permissions.d'
+import type { Permission } from '@genoacms/internal/authorization'
 
 type Config<Extension extends object = object> = Extension & {
   authentication: {

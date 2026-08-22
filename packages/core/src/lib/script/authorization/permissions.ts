@@ -30,7 +30,7 @@ export {
   getPermissionDomain,
   isResourceScoped,
   getPermissionsByDomain
-} from '@genoacms/cloudabstraction/authorization'
+} from '@genoacms/internal/authorization'
 
 export type {
   Permission,
@@ -39,4 +39,4 @@ export type {
   PermissionDefinition,
   InstancePermission,
   ResourceScopedPermission
-} from '@genoacms/cloudabstraction/authorization'
+} from '@genoacms/internal/authorization'

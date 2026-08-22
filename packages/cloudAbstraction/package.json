@@ -3,7 +3,7 @@
   "version": "0.8.11",
   "description": "Types for abstract cloud for GenoaCMS",
   "author": {
-    "name": "Filip Holčík",
+    "name": "Filip Hol\u010d\u00edk",
     "email": "filip.holcik.official@gmail.com"
   },
   "repository": {
@@ -26,10 +26,6 @@
     ".": {
       "import": "./src/index.js",
       "types": "./src/index.d.ts"
-    },
-    "./authorization": {
-      "import": "./src/authorization/permissions.js",
-      "types": "./src/authorization/permissions.d.ts"
     },
     "./authentication": {
       "import": "./src/services/authentication/index.js",
@@ -78,5 +74,8 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "rollup": "^4.18.0"
+  },
+  "dependencies": {
+    "@genoacms/internal": "workspace:^"
   }
 }
