@@ -41,6 +41,11 @@ class DocumentSelection {
     this.#selection.toggle(reference)
   }
 
+  /** Adds every reference given, keeping what is already selected. */
+  selectAll (references: DocumentReference[]): void {
+    this.#selection.selectAll(references)
+  }
+
   isSelected (reference: DocumentReference): boolean {
     return this.#selection.isSelected(reference)
   }
