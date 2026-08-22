@@ -30,6 +30,18 @@
     "./authorization": {
       "import": "./src/authorization/permissions.js",
       "types": "./src/authorization/permissions.d.ts"
+    },
+    "./attributes": {
+      "import": "./src/components/attributes.js",
+      "types": "./src/components/attributes.d.ts"
+    },
+    "./executable": {
+      "import": "./src/components/executable.js",
+      "types": "./src/components/executable.d.ts"
+    },
+    "./languageAdapter": {
+      "import": "./src/components/languageAdapter.js",
+      "types": "./src/components/languageAdapter.d.ts"
     }
   },
   "scripts": {
