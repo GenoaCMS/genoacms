@@ -120,7 +120,7 @@ const listUserRolesAndAccounts = async (
  * The buckets and collections a resource-scoped grant can name.
  *
  * Names only — no endpoint, no credential, no content. A grant over a bucket is not a decision until
- * the bucket is named (§4.2.2), and an administrator composing one previously had to type the name
+ * the bucket is named, and an administrator composing one previously had to type the name
  * with nothing checking it, so a typo produced a grant that silently never matched.
  *
  * ## Why `config:roles:manage` and not a storage or database permission
@@ -135,7 +135,7 @@ const listUserRolesAndAccounts = async (
  * read the catalogue that way in one step, so withholding the names conceals nothing from them. It
  * conceals the names only from principals who cannot obtain them anyway.
  *
- * A dedicated `config:resources:list` permission was rejected on the same grounds §4.2.2 rejects
+ * A dedicated `config:resources:list` permission was rejected on the same grounds as
  * `storage:bucket:list`: it would decide nothing that `config:roles:manage` does not already decide.
  *
  * The bucket list is Tier-1 configuration and therefore complete. The collection list is read once at

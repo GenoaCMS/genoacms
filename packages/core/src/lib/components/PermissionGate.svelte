@@ -7,7 +7,7 @@
   /**
    * Shows its children only to a principal holding what it demands.
    *
-   * **Cosmetic, and only cosmetic** (§4.2.6). Every element hidden here is independently refused by
+   * **Cosmetic, and only cosmetic.** Every element hidden here is independently refused by
    * the service it would reach, so this keeps the interface honest about what it offers rather than
    * securing anything. The decision lives in `authorization/gate`, tested without rendering, and it
    * uses the same matcher the server does — so the two cannot disagree about what a grant means.

@@ -26,8 +26,8 @@ import {
  *
  * It did not exist at all until now: the editor's routes and remote functions called the primary
  * module directly, so **every dynamic-component operation was unenforced** while
- * `components:dynamic:*` sat in the taxonomy consumed by nothing. That is the failure mode §4.2.6
- * describes — a permission that decides nothing looks like a control and is not one.
+ * `components:dynamic:*` sat in the taxonomy consumed by nothing — a permission that decides
+ * nothing looks like a control and is not one.
  *
  * ## The permissions, and why each is the one demanded
  *

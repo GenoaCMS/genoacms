@@ -89,7 +89,7 @@ test.describe('the registry', () => {
   })
 
   test('does not offer to rotate the root', async ({ page }) => {
-    // §4.1.15: the operation that strands every deployed consumer belongs with whoever can redeploy
+    // The operation that strands every deployed consumer belongs with whoever can redeploy
     // them. This asserts the absence, so adding such a button is a failing test rather than a
     // review comment.
     await expect(page.getByRole('button', { name: /rotate.*root|root.*rotate/i })).toHaveCount(0)

@@ -107,7 +107,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   },
   /**
    * Write without read. Present because the catalogue is filtered on *any* bucket-scoped grant
-   * rather than on `read` (§4.2.2): this role must still see the bucket it may upload to, and no
+   * rather than on `read`: this role must still see the bucket it may upload to, and no
    * other role in this table would catch the filter narrowing back to `read`.
    */
   StorageUploader: {
@@ -282,7 +282,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
    *
    * Present to make the absence of a `config:keys:read` visible: reading the registry sits in the
    * same allow-list as rotating it, because the registry is published for consumers to fetch and a
-   * read permission would withhold nothing (§4.1.15).
+   * read permission would withhold nothing.
    */
   KeyAdministrator: {
     grants: [instanceGrant('config:keys:manage')],

@@ -5,7 +5,7 @@ import { WILDCARD, type Grant } from './grants'
 import type { Permission } from './permissions'
 
 /**
- * The adaptive interface's decision (§4.2.6).
+ * What the interface offers a principal, given their grants.
  *
  * These assertions are about **presentation**, not access: everything a gate hides is refused again
  * by the service the element would reach. What matters here is that the interface does not offer a

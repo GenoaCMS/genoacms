@@ -14,7 +14,7 @@ import type { KeyRegistry, SubordinateKeyEntry } from './registry'
 /**
  * What a key is, in one word.
  *
- * `superseded` and `revoked` are the distinction §4.1.15 turns on: a superseded key still verifies,
+ * `superseded` and `revoked` are the distinction that matters: a superseded key still verifies,
  * which is what makes routine rotation safe and what makes it no answer to a leak.
  */
 type KeyState = 'current' | 'superseded' | 'revoked'

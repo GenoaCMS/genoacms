@@ -34,7 +34,7 @@ import {
  * - `db:collection:delete` — deleting documents
  *
  * A `read` or `write` grant may additionally name **which fields** of the collection it covers, and
- * that restriction is applied here (§4.2.2.2):
+ * that restriction is applied here:
  *
  * - **Reads project after fetching.** Not every adapter supports server-side field selection, so
  *   unreadable fields are stripped in this layer, uniformly, before a document leaves it.

@@ -3,7 +3,7 @@ import type { AuthContext } from './context'
 import type { Permission } from './permissions'
 
 /**
- * Field-level masking (§4.2.2.2): which fields of a collection a principal may see or change, and
+ * Field-level masking: which fields of a collection a principal may see or change, and
  * how a document is narrowed to them.
  *
  * Pure, so the rules can be tested without a database, and shared by the read and write paths so

@@ -8,7 +8,7 @@
    *
    * They are governed by different permissions, so this is not one door: a key administrator holds
    * nothing over roles, and offering them a card that leads only to a refusal is exactly the
-   * dishonesty §4.2.6's gates exist to remove.
+   * dishonesty these gates exist to remove.
    */
   const sections = [
     { href: '/configuration/iam', icon: 'person-badge', text: 'Roles and access', permission: 'config:roles:manage' },

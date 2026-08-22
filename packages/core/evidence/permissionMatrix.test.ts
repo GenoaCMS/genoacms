@@ -351,7 +351,7 @@ describe('default deny', () => {
 })
 
 /**
- * **Field-level masking**, the part of E6 §4.4.6 that was reported as absent until step 17 landed.
+ * **Field-level masking**, the part of the E6 evidence that was reported as absent until it landed.
  *
  * Driven through the same gated service the matrix uses, so these are assertions about the product
  * rather than about the masking helpers, which are unit-tested separately.

@@ -20,21 +20,21 @@ import { describeKeys, type KeyAdministrationView } from './keyAdministration'
  * `config:keys:manage` was in the taxonomy from the start and **checked nowhere**, because until
  * there was a screen the signing module had only one caller: the CMS itself. A permission enforced
  * nowhere is indistinguishable from one nobody holds, and putting the checks in the route instead
- * would be the per-callsite discipline §4.2.6 exists to reject.
+ * would spread the decision across call sites, which is what this layer exists to avoid.
  *
  * ## One permission for reading and for acting
  *
  * There is no `config:keys:read`. The registry is *published* — every consumer fetches it in order
  * to verify anything at all — so a read permission would withhold nothing that is not already
  * public. What this module adds is the ability to act, which is the decision worth governing. The
- * same reasoning §4.2.2 uses to reject `storage:bucket:list`.
+ * same reasoning that rejected `storage:bucket:list`.
  *
  * ## Root rotation is not here
  *
  * Deliberately. Rotating the root strands every deployed consumer until it is rebuilt with the new
  * anchor, so it belongs with whoever can also redeploy them: `genoacms rotate-root`, which refuses
  * to act without explicit confirmation. Exposing it here would put the one operation whose blast
- * radius is every consumer behind a session that can be hijacked (§4.1.15).
+ * radius is every consumer behind a session that can be hijacked.
  */
 
 /**

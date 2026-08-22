@@ -164,7 +164,7 @@ describe('getUserBucketReferences', () => {
   })
 
   it('shows a bucket the principal may write but not read', () => {
-    // §4.2.2: the catalogue is filtered over *any* bucket-scoped grant, not `read` alone. Filtering
+    // The catalogue is filtered over *any* bucket-scoped grant, not `read` alone. Filtering
     // on read would hide the destination of an upload this principal is permitted to perform.
     expect(storage.getUserBucketReferences(writer()).map(b => b.name)).toEqual(['media'])
   })

@@ -2,8 +2,8 @@
  * The permission vocabulary, re-exported from `@genoacms/cloudabstraction`.
  *
  * The table itself lives there rather than here, and the reason is not that authorization is a cloud
- * service — it is not, and §4.2.1a still holds: there is no adapter, no provider, and nothing about
- * deciding permissions is delegated. Enforcement stays in this module, beside `requirePermission`,
+ * service — it is not: there is no adapter, no provider, and nothing about deciding permissions is
+ * delegated. Enforcement stays in this module, beside `requirePermission`,
  * resolution and the manifests.
  *
  * What moved is the **vocabulary**, because it is part of the configuration contract. `genoa.config`

@@ -59,7 +59,7 @@ const requireDelete = (ctx: AuthContext, bucket: string): void =>
  * rather than denies. Navigation then offers only what the user could actually act on, instead of
  * listing names that lead to a denial.
  *
- * **Any bucket-scoped grant, not `read` alone** (§4.2.2). A principal holding only
+ * **Any bucket-scoped grant, not `read` alone.** A principal holding only
  * `storage:bucket:write` must still see the bucket as an upload target; filtering on `read` would
  * hide the destination of an upload they are permitted to perform.
  */
