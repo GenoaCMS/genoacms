@@ -43,22 +43,48 @@ function analyse (body: string, previous?: ComponentEntry) {
   return componentCodeToEntry('Component', PREAMBLE + body, previous ?? emptyEntry('Component'))
 }
 
+/**
+ * Attributes are stored keyed by **uid**, so a test that knows a parameter name has to look it up.
+ *
+ * Indexing by name is what these tests used to do, and it passed only because the analyzer path
+ * keyed by name while the editor path keyed by uid.
+ */
+const byName = (entry: ComponentEntry, name: string) => {
+  const attribute = Object.values(entry.attributes).find(candidate => candidate.name === name)
+  if (!attribute) throw new Error(`no attribute named ${name}`)
+  return attribute
+}
+
+const namesOf = (entry: ComponentEntry) => Object.values(entry.attributes).map(a => a.name)
+
 describe('componentCodeToEntry', () => {
-  it('derives one attribute per parameter, keyed by parameter name', () => {
+  it('derives one attribute per parameter, in the order the source declares them', () => {
     const entry = analyse(`
       function Component (heading: StringAttribute<".*", 120, "hello">, visible: BooleanAttribute<true>) {}
     `)
-    expect(Object.keys(entry.attributes)).toEqual(['heading', 'visible'])
+    expect(namesOf(entry)).toEqual(['heading', 'visible'])
+  })
+
+  it('keys attributes by uid, and orders them by the same uids', () => {
+    // The defect this replaced: attributes derived from source were keyed by *name*, while
+    // attributes added in the editor were keyed by uid. One record, two key schemes, decided by how
+    // the component happened to be authored — and a page node refers to an attribute by uid.
+    const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hi">) {}')
+    const heading = byName(entry, 'heading')
+
+    expect(Object.keys(entry.attributes)).toEqual([heading.uid])
+    expect(entry.attributeOrder).toEqual([heading.uid])
+    expect(heading.uid).not.toBe('heading')
   })
 
   it('carries the parameter name onto the attribute', () => {
     const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
-    expect(entry.attributes.heading.name).toBe('heading')
+    expect(byName(entry, 'heading').name).toBe('heading')
   })
 
   it('assigns each attribute a uid', () => {
     const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
-    expect(entry.attributes.heading.uid).toEqual(expect.any(String))
+    expect(byName(entry, 'heading').uid).toEqual(expect.any(String))
   })
 
   it('maps each supported attribute type', () => {
@@ -97,13 +123,13 @@ describe('componentCodeToEntry', () => {
   // renumber attributes that still exist
   it('preserves the uid of an attribute that survives a re-analysis', () => {
     const first = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
-    const originalUid = first.attributes.heading.uid
+    const originalUid = byName(first, 'heading').uid
     const second = analyse(
       'function Component (heading: StringAttribute<".*", 240, "hello">, extra: BooleanAttribute<false>) {}',
       first
     )
-    expect(second.attributes.heading.uid).toBe(originalUid)
-    expect(second.attributes.extra.uid).not.toBe(originalUid)
+    expect(byName(second, 'heading').uid).toBe(originalUid)
+    expect(byName(second, 'extra').uid).not.toBe(originalUid)
   })
 
   it('drops attributes whose parameter was removed', () => {
@@ -111,7 +137,7 @@ describe('componentCodeToEntry', () => {
       function Component (heading: StringAttribute<".*", 120, "hi">, gone: BooleanAttribute<true>) {}
     `)
     const second = analyse('function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
-    expect(Object.keys(second.attributes)).toEqual(['heading'])
+    expect(namesOf(second)).toEqual(['heading'])
   })
 
   /**
@@ -134,7 +160,7 @@ describe('componentCodeToEntry', () => {
         'interface NumberAttribute { _brand: 0 }\nfunction Component (n: NumberAttribute) {}',
         emptyEntry('Component')
       )
-      const schema = entry.attributes.n.schema as unknown as Record<string, unknown>
+      const schema = byName(entry, 'n').schema as unknown as Record<string, unknown>
 
       expect(schema).not.toHaveProperty('minimum')
       expect(schema).not.toHaveProperty('maximum')
@@ -145,7 +171,7 @@ describe('componentCodeToEntry', () => {
     it('writes a constraint that was supplied', () => {
       const entry = analyse('function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
 
-      expect(entry.attributes.n.schema).toMatchObject({
+      expect(byName(entry, 'n').schema).toMatchObject({
         minimum: 0, maximum: 10, multipleOf: 1, decimalPlaces: 2, default: 5
       })
     })
@@ -154,7 +180,7 @@ describe('componentCodeToEntry', () => {
       // maxComponents, allowedComponents and component all said what the schema
       // says. Two representations inside a signed payload can disagree.
       const entry = analyse('function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
-      const attribute = entry.attributes.i as unknown as Record<string, unknown>
+      const attribute = byName(entry, 'i') as unknown as Record<string, unknown>
 
       expect(Object.keys(attribute).sort()).toEqual(['name', 'schema', 'type', 'uid'])
       expect(attribute.schema).toMatchObject({
@@ -184,7 +210,7 @@ describe('componentCodeToEntry', () => {
       const analysed = analyse('function Component (a: BooleanAttribute<false>) {}')
       const init = attributeTypeInits.find(({ name }) => name === 'boolean')
 
-      const fromAnalyzer = { ...analysed.attributes.a.schema, title: '', description: '' }
+      const fromAnalyzer = { ...byName(analysed, 'a').schema, title: '', description: '' }
       const digestOf = (value: unknown) => Buffer.from(digest(value as JsonValue)).toString('hex')
 
       expect(digestOf(fromAnalyzer)).toBe(digestOf(init?.schema))
@@ -233,7 +259,7 @@ describe('componentCodeToEntry', () => {
       // The analyzer names the attribute after its parameter and the init cannot
       // know it, so the two labels are equalised rather than compared. Everything
       // else — every constraint, present or absent — is the assertion.
-      const fromAnalyzer = { ...analysed.attributes.a.schema, title: '', description: '' }
+      const fromAnalyzer = { ...byName(analysed, 'a').schema, title: '', description: '' }
 
       expect(digestOf(fromAnalyzer)).toBe(digestOf(schema))
     })

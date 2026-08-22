@@ -26,16 +26,17 @@ const listOrCreateComponentEntryList = async (): Promise<Array<ComponentEntry>> 
 }
 
 const getComponentEntry = async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
-  const potentialComponentEntry = await getInternalObjectFlatted(join(prebuiltSchemaPath, reference)) as unknown
-  potentialComponentEntry.attributeOrder = potentialComponentEntry?.attributeOrder || []
-  if (!validateComponentEntry(potentialComponentEntry)) {
+  const stored = await getInternalObjectFlatted(join(prebuiltSchemaPath, reference)) as Record<string, unknown>
+
+  // Repairs entries written before `attributeOrder` existed, which are otherwise refused by the
+  // schema that now requires it. Both writers supply it, so this fires only for those older
+  // entries — and being able to say that is why it is a stated repair rather than a default.
+  if (stored.attributeOrder === undefined) stored.attributeOrder = Object.keys(stored.attributes ?? {})
+
+  if (!validateComponentEntry(stored)) {
     return null
   }
-  const componentEntry = potentialComponentEntry as ComponentEntry
-  if (componentEntry.attributeOrder.length === 0) {
-    componentEntry.attributeOrder = Object.keys(componentEntry.attributes)
-  }
-  return componentEntry
+  return stored as unknown as ComponentEntry
 }
 
 const uploadComponentEntry = async (entry: ComponentEntry) => uploadInternalObjectFlatted(join(prebuiltSchemaPath, entry.uid), entry)

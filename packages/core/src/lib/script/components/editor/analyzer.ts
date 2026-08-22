@@ -36,32 +36,48 @@ function analyseSource (functionName: string, code: string): ComponentEntryAttri
 /**
  * Merges freshly derived attributes into the stored ones.
  *
- * **Uids are preserved for every attribute that survived**, because a page node refers to an
- * attribute by uid: issuing a new one would silently detach every page using it. Attributes whose
- * parameter was removed are dropped, which is what makes a deleted parameter take effect.
+ * **Matched by name, stored by uid** — the two are different jobs and were previously conflated.
+ *
+ * The *name* is what an author controls: it is the parameter they wrote, and it is the only thing
+ * that says "this is still the same attribute" across a re-analysis. The *uid* is identity the CMS
+ * assigns, and it is what a page node holds, so an attribute that survives must keep it or every
+ * page using it detaches silently.
+ *
+ * Keying the result by name is what this used to do, which left dynamic components keyed by name
+ * while components built in the editor were keyed by uid — one field with two meanings depending on
+ * how the component was authored, in a record whose type says uid. Anything reading an entry without
+ * knowing which path produced it was already wrong; it merely had no way to notice.
+ *
+ * Attributes whose parameter was removed are dropped, which is what makes deleting a parameter take
+ * effect.
  */
 function mergeAttributes (
   originalAttributes: ComponentEntryAttributes,
-  newAttributes: ComponentEntryAttributes
+  derivedAttributes: ComponentEntryAttributes
 ): ComponentEntryAttributes {
+  const storedByName = new Map(
+    Object.values(originalAttributes).map(attribute => [attribute.name, attribute])
+  )
   const mergedAttributes: ComponentEntryAttributes = {}
-  for (const attribute of Object.values(newAttributes)) {
-    const originalAttribute = originalAttributes[attribute.name]
-    if (!originalAttribute) {
-      mergedAttributes[attribute.name] = attribute
-      continue
-    }
-    mergedAttributes[attribute.name] = {
-      ...attribute,
-      uid: originalAttribute.uid
-    }
+  for (const attribute of Object.values(derivedAttributes)) {
+    const uid = storedByName.get(attribute.name)?.uid ?? attribute.uid
+    mergedAttributes[uid] = { ...attribute, uid }
   }
   return mergedAttributes
 }
 
+/**
+ * Re-derives a component's attributes from its source.
+ *
+ * The order comes from the source: parameters are declared in an order, and that is the order an
+ * author expects to edit them in. For a component authored in the editor the order is dragged by
+ * hand and stored, but here the code is the record — so re-analysing restates it rather than
+ * preserving a previous arrangement that the source may have just changed.
+ */
 function componentCodeToEntry (functionName: string, code: string, componentEntry: ComponentEntry): ComponentEntry {
   const attributes = analyseSource(functionName, code)
   componentEntry.attributes = mergeAttributes(componentEntry.attributes, attributes)
+  componentEntry.attributeOrder = Object.keys(componentEntry.attributes)
   return componentEntry
 }
 

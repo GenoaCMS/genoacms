@@ -7,6 +7,7 @@ const createComponentEntry = async (creation: ComponentEntryCreation) => {
     type: 'prebuilt',
     name: creation.name,
     attributes: {},
+    attributeOrder: [],
     history: [],
     future: []
   }
