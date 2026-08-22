@@ -58,17 +58,18 @@ interface AnalysisRequest {
   source: string
   /** The exported function the component is defined by. */
   entryFunction: string
-  /**
-   * Attributes already stored for this component, keyed by name.
-   *
-   * Supplied so an attribute that survives a re-analysis keeps its uid. A page node refers to an
-   * attribute by uid, so re-issuing a new one silently detaches every page using it.
-   */
-  previousAttributes?: ComponentEntryAttributes
 }
 
 interface AnalysisResult {
-  /** What the component accepts, keyed by uid. Empty when analysis failed. */
+  /**
+   * What the component accepts, keyed by the **parameter name** it was derived from.
+   *
+   * Not by uid. A uid is identity, the CMS assigns it and preserves it across re-analysis so that
+   * pages referring to an attribute keep working — and an adapter has no way to know which stored
+   * attribute a parameter corresponds to. Any uid here is fresh and the CMS is free to replace it.
+   *
+   * Empty when analysis failed.
+   */
   attributes: ComponentEntryAttributes
   /** Everything the adapter has to say. A `fatal` entry means `attributes` must not be trusted. */
   diagnostics: Diagnostic[]
