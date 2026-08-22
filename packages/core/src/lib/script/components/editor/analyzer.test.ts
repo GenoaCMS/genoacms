@@ -30,7 +30,7 @@ interface ComponentsAttribute<Component, MaxComponents, Allowed> { _brand: Compo
 function emptyEntry (name: string): ComponentEntry {
   return {
     uid: 'entry-uid',
-    type: 'coded',
+    type: 'dynamic',
     name,
     attributes: {},
     attributeOrder: [],

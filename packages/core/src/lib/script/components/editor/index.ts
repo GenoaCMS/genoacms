@@ -45,7 +45,7 @@ async function createComponent (name: string) {
     name
   }
 
-  await createComponentEntry(uid, 'coded', name)
+  await createComponentEntry(uid, 'dynamic', name)
   await createComponentDefinition(uid)
   await uploadComponent(component)
 

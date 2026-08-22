@@ -12,7 +12,7 @@
   }
   let { node = $bindable(), onupdate }: Props = $props()
   const componentEntry: ComponentEntry = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
-  const componentEntryURL = $derived(componentEntry.type === 'coded' ? `/components/editor/${componentEntry.uid}` : `/components/prebuilt/${componentEntry.uid}`)
+  const componentEntryURL = $derived(componentEntry.type === 'dynamic' ? `/components/editor/${componentEntry.uid}` : `/components/prebuilt/${componentEntry.uid}`)
 </script>
 
 <div>

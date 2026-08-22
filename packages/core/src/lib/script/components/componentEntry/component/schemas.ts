@@ -321,7 +321,7 @@ const componentEntrySchema: Schema = {
     name: { type: 'string' },
     // Declared because ComponentEntry declares them. Both were always written and neither was ever
     // described here; additionalProperties: false is what turned that from invisible into a failure.
-    type: { type: 'string', enum: ['prebuilt', 'coded'] },
+    type: { type: 'string', enum: ['prebuilt', 'dynamic'] },
     attributeOrder: { type: 'array', items: { type: 'string' } },
     attributes: componentEntryAttributesSchema,
     history: {},
