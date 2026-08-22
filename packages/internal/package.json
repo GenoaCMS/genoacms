@@ -1,0 +1,37 @@
+{
+  "name": "@genoacms/internal",
+  "version": "0.1.0",
+  "description": "Contracts and vocabulary shared across the GenoaCMS packages, which are neither the CMS application nor a cloud abstraction",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/internal"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GenoaCMS/genoacms/issues"
+  },
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/internal#readme",
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  }
+}
