@@ -18,15 +18,31 @@
     isModalOpen = !isModalOpen
   }
 
+  /**
+   * Commits, and reports what the server actually said.
+   *
+   * A refused commit comes back as a returned `{ status: 'fail' }`, not as a thrown error, and
+   * `submit()` resolves to a boolean rather than to that value — so a handler that only catches
+   * reports success for every refusal. Committing runs static analysis and compilation, both of
+   * which reject ordinary mistakes, so the refused case is the common one: an author was being told
+   * their component had shipped when nothing had been published.
+   *
+   * The handler's return value is read from `commitComponentRemote.result`, which is where the
+   * remote form puts it.
+   */
   const enhance = commitComponentRemote.enhance(async ({ submit }) => {
     try {
-      const result = await submit()
-      console.log(result)
-      toastSuccess('Code commited')
+      await submit()
+      const result = commitComponentRemote.result
+      if (result === undefined || result.status !== 'success') {
+        toastError(result?.text ?? 'The commit was refused, and gave no reason')
+        return
+      }
+      toastSuccess(result.text)
       isModalOpen = false
       message = ''
     } catch (error: any) {
-      toastError(error.code)
+      toastError(error.message ?? error.code)
     }
   })
 

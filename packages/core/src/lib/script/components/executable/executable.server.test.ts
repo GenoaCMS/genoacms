@@ -23,11 +23,18 @@ const getCurrentSigningKey = vi.fn(async () => ({
   secretKey: keypair.secretKey
 }))
 
+/** The registry, as far as this test is concerned: the signing key is listed, and nothing else is. */
+const resolveVerificationKey = vi.fn(async (candidateId: string) =>
+  candidateId === keyId ? keypair.publicKey : undefined
+)
+
 vi.mock('$lib/script/signing/keyResolution.server', () => ({
-  getCurrentSigningKey: async () => await getCurrentSigningKey()
+  getCurrentSigningKey: async () => await getCurrentSigningKey(),
+  resolveVerificationKey: async (candidateId: string) => await resolveVerificationKey(candidateId)
 }))
 
 const { signComponentExecutable } = await import('./executable.server')
+const { readSignedDocument } = await import('$lib/script/signing/signedDocument.server')
 
 const SUBJECT = {
   uid: 'component-1',
@@ -72,6 +79,33 @@ describe('signing an executable', () => {
 
     expect(envelope.payload.committedAt).toBe(SUBJECT.committedAt)
     expect(envelope.payload.compiledAt).toBeGreaterThanOrEqual(before)
+  })
+})
+
+describe('reading one back through the registry', () => {
+  // The path a consumer takes: look up the key the envelope names, then verify. Asserted here
+  // because the browser suite can only see that a file was published, not that it verifies.
+  it('resolves the key it names and verifies', async () => {
+    const envelope = await signed()
+    const result = await readSignedDocument(envelope, EXECUTABLE_DOCUMENT)
+
+    expect(result).toMatchObject({ ok: true })
+    expect(resolveVerificationKey).toHaveBeenCalledWith(keyId)
+  })
+
+  it('refuses one signed by a key the registry does not list', async () => {
+    // A revoked or unknown key is a conclusion about the document, not a transient failure.
+    const envelope = { ...(await signed()), keyId: 'not-in-the-registry' }
+    const result = await readSignedDocument(envelope, EXECUTABLE_DOCUMENT)
+
+    expect(result).toMatchObject({ ok: false })
+  })
+
+  it('refuses one asked for as a different document', async () => {
+    const envelope = await signed()
+    const result = await readSignedDocument(envelope, 'genoacms.roles.v1')
+
+    expect(result).toMatchObject({ ok: false })
   })
 })
 

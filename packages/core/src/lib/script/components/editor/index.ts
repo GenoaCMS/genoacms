@@ -13,7 +13,8 @@ import {
   deleteComponentFile
 } from './io'
 import diff from 'deep-diff'
-import { ComponentDiffError } from './errors'
+import { ComponentCodeError, ComponentDiffError } from './errors'
+import { componentNameRefusal, isValidComponentName } from './names'
 import { componentCodeToEntry } from './analyzer'
 import { compileComponentSource } from './compilation'
 import { signComponentExecutable } from '../executable/executable.server'
@@ -109,6 +110,12 @@ async function buildRevision (
   { definition, component, entry }: Awaited<ReturnType<typeof readCommitSubject>>,
   commit: ComponentCommit
 ) {
+  // Components created before names were constrained can hold one no source file can declare. The
+  // analyzer would report only that no such function exists, which is true and unfixable; saying
+  // why is what turns it into something the author can act on.
+  if (!isValidComponentName(component.name)) {
+    throw new ComponentCodeError('invalid-component-name', componentNameRefusal(component.name))
+  }
   const code = definition.uncommitedCode
   const newEntry = await componentCodeToEntry(definition.language, component.name, code, entry)
   const compiled = await compileComponentSource(definition.language, component.name, code)

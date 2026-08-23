@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { fixtureName, signIn } from './support/session'
+import { fixtureName, identifierFixtureName, signIn } from './support/session'
 
 /**
  * The two component surfaces: the prebuilt catalog, and the dynamic code editor.
@@ -187,8 +187,34 @@ const openStorageDirectory = async (page: Page, segments: string[]): Promise<voi
   }
 }
 
+/** Deletes whatever is selected in the current listing, if anything is. */
+const deleteSelection = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await page.getByRole('button', { name: 'Yes' }).click()
+  await expect(page.getByText('Deleted', { exact: true }).first()).toBeVisible({ timeout: SLOW })
+}
+
+/**
+ * Removes the published executables, which live in a directory of the component's own.
+ *
+ * Unlike the objects above, these are named for the commit rather than the component, so they are
+ * removed by emptying the directory rather than by matching a name. A committed component has one
+ * per commit, and an uncommitted one has no directory at all.
+ */
+const removeExecutables = async (page: Page, uid: string): Promise<void> => {
+  await page.goto(`/storage/${BUCKET}/contents/.genoacms/components/${uid}`)
+
+  const items = page.getByRole('button', { name: /^select-/ })
+  if (await items.count() === 0) return
+
+  for (const item of await items.all()) await item.click()
+  await deleteSelection(page)
+}
+
 /** Removes a dynamic component's objects, since the delete action cannot. */
 const removeDynamicObjects = async (page: Page, uid: string): Promise<void> => {
+  await removeExecutables(page, uid)
+
   for (const directory of DYNAMIC_DIRECTORIES) {
     await openStorageDirectory(page, directory)
 
@@ -196,9 +222,7 @@ const removeDynamicObjects = async (page: Page, uid: string): Promise<void> => {
     if (await item.count() === 0) continue
 
     await item.first().click()
-    await page.getByRole('button', { name: 'Delete', exact: true }).click()
-    await page.getByRole('button', { name: 'Yes' }).click()
-    await expect(page.getByText('Deleted', { exact: true }).first()).toBeVisible({ timeout: SLOW })
+    await deleteSelection(page)
   }
 }
 
@@ -242,12 +266,36 @@ const writeCode = async (page: Page, code: string): Promise<void> => {
   await autoSaved
 }
 
+/**
+ * A component the pipeline accepts.
+ *
+ * The entry function is named after the component, because that is how the CMS finds it. The
+ * attribute type is declared in the source rather than imported: the analyzer reads a parameter's
+ * resolved type text, and a component may not import anything anyway.
+ */
+const componentSource = (name: string): string =>
+  'interface StringAttribute<Pattern, MaxLength, Default> { _brand: Pattern }\n' +
+  `export function ${name} (heading: StringAttribute<".*", 120, "hi">) { return heading }\n`
+
+/** Opens the commit dialog and submits it. */
+const commitDraft = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Commit' }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Commit changes' })
+  await dialog.getByRole('textbox').last().fill('committed by the end-to-end suite')
+  await dialog.getByRole('button', { name: /commit/i }).click()
+}
+
 test.describe('a dynamic component', () => {
   let name: string
   let uid: string
 
   test.beforeEach(async ({ page }) => {
-    name = fixtureName('dynamic')
+    // A dynamic component's name is the function its source declares, so the fixture name has to be
+    // one a source file can actually name.
+    name = identifierFixtureName('dynamic')
+    // Reset, so a test that creates nothing does not have the previous test's uid swept again.
+    uid = undefined as unknown as string
     await signIn(page)
     await openEditor(page)
   })
@@ -273,17 +321,52 @@ test.describe('a dynamic component', () => {
   test('commits, which signs and publishes it', async ({ page }) => {
     test.setTimeout(180_000)
     uid = await createDynamic(page, name)
-    await writeCode(page, 'export const answer = 42\n')
+    await writeCode(page, componentSource(name))
 
     // Committing runs static analysis, compiles, signs with the key hierarchy and publishes. It is
     // the slowest thing the product does, and the one most worth knowing still works.
-    await page.getByRole('button', { name: 'Commit' }).click()
+    await commitDraft(page)
 
-    const dialog = page.getByRole('dialog', { name: 'Commit changes' })
-    await dialog.getByRole('textbox').last().fill('committed by the end-to-end suite')
-    await dialog.getByRole('button', { name: /commit/i }).click()
+    // The exact string the server returns on success. A pattern that also matched a failure message
+    // was what let this test pass for months while every commit was in fact being refused.
+    await reported(page, 'Code commited')
 
-    await reported(page, /commited|committed/i)
+    // What "publishes" means: one object under the component's own directory, named for the commit
+    // that produced it. Matched on the per-file select control rather than on links, because the
+    // listing also renders navigation the count would otherwise include.
+    await openStorageDirectory(page, ['.genoacms', 'components', uid])
+    const executables = page.getByRole('button', { name: /^select-/ })
+    await expect(executables).toHaveCount(1, { timeout: SLOW })
+    await expect(executables.first()).toHaveAccessibleName(/[0-9a-f-]{36}\.json$/)
+  })
+
+  test('reports a refusal instead of claiming to have committed', async ({ page }) => {
+    test.setTimeout(180_000)
+    uid = await createDynamic(page, name)
+
+    // Analysis passes and compilation refuses: a component may not import anything, because what is
+    // signed has to be a function of the source alone.
+    await writeCode(page, `import { format } from "date-fns"\n${componentSource(name)}`)
+    await commitDraft(page)
+
+    await reported(page, /cannot import|self-contained/i)
+    await expect(page.getByText('Code commited')).toHaveCount(0)
+
+    // Nothing was published, so the component has no executables.
+    await page.goto(`/storage/${BUCKET}/contents/.genoacms/components/${uid}`)
+    await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(0, { timeout: SLOW })
+  })
+
+  test('refuses a name no source file could declare', async ({ page }) => {
+    // The name is the entry function. Accepting `my-hero` would create a component that can never be
+    // committed, and the only error the author would ever see is that no such function exists.
+    await page.getByRole('button', { name: 'Create component' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Create a new component' })
+    await dialog.getByLabel('Name:').fill('e2e-not-an-identifier')
+    await dialog.getByRole('button', { name: 'Create' }).click()
+
+    await expect(page).not.toHaveURL(/\/components\/editor\/[^/]+$/)
   })
 
   /**

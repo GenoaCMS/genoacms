@@ -45,9 +45,10 @@ const definition = {
 }
 
 let draft = { ...definition }
+let componentName = 'Hero'
 
 vi.mock('./io', () => ({
-  getComponent: async () => ({ uid: 'component-1', name: 'Hero' }),
+  getComponent: async () => ({ uid: 'component-1', name: componentName }),
   getComponentDefiniton: async () => draft,
   uploadComponent: async () => {},
   uploadComponentDefinition: async () => { writes.push('definition') },
@@ -96,6 +97,7 @@ beforeEach(() => {
   writes.length = 0
   uploadComponentExecutable.mockClear()
   draft = { ...definition }
+  componentName = 'Hero'
 })
 
 describe('committing a revision', () => {
@@ -170,6 +172,15 @@ describe('refusing a revision', () => {
     const importing = `import { x } from "somewhere"\n${GOOD_SOURCE}`
 
     await expect(commit(importing)).rejects.toMatchObject({ code: 'import-not-allowed' })
+  })
+
+  it('says why a component whose name is not an identifier can never commit', async () => {
+    // Created before names were constrained. The analyzer would report only that no such function
+    // exists, which is true and impossible to act on.
+    componentName = 'e2e-dynamic-a1b2c3'
+
+    await expect(commit(GOOD_SOURCE)).rejects.toMatchObject({ code: 'invalid-component-name' })
+    expect(writes).toEqual([])
   })
 
   it('writes nothing when there is no change to commit', async () => {

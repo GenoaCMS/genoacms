@@ -24,6 +24,17 @@ const FIXTURE_PREFIX = 'e2e-'
 const fixtureName = (what: string): string =>
   `${FIXTURE_PREFIX}${what}-${Math.random().toString(36).slice(2, 8)}`
 
+/**
+ * A fixture name that is also a legal function name.
+ *
+ * A dynamic component's name **is** the function its source declares, so `e2e-dynamic-a1b2c3` names
+ * a component nothing can ever commit. Hyphens are dropped rather than the prefix, because the
+ * prefix is what makes a leftover fixture recognizable — `e2eDynamicA1b2c3` still reads as one at a
+ * glance, and dynamic components are cleaned up by uid rather than by prefix match.
+ */
+const identifierFixtureName = (what: string): string =>
+  `e2e${what[0].toUpperCase()}${what.slice(1)}${Math.random().toString(36).slice(2, 8)}`
+
 const signIn = async (page: Page): Promise<void> => {
   await page.goto('/login')
   await page.locator('input[name="username"]').fill(account.email)
@@ -48,6 +59,7 @@ const toast = (page: Page, text: string | RegExp): Locator =>
 
 export {
   account,
+  identifierFixtureName,
   FIXTURE_PREFIX,
   fixtureName,
   signIn,

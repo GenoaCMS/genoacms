@@ -4,6 +4,7 @@ import { formats } from '$lib/script/database/validators'
 import { createUserComponent, listUserComponents } from '$lib/script/components/editor/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { componentCreationSchema } from '$lib/script/components/editor/schemas'
+import { componentNameRefusal, isValidComponentName } from '$lib/script/components/editor/names'
 import { fail, redirect } from '@sveltejs/kit'
 
 const validate = validator(componentCreationSchema as any, { formats })
@@ -24,7 +25,12 @@ export const actions = {
     const isValid = validate(data)
 
     if (!isValid) {
-      return fail(400, { status: 'fail', text: 'Failed to create a component' })
+      // A rejected name is the ordinary case here, and "failed to create a component" tells an
+      // author nothing they can act on. The name rule is the only constraint, so say it.
+      const text = typeof data.name === 'string' && !isValidComponentName(data.name)
+        ? componentNameRefusal(data.name)
+        : 'Failed to create a component'
+      return fail(400, { status: 'fail', text })
     }
 
     const componentId = await createUserComponent(ctx, data.name as string)
