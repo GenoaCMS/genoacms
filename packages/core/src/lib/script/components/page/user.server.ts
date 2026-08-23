@@ -64,7 +64,7 @@ const revertUserPageEntry = async (ctx: AuthContext, page: PageEntry<IsSerializa
  * Generates the readable tree, which is what makes an edit visible.
  *
  * Demands the edit that produced it **and** `pages:publish`: publishing someone else's saved draft
- * is still publishing, and the tree is the artefact a visitor sees.
+ * is still publishing, and the tree is the artifact a visitor sees.
  */
 const generateUserReadablePageTree = async (ctx: AuthContext, page: PageEntry<IsSerializable>) => {
   requirePermission(ctx, 'pages:content_edit')

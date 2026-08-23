@@ -14,7 +14,7 @@ import { Project } from 'ts-morph'
 /**
  * Deriving a component's attributes from its TypeScript source.
  *
- * Moved here from the CMS unchanged in behaviour. What is different is the boundary: this reports
+ * Moved here from the CMS unchanged in behavior. What is different is the boundary: this reports
  * what it cannot handle as a **diagnostic** rather than by throwing, because an adapter's job is to
  * tell the CMS what is wrong with a source file, not to decide what the CMS does about it.
  */
@@ -222,7 +222,7 @@ function parameterToAttribute (parameterNode: ParameterDeclaration, diagnostics:
       }
     }
     default: {
-      // Reported rather than thrown: one unrecognised parameter should not cost the diagnostics
+      // Reported rather than thrown: one unrecognized parameter should not cost the diagnostics
       // for every other parameter in the file, which is what an author needs to fix it.
       diagnostics.push({
         severity: 'fatal',

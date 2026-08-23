@@ -27,7 +27,7 @@ type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
  * object member, so `{ a: undefined, b: 1 }` becomes `{"b":1}` — the caller believes it signed a
  * payload with an `a` field and actually signed one without. A signature that attests to something
  * other than what was handed over is worse than no signature, so an unrepresentable value is an
- * error rather than something to normalise away.
+ * error rather than something to normalize away.
  *
  * It is also what the schema requires in practice: a constraint that is unset must be **omitted**, and
  * omitting it has to be a deliberate act rather than an accidental `undefined`.
@@ -67,7 +67,7 @@ function assertSignable (value: unknown, path = '$', seen = new Set<object>()): 
   } else if (Object.getPrototypeOf(object) === Object.prototype || Object.getPrototypeOf(object) === null) {
     for (const [key, item] of Object.entries(object)) assertSignable(item, `${path}.${key}`, seen)
   } else {
-    // A Date would serialise through `toJSON` to an ISO string, and a Map to `{}`. Both are
+    // A Date would serialize through `toJSON` to an ISO string, and a Map to `{}`. Both are
     // conversions the caller did not ask for, inside something about to be signed.
     const name = object.constructor?.name ?? 'object'
     throw new Error(`unsignable-payload: ${path} is a ${name}; use a plain object, array or primitive`)

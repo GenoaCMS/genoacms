@@ -8,7 +8,7 @@ holds roles; a grant names a permission and the resource it applies to.
 Authorization is **not a service**: there is no provider to register and no adapter behind it. It is a
 core module of GenoaCMS, and its data lives in your own bucket. Only *who your users are* is
 delegated — to the [authentication service](/guide/config/services), because *"who are you?"* is a
-standardised question in a way that *"what may you do here?"* is not.
+standardized question in a way that *"what may you do here?"* is not.
 
 ## Permissions
 
@@ -160,7 +160,7 @@ A grant is composed as two choices. First the permission, picked by category —
 content, configuration. Then, if the permission is bucket- or collection-scoped, **which** buckets or
 collections, switched on from the ones this instance actually has:
 
-- The list is the instance's own catalogue, so a grant cannot name something that does not exist. A
+- The list is the instance's own catalog, so a grant cannot name something that does not exist. A
   mistyped name would otherwise produce a grant that looks granted and denies every request.
 - **One row can cover several resources.** "May read these three buckets" is one row; it is saved as
   one grant per bucket.

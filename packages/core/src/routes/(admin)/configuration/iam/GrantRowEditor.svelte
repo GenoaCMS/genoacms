@@ -26,7 +26,7 @@
   const scope = $derived(scopeOf(row.permission))
   const collections = $derived(resources.collections)
 
-  /** The catalogue for the scope the chosen permission fixes. */
+  /** The catalog for the scope the chosen permission fixes. */
   const available = $derived(
     scope === 'bucket' ? resources.buckets : collections.map(collection => collection.name)
   )

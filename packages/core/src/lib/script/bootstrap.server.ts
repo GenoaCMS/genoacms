@@ -19,9 +19,9 @@ import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
  * converge rather than conflict.
  */
 
-let initialised: Promise<void> | undefined
+let initialized: Promise<void> | undefined
 
-async function initialise (): Promise<void> {
+async function initialize (): Promise<void> {
   // Creates the root key on the way, since signing the registry requires it.
   await loadOrBootstrapRegistry()
   // Creates the security policy document from Tier-1 defaults, if absent.
@@ -31,26 +31,26 @@ async function initialise (): Promise<void> {
 }
 
 /**
- * Runs initialisation once per process.
+ * Runs initialization once per process.
  *
  * **Never rejects.** A failure here means the bucket or the secret store is unreachable or
  * misconfigured, and refusing to start would remove the only route to repairing it — the seed
  * administrator has to be able to sign in. The condition is reported instead, and the next attempt
  * happens on the next start.
  */
-async function ensureInstanceInitialised (): Promise<void> {
-  if (initialised === undefined) {
-    initialised = initialise().catch((error: unknown) => {
+async function ensureInstanceInitialized (): Promise<void> {
+  if (initialized === undefined) {
+    initialized = initialize().catch((error: unknown) => {
       console.error(
-        '[genoacms:bootstrap] initialisation failed, so signing keys or authorization manifests may ' +
+        '[genoacms:bootstrap] initialization failed, so signing keys or authorization manifests may ' +
         'be missing. The seed administrator can still sign in to repair this. ' +
         `Cause: ${(error as Error).message}`
       )
     })
   }
-  await initialised
+  await initialized
 }
 
 export {
-  ensureInstanceInitialised
+  ensureInstanceInitialized
 }

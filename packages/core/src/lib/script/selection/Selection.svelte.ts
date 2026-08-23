@@ -4,7 +4,7 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity'
  * Selecting several things at once, wherever the CMS lists things.
  *
  * Four surfaces need this — the storage browser, the collection document list, the prebuilt
- * component catalogue and the page list — and three of them had grown their own copy: the same
+ * component catalog and the page list — and three of them had grown their own copy: the same
  * reactive set, the same JSON key, the same toggle, differing only in what they select and which
  * extras they bolted on. This is that shared core, written once.
  *

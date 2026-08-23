@@ -14,7 +14,7 @@ import { WILDCARD } from './grants'
 
 /**
  * Derived from the permission table, so a permission added or removed there cannot leave a
- * manifest schema that accepts a permission the CMS no longer honours, or rejects one it does.
+ * manifest schema that accepts a permission the CMS no longer honors, or rejects one it does.
  */
 const permissionSelectorSchema: Schema = {
   type: 'string',

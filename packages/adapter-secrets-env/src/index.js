@@ -24,7 +24,7 @@ const LOCK_TIMEOUT_MS = 5_000
 const LOCK_POLL_MS = 20
 
 /**
- * Serialises writes. Each one is a read-modify-write of the whole file, so two concurrent writes
+ * Serializes writes. Each one is a read-modify-write of the whole file, so two concurrent writes
  * would otherwise race and silently drop one of the secrets.
  */
 let writeQueue = Promise.resolve()

@@ -133,7 +133,7 @@ const rotateUserSubordinateKey = async (
  * **This is the response to a leak, and rotation is not.** A superseded key still verifies, so
  * rotating away from a key an adversary holds achieves nothing; only revocation does. The cost is
  * accepted rather than softened: every signature that key ever made stops verifying, because
- * nothing dates a signature and a rule honouring "earlier" ones would honour the forgeries too.
+ * nothing dates a signature and a rule honoring "earlier" ones would honor the forgeries too.
  *
  * The already-revoked case is refused rather than repeated. Revoking twice would publish a second
  * registry that says exactly what the first one did, spending a sequence number and a signature to

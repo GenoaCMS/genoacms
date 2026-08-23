@@ -7,7 +7,7 @@ import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
  *
  * Unlike storage and database, this resolves to **exactly one** adapter. A secret store is a single
  * authority: with two configured, a write has no defensible target, and a key present in one but
- * not the other would make behaviour depend on lookup order — which is a difference that would show
+ * not the other would make behavior depend on lookup order — which is a difference that would show
  * up as an intermittent authentication failure rather than as a configuration error.
  */
 

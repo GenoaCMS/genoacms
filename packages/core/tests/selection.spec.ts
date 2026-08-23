@@ -101,7 +101,7 @@ test.describe('selecting documents', () => {
   })
 
   test.afterEach(async ({ page }) => {
-    // Named individually rather than swept by prefix: a run that failed early must not authorise
+    // Named individually rather than swept by prefix: a run that failed early must not authorize
     // deleting rows it never created.
     await sweepDocument(page, first)
     await sweepDocument(page, second)

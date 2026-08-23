@@ -76,14 +76,14 @@ function parseEntries (content) {
 }
 
 /**
- * Normalises line endings and strips a leading byte-order mark before splitting.
+ * Normalizes line endings and strips a leading byte-order mark before splitting.
  *
- * Both matter more than they look. A CRLF file left unnormalised parses as **no entries at all**,
+ * Both matter more than they look. A CRLF file left unnormalized parses as **no entries at all**,
  * because the trailing `\r` defeats the entry pattern — and an empty parse is indistinguishable
  * from "no secret configured", which is the reading that makes a caller generate a fresh key
  * instead of failing. A file authored on Windows would silently fork the trust anchor.
  *
- * Rewriting a file normalises it to LF, which is deliberate.
+ * Rewriting a file normalizes it to LF, which is deliberate.
  *
  * @param {string} content
  * @returns {string[]}

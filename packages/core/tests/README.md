@@ -31,7 +31,7 @@ in the meta-schemas, so an attribute built with `undefined` silently fails
 validation and the editor reports only "Invalid data".
 
 The suite asserts both that each init validates *and* that no key disappears
-through serialisation, plus one test proving the `undefined` form really does
+through serialization, plus one test proving the `undefined` form really does
 fail — so the guard cannot rot into a no-op.
 
 ### Writing new unit tests
@@ -70,7 +70,7 @@ the fixture naming live in `tests/support/session.ts`.
 | `grantEditor.spec.ts` | the role editor: permission combobox, resource and field switches, re-opening a saved editor |
 | `storage.spec.ts` | directories, uploads, renaming, selection and deletion |
 | `collections.spec.ts` | the document round trip: create, edit, persist, delete |
-| `components.spec.ts` | the prebuilt catalogue, and the dynamic editor through commit |
+| `components.spec.ts` | the prebuilt catalog, and the dynamic editor through commit |
 | `pages.spec.ts` | creating a page, its preview URL, saving content, and publishing |
 | `keys.spec.ts` | the signing key registry: the root anchor, rotation, revocation |
 

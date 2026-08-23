@@ -73,7 +73,7 @@ function hasPermission (context: AuthContext, permission: Permission, resource?:
 /**
  * Whether the principal holds **any** permission of one resource scope over one resource.
  *
- * This is the question a *catalogue* asks: the bucket catalogue is filtered over any bucket-scoped
+ * This is the question a *catalog* asks: the bucket catalog is filtered over any bucket-scoped
  * grant rather than `read` alone, because a principal holding only
  * `storage:bucket:write` must still see the bucket as an upload target. Filtering on `read` would
  * hide the destination of an upload the same principal is permitted to perform.

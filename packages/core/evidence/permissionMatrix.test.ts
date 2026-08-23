@@ -104,7 +104,7 @@ vi.mock('$lib/script/authorization/declared.server', () => ({
 /**
  * A registry with one superseded key beside the current one, so revocation has something legitimate
  * to name. Revoking the *current* key would take the rotate-first path, which is the primary
- * layer's behaviour rather than an authorization question.
+ * layer's behavior rather than an authorization question.
  */
 const registryFixture = {
   sequence: 3,

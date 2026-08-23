@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Selection } from './Selection.svelte'
 
 /**
- * The selection core, shared by the storage browser, the collection list and the catalogue lists.
+ * The selection core, shared by the storage browser, the collection list and the catalog lists.
  *
  * Four surfaces depend on this, so its rules are asserted here rather than through any one of them.
  */

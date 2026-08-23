@@ -39,7 +39,7 @@ const canonicalVectors: CanonicalVector[] = [
   canonicalCase('number-exponent', 'Large numbers use ECMAScript exponent form.', { n: 1e30 }),
   canonicalCase('number-fraction', 'Fractions are shortest round-trip.', { n: 0.1 }),
   canonicalCase('number-integral-float', 'An integral double loses its trailing ".0".', { n: 1.0 }),
-  canonicalCase('number-negative-zero', 'Negative zero normalises to zero.', { n: -0 }),
+  canonicalCase('number-negative-zero', 'Negative zero normalizes to zero.', { n: -0 }),
   canonicalCase('unicode-literal', 'Non-ASCII is emitted literally, not escaped.', { s: '€' }),
   canonicalCase('escapes-minimal', 'Only what JSON requires is escaped.', { s: 'a\\"b\n' }),
   canonicalCase('omitted-key', 'An absent constraint is an absent key...', {}),

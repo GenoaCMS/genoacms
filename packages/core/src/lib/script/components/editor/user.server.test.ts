@@ -71,8 +71,8 @@ describe('every operation', () => {
 })
 
 describe('reading', () => {
-  it('separates the catalogue from the source', async () => {
-    // Seeing that a component exists is catalogue information; seeing what it does is not.
+  it('separates the catalog from the source', async () => {
+    // Seeing that a component exists is catalog information; seeing what it does is not.
     await editor.listUserComponents(reader())
     await editor.getUserComponent(reader(), 'uid-1')
     expect(calls).toEqual(['list', 'get:uid-1'])

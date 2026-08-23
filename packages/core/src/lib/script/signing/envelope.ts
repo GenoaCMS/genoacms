@@ -60,7 +60,7 @@ function toBase64 (bytes: Uint8Array): string {
 /**
  * Decodes base64 strictly.
  *
- * `Buffer.from(s, 'base64')` ignores anything it does not recognise, so a corrupted or truncated
+ * `Buffer.from(s, 'base64')` ignores anything it does not recognize, so a corrupted or truncated
  * signature would decode to *some* bytes and fail verification for the wrong reason. Re-encoding
  * and comparing is the cheapest way to reject input that was never valid base64 in the first place.
  */

@@ -33,7 +33,7 @@ function buildAttribute (type: AttributeType, schema: object) {
   return { uid: 'test-uid', name: 'test-uid', type, schema }
 }
 
-/** everything is JSON-serialised before validation and storage */
+/** everything is JSON-serialized before validation and storage */
 function roundTrip (value: unknown): Json {
   return JSON.parse(JSON.stringify(value))
 }

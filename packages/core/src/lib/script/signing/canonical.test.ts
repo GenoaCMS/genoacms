@@ -27,7 +27,7 @@ describe('RFC 8785 canonical form', () => {
     expect(canonicalString({ a: 1, b: [1, 2] })).toBe('{"a":1,"b":[1,2]}')
   })
 
-  it('normalises negative zero', () => {
+  it('normalizes negative zero', () => {
     expect(canonicalString({ n: -0 })).toBe('{"n":0}')
   })
 
@@ -101,7 +101,7 @@ describe('values that cannot be signed', () => {
       .toThrow(/\$\.at is a Date/)
   })
 
-  it('rejects a Map, which would serialise as an empty object', () => {
+  it('rejects a Map, which would serialize as an empty object', () => {
     expect(() => canonicalString({ m: new Map() } as unknown as JsonValue)).toThrow(/\$\.m is a Map/)
   })
 

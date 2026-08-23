@@ -4,7 +4,7 @@
   import SelectionCheckbox from './SelectionCheckbox.svelte'
 
   /**
-   * A catalogue card with a selection checkbox.
+   * A catalog card with a selection checkbox.
    *
    * The appearance comes from `SelectionCheckbox`, shared with the storage and collection browsers.
    * What this adds is the binding to a `NamedSelection` — the only thing specific to a list of

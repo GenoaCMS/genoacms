@@ -5,7 +5,7 @@ import type { Permission } from '$lib/script/authorization/permissions'
 /**
  * The gated signing service.
  *
- * The permission mapping itself is E6's business; what is asserted here is the behaviour the matrix
+ * The permission mapping itself is E6's business; what is asserted here is the behavior the matrix
  * cannot see — that a refusal comes back as a reason rather than an exception, that revoking twice
  * is refused before anything is published, and that an unreadable registry is reported rather than
  * replaced.

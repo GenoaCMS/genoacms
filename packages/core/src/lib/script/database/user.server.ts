@@ -62,7 +62,7 @@ const requireDelete = (ctx: AuthContext, collection: string): void =>
  *
  * Filters rather than denies, for the same reason the bucket list does: navigation should offer
  * only what the user could actually act on, rather than names that lead to a denial. Filtered on
- * **any** collection-scoped grant, matching the bucket catalogue — a principal who may write a
+ * **any** collection-scoped grant, matching the bucket catalog — a principal who may write a
  * collection but not read it must still see where their writes go.
  */
 const getUserCollectionReferences = (ctx: AuthContext): string[] =>

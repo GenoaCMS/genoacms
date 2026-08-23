@@ -30,7 +30,7 @@ secrets: {
 
 Only one secrets provider may be configured — see the service reference for why.
 
-## Behaviour
+## Behavior
 
 - **Reads** take `process.env` first, falling back to the file. On load the adapter parses the file
   into `process.env` **without overriding variables that are already set**, so a real environment
@@ -38,13 +38,13 @@ Only one secrets provider may be configured — see the service reference for wh
   checked-out `.env`. The fallback matters because `process.env` is a snapshot taken at load: a key
   another process has written since would otherwise read as absent forever.
 - **Writes** rewrite the file in place, preserving comments, ordering and unrelated entries. They are
-  serialised internally, because each write is a read-modify-write of the whole file and two
+  serialized internally, because each write is a read-modify-write of the whole file and two
   concurrent writes would otherwise drop one of the secrets.
 - **Claims** (`setSecretIfAbsent`) are atomic across processes, guarded by an exclusive `.env.lock`
   file. The in-process write queue is not sufficient: two `genoacms` processes share the file but
   not the queue. If a process is killed mid-claim the lock file survives — delete it.
 - **Keys** must match `[A-Za-z_][A-Za-z0-9_]*` — the portable subset every secret manager accepts.
-  An invalid key throws rather than being normalised, since folding `a-b` and `a_b` into one name
+  An invalid key throws rather than being normalized, since folding `a-b` and `a_b` into one name
   would silently merge two distinct secrets.
 
 ### Supported `.env` syntax

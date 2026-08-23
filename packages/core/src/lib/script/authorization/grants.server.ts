@@ -8,7 +8,7 @@ import type { AuthContext } from './context'
  *
  * The session token carries identity only, so grants are resolved here and held per subject for the
  * window the security policy states. That window is how long a revoked permission is still
- * honoured, which is why it is policy rather than a constant.
+ * honored, which is why it is policy rather than a constant.
  */
 
 let cache: GrantCache | undefined

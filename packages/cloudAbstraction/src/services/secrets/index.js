@@ -18,7 +18,7 @@ function isValidSecretKey (key) {
 }
 
 /**
- * Throws rather than normalising. Folding `a-b` and `a_b` onto one name would silently merge two
+ * Throws rather than normalizing. Folding `a-b` and `a_b` onto one name would silently merge two
  * distinct secrets, and the one that lost would look like it had simply never been written.
  *
  * @param {string} key

@@ -7,7 +7,7 @@ import { Selection } from '$lib/script/selection/Selection.svelte'
  * selection has always used, now supplied by the shared `Selection` rather than restated.
  *
  * Nothing is added beyond the cap: unlike storage there is no second kind of thing to exclude, which
- * is why this is a facade rather than a subclass with behaviour of its own.
+ * is why this is a facade rather than a subclass with behavior of its own.
  */
 
 type DocumentReference = string | number | Array<string | number>

@@ -74,8 +74,8 @@ const rolesPath = '.genoacms/security/roles.json'
 const usersPath = '.genoacms/security/users.json'
 
 const runBootstrap = async (): Promise<void> => {
-  const { ensureInstanceInitialised } = await import('./bootstrap.server')
-  await ensureInstanceInitialised()
+  const { ensureInstanceInitialized } = await import('./bootstrap.server')
+  await ensureInstanceInitialized()
 }
 
 const freshState = (): void => {
@@ -178,11 +178,11 @@ describe('re-running bootstrap', () => {
   }, 30_000)
 
   it('does not reject when storage is unreachable, so the seed admin can still sign in', async () => {
-    const { ensureInstanceInitialised } = await import('./bootstrap.server')
+    const { ensureInstanceInitialized } = await import('./bootstrap.server')
     const storage = await import('$lib/script/storage/storage.server')
     vi.spyOn(storage, 'uploadInternalObjectJSON').mockRejectedValue(new Error('bucket unreachable'))
 
-    await expect(ensureInstanceInitialised()).resolves.toBeUndefined()
+    await expect(ensureInstanceInitialized()).resolves.toBeUndefined()
   }, 30_000)
 })
 
@@ -268,7 +268,7 @@ describe('Tier-1 role declarations', () => {
   it('are never written into the manifest', async () => {
     // Declarations are merged when authorization is read, not persisted. Writing
     // them would leave a copy behind that survived deleting the declaration — and revoking access
-    // by deleting a line from genoa.config is the behaviour that depends on this.
+    // by deleting a line from genoa.config is the behavior that depends on this.
     declaredRoles.value = { Editor: [{ permission: 'pages:content_edit', resource: '*' }] }
     await runBootstrap()
     expect(rolesPayload()).toEqual({})

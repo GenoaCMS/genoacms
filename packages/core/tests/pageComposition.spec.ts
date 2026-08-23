@@ -5,7 +5,7 @@ import { signIn, confirm, toast } from './support/session'
  * Composing a page out of components, end to end.
  *
  * This is the product's central workflow and the one with the least coverage: `components.spec.ts`
- * exercises the catalogue and the code editor, `pages.spec.ts` creates a page and publishes it, but
+ * exercises the catalog and the code editor, `pages.spec.ts` creates a page and publishes it, but
  * nothing until now built a **tree** — a page whose root component has a slot, with other components
  * nested inside it — or exercised what an author does to that tree afterwards: reorder it, undo,
  * redo, remove a node.
@@ -13,8 +13,8 @@ import { signIn, confirm, toast } from './support/session'
  * ## It is written to fail where the product is incomplete
  *
  * These tests state what the features are supposed to do. Where the implementation does not yet do
- * it, the test fails rather than being softened to match — a suite that asserts current behaviour
- * cannot tell you when behaviour is wrong. Failures here are findings, not breakage.
+ * it, the test fails rather than being softened to match — a suite that asserts current behavior
+ * cannot tell you when behavior is wrong. Failures here are findings, not breakage.
  *
  * ## Fixtures
  *
@@ -150,7 +150,7 @@ test.beforeEach(async ({ page }) => {
 
 // ---------------------------------------------------------------------------------------------
 
-test.describe('building the component catalogue', () => {
+test.describe('building the component catalog', () => {
   test.describe.configure({ mode: 'serial' })
 
   test('creates a page component with a components slot', async ({ page }) => {

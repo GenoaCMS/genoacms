@@ -80,7 +80,7 @@ describe('concurrent requests are not theft', () => {
     expect(assessToken(afterRotation(), 'token-a', past)).toEqual({ outcome: 'reused' })
   })
 
-  it('honours a configured window', () => {
+  it('honors a configured window', () => {
     expect(assessToken(afterRotation(), 'token-a', NOW + 3_000, 1)).toEqual({ outcome: 'reused' })
     expect(assessToken(afterRotation(), 'token-a', NOW + 3_000, 60)).toEqual({ outcome: 'concurrent' })
   })

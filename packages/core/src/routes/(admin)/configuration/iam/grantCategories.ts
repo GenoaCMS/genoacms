@@ -10,7 +10,7 @@ import { permissions, type Permission } from '$lib/script/authorization/permissi
  * **Not the same as the permission domains.** The vocabulary puts pages and components in one
  * `content` domain, which is right for the taxonomy and wrong for this control: they are separate
  * jobs, and a role is rarely about both. The split lives here because it is a presentation
- * judgement, not a change to what the domains mean.
+ * judgment, not a change to what the domains mean.
  */
 interface GrantCategory {
   id: string
@@ -66,7 +66,7 @@ interface OptionGroup {
  * permissions differ in their middle segment and all end in `manage`, so trimming to the last
  * segment would render five identical options.
  */
-function labelled (group: Permission[]): Option[] {
+function labeled (group: Permission[]): Option[] {
   if (group.length === 0) return []
 
   const segments = group.map(permission => permission.split(':'))
@@ -94,13 +94,13 @@ function optionGroups (id: string): OptionGroup[] {
       available.filter(permission => permission.startsWith(`components:${kind}:`))
 
     return [
-      { label: 'Pages', options: labelled(pages) },
-      { label: 'Prebuilt components', options: labelled(ofKind('prebuilt')) },
-      { label: 'Dynamic components', options: labelled(ofKind('dynamic')) }
+      { label: 'Pages', options: labeled(pages) },
+      { label: 'Prebuilt components', options: labeled(ofKind('prebuilt')) },
+      { label: 'Dynamic components', options: labeled(ofKind('dynamic')) }
     ].filter(group => group.options.length > 0)
   }
 
-  return [{ options: labelled(available) }]
+  return [{ options: labeled(available) }]
 }
 
 export {

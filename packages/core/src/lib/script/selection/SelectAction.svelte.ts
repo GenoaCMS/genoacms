@@ -52,7 +52,7 @@ class SelectAction<Item, Parameters> {
     // Deliberately not awaited: a constructor cannot be async, and the window is usable while the
     // handshake completes — the controls it gates are hidden until `isActive` says otherwise.
     this.#init().catch((error: unknown) => {
-      console.warn('[genoacms:selection] the selection window could not be initialised', error)
+      console.warn('[genoacms:selection] the selection window could not be initialized', error)
     })
   }
 

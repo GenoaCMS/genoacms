@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vite
  * token, that reuse removes the family rather than merely reporting it, and that two requests
  * rotating at once produce a continued session rather than a revoked one.
  *
- * The stub honours `ifAbsent` and `ifVersion` because the lost-write race is the case worth having:
+ * The stub honors `ifAbsent` and `ifVersion` because the lost-write race is the case worth having:
  * a stub that accepted every write would make the race untestable and the test reassuring.
  */
 
@@ -97,8 +97,8 @@ let sessions: SessionModule
 beforeAll(async () => {
   objects.clear()
   secrets.clear()
-  const { ensureInstanceInitialised } = await import('$lib/script/bootstrap.server')
-  await ensureInstanceInitialised()
+  const { ensureInstanceInitialized } = await import('$lib/script/bootstrap.server')
+  await ensureInstanceInitialized()
   sessions = await import('./session.server')
 }, 60_000)
 

@@ -8,7 +8,7 @@
    *
    * The markup several surfaces had each written out. Nothing here knows *what* is selected — the
    * caller passes the state and the handler — so the storage browser, the collection listing and the
-   * catalogue lists share the appearance without sharing their reference types.
+   * catalog lists share the appearance without sharing their reference types.
    *
    * ## Where the box goes depends on what it selects
    *
@@ -16,7 +16,7 @@
    * layout. A **row** in a list does not: its first field starts at the left edge, and an overlaid
    * box lands on top of the text. Rows therefore get a column of their own, and that column is kept
    * even when the box is hidden — otherwise a row without a checkbox would sit shifted against its
-   * neighbours.
+   * neighbors.
    *
    * **The hover scale belongs to the wrapper.** The checkbox is a sibling of the content rather than
    * a child, so content that scaled itself would grow out from under its own checkbox. Callers that

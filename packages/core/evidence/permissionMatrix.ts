@@ -106,7 +106,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: ['getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents']
   },
   /**
-   * Write without read. Present because the catalogue is filtered on *any* bucket-scoped grant
+   * Write without read. Present because the catalog is filtered on *any* bucket-scoped grant
    * rather than on `read`: this role must still see the bucket it may upload to, and no
    * other role in this table would catch the filter narrowing back to `read`.
    */
@@ -143,7 +143,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'getUserCollection', 'getUserDocument'
     ]
   },
-  /** The collection counterpart of `StorageUploader`, guarding the same catalogue property. */
+  /** The collection counterpart of `StorageUploader`, guarding the same catalog property. */
   DataWriter: {
     grants: [collectionGrant('db:collection:write')],
     allowed: [
@@ -241,7 +241,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:prebuilt:read'),
       instanceGrant('components:prebuilt:modify')
     ],
-    // The catalogue permission covers coded components too: their names are catalogue information,
+    // The catalog permission covers coded components too: their names are catalog information,
     // and what distinguishes them — their source — is `components:dynamic:view_code`.
     allowed: [
       'listUserComponentEntries', 'getUserComponentEntry', 'updateUserComponentEntry',

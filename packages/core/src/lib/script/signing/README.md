@@ -34,7 +34,7 @@ code they sign. A subordinate signing it could rewrite the rule that retires it.
 | File | Responsibility |
 | :--- | :--- |
 | **`algorithms.ts`** | The named-algorithm registry. **The only file that imports the crypto library**, which is what keeps the algorithm a value in the data rather than a constant in the code — and bounds the upgrade cost of a pre-1.0 dependency. `verify` never throws; malformed input from a bucket must read as "does not verify", not crash a request. |
-| **`canonical.ts`** | RFC 8785 canonicalization and the SHA-256 digest that is signed. Rejects anything JSON cannot represent rather than normalising it — an `undefined` member is silently dropped by canonicalization, which would attest to a payload the caller never supplied. |
+| **`canonical.ts`** | RFC 8785 canonicalization and the SHA-256 digest that is signed. Rejects anything JSON cannot represent rather than normalizing it — an `undefined` member is silently dropped by canonicalization, which would attest to a payload the caller never supplied. |
 | **`envelope.ts`** | `{ alg, keyId, type, payload, signature }`, and the rule that the signature covers **all four**, not the payload alone. Closes algorithm confusion, key substitution and document substitution. |
 | **`keyId.ts`** | `keyId = SHA-256(publicKey)[0..16]`. Derived, never assigned, so a different key is necessarily a different id and a rotation cannot reuse an identifier. |
 | **`secretNames.ts`** | Where keys live in the secrets service. Pure, so the naming rules are testable without a provider. |
@@ -91,7 +91,7 @@ replaces a document on a transient failure destroys data it merely could not rea
 safe and what makes it useless against a leak. Revocation is all-or-nothing, because nothing dates a
 signature and the key under suspicion would attest any timestamp we added.
 
-**The cache refreshes on an unrecognised `keyId`.** That is not an optimisation: an unknown key is
+**The cache refreshes on an unrecognized `keyId`.** That is not an optimization: an unknown key is
 exactly what the first signature after a rotation elsewhere looks like, and suppressing that lookup
 rejects artifacts that are perfectly good.
 
@@ -101,7 +101,7 @@ rejects artifacts that are perfectly good.
 
 | | Lands with |
 | :--- | :--- |
-| `ComponentEntry` signing | the attribute representation it serialises |
+| `ComponentEntry` signing | the attribute representation it serializes |
 | `ComponentExecutable` signing | the compilation pipeline that produces one |
 | The client-side verifier and its conformance corpus | the portability specification |
 | Ed25519 as a classical control | the cryptographic cost study |

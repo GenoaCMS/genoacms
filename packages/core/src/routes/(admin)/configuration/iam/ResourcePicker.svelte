@@ -20,7 +20,7 @@
   interface Props {
     /** Fixed by the permission — `storage:bucket:read` is scoped to a bucket and nothing else. */
     scope: ResourceScope
-    /** The resources of this scope that exist, from the catalogue the server supplied. */
+    /** The resources of this scope that exist, from the catalog the server supplied. */
     available: string[]
     /** Collections with their fields, for the field pickers. Empty for bucket-scoped grants. */
     collections: GrantableCollection[]

@@ -5,7 +5,7 @@ import type { Cookies } from '@sveltejs/kit'
 /**
  * The cookie seam: what a caller observes across login, renewal and logout.
  *
- * Written against **behaviour, not mechanism** — that a request carrying a live session is
+ * Written against **behavior, not mechanism** — that a request carrying a live session is
  * authenticated, that renewal keeps the session renewable, that logout ends it in storage — so these
  * cases outlive the credential format they were written under. The access token is about to be
  * replaced by an opaque one, and the point of this file is to show that what a caller sees does not

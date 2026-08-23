@@ -126,13 +126,13 @@ const listUserRolesAndAccounts = async (
  * ## Why `config:roles:manage` and not a storage or database permission
  *
  * This is a **disclosure decision**, and it is the widest of the three considered. A role
- * administrator commonly holds no storage or database grant at all, so filtering the catalogue by the
+ * administrator commonly holds no storage or database grant at all, so filtering the catalog by the
  * caller's own access — as the storage and database services do for their own navigation — would show
  * them an empty picker and force them back to typing.
  *
  * What makes the wider rule defensible is stated plainly above: `config:roles:manage` **is**
  * SuperAdmin by another route. A holder can grant themselves every permission over every resource and
- * read the catalogue that way in one step, so withholding the names conceals nothing from them. It
+ * read the catalog that way in one step, so withholding the names conceals nothing from them. It
  * conceals the names only from principals who cannot obtain them anyway.
  *
  * A dedicated `config:resources:list` permission was rejected on the same grounds as
@@ -159,7 +159,7 @@ const listGrantableResources = async (ctx: AuthContext): Promise<GrantableResour
  * One collection and the fields it declares.
  *
  * A definition that cannot be read yields a collection with no fields rather than propagating the
- * failure: the collection is known to exist — it is in the catalogue — and taking the whole
+ * failure: the collection is known to exist — it is in the catalog — and taking the whole
  * administration screen down over one unreadable definition would be a worse answer than offering
  * the collection with nothing to refine it by.
  */

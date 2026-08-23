@@ -6,7 +6,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
 /**
  * Enforcement in the user-facing prebuilt component layer.
  *
- * Two things are worth pinning. Reading the catalogue is its own permission, so a role can exist
+ * Two things are worth pinning. Reading the catalog is its own permission, so a role can exist
  * that cannot browse components at all. And **removal is gated on `register`, not `modify`**: a
  * component is a dependency of every page using it, so a role meant to adjust attribute schemas must
  * not be able to delete one.
@@ -42,7 +42,7 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
   expect(calls).toEqual([])
 }
 
-describe('reading the catalogue', () => {
+describe('reading the catalog', () => {
   it('is denied without components:prebuilt:read', async () => {
     await expectDenied(() => components.listUserComponentEntries(contextWith([])))
     await expectDenied(() => components.getUserComponentEntry(contextWith([]), 'hero'))

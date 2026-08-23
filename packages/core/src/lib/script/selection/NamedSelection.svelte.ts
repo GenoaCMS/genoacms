@@ -69,10 +69,10 @@ const confirmationPhrase = (names: string[]): string => names.join(', ')
 
 /** Whitespace around the separators is forgiven; the names and their order are not. */
 const matchesConfirmation = (typed: string, names: string[]): boolean => {
-  const normalise = (value: string): string =>
+  const normalize = (value: string): string =>
     value.split(',').map(part => part.trim()).filter(part => part.length > 0).join(',')
 
-  return normalise(typed) === normalise(confirmationPhrase(names))
+  return normalize(typed) === normalize(confirmationPhrase(names))
 }
 
 export {

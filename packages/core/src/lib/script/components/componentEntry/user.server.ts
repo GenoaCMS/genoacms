@@ -12,14 +12,14 @@ import {
  * Prebuilt component operations performed **by a user**.
  *
  * `io.server` is the primary service and stays unprivileged: `page/entry/index.ts` reads component
- * entries while deserialising page nodes, which happens during rendering rather than in response to
- * a user's action on the catalogue.
+ * entries while deserializing page nodes, which happens during rendering rather than in response to
+ * a user's action on the catalog.
  *
  * Content permissions are **instance-scoped** — the architecture defines no per-component grants —
  * so no resource is passed.
  *
  * The upload primitive is an upsert, but the two capabilities it serves are not the same: adding a
- * component to the catalogue and altering one already in it are separate permissions. Rather than
+ * component to the catalog and altering one already in it are separate permissions. Rather than
  * probing storage to find out which is happening, this layer exposes the *intent* and lets the call
  * site declare it. Registration has no route yet, so no wrapper for it exists.
  */
@@ -43,7 +43,7 @@ const updateUserComponentEntry = async (ctx: AuthContext, entry: ComponentEntry)
 }
 
 /**
- * Removes a component from the catalogue.
+ * Removes a component from the catalog.
  *
  * Gated on `register` rather than `modify`: removal is the inverse of registration, so a principal
  * who may not add a component may not delete one either. Letting `modify` cover it would mean a role

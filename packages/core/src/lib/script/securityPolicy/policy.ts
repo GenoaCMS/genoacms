@@ -24,7 +24,7 @@ interface SecurityPolicy {
   /**
    * Access token lifetime in minutes.
    *
-   * Short by design: it is the window during which a revoked permission is still honoured, since
+   * Short by design: it is the window during which a revoked permission is still honored, since
    * grants travel inside the token.
    */
   accessTokenMinutes: number
@@ -32,7 +32,7 @@ interface SecurityPolicy {
    * How long resolved grants are cached per subject.
    *
    * A security parameter rather than a tuning one: it is the window during which a permission
-   * removed from a role is still honoured. It can be short, because a miss costs one storage read
+   * removed from a role is still honored. It can be short, because a miss costs one storage read
    * rather than a re-authentication.
    */
   grantCacheSeconds: number

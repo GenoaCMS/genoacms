@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { fixtureName, signIn } from './support/session'
 
 /**
- * The two component surfaces: the prebuilt catalogue, and the dynamic code editor.
+ * The two component surfaces: the prebuilt catalog, and the dynamic code editor.
  *
  * They are different products sharing a menu. A **prebuilt** entry describes a component that
  * already exists in the consuming app — the CMS holds its name and attribute schema. A **dynamic**
@@ -75,7 +75,7 @@ test.describe('a prebuilt component', () => {
     await deletePrebuilt(page, name)
   })
 
-  test('is registered and appears in the catalogue', async ({ page }) => {
+  test('is registered and appears in the catalog', async ({ page }) => {
     await registerComponent(page, name)
 
     await openPrebuilt(page)
@@ -162,7 +162,7 @@ const BUCKET = 'genoacms'
 const DYNAMIC_DIRECTORIES = [
   ['.genoacms', 'components', 'edited'],
   ['.genoacms', 'components', 'definitions'],
-  // Creating a dynamic component also registers it in the prebuilt catalogue, so its entry has to
+  // Creating a dynamic component also registers it in the prebuilt catalog, so its entry has to
   // go too — otherwise the component vanishes from the editor but lingers as a component entry.
   ['.genoacms', 'components', 'prebuilt']
 ]

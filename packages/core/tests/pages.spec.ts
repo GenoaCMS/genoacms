@@ -50,7 +50,7 @@ const openPages = async (page: Page): Promise<void> => {
 /**
  * Creates a page against the first component offered.
  *
- * The component list comes from the prebuilt catalogue, so the test picks whatever this instance
+ * The component list comes from the prebuilt catalog, so the test picks whatever this instance
  * has rather than depending on a particular component existing.
  */
 const createPage = async (page: Page, name: string): Promise<void> => {

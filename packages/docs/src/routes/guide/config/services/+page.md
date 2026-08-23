@@ -51,7 +51,7 @@ inherit access control from its cloud platform's IAM. It has been removed. Cloud
 would require a cloud identity for every copywriter and translator, and permissions such as
 `pages:publish` have no meaning outside GenoaCMS.
 
-Authentication is federated because *"who are you?"* is a standardised question. Authorization
+Authentication is federated because *"who are you?"* is a standardized question. Authorization
 answers *"what may you do in this application?"*, so it is a core module of GenoaCMS with no
 adapters and no configuration stanza.
 :::
@@ -140,7 +140,7 @@ secrets: {
 
 :::caution[Exactly one provider]
 Only one secret store may be configured. A secret store is a single authority: with two, a write has
-no defensible target, and a key present in one but not the other would make behaviour depend on
+no defensible target, and a key present in one but not the other would make behavior depend on
 lookup order.
 :::
 

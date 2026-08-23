@@ -9,7 +9,7 @@ import type { Role } from './roles'
  *
  * Every function here fails closed: an invalid manifest yields no roles and no users at all,
  * never a partial set. Salvaging the valid half of a tampered manifest would be exactly the
- * behaviour an attacker with bucket write access would want.
+ * behavior an attacker with bucket write access would want.
  */
 
 /** A CMS user. Keyed by `subject`; `email` is display metadata and is never authorization input. */

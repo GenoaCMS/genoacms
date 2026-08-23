@@ -3,7 +3,7 @@
 Access control for GenoaCMS. **This is a core module, not a cloud abstraction service**, and that
 is a deliberate architectural position rather than an accident of where the files landed.
 
-Authentication asks *"who are you?"* — a standardised question that identity platforms answer
+Authentication asks *"who are you?"* — a standardized question that identity platforms answer
 better than an application can, so it remains a `@genoacms/cloudabstraction` service with adapters.
 Authorization asks *"what may you do in this application?"*. Cloud IAM can grant "read bucket X";
 it cannot express which collections or which fields a principal may reach, it would require a cloud
@@ -161,7 +161,7 @@ no context to be called with outside of tests.
 | `permissions.test.ts` | the table is complete, partitioned by domain, and rejects inherited object properties as permissions |
 | `enforce.test.ts` | the matcher, both wildcard axes, and the two ways it could silently over-grant |
 | `manifests.test.ts` | schema rejection, whole-manifest failure, unsafe keys, round-tripping |
-| `resolution.test.ts` | fail-closed behaviour, seed-admin recovery, dangling roles, trust policy |
+| `resolution.test.ts` | fail-closed behavior, seed-admin recovery, dangling roles, trust policy |
 
 Security-critical guards in this module are **mutation-tested**: break the guard, confirm the suite
 fails, restore. A denial test passes just as happily against code that denies *everything*, so the
