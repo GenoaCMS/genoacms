@@ -5,15 +5,14 @@ import {
   fullyQualifiedNameToFilename,
   getInternalObjectFlatted,
   listOrCreateDirectory,
-  uploadInternalObjectFlatted,
-  uploadInternalObjectJSON
+  uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
+import { readablePageTreePath, uploadReadablePageTree } from '$lib/script/components/page/tree/io.server'
 import { deserializeComponentNode } from './entry'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
-const pageReadableTreePath = join('.genoacms', 'pages', 'readables')
 
 const listOrCreatePageList = async () => {
   const pageStructureList = await listOrCreateDirectory({
@@ -47,10 +46,16 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
   return serializedPageEntry
 }
 
+/**
+ * Builds a page's readable tree and publishes it, signed.
+ *
+ * Building pins each dynamic node to the revision current at this moment, and the signature covers
+ * those pins — so a published page names both which components it has and which revision of each,
+ * and neither can be changed by writing to the bucket.
+ */
 const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
   const readableTree = await pageEntryToReadableTree(page)
-  console.log('readableTree', readableTree)
-  return uploadInternalObjectJSON(join(pageReadableTreePath, page.name), readableTree)
+  await uploadReadablePageTree(page.name, readableTree)
 }
 
 /**
@@ -68,7 +73,7 @@ const deletePageEntry = async (name: string) => {
   await deleteInternalObject(join(pageEntriesPath, name))
 
   try {
-    await deleteInternalObject(join(pageReadableTreePath, name))
+    await deleteInternalObject(readablePageTreePath(name))
   } catch (error) {
     console.warn(
       `[genoacms:pages] deleted the entry for ${name} but not its readable tree: ` +
