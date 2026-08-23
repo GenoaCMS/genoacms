@@ -41,10 +41,23 @@ async function getComponentDefiniton (reference: ComponentDefinitionReference) {
   return potentialComponentDefinition
 }
 
+/**
+ * Reads a stored commit, refusing one that does not validate.
+ *
+ * A commit written before commits recorded their author fails here. That is deliberate rather than
+ * an oversight: the author cannot be recovered afterwards, and an executable rebuilt from such a
+ * commit would either carry a placeholder — a signed claim of attribution that is not true — or no
+ * attribution at all. Recommitting the component writes a commit that does record one.
+ */
 async function getComponentCommit (componentId: string, commitId: string) {
   const potentialComponentCommit = await getInternalObjectFlatted(join(componentDefinitionPath, componentId, commitId))
   const validateComponentCommit = validator(componentCommitSchema)
-  if (!validateComponentCommit(potentialComponentCommit)) throw Error(`Invalid component commit: ${commitId}`)
+  if (!validateComponentCommit(potentialComponentCommit)) {
+    throw Error(
+      `Invalid component commit: ${commitId}. A commit stored without an authorId predates commits ` +
+      'recording one; recommit the component to produce a commit that does.'
+    )
+  }
   return potentialComponentCommit
 }
 async function componentDirectoryToComponents (directoryContents: DirectoryContents): Promise<Array<Component>> {

@@ -26,7 +26,7 @@ vi.mock('./index', () => ({
   getComponent: async (uid: string) => { calls.push(`get:${uid}`); return { uid, name: 'hero' } },
   getComponentDefiniton: async (uid: string) => { calls.push(`definition:${uid}`); return { uid } },
   updateComponentDefinition: async (uid: string) => { calls.push(`update:${uid}`) },
-  commitComponentDefinition: async (order: { componentId: string }) => { calls.push(`commit:${order.componentId}`) },
+  commitComponentDefinition: async (order: { componentId: string }, authorId: string) => { calls.push(`commit:${order.componentId}:${authorId}`) },
   deleteComponent: async (component: { uid: string }) => { calls.push(`delete:${component.uid}`) }
 }))
 
@@ -112,10 +112,20 @@ describe('publishing', () => {
     // The arrangement the taxonomy exists to allow: a small trusted set publishes what others
     // wrote, without being able to alter it first.
     await editor.commitUserComponentDefinition(publisher(), order)
-    expect(calls).toEqual(['commit:uid-1'])
+    expect(calls).toEqual(['commit:uid-1:subject-1'])
 
     calls.length = 0
     await expectDenied(() => editor.updateUserComponentDefinition(publisher(), 'uid-1', d => d))
+  })
+
+  it('attributes the commit to the authenticated principal, not to the order', async () => {
+    // The order is what the browser sent. If it could name the author, a publisher could attribute
+    // its own publication to somebody else, and the signed executable would carry that claim.
+    const forged = { componentId: 'uid-1', message: 'a message', authorId: 'someone-else' } as never
+
+    await editor.commitUserComponentDefinition(publisher(), forged)
+
+    expect(calls).toEqual(['commit:uid-1:subject-1'])
   })
 })
 

@@ -59,7 +59,15 @@ async function updateComponentDefinition (reference: ComponentReference, updater
   await uploadComponentDefinition(updatedDefinition)
 }
 
-async function createComponentCommit (order: ComponentCommitOrder, definition: ComponentDefinition): Promise<ComponentCommit> {
+/**
+ * Records a revision, and who made it.
+ *
+ * `authorId` is a parameter rather than something read here, because this module has no principal:
+ * the authenticated subject arrives from `user.server.ts`. It is stored on the commit so that the
+ * signed executable built from this revision has an author to name, and so that rebuilding an older
+ * revision later still knows whose it was.
+ */
+async function createComponentCommit (order: ComponentCommitOrder, definition: ComponentDefinition, authorId: string): Promise<ComponentCommit> {
   const codeDiff = diff.diff(definition.code, definition.uncommitedCode)
   if (!codeDiff) throw new ComponentDiffError('no-change', 'No changes between versions')
   const commit: ComponentCommit = {
@@ -67,20 +75,20 @@ async function createComponentCommit (order: ComponentCommitOrder, definition: C
     timestamp: Date.now(),
     componentId: order.componentId,
     message: order.message,
+    authorId,
     change: codeDiff
   }
   return commit
 }
 
-async function commitComponentDefinition (order: ComponentCommitOrder) {
+async function commitComponentDefinition (order: ComponentCommitOrder, authorId: string) {
   // TODO: fix
   const [definition, component, entry] = await Promise.all([
     getComponentDefiniton(order.componentId),
     getComponent(order.componentId),
     getComponentEntry(order.componentId)
   ])
-  const commit = await createComponentCommit(order, definition)
-  console.log('entry', entry, order.componentId)
+  const commit = await createComponentCommit(order, definition, authorId)
   const newEntry = await componentCodeToEntry(definition.language, component.name, definition.uncommitedCode, entry)
 
   await Promise.all([

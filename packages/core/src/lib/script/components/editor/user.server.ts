@@ -92,13 +92,18 @@ const updateUserComponentDefinition = async (
  * Gated on `commit` alone rather than on `edit` as well. Committing does write the definition, but
  * demanding `edit` too would prevent the arrangement the taxonomy exists to allow — a small trusted
  * set that may publish what others have authored without being able to alter it first.
+ *
+ * **The author comes from here, not from the order.** `ctx.subject` is what the session established;
+ * the order is what the browser sent. The commit is attributed to the principal who was permitted to
+ * make it, and the signed executable built from it carries that name, so a client able to supply it
+ * could attribute its own publication to someone else.
  */
 const commitUserComponentDefinition = async (
   ctx: AuthContext,
   order: Parameters<typeof commitComponentDefinition>[0]
 ): Promise<void> => {
   requirePermission(ctx, 'components:dynamic:commit')
-  await commitComponentDefinition(order)
+  await commitComponentDefinition(order, ctx.subject)
 }
 
 const deleteUserComponent = async (ctx: AuthContext, component: Component): Promise<void> => {

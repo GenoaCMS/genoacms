@@ -46,9 +46,19 @@ interface ComponentCommitOrder {
   message: string
 }
 
+/**
+ * A committed revision.
+ *
+ * `authorId` is not part of `ComponentCommitOrder`, which is what the browser sends. It is taken
+ * from the authenticated principal on the server, because a client that could name the author could
+ * attribute its own commit to somebody else — and the signed executable built from this revision
+ * carries that name as its audit trail.
+ */
 interface ComponentCommit extends ComponentCommitOrder {
   uid: ComponentCommitReference,
   timestamp: number,
+  /** The principal who committed it — `AuthContext.subject`. */
+  authorId: string,
   change: CodeChange
 }
 
