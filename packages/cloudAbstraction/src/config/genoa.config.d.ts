@@ -113,6 +113,7 @@ type Provider = AuthenticationProvider
 | DatabaseProvider
 | StorageProvider
 | DeploymentProvider
+| LanguageProvider
 
 export type {
   Config,

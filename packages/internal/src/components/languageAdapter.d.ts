@@ -117,8 +117,13 @@ interface LanguageAdapter {
  * The same shape every other adapter uses: a module path, and a dynamic import of that module. The
  * import is a promise because the config file declares it with `import(...)` rather than loading it,
  * so nothing is pulled in until something asks for that language.
+ *
+ * `Extension` is where an adapter declares its own settings, the way a storage provider declares a
+ * region. What those settings are is language-specific — a compilation target means nothing to a
+ * language that compiles to bytecode — so they belong to the adapter that reads them and not to this
+ * contract.
  */
-interface LanguageProvider {
+type LanguageProvider<Extension extends object = object> = Extension & {
   adapterPath: string
   adapter: Promise<{ default: LanguageAdapter }>
 }

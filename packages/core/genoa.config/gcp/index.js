@@ -59,7 +59,12 @@ const config = {
     providers: [
       {
         adapterPath: '@genoacms/language-adapter-ts',
-        adapter: import('@genoacms/language-adapter-ts')
+        adapter: import('@genoacms/language-adapter-ts'),
+        // What compiled components are lowered to. Defaults to es2020, which every browser with ES
+        // module support understands. Raise it for smaller, more modern output at the cost of the
+        // browsers below it. Applies to revisions compiled from here on; published ones are never
+        // rebuilt, so they keep verifying against the target they were compiled for.
+        target: 'es2020'
       }
     ]
   },

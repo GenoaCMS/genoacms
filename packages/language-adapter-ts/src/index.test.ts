@@ -75,18 +75,17 @@ describe('saying what is wrong', () => {
 })
 
 describe('compiling', () => {
-  it('reports that it cannot yet, rather than returning nothing', () => {
-    // An empty result with nothing to explain it reads as "nothing to do", and would publish an
-    // empty artifact.
-    const result = adapter.compileBundle({
-      source: 'export const a = 1',
+  // What compilation emits and what it refuses is asserted in `compile.test.ts`. What matters here
+  // is that the adapter reaches it at all.
+  it('compiles through the adapter', async () => {
+    const result = await adapter.compileBundle({
+      source: 'export function Component (heading: string) { return heading }',
       entryFunction: 'Component',
       platform: 'web-esmodule'
-    }) as { executableCode?: string, diagnostics: Array<{ severity: string }> }
+    })
 
-    expect(result.executableCode).toBeUndefined()
-    expect(result.diagnostics).toHaveLength(1)
-    expect(result.diagnostics[0].severity).toBe('fatal')
+    expect(result.diagnostics).toEqual([])
+    expect(result.executableCode).toContain('function Component')
   })
 })
 
