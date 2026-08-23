@@ -1,7 +1,7 @@
 import type { ComponentEntry, ComponentEntryAttributes } from '../componentEntry/component/types'
 import type { AnalysisResult } from '@genoacms/internal/languageAdapter'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
-import { ComponentCodeError } from './errors'
+import { raiseFatal } from './diagnostics'
 
 /**
  * Turning a component's source into the entry the CMS stores.
@@ -15,17 +15,7 @@ import { ComponentCodeError } from './errors'
  * written in more than one language.
  */
 
-/** The first thing that makes the result unusable, if anything does. */
-const fatalOf = (result: AnalysisResult) =>
-  result.diagnostics.find(diagnostic => diagnostic.severity === 'fatal')
-
-/**
- * Raises a fatal diagnostic as the error the CMS already handles.
- *
- * The adapter reports rather than throws, because reporting lets it describe several problems at
- * once. The CMS commits or does not, so at this boundary the first fatal is what matters, and its
- * rule becomes the error code so a caller can still tell the cases apart.
- */
+/** Reads the source through the adapter, raising the first fatal diagnostic as a refusal. */
 async function analyzeSource (
   language: string,
   functionName: string,
@@ -33,8 +23,7 @@ async function analyzeSource (
 ): Promise<ComponentEntryAttributes> {
   const adapter = await getLanguageAdapter(language)
   const result = await adapter.analyze({ source: code, entryFunction: functionName }) as AnalysisResult
-  const fatal = fatalOf(result)
-  if (fatal) throw new ComponentCodeError(fatal.rule, fatal.message)
+  raiseFatal(result.diagnostics)
   return result.attributes
 }
 
