@@ -9,14 +9,14 @@ setting.
 
 ## What it does, and does not
 
-`analyse` derives **attributes** — nothing else. It does not know a component's identity, the order
+`analyze` derives **attributes** — nothing else. It does not know a component's identity, the order
 its attributes are displayed in, or its editing history; those belong to the CMS. Merging what comes
 back into a stored entry, and preserving each attribute's uid so that pages keep working, happens
 there.
 
 Attribute types are read from the component function's **parameter type annotations**. The analyzer
 reads a parameter's *resolved* type text, which is why component sources declare those types as
-generic interfaces: a `type` alias resolves to its right-hand side and is no longer recognisable.
+generic interfaces: a `type` alias resolves to its right-hand side and is no longer recognizable.
 
 ## It is the reference implementation of an unvalidated interface
 
@@ -25,5 +25,5 @@ implementation has never met a language whose semantics differ, so expect the co
 a second one is attempted, and read this package as the worked example rather than as proof the
 abstraction holds.
 
-Adding a language is not a shim: an adapter is a complete static analyser for that language — a
+Adding a language is not a shim: an adapter is a complete static analyzer for that language — a
 parser, the safety ruleset, and a compiler.

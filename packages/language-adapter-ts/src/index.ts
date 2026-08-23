@@ -14,7 +14,7 @@ import { deriveAttributes } from './attributes.js'
  * `genoa.config`, and selected by the language a component records rather than by a global setting.
  */
 
-const analyse = (request: AnalysisRequest): AnalysisResult => {
+const analyze = (request: AnalysisRequest): AnalysisResult => {
   const { attributes, diagnostics } = deriveAttributes(request.source, request.entryFunction)
   return { attributes, diagnostics }
 }
@@ -38,9 +38,9 @@ const compileBundle = (request: CompilationRequest): CompilationResult => ({
 const adapter: LanguageAdapter = {
   language: 'typescript',
   platforms: ['web-esmodule'],
-  analyse,
+  analyze,
   compileBundle
 }
 
 export default adapter
-export { adapter, analyse, compileBundle }
+export { adapter, analyze, compileBundle }

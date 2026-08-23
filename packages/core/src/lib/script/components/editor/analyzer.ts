@@ -1,6 +1,6 @@
 import type { ComponentEntry, ComponentEntryAttributes } from '../componentEntry/component/types'
 import type { AnalysisResult } from '@genoacms/internal/languageAdapter'
-import adapter from '@genoacms/language-adapter-ts'
+import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
 
 /**
@@ -11,8 +11,8 @@ import { ComponentCodeError } from './errors'
  * that belongs to the CMS and that no adapter should be able to reach: merging those attributes into
  * the entry already stored, and preserving each attribute's identity while doing so.
  *
- * The adapter is currently resolved statically. Selecting it from the component's declared language,
- * through configuration, is the next step; nothing about this file changes when it arrives.
+ * The adapter is chosen by the language the component records, so one instance can hold components
+ * written in more than one language.
  */
 
 /** The first thing that makes the result unusable, if anything does. */
@@ -26,8 +26,13 @@ const fatalOf = (result: AnalysisResult) =>
  * once. The CMS commits or does not, so at this boundary the first fatal is what matters, and its
  * rule becomes the error code so a caller can still tell the cases apart.
  */
-function analyseSource (functionName: string, code: string): ComponentEntryAttributes {
-  const result = adapter.analyse({ source: code, entryFunction: functionName }) as AnalysisResult
+async function analyzeSource (
+  language: string,
+  functionName: string,
+  code: string
+): Promise<ComponentEntryAttributes> {
+  const adapter = await getLanguageAdapter(language)
+  const result = await adapter.analyze({ source: code, entryFunction: functionName }) as AnalysisResult
   const fatal = fatalOf(result)
   if (fatal) throw new ComponentCodeError(fatal.rule, fatal.message)
   return result.attributes
@@ -71,11 +76,16 @@ function mergeAttributes (
  *
  * The order comes from the source: parameters are declared in an order, and that is the order an
  * author expects to edit them in. For a component authored in the editor the order is dragged by
- * hand and stored, but here the code is the record — so re-analysing restates it rather than
+ * hand and stored, but here the code is the record — so re-analyzing restates it rather than
  * preserving a previous arrangement that the source may have just changed.
  */
-function componentCodeToEntry (functionName: string, code: string, componentEntry: ComponentEntry): ComponentEntry {
-  const attributes = analyseSource(functionName, code)
+async function componentCodeToEntry (
+  language: string,
+  functionName: string,
+  code: string,
+  componentEntry: ComponentEntry
+): Promise<ComponentEntry> {
+  const attributes = await analyzeSource(language, functionName, code)
   componentEntry.attributes = mergeAttributes(componentEntry.attributes, attributes)
   componentEntry.attributeOrder = Object.keys(componentEntry.attributes)
   return componentEntry

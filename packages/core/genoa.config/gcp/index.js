@@ -53,6 +53,16 @@ const config = {
       }
     ]
   },
+  languages: {
+    // What components may be authored in. Each adapter parses, analyzes and compiles one language;
+    // a component records which one it uses, so an instance can hold several at once.
+    providers: [
+      {
+        adapterPath: '@genoacms/language-adapter-ts',
+        adapter: import('@genoacms/language-adapter-ts')
+      }
+    ]
+  },
   authorization: {
     // Authority: immutable at runtime, merged when authorization is read rather than written into
     // the manifests, and deleting one revokes what it granted.

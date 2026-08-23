@@ -19,7 +19,7 @@ import { componentCodeToEntry } from './analyzer'
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
     uid,
-    language: 'javascript',
+    language: 'typescript',
     uncommitedCode: '',
     code: '',
     history: [],
@@ -81,7 +81,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder) {
   ])
   const commit = await createComponentCommit(order, definition)
   console.log('entry', entry, order.componentId)
-  const newEntry = componentCodeToEntry(component.name, definition.uncommitedCode, entry)
+  const newEntry = await componentCodeToEntry(definition.language, component.name, definition.uncommitedCode, entry)
 
   await Promise.all([
     updateComponentDefinition(order.componentId, d => {

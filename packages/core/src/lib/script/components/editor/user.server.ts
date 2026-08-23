@@ -33,16 +33,16 @@ import {
  *
  * - `components:dynamic:manage` — a component's **existence**: creating one, and deleting it.
  *   Deleting destroys the source outright, which no amount of `edit` should imply, and creating
- *   also registers an entry in the prebuilt catalogue.
+ *   also registers an entry in the prebuilt catalog.
  * - `components:dynamic:view_code` — reading a definition. Source is the thing worth restricting
- *   here; the catalogue of *names* is `components:prebuilt:read`, which the listing demands.
+ *   here; the catalog of *names* is `components:prebuilt:read`, which the listing demands.
  * - `components:dynamic:edit` — writing the draft. The editor saves as it is typed, so this is the
  *   permission the autosave path demands on every keystroke that lands.
  * - `components:dynamic:commit` — the highest-value permission in the system: it runs static
  *   analysis, compiles, signs with the key hierarchy and publishes an executable that consumers
  *   will run.
  *
- * Creating and deleting also touch the prebuilt catalogue, but they are **not** additionally gated
+ * Creating and deleting also touch the prebuilt catalog, but they are **not** additionally gated
  * on `components:prebuilt:register`: a coded component's entry is how the CMS stores it, not a
  * separate thing an operator registers, and demanding both would make authoring impossible without
  * a permission whose own description is about plugins and packages.
@@ -51,7 +51,7 @@ import {
 /**
  * The coded components this instance has.
  *
- * Names and ids only, so it demands the catalogue permission rather than the source one. A
+ * Names and ids only, so it demands the catalog permission rather than the source one. A
  * principal who may see that a component exists is not thereby permitted to read what it does.
  */
 const listUserComponents = async (ctx: AuthContext): Promise<Component[]> => {
@@ -87,7 +87,7 @@ const updateUserComponentDefinition = async (
 }
 
 /**
- * Commits the draft: analyse, compile, sign, publish.
+ * Commits the draft: analyze, compile, sign, publish.
  *
  * Gated on `commit` alone rather than on `edit` as well. Committing does write the definition, but
  * demanding `edit` too would prevent the arrangement the taxonomy exists to allow — a small trusted

@@ -4,6 +4,7 @@ import type { BucketInit, StorageProvider } from '../services/storage/index.d'
 import type { DeploymentProvider } from '../services/deployment/index.js'
 import type { SecretProvider } from '../services/secrets/index.d'
 import type { Permission } from '@genoacms/internal/authorization'
+import type { LanguageProvider } from '@genoacms/internal/languageAdapter'
 
 type Config<Extension extends object = object> = Extension & {
   authentication: {
@@ -83,11 +84,21 @@ type Config<Extension extends object = object> = Extension & {
     /**
      * How long resolved grants are cached per subject, in seconds.
      *
-     * The window during which a revoked permission is still honoured.
+     * The window during which a revoked permission is still honored.
      */
     grantCacheSeconds?: number
     /** Refresh token lifetime in days. */
     refreshTokenDays?: number
+  }
+  /**
+   * The languages components may be authored in.
+   *
+   * Each provider supplies a parser, an analyzer and a compiler for one language. Unlike storage or
+   * database, this is not a cloud service and nothing here is platform-specific; it is listed with
+   * the other adapters because it is registered the same way.
+   */
+  languages: {
+    providers: LanguageProvider[]
   }
   storage: {
     defaultBucket: string

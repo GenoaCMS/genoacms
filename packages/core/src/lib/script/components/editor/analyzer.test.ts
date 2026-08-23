@@ -39,8 +39,11 @@ function emptyEntry (name: string): ComponentEntry {
   }
 }
 
-function analyse (body: string, previous?: ComponentEntry) {
-  return componentCodeToEntry('Component', PREAMBLE + body, previous ?? emptyEntry('Component'))
+/** The language every fixture here is written in, resolved through the configured adapters. */
+const LANGUAGE = 'typescript'
+
+async function analyze (body: string, previous?: ComponentEntry) {
+  return await componentCodeToEntry(LANGUAGE, 'Component', PREAMBLE + body, previous ?? emptyEntry('Component'))
 }
 
 /**
@@ -58,18 +61,18 @@ const byName = (entry: ComponentEntry, name: string) => {
 const namesOf = (entry: ComponentEntry) => Object.values(entry.attributes).map(a => a.name)
 
 describe('componentCodeToEntry', () => {
-  it('derives one attribute per parameter, in the order the source declares them', () => {
-    const entry = analyse(`
+  it('derives one attribute per parameter, in the order the source declares them', async () => {
+    const entry = await analyze(`
       function Component (heading: StringAttribute<".*", 120, "hello">, visible: BooleanAttribute<true>) {}
     `)
     expect(namesOf(entry)).toEqual(['heading', 'visible'])
   })
 
-  it('keys attributes by uid, and orders them by the same uids', () => {
+  it('keys attributes by uid, and orders them by the same uids', async () => {
     // The defect this replaced: attributes derived from source were keyed by *name*, while
     // attributes added in the editor were keyed by uid. One record, two key schemes, decided by how
     // the component happened to be authored — and a page node refers to an attribute by uid.
-    const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hi">) {}')
+    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hi">) {}')
     const heading = byName(entry, 'heading')
 
     expect(Object.keys(entry.attributes)).toEqual([heading.uid])
@@ -77,18 +80,18 @@ describe('componentCodeToEntry', () => {
     expect(heading.uid).not.toBe('heading')
   })
 
-  it('carries the parameter name onto the attribute', () => {
-    const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+  it('carries the parameter name onto the attribute', async () => {
+    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     expect(byName(entry, 'heading').name).toBe('heading')
   })
 
-  it('assigns each attribute a uid', () => {
-    const entry = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+  it('assigns each attribute a uid', async () => {
+    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     expect(byName(entry, 'heading').uid).toEqual(expect.any(String))
   })
 
-  it('maps each supported attribute type', () => {
-    const entry = analyse(`
+  it('maps each supported attribute type', async () => {
+    const entry = await analyze(`
       function Component (
         a: BooleanAttribute<true>,
         b: NumberAttribute<0, 10, 1, 2, 5>,
@@ -107,24 +110,24 @@ describe('componentCodeToEntry', () => {
     ])
   })
 
-  it('takes a component with no parameters', () => {
-    expect(Object.keys(analyse('function Component () {}').attributes)).toEqual([])
+  it('takes a component with no parameters', async () => {
+    expect(Object.keys((await analyze('function Component () {}')).attributes)).toEqual([])
   })
 
-  it('throws when the named root function is missing', () => {
-    expect(() => analyse('function Other () {}')).toThrow(ComponentCodeError)
+  it('throws when the named root function is missing', async () => {
+    await expect(analyze('function Other () {}')).rejects.toThrow(ComponentCodeError)
   })
 
-  it('throws on an unknown attribute type', () => {
-    expect(() => analyse('function Component (x: number) {}')).toThrow(ComponentCodeError)
+  it('throws on an unknown attribute type', async () => {
+    await expect(analyze('function Component (x: number) {}')).rejects.toThrow(ComponentCodeError)
   })
 
-  // uids are what page nodes reference, so re-analysing edited code must not
+  // uids are what page nodes reference, so re-analyzing edited code must not
   // renumber attributes that still exist
-  it('preserves the uid of an attribute that survives a re-analysis', () => {
-    const first = analyse('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+  it('preserves the uid of an attribute that survives a re-analysis', async () => {
+    const first = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     const originalUid = byName(first, 'heading').uid
-    const second = analyse(
+    const second = await analyze(
       'function Component (heading: StringAttribute<".*", 240, "hello">, extra: BooleanAttribute<false>) {}',
       first
     )
@@ -132,11 +135,11 @@ describe('componentCodeToEntry', () => {
     expect(byName(second, 'extra').uid).not.toBe(originalUid)
   })
 
-  it('drops attributes whose parameter was removed', () => {
-    const first = analyse(`
+  it('drops attributes whose parameter was removed', async () => {
+    const first = await analyze(`
       function Component (heading: StringAttribute<".*", 120, "hi">, gone: BooleanAttribute<true>) {}
     `)
-    const second = analyse('function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
+    const second = await analyze('function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
     expect(namesOf(second)).toEqual(['heading'])
   })
 
@@ -149,13 +152,14 @@ describe('componentCodeToEntry', () => {
    * document.
    */
   describe('the shape it writes', () => {
-    it('omits a constraint whose argument was not supplied', () => {
+    it('omits a constraint whose argument was not supplied', async () => {
       // Not null, and not NaN. `parseFloat` of a missing argument used to yield
       // NaN, which JSON cannot represent at all.
       //
       // Declared without generics, which is how a type reaches the analyzer
       // with no arguments — the case the file header describes.
-      const entry = componentCodeToEntry(
+      const entry = await componentCodeToEntry(
+        LANGUAGE,
         'Component',
         'interface NumberAttribute { _brand: 0 }\nfunction Component (n: NumberAttribute) {}',
         emptyEntry('Component')
@@ -168,18 +172,18 @@ describe('componentCodeToEntry', () => {
       expect(schema).not.toHaveProperty('default')
     })
 
-    it('writes a constraint that was supplied', () => {
-      const entry = analyse('function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
+    it('writes a constraint that was supplied', async () => {
+      const entry = await analyze('function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
 
       expect(byName(entry, 'n').schema).toMatchObject({
         minimum: 0, maximum: 10, multipleOf: 1, decimalPlaces: 2, default: 5
       })
     })
 
-    it('carries no flat sibling beside the schema', () => {
+    it('carries no flat sibling beside the schema', async () => {
       // maxComponents, allowedComponents and component all said what the schema
       // says. Two representations inside a signed payload can disagree.
-      const entry = analyse('function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
+      const entry = await analyze('function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
       const attribute = byName(entry, 'i') as unknown as Record<string, unknown>
 
       expect(Object.keys(attribute).sort()).toEqual(['name', 'schema', 'type', 'uid'])
@@ -188,10 +192,10 @@ describe('componentCodeToEntry', () => {
       })
     })
 
-    it('produces entries the boundary accepts', () => {
+    it('produces entries the boundary accepts', async () => {
       // The same schema the prebuilt editor's output is validated against, so
       // the two producers are held to one standard rather than two.
-      const entry = analyse(`
+      const entry = await analyze(`
         function Component (
           a: BooleanAttribute<true>,
           b: NumberAttribute<0, 10, 1, 2, 5>,
@@ -203,14 +207,14 @@ describe('componentCodeToEntry', () => {
       expect(validator(componentEntrySchema)(JSON.parse(JSON.stringify(entry)))).toBe(true)
     })
 
-    it('agrees with attributeInits on the digest of an equivalent attribute', () => {
+    it('agrees with attributeInits on the digest of an equivalent attribute', async () => {
       // One shape, one digest, across both producers. Driven through the real
       // RFC 8785 canonicalizer rather than a stand-in, since byte-exact
       // agreement is the whole property.
-      const analysed = analyse('function Component (a: BooleanAttribute<false>) {}')
+      const analyzed = await analyze('function Component (a: BooleanAttribute<false>) {}')
       const init = attributeTypeInits.find(({ name }) => name === 'boolean')
 
-      const fromAnalyzer = { ...byName(analysed, 'a').schema, title: '', description: '' }
+      const fromAnalyzer = { ...byName(analyzed, 'a').schema, title: '', description: '' }
       const digestOf = (value: unknown) => Buffer.from(digest(value as JsonValue)).toString('hex')
 
       expect(digestOf(fromAnalyzer)).toBe(digestOf(init?.schema))
@@ -241,7 +245,7 @@ describe('componentCodeToEntry', () => {
      * resolves to `any` and the analyzer rejects it, so there is no way to ask
      * the analyzer for the unconstrained form to compare against. Their
      * constrained forms are covered by the assertions above; this is the honest
-     * limit of the parametrised comparison rather than a gap being ignored.
+     * limit of the parameterized comparison rather than a gap being ignored.
      */
     const CODE_TYPE: Record<string, string> = {
       link: 'LinkAttribute',
@@ -253,13 +257,13 @@ describe('componentCodeToEntry', () => {
     const digestOf = (value: unknown): string =>
       Buffer.from(digest(value as JsonValue)).toString('hex')
 
-    it.each(comparable)('$name signs the same either way', ({ name, schema }) => {
-      const analysed = analyse(`function Component (a: ${CODE_TYPE[name]}) {}`)
+    it.each(comparable)('$name signs the same either way', async ({ name, schema }) => {
+      const analyzed = await analyze(`function Component (a: ${CODE_TYPE[name]}) {}`)
 
       // The analyzer names the attribute after its parameter and the init cannot
-      // know it, so the two labels are equalised rather than compared. Everything
+      // know it, so the two labels are equalized rather than compared. Everything
       // else — every constraint, present or absent — is the assertion.
-      const fromAnalyzer = { ...byName(analysed, 'a').schema, title: '', description: '' }
+      const fromAnalyzer = { ...byName(analyzed, 'a').schema, title: '', description: '' }
 
       expect(digestOf(fromAnalyzer)).toBe(digestOf(schema))
     })

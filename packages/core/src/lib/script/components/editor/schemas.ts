@@ -32,7 +32,7 @@ const componentDefinitionSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
-    language: { const: 'javascript' },
+    language: { type: 'string' },
     uncommitedCode: { type: 'string' },
     code: { type: 'string' },
     history: {

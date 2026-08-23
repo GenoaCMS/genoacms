@@ -31,7 +31,12 @@ const getComponentEntry = async (reference: ComponentEntryReference): Promise<Co
   // Repairs entries written before `attributeOrder` existed, which are otherwise refused by the
   // schema that now requires it. Both writers supply it, so this fires only for those older
   // entries — and being able to say that is why it is a stated repair rather than a default.
-  if (stored.attributeOrder === undefined) stored.attributeOrder = Object.keys(stored.attributes ?? {})
+  if (stored.attributeOrder === undefined) {
+    // Logged, not silent. This is a migration, and the point of saying so is that it should stop
+    // happening: once no entry triggers it, the branch can go.
+    console.warn(`[genoacms:components] ${reference} was stored without an attribute order; deriving one from its attributes`)
+    stored.attributeOrder = Object.keys(stored.attributes ?? {})
+  }
 
   if (!validateComponentEntry(stored)) {
     return null

@@ -22,12 +22,12 @@ import type { ComponentExecutable, ExecutablePlatform } from './executable'
  * without structural typing or without a text-based compilation target.
  *
  * Adding a language is a substantial undertaking rather than a shim: an adapter is a complete static
- * analyser for that language — a parser, the safety ruleset, and a compiler. That is a different
+ * analyzer for that language — a parser, the safety ruleset, and a compiler. That is a different
  * order of work from porting the *verifier*, which contains no analysis at all.
  *
  * ## Attributes, not entries
  *
- * `analyse` returns **attributes**. It does not return, and cannot alter, a component's identity,
+ * `analyze` returns **attributes**. It does not return, and cannot alter, a component's identity,
  * its ordering, or its editing history: those belong to the CMS, and an adapter that received them
  * could change them. The CMS merges what comes back into the entry it already holds, preserving
  * each attribute's uid so that pages referring to it keep working.
@@ -99,7 +99,7 @@ interface LanguageAdapter {
    * Runs at commit time, on a source file, behind a human action. It must not reach the network or
    * the file system: everything it needs is in the request.
    */
-  analyse: (request: AnalysisRequest) => Promise<AnalysisResult> | AnalysisResult
+  analyze: (request: AnalysisRequest) => Promise<AnalysisResult> | AnalysisResult
 
   /**
    * Compile the source into a bundle for one platform.
@@ -111,7 +111,20 @@ interface LanguageAdapter {
   compileBundle: (request: CompilationRequest) => Promise<CompilationResult> | CompilationResult
 }
 
+/**
+ * How a language adapter is registered in `genoa.config`.
+ *
+ * The same shape every other adapter uses: a module path, and a dynamic import of that module. The
+ * import is a promise because the config file declares it with `import(...)` rather than loading it,
+ * so nothing is pulled in until something asks for that language.
+ */
+interface LanguageProvider {
+  adapterPath: string
+  adapter: Promise<{ default: LanguageAdapter }>
+}
+
 export type {
+  LanguageProvider,
   DiagnosticSeverity,
   Diagnostic,
   AnalysisRequest,

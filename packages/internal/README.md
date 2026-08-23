@@ -37,7 +37,7 @@ which someone adding Kotlin or Swift support must depend on without depending on
 | :--- | :--- |
 | implemented by an adapter for a platform | `@genoacms/cloudabstraction` |
 | used only by the CMS application | `@genoacms/core` |
-| a language's parser, analyser or compiler | that language's adapter package |
+| a language's parser, analyzer or compiler | that language's adapter package |
 | consumed only by a client application | `@genoacms/sdk` |
 
 **"Shared" alone is not a reason.** Two packages happening to use the same helper is a case for

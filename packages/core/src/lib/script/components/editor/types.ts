@@ -4,7 +4,15 @@ import type { ComponentEntryReference } from '../componentEntry/component/types'
 type ComponentReference = string
 type ComponentCommitReference = string
 type ComponentCode = string
-type ComponentLanguage = 'javascript'
+/**
+ * The language a component is authored in.
+ *
+ * An open string, not a fixed list. Languages are supplied by adapters declared in `genoa.config`,
+ * so a closed union here would mean that adding one required editing the CMS — which is the opposite
+ * of what the adapters are for. An unrecognized value is caught when the adapter is resolved, and
+ * the error says which languages are configured.
+ */
+type ComponentLanguage = string
 type CodeChange = Array<Diff<ComponentCode>>
 
 interface ComponentCreation {
