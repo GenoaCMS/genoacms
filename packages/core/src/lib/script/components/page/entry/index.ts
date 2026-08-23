@@ -31,17 +31,11 @@ const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
     case 'markdown':
     case 'richText':
       return ''
+    // Both are lists, and a list an author has not filled in is empty. The old defaults were a
+    // single blank link and a reference to a bucket named '' — values that read as "one of these,
+    // unset" and had to be told apart from a real one everywhere downstream.
     case 'link':
-      return {
-        isExternal: false,
-        url: '',
-        pageName: ''
-      }
     case 'storageResource':
-      return {
-        bucket: '',
-        name: ''
-      }
     case 'components':
       return []
   }

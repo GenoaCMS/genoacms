@@ -1,44 +1,69 @@
 <script lang="ts">
+  import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
   import type {
-    AttributeData
-  } from '$lib/script/components/page/entry/types'
+    StorageResourceValue,
+    StorageResourcesAttributeValue
+  } from '$lib/script/components/componentEntry/attribute/types'
+  import type { SelectionInitData } from '$lib/script/storage/SelectActionRune.svelte'
+  import type { SelectionParameters } from '$lib/script/storage/SelectionRune.svelte'
   import { Card } from '$lib/components/ui/index'
   import { ITC } from '$lib/script/utils'
   import { onDestroy } from 'svelte'
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-  import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import type { SelectionInitData } from '$lib/script/storage/SelectionStore'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
 
-  export let data: AttributeData<StorageResourceAttributeType>
+  /**
+   * Choosing the files a storage-resource attribute holds.
+   *
+   * **A list, because the attribute is one.** Its meta-schema is `type: 'array'` with `minItems` and
+   * `maxItems`, and a single-valued attribute is expressible as `maxItems: 1`. This control used to
+   * hold one reference and pass `maxItems: 1` to the picker regardless of what the component asked
+   * for, so an attribute declaring room for three could only ever be given one.
+   *
+   * The picker returns the whole selection, so choosing replaces the list rather than appending to
+   * it. That matches what the storage browser shows: the author sees everything they have selected
+   * and confirms it in one act.
+   *
+   * **Selection happens in another window.** The storage browser opens as a separate page and
+   * answers over `ITC`, which is why the value arrives in a callback rather than from an event on an
+   * element here. The contract lives in `SelectActionRune`; this file imported it from a
+   * `SelectionStore` module that no longer exists, so the request it sent was unchecked.
+   */
+
+  interface Props {
+    data: AttributeData<StorageResourceAttributeType>,
+    onvalue: (v: StorageResourcesAttributeValue) => void
+  }
+  const { data, onvalue }: Props = $props()
+
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
+  const selectHref = `/storage?selectionId=${selectionId}`
 
-  const buildSelectURL = (selectionId: string) => {
-    return `/storage?selectionId=${selectionId}`
-  }
+  /** What the attribute holds. An attribute an author has not filled in has an empty list. */
+  const resources = $derived(data.value ?? [])
 
   itc.on('selectionInit', async () => {
-    const parameters = {
-      maxItems: 1
-    }
-    const defaultValue = isSelected ? [data.value] : undefined
-    const initData: SelectionInitData = {
-      parameters,
-      defaultValue
+    const initData: SelectionInitData<StorageResourceValue, Partial<SelectionParameters>> = {
+      // What the component asked for, rather than one. An absent `maxItems` is no limit.
+      parameters: { maxItems: data.schema.maxItems },
+      defaultValue: resources.length > 0 ? resources : undefined
     }
     itc.send('selectionInitData', initData)
-    const selection = await itc.once('selectionDone') as Array<ObjectReference>
-    if (selection.length < 1) return
-    data.value = selection[0]
+
+    const selection = await itc.once('selectionDone') as StorageResourcesAttributeValue
+    data.value = selection
+    // Both, as every other attribute control does. Writing to `data.value` alone did reach the
+    // parent, because the node it passes down is a deep `$state` proxy — but that made the save
+    // depend on how the parent happens to hold its state, while the parent was passing an `onvalue`
+    // this control ignored.
+    onvalue(selection)
     itc.send('selectionKill')
   })
 
   onDestroy(() => {
     itc.close()
   })
-  $: selectHref = buildSelectURL(selectionId)
-  $: isSelected = data.value.bucket && data.value.name
 </script>
 
 <a href={selectHref} target="_blank">
@@ -51,11 +76,15 @@
         {data.name}
       </h3>
     </div>
-    {#if isSelected}
-      Bucket: {data.value.bucket}<br>
-      Filename: {data.value.name}
+    {#if resources.length > 0}
+      {#each resources as resource (`${resource.bucket}/${resource.name}`)}
+        <div>
+          Bucket: {resource.bucket}<br>
+          Filename: {resource.name}
+        </div>
+      {/each}
     {:else}
-      File not selected yet
+      No file selected yet
     {/if}
   </Card>
 </a>

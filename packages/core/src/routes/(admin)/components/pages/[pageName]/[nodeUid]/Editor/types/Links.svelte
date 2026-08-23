@@ -15,7 +15,9 @@
   const showAddLink = $derived(!data.schema.maxItems || links.length < data.schema.maxItems)
 
   function addLink () {
-    const linkValue: LinkAttributeValue = { isExternal: false, pageName: '', url: '' }
+    // No `url` member. The shared vocabulary omits whichever member the other kind uses, and an
+    // empty string is a second way to say "unset" that canonicalizes to different bytes.
+    const linkValue: LinkAttributeValue = { isExternal: false, pageName: '' }
     links.push(linkValue)
     onvalue(links)
   }

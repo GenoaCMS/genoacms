@@ -6,12 +6,19 @@ import type {
 } from '$lib/script/components/page/entry/types'
 import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/components/page/tree/types'
 import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
-import type { ComponentNodeReference, LinkAttributeValue } from '$lib/script/components/componentEntry/attribute/types'
+import type {
+  ComponentNodeReference,
+  LinkAttributeValue,
+  LinksAttributeValue,
+  StorageResourcesAttributeValue
+} from '$lib/script/components/componentEntry/attribute/types'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
 import { getPublicURL } from '$lib/script/storage/storage.server'
 import { getPageEntry } from '$lib/script/components/page/page.server'
+import { getComponentEntry } from '$lib/script/components/componentEntry/io.server'
+import { getComponentDefiniton } from '$lib/script/components/editor/io'
 
 const parseMarkdown = async (markdown: string) => {
   const window = new JSDOM('').window
@@ -29,6 +36,10 @@ const linkToURL = async (link: LinkAttributeValue): Promise<string> => {
   return destinationPageEntry.previewURL
 }
 
+/** Both attribute types are lists, so both resolve to a list of URLs, in the author's order. */
+const linksToURLs = async (links: LinksAttributeValue): Promise<Array<string>> =>
+  await Promise.all(links.map(linkToURL))
+
 const getStorageResourceURL = async (reference: ObjectReference) => {
   let url: string
   try {
@@ -38,6 +49,10 @@ const getStorageResourceURL = async (reference: ObjectReference) => {
   }
   return url
 }
+
+const storageResourcesToURLs = async (
+  resources: StorageResourcesAttributeValue
+): Promise<Array<string>> => await Promise.all(resources.map(getStorageResourceURL))
 
 const componentNodesToReadableNodes = async (component: Array<ComponentNodeReference>, componentNodes: ComponentNodes) => {
   const readableNodePromises: Array<Promise<ReadablePageNode>> = component
@@ -59,19 +74,43 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
     case 'richText':
       return ''
     case 'link':
-      return await linkToURL(data.value as LinkAttributeValue)
+      return await linksToURLs(data.value as LinksAttributeValue)
     case 'storageResource':
-      return getStorageResourceURL(data.value as ObjectReference)
+      return await storageResourcesToURLs(data.value as StorageResourcesAttributeValue)
     case 'components':
       return await componentNodesToReadableNodes(data.value as Array<ComponentNodeReference>, componentNodes)
   }
 }
 
+/**
+ * The revision a node is pinned to, or nothing if the component is prebuilt.
+ *
+ * Read at build time and written into the tree, which is what makes the pin a pin: the page names
+ * the revision that was current when it was published, and keeps naming it after the component has
+ * moved on. Resolving the latest revision at render time instead would make every published page
+ * follow the newest commit, which is the behavior this exists to prevent.
+ *
+ * A component with no commits has nothing to pin and nothing to serve. That is left absent rather
+ * than reported here: publishing a page is not the place to discover that one of its components was
+ * never committed, and the consumer's own verification is what refuses to render it.
+ */
+const pinnedRevision = async (entryReference: string): Promise<string | undefined> => {
+  const entry = await getComponentEntry(entryReference)
+  if (entry === null || entry.type !== 'dynamic') return undefined
+
+  const definition = await getComponentDefiniton(entryReference)
+  return definition.history.at(-1)
+}
+
 const componentNodeToReadablePageNode = async (node: ComponentNode,
   componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
-  // console.log('name ----------', node.name)
+  const commitId = await pinnedRevision(node.entryReference)
   const readableNode: ReadablePageNode = {
     component: node.name,
+    // Omitted rather than set to undefined for a prebuilt component: the tree is signed, and
+    // canonicalization drops an undefined member silently while refusing to represent it — so an
+    // explicit `commitId: undefined` would sign as though the key had never been written.
+    ...(commitId === undefined ? {} : { commitId }),
     data: {}
   }
   for (const data of Object.values(node.data)) {
