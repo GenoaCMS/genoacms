@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/internal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Contracts and vocabulary shared across the GenoaCMS packages, which are neither the CMS application nor a cloud abstraction",
   "author": {
     "name": "Filip Holčík",
