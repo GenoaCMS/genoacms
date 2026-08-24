@@ -96,6 +96,28 @@ const openStorageDirectory = async (browser: Page, segments: string[]): Promise<
 }
 
 /**
+ * Walks in only if every segment is really listed.
+ *
+ * Returns false rather than failing when one is absent, so a caller cleaning up can tell "there is
+ * nothing here" from "something went wrong".
+ */
+const openStorageDirectoryIfListed = async (browser: Page, segments: string[]): Promise<boolean> => {
+  await browser.goto(`/storage/${BUCKET}/contents`)
+
+  const grid = browser.getByRole('main')
+  const walked: string[] = []
+  for (const segment of segments) {
+    const link = grid.getByRole('link', { name: segment }).first()
+    if (await link.count() === 0) return false
+
+    await link.click()
+    walked.push(segment)
+    await expect(browser.locator('h1')).toHaveText(`${walked.join('/')}/`, { timeout: SLOW })
+  }
+  return true
+}
+
+/**
  * Removes the objects a page left in storage, through the storage browser.
  *
  * Both the entry and any published readable are named after the page, so one sweep per directory
@@ -103,7 +125,11 @@ const openStorageDirectory = async (browser: Page, segments: string[]): Promise<
  */
 const removePageObjects = async (browser: Page, name: string): Promise<void> => {
   for (const directory of PAGE_DIRECTORIES) {
-    await openStorageDirectory(browser, directory)
+    // A directory in object storage is a prefix, so it stops existing once the last object under it
+    // is removed. Nothing to clean up is an ordinary outcome, not a failure — walking in regardless
+    // is what made this cleanup hang for the full timeout whenever another suite had emptied the
+    // prefix first.
+    if (!await openStorageDirectoryIfListed(browser, directory)) continue
 
     const item = browser.getByRole('button', { name: new RegExp(`^select-.*${name}`) })
     if (await item.count() === 0) continue

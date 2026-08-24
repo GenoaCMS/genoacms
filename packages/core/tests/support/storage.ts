@@ -109,12 +109,63 @@ const uploadFile = async (page: Page, name: string = UPLOAD.name): Promise<void>
   await listed(page, name)
 }
 
+/**
+ * Walks the storage browser into a directory, one card at a time.
+ *
+ * The browser encodes paths with its own delimiter rather than a slash, so a constructed URL is easy
+ * to get subtly wrong and silently land somewhere empty. Clicking through is what a person does, and
+ * it cannot land anywhere but the right place. Each click is waited out, because the browser
+ * navigates client-side and clicking ahead lands elsewhere while appearing to succeed.
+ */
+const openDirectory = async (page: Page, segments: string[]): Promise<boolean> => {
+  await page.goto(bucketRoot)
+
+  // Scoped to the listing: the navigation sidebar has links of its own, and a segment named there
+  // would take the walk to a different screen entirely.
+  const grid = page.getByRole('main')
+  const walked: string[] = []
+  for (const segment of segments) {
+    const link = grid.getByRole('link', { name: segment }).first()
+    // A directory is a prefix, so it stops existing once the last object under it is removed.
+    // Reported rather than thrown: a caller cleaning up needs to tell "nothing here" from "broken".
+    if (await link.count() === 0) return false
+
+    await link.click()
+    walked.push(segment)
+    await expect(page.locator('h1')).toHaveText(`${walked.join('/')}/`, { timeout: SLOW })
+  }
+  return true
+}
+
+/**
+ * Reads what an object actually contains, as JSON.
+ *
+ * Every other assertion in these suites stops at "the file is listed", which cannot tell a correct
+ * document from an empty one. The card links to a signed URL, so following it is how a consumer
+ * would read the object — and reading it through Playwright's request context rather than by
+ * navigating avoids handing the browser a download.
+ */
+const readObjectJSON = async (page: Page, directory: string[], leaf: string): Promise<unknown> => {
+  expect(await openDirectory(page, directory)).toBe(true)
+
+  const link = page.getByRole('link', { name: leaf }).first()
+  await expect(link).toBeVisible({ timeout: SLOW })
+  const signedURL = await link.getAttribute('href')
+  if (signedURL === null) throw new Error(`no link to ${leaf} in ${directory.join('/')}`)
+
+  const response = await page.request.get(signedURL)
+  expect(response.ok()).toBe(true)
+  return await response.json()
+}
+
 export {
   BUCKET,
   SLOW,
   UPLOAD,
   bucketRoot,
   openBucketRoot,
+  openDirectory,
+  readObjectJSON,
   card,
   itemCheckbox,
   selectItem,
