@@ -8,6 +8,7 @@ import {
   uploadInternalObjectFlatted,
   getInternalObjectFlatted,
   deleteInternalObject,
+  deleteDirectory,
   listOrCreateDirectory,
   fullyQualifiedNameToFilename
 } from '$lib/script/storage/storage.server'
@@ -74,7 +75,16 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
   return await componentDirectoryToComponents(componentDirectoryList)
 }
 
-const deleteComponentDefinition = (reference: ComponentDefinitionReference) => deleteInternalObject(join(componentDefinitionPath, reference))
+/**
+ * Removes a definition and every commit under it.
+ *
+ * A **directory**, not an object. The source lives at `{uid}/data.json` and each commit beside it,
+ * so `{uid}` is a prefix and deleting it as though it were a single object fails with a 404 for a
+ * component that exists. That went unnoticed because the deletion never reached here: the server
+ * refused on the confirmation name first, every time.
+ */
+const deleteComponentDefinition = (reference: ComponentDefinitionReference) =>
+  deleteDirectory({ bucket: defaultBucketId, name: join(componentDefinitionPath, reference) })
 const deleteComponentFile = (id: string) => deleteInternalObject(join(componentPath, id))
 
 export {

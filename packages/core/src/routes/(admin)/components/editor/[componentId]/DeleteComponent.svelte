@@ -3,6 +3,7 @@
     import { toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { deleteComponentRemote } from './delete.remote.js'
     import { goto } from '$app/navigation'
+    import { resolve } from '$app/paths'
 
     const { uid, name } = $props()
     let isModalOpen = $state(false)
@@ -12,14 +13,28 @@
       isModalOpen = !isModalOpen
     }
 
+    /**
+     * Deletes, and reports what the server actually said.
+     *
+     * A refusal comes back as a returned `{ status: 'fail' }` rather than as a thrown error, and
+     * `submit()` resolves to a boolean rather than to that value. Reporting success regardless made
+     * this a destructive control that always claimed to have worked — and it never did, because the
+     * confirmation field had no `name`, so the server received no name to match and refused every
+     * time.
+     */
     const enhance = deleteComponentRemote.enhance(async ({ submit }) => {
       try {
-        const result = await submit()
-        console.log(result)
-        toastSuccess('Component deleted')
-        goto('.')
-      } catch (error) {
-        toastError(error.code)
+        await submit()
+        const result = deleteComponentRemote.result
+        if (result === undefined || result.status !== 'success') {
+          toastError(result?.text ?? 'The deletion was refused, and gave no reason')
+          return
+        }
+        toastSuccess(result.text)
+        isModalOpen = false
+        await goto(resolve('/components/editor'))
+      } catch (error: any) {
+        toastError(error.message ?? error.code)
       }
     })
 </script>
@@ -44,7 +59,8 @@
         </Label>
 
         <input type="hidden" name="uid" value={uid} />
-        <Input type="text" bind:value={confirmationName} required />
+        <!-- Named, or the server receives no confirmation to compare and refuses every deletion. -->
+        <Input type="text" name="name" bind:value={confirmationName} required />
         <Button preset="filled" class="!bg-error-500 w-full mt-2" type="submit">
           Yes, delete {name}
         </Button>

@@ -49,8 +49,11 @@
       return
     }
     isModalOpen = false
+    // Read before clearing. `count` and `subject` are derived from the selection, so building the
+    // message afterwards reported "Deleted 0 components" however many had just gone.
+    const removed = `${count} ${subject}`
     selection.clear()
-    toastSuccess(`Deleted ${count} ${subject}`)
+    toastSuccess(`Deleted ${removed}`)
     await update()
     await invalidateAll()
   }
@@ -80,7 +83,13 @@
 
       <Label class="mb-2">
         To confirm, type the {subject} in order:
-        <code class="block my-2 p-2 text-xs bg-surface-100-900 rounded break-all select-all">{expected}</code>
+        <!-- The phrase grows with the selection, and a long one used to push the whole modal into
+             its own scroll — moving the confirmation field and the button off screen. Bounded here
+             so only the phrase scrolls, and everything needed to act on it stays where it was. -->
+        <code
+          class="block my-2 p-2 text-xs bg-surface-100-900 rounded break-all select-all
+                 max-h-32 overflow-y-auto"
+        >{expected}</code>
         <Input type="text" name="confirmation" class="w-full mt-1" bind:value={typed} required />
       </Label>
 

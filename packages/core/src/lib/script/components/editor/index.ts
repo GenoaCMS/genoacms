@@ -18,7 +18,7 @@ import { componentNameRefusal, isValidComponentName } from './names'
 import { componentCodeToEntry } from './analyzer'
 import { compileComponentSource } from './compilation'
 import { signComponentExecutable } from '../executable/executable.server'
-import { uploadComponentExecutable } from '../executable/io.server'
+import { deleteComponentExecutables, uploadComponentExecutable } from '../executable/io.server'
 
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
@@ -171,14 +171,25 @@ async function commitComponentDefinition (order: ComponentCommitOrder, authorId:
   await publishRevision(subject.definition, commit, built)
 }
 
+/**
+ * Removes a component and everything it produced.
+ *
+ * Four things, not three. The definition directory holds the source **and every commit**, so those
+ * go with it. The entry is the component's place in the catalog, and the component file is what the
+ * editor lists. The fourth is the published executables, which live outside all of these: one per
+ * commit, each written once and never rewritten, each signed and independently verifiable. Left
+ * behind they would keep verifying, for a component that no longer exists.
+ *
+ * Removed together rather than in sequence, and the whole thing fails if any part does — a partial
+ * deletion reported as success is what this replaces.
+ */
 async function deleteComponent (component: Component): Promise<void> {
-  // TODO: fix
-  const deletionTasks = [
+  await Promise.all([
     deleteComponentDefinition(component.uid),
     deleteComponentEntry(component.uid),
-    deleteComponentFile(component.uid)
-  ]
-  await Promise.all(deletionTasks)
+    deleteComponentFile(component.uid),
+    deleteComponentExecutables(component.uid)
+  ])
 }
 
 export {

@@ -1,5 +1,9 @@
 import { join } from 'path'
-import { uploadInternalObjectJSON } from '$lib/script/storage/storage.server'
+import {
+  defaultBucketId,
+  deleteDirectory,
+  uploadInternalObjectJSON
+} from '$lib/script/storage/storage.server'
 import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
 import type { SignedComponentExecutable } from './executable'
 
@@ -60,8 +64,33 @@ const uploadComponentExecutable = async (
   }
 }
 
+/**
+ * Removes every executable a component ever published.
+ *
+ * The counterpart to writing them once: because each revision has its own path and none is ever
+ * rewritten, a deleted component leaves one artifact per commit behind unless the whole directory
+ * goes. Those artifacts are signed and independently verifiable, so nothing downstream would notice
+ * they belong to a component that no longer exists.
+ *
+ * A component that was never committed has no directory. That is an ordinary state, so it is
+ * tolerated — but any other failure propagates, because reporting a deletion that did not happen is
+ * the defect this replaces.
+ */
+const deleteComponentExecutables = async (uid: string): Promise<void> => {
+  try {
+    await deleteDirectory({ bucket: defaultBucketId, name: join(executablePath, uid) })
+  } catch (error) {
+    if (!isDirectoryMissing(error)) throw error
+  }
+}
+
+/** Object storage has no directories, so removing one that holds nothing is not an error. */
+const isDirectoryMissing = (error: unknown): boolean =>
+  (error as { code?: number })?.code === 404
+
 export {
   componentExecutablePath,
   uploadComponentExecutable,
+  deleteComponentExecutables,
   ExecutableExistsError
 }

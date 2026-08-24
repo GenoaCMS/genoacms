@@ -146,10 +146,14 @@ const openDirectory = async (page: Page, segments: string[]): Promise<boolean> =
  * navigating avoids handing the browser a download.
  */
 const readObjectJSON = async (page: Page, directory: string[], leaf: string): Promise<unknown> => {
-  expect(await openDirectory(page, directory)).toBe(true)
+  // Retried as a whole. Object listing is eventually consistent, so an object written a moment ago
+  // can be missing from the next listing — and so can the directory holding it.
+  await expect(async () => {
+    expect(await openDirectory(page, directory)).toBe(true)
+    await expect(page.getByRole('link', { name: leaf }).first()).toBeVisible({ timeout: 2_000 })
+  }).toPass({ timeout: SLOW })
 
   const link = page.getByRole('link', { name: leaf }).first()
-  await expect(link).toBeVisible({ timeout: SLOW })
   const signedURL = await link.getAttribute('href')
   if (signedURL === null) throw new Error(`no link to ${leaf} in ${directory.join('/')}`)
 

@@ -155,9 +155,9 @@ const BUCKET = 'genoacms'
 /**
  * Where the editor keeps a dynamic component, mirrored from `components/editor/io.ts`.
  *
- * Cleanup has to reach these directly because **deleting a dynamic component does not work** — see
- * the test marked as expected-to-fail below. Without this the suite would leave a component behind
- * on every run.
+ * Deleting through the interface now works, and the test below asserts it. This sweep stays as the
+ * safety net for the tests that do **not** delete: a run that fails partway through still has to
+ * leave the bucket as it found it.
  */
 const DYNAMIC_DIRECTORIES = [
   ['.genoacms', 'components', 'edited'],
@@ -370,18 +370,79 @@ test.describe('a dynamic component', () => {
   })
 
   /**
-   * **Known defect, so this test is expected to fail.**
+   * Removing several at once, from the list.
    *
-   * The delete form sends only the component's uid: the input the operator types the name into has
-   * no `name` attribute, so the confirmation never reaches the server, which refuses because the
-   * name it received does not match. The client then reports "Component deleted" regardless,
-   * because it never looks at what the server returned.
+   * The same control the prebuilt catalog has, which the editor lacked entirely — so the only way to
+   * remove a dynamic component was one at a time from its own page.
    *
-   * The result is a destructive action that always claims to have succeeded and never does. It is
-   * left failing rather than deleted or weakened: the assertion below is what the feature is
-   * supposed to do, and it will start passing the moment the form is fixed.
+   * **Only this test's own checkboxes are ever clicked.** The list holds the instance's real
+   * components beside the fixtures, and the confirmation phrase is read off the dialog rather than
+   * composed here: a test that assembled it independently could pass while the dialog named
+   * something else.
    */
-  test.fail('is gone once deleted', async ({ page }) => {
+  test('several are removed in one action', async ({ page }) => {
+    test.setTimeout(180_000)
+    const second = identifierFixtureName('dynamic')
+    uid = await createDynamic(page, name)
+    // Creating navigates to the new component, so the list has to be reopened before creating again.
+    await openEditor(page)
+    await createDynamic(page, second)
+
+    await openEditor(page)
+    // Labelled by name, as in the prebuilt catalog. Both fixture names are unique to this test, so
+    // nothing of the instance's own can be caught by them.
+    const boxes = page.locator(
+      `button[aria-label="select-${name}"], button[aria-label="select-${second}"]`
+    )
+    await expect(boxes).toHaveCount(2, { timeout: SLOW })
+    for (const box of await boxes.all()) await box.click()
+
+    await page.getByRole('button', { name: 'Delete selected' }).click()
+    const phrase = (await page.locator('code').innerText()).trim()
+    expect(phrase.split(',').length).toBe(2)
+
+    await page.locator('input[name="confirmation"]').fill(phrase)
+    await page.getByRole('button', { name: /^Yes, delete/ }).click()
+    await reported(page, 'Deleted 2 components')
+
+    // Reloaded until it settles: object listing is eventually consistent, so a component can be
+    // removed successfully and still appear in the very next listing.
+    await expect(async () => {
+      await openEditor(page)
+      await expect(card(page, name)).toHaveCount(0, { timeout: 2_000 })
+      await expect(card(page, second)).toHaveCount(0, { timeout: 2_000 })
+    }).toPass({ timeout: SLOW })
+
+    uid = undefined as unknown as string
+  })
+
+  test('refuses a bulk confirmation that does not name everything selected', async ({ page }) => {
+    // One name is what someone types out of habit, and it must not be enough to remove two things.
+    test.setTimeout(180_000)
+    const second = identifierFixtureName('dynamic')
+    uid = await createDynamic(page, name)
+    await openEditor(page)
+    const secondUid = await createDynamic(page, second)
+
+    await openEditor(page)
+    const boxes = page.locator(
+      `button[aria-label="select-${name}"], button[aria-label="select-${second}"]`
+    )
+    await expect(boxes).toHaveCount(2, { timeout: SLOW })
+    for (const box of await boxes.all()) await box.click()
+
+    await page.getByRole('button', { name: 'Delete selected' }).click()
+    const phrase = (await page.locator('code').innerText()).trim()
+    await page.locator('input[name="confirmation"]').fill(phrase.split(',')[0])
+
+    await expect(page.getByRole('button', { name: /^Yes, delete/ })).toBeDisabled()
+
+    // Both are still here, and both are this test's to clean up.
+    await page.keyboard.press('Escape')
+    await removeDynamicObjects(page, secondUid)
+  })
+
+  test('is gone once deleted', async ({ page }) => {
     uid = await createDynamic(page, name)
 
     await page.getByRole('button', { name: 'Delete component' }).click()

@@ -109,17 +109,40 @@ const publishedRevision = async (page: Page, name: string): Promise<string | und
   return envelope.payload.commitId
 }
 
-const removeObjects = async (page: Page, directory: string[], match: RegExp): Promise<void> => {
-  // The directory may already be gone: it is a prefix, and this suite empties some of them.
-  if (!await openDirectory(page, directory)) return
+/**
+ * Deletes the page from the list, by selecting it and confirming.
+ *
+ * Reaching into storage would clean up just as well and assert nothing. Deleting the way an operator
+ * does makes the last tests here a test of deletion too.
+ *
+ * **Only this fixture's checkbox is ever clicked.** The list holds the instance's real pages beside
+ * it, and the confirmation phrase is read off the dialog rather than composed here — a test that
+ * assembled it independently could pass while the dialog named something else.
+ */
+const deletePage = async (page: Page, name: string): Promise<void> => {
+  await page.goto('/components/pages')
 
-  const items = page.getByRole('button', { name: match })
-  if (await items.count() === 0) return
+  const box = page.locator(`button[aria-label^="select-"][aria-label*="${name}"]`)
+  await expect(box).toHaveCount(1, { timeout: SLOW })
+  await box.click()
 
-  for (const item of await items.all()) await item.click()
-  await page.getByRole('button', { name: 'Delete', exact: true }).click()
-  await page.getByRole('button', { name: 'Yes' }).click()
-  await expect(page.getByText('Deleted', { exact: true }).first()).toBeVisible({ timeout: SLOW })
+  await page.getByRole('button', { name: 'Delete selected' }).click()
+  const phrase = (await page.locator('code').innerText()).trim()
+  expect(phrase).toContain(name)
+
+  await page.locator('input[name="confirmation"]').fill(phrase)
+  await page.getByRole('button', { name: /^Yes, delete/ }).click()
+}
+
+/** Deletes the component the same way, by retyping its name. */
+const deleteComponent = async (page: Page, uid: string, name: string): Promise<void> => {
+  await page.goto(`/components/editor/${uid}`)
+  await page.getByRole('button', { name: 'Delete component' }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Delete the component' })
+  await dialog.getByRole('textbox').fill(name)
+  await dialog.getByRole('button', { name: /Yes, delete/ }).click()
+  await expect(page.getByText('Component deleted').first()).toBeVisible({ timeout: SLOW })
 }
 
 let componentName: string
@@ -136,21 +159,50 @@ test.beforeEach(async ({ page }) => {
   await signIn(page)
 })
 
+/**
+ * Removes whatever is left, through storage.
+ *
+ * The last two tests delete through the interface and assert the result, which is the point of them.
+ * This is the safety net for the runs where they never get there: a failure in an earlier test would
+ * otherwise leave a component and a page behind on every run.
+ */
+const sweep = async (page: Page, directory: string[], match: RegExp): Promise<void> => {
+  if (!await openDirectory(page, directory)) return
+
+  const items = page.getByRole('button', { name: match })
+  if (await items.count() === 0) return
+
+  for (const item of await items.all()) await item.click()
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await page.getByRole('button', { name: 'Yes' }).click()
+  await expect(page.getByText('Deleted', { exact: true }).first()).toBeVisible({ timeout: SLOW })
+}
+
 test.afterAll(async ({ browser }) => {
   const page = await browser.newPage()
   await signIn(page)
 
-  // Named individually rather than swept by prefix. Deleting a dynamic component through the
-  // interface does not work — see `components.spec.ts` — so its objects have to go directly.
-  await removeObjects(page, ['.genoacms', 'pages', 'readables'], new RegExp(`^select-.*${pageName}`))
-  await removeObjects(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
-  await removeObjects(page, ['.genoacms', 'components', uid], /^select-/)
-  for (const directory of [['edited'], ['definitions'], ['prebuilt']]) {
-    await removeObjects(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}$`))
+  // Named individually, never swept by prefix: these directories hold the instance's real content.
+  await sweep(page, ['.genoacms', 'pages', 'readables'], new RegExp(`^select-.*${pageName}`))
+  await sweep(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
+  if (uid !== undefined) {
+    await sweep(page, ['.genoacms', 'components', uid], /^select-/)
+    for (const directory of [['edited'], ['definitions'], ['prebuilt']]) {
+      await sweep(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
+    }
   }
 
   await page.close()
 })
+
+/** Asserts nothing of this fixture is left anywhere the CMS writes. */
+const assertGone = async (page: Page, directory: string[], match: RegExp): Promise<void> => {
+  // The directory itself may be gone, which is the strongest form of absent: a prefix stops existing
+  // once its last object does.
+  if (!await openDirectory(page, directory)) return
+
+  await expect(page.getByRole('button', { name: match })).toHaveCount(0, { timeout: SLOW })
+}
 
 test('a component is committed once', async ({ page }) => {
   test.setTimeout(180_000)
@@ -195,4 +247,23 @@ test('every published revision keeps its own executable', async ({ page }) => {
   expect(await openDirectory(page, ['.genoacms', 'components', uid])).toBe(true)
 
   await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(2, { timeout: SLOW })
+})
+
+test('deleting the page removes what it published', async ({ page }) => {
+  await deletePage(page, pageName)
+
+  await assertGone(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
+  await assertGone(page, ['.genoacms', 'pages', 'readables'], new RegExp(`^select-.*${pageName}`))
+})
+
+test('deleting the component removes every revision it published', async ({ page }) => {
+  // The reason deletion and immutable artifacts are one step: each commit left an artifact that is
+  // signed and independently verifiable, so any left behind would keep verifying for a component
+  // that no longer exists.
+  await deleteComponent(page, uid, componentName)
+
+  await assertGone(page, ['.genoacms', 'components', uid], /^select-/)
+  for (const directory of [['edited'], ['definitions'], ['prebuilt']]) {
+    await assertGone(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
+  }
 })
