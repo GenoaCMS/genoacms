@@ -28,8 +28,19 @@
  * is rebuilt, and collapsing them would lose the distinction exactly when it matters.
  */
 
-/** Where an artifact runs. One commit may be compiled for several. */
-type ExecutablePlatform = 'web-esmodule'
+/**
+ * Where an artifact runs. One commit may be compiled for several.
+ *
+ * An open string, not a fixed list, for the reason `ComponentLanguage` is one: platforms come from
+ * language adapters, and a closed union here would mean that a third-party adapter emitting
+ * `android-dex` could not name its own target without the CMS being edited to permit it.
+ *
+ * **This value is inside the signed payload**, so it is part of what a consumer verifies. Openness
+ * therefore does not mean laxity: a consumer refuses an artifact built for a platform it cannot run,
+ * and refuses it *after* verifying the signature — an unrecognized platform is a correctly signed
+ * artifact meant for somebody else, not a corrupted one.
+ */
+type ExecutablePlatform = string
 
 interface ComponentExecutable {
   /** The component this belongs to. */

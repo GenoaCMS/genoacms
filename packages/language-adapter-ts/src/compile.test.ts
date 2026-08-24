@@ -115,7 +115,7 @@ describe('refusing what cannot be published', () => {
   })
 
   it('refuses a platform it does not target, before compiling anything', async () => {
-    const result = await compileToWebEsModule('export const a = 1', 'native-dex' as 'web-esmodule', TARGET)
+    const result = await compileToWebEsModule('export const a = 1', 'native-dex', TARGET)
 
     expect(rules(result)).toEqual(['unsupported-platform'])
     expect(result.diagnostics[0].message).toContain('native-dex')
