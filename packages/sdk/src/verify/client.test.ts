@@ -66,14 +66,12 @@ const signedRegistry = (payload: JsonValue = registryPayload()) =>
 
 let served: Record<string, unknown>
 
+/** A `Source` over an in-memory bucket. Absent is `undefined`, exactly as the contract says. */
 const verifier = (): Verifier => new Verifier({
-  baseURL: 'https://storage.example/',
   rootPublicKey: root.publicKey,
-  fetch: (async (input: RequestInfo | URL) => {
-    const path = String(input).replace('https://storage.example/', '')
-    if (!(path in served)) return new Response('', { status: 404 })
-    return new Response(JSON.stringify(served[path]), { status: 200 })
-  }) as typeof globalThis.fetch
+  source: {
+    read: async (path) => path in served ? JSON.stringify(served[path]) : undefined
+  }
 })
 
 beforeEach(() => {
@@ -257,20 +255,86 @@ describe('verifying a document', () => {
   })
 })
 
+describe('fetching a page tree', () => {
+  const treePayload = {
+    component: 'Page',
+    commitId: 'commit-1',
+    data: { body: [{ component: 'Card', data: {} }] }
+  }
+
+  const publish = (payload: JsonValue = treePayload as JsonValue) => {
+    served['.genoacms/pages/readables/home'] =
+      sign('ML-DSA-65', subordinateId, 'genoacms.pageTree.v1', payload, subordinate.secretKey, subordinateScheme)
+  }
+
+  it('returns the tree when it verifies', async () => {
+    publish()
+
+    const verdict = await verifier().pageTree('home')
+
+    expect(verdict).toMatchObject({ valid: true })
+    expect(verdict?.valid === true && verdict.value.component).toBe('Page')
+  })
+
+  it('reports a page that was never published as absent', async () => {
+    // A different answer from one that failed to verify, and the caller has to be able to tell.
+    expect(await verifier().pageTree('never-built')).toBeUndefined()
+  })
+
+  it('refuses a tree whose node was repointed after signing', async () => {
+    publish()
+    const envelope = served['.genoacms/pages/readables/home'] as { payload: Record<string, unknown> }
+    served['.genoacms/pages/readables/home'] =
+      { ...envelope, payload: { ...envelope.payload, component: 'Attacker' } }
+
+    // Asserted on the reason, not merely on the verdict: a tree that fell through the signature
+    // check and then failed to parse is also `valid: false`, and the two must not be conflated.
+    expect(await verifier().pageTree('home'))
+      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
+  })
+
+  it('refuses a tree whose revision pin was rolled back after signing', async () => {
+    publish()
+    const envelope = served['.genoacms/pages/readables/home'] as { payload: Record<string, unknown> }
+    served['.genoacms/pages/readables/home'] =
+      { ...envelope, payload: { ...envelope.payload, commitId: 'an-older-commit' } }
+
+    expect(await verifier().pageTree('home'))
+      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
+  })
+
+  it('refuses a malformed tree that is correctly signed', async () => {
+    // A signature attests to the bytes, not to their shape. Whoever holds the key can sign this.
+    publish({ component: 'Page' } as JsonValue)
+
+    expect(await verifier().pageTree('home'))
+      .toMatchObject({ valid: false, reason: 'node-missing-data' })
+  })
+
+  it('does not return a degraded tree when one fails', async () => {
+    // There is no safe partial form: the plausible tampering leaves a document that looks entirely
+    // ordinary, so anything handed back would be whatever was written to the bucket.
+    publish({ component: 'Page' } as JsonValue)
+    const verdict = await verifier().pageTree('home')
+
+    expect(verdict?.valid).toBe(false)
+    expect(verdict !== undefined && 'value' in verdict).toBe(false)
+  })
+})
+
 describe('unreachable is neither answer', () => {
-  it('throws for a missing object rather than calling it invalid', async () => {
-    // A caller that read an outage as "invalid" would reject good documents whenever the network
-    // faltered. Making this the one thing that throws is what keeps the two apart at a call site.
-    await expect(verifier().fetchVerified('.genoacms/pages/readables/absent', 'genoacms.pageTree.v1'))
-      .rejects.toBeInstanceOf(UnreachableError)
+  it('reports an object that is not there as absent, not as invalid', async () => {
+    // A page that was never published is an ordinary answer, and a different one from a page that
+    // failed to verify.
+    expect(await verifier().fetchVerified('.genoacms/pages/readables/absent', 'genoacms.pageTree.v1'))
+      .toBeUndefined()
   })
 
   it('reports a response that is not JSON', async () => {
     served['bad.json'] = undefined
     const client = new Verifier({
-      baseURL: 'https://storage.example',
       rootPublicKey: root.publicKey,
-      fetch: (async () => new Response('not json at all', { status: 200 })) as typeof globalThis.fetch
+      source: { read: async () => 'not json at all' }
     })
 
     await expect(client.loadRegistry()).rejects.toMatchObject({ reason: 'not-json' })
@@ -278,9 +342,8 @@ describe('unreachable is neither answer', () => {
 
   it('does not answer about a document when the registry cannot be fetched', async () => {
     const client = new Verifier({
-      baseURL: 'https://storage.example',
       rootPublicKey: root.publicKey,
-      fetch: (async () => new Response('', { status: 503 })) as typeof globalThis.fetch
+      source: { read: async () => { throw new UnreachableError('storage-down') } }
     })
 
     await expect(client.verifyDocument(signedRegistry(), 'genoacms.keyRegistry.v1'))

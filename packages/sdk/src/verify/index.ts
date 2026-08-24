@@ -8,8 +8,8 @@
  * Executing and rendering live behind the package root, and are web-only by nature.
  */
 
-export { Verifier, UnreachableError, REGISTRY_PATH } from './client.js'
-export type { VerifierOptions, Verdict } from './client.js'
+export { Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, httpSource } from './client.js'
+export type { VerifierOptions, Verdict, Source } from './client.js'
 
 export { canonicalize, digest, CanonicalizationError } from './canonical.js'
 export type { JsonValue } from './canonical.js'
@@ -22,3 +22,6 @@ export type { SignedEnvelope, UnverifiedHeader, VerificationResult } from './env
 
 export { KEY_REGISTRY_DOCUMENT, deriveKeyId, readRegistry, resolveKey } from './registry.js'
 export type { KeyRegistry, RegistryKey } from './registry.js'
+
+export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedRevisions } from './pageTree.js'
+export type { ReadablePageNode, ReadableAttributeValue, Read } from './pageTree.js'
