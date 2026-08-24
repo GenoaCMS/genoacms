@@ -521,6 +521,25 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@20.19.43)(jiti@2.7.0)(jsdom@24.1.3)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
 
+  packages/sdk:
+    dependencies:
+      '@noble/hashes':
+        specifier: ^2.3.0
+        version: 2.3.0
+      '@noble/post-quantum':
+        specifier: ^0.7.0
+        version: 0.7.0
+    devDependencies:
+      rimraf:
+        specifier: ^6.1.3
+        version: 6.1.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@20.19.43)(jiti@2.7.0)(jsdom@24.1.3)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
+
   packages/sveltekit-adapter-cloud-run-functions:
     dependencies:
       '@rollup/plugin-commonjs':
