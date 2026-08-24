@@ -2,6 +2,14 @@ import { ROOT_ALGORITHM, getAlgorithm } from './algorithms.js'
 import { peekUnverifiedHeader, verifyEnvelope } from './envelope.js'
 import { KEY_REGISTRY_DOCUMENT, readRegistry, resolveKey, type KeyRegistry } from './registry.js'
 import { PAGE_TREE_DOCUMENT, readPageTree, type ReadablePageNode } from './pageTree.js'
+import {
+  EXECUTABLE_DOCUMENT,
+  readExecutable,
+  matchesPin,
+  isRunnable,
+  WEB_ESMODULE,
+  type ComponentExecutable
+} from './executable.js'
 import type { JsonValue } from './canonical.js'
 
 /**
@@ -78,6 +86,14 @@ interface VerifierOptions {
   rootPublicKey: Uint8Array
   /** How documents are read. See `Source`. */
   source: Source
+  /**
+   * Platforms this consumer can execute, defaulting to `web-esmodule`.
+   *
+   * Configurable because where a component runs is the consumer's choice — verifying on a server and
+   * executing in a browser is as valid as doing both in one place — and a runtime that can run
+   * something else says so here rather than being told what it is.
+   */
+  platforms?: readonly string[]
 }
 
 /**
@@ -114,9 +130,14 @@ const REGISTRY_PATH = '.genoacms/keys/public.json'
 /** Where a published page lives. The CMS's layout, which is why a consumer never assembles one. */
 const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name}`
 
+/** Where a compiled revision lives. Immutable, which is what lets a consumer cache it forever. */
+const executablePath = (uid: string, commitId: string): string =>
+  `.genoacms/components/${uid}/${commitId}.json`
+
 class Verifier {
   readonly #rootPublicKey: Uint8Array
   readonly #source: Source
+  readonly #platforms: readonly string[]
 
   /** The highest registry sequence seen. See the note on rollback above. */
   #highWaterMark = 0
@@ -128,6 +149,7 @@ class Verifier {
     }
     this.#rootPublicKey = options.rootPublicKey
     this.#source = options.source
+    this.#platforms = options.platforms ?? [WEB_ESMODULE]
   }
 
   /**
@@ -207,6 +229,39 @@ class Verifier {
   }
 
   /**
+   * The compiled artifact a node pinned: fetched, verified, and checked against the pin.
+   *
+   * Three things a valid signature does not settle are checked here, in this order — the artifact is
+   * shaped like one, it is the revision that was asked for, and this runtime can execute it.
+   *
+   * The middle one is the attack worth naming. Whoever can write to storage can move a **genuine,
+   * correctly signed** executable of an older revision onto the path a newer one occupies. Every
+   * signature involved stays valid; only comparing what the page pinned against what the artifact
+   * says it is catches it.
+   *
+   * `undefined` means nothing is published there — a page pinning a revision whose artifact was
+   * never written, or has since been deleted.
+   */
+  async executable (
+    pin: { uid: string, commitId: string }
+  ): Promise<Verdict<ComponentExecutable> | undefined> {
+    const verified = await this.fetchVerified(executablePath(pin.uid, pin.commitId), EXECUTABLE_DOCUMENT)
+    if (verified === undefined) return undefined
+    if (!verified.valid) return verified
+
+    const read = readExecutable(verified.value)
+    if (!read.ok) return { valid: false, reason: read.reason }
+
+    const pinned = matchesPin(read.value, pin)
+    if (!pinned.ok) return { valid: false, reason: pinned.reason }
+
+    const runnable = isRunnable(pinned.value, this.#platforms)
+    if (!runnable.ok) return { valid: false, reason: runnable.reason }
+
+    return { valid: true, value: runnable.value }
+  }
+
+  /**
    * Fetches a path and verifies it as the document type the caller expects.
    *
    * Throws if the object cannot be fetched; returns a verdict about it otherwise.
@@ -241,5 +296,5 @@ class Verifier {
   }
 }
 
-export { Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, httpSource }
+export { Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, httpSource }
 export type { VerifierOptions, Verdict, Source }

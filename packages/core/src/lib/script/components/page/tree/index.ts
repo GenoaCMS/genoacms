@@ -102,15 +102,27 @@ const pinnedRevision = async (entryReference: string): Promise<string | undefine
   return definition.history.at(-1)
 }
 
+/**
+ * What a node needs in order for a consumer to fetch what it pins.
+ *
+ * `uid` and `commitId` travel together: an executable lives at `{uid}/{commitId}`, so either alone
+ * is a pin nobody can resolve. Both are omitted for a prebuilt component, which has no artifact.
+ */
+const artifactReference = async (entryReference: string): Promise<{ uid: string, commitId: string } | undefined> => {
+  const commitId = await pinnedRevision(entryReference)
+  if (commitId === undefined) return undefined
+  return { uid: entryReference, commitId }
+}
+
 const componentNodeToReadablePageNode = async (node: ComponentNode,
   componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
-  const commitId = await pinnedRevision(node.entryReference)
+  const artifact = await artifactReference(node.entryReference)
   const readableNode: ReadablePageNode = {
     component: node.name,
     // Omitted rather than set to undefined for a prebuilt component: the tree is signed, and
     // canonicalization drops an undefined member silently while refusing to represent it — so an
     // explicit `commitId: undefined` would sign as though the key had never been written.
-    ...(commitId === undefined ? {} : { commitId }),
+    ...(artifact ?? {}),
     data: {}
   }
   for (const data of Object.values(node.data)) {

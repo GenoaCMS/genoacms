@@ -78,6 +78,21 @@ describe('pinning a revision', () => {
     expect(tree.commitId).toBe('commit-new')
   })
 
+  it('names which component the revision belongs to', async () => {
+    // An executable lives at `{uid}/{commitId}`, so a pin without the uid is one nobody can resolve.
+    const tree = await pageEntryToReadableTree(pageWith('entry-dynamic'))
+
+    expect(tree.uid).toBe('entry-dynamic')
+  })
+
+  it('carries uid and commitId together or not at all', async () => {
+    const dynamic = await pageEntryToReadableTree(pageWith('entry-dynamic'))
+    const prebuilt = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
+
+    expect([dynamic.uid !== undefined, dynamic.commitId !== undefined]).toEqual([true, true])
+    expect([prebuilt.uid !== undefined, prebuilt.commitId !== undefined]).toEqual([false, false])
+  })
+
   it('keeps the pin the page was built with, even after a newer commit exists', async () => {
     const before = await pageEntryToReadableTree(pageWith('entry-dynamic'))
     histories['entry-dynamic'] = ['commit-old', 'commit-new', 'commit-newer']
@@ -94,6 +109,7 @@ describe('pinning a revision', () => {
     const tree = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
 
     expect('commitId' in tree).toBe(false)
+    expect('uid' in tree).toBe(false)
   })
 
   it('omits the key rather than writing undefined', async () => {

@@ -258,6 +258,7 @@ describe('verifying a document', () => {
 describe('fetching a page tree', () => {
   const treePayload = {
     component: 'Page',
+    uid: 'component-1',
     commitId: 'commit-1',
     data: { body: [{ component: 'Card', data: {} }] }
   }
@@ -319,6 +320,98 @@ describe('fetching a page tree', () => {
 
     expect(verdict?.valid).toBe(false)
     expect(verdict !== undefined && 'value' in verdict).toBe(false)
+  })
+})
+
+describe('fetching an executable', () => {
+  const pin = { uid: 'component-1', commitId: 'commit-2' }
+  const path = '.genoacms/components/component-1/commit-2.json'
+
+  const payload = (over: Record<string, unknown> = {}) => ({
+    uid: 'component-1',
+    commitId: 'commit-2',
+    authorId: 'user-1',
+    committedAt: 1_700_000_000_000,
+    platform: 'web-esmodule',
+    executableCode: 'export function Hero () { return 1 }',
+    compiledAt: 1_700_000_001_000,
+    ...over
+  })
+
+  const publish = (at = path, body = payload()) => {
+    served[at] = sign(
+      'ML-DSA-65', subordinateId, 'genoacms.componentExecutable.v1',
+      body as JsonValue, subordinate.secretKey, subordinateScheme
+    )
+  }
+
+  it('returns the artifact the page pinned', async () => {
+    publish()
+
+    const verdict = await verifier().executable(pin)
+
+    expect(verdict).toMatchObject({ valid: true })
+    expect(verdict?.valid === true && verdict.value.executableCode).toContain('function Hero')
+  })
+
+  it('reports an artifact that was never published as absent', async () => {
+    expect(await verifier().executable(pin)).toBeUndefined()
+  })
+
+  it('refuses one whose code was edited after signing', async () => {
+    publish()
+    const envelope = served[path] as { payload: Record<string, unknown> }
+    served[path] = { ...envelope, payload: { ...envelope.payload, executableCode: 'globalThis.stolen = 1' } }
+
+    expect(await verifier().executable(pin))
+      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
+  })
+
+  it('refuses a genuine artifact of an older revision moved onto this path', async () => {
+    // The attack the pin comparison exists for. Everything about this artifact is real and correctly
+    // signed — it is simply not the revision the page published.
+    publish(path, payload({ commitId: 'commit-1' }))
+
+    const verdict = await verifier().executable(pin)
+
+    expect(verdict?.valid).toBe(false)
+    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-revision')
+  })
+
+  it('refuses a genuine artifact belonging to another component', async () => {
+    publish(path, payload({ uid: 'component-9' }))
+
+    const verdict = await verifier().executable(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-component')
+  })
+
+  it('refuses one built for a platform it cannot run', async () => {
+    // Correctly signed, and meant for a different SDK.
+    publish(path, payload({ platform: 'android-dex' }))
+
+    const verdict = await verifier().executable(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('unsupported-platform')
+  })
+
+  it('runs a platform the consumer declared it supports', async () => {
+    publish(path, payload({ platform: 'node-esmodule' }))
+
+    const client = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: { read: async (p) => p in served ? JSON.stringify(served[p]) : undefined },
+      platforms: ['web-esmodule', 'node-esmodule']
+    })
+
+    expect(await client.executable(pin)).toMatchObject({ valid: true })
+  })
+
+  it('refuses a malformed artifact that is correctly signed', async () => {
+    publish(path, payload({ executableCode: '' }))
+
+    expect(await verifier().executable(pin))
+      .toMatchObject({ valid: false, reason: 'executable-missing-code' })
   })
 })
 

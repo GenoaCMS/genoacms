@@ -15,12 +15,22 @@
  * bytes forever, and committing a newer revision does not change a published page until the page is
  * republished.
  *
- * ## Prebuilt nodes have no revision
+ * ## Prebuilt nodes have no revision, and no artifact
  *
  * A prebuilt component is code the consuming application already contains; the CMS holds only its
- * name and its attribute schema. There is nothing for the CMS to pin, so `commitId` is absent rather
- * than empty — the two are different documents once signed, and absence is what says "this one is
- * resolved by name".
+ * name and its attribute schema. There is nothing for the CMS to pin, so `uid` and `commitId` are
+ * absent rather than empty — the two are different documents once signed, and absence is what says
+ * "this one is resolved by name".
+ *
+ * ## A dynamic node carries its uid as well as its name
+ *
+ * The two do different jobs. The **name** is what a consumer matches against its own component map,
+ * and what a person reads. The **uid** is where the artifact lives: executables are published to
+ * `{uid}/{commitId}`, so without it a consumer holds a pin it cannot resolve.
+ *
+ * Addressing artifacts by name instead would be cheaper here and wrong: names are not unique, and a
+ * dynamic component's name is the function its source declares — renaming one rewrites its code and
+ * would orphan every artifact already published under the old name.
  */
 
 /**
@@ -39,6 +49,13 @@ type ReadableAttributeValue =
 interface ReadablePageNode {
   /** The component's name. For a prebuilt node, what the consumer resolves against its own map. */
   component: string
+  /**
+   * Which component this is, for a component authored in the CMS.
+   *
+   * Present exactly when `commitId` is: together they name the artifact to fetch. Absent for a
+   * prebuilt component, which has none.
+   */
+  uid?: string
   /**
    * The revision this node was pinned to, for a component authored in the CMS.
    *

@@ -12,6 +12,7 @@ import type { ReadablePageNode } from './pageTree.js'
 
 const node = (over: Partial<ReadablePageNode> = {}): unknown => ({
   component: 'Hero',
+  uid: 'component-1',
   commitId: 'commit-1',
   data: {},
   ...over
@@ -23,13 +24,26 @@ describe('reading a tree', () => {
   it('reads a node and the revision it pins', () => {
     const result = read(node())
 
-    expect(result).toEqual({ ok: true, value: { component: 'Hero', commitId: 'commit-1', data: {} } })
+    expect(result).toEqual({
+      ok: true,
+      value: { component: 'Hero', uid: 'component-1', commitId: 'commit-1', data: {} }
+    })
   })
 
   it('reads a prebuilt node, which pins nothing', () => {
     const result = read({ component: 'Card', data: {} })
 
     expect(result.ok && 'commitId' in result.value).toBe(false)
+    expect(result.ok && 'uid' in result.value).toBe(false)
+  })
+
+  it('refuses a node pinned by halves', () => {
+    // An artifact is at `{uid}/{commitId}`; either alone is a pin nobody can resolve. Refused rather
+    // than read as prebuilt, because a node naming a revision is asking for one to be run.
+    expect(read({ component: 'Hero', commitId: 'commit-1', data: {} }))
+      .toEqual({ ok: false, reason: 'node-half-pinned' })
+    expect(read({ component: 'Hero', uid: 'component-1', data: {} }))
+      .toEqual({ ok: false, reason: 'node-half-pinned' })
   })
 
   it('reads scalar attributes as themselves', () => {
@@ -92,10 +106,11 @@ describe('refusing a tree a renderer would have to guess about', () => {
 describe('walking a tree', () => {
   const tree = {
     component: 'Page',
+    uid: 'uid-page',
     commitId: 'commit-page',
     data: {
       body: [
-        { component: 'Hero', commitId: 'commit-hero', data: {} },
+        { component: 'Hero', uid: 'uid-hero', commitId: 'commit-hero', data: {} },
         { component: 'Card', data: { links: ['https://example.com'] } }
       ]
     }
@@ -112,8 +127,8 @@ describe('walking a tree', () => {
   it('lists the revisions the page pinned, and only those', () => {
     // The prebuilt node contributes nothing: there is no revision of it for the CMS to pin.
     expect(pinnedRevisions(tree)).toEqual([
-      { component: 'Page', commitId: 'commit-page' },
-      { component: 'Hero', commitId: 'commit-hero' }
+      { uid: 'uid-page', commitId: 'commit-page' },
+      { uid: 'uid-hero', commitId: 'commit-hero' }
     ])
   })
 })

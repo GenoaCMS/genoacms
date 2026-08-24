@@ -29,6 +29,13 @@ interface ReadablePageNode {
   /** The component's name. For a prebuilt node, what the consumer resolves against its own map. */
   component: string
   /**
+   * Which component this is, for one authored in the CMS.
+   *
+   * Present exactly when `commitId` is. Together they name the artifact: executables are published
+   * at `{uid}/{commitId}`, so either alone is a pin that cannot be resolved.
+   */
+  uid?: string
+  /**
    * The revision this node was pinned to, for a component authored in the CMS.
    *
    * Absent for a prebuilt component, whose code is in the consuming application and which the CMS
@@ -85,9 +92,13 @@ const readAttributeValue = (value: JsonValue): Read<ReadableAttributeValue> => {
 const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
   if (!isRecord(candidate)) return failed('node-not-an-object')
 
-  const { component, commitId, data } = candidate
+  const { component, uid, commitId, data } = candidate
   if (typeof component !== 'string' || component.length === 0) return failed('node-missing-component')
   if (commitId !== undefined && typeof commitId !== 'string') return failed('node-commit-id-not-a-string')
+  if (uid !== undefined && typeof uid !== 'string') return failed('node-uid-not-a-string')
+  // Either alone is a pin nobody can resolve: an artifact is at `{uid}/{commitId}`. Refused rather
+  // than treated as prebuilt, because a node that names a revision is asking for one to be run.
+  if ((uid === undefined) !== (commitId === undefined)) return failed('node-half-pinned')
   if (!isRecord(data)) return failed('node-missing-data')
 
   const read: Record<string, ReadableAttributeValue> = {}
@@ -102,6 +113,7 @@ const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
     value: {
       component,
       // Omitted rather than set to undefined, so what is read back matches what was signed.
+      ...(uid === undefined ? {} : { uid }),
       ...(commitId === undefined ? {} : { commitId }),
       data: read
     }
@@ -123,11 +135,12 @@ const walkTree = function * (root: ReadablePageNode): Generator<ReadablePageNode
   }
 }
 
-/** The revisions a tree pins, in the order they are met. Prebuilt nodes contribute nothing. */
-const pinnedRevisions = (root: ReadablePageNode): Array<{ component: string, commitId: string }> =>
+/** What a tree pins, in the order met — enough to fetch each. Prebuilt nodes contribute nothing. */
+const pinnedRevisions = (root: ReadablePageNode): Array<{ uid: string, commitId: string }> =>
   [...walkTree(root)]
-    .filter((node): node is ReadablePageNode & { commitId: string } => node.commitId !== undefined)
-    .map(node => ({ component: node.component, commitId: node.commitId }))
+    .filter((node): node is ReadablePageNode & { uid: string, commitId: string } =>
+      node.uid !== undefined && node.commitId !== undefined)
+    .map(node => ({ uid: node.uid, commitId: node.commitId }))
 
 export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedRevisions }
 export type { ReadablePageNode, ReadableAttributeValue, Read }
