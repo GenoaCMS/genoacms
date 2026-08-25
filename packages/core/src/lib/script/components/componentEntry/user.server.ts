@@ -4,9 +4,15 @@ import type { ComponentEntry, ComponentEntryReference } from './component/types'
 import {
   listOrCreateComponentEntryList,
   getComponentEntry,
-  uploadComponentEntry,
   deleteComponentEntry
 } from './io.server'
+import {
+  saveComponentEntry,
+  undoComponentEntry,
+  redoComponentEntry,
+  getComponentEntryDepth
+} from './editing.server'
+import type { HistoryDepth } from './editing.server'
 
 /**
  * Prebuilt component operations performed **by a user**.
@@ -39,7 +45,37 @@ const getUserComponentEntry = async (
 
 const updateUserComponentEntry = async (ctx: AuthContext, entry: ComponentEntry) => {
   requirePermission(ctx, 'components:prebuilt:modify')
-  return await uploadComponentEntry(entry)
+  return await saveComponentEntry(entry)
+}
+
+/**
+ * How far a component can be undone and redone.
+ *
+ * Gated on `read`, not `modify`: knowing that an edit is reversible is part of seeing the component,
+ * and the buttons it drives are already behind their own permission gate.
+ */
+const getUserComponentEntryDepth = async (
+  ctx: AuthContext,
+  reference: ComponentEntryReference
+): Promise<HistoryDepth> => {
+  requirePermission(ctx, 'components:prebuilt:read')
+  return await getComponentEntryDepth(reference)
+}
+
+/**
+ * Moving through a component's editing history.
+ *
+ * Gated on `modify`, because both change what the component is. Undo is not a lesser action than an
+ * edit — it *is* an edit, expressed as the reverse of one.
+ */
+const undoUserComponentEntry = async (ctx: AuthContext, reference: ComponentEntryReference) => {
+  requirePermission(ctx, 'components:prebuilt:modify')
+  return await undoComponentEntry(reference)
+}
+
+const redoUserComponentEntry = async (ctx: AuthContext, reference: ComponentEntryReference) => {
+  requirePermission(ctx, 'components:prebuilt:modify')
+  return await redoComponentEntry(reference)
 }
 
 /**
@@ -58,5 +94,8 @@ export {
   listUserComponentEntries,
   getUserComponentEntry,
   updateUserComponentEntry,
+  getUserComponentEntryDepth,
+  undoUserComponentEntry,
+  redoUserComponentEntry,
   deleteUserComponentEntry
 }

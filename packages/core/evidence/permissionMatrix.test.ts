@@ -86,7 +86,9 @@ vi.mock('$lib/script/components/componentEntry/io.server', () => ({
   listOrCreateComponentEntryList: async () => [],
   getComponentEntry: async () => null,
   uploadComponentEntry: async () => {},
-  deleteComponentEntry: async () => {}
+  deleteComponentEntry: async () => {},
+  getComponentEntryHistory: async () => ({ history: [], future: [] }),
+  uploadComponentEntryHistory: async () => {}
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
@@ -218,6 +220,9 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
   getUserComponentEntry: ctx => components.getUserComponentEntry(ctx, 'hero'),
   updateUserComponentEntry: ctx => components.updateUserComponentEntry(ctx, componentEntry),
+  getUserComponentEntryDepth: ctx => components.getUserComponentEntryDepth(ctx, 'hero'),
+  undoUserComponentEntry: ctx => components.undoUserComponentEntry(ctx, 'hero'),
+  redoUserComponentEntry: ctx => components.redoUserComponentEntry(ctx, 'hero'),
   deleteUserComponentEntry: ctx => components.deleteUserComponentEntry(ctx, 'hero'),
 
   // pages

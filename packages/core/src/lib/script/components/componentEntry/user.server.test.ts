@@ -18,7 +18,12 @@ vi.mock('./io.server', () => ({
   listOrCreateComponentEntryList: async () => { calls.push('list'); return [] },
   getComponentEntry: async (reference: string) => { calls.push(`get:${reference}`); return null },
   uploadComponentEntry: async (entry: { uid: string }) => { calls.push(`upload:${entry.uid}`) },
-  deleteComponentEntry: async (name: string) => { calls.push(`delete:${name}`) }
+  deleteComponentEntry: async (name: string) => { calls.push(`delete:${name}`) },
+  getComponentEntryHistory: async (reference: string) => {
+    calls.push(`history:${reference}`)
+    return { history: [], future: [] }
+  },
+  uploadComponentEntryHistory: async (reference: string) => { calls.push(`uploadHistory:${reference}`) }
 }))
 
 const { createAuthContext } = await import('$lib/script/authorization/context')
@@ -68,7 +73,9 @@ describe('modifying', () => {
 
   it('is allowed with components:prebuilt:modify', async () => {
     await components.updateUserComponentEntry(contextWith(['components:prebuilt:modify']), entry)
-    expect(calls).toEqual(['upload:hero'])
+    // Saving reads the stored state first, because the step it records has to be diffed against
+    // what is actually stored rather than against whatever the caller believed was there.
+    expect(calls).toEqual(['get:hero', 'history:hero', 'upload:hero'])
   })
 })
 

@@ -60,6 +60,9 @@ const matrixOperations = [
   'listUserComponentEntries',
   'getUserComponentEntry',
   'updateUserComponentEntry',
+  'getUserComponentEntryDepth',
+  'undoUserComponentEntry',
+  'redoUserComponentEntry',
   'deleteUserComponentEntry',
   // pages
   'listUserPages',
@@ -204,7 +207,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   ComponentReviewer: {
     grants: [instanceGrant('components:prebuilt:read'), instanceGrant('components:dynamic:view_code')],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition'
     ]
   },
@@ -216,7 +219,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:dynamic:edit')
     ],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
       'updateUserComponentDefinition'
     ]
@@ -244,7 +247,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     // The catalog permission covers coded components too: their names are catalog information,
     // and what distinguishes them — their source — is `components:dynamic:view_code`.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'updateUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
+      'updateUserComponentEntry', 'undoUserComponentEntry', 'redoUserComponentEntry',
       'listUserComponents', 'getUserComponent'
     ]
   },
@@ -254,7 +258,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:prebuilt:register')
     ],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'deleteUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth', 'deleteUserComponentEntry',
       'listUserComponents', 'getUserComponent'
     ]
   },

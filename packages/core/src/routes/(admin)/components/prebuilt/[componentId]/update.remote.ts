@@ -12,7 +12,8 @@ export const updateComponent = command('unchecked', async (data: ComponentEntry)
   if (!isValid) return { status: 'fail', text: 'Invalid data' }
   // A remote function has no `locals` parameter; the request context is fetched rather than passed.
   const ctx = requireAuthContext(getRequestEvent().locals)
-  // TODO: get previous stade, create diff
-  await updateUserComponentEntry(ctx, data)
-  return { status: 'success', text: 'Component updated' }
+  // The new depth travels back with the result. A remote call does not re-run `load`, so this is the
+  // only thing that tells the editor its undo button has something to do.
+  const depth = await updateUserComponentEntry(ctx, data)
+  return { status: 'success', text: 'Component updated', ...depth }
 })
