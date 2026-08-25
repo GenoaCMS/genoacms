@@ -33,9 +33,7 @@ function emptyEntry (name: string): ComponentEntry {
     type: 'dynamic',
     name,
     attributes: {},
-    attributeOrder: [],
-    history: [],
-    future: []
+    attributeOrder: []
   }
 }
 

@@ -7,7 +7,7 @@ import type {
   StorageResourcesMetaSchema
 } from '@genoacms/internal/attributes'
 import type { Diagnostic } from '@genoacms/internal/languageAdapter'
-import type { FunctionDeclaration, ParameterDeclaration } from 'ts-morph'
+import type { FunctionDeclaration, Node, ParameterDeclaration } from 'ts-morph'
 
 import { Project } from 'ts-morph'
 
@@ -18,6 +18,12 @@ import { Project } from 'ts-morph'
  * what it cannot handle as a **diagnostic** rather than by throwing, because an adapter's job is to
  * tell the CMS what is wrong with a source file, not to decide what the CMS does about it.
  */
+
+/** Where a node is, as the 1-based line and column an editor shows. */
+const locate = (node: Node): Pick<Diagnostic, 'line' | 'column'> => ({
+  line: node.getStartLineNumber(),
+  column: node.getStart() - node.getStartLinePos() + 1
+})
 
 interface AttributeCodeType {
   name: string
@@ -228,8 +234,7 @@ function parameterToAttribute (parameterNode: ParameterDeclaration, diagnostics:
         severity: 'fatal',
         rule: 'unknown-attribute-type',
         message: `Parameter '${name}' has type '${attributeType.name}', which is not an attribute type`,
-        line: parameterNode.getStartLineNumber(),
-        column: parameterNode.getStart() - parameterNode.getStartLinePos() + 1
+        ...locate(parameterNode)
       })
       return undefined
     }
@@ -293,7 +298,15 @@ interface DerivationResult {
   diagnostics: Diagnostic[]
 }
 
-/** Reads `source` and reports what the component named `entryFunction` accepts. */
+/**
+ * Reads `source` and reports what the component named `entryFunction` accepts.
+ *
+ * The entry has to be **declared and exported**. Declared is what makes its parameters readable;
+ * exported is what makes it reachable, because the artifact is an ES module and a consumer calls the
+ * entry through the module's exports. An unexported entry analyzes, compiles and signs perfectly
+ * well and then cannot be run by anybody — so it is refused here, while the author is editing, and
+ * not left for a consumer to discover about an artifact that is already published and immutable.
+ */
 function deriveAttributes (source: string, entryFunction: string): DerivationResult {
   const diagnostics: Diagnostic[] = []
   const project = new Project({ useInMemoryFileSystem: true })
@@ -305,6 +318,18 @@ function deriveAttributes (source: string, entryFunction: string): DerivationRes
       severity: 'fatal',
       rule: 'missing-entry-function',
       message: `No function named '${entryFunction}' is declared in this component`
+    })
+    return { attributes: {}, diagnostics }
+  }
+
+  if (!rootFunction.isExported()) {
+    diagnostics.push({
+      severity: 'fatal',
+      rule: 'entry-function-not-exported',
+      message:
+        `The function '${entryFunction}' is declared but not exported. A consumer reaches a ` +
+        `component through its module's exports, so write 'export function ${entryFunction}'.`,
+      ...locate(rootFunction)
     })
     return { attributes: {}, diagnostics }
   }

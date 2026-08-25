@@ -27,14 +27,14 @@ const analyze = (body: string, entryFunction = 'Component') =>
 
 describe('deriving attributes', () => {
   it('reports one attribute per parameter, keyed by parameter name', () => {
-    const result = analyze('function Component (heading: StringAttribute<".*", 120, "hi">, on: BooleanAttribute<true>) {}')
+    const result = analyze('export function Component (heading: StringAttribute<".*", 120, "hi">, on: BooleanAttribute<true>) {}')
 
     expect(Object.keys(result.attributes)).toEqual(['heading', 'on'])
     expect(result.diagnostics).toEqual([])
   })
 
   it('takes a component with no parameters', () => {
-    const result = analyze('function Component () {}')
+    const result = analyze('export function Component () {}')
 
     expect(result.attributes).toEqual({})
     expect(result.diagnostics).toEqual([])
@@ -45,7 +45,7 @@ describe('saying what is wrong', () => {
   it('reports a missing entry function rather than throwing', () => {
     // Throwing was the old behavior, and it belongs to the CMS: an adapter describes a source file,
     // and the caller decides what a description costs.
-    const result = analyze('function Other () {}')
+    const result = analyze('export function Other () {}')
 
     expect(result.diagnostics).toHaveLength(1)
     expect(result.diagnostics[0]).toMatchObject({ severity: 'fatal', rule: 'missing-entry-function' })
@@ -53,10 +53,35 @@ describe('saying what is wrong', () => {
     expect(result.attributes).toEqual({})
   })
 
+  it('refuses an entry function that is declared but not exported', () => {
+    // The artifact is an ES module and a consumer reaches the component through its exports, so an
+    // unexported entry is unreachable. It analyzes, compiles and signs perfectly well, which is why
+    // it has to be caught here: the artifact it would produce is published and immutable.
+    const result = analyze('function Component () {}')
+
+    expect(result.diagnostics).toHaveLength(1)
+    expect(result.diagnostics[0]).toMatchObject({
+      severity: 'fatal',
+      rule: 'entry-function-not-exported',
+      // Where the author's own source begins, so the refusal points at the declaration rather than
+      // at the preamble the test prepends.
+      line: PREAMBLE.split('\n').length
+    })
+    expect(result.diagnostics[0].message).toContain('export function Component')
+  })
+
+  it('does not report a missing entry when the entry is merely unexported', () => {
+    // The two are different fixes, and telling an author the function does not exist when it is
+    // sitting in front of them is the more expensive mistake.
+    const result = analyze('function Component () {}')
+
+    expect(result.diagnostics[0].rule).not.toBe('missing-entry-function')
+  })
+
   it('locates an unrecognized parameter type', () => {
     // Locating it is the point. A refusal an author cannot place is a refusal without a reason, and
     // the commit it blocks becomes a guess.
-    const result = analyze('function Component (x: number) {}')
+    const result = analyze('export function Component (x: number) {}')
 
     expect(result.diagnostics).toHaveLength(1)
     expect(result.diagnostics[0]).toMatchObject({ severity: 'fatal', rule: 'unknown-attribute-type' })
@@ -67,7 +92,7 @@ describe('saying what is wrong', () => {
   it('keeps analyzing the parameters it does understand', () => {
     // One bad parameter must not cost the diagnostics for the rest of the file, which is what an
     // author needs in order to fix it in one pass rather than one error at a time.
-    const result = analyze('function Component (good: BooleanAttribute<true>, bad: number) {}')
+    const result = analyze('export function Component (good: BooleanAttribute<true>, bad: number) {}')
 
     expect(Object.keys(result.attributes)).toEqual(['good'])
     expect(result.diagnostics).toHaveLength(1)
