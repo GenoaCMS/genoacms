@@ -461,7 +461,7 @@ test.describe('a dynamic component', () => {
     // What "publishes" means: one object under the component's own directory, named for the commit
     // that produced it. Matched on the per-file select control rather than on links, because the
     // listing also renders navigation the count would otherwise include.
-    await openStorageDirectory(page, ['.genoacms', 'components', uid])
+    await openStorageDirectory(page, ['.genoacms', 'components', 'dynamic', 'executables', uid])
     const executables = page.getByRole('button', { name: /^select-/ })
     await expect(executables).toHaveCount(1, { timeout: SLOW })
     await expect(executables.first()).toHaveAccessibleName(/[0-9a-f-]{36}\.json$/)
@@ -480,7 +480,7 @@ test.describe('a dynamic component', () => {
     await expect(page.getByText('Code commited')).toHaveCount(0)
 
     // Nothing was published, so the component has no executables.
-    await page.goto(`/storage/${BUCKET}/contents/.genoacms/components/${uid}`)
+    await page.goto(`/storage/${BUCKET}/contents/.genoacms/components/dynamic/executables/${uid}`)
     await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(0, { timeout: SLOW })
   })
 

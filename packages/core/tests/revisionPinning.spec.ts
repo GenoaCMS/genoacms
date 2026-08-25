@@ -186,8 +186,8 @@ test.afterAll(async ({ browser }) => {
   await sweep(page, ['.genoacms', 'pages', 'readables'], new RegExp(`^select-.*${pageName}`))
   await sweep(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
   if (uid !== undefined) {
-    await sweep(page, ['.genoacms', 'components', uid], /^select-/)
-    for (const directory of [['edited'], ['definitions'], ['prebuilt']]) {
+    await sweep(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
+    for (const directory of [['dynamic'], ['prebuilt']]) {
       await sweep(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
     }
   }
@@ -244,7 +244,7 @@ test('republishing moves the pin to the newer revision', async ({ page }) => {
 test('every published revision keeps its own executable', async ({ page }) => {
   // Two commits, two artifacts, neither overwritten — which is what makes the older pin still
   // resolve to something after the component has moved on.
-  expect(await openDirectory(page, ['.genoacms', 'components', uid])).toBe(true)
+  expect(await openDirectory(page, ['.genoacms', 'components', 'dynamic', 'executables', uid])).toBe(true)
 
   await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(2, { timeout: SLOW })
 })
@@ -262,8 +262,8 @@ test('deleting the component removes every revision it published', async ({ page
   // that no longer exists.
   await deleteComponent(page, uid, componentName)
 
-  await assertGone(page, ['.genoacms', 'components', uid], /^select-/)
-  for (const directory of [['edited'], ['definitions'], ['prebuilt']]) {
+  await assertGone(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
+  for (const directory of [['dynamic'], ['prebuilt']]) {
     await assertGone(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
   }
 })
