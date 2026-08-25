@@ -16,7 +16,8 @@ import type {
   PageContents,
   PageEntry
 } from './types'
-import diff from 'deep-diff'
+import { recordChange, undo, redo } from '$lib/script/undoRedo'
+import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
 import { duplicateObject } from '$lib/script/utils'
 
@@ -91,36 +92,39 @@ const createPageEntry = async (values: {
   }
 }
 
-const pushPageEntryState = (oldContents: PageContents<IsSerializable>, page: PageEntry<IsSerializable>) => {
-  const differences = diff.diff(oldContents, page.contents)
-  if (differences) {
-    page.history.push(differences)
-    page.future = []
-  }
+/**
+ * A page's editing history, in the shape the generic operations work on.
+ *
+ * A `PageEntry` still stores its `history` and `future` inline, alongside fields that are not
+ * versioned — its name, its preview URL, when it was last modified. So an adjunct is *presented*
+ * from those fields and the result written back, rather than the page being stored as one. Moving
+ * pages to a sidecar the way components are stored is a storage migration and is not this change.
+ *
+ * The write-back is not optional: `future` is cleared by reassignment, so relying on the operations
+ * to edit the page in place would silently miss it.
+ */
+const historyOf = (page: PageEntry<IsSerializable>): UndoRedoAdjunct<PageContents<IsSerializable>> => ({
+  history: page.history,
+  future: page.future
+})
+
+const withHistory = (
+  page: PageEntry<IsSerializable>,
+  adjunct: UndoRedoAdjunct<PageContents<IsSerializable>>
+) => {
+  page.history = adjunct.history
+  page.future = adjunct.future
   return page
 }
 
-const undoPageEntryState = (page: PageEntry<IsSerializable>) => {
-  const lastChange = page.history.pop()
-  if (lastChange) {
-    for (const changeDiff of lastChange) {
-      diff.revertChange(page.contents, page.contents, changeDiff)
-    }
-    page.future.push(lastChange)
-  }
-  return page
-}
+const pushPageEntryState = (oldContents: PageContents<IsSerializable>, page: PageEntry<IsSerializable>) =>
+  withHistory(page, recordChange(page.contents, historyOf(page), oldContents))
 
-const redoPageEntryState = (page: PageEntry<IsSerializable>) => {
-  const nextChange = page.future.pop()
-  if (nextChange) {
-    for (const changeDiff of nextChange) {
-      diff.applyChange(page.contents, page.contents, changeDiff)
-    }
-    page.history.push(nextChange)
-  }
-  return page
-}
+const undoPageEntryState = (page: PageEntry<IsSerializable>) =>
+  withHistory(page, undo(page.contents, historyOf(page)))
+
+const redoPageEntryState = (page: PageEntry<IsSerializable>) =>
+  withHistory(page, redo(page.contents, historyOf(page)))
 
 const updateComponentNode = (page: PageEntry<IsSerializable>, updaterComponent: ComponentNode<IsSerializable>) => {
   const node = page.contents.nodes[updaterComponent.uid]
