@@ -32,17 +32,15 @@ const sourceFor = (name: string, heading: string): string =>
   'interface StringAttribute<Pattern, MaxLength, Default> { _brand: Pattern }\n' +
   `export function ${name} (heading: StringAttribute<".*", 120, "${heading}">) { return heading }\n`
 
-const openEditor = async (page: Page): Promise<void> => {
-  await page.goto('/components/editor')
-  await expect(page.getByRole('heading', { name: 'Component editor' })).toBeVisible()
-}
-
 const createDynamic = async (page: Page, name: string): Promise<string> => {
-  await openEditor(page)
-  await page.getByRole('button', { name: 'Create component' }).click()
+  // Through the registrar: a component is born in one place whichever kind it is, and the kind is
+  // chosen there.
+  await page.goto('/components/registrar')
+  await page.getByRole('button', { name: 'Register component' }).click()
 
-  const dialog = page.getByRole('dialog', { name: 'Create a new component' })
-  await dialog.getByLabel('Name:').fill(name)
+  const dialog = page.getByRole('dialog', { name: 'Register a new component' })
+  await dialog.getByLabel('Component name:').fill(name)
+  await dialog.getByRole('radio', { name: 'Code it here' }).check()
   await dialog.getByRole('button', { name: 'Create' }).click()
 
   await expect(page).toHaveURL(/\/components\/editor\/[^/]+$/, { timeout: SLOW })

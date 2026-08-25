@@ -1,6 +1,8 @@
 import { requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import type { Component, ComponentDefinition, ComponentReference } from './types'
+import { ComponentCodeError } from './errors'
+import { componentNameRefusal, isValidComponentName } from './names'
 import {
   createComponent,
   listOrCreateComponentList,
@@ -75,8 +77,23 @@ const getUserComponentDefinition = async (
   return await getComponentDefiniton(reference)
 }
 
+/**
+ * Brings a coded component into existence.
+ *
+ * **The name is refused here rather than at the route**, because a component's name is the entry
+ * function its source must declare and export. Accepting `my-hero` would create a component that can
+ * never be published: the author would be told only that no such function exists, which is true and
+ * unfixable from the editor. Saying why at the moment of naming is what makes it actionable.
+ *
+ * It lived in the editor's create action until the registrar became the one place a component is
+ * born, and moving it into the service is what stops it being lost the next time a creation surface
+ * moves. A rule enforced by whichever route happens to call the service is not enforced.
+ */
 const createUserComponent = async (ctx: AuthContext, name: string): Promise<string> => {
   requirePermission(ctx, 'components:register')
+  if (!isValidComponentName(name)) {
+    throw new ComponentCodeError('invalid-component-name', componentNameRefusal(name))
+  }
   return await createComponent(name)
 }
 

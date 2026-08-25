@@ -89,6 +89,28 @@ describe('what registering demands', () => {
   })
 })
 
+describe('what registering refuses', () => {
+  it('refuses a coded component whose name no source file could declare', async () => {
+    // The name is the entry function. Accepting this would create a component that can never be
+    // published, and the only error the author would ever see is that no such function exists.
+    //
+    // This lived in the editor's create action until the registrar became the one creation surface,
+    // and was lost for exactly as long as it took to delete that action. It belongs to the service.
+    await expect(
+      registerUserComponent(contextWith([REGISTER]), { name: 'e2e-not-an-identifier', type: 'dynamic' })
+    ).rejects.toThrow(/identifier/i)
+    expect(created).toEqual([])
+  })
+
+  it('accepts the same name for a component coded in the consuming application', async () => {
+    // Nothing there has to declare a function, so the rule does not apply and must not be extended
+    // to a kind it was never about.
+    await registerUserComponent(contextWith([REGISTER]), { name: 'e2e-not-an-identifier', type: 'prebuilt' })
+
+    expect(created).toEqual(['header:prebuilt:e2e-not-an-identifier'])
+  })
+})
+
 describe('what registering stores', () => {
   it('gives a dynamic component a source definition, not merely a header', async () => {
     await registerUserComponent(contextWith([REGISTER]), { name: 'Hero', type: 'dynamic' })

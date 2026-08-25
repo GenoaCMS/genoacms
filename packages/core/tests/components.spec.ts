@@ -27,20 +27,27 @@ const card = (page: Page, name: string): Locator =>
 // Prebuilt components
 // ---------------------------------------------------------------------------------------------
 
-const openPrebuilt = async (page: Page): Promise<void> => {
+const openRegistrar = async (page: Page): Promise<void> => {
   await page.goto('/components/registrar')
   await expect(page.getByRole('heading', { name: 'Component registrar' })).toBeVisible()
 }
 
-/** Registering navigates to the new entry, so the URL is what confirms it. */
+/**
+ * Registering navigates to the new component, so the URL is what confirms it.
+ *
+ * The kind is chosen here, because both kinds are registered through this one form. A component
+ * whose code lives in the consuming application stays in the registrar; one coded in the CMS opens
+ * in the editor, which is why the two helpers assert different destinations.
+ */
 const registerComponent = async (page: Page, name: string): Promise<void> => {
   await page.getByRole('button', { name: 'Register component' }).click()
 
   const dialog = page.getByRole('dialog', { name: 'Register a new component' })
   await dialog.getByLabel('Component name:').fill(name)
+  await dialog.getByRole('radio', { name: 'Already coded in my app' }).check()
   await dialog.getByRole('button', { name: 'Create' }).click()
 
-  await expect(page).toHaveURL(/\/components\/prebuilt\/[^/]+$/, { timeout: SLOW })
+  await expect(page).toHaveURL(/\/components\/registrar\/[^/]+$/, { timeout: SLOW })
 }
 
 const deletePrebuilt = async (page: Page, name: string): Promise<void> => {
@@ -55,7 +62,7 @@ const deletePrebuilt = async (page: Page, name: string): Promise<void> => {
   await expect(confirmButton).toBeEnabled()
 
   await confirmButton.click()
-  await expect(page).toHaveURL(/\/components\/prebuilt\/?$/, { timeout: SLOW })
+  await expect(page).toHaveURL(/\/components\/registrar\/?$/, { timeout: SLOW })
 }
 
 /**
@@ -73,7 +80,7 @@ const deletePrebuilt = async (page: Page, name: string): Promise<void> => {
  */
 const sweepPrebuiltFixtures = async (page: Page, names: string[]): Promise<void> => {
   if (names.length === 0) return
-  await openPrebuilt(page)
+  await openRegistrar(page)
 
   const selector = names.map(each => `button[aria-label="select-${each}"]`).join(', ')
   const boxes = page.locator(selector)
@@ -89,7 +96,7 @@ const sweepPrebuiltFixtures = async (page: Page, names: string[]): Promise<void>
 
   // Listing is eventually consistent, so a component can be removed and still appear once more.
   await expect(async () => {
-    await openPrebuilt(page)
+    await openRegistrar(page)
     await expect(page.locator(selector)).toHaveCount(0, { timeout: 2_000 })
   }).toPass({ timeout: SLOW })
 }
@@ -103,11 +110,11 @@ test.describe('a prebuilt component', () => {
     name = fixtureName('prebuilt')
     created.push(name)
     await signIn(page)
-    await openPrebuilt(page)
+    await openRegistrar(page)
   })
 
   test.afterEach(async ({ page }) => {
-    await openPrebuilt(page)
+    await openRegistrar(page)
     if (await card(page, name).count() === 0) return
 
     await card(page, name).first().click()
@@ -126,7 +133,7 @@ test.describe('a prebuilt component', () => {
   test('is registered and appears in the catalog', async ({ page }) => {
     await registerComponent(page, name)
 
-    await openPrebuilt(page)
+    await openRegistrar(page)
     await expect(card(page, name).first()).toBeVisible({ timeout: SLOW })
   })
 
@@ -351,12 +358,17 @@ const openEditor = async (page: Page): Promise<void> => {
  */
 const createDynamic = async (page: Page, name: string, record: string[] = []): Promise<string> => {
   record.push(name)
-  await page.getByRole('button', { name: 'Create component' }).click()
+  // Through the registrar, because the editor no longer creates anything: a component is born in
+  // one place whichever kind it is, so that one act decides its type.
+  await openRegistrar(page)
+  await page.getByRole('button', { name: 'Register component' }).click()
 
-  const dialog = page.getByRole('dialog', { name: 'Create a new component' })
-  await dialog.getByLabel('Name:').fill(name)
+  const dialog = page.getByRole('dialog', { name: 'Register a new component' })
+  await dialog.getByLabel('Component name:').fill(name)
+  await dialog.getByRole('radio', { name: 'Code it here' }).check()
   await dialog.getByRole('button', { name: 'Create' }).click()
 
+  // A dynamic component opens in the editor rather than the registrar: its next step is writing it.
   await expect(page).toHaveURL(/\/components\/editor\/[^/]+$/, { timeout: SLOW })
   return page.url().split('/').pop() as string
 }
@@ -487,10 +499,12 @@ test.describe('a dynamic component', () => {
   test('refuses a name no source file could declare', async ({ page }) => {
     // The name is the entry function. Accepting `my-hero` would create a component that can never be
     // committed, and the only error the author would ever see is that no such function exists.
-    await page.getByRole('button', { name: 'Create component' }).click()
+    await openRegistrar(page)
+    await page.getByRole('button', { name: 'Register component' }).click()
 
-    const dialog = page.getByRole('dialog', { name: 'Create a new component' })
-    await dialog.getByLabel('Name:').fill('e2e-not-an-identifier')
+    const dialog = page.getByRole('dialog', { name: 'Register a new component' })
+    await dialog.getByLabel('Component name:').fill('e2e-not-an-identifier')
+    await dialog.getByRole('radio', { name: 'Code it here' }).check()
     await dialog.getByRole('button', { name: 'Create' }).click()
 
     await expect(page).not.toHaveURL(/\/components\/editor\/[^/]+$/)
