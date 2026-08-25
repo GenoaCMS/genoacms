@@ -416,6 +416,27 @@ const commitDraft = async (page: Page): Promise<void> => {
   await dialog.getByRole('button', { name: /commit/i }).click()
 }
 
+/**
+ * Opening a component the editor has nothing to show for.
+ *
+ * Reported from a passing run's server log rather than by any test: a `[500] GET
+ * /components/editor/{uid}` sat in the output of a suite that was entirely green, because nothing
+ * asserts a status code for a page that renders no content of its own. Deleting a dynamic component
+ * from the registrar is what makes it ordinary — the editor URL outlives the component.
+ */
+test.describe('a component the editor cannot open', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page)
+  })
+
+  test('answers 404 rather than a server error', async ({ page }) => {
+    // A well-formed uid that names nothing, which is what a deleted component's bookmark becomes.
+    const response = await page.goto('/components/editor/00000000-0000-4000-8000-000000000000')
+
+    expect(response?.status()).toBe(404)
+  })
+})
+
 test.describe('a dynamic component', () => {
   let name: string
   let uid: string

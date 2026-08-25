@@ -9,6 +9,7 @@ import {
   deleteDirectory
 } from '$lib/script/storage/storage.server'
 import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
+import { NoSuchComponentError } from './errors'
 import { validator } from '@exodus/schemasafe'
 import { componentCommitSchema, componentDefinitionSchema } from './schemas'
 
@@ -41,10 +42,18 @@ const asComponent = (entry: ComponentHeader): Component => ({ uid: entry.uid, na
 
 async function getComponent (reference: ComponentHeaderReference): Promise<Component> {
   const entry = await getComponentHeader(reference)
-  if (entry === null) throw Error(`Invalid component: ${reference}`)
+  if (entry === null) {
+    throw new NoSuchComponentError(reference, `components/no-such-component: ${reference} does not exist.`)
+  }
   // A prebuilt component has no source and no commits, so the editor cannot open one. Refused by
   // name rather than by a missing definition, which would surface as a confusing storage error.
-  if (entry.type !== 'dynamic') throw Error(`Not a dynamic component: ${reference}`)
+  if (entry.type !== 'dynamic') {
+    throw new NoSuchComponentError(
+      reference,
+      `components/no-such-component: ${reference} is a prebuilt component. Its code lives in the ` +
+      'consuming application, so there is nothing for the editor to open.'
+    )
+  }
   return asComponent(entry)
 }
 
