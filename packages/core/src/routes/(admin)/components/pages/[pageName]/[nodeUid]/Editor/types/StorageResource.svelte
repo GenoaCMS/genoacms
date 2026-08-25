@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { StorageResourceAttributeType } from '$lib/script/components/componentEntry/component/types'
+  import type { StorageResourceAttributeType } from '$lib/script/components/componentHeader/component/types'
   import type {
     StorageResourceValue,
     StorageResourcesAttributeValue
-  } from '$lib/script/components/componentEntry/attribute/types'
+  } from '$lib/script/components/componentHeader/attribute/types'
   import type { SelectionInitData } from '$lib/script/storage/SelectActionRune.svelte'
   import type { SelectionParameters } from '$lib/script/storage/SelectionRune.svelte'
   import { Card } from '$lib/components/ui/index'

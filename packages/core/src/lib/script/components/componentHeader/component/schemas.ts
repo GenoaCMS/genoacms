@@ -293,7 +293,7 @@ const componentsAttributeSchema: Schema = {
   required: ['uid', 'name', 'type', 'schema']
 }
 
-const componentEntryAttributesSchema: Schema = {
+const componentHeaderAttributesSchema: Schema = {
   type: 'object',
   // Keyed by attribute uid, so `additionalProperties` is the value schema here rather than a guard;
   // `false` would reject every attribute. The guard sits on each attribute object instead.
@@ -313,22 +313,22 @@ const componentEntryAttributesSchema: Schema = {
   required: []
 }
 
-const componentEntrySchema: Schema = {
+const componentHeaderSchema: Schema = {
   type: 'object',
   additionalProperties: false,
   properties: {
     uid: { type: 'string' },
     name: { type: 'string' },
-    // Declared because ComponentEntry declares them. Both were always written and neither was ever
+    // Declared because ComponentHeader declares them. Both were always written and neither was ever
     // described here; additionalProperties: false is what turned that from invisible into a failure.
     type: { type: 'string', enum: ['prebuilt', 'dynamic'] },
     attributeOrder: { type: 'array', items: { type: 'string' } },
-    attributes: componentEntryAttributesSchema
+    attributes: componentHeaderAttributesSchema
   },
   required: ['uid', 'name', 'type', 'attributes', 'attributeOrder']
 }
 
-const componentEntryCreationSchema: Schema = {
+const componentHeaderCreationSchema: Schema = {
   type: 'object',
   additionalProperties: false,
   properties: {
@@ -352,7 +352,7 @@ export {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentEntryAttributesSchema,
-  componentEntrySchema,
-  componentEntryCreationSchema
+  componentHeaderAttributesSchema,
+  componentHeaderSchema,
+  componentHeaderCreationSchema
 }

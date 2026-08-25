@@ -1,14 +1,14 @@
 import { command } from '$app/server'
 import { validator } from '@exodus/schemasafe'
-import { componentEntryCreationSchema } from '$lib/script/components/componentEntry/component/schemas'
-import { createComponentEntry } from '$lib/script/components/componentEntry/component.server'
+import { componentHeaderCreationSchema } from '$lib/script/components/componentHeader/component/schemas'
+import { createComponentHeader } from '$lib/script/components/componentHeader/component.server'
 
-const validate = validator(componentEntryCreationSchema)
+const validate = validator(componentHeaderCreationSchema)
 
 export const createComponent = command('unchecked', async (data: any) => {
   const isValid = validate(data)
   if (!isValid) return { status: 'fail', text: 'Invalid data' }
 
-  const componentEntry = await createComponentEntry(data)
-  return { status: 'success', text: 'Component created', uid: componentEntry.uid }
+  const componentHeader = await createComponentHeader(data)
+  return { status: 'success', text: 'Component created', uid: componentHeader.uid }
 })

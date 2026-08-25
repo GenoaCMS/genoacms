@@ -1,7 +1,7 @@
 import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
-import type { ComponentEntry, ComponentType } from '../componentEntry/component/types'
+import type { ComponentHeader, ComponentType } from '../componentHeader/component/types'
 
-import { deleteComponentEntry, getComponentEntry, uploadComponentEntry } from '../componentEntry/io.server'
+import { deleteComponentHeader, getComponentHeader, uploadComponentHeader } from '../componentHeader/io.server'
 import {
   uploadComponentDefinition,
   uploadComponentCommit,
@@ -13,7 +13,7 @@ import {
 import diff from 'deep-diff'
 import { ComponentCodeError, ComponentDiffError } from './errors'
 import { componentNameRefusal, isValidComponentName } from './names'
-import { componentCodeToEntry } from './analyzer'
+import { componentCodeToHeader } from './analyzer'
 import { compileComponentSource } from './compilation'
 import { signComponentExecutable } from '../executable/executable.server'
 import { deleteComponentExecutables, uploadComponentExecutable } from '../executable/io.server'
@@ -29,20 +29,20 @@ async function createComponentDefinition (uid: string) {
   }
   await uploadComponentDefinition(emptyComponentDefinition)
 }
-async function createComponentEntry (uid: string, type: ComponentType, name: string) {
-  const emptyComponentEntry: ComponentEntry = {
+async function createComponentHeader (uid: string, type: ComponentType, name: string) {
+  const emptyComponentHeader: ComponentHeader = {
     uid,
     type,
     name,
     attributes: {},
     attributeOrder: []
   }
-  await uploadComponentEntry(emptyComponentEntry)
+  await uploadComponentHeader(emptyComponentHeader)
 }
 async function createComponent (name: string) {
   const uid = crypto.randomUUID()
 
-  await createComponentEntry(uid, 'dynamic', name)
+  await createComponentHeader(uid, 'dynamic', name)
   await createComponentDefinition(uid)
 
   return uid
@@ -78,12 +78,12 @@ async function createComponentCommit (order: ComponentCommitOrder, definition: C
 
 /** Everything a commit is built from, read together because none of it is useful alone. */
 async function readCommitSubject (componentId: ComponentReference) {
-  const [definition, component, entry] = await Promise.all([
+  const [definition, component, header] = await Promise.all([
     getComponentDefiniton(componentId),
     getComponent(componentId),
-    getComponentEntry(componentId)
+    getComponentHeader(componentId)
   ])
-  return { definition, component, entry }
+  return { definition, component, header }
 }
 
 /**
@@ -98,7 +98,7 @@ async function readCommitSubject (componentId: ComponentReference) {
  * that has no artifact, and the component would read as committed while serving its predecessor.
  */
 async function buildRevision (
-  { definition, component, entry }: Awaited<ReturnType<typeof readCommitSubject>>,
+  { definition, component, header }: Awaited<ReturnType<typeof readCommitSubject>>,
   commit: ComponentCommit
 ) {
   // Components created before names were constrained can hold one no source file can declare. The
@@ -108,7 +108,7 @@ async function buildRevision (
     throw new ComponentCodeError('invalid-component-name', componentNameRefusal(component.name))
   }
   const code = definition.uncommitedCode
-  const newEntry = await componentCodeToEntry(definition.language, component.name, code, entry)
+  const newHeader = await componentCodeToHeader(definition.language, component.name, code, header)
   const compiled = await compileComponentSource(definition.language, component.name, code)
   const executable = await signComponentExecutable(
     {
@@ -120,7 +120,7 @@ async function buildRevision (
     compiled.platform,
     compiled.executableCode
   )
-  return { newEntry, executable }
+  return { newHeader, executable }
 }
 
 /**
@@ -135,7 +135,7 @@ async function buildRevision (
 async function publishRevision (
   definition: ComponentDefinition,
   commit: ComponentCommit,
-  { newEntry, executable }: Awaited<ReturnType<typeof buildRevision>>
+  { newHeader, executable }: Awaited<ReturnType<typeof buildRevision>>
 ): Promise<void> {
   await uploadComponentExecutable(executable)
   await Promise.all([
@@ -145,7 +145,7 @@ async function publishRevision (
       return d
     }, definition),
     uploadComponentCommit(commit),
-    uploadComponentEntry(newEntry)
+    uploadComponentHeader(newHeader)
   ])
 }
 
@@ -166,7 +166,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder, authorId:
  * Removes a component and everything it produced.
  *
  * Three things. The definition directory holds the source **and every commit**, so those go with it.
- * The entry is the component's place in the catalog, and is what the editor lists. The third is the
+ * The header is the component's place in the catalog, and is what the editor lists. The third is the
  * published executables: one per commit, each written once and never rewritten, each signed and
  * independently verifiable. Left behind they would keep verifying, for a component that no longer
  * exists.
@@ -177,7 +177,7 @@ async function commitComponentDefinition (order: ComponentCommitOrder, authorId:
 async function deleteComponent (component: Component): Promise<void> {
   await Promise.all([
     deleteComponentDefinition(component.uid),
-    deleteComponentEntry(component.uid),
+    deleteComponentHeader(component.uid),
     deleteComponentExecutables(component.uid)
   ])
 }

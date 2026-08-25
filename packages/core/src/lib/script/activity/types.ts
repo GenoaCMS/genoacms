@@ -12,8 +12,8 @@ interface CollectionsActivityRecord extends ActivityRecordBase {
   collection: string,
   document: string
 }
-interface ComponentEntryActivityRecord extends ActivityRecordBase {
-  type: 'componentEntry',
+interface ComponentHeaderActivityRecord extends ActivityRecordBase {
+  type: 'componentHeader',
   componentId: string,
   componentName: string
 }
@@ -29,14 +29,14 @@ interface PageActivityRecord extends ActivityRecordBase {
 }
 type ActivityRecord = StorageActivityRecord
 | CollectionsActivityRecord
-| ComponentEntryActivityRecord
+| ComponentHeaderActivityRecord
 | ComponentCodeActivityRecord
 | PageActivityRecord
 
 export type {
   StorageActivityRecord,
   CollectionsActivityRecord,
-  ComponentEntryActivityRecord,
+  ComponentHeaderActivityRecord,
   ComponentCodeActivityRecord,
   PageActivityRecord,
   ActivityRecord

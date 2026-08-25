@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ComponentEntryEditor from './ComponentEntryEditor.svelte'
+  import ComponentHeaderEditor from './ComponentHeaderEditor.svelte'
 
   const { data } = $props()
 </script>
@@ -11,10 +11,10 @@
   editor holds a working copy in `$state`, which is initialized once and would otherwise keep
   displaying the state from before the undo — the storage would be correct and the screen would not.
 -->
-{#key data.componentEntry}
-  <ComponentEntryEditor
+{#key data.componentHeader}
+  <ComponentHeaderEditor
     id={data.id}
-    entry={data.componentEntry}
+    entry={data.componentHeader}
     historyLength={data.historyLength}
     futureLength={data.futureLength}
   />

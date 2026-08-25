@@ -2,8 +2,8 @@
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type {
     ComponentsAttributeType,
-    ComponentEntry,
-  } from '$lib/script/components/componentEntry/component/types'
+    ComponentHeader,
+  } from '$lib/script/components/componentHeader/component/types'
   import type { Schema } from '@exodus/schemasafe'
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
@@ -34,7 +34,7 @@
    * `enum` key at all — and reading `.length` off it threw, taking the editor down.
    */
   const getPossibleSubcomponents = (
-    components: Array<ComponentEntry>,
+    components: Array<ComponentHeader>,
     dataSchema: Schema
   ) => {
     const allowed = (dataSchema as any).items?.enum

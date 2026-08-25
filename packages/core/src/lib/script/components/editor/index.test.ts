@@ -58,8 +58,8 @@ vi.mock('./io', () => ({
   deleteComponentFile: async () => {}
 }))
 
-vi.mock('../componentEntry/io.server', () => ({
-  getComponentEntry: async () => ({
+vi.mock('../componentHeader/io.server', () => ({
+  getComponentHeader: async () => ({
     uid: 'component-1',
     type: 'dynamic',
     name: 'Hero',
@@ -68,8 +68,8 @@ vi.mock('../componentEntry/io.server', () => ({
     history: [],
     future: []
   }),
-  uploadComponentEntry: async () => { writes.push('entry') },
-  deleteComponentEntry: async () => {}
+  uploadComponentHeader: async () => { writes.push('entry') },
+  deleteComponentHeader: async () => {}
 }))
 
 interface PublishedEnvelope {

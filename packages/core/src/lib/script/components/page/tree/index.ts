@@ -11,13 +11,13 @@ import type {
   LinkAttributeValue,
   LinksAttributeValue,
   StorageResourcesAttributeValue
-} from '$lib/script/components/componentEntry/attribute/types'
+} from '$lib/script/components/componentHeader/attribute/types'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
 import { getPublicURL } from '$lib/script/storage/storage.server'
 import { getPageEntry } from '$lib/script/components/page/page.server'
-import { getComponentEntry } from '$lib/script/components/componentEntry/io.server'
+import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
 import { getComponentDefiniton } from '$lib/script/components/editor/io'
 
 const parseMarkdown = async (markdown: string) => {
@@ -95,7 +95,7 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
  * never committed, and the consumer's own verification is what refuses to render it.
  */
 const pinnedRevision = async (entryReference: string): Promise<string | undefined> => {
-  const entry = await getComponentEntry(entryReference)
+  const entry = await getComponentHeader(entryReference)
   if (entry === null || entry.type !== 'dynamic') return undefined
 
   const definition = await getComponentDefiniton(entryReference)

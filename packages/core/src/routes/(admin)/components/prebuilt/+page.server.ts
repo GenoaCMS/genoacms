@@ -1,7 +1,7 @@
 import {
   listUserComponentEntries,
-  deleteUserComponentEntry
-} from '$lib/script/components/componentEntry/user.server'
+  deleteUserComponentHeader
+} from '$lib/script/components/componentHeader/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { parseBulkDeletion } from '$lib/script/selection/request.server'
 import { fail, type Actions } from '@sveltejs/kit'
@@ -31,7 +31,7 @@ export const actions = {
 
     for (const [index, uid] of parsed.ids.entries()) {
       try {
-        await deleteUserComponentEntry(ctx, uid)
+        await deleteUserComponentHeader(ctx, uid)
       } catch (error) {
         return fail(409, {
           reason: `selection/partial: removed ${index} of ${parsed.ids.length}; ${(error as Error).message}`

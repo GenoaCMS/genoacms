@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import type { Attribute } from '$lib/script/components/componentEntry/component/types'
+  import type { Attribute } from '$lib/script/components/componentHeader/component/types'
   import { dragHandle } from 'svelte-dnd-action'
   import { Button, Card, Checkbox, Dropdown, Input, Label, Textarea, } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'

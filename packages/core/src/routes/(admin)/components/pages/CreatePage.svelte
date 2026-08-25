@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
-  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select, } from '$lib/components/ui/index'
 
   interface Props {
-    components: Array<ComponentEntry>
+    components: Array<ComponentHeader>
   }
   const { components }: Props = $props()
   let isModalOpen = $state(false)

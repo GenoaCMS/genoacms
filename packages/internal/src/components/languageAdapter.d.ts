@@ -1,4 +1,4 @@
-import type { ComponentEntryAttributes } from './attributes'
+import type { ComponentHeaderAttributes } from './attributes'
 import type { ComponentExecutable, ExecutablePlatform } from './executable'
 
 /**
@@ -25,11 +25,11 @@ import type { ComponentExecutable, ExecutablePlatform } from './executable'
  * analyzer for that language — a parser, the safety ruleset, and a compiler. That is a different
  * order of work from porting the *verifier*, which contains no analysis at all.
  *
- * ## Attributes, not entries
+ * ## Attributes, not headers
  *
  * `analyze` returns **attributes**. It does not return, and cannot alter, a component's identity,
  * its ordering, or its editing history: those belong to the CMS, and an adapter that received them
- * could change them. The CMS merges what comes back into the entry it already holds, preserving
+ * could change them. The CMS merges what comes back into the header it already holds, preserving
  * each attribute's uid so that pages referring to it keep working.
  */
 
@@ -70,7 +70,7 @@ interface AnalysisResult {
    *
    * Empty when analysis failed.
    */
-  attributes: ComponentEntryAttributes
+  attributes: ComponentHeaderAttributes
   /** Everything the adapter has to say. A `fatal` entry means `attributes` must not be trusted. */
   diagnostics: Diagnostic[]
 }

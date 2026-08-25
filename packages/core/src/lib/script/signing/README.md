@@ -101,7 +101,7 @@ rejects artifacts that are perfectly good.
 
 | | Lands with |
 | :--- | :--- |
-| `ComponentEntry` signing | the attribute representation it serializes |
+| `ComponentHeader` signing | the attribute representation it serializes |
 | `ComponentExecutable` signing | the compilation pipeline that produces one |
 | The client-side verifier and its conformance corpus | the portability specification |
 | Ed25519 as a classical control | the cryptographic cost study |

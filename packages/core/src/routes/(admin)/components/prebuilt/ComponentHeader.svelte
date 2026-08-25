@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
   import CardLink from '$lib/components/CardLink.svelte'
 
   interface Props {
-    entry: ComponentEntry
+    entry: ComponentHeader
   }
   const { entry }: Props = $props()
 </script>

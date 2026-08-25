@@ -58,12 +58,12 @@ const matrixOperations = [
   'deleteUserComponent',
   // prebuilt components
   'listUserComponentEntries',
-  'getUserComponentEntry',
-  'updateUserComponentEntry',
-  'getUserComponentEntryDepth',
-  'undoUserComponentEntry',
-  'redoUserComponentEntry',
-  'deleteUserComponentEntry',
+  'getUserComponentHeader',
+  'updateUserComponentHeader',
+  'getUserComponentHeaderDepth',
+  'undoUserComponentHeader',
+  'redoUserComponentHeader',
+  'deleteUserComponentHeader',
   // pages
   'listUserPages',
   'getUserPageEntry',
@@ -207,7 +207,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   ComponentReviewer: {
     grants: [instanceGrant('components:prebuilt:read'), instanceGrant('components:dynamic:view_code')],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
+      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition'
     ]
   },
@@ -219,7 +219,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:dynamic:edit')
     ],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
+      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
       'updateUserComponentDefinition'
     ]
@@ -247,8 +247,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     // The catalog permission covers coded components too: their names are catalog information,
     // and what distinguishes them — their source — is `components:dynamic:view_code`.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth',
-      'updateUserComponentEntry', 'undoUserComponentEntry', 'redoUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
       'listUserComponents', 'getUserComponent'
     ]
   },
@@ -258,7 +258,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:prebuilt:register')
     ],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'getUserComponentEntryDepth', 'deleteUserComponentEntry',
+      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent'
     ]
   },

@@ -29,8 +29,8 @@ const histories: Record<string, string[]> = {
   'entry-prebuilt': ['commit-prebuilt']
 }
 
-vi.mock('$lib/script/components/componentEntry/io.server', () => ({
-  getComponentEntry: async (reference: string) => entries[reference] ?? null
+vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+  getComponentHeader: async (reference: string) => entries[reference] ?? null
 }))
 
 vi.mock('$lib/script/components/editor/io', () => ({

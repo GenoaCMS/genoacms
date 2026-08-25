@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { SubmitFunction } from '@sveltejs/kit'
-    import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
+    import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
     import ComponentNode from './Editor/ComponentNode.svelte'
     import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { enhance } from '$app/forms'

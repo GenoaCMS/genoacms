@@ -2,7 +2,7 @@ import type {
   Attribute,
   AttributeBase,
   BooleanAttribute,
-  ComponentEntryAttributes,
+  ComponentHeaderAttributes,
   LinksMetaSchema,
   StorageResourcesMetaSchema
 } from '@genoacms/internal/attributes'
@@ -283,8 +283,8 @@ function storageResourcesMetaSchema (metaBase: MetaSchemaBase): StorageResources
 function functionArgumentsToAttributes (
   functionNode: FunctionDeclaration,
   diagnostics: Diagnostic[]
-): ComponentEntryAttributes {
-  const attributes: ComponentEntryAttributes = {}
+): ComponentHeaderAttributes {
+  const attributes: ComponentHeaderAttributes = {}
   for (const parameter of functionNode.getParameters()) {
     const attribute = parameterToAttribute(parameter, diagnostics)
     if (!attribute) continue
@@ -294,7 +294,7 @@ function functionArgumentsToAttributes (
 }
 
 interface DerivationResult {
-  attributes: ComponentEntryAttributes
+  attributes: ComponentHeaderAttributes
   diagnostics: Diagnostic[]
 }
 

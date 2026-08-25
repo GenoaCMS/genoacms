@@ -11,7 +11,7 @@ import {
   linkAttributeSchema,
   storageResourceAttributeSchema,
   componentsAttributeSchema,
-  componentEntrySchema
+  componentHeaderSchema
 } from './schemas'
 import type { Json, Schema } from '@exodus/schemasafe'
 import type { AttributeType, ComponentType } from './types'
@@ -91,7 +91,7 @@ describe('attribute inits', () => {
 
 describe('component entry', () => {
   it('validates an entry containing one of every attribute type', () => {
-    const validate = validator(componentEntrySchema)
+    const validate = validator(componentHeaderSchema)
     const attributes = Object.fromEntries(
       attributeTypeInits.map(({ name, schema }) => [name, buildAttribute(name, schema)])
     )
@@ -110,7 +110,7 @@ describe('component entry', () => {
     // component — which is what makes it publishable and signable. Asserted rather than assumed,
     // because additionalProperties: false is the only thing enforcing it and a schema is easy to
     // relax by accident.
-    const validate = validator(componentEntrySchema)
+    const validate = validator(componentHeaderSchema)
     const entry = {
       uid: 'entry-uid',
       name: 'August10Test',

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { validator } from '@exodus/schemasafe'
-import { componentCodeToEntry } from './analyzer'
+import { componentCodeToHeader } from './analyzer'
 import { ComponentCodeError } from './errors'
-import { componentEntrySchema } from '../componentEntry/component/schemas'
-import { attributeTypeInits } from '../componentEntry/component/attributeInits'
+import { componentHeaderSchema } from '../componentHeader/component/schemas'
+import { attributeTypeInits } from '../componentHeader/component/attributeInits'
 import { digest } from '$lib/script/signing/canonical'
 import type { JsonValue } from '$lib/script/signing/canonical'
-import type { ComponentEntry } from '../componentEntry/component/types'
+import type { ComponentHeader } from '../componentHeader/component/types'
 
 /**
  * The analyzer reads a parameter's *resolved* type text, so the attribute types
@@ -27,7 +27,7 @@ interface StorageResourceAttribute { _brand: 'storageResource' }
 interface ComponentsAttribute<Component, MaxComponents, Allowed> { _brand: Component }
 `
 
-function emptyEntry (name: string): ComponentEntry {
+function emptyEntry (name: string): ComponentHeader {
   return {
     uid: 'entry-uid',
     type: 'dynamic',
@@ -40,8 +40,8 @@ function emptyEntry (name: string): ComponentEntry {
 /** The language every fixture here is written in, resolved through the configured adapters. */
 const LANGUAGE = 'typescript'
 
-async function analyze (body: string, previous?: ComponentEntry) {
-  return await componentCodeToEntry(LANGUAGE, 'Component', PREAMBLE + body, previous ?? emptyEntry('Component'))
+async function analyze (body: string, previous?: ComponentHeader) {
+  return await componentCodeToHeader(LANGUAGE, 'Component', PREAMBLE + body, previous ?? emptyEntry('Component'))
 }
 
 /**
@@ -50,18 +50,18 @@ async function analyze (body: string, previous?: ComponentEntry) {
  * Indexing by name is what these tests used to do, and it passed only because the analyzer path
  * keyed by name while the editor path keyed by uid.
  */
-const byName = (entry: ComponentEntry, name: string) => {
+const byName = (entry: ComponentHeader, name: string) => {
   const attribute = Object.values(entry.attributes).find(candidate => candidate.name === name)
   if (!attribute) throw new Error(`no attribute named ${name}`)
   return attribute
 }
 
-const namesOf = (entry: ComponentEntry) => Object.values(entry.attributes).map(a => a.name)
+const namesOf = (entry: ComponentHeader) => Object.values(entry.attributes).map(a => a.name)
 
-describe('componentCodeToEntry', () => {
+describe('componentCodeToHeader', () => {
   it('derives one attribute per parameter, in the order the source declares them', async () => {
     const entry = await analyze(`
-      function Component (heading: StringAttribute<".*", 120, "hello">, visible: BooleanAttribute<true>) {}
+      export function Component (heading: StringAttribute<".*", 120, "hello">, visible: BooleanAttribute<true>) {}
     `)
     expect(namesOf(entry)).toEqual(['heading', 'visible'])
   })
@@ -70,7 +70,7 @@ describe('componentCodeToEntry', () => {
     // The defect this replaced: attributes derived from source were keyed by *name*, while
     // attributes added in the editor were keyed by uid. One record, two key schemes, decided by how
     // the component happened to be authored — and a page node refers to an attribute by uid.
-    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hi">) {}')
+    const entry = await analyze('export function Component (heading: StringAttribute<".*", 120, "hi">) {}')
     const heading = byName(entry, 'heading')
 
     expect(Object.keys(entry.attributes)).toEqual([heading.uid])
@@ -79,18 +79,18 @@ describe('componentCodeToEntry', () => {
   })
 
   it('carries the parameter name onto the attribute', async () => {
-    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+    const entry = await analyze('export function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     expect(byName(entry, 'heading').name).toBe('heading')
   })
 
   it('assigns each attribute a uid', async () => {
-    const entry = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+    const entry = await analyze('export function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     expect(byName(entry, 'heading').uid).toEqual(expect.any(String))
   })
 
   it('maps each supported attribute type', async () => {
     const entry = await analyze(`
-      function Component (
+      export function Component (
         a: BooleanAttribute<true>,
         b: NumberAttribute<0, 10, 1, 2, 5>,
         c: StringAttribute<".*", 120, "hi">,
@@ -109,24 +109,24 @@ describe('componentCodeToEntry', () => {
   })
 
   it('takes a component with no parameters', async () => {
-    expect(Object.keys((await analyze('function Component () {}')).attributes)).toEqual([])
+    expect(Object.keys((await analyze('export function Component () {}')).attributes)).toEqual([])
   })
 
   it('throws when the named root function is missing', async () => {
-    await expect(analyze('function Other () {}')).rejects.toThrow(ComponentCodeError)
+    await expect(analyze('export function Other () {}')).rejects.toThrow(ComponentCodeError)
   })
 
   it('throws on an unknown attribute type', async () => {
-    await expect(analyze('function Component (x: number) {}')).rejects.toThrow(ComponentCodeError)
+    await expect(analyze('export function Component (x: number) {}')).rejects.toThrow(ComponentCodeError)
   })
 
   // uids are what page nodes reference, so re-analyzing edited code must not
   // renumber attributes that still exist
   it('preserves the uid of an attribute that survives a re-analysis', async () => {
-    const first = await analyze('function Component (heading: StringAttribute<".*", 120, "hello">) {}')
+    const first = await analyze('export function Component (heading: StringAttribute<".*", 120, "hello">) {}')
     const originalUid = byName(first, 'heading').uid
     const second = await analyze(
-      'function Component (heading: StringAttribute<".*", 240, "hello">, extra: BooleanAttribute<false>) {}',
+      'export function Component (heading: StringAttribute<".*", 240, "hello">, extra: BooleanAttribute<false>) {}',
       first
     )
     expect(byName(second, 'heading').uid).toBe(originalUid)
@@ -135,9 +135,9 @@ describe('componentCodeToEntry', () => {
 
   it('drops attributes whose parameter was removed', async () => {
     const first = await analyze(`
-      function Component (heading: StringAttribute<".*", 120, "hi">, gone: BooleanAttribute<true>) {}
+      export function Component (heading: StringAttribute<".*", 120, "hi">, gone: BooleanAttribute<true>) {}
     `)
-    const second = await analyze('function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
+    const second = await analyze('export function Component (heading: StringAttribute<".*", 120, "hi">) {}', first)
     expect(namesOf(second)).toEqual(['heading'])
   })
 
@@ -156,10 +156,10 @@ describe('componentCodeToEntry', () => {
       //
       // Declared without generics, which is how a type reaches the analyzer
       // with no arguments — the case the file header describes.
-      const entry = await componentCodeToEntry(
+      const entry = await componentCodeToHeader(
         LANGUAGE,
         'Component',
-        'interface NumberAttribute { _brand: 0 }\nfunction Component (n: NumberAttribute) {}',
+        'interface NumberAttribute { _brand: 0 }\nexport function Component (n: NumberAttribute) {}',
         emptyEntry('Component')
       )
       const schema = byName(entry, 'n').schema as unknown as Record<string, unknown>
@@ -171,7 +171,7 @@ describe('componentCodeToEntry', () => {
     })
 
     it('writes a constraint that was supplied', async () => {
-      const entry = await analyze('function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
+      const entry = await analyze('export function Component (n: NumberAttribute<0, 10, 1, 2, 5>) {}')
 
       expect(byName(entry, 'n').schema).toMatchObject({
         minimum: 0, maximum: 10, multipleOf: 1, decimalPlaces: 2, default: 5
@@ -181,7 +181,7 @@ describe('componentCodeToEntry', () => {
     it('carries no flat sibling beside the schema', async () => {
       // maxComponents, allowedComponents and component all said what the schema
       // says. Two representations inside a signed payload can disagree.
-      const entry = await analyze('function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
+      const entry = await analyze('export function Component (i: ComponentsAttribute<"Card", 3, "Card|Hero">) {}')
       const attribute = byName(entry, 'i') as unknown as Record<string, unknown>
 
       expect(Object.keys(attribute).sort()).toEqual(['name', 'schema', 'type', 'uid'])
@@ -194,7 +194,7 @@ describe('componentCodeToEntry', () => {
       // The same schema the prebuilt editor's output is validated against, so
       // the two producers are held to one standard rather than two.
       const entry = await analyze(`
-        function Component (
+        export function Component (
           a: BooleanAttribute<true>,
           b: NumberAttribute<0, 10, 1, 2, 5>,
           c: StringAttribute<".*", 120, "hi">,
@@ -202,14 +202,14 @@ describe('componentCodeToEntry', () => {
         ) {}
       `)
 
-      expect(validator(componentEntrySchema)(JSON.parse(JSON.stringify(entry)))).toBe(true)
+      expect(validator(componentHeaderSchema)(JSON.parse(JSON.stringify(entry)))).toBe(true)
     })
 
     it('agrees with attributeInits on the digest of an equivalent attribute', async () => {
       // One shape, one digest, across both producers. Driven through the real
       // RFC 8785 canonicalizer rather than a stand-in, since byte-exact
       // agreement is the whole property.
-      const analyzed = await analyze('function Component (a: BooleanAttribute<false>) {}')
+      const analyzed = await analyze('export function Component (a: BooleanAttribute<false>) {}')
       const init = attributeTypeInits.find(({ name }) => name === 'boolean')
 
       const fromAnalyzer = { ...byName(analyzed, 'a').schema, title: '', description: '' }
@@ -256,7 +256,7 @@ describe('componentCodeToEntry', () => {
       Buffer.from(digest(value as JsonValue)).toString('hex')
 
     it.each(comparable)('$name signs the same either way', async ({ name, schema }) => {
-      const analyzed = await analyze(`function Component (a: ${CODE_TYPE[name]}) {}`)
+      const analyzed = await analyze(`export function Component (a: ${CODE_TYPE[name]}) {}`)
 
       // The analyzer names the attribute after its parameter and the init cannot
       // know it, so the two labels are equalized rather than compared. Everything

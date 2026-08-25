@@ -24,7 +24,7 @@ let stored: { uid: string, type: string, name: string } | null =
   { uid: 'hero', type: 'prebuilt', name: 'Hero' }
 
 vi.mock('./io.server', () => ({
-  listOrCreateComponentEntryList: async () => {
+  listOrCreateComponentHeaderList: async () => {
     calls.push('list')
     // Both kinds, because storage holds both. A mock returning nothing would let the filtering test
     // pass without any filtering happening.
@@ -33,17 +33,17 @@ vi.mock('./io.server', () => ({
       { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] }
     ]
   },
-  getComponentEntry: async (reference: string) => {
+  getComponentHeader: async (reference: string) => {
     calls.push(`get:${reference}`)
     return stored
   },
-  uploadComponentEntry: async (entry: { uid: string }) => { calls.push(`upload:${entry.uid}`) },
-  deleteComponentEntry: async (name: string) => { calls.push(`delete:${name}`) },
-  getComponentEntryHistory: async (reference: string) => {
+  uploadComponentHeader: async (entry: { uid: string }) => { calls.push(`upload:${entry.uid}`) },
+  deleteComponentHeader: async (name: string) => { calls.push(`delete:${name}`) },
+  getComponentHeaderHistory: async (reference: string) => {
     calls.push(`history:${reference}`)
     return { history: [], future: [] }
   },
-  uploadComponentEntryHistory: async (reference: string) => { calls.push(`uploadHistory:${reference}`) }
+  uploadComponentHeaderHistory: async (reference: string) => { calls.push(`uploadHistory:${reference}`) }
 }))
 
 const { createAuthContext } = await import('$lib/script/authorization/context')
@@ -71,7 +71,7 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 describe('reading the catalog', () => {
   it('is denied without components:prebuilt:read', async () => {
     await expectDenied(() => components.listUserComponentEntries(contextWith([])))
-    await expectDenied(() => components.getUserComponentEntry(contextWith([]), 'hero'))
+    await expectDenied(() => components.getUserComponentHeader(contextWith([]), 'hero'))
   })
 
   it('is not implied by being able to modify', async () => {
@@ -81,7 +81,7 @@ describe('reading the catalog', () => {
 
   it('is allowed with it', async () => {
     await components.listUserComponentEntries(contextWith(['components:prebuilt:read']))
-    await components.getUserComponentEntry(contextWith(['components:prebuilt:read']), 'hero')
+    await components.getUserComponentHeader(contextWith(['components:prebuilt:read']), 'hero')
     expect(calls).toEqual(['list', 'get:hero'])
   })
 })
@@ -89,11 +89,11 @@ describe('reading the catalog', () => {
 describe('modifying', () => {
   it('is denied to a principal who may only read', async () => {
     await expectDenied(() =>
-      components.updateUserComponentEntry(contextWith(['components:prebuilt:read']), entry))
+      components.updateUserComponentHeader(contextWith(['components:prebuilt:read']), entry))
   })
 
   it('is allowed with components:prebuilt:modify', async () => {
-    await components.updateUserComponentEntry(contextWith(['components:prebuilt:modify']), entry)
+    await components.updateUserComponentHeader(contextWith(['components:prebuilt:modify']), entry)
     // Saving reads the stored state first, because the step it records has to be diffed against
     // what is actually stored rather than against whatever the caller believed was there.
     // The first read is the prebuilt check; the second is what the recorded step is diffed against.
@@ -106,18 +106,18 @@ describe('deleting', () => {
     // Removal is the inverse of registration. Letting modify cover it would mean a role meant to
     // edit attribute schemas could destroy a component that pages depend on.
     await expectDenied(() =>
-      components.deleteUserComponentEntry(contextWith(['components:prebuilt:modify']), 'hero'))
+      components.deleteUserComponentHeader(contextWith(['components:prebuilt:modify']), 'hero'))
   })
 
   it('is allowed with components:prebuilt:register', async () => {
-    await components.deleteUserComponentEntry(contextWith(['components:prebuilt:register']), 'hero')
+    await components.deleteUserComponentHeader(contextWith(['components:prebuilt:register']), 'hero')
     // Read first, to refuse a reference naming a component the editor owns.
     expect(calls).toEqual(['get:hero', 'delete:hero'])
   })
 
   it('is not implied by being able to read', async () => {
     await expectDenied(() =>
-      components.deleteUserComponentEntry(contextWith(['components:prebuilt:read']), 'hero'))
+      components.deleteUserComponentHeader(contextWith(['components:prebuilt:read']), 'hero'))
   })
 })
 
@@ -140,7 +140,7 @@ describe('components the editor owns', () => {
   it('refuses to delete one, even holding the permission that deletes prebuilt components', async () => {
     dynamic()
 
-    await expect(components.deleteUserComponentEntry(registrar(), 'hero'))
+    await expect(components.deleteUserComponentHeader(registrar(), 'hero'))
       .rejects.toThrow(/not-prebuilt/)
     expect(calls).not.toContain('delete:hero')
   })
@@ -150,7 +150,7 @@ describe('components the editor owns', () => {
     // `prebuilt` into it.
     dynamic()
 
-    await expect(components.updateUserComponentEntry(
+    await expect(components.updateUserComponentHeader(
       contextWith(['components:prebuilt:modify']),
       { uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: [] } as never
     )).rejects.toThrow(/not-prebuilt/)
@@ -160,15 +160,15 @@ describe('components the editor owns', () => {
   it('refuses to open one', async () => {
     dynamic()
 
-    await expect(components.getUserComponentEntry(registrar(), 'hero')).rejects.toThrow(/not-prebuilt/)
+    await expect(components.getUserComponentHeader(registrar(), 'hero')).rejects.toThrow(/not-prebuilt/)
   })
 
   it('refuses to step through one\'s history', async () => {
     dynamic()
     const curator = contextWith(['components:prebuilt:modify'])
 
-    await expect(components.undoUserComponentEntry(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
-    await expect(components.redoUserComponentEntry(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
+    await expect(components.undoUserComponentHeader(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
+    await expect(components.redoUserComponentHeader(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
   })
 
   it('leaves it out of the catalog listing, keeping the prebuilt ones', async () => {
@@ -181,6 +181,6 @@ describe('components the editor owns', () => {
     // A principal with no permission must not learn whether a component exists or what kind it is.
     dynamic()
 
-    await expectDenied(() => components.deleteUserComponentEntry(contextWith([]), 'hero'))
+    await expectDenied(() => components.deleteUserComponentHeader(contextWith([]), 'hero'))
   })
 })

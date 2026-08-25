@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { ComponentEntryActivityRecord } from '$lib/script/activity/types'
+  import type { ComponentHeaderActivityRecord } from '$lib/script/activity/types'
   import CardLink from '$lib/components/CardLink.svelte'
 
   interface Props {
-    record: ComponentEntryActivityRecord
+    record: ComponentHeaderActivityRecord
   }
   const { record }: Props = $props()
 </script>

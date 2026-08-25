@@ -1,5 +1,5 @@
 import type { Diff } from 'deep-diff'
-import type { ComponentEntryReference } from '../componentEntry/component/types'
+import type { ComponentHeaderReference } from '../componentHeader/component/types'
 
 type ComponentReference = string
 type ComponentCommitReference = string
@@ -20,7 +20,7 @@ interface ComponentCreation {
 }
 
 interface ComponentDeletion extends ComponentCreation {
-  uid: ComponentEntryReference
+  uid: ComponentHeaderReference
 }
 
 interface ComponentDefinition {

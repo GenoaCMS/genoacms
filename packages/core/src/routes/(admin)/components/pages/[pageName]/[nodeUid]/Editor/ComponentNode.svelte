@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
-  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
@@ -11,8 +11,8 @@
     onupdate: (uid: string, val: AttributeData<never>['value']) => void
   }
   let { node = $bindable(), onupdate }: Props = $props()
-  const componentEntry: ComponentEntry = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
-  const componentEntryURL = $derived(componentEntry.type === 'dynamic' ? `/components/editor/${componentEntry.uid}` : `/components/prebuilt/${componentEntry.uid}`)
+  const componentHeader: ComponentHeader = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
+  const componentHeaderURL = $derived(componentHeader.type === 'dynamic' ? `/components/editor/${componentHeader.uid}` : `/components/prebuilt/${componentHeader.uid}`)
 </script>
 
 <div>
@@ -27,13 +27,13 @@
       #{node.uid.substring(0, 5)}
     </span>
   <div class="ms-auto">
-    <Button preset="outlined" class="cursor-pointer" href={componentEntryURL} target="_blank">
+    <Button preset="outlined" class="cursor-pointer" href={componentHeaderURL} target="_blank">
       Go to component
     </Button>
   </div>
   </div>
     <div>
-        {#each componentEntry.attributeOrder as attributeUid (attributeUid)}
+        {#each componentHeader.attributeOrder as attributeUid (attributeUid)}
           {@const attribute = node.data[attributeUid]}
           <Attribute {attribute} {onupdate}/>
         {/each}

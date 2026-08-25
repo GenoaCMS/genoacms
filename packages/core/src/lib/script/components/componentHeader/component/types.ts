@@ -1,10 +1,14 @@
 import type {
   AttributeReference,
-  ComponentEntryAttributes
+  ComponentHeaderAttributes
 } from '@genoacms/internal/attributes'
 
 /**
- * A component entry: what the CMS holds about a component.
+ * A component header: what the CMS holds about a component.
+ *
+ * **Header**, because that is what it is: a component's type and the shape of its attributes — what
+ * a consumer must know to *call* the component, and nothing about how the author arrived at it. It
+ * was called an entry, which said only that it was a row in a catalog somewhere.
  *
  * **The attribute vocabulary is no longer defined here.** It moved to `@genoacms/internal`, because
  * three packages need one definition of it: a language adapter emits attributes by reading a
@@ -16,13 +20,13 @@ import type {
  *
  * ## Editing history is no longer part of it
  *
- * The entry used to carry `history` and `future` of its own. They were declared, initialized empty,
+ * The header used to carry `history` and `future` of its own. They were declared, initialized empty,
  * required by the schema, and **never read or written** — the prebuilt editor's undo and redo are
  * still empty server actions. So nothing is lost by moving them out, and two things are gained.
  *
- * An entry now describes a component and nothing else, which is what lets it be **published and
+ * A header now describes a component and nothing else, which is what lets it be **published and
  * signed**: a consumer needs `attributeOrder` to call a component's parameters in the right order,
- * and has no use for how the author arrived at it. Signing an entry that carried its history would
+ * and has no use for how the author arrived at it. Signing a header that carried its history would
  * publish every intermediate state of an author's afternoon, and would change the signature whenever
  * an unrelated edit was undone.
  *
@@ -68,29 +72,29 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   Attribute,
-  ComponentEntryAttributes
+  ComponentHeaderAttributes
 } from '@genoacms/internal/attributes'
 
 /** Whether a component is described to the CMS or authored in it. */
 type ComponentType = 'prebuilt' | 'dynamic'
 
-type ComponentEntryReference = string
+type ComponentHeaderReference = string
 
-interface ComponentEntry {
-  uid: ComponentEntryReference,
+interface ComponentHeader {
+  uid: ComponentHeaderReference,
   type: ComponentType,
   name: string,
-  attributes: ComponentEntryAttributes,
+  attributes: ComponentHeaderAttributes,
   attributeOrder: Array<AttributeReference>
 }
 
-interface ComponentEntryCreation {
+interface ComponentHeaderCreation {
   name: string
 }
 
 export type {
   ComponentType,
-  ComponentEntryReference,
-  ComponentEntry,
-  ComponentEntryCreation
+  ComponentHeaderReference,
+  ComponentHeader,
+  ComponentHeaderCreation
 }

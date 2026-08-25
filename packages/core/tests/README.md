@@ -18,14 +18,14 @@ What is covered today:
 | file | covers |
 | --- | --- |
 | `src/lib/script/schema.test.ts` | `asSchemaObject` / `isNullable`, including that OpenAPI's `nullable` is *not* treated as nullable |
-| `src/lib/script/components/componentEntry/component/attributeInits.test.ts` | every new-attribute init validates against its runtime JSON Schema **after a JSON round-trip** |
+| `src/lib/script/components/componentHeader/component/attributeInits.test.ts` | every new-attribute init validates against its runtime JSON Schema **after a JSON round-trip** |
 | `src/lib/script/components/editor/analyzer.test.ts` | deriving attributes from component source, and uid preservation across re-analysis |
 
 ### Why the round-trip matters
 
 `attributeInits.test.ts` exists because of a real regression. Unset numeric
 constraints must be `null`, never `undefined`: attributes are `JSON.stringify`d
-before being validated against `componentEntrySchema` and stored, and
+before being validated against `componentHeaderSchema` and stored, and
 `JSON.stringify` **drops undefined keys**. Several of those keys are `required`
 in the meta-schemas, so an attribute built with `undefined` silently fails
 validation and the editor reports only "Invalid data".

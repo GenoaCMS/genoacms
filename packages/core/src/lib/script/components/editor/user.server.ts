@@ -33,7 +33,7 @@ import {
  *
  * - `components:dynamic:manage` — a component's **existence**: creating one, and deleting it.
  *   Deleting destroys the source outright, which no amount of `edit` should imply, and creating
- *   also registers an entry in the prebuilt catalog.
+ *   also registers a header in the prebuilt catalog.
  * - `components:dynamic:view_code` — reading a definition. Source is the thing worth restricting
  *   here; the catalog of *names* is `components:prebuilt:read`, which the listing demands.
  * - `components:dynamic:edit` — writing the draft. The editor saves as it is typed, so this is the
@@ -43,7 +43,7 @@ import {
  *   will run.
  *
  * Creating and deleting also touch the prebuilt catalog, but they are **not** additionally gated
- * on `components:prebuilt:register`: a coded component's entry is how the CMS stores it, not a
+ * on `components:prebuilt:register`: a coded component's header is how the CMS stores it, not a
  * separate thing an operator registers, and demanding both would make authoring impossible without
  * a permission whose own description is about plugins and packages.
  */

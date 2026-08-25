@@ -1,4 +1,4 @@
-import type { ComponentEntry, ComponentEntryReference } from './component/types'
+import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 import {
   defaultBucketId,
@@ -14,12 +14,12 @@ import { noHistory } from '$lib/script/undoRedo'
 import { join } from 'path'
 import { validator } from '@exodus/schemasafe'
 import type { Json } from '@exodus/schemasafe'
-import { componentEntrySchema } from './component/schemas'
+import { componentHeaderSchema } from './component/schemas'
 
 /**
  * Where a prebuilt component is stored, and why it is two objects rather than one.
  *
- * An entry used to be a single flatted object carrying its own editing history. It is now split, so
+ * A header used to be a single flatted object carrying its own editing history. It is now split, so
  * that each of the two is stored in the form its readers need:
  *
  * - **`{uid}.json`** — the description. Plain JSON, because this is what gets published and signed
@@ -39,14 +39,14 @@ import { componentEntrySchema } from './component/schemas'
  */
 
 const prebuiltSchemaPath = join('.genoacms', 'components', 'prebuilt/')
-const validateComponentEntry = validator(componentEntrySchema, { includeErrors: true })
+const validateComponentHeader = validator(componentHeaderSchema, { includeErrors: true })
 
 const HISTORY_SUFFIX = '.history'
 
-const entryPath = (reference: ComponentEntryReference): string =>
+const entryPath = (reference: ComponentHeaderReference): string =>
   join(prebuiltSchemaPath, `${reference}.json`)
 
-const historyPath = (reference: ComponentEntryReference): string =>
+const historyPath = (reference: ComponentHeaderReference): string =>
   join(prebuiltSchemaPath, `${reference}${HISTORY_SUFFIX}`)
 
 /**
@@ -73,26 +73,26 @@ const toleratingAbsence = async <T>(operation: Promise<T>): Promise<T | undefine
 }
 
 /**
- * The reference a stored file belongs to, or `undefined` if it is not an entry.
+ * The reference a stored file belongs to, or `undefined` if it is not a header.
  *
  * The directory holds two files per component, so listing it and treating every filename as a
  * reference would report each component twice — once as itself and once as its own history.
  */
-const referenceOf = (filename: string): ComponentEntryReference | undefined => {
+const referenceOf = (filename: string): ComponentHeaderReference | undefined => {
   if (filename.endsWith(HISTORY_SUFFIX)) return undefined
   return filename.endsWith('.json') ? filename.slice(0, -'.json'.length) : filename
 }
 
-const listOrCreateComponentEntryList = async (): Promise<Array<ComponentEntry>> => {
+const listOrCreateComponentHeaderList = async (): Promise<Array<ComponentHeader>> => {
   const componentList = await listOrCreateDirectory({
     bucket: defaultBucketId,
     name: prebuiltSchemaPath
   })
   const references = componentList.files
     .map(component => referenceOf(fullyQualifiedNameToFilename(component.name)))
-    .filter((reference): reference is ComponentEntryReference => reference !== undefined)
-  const componentSchemas = await Promise.all(references.map(getComponentEntry))
-  return componentSchemas.filter(schema => schema !== null) as Array<ComponentEntry>
+    .filter((reference): reference is ComponentHeaderReference => reference !== undefined)
+  const componentSchemas = await Promise.all(references.map(getComponentHeader))
+  return componentSchemas.filter(schema => schema !== null) as Array<ComponentHeader>
 }
 
 /**
@@ -102,7 +102,7 @@ const listOrCreateComponentEntryList = async (): Promise<Array<ComponentEntry>> 
  * attribute-order repair below is: it should stop happening, and once no component triggers it the
  * branch can go.
  */
-const readEntry = async (reference: ComponentEntryReference): Promise<Record<string, unknown> | undefined> => {
+const readEntry = async (reference: ComponentHeaderReference): Promise<Record<string, unknown> | undefined> => {
   const stored = await toleratingAbsence(getInternalObjectJSON(entryPath(reference))) as Record<string, unknown> | undefined
   if (stored !== undefined && stored !== null) return stored
 
@@ -112,54 +112,54 @@ const readEntry = async (reference: ComponentEntryReference): Promise<Record<str
   console.warn(`[genoacms:components] ${reference} is stored in the old single-object form; reading its description out of it`)
   // The old object carried its history inline. Dropped rather than migrated: it was never read or
   // written by anything, so there is no history in it to preserve. Removed rather than ignored,
-  // because the schema refuses an entry carrying them.
+  // because the schema refuses a header carrying them.
   delete legacy.history
   delete legacy.future
   return legacy
 }
 
-const getComponentEntry = async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
+const getComponentHeader = async (reference: ComponentHeaderReference): Promise<ComponentHeader | null> => {
   const stored = await readEntry(reference)
   if (stored === undefined) return null
 
-  // Repairs entries written before `attributeOrder` existed, which are otherwise refused by the
+  // Repairs headers written before `attributeOrder` existed, which are otherwise refused by the
   // schema that now requires it. Both writers supply it, so this fires only for those older
-  // entries — and being able to say that is why it is a stated repair rather than a default.
+  // headers — and being able to say that is why it is a stated repair rather than a default.
   if (stored.attributeOrder === undefined) {
     // Logged, not silent. This is a migration, and the point of saying so is that it should stop
-    // happening: once no entry triggers it, the branch can go.
+    // happening: once no header triggers it, the branch can go.
     console.warn(`[genoacms:components] ${reference} was stored without an attribute order; deriving one from its attributes`)
     stored.attributeOrder = Object.keys(stored.attributes ?? {})
   }
 
-  if (!validateComponentEntry(stored as unknown as Json)) {
+  if (!validateComponentHeader(stored as unknown as Json)) {
     return null
   }
-  return stored as unknown as ComponentEntry
+  return stored as unknown as ComponentHeader
 }
 
 /** A component's editing history. Absent is empty, not an error: nothing has been undone yet. */
-const getComponentEntryHistory = async (
-  reference: ComponentEntryReference
-): Promise<UndoRedoAdjunct<ComponentEntry>> => {
+const getComponentHeaderHistory = async (
+  reference: ComponentHeaderReference
+): Promise<UndoRedoAdjunct<ComponentHeader>> => {
   const stored = await toleratingAbsence(getInternalObjectFlatted(historyPath(reference))) as
-    Partial<UndoRedoAdjunct<ComponentEntry>> | undefined | null
-  if (stored === undefined || stored === null) return noHistory<ComponentEntry>()
+    Partial<UndoRedoAdjunct<ComponentHeader>> | undefined | null
+  if (stored === undefined || stored === null) return noHistory<ComponentHeader>()
   if (!Array.isArray(stored.history) || !Array.isArray(stored.future)) {
     // A history that cannot be read is not worth failing an edit over — the description is intact,
     // and the worst outcome is that the author cannot undo past this point.
     console.warn(`[genoacms:components] ${reference} has an unreadable editing history; starting a new one`)
-    return noHistory<ComponentEntry>()
+    return noHistory<ComponentHeader>()
   }
   return { history: stored.history, future: stored.future }
 }
 
-const uploadComponentEntry = async (entry: ComponentEntry) =>
+const uploadComponentHeader = async (entry: ComponentHeader) =>
   await uploadInternalObjectJSON(entryPath(entry.uid), entry)
 
-const uploadComponentEntryHistory = async (
-  reference: ComponentEntryReference,
-  adjunct: UndoRedoAdjunct<ComponentEntry>
+const uploadComponentHeaderHistory = async (
+  reference: ComponentHeaderReference,
+  adjunct: UndoRedoAdjunct<ComponentHeader>
 ) => await uploadInternalObjectFlatted(historyPath(reference), adjunct)
 
 /**
@@ -174,17 +174,17 @@ const uploadComponentEntryHistory = async (
  * The history is removed too. One outliving its component is unreachable state in the bucket, and
  * would be adopted by the next component to be given the same identifier.
  */
-const deleteComponentEntry = async (reference: ComponentEntryReference) => {
+const deleteComponentHeader = async (reference: ComponentHeaderReference) => {
   await toleratingAbsence(deleteInternalObject(entryPath(reference)))
   await toleratingAbsence(deleteInternalObject(historyPath(reference)))
   await toleratingAbsence(deleteInternalObject(join(prebuiltSchemaPath, reference)))
 }
 
 export {
-  listOrCreateComponentEntryList,
-  getComponentEntry,
-  getComponentEntryHistory,
-  uploadComponentEntry,
-  uploadComponentEntryHistory,
-  deleteComponentEntry
+  listOrCreateComponentHeaderList,
+  getComponentHeader,
+  getComponentHeaderHistory,
+  uploadComponentHeader,
+  uploadComponentHeaderHistory,
+  deleteComponentHeader
 }

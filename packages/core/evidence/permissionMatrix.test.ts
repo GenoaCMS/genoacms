@@ -82,17 +82,17 @@ vi.mock('$lib/script/components/editor', () => ({
   deleteComponent: async () => {}
 }))
 
-vi.mock('$lib/script/components/componentEntry/io.server', () => ({
-  listOrCreateComponentEntryList: async () => [],
+vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+  listOrCreateComponentHeaderList: async () => [],
   // A prebuilt entry, because the prebuilt service refuses a reference that names anything else —
   // and this file is testing the permission gate, not that refusal.
-  getComponentEntry: async () => ({
+  getComponentHeader: async () => ({
     uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: []
   }),
-  uploadComponentEntry: async () => {},
-  deleteComponentEntry: async () => {},
-  getComponentEntryHistory: async () => ({ history: [], future: [] }),
-  uploadComponentEntryHistory: async () => {}
+  uploadComponentHeader: async () => {},
+  deleteComponentHeader: async () => {},
+  getComponentHeaderHistory: async () => ({ history: [], future: [] }),
+  uploadComponentHeaderHistory: async () => {}
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
@@ -160,7 +160,7 @@ const { PermissionDeniedError } = await import('$lib/script/authorization/enforc
 
 const storage = await import('$lib/script/storage/user.server')
 const database = await import('$lib/script/database/user.server')
-const components = await import('$lib/script/components/componentEntry/user.server')
+const components = await import('$lib/script/components/componentHeader/user.server')
 const editor = await import('$lib/script/components/editor/user.server')
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
@@ -175,7 +175,7 @@ const directoryRef = { bucket: BUCKET, name: 'folder/' }
 const collectionRef = { name: COLLECTION, schema: {} } as never
 const documentRef = { collection: { name: COLLECTION }, id: 'doc-1' } as never
 const pageEntry = { name: 'home' } as never
-const componentEntry = { uid: 'hero' } as never
+const componentHeader = { uid: 'hero' } as never
 const accountRecord = { subject: 's-1', email: 's-1@example.com', roles: [] }
 const roleRecord = { name: 'Editor', grants: [] }
 
@@ -222,12 +222,12 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
 
   // prebuilt components
   listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
-  getUserComponentEntry: ctx => components.getUserComponentEntry(ctx, 'hero'),
-  updateUserComponentEntry: ctx => components.updateUserComponentEntry(ctx, componentEntry),
-  getUserComponentEntryDepth: ctx => components.getUserComponentEntryDepth(ctx, 'hero'),
-  undoUserComponentEntry: ctx => components.undoUserComponentEntry(ctx, 'hero'),
-  redoUserComponentEntry: ctx => components.redoUserComponentEntry(ctx, 'hero'),
-  deleteUserComponentEntry: ctx => components.deleteUserComponentEntry(ctx, 'hero'),
+  getUserComponentHeader: ctx => components.getUserComponentHeader(ctx, 'hero'),
+  updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader),
+  getUserComponentHeaderDepth: ctx => components.getUserComponentHeaderDepth(ctx, 'hero'),
+  undoUserComponentHeader: ctx => components.undoUserComponentHeader(ctx, 'hero'),
+  redoUserComponentHeader: ctx => components.redoUserComponentHeader(ctx, 'hero'),
+  deleteUserComponentHeader: ctx => components.deleteUserComponentHeader(ctx, 'hero'),
 
   // pages
   listUserPages: ctx => pagesService.listUserPages(ctx),

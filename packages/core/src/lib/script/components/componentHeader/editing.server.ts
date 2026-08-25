@@ -1,11 +1,11 @@
 import {
-  getComponentEntry,
-  getComponentEntryHistory,
-  uploadComponentEntry,
-  uploadComponentEntryHistory
+  getComponentHeader,
+  getComponentHeaderHistory,
+  uploadComponentHeader,
+  uploadComponentHeaderHistory
 } from './io.server'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
-import type { ComponentEntry, ComponentEntryReference } from './component/types'
+import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 
 /**
@@ -30,13 +30,13 @@ interface HistoryDepth {
   futureLength: number
 }
 
-const depthOf = (adjunct: UndoRedoAdjunct<ComponentEntry>): HistoryDepth => ({
+const depthOf = (adjunct: UndoRedoAdjunct<ComponentHeader>): HistoryDepth => ({
   historyLength: adjunct.history.length,
   futureLength: adjunct.future.length
 })
 
-const getComponentEntryDepth = async (reference: ComponentEntryReference): Promise<HistoryDepth> =>
-  depthOf(await getComponentEntryHistory(reference))
+const getComponentHeaderDepth = async (reference: ComponentHeaderReference): Promise<HistoryDepth> =>
+  depthOf(await getComponentHeaderHistory(reference))
 
 /**
  * Saves an edited description and records the step that produced it.
@@ -53,15 +53,15 @@ const getComponentEntryDepth = async (reference: ComponentEntryReference): Promi
  * with, and an author who has just made a change is told there is nothing to undo until they
  * reload.
  */
-const saveComponentEntry = async (entry: ComponentEntry): Promise<HistoryDepth> => {
-  const previous = await getComponentEntry(entry.uid)
-  const adjunct = await getComponentEntryHistory(entry.uid)
+const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth> => {
+  const previous = await getComponentHeader(entry.uid)
+  const adjunct = await getComponentHeaderHistory(entry.uid)
 
-  await uploadComponentEntry(entry)
+  await uploadComponentHeader(entry)
   if (previous === null) return depthOf(adjunct)
 
   const recorded = recordChange(entry, adjunct, previous)
-  await uploadComponentEntryHistory(entry.uid, recorded)
+  await uploadComponentHeaderHistory(entry.uid, recorded)
   return depthOf(recorded)
 }
 
@@ -73,28 +73,28 @@ const saveComponentEntry = async (entry: ComponentEntry): Promise<HistoryDepth> 
  * returns the history that results.
  */
 const step = (move: typeof undo) =>
-  async (reference: ComponentEntryReference): Promise<ComponentEntry | null> => {
-    const entry = await getComponentEntry(reference)
+  async (reference: ComponentHeaderReference): Promise<ComponentHeader | null> => {
+    const entry = await getComponentHeader(reference)
     if (entry === null) return null
 
-    const adjunct = await getComponentEntryHistory(reference)
+    const adjunct = await getComponentHeaderHistory(reference)
     const stepped = move(entry, adjunct)
     // Nothing to move through. Returned unchanged rather than written back, so that pressing undo
     // at the beginning of a history does not rewrite storage with what is already there.
     if (stepped === adjunct) return entry
 
-    await uploadComponentEntry(entry)
-    await uploadComponentEntryHistory(reference, stepped)
+    await uploadComponentHeader(entry)
+    await uploadComponentHeaderHistory(reference, stepped)
     return entry
   }
 
-const undoComponentEntry = step(undo)
-const redoComponentEntry = step(redo)
+const undoComponentHeader = step(undo)
+const redoComponentHeader = step(redo)
 
 export {
-  saveComponentEntry,
-  undoComponentEntry,
-  redoComponentEntry,
-  getComponentEntryDepth
+  saveComponentHeader,
+  undoComponentHeader,
+  redoComponentHeader,
+  getComponentHeaderDepth
 }
 export type { HistoryDepth }

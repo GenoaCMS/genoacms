@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ComponentsAttributeMetaSchema } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentsAttributeMetaSchema } from '$lib/script/components/componentHeader/component/types'
   import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
   import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
   import { Label } from '$lib/components/ui/index'

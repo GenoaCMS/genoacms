@@ -1,7 +1,7 @@
 <script lang="ts">
     import TopPanel from '$lib/components/TopPanel.svelte'
-    import CreateComponentSchema from './CreateComponentEntry.svelte'
-    import ComponentEntry from './ComponentEntry.svelte'
+    import CreateComponentSchema from './CreateComponentHeader.svelte'
+    import ComponentHeader from './ComponentHeader.svelte'
     import Grid from '$lib/components/Grid.svelte'
     import PermissionGate from '$lib/components/PermissionGate.svelte'
     import SelectableCard from '$lib/components/selection/SelectableCard.svelte'
@@ -36,7 +36,7 @@
 <Grid>
     {#each data.componentEntries as entry (entry.uid)}
         <SelectableCard {selection} entry={{ id: entry.uid, name: entry.name }}>
-            <ComponentEntry {entry} />
+            <ComponentHeader {entry} />
         </SelectableCard>
     {/each}
 </Grid>

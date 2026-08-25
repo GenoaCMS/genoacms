@@ -1,11 +1,11 @@
 import type {
   Attribute,
   AttributeType,
-  ComponentEntry,
+  ComponentHeader,
   ComponentsAttributeType,
-  ComponentEntryReference
-} from '$lib/script/components/componentEntry/component/types'
-import { getComponentEntry } from '$lib/script/components/componentEntry/io.server'
+  ComponentHeaderReference
+} from '$lib/script/components/componentHeader/component/types'
+import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
 import type {
   AttributeData,
   AttributeReference,
@@ -18,7 +18,7 @@ import type {
 } from './types'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
-import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
+import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
 import { duplicateObject } from '$lib/script/utils'
 
 const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
@@ -52,7 +52,7 @@ const generateAttributeData = async (attribute: Attribute): Promise<AttributeDat
   }
 }
 
-const componentSchemaToNode = async (entry: ComponentEntry): Promise<ComponentNode> => {
+const componentSchemaToNode = async (entry: ComponentHeader): Promise<ComponentNode> => {
   const dataPromises: Array<Promise<AttributeData>> = []
   const data: Record<AttributeReference, AttributeData> = {}
   for (const attribute of Object.values(entry.attributes)) {
@@ -71,9 +71,9 @@ const componentSchemaToNode = async (entry: ComponentEntry): Promise<ComponentNo
 
 const createPageEntry = async (values: {
   name: string,
-  componentUID: ComponentEntryReference
+  componentUID: ComponentHeaderReference
 }): Promise<PageEntry> => {
-  const component = await getComponentEntry(values.componentUID)
+  const component = await getComponentHeader(values.componentUID)
   if (!component) throw new Error('no-component')
   const componentNode = await componentSchemaToNode(component)
 
@@ -205,10 +205,10 @@ const deserializeAttributeData = async (
 }
 
 const deserializeComponentNodeData = async (nodeData: ComponentNodeData<IsSerializable>,
-  componentEntry: ComponentEntry): Promise<ComponentNodeData> => {
+  componentHeader: ComponentHeader): Promise<ComponentNodeData> => {
   const deserializedDataPromises: Array<Promise<AttributeData>> = []
   const deserializedData: ComponentNodeData = {}
-  for (const [uid, attribute] of Object.entries(componentEntry.attributes)) {
+  for (const [uid, attribute] of Object.entries(componentHeader.attributes)) {
     deserializedDataPromises.push(deserializeAttributeData(nodeData[uid], attribute))
   }
   for (const attributeData of await Promise.all(deserializedDataPromises)) {
@@ -218,13 +218,13 @@ const deserializeComponentNodeData = async (nodeData: ComponentNodeData<IsSerial
 }
 
 const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Promise<ComponentNode> => {
-  const componentEntry = await getComponentEntry(node.entryReference)
-  if (!componentEntry) throw new Error('no-component')
+  const componentHeader = await getComponentHeader(node.entryReference)
+  if (!componentHeader) throw new Error('no-component')
 
   return {
     ...node,
-    name: componentEntry.name,
-    data: await deserializeComponentNodeData(node.data, componentEntry)
+    name: componentHeader.name,
+    data: await deserializeComponentNodeData(node.data, componentHeader)
   }
 }
 

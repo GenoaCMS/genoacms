@@ -1,6 +1,6 @@
 <script lang="ts" generics="Schema extends object">
   import { Input } from '$lib/components/ui/index'
-  import { setConstraint } from '$lib/script/components/componentEntry/component/constraints'
+  import { setConstraint } from '$lib/script/components/componentHeader/component/constraints'
 
   /**
    * A meta-schema constraint whose empty state is an **absent key**.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { ComponentEntry } from './component/types'
+import type { ComponentHeader } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 
 /**
@@ -20,30 +20,30 @@ import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
  * Only storage is stood in for.
  */
 
-const entries = new Map<string, ComponentEntry>()
-const histories = new Map<string, UndoRedoAdjunct<ComponentEntry>>()
+const entries = new Map<string, ComponentHeader>()
+const histories = new Map<string, UndoRedoAdjunct<ComponentHeader>>()
 
 vi.mock('./io.server', () => ({
-  getComponentEntry: async (reference: string) =>
+  getComponentHeader: async (reference: string) =>
     structuredClone(entries.get(reference)) ?? null,
-  getComponentEntryHistory: async (reference: string) =>
+  getComponentHeaderHistory: async (reference: string) =>
     structuredClone(histories.get(reference)) ?? { history: [], future: [] },
-  uploadComponentEntry: async (entry: ComponentEntry) => {
+  uploadComponentHeader: async (entry: ComponentHeader) => {
     entries.set(entry.uid, structuredClone(entry))
   },
-  uploadComponentEntryHistory: async (reference: string, adjunct: UndoRedoAdjunct<ComponentEntry>) => {
+  uploadComponentHeaderHistory: async (reference: string, adjunct: UndoRedoAdjunct<ComponentHeader>) => {
     histories.set(reference, structuredClone(adjunct))
   }
 }))
 
 const {
-  saveComponentEntry,
-  undoComponentEntry,
-  redoComponentEntry,
-  getComponentEntryDepth
+  saveComponentHeader,
+  undoComponentHeader,
+  redoComponentHeader,
+  getComponentHeaderDepth
 } = await import('./editing.server')
 
-const entry = (over: Partial<ComponentEntry> = {}): ComponentEntry => ({
+const entry = (over: Partial<ComponentHeader> = {}): ComponentHeader => ({
   uid: 'c1',
   type: 'prebuilt',
   name: 'Card',
@@ -53,7 +53,7 @@ const entry = (over: Partial<ComponentEntry> = {}): ComponentEntry => ({
 })
 
 /** Puts a component in storage as though it had been created, with no history yet. */
-const existing = async () => { await saveComponentEntry(entry()) }
+const existing = async () => { await saveComponentHeader(entry()) }
 
 beforeEach(() => {
   entries.clear()
@@ -63,31 +63,31 @@ beforeEach(() => {
 describe('recording what an author did', () => {
   it('records a step when an existing component is changed', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Renamed' }))
+    await saveComponentHeader(entry({ name: 'Renamed' }))
 
-    expect((await getComponentEntryDepth('c1')).historyLength).toBe(1)
+    expect((await getComponentHeaderDepth('c1')).historyLength).toBe(1)
   })
 
   it('records nothing for the first save, which has no previous state', async () => {
     // Creation is not something undo reverses, and there is nothing to diff it against.
     await existing()
 
-    expect((await getComponentEntryDepth('c1')).historyLength).toBe(0)
+    expect((await getComponentHeaderDepth('c1')).historyLength).toBe(0)
   })
 
   it('records nothing when a save changed nothing', async () => {
     await existing()
-    await saveComponentEntry(entry())
+    await saveComponentHeader(entry())
 
-    expect((await getComponentEntryDepth('c1')).historyLength).toBe(0)
+    expect((await getComponentHeaderDepth('c1')).historyLength).toBe(0)
   })
 
   it('diffs against storage rather than against whatever the caller supplied', async () => {
     // The recorded step is what an undo replays. A client that reported its own "before" could
     // report anything, and the history would then revert to a state that never existed.
     await existing()
-    await saveComponentEntry(entry({ name: 'Renamed' }))
-    await undoComponentEntry('c1')
+    await saveComponentHeader(entry({ name: 'Renamed' }))
+    await undoComponentHeader('c1')
 
     expect(entries.get('c1')?.name).toBe('Card')
   })
@@ -96,49 +96,49 @@ describe('recording what an author did', () => {
 describe('stepping back and forward', () => {
   it('restores the previous state', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Renamed' }))
+    await saveComponentHeader(entry({ name: 'Renamed' }))
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
 
     expect(entries.get('c1')?.name).toBe('Card')
   })
 
   it('puts the change back', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Renamed' }))
+    await saveComponentHeader(entry({ name: 'Renamed' }))
 
-    await undoComponentEntry('c1')
-    await redoComponentEntry('c1')
+    await undoComponentHeader('c1')
+    await redoComponentHeader('c1')
 
     expect(entries.get('c1')?.name).toBe('Renamed')
   })
 
   it('moves the step from history to future, so the buttons follow', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Renamed' }))
+    await saveComponentHeader(entry({ name: 'Renamed' }))
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
 
-    expect(await getComponentEntryDepth('c1')).toEqual({ historyLength: 0, futureLength: 1 })
+    expect(await getComponentHeaderDepth('c1')).toEqual({ historyLength: 0, futureLength: 1 })
   })
 
   it('walks back through several edits in the order they were made', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Second' }))
-    await saveComponentEntry(entry({ name: 'Third' }))
+    await saveComponentHeader(entry({ name: 'Second' }))
+    await saveComponentHeader(entry({ name: 'Third' }))
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
     expect(entries.get('c1')?.name).toBe('Second')
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
     expect(entries.get('c1')?.name).toBe('Card')
   })
 
   it('restores an attribute that was added, not only a renamed field', async () => {
     await existing()
-    await saveComponentEntry(entry({ attributeOrder: ['a1'] }))
+    await saveComponentHeader(entry({ attributeOrder: ['a1'] }))
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
 
     expect(entries.get('c1')?.attributeOrder).toEqual([])
   })
@@ -146,23 +146,23 @@ describe('stepping back and forward', () => {
   it('does nothing at the beginning of a history', async () => {
     await existing()
 
-    await undoComponentEntry('c1')
+    await undoComponentHeader('c1')
 
     expect(entries.get('c1')?.name).toBe('Card')
-    expect(await getComponentEntryDepth('c1')).toEqual({ historyLength: 0, futureLength: 0 })
+    expect(await getComponentHeaderDepth('c1')).toEqual({ historyLength: 0, futureLength: 0 })
   })
 
   it('reports a component that does not exist rather than failing', async () => {
-    expect(await undoComponentEntry('missing')).toBeNull()
+    expect(await undoComponentHeader('missing')).toBeNull()
   })
 
   it('drops the redo branch once the author edits from an undone state', async () => {
     await existing()
-    await saveComponentEntry(entry({ name: 'Second' }))
-    await undoComponentEntry('c1')
+    await saveComponentHeader(entry({ name: 'Second' }))
+    await undoComponentHeader('c1')
 
-    await saveComponentEntry(entry({ name: 'Elsewhere' }))
+    await saveComponentHeader(entry({ name: 'Elsewhere' }))
 
-    expect((await getComponentEntryDepth('c1')).futureLength).toBe(0)
+    expect((await getComponentHeaderDepth('c1')).futureLength).toBe(0)
   })
 })

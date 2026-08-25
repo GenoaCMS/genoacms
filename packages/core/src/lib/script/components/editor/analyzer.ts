@@ -1,15 +1,15 @@
-import type { ComponentEntry, ComponentEntryAttributes } from '../componentEntry/component/types'
+import type { ComponentHeader, ComponentHeaderAttributes } from '../componentHeader/component/types'
 import type { AnalysisResult } from '@genoacms/internal/languageAdapter'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { raiseFatal } from './diagnostics'
 
 /**
- * Turning a component's source into the entry the CMS stores.
+ * Turning a component's source into the header the CMS stores.
  *
  * **Reading the source is not done here.** That is language-specific work and lives in a language
  * adapter, which reports the attributes it derived and any diagnostics. What stays here is the part
  * that belongs to the CMS and that no adapter should be able to reach: merging those attributes into
- * the entry already stored, and preserving each attribute's identity while doing so.
+ * the header already stored, and preserving each attribute's identity while doing so.
  *
  * The adapter is chosen by the language the component records, so one instance can hold components
  * written in more than one language.
@@ -20,7 +20,7 @@ async function analyzeSource (
   language: string,
   functionName: string,
   code: string
-): Promise<ComponentEntryAttributes> {
+): Promise<ComponentHeaderAttributes> {
   const adapter = await getLanguageAdapter(language)
   const result = await adapter.analyze({ source: code, entryFunction: functionName }) as AnalysisResult
   raiseFatal(result.diagnostics)
@@ -39,20 +39,20 @@ async function analyzeSource (
  *
  * Keying the result by name is what this used to do, which left dynamic components keyed by name
  * while components built in the editor were keyed by uid — one field with two meanings depending on
- * how the component was authored, in a record whose type says uid. Anything reading an entry without
+ * how the component was authored, in a record whose type says uid. Anything reading a header without
  * knowing which path produced it was already wrong; it merely had no way to notice.
  *
  * Attributes whose parameter was removed are dropped, which is what makes deleting a parameter take
  * effect.
  */
 function mergeAttributes (
-  originalAttributes: ComponentEntryAttributes,
-  derivedAttributes: ComponentEntryAttributes
-): ComponentEntryAttributes {
+  originalAttributes: ComponentHeaderAttributes,
+  derivedAttributes: ComponentHeaderAttributes
+): ComponentHeaderAttributes {
   const storedByName = new Map(
     Object.values(originalAttributes).map(attribute => [attribute.name, attribute])
   )
-  const mergedAttributes: ComponentEntryAttributes = {}
+  const mergedAttributes: ComponentHeaderAttributes = {}
   for (const attribute of Object.values(derivedAttributes)) {
     const uid = storedByName.get(attribute.name)?.uid ?? attribute.uid
     mergedAttributes[uid] = { ...attribute, uid }
@@ -68,18 +68,18 @@ function mergeAttributes (
  * hand and stored, but here the code is the record — so re-analyzing restates it rather than
  * preserving a previous arrangement that the source may have just changed.
  */
-async function componentCodeToEntry (
+async function componentCodeToHeader (
   language: string,
   functionName: string,
   code: string,
-  componentEntry: ComponentEntry
-): Promise<ComponentEntry> {
+  componentHeader: ComponentHeader
+): Promise<ComponentHeader> {
   const attributes = await analyzeSource(language, functionName, code)
-  componentEntry.attributes = mergeAttributes(componentEntry.attributes, attributes)
-  componentEntry.attributeOrder = Object.keys(componentEntry.attributes)
-  return componentEntry
+  componentHeader.attributes = mergeAttributes(componentHeader.attributes, attributes)
+  componentHeader.attributeOrder = Object.keys(componentHeader.attributes)
+  return componentHeader
 }
 
 export {
-  componentCodeToEntry
+  componentCodeToHeader
 }

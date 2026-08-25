@@ -49,7 +49,7 @@ interface AttributeBase {
   // stable identity, preserved across re-analysis so page relations survive
   uid: AttributeReference
   // derived from the component function's parameter name, and the key under
-  // which the attribute is stored in ComponentEntryAttributes
+  // which the attribute is stored in ComponentHeaderAttributes
   name: string
 }
 
@@ -250,7 +250,7 @@ type Attribute =
   | ComponentsAttribute
 
 /** Attributes keyed by their stable uid, which is how a page node refers to one. */
-type ComponentEntryAttributes = Record<AttributeReference, Attribute>
+type ComponentHeaderAttributes = Record<AttributeReference, Attribute>
 
 export type {
   AttributeReference,
@@ -287,5 +287,5 @@ export type {
   StorageResourceAttribute,
   ComponentsAttribute,
   Attribute,
-  ComponentEntryAttributes
+  ComponentHeaderAttributes
 }

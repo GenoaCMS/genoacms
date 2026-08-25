@@ -1,11 +1,11 @@
 import type { PageServerLoad } from '../$types'
 import {
-  deleteUserComponentEntry,
-  getUserComponentEntry,
-  getUserComponentEntryDepth,
-  undoUserComponentEntry,
-  redoUserComponentEntry
-} from '$lib/script/components/componentEntry/user.server'
+  deleteUserComponentHeader,
+  getUserComponentHeader,
+  getUserComponentHeaderDepth,
+  undoUserComponentHeader,
+  redoUserComponentHeader
+} from '$lib/script/components/componentHeader/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
@@ -13,16 +13,16 @@ import { isString } from '$lib/script/utils'
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { componentId } = params
   const ctx = requireAuthContext(locals)
-  const componentEntry = await getUserComponentEntry(ctx, componentId)
-  if (!componentEntry) error(404, 'No component entry')
+  const componentHeader = await getUserComponentHeader(ctx, componentId)
+  if (!componentHeader) error(404, 'No component entry')
 
   // How deep the history runs is what enables or disables the buttons. Without it they render
   // permanently disabled, which is how undo appeared to exist without working.
-  const depth = await getUserComponentEntryDepth(ctx, componentId)
+  const depth = await getUserComponentHeaderDepth(ctx, componentId)
 
   return {
     id: componentId,
-    componentEntry,
+    componentHeader,
     ...depth
   }
 }
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
  * works either way. That is the point of the form being a form.
  */
 const stepThroughHistory = (
-  move: typeof undoUserComponentEntry
+  move: typeof undoUserComponentHeader
 ) => async ({ params, locals }: RequestEvent) => {
   const ctx = requireAuthContext(locals)
   const { componentId } = params
@@ -49,13 +49,13 @@ const stepThroughHistory = (
 }
 
 export const actions = {
-  undo: stepThroughHistory(undoUserComponentEntry),
-  redo: stepThroughHistory(redoUserComponentEntry),
+  undo: stepThroughHistory(undoUserComponentHeader),
+  redo: stepThroughHistory(redoUserComponentHeader),
   delete: async ({ params, locals }) => {
     const ctx = requireAuthContext(locals)
     const { componentId } = params
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
-    await deleteUserComponentEntry(ctx, componentId)
+    await deleteUserComponentHeader(ctx, componentId)
     return redirect(307, '.')
   }
 } satisfies Actions

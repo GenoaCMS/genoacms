@@ -2,8 +2,8 @@
   import type {
     AttributeReference,
     Attribute as AttributeT,
-    ComponentEntry,
-  } from '$lib/script/components/componentEntry/component/types'
+    ComponentHeader,
+  } from '$lib/script/components/componentHeader/component/types'
   import { activityTracker } from '$lib/script/activity/client'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import ChangeName from './ChangeName.svelte'
@@ -29,7 +29,7 @@
    */
   interface Props {
     id: string
-    entry: ComponentEntry
+    entry: ComponentHeader
     historyLength: number
     futureLength: number
   }
@@ -71,7 +71,7 @@
     form.attributeOrder = newOrder
   }
   activityTracker.add({
-    type: 'componentEntry',
+    type: 'componentHeader',
     timestamp: Date.now(),
     componentId: id,
     componentName: form.name,

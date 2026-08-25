@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { stringify as stringifyFlatted, parse as parseFlatted } from 'flatted'
-import type { ComponentEntry } from './component/types'
+import type { ComponentHeader } from './component/types'
 
 /**
  * Storing a prebuilt component as two objects.
@@ -48,17 +48,17 @@ vi.mock('$lib/script/storage/storage.server', () => ({
 }))
 
 const {
-  getComponentEntry,
-  getComponentEntryHistory,
-  uploadComponentEntry,
-  uploadComponentEntryHistory,
-  deleteComponentEntry,
-  listOrCreateComponentEntryList
+  getComponentHeader,
+  getComponentHeaderHistory,
+  uploadComponentHeader,
+  uploadComponentHeaderHistory,
+  deleteComponentHeader,
+  listOrCreateComponentHeaderList
 } = await import('./io.server')
 
 const PREFIX = '.genoacms/components/prebuilt'
 
-const entry = (uid: string): ComponentEntry => ({
+const entry = (uid: string): ComponentHeader => ({
   uid,
   type: 'prebuilt',
   name: 'Card',
@@ -71,19 +71,19 @@ beforeEach(() => { objects.clear() })
 describe('storing the description', () => {
   it('writes it as plain JSON, which is what makes it publishable', async () => {
     // A format only this CMS can read would make the published header unverifiable outside it.
-    await uploadComponentEntry(entry('c1'))
+    await uploadComponentHeader(entry('c1'))
 
     expect(JSON.parse(objects.get(`${PREFIX}/c1.json`) as string)).toMatchObject({ uid: 'c1' })
   })
 
   it('reads back what was written', async () => {
-    await uploadComponentEntry(entry('c1'))
+    await uploadComponentHeader(entry('c1'))
 
-    expect(await getComponentEntry('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
+    expect(await getComponentHeader('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
   })
 
   it('reports a component that was never stored as absent', async () => {
-    expect(await getComponentEntry('missing')).toBeNull()
+    expect(await getComponentHeader('missing')).toBeNull()
   })
 })
 
@@ -91,14 +91,14 @@ describe('storing the history beside it', () => {
   it('keeps the history out of the description', async () => {
     // The whole point of the split: an entry that carried its history would publish every
     // intermediate state of an author's afternoon.
-    await uploadComponentEntry(entry('c1'))
-    await uploadComponentEntryHistory('c1', { history: [[]], future: [] })
+    await uploadComponentHeader(entry('c1'))
+    await uploadComponentHeaderHistory('c1', { history: [[]], future: [] })
 
     expect(objects.get(`${PREFIX}/c1.json`)).not.toContain('history')
   })
 
   it('reads an absent history as an empty one rather than failing', async () => {
-    expect(await getComponentEntryHistory('c1')).toEqual({ history: [], future: [] })
+    expect(await getComponentHeaderHistory('c1')).toEqual({ history: [], future: [] })
   })
 
   it('starts a new history rather than failing on an unreadable one', async () => {
@@ -106,7 +106,7 @@ describe('storing the history beside it', () => {
     // past this point — which is not worth refusing the edit over.
     objects.set(`${PREFIX}/c1.history`, stringifyFlatted({ history: 'not an array' }))
 
-    expect(await getComponentEntryHistory('c1')).toEqual({ history: [], future: [] })
+    expect(await getComponentHeaderHistory('c1')).toEqual({ history: [], future: [] })
   })
 })
 
@@ -114,12 +114,12 @@ describe('listing components', () => {
   it('lists one component per component, not one per stored file', async () => {
     // The directory now holds two files each. Treating every filename as a reference would report
     // every component twice — once as itself, once as its own history.
-    await uploadComponentEntry(entry('c1'))
-    await uploadComponentEntryHistory('c1', { history: [], future: [] })
-    await uploadComponentEntry(entry('c2'))
-    await uploadComponentEntryHistory('c2', { history: [], future: [] })
+    await uploadComponentHeader(entry('c1'))
+    await uploadComponentHeaderHistory('c1', { history: [], future: [] })
+    await uploadComponentHeader(entry('c2'))
+    await uploadComponentHeaderHistory('c2', { history: [], future: [] })
 
-    const listed = await listOrCreateComponentEntryList()
+    const listed = await listOrCreateComponentHeaderList()
 
     expect(listed.map(component => component.uid).sort()).toEqual(['c1', 'c2'])
   })
@@ -130,10 +130,10 @@ describe('listing components', () => {
     // and warns about a component that was never stored the old way. Asserting silence is what
     // distinguishes "filtered" from "never looked at".
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    await uploadComponentEntry(entry('c1'))
-    await uploadComponentEntryHistory('c1', { history: [], future: [] })
+    await uploadComponentHeader(entry('c1'))
+    await uploadComponentHeaderHistory('c1', { history: [], future: [] })
 
-    await listOrCreateComponentEntryList()
+    await listOrCreateComponentHeaderList()
 
     expect(warn).not.toHaveBeenCalled()
     warn.mockRestore()
@@ -144,7 +144,7 @@ describe('components stored before the split', () => {
   it('reads the description out of the old single flatted object', async () => {
     objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
 
-    expect(await getComponentEntry('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
+    expect(await getComponentHeader('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
   })
 
   it('drops the inline history rather than carrying it into the description', async () => {
@@ -152,14 +152,14 @@ describe('components stored before the split', () => {
     // component stored the old way would otherwise read back as invalid and vanish from the list.
     objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
 
-    expect(await getComponentEntry('c1')).not.toHaveProperty('history')
+    expect(await getComponentHeader('c1')).not.toHaveProperty('history')
   })
 
   it('prefers the new object once one has been written', async () => {
     objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), name: 'Stale', history: [], future: [] }))
-    await uploadComponentEntry({ ...entry('c1'), name: 'Current' })
+    await uploadComponentHeader({ ...entry('c1'), name: 'Current' })
 
-    expect(await getComponentEntry('c1')).toMatchObject({ name: 'Current' })
+    expect(await getComponentHeader('c1')).toMatchObject({ name: 'Current' })
   })
 })
 
@@ -167,9 +167,9 @@ describe('deleting a component', () => {
   it('removes a component that was never edited, which has no history object', async () => {
     // Storage raises on removing an object that is not there. Requiring the history to exist made
     // deleting a freshly created component answer 500 instead of redirecting.
-    await uploadComponentEntry(entry('c1'))
+    await uploadComponentHeader(entry('c1'))
 
-    await expect(deleteComponentEntry('c1')).resolves.not.toThrow()
+    await expect(deleteComponentHeader('c1')).resolves.not.toThrow()
     expect([...objects.keys()]).toEqual([])
   })
 
@@ -177,16 +177,16 @@ describe('deleting a component', () => {
     // It has no `.json` and no history, so a delete that requires either cannot remove it at all.
     objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
 
-    await deleteComponentEntry('c1')
+    await deleteComponentHeader('c1')
 
     expect([...objects.keys()]).toEqual([])
   })
 
   it('removes its history too, so nothing unreachable is left in the bucket', async () => {
-    await uploadComponentEntry(entry('c1'))
-    await uploadComponentEntryHistory('c1', { history: [], future: [] })
+    await uploadComponentHeader(entry('c1'))
+    await uploadComponentHeaderHistory('c1', { history: [], future: [] })
 
-    await deleteComponentEntry('c1')
+    await deleteComponentHeader('c1')
 
     expect([...objects.keys()]).toEqual([])
   })

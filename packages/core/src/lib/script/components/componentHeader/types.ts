@@ -1,5 +1,5 @@
 import { Checkbox, Input, NumberInput } from '$lib/components/ui/index'
-import type { AttributeType } from '$lib/script/components/componentEntry/component/types'
+import type { AttributeType } from '$lib/script/components/componentHeader/component/types'
 
 interface InputConfig<T extends AttributeType> {
   label: string,

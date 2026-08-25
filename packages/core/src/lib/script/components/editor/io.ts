@@ -1,5 +1,5 @@
 import type { Component, ComponentCommit, ComponentDefinition, ComponentDefinitionReference } from './types'
-import type { ComponentEntry, ComponentEntryReference } from '../componentEntry/component/types'
+import type { ComponentHeader, ComponentHeaderReference } from '../componentHeader/component/types'
 
 import { join } from 'path'
 import {
@@ -8,7 +8,7 @@ import {
   getInternalObjectFlatted,
   deleteDirectory
 } from '$lib/script/storage/storage.server'
-import { getComponentEntry, listOrCreateComponentEntryList } from '../componentEntry/io.server'
+import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
 import { validator } from '@exodus/schemasafe'
 import { componentCommitSchema, componentDefinitionSchema } from './schemas'
 
@@ -23,8 +23,8 @@ import { componentCommitSchema, componentDefinitionSchema } from './schemas'
  * ## There is no separate component file
  *
  * A dynamic component used to be written twice: once as a `Component` of `{ uid, name }` under
- * `edited/`, and once as a `ComponentEntry` carrying the same uid and the same name. The first
- * carried nothing the second did not, so it is gone and the list is derived from the entries. That
+ * `edited/`, and once as a `ComponentHeader` carrying the same uid and the same name. The first
+ * carried nothing the second did not, so it is gone and the list is derived from the headers. That
  * removes a second thing to keep in step — a rename reaching one and not the other left the editor
  * and the catalog disagreeing about what a component is called.
  */
@@ -36,11 +36,11 @@ async function uploadComponentCommit (commit: ComponentCommit) {
   await uploadInternalObjectFlatted(join(componentDefinitionPath, commit.componentId, commit.uid), commit)
 }
 
-/** A dynamic component, as the editor lists it. Derived from its entry, which is where it lives. */
-const asComponent = (entry: ComponentEntry): Component => ({ uid: entry.uid, name: entry.name })
+/** A dynamic component, as the editor lists it. Derived from its header, which is where it lives. */
+const asComponent = (entry: ComponentHeader): Component => ({ uid: entry.uid, name: entry.name })
 
-async function getComponent (reference: ComponentEntryReference): Promise<Component> {
-  const entry = await getComponentEntry(reference)
+async function getComponent (reference: ComponentHeaderReference): Promise<Component> {
+  const entry = await getComponentHeader(reference)
   if (entry === null) throw Error(`Invalid component: ${reference}`)
   // A prebuilt component has no source and no commits, so the editor cannot open one. Refused by
   // name rather than by a missing definition, which would surface as a confusing storage error.
@@ -77,12 +77,12 @@ async function getComponentCommit (componentId: string, commitId: string) {
 /**
  * Every dynamic component.
  *
- * Filtered out of the entry catalog rather than read from a directory of its own. The catalog is
+ * Filtered out of the header catalog rather than read from a directory of its own. The catalog is
  * where a component's identity already lives, and the type is what distinguishes one the editor can
  * open from one whose code is in the consuming application.
  */
 async function listOrCreateComponentList (): Promise<Array<Component>> {
-  const entries = await listOrCreateComponentEntryList()
+  const entries = await listOrCreateComponentHeaderList()
   return entries.filter(entry => entry.type === 'dynamic').map(asComponent)
 }
 
