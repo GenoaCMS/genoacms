@@ -3,14 +3,12 @@ import type { ComponentEntry, ComponentType } from '../componentEntry/component/
 
 import { deleteComponentEntry, getComponentEntry, uploadComponentEntry } from '../componentEntry/io.server'
 import {
-  uploadComponent,
   uploadComponentDefinition,
   uploadComponentCommit,
   getComponent,
   getComponentDefiniton,
   listOrCreateComponentList,
   deleteComponentDefinition,
-  deleteComponentFile
 } from './io'
 import diff from 'deep-diff'
 import { ComponentCodeError, ComponentDiffError } from './errors'
@@ -43,14 +41,9 @@ async function createComponentEntry (uid: string, type: ComponentType, name: str
 }
 async function createComponent (name: string) {
   const uid = crypto.randomUUID()
-  const component = {
-    uid,
-    name
-  }
 
   await createComponentEntry(uid, 'dynamic', name)
   await createComponentDefinition(uid)
-  await uploadComponent(component)
 
   return uid
 }
@@ -172,11 +165,11 @@ async function commitComponentDefinition (order: ComponentCommitOrder, authorId:
 /**
  * Removes a component and everything it produced.
  *
- * Four things, not three. The definition directory holds the source **and every commit**, so those
- * go with it. The entry is the component's place in the catalog, and the component file is what the
- * editor lists. The fourth is the published executables, which live outside all of these: one per
- * commit, each written once and never rewritten, each signed and independently verifiable. Left
- * behind they would keep verifying, for a component that no longer exists.
+ * Three things. The definition directory holds the source **and every commit**, so those go with it.
+ * The entry is the component's place in the catalog, and is what the editor lists. The third is the
+ * published executables: one per commit, each written once and never rewritten, each signed and
+ * independently verifiable. Left behind they would keep verifying, for a component that no longer
+ * exists.
  *
  * Removed together rather than in sequence, and the whole thing fails if any part does — a partial
  * deletion reported as success is what this replaces.
@@ -185,7 +178,6 @@ async function deleteComponent (component: Component): Promise<void> {
   await Promise.all([
     deleteComponentDefinition(component.uid),
     deleteComponentEntry(component.uid),
-    deleteComponentFile(component.uid),
     deleteComponentExecutables(component.uid)
   ])
 }

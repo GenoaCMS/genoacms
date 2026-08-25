@@ -1,26 +1,34 @@
 import type { Component, ComponentCommit, ComponentDefinition, ComponentDefinitionReference } from './types'
-import type { ComponentEntryReference } from '../componentEntry/component/types'
-import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
+import type { ComponentEntry, ComponentEntryReference } from '../componentEntry/component/types'
 
 import { join } from 'path'
 import {
   defaultBucketId,
   uploadInternalObjectFlatted,
   getInternalObjectFlatted,
-  deleteInternalObject,
-  deleteDirectory,
-  listOrCreateDirectory,
-  fullyQualifiedNameToFilename
+  deleteDirectory
 } from '$lib/script/storage/storage.server'
+import { getComponentEntry, listOrCreateComponentEntryList } from '../componentEntry/io.server'
 import { validator } from '@exodus/schemasafe'
-import { componentCommitSchema, componentDefinitionSchema, componentSchema } from './schemas'
+import { componentCommitSchema, componentDefinitionSchema } from './schemas'
 
-const componentDefinitionPath = join('.genoacms', 'components/', 'definitions/')
-const componentPath = join('.genoacms', 'components/', 'edited/')
-
-async function uploadComponent (component: Component) {
-  await uploadInternalObjectFlatted(join(componentPath, component.uid), component)
-}
+/**
+ * Where a dynamic component lives.
+ *
+ * `dynamic/{uid}` holds the source and every commit under it. Published artifacts sit beside them
+ * under `dynamic/executables`, which `executable/io.server.ts` owns — named here only to say that
+ * the two are siblings rather than nested, and that a component identifier is a UUID so it can never
+ * collide with that one reserved name.
+ *
+ * ## There is no separate component file
+ *
+ * A dynamic component used to be written twice: once as a `Component` of `{ uid, name }` under
+ * `edited/`, and once as a `ComponentEntry` carrying the same uid and the same name. The first
+ * carried nothing the second did not, so it is gone and the list is derived from the entries. That
+ * removes a second thing to keep in step — a rename reaching one and not the other left the editor
+ * and the catalog disagreeing about what a component is called.
+ */
+const componentDefinitionPath = join('.genoacms', 'components/', 'dynamic/')
 async function uploadComponentDefinition (definition: ComponentDefinition) {
   await uploadInternalObjectFlatted(join(componentDefinitionPath, definition.uid, 'data.json'), definition)
 }
@@ -28,11 +36,16 @@ async function uploadComponentCommit (commit: ComponentCommit) {
   await uploadInternalObjectFlatted(join(componentDefinitionPath, commit.componentId, commit.uid), commit)
 }
 
+/** A dynamic component, as the editor lists it. Derived from its entry, which is where it lives. */
+const asComponent = (entry: ComponentEntry): Component => ({ uid: entry.uid, name: entry.name })
+
 async function getComponent (reference: ComponentEntryReference): Promise<Component> {
-  const potentialComponent = await getInternalObjectFlatted(join(componentPath, reference))
-  const validateComponent = validator(componentSchema)
-  if (!validateComponent(potentialComponent)) throw Error(`Invalid component: ${reference}`)
-  return potentialComponent
+  const entry = await getComponentEntry(reference)
+  if (entry === null) throw Error(`Invalid component: ${reference}`)
+  // A prebuilt component has no source and no commits, so the editor cannot open one. Refused by
+  // name rather than by a missing definition, which would surface as a confusing storage error.
+  if (entry.type !== 'dynamic') throw Error(`Not a dynamic component: ${reference}`)
+  return asComponent(entry)
 }
 
 async function getComponentDefiniton (reference: ComponentDefinitionReference) {
@@ -61,18 +74,16 @@ async function getComponentCommit (componentId: string, commitId: string) {
   }
   return potentialComponentCommit
 }
-async function componentDirectoryToComponents (directoryContents: DirectoryContents): Promise<Array<Component>> {
-  const componentIDs = directoryContents.files.map(f => fullyQualifiedNameToFilename(f.name))
-  const componentPromises = componentIDs.map(id => getComponent(id))
-  return await Promise.all(componentPromises)
-}
-
+/**
+ * Every dynamic component.
+ *
+ * Filtered out of the entry catalog rather than read from a directory of its own. The catalog is
+ * where a component's identity already lives, and the type is what distinguishes one the editor can
+ * open from one whose code is in the consuming application.
+ */
 async function listOrCreateComponentList (): Promise<Array<Component>> {
-  const componentDirectoryList = await listOrCreateDirectory({
-    bucket: defaultBucketId,
-    name: componentPath
-  })
-  return await componentDirectoryToComponents(componentDirectoryList)
+  const entries = await listOrCreateComponentEntryList()
+  return entries.filter(entry => entry.type === 'dynamic').map(asComponent)
 }
 
 /**
@@ -85,16 +96,13 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
  */
 const deleteComponentDefinition = (reference: ComponentDefinitionReference) =>
   deleteDirectory({ bucket: defaultBucketId, name: join(componentDefinitionPath, reference) })
-const deleteComponentFile = (id: string) => deleteInternalObject(join(componentPath, id))
 
 export {
-  uploadComponent,
   uploadComponentDefinition,
   uploadComponentCommit,
   getComponent,
   getComponentDefiniton,
   getComponentCommit,
   listOrCreateComponentList,
-  deleteComponentDefinition,
-  deleteComponentFile
+  deleteComponentDefinition
 }
