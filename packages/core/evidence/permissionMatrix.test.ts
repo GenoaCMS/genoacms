@@ -84,7 +84,11 @@ vi.mock('$lib/script/components/editor', () => ({
 
 vi.mock('$lib/script/components/componentEntry/io.server', () => ({
   listOrCreateComponentEntryList: async () => [],
-  getComponentEntry: async () => null,
+  // A prebuilt entry, because the prebuilt service refuses a reference that names anything else —
+  // and this file is testing the permission gate, not that refusal.
+  getComponentEntry: async () => ({
+    uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: []
+  }),
   uploadComponentEntry: async () => {},
   deleteComponentEntry: async () => {},
   getComponentEntryHistory: async () => ({ history: [], future: [] }),
@@ -292,8 +296,13 @@ describe('the matrix is complete over the service surface', () => {
   }
 
   it.each(Object.keys(services))('covers every export of the %s service', (name) => {
+    // Classes are excluded: a service module may export an error type, and an error is not an
+    // operation with a permission to check. Everything callable that is not a constructor is.
+    const isClass = (value: unknown): boolean =>
+      typeof value === 'function' && /^class[\s{]/.test(Function.prototype.toString.call(value))
+
     const exported = Object.keys(services[name])
-      .filter(key => typeof services[name][key] === 'function')
+      .filter(key => typeof services[name][key] === 'function' && !isClass(services[name][key]))
 
     expect(operationNames).toEqual(expect.arrayContaining(exported))
   })
