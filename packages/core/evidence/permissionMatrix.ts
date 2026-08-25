@@ -58,7 +58,7 @@ const matrixOperations = [
   'deleteUserComponent',
   // prebuilt components
   'registerUserComponentHeader',
-  'listUserComponentEntries',
+  'listUserComponentHeaders',
   'getUserComponentHeader',
   'updateUserComponentHeader',
   'getUserComponentHeaderDepth',
@@ -220,7 +220,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   ComponentDeveloper: {
     grants: [instanceGrant('components:read'), instanceGrant('components:code')],
     allowed: [
-      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
       'updateUserComponentDefinition', 'commitUserComponentDefinition'
     ]
@@ -233,7 +233,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     // The catalog permission covers coded components too: their names are catalog information,
     // and what distinguishes them — their source — is `components:code`.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
       'listUserComponents', 'getUserComponent'
     ]
@@ -246,7 +246,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     // Registering covers a component's **existence**, of either kind: the same permission creates a
     // prebuilt component's description and brings a coded component into being with its source.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent',
       'createUserComponent', 'deleteUserComponent'

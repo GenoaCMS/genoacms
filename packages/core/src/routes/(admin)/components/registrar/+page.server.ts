@@ -1,13 +1,11 @@
-import {
-  listUserComponentEntries,
-  deleteUserComponentHeader
-} from '$lib/script/components/componentHeader/user.server'
+import { listUserComponentHeaders } from '$lib/script/components/componentHeader/user.server'
+import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { parseBulkDeletion } from '$lib/script/selection/request.server'
 import { fail, type Actions } from '@sveltejs/kit'
 
 export const load = async ({ locals }) => {
-  const componentEntries = await listUserComponentEntries(requireAuthContext(locals))
+  const componentEntries = await listUserComponentHeaders(requireAuthContext(locals))
   return {
     componentEntries
   }
@@ -31,7 +29,7 @@ export const actions = {
 
     for (const [index, uid] of parsed.ids.entries()) {
       try {
-        await deleteUserComponentHeader(ctx, uid)
+        await deleteUserComponentByReference(ctx, uid)
       } catch (error) {
         return fail(409, {
           reason: `selection/partial: removed ${index} of ${parsed.ids.length}; ${(error as Error).message}`

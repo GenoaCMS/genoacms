@@ -1,11 +1,11 @@
 import type { PageServerLoad } from '../$types'
 import {
-  deleteUserComponentHeader,
   getUserComponentHeader,
   getUserComponentHeaderDepth,
   undoUserComponentHeader,
   redoUserComponentHeader
 } from '$lib/script/components/componentHeader/user.server'
+import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
@@ -14,11 +14,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const { componentId } = params
   const ctx = requireAuthContext(locals)
   const componentHeader = await getUserComponentHeader(ctx, componentId)
-  if (!componentHeader) error(404, 'No component entry')
+  if (!componentHeader) error(404, 'No such component')
 
   // How deep the history runs is what enables or disables the buttons. Without it they render
   // permanently disabled, which is how undo appeared to exist without working.
-  const depth = await getUserComponentHeaderDepth(ctx, componentId)
+  //
+  // A dynamic component has no editable description here — its attributes come from its source —
+  // so it has no editing history either, and asking for one would be refused. Zero depth is not a
+  // stand-in for the answer: there is genuinely nothing to step back through.
+  const depth = componentHeader.type === 'prebuilt'
+    ? await getUserComponentHeaderDepth(ctx, componentId)
+    : { historyLength: 0, futureLength: 0 }
 
   return {
     id: componentId,
@@ -55,7 +61,9 @@ export const actions = {
     const ctx = requireAuthContext(locals)
     const { componentId } = params
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
-    await deleteUserComponentHeader(ctx, componentId)
+    // Routed by the component's stored kind: deleting a dynamic component means its source and
+    // every executable it published, not only the description shown on this page.
+    await deleteUserComponentByReference(ctx, componentId)
     return redirect(307, '.')
   }
 } satisfies Actions

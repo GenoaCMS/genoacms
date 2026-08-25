@@ -1,7 +1,8 @@
 import type { AuthContext } from '$lib/script/authorization/context'
 import type { ComponentHeaderCreation, ComponentHeaderReference } from './componentHeader/component/types'
-import { registerUserComponentHeader } from './componentHeader/user.server'
-import { createUserComponent } from './editor/user.server'
+import { getComponentHeader } from './componentHeader/io.server'
+import { deleteUserComponentHeader, registerUserComponentHeader } from './componentHeader/user.server'
+import { createUserComponent, deleteUserComponent } from './editor/user.server'
 
 /**
  * Registering a component, of either kind.
@@ -41,6 +42,38 @@ const registerUserComponent = async (
   return header.uid
 }
 
+/**
+ * Removes a component, of either kind, with everything it owns.
+ *
+ * The counterpart to registering, and it dispatches for the same reason: what a component *is*
+ * differs by kind even though what it looks like does not. A prebuilt component is a header. A
+ * dynamic one is a header, a source definition, every commit under it, and every executable it ever
+ * published — each of those signed and independently verifiable, so an artifact left behind goes on
+ * verifying for a component that no longer exists.
+ *
+ * **Reads the stored kind**, never one the caller supplies: the request names a component, and a
+ * client free to say what kind it is could delete a dynamic component through the header path and
+ * strand the rest. That was a real defect — the catalog listed both kinds and deleting there removed
+ * only the header — and it was answered by hiding dynamic components from the catalog. Routing the
+ * deletion is the answer that lets the registrar show them again.
+ *
+ * A reference naming nothing is left to the header service, which reports it the way every other
+ * missing component is reported.
+ */
+const deleteUserComponentByReference = async (
+  ctx: AuthContext,
+  reference: ComponentHeaderReference
+): Promise<void> => {
+  const header = await getComponentHeader(reference)
+  if (header?.type === 'dynamic') {
+    // Deleting needs the component's name as well as its uid, and the header is where it lives.
+    await deleteUserComponent(ctx, { uid: header.uid, name: header.name })
+    return
+  }
+  await deleteUserComponentHeader(ctx, reference)
+}
+
 export {
-  registerUserComponent
+  registerUserComponent,
+  deleteUserComponentByReference
 }

@@ -70,17 +70,17 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 
 describe('reading the catalog', () => {
   it('is denied without components:read', async () => {
-    await expectDenied(() => components.listUserComponentEntries(contextWith([])))
+    await expectDenied(() => components.listUserComponentHeaders(contextWith([])))
     await expectDenied(() => components.getUserComponentHeader(contextWith([]), 'hero'))
   })
 
   it('is not implied by being able to modify', async () => {
     await expectDenied(() =>
-      components.listUserComponentEntries(contextWith(['components:modify'])))
+      components.listUserComponentHeaders(contextWith(['components:modify'])))
   })
 
   it('is allowed with it', async () => {
-    await components.listUserComponentEntries(contextWith(['components:read']))
+    await components.listUserComponentHeaders(contextWith(['components:read']))
     await components.getUserComponentHeader(contextWith(['components:read']), 'hero')
     expect(calls).toEqual(['list', 'get:hero'])
   })
@@ -131,8 +131,11 @@ describe('components the editor owns', () => {
    * fixed it. `components:register` could do exactly that, without holding the dynamic
    * permission at all.
    *
-   * Filtering the catalog listing does not close this. A request naming the component directly never
-   * goes through the listing, so the refusal has to live here.
+   * Filtering the catalog listing never closed this — a request naming the component directly does
+   * not go through the listing — which is why the refusal lives here and the listing is whole.
+   *
+   * **Reading is not refused.** Only the operations that would leave a dynamic component's source,
+   * commits and executables stranded, or would write a description its next publication overwrites.
    */
   const dynamic = () => { stored = { uid: 'hero', type: 'dynamic', name: 'Hero' } }
   const registrar = () => contextWith(['components:read', 'components:register'])
@@ -157,10 +160,13 @@ describe('components the editor owns', () => {
     expect(calls).not.toContain('upload:hero')
   })
 
-  it('refuses to open one', async () => {
+  it('shows one, because the registrar describes both kinds', async () => {
+    // Reading is deliberately not refused. The registrar lists every component and opens every
+    // component; refusing here would leave it listing something it cannot show.
     dynamic()
 
-    await expect(components.getUserComponentHeader(registrar(), 'hero')).rejects.toThrow(/not-prebuilt/)
+    expect(await components.getUserComponentHeader(registrar(), 'hero'))
+      .toMatchObject({ uid: 'hero', type: 'dynamic' })
   })
 
   it('refuses to step through one\'s history', async () => {
@@ -171,10 +177,14 @@ describe('components the editor owns', () => {
     await expect(components.redoUserComponentHeader(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
   })
 
-  it('leaves it out of the catalog listing, keeping the prebuilt ones', async () => {
-    const listed = await components.listUserComponentEntries(registrar())
+  it('lists it beside the prebuilt ones', async () => {
+    // The listing was narrowed to prebuilt components while deleting through this service could
+    // strand a dynamic one. Routing the deletion is what closed that, so the list is whole again —
+    // and it has to be: every reader of this function saw the shortened one, including the page
+    // editor's component picker, where it meant no page could be rooted in a coded component.
+    const listed = await components.listUserComponentHeaders(registrar())
 
-    expect(listed.map(entry => entry.uid)).toEqual(['card'])
+    expect(listed.map(entry => entry.uid).sort()).toEqual(['card', 'hero'])
   })
 
   it('checks the permission before the type, so neither answer leaks the other', async () => {

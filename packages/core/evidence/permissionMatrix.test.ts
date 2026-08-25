@@ -222,7 +222,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
 
   // prebuilt components
   registerUserComponentHeader: ctx => components.registerUserComponentHeader(ctx, { name: 'Hero', type: 'prebuilt' }),
-  listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
+  listUserComponentHeaders: ctx => components.listUserComponentHeaders(ctx),
   getUserComponentHeader: ctx => components.getUserComponentHeader(ctx, 'hero'),
   updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader),
   getUserComponentHeaderDepth: ctx => components.getUserComponentHeaderDepth(ctx, 'hero'),

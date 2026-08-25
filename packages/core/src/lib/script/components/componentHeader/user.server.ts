@@ -25,7 +25,7 @@ import type { HistoryDepth } from './editing.server'
  * Content permissions are **instance-scoped** — the architecture defines no per-component grants —
  * so no resource is passed.
  *
- * ## This layer serves prebuilt components only
+ * ## Reading serves both kinds; writing serves prebuilt components only
  *
  * A dynamic component has a header too, so the storage these operations read holds both kinds. They
  * are **not** interchangeable here. Deleting a dynamic component means removing its definition, its
@@ -91,20 +91,47 @@ const registerUserComponentHeader = async (
   return await createComponentHeader(creation)
 }
 
-const listUserComponentEntries = async (ctx: AuthContext): Promise<ComponentHeader[]> => {
+/**
+ * Every component in the registrar, of either kind.
+ *
+ * **The listing is not filtered.** It was narrowed to prebuilt components when the catalog could
+ * destroy a dynamic one through the wrong service; the answer to that is the refusal on each write
+ * below, not a shorter list. Filtering hid components that exist, and it hid them from every reader
+ * of this function — including the page editor's component picker, where it meant **no page could be
+ * rooted in a component authored in the CMS at all**.
+ *
+ * Describing both kinds in one place is the point of the registrar: a component's kind decides what
+ * the CMS stores for it, not whether it can be seen.
+ */
+const listUserComponentHeaders = async (ctx: AuthContext): Promise<ComponentHeader[]> => {
   requirePermission(ctx, 'components:read')
-  const entries = await listOrCreateComponentHeaderList()
-  return entries.filter(entry => entry.type === 'prebuilt')
+  return await listOrCreateComponentHeaderList()
 }
 
+/**
+ * One component's header, of either kind.
+ *
+ * Reading is not refused for a dynamic component: the registrar shows its shape like any other, and
+ * a reader that refused would leave the registrar listing something it cannot open. What a dynamic
+ * component's header does not yet accept is an **edit** — see `updateUserComponentHeader`.
+ */
 const getUserComponentHeader = async (
   ctx: AuthContext,
   reference: ComponentHeaderReference
 ): Promise<ComponentHeader | null> => {
   requirePermission(ctx, 'components:read')
-  return await requirePrebuilt(reference)
+  return await getComponentHeader(reference)
 }
 
+/**
+ * Rewrites a component's description.
+ *
+ * **Prebuilt only, and this is temporary.** A dynamic component's attributes are still derived from
+ * its source every time it is published, so an edit saved here would be silently overwritten by the
+ * next publication — the author would describe a shape, publish, and find their description gone
+ * with nothing to say why. Refusing is the honest behavior until the shape is authored rather than
+ * analyzed, at which point this refusal goes and the registrar edits both kinds alike.
+ */
 const updateUserComponentHeader = async (ctx: AuthContext, entry: ComponentHeader) => {
   requirePermission(ctx, 'components:modify')
   await requirePrebuilt(entry.uid)
@@ -160,7 +187,7 @@ const deleteUserComponentHeader = async (ctx: AuthContext, name: string) => {
 export {
   NotAPrebuiltComponentError,
   registerUserComponentHeader,
-  listUserComponentEntries,
+  listUserComponentHeaders,
   getUserComponentHeader,
   updateUserComponentHeader,
   getUserComponentHeaderDepth,

@@ -24,13 +24,16 @@ import type { AuthContext } from '$lib/script/authorization/context'
 
 const created: string[] = []
 
+/** What storage holds. Absent by default; set by the deletion tests to the kind under test. */
+let stored: { uid: string, type: string, name: string } | null = null
+
 vi.mock('./componentHeader/io.server', () => ({
   uploadComponentHeader: async (header: { uid: string, type: string, name: string }) => {
     created.push(`header:${header.type}:${header.name}`)
   },
-  getComponentHeader: async () => null,
+  getComponentHeader: async () => stored,
   listOrCreateComponentHeaderList: async () => [],
-  deleteComponentHeader: async () => {},
+  deleteComponentHeader: async (reference: string) => { created.push(`removed-header:${reference}`) },
   getComponentHeaderHistory: async () => ({ history: [], future: [] }),
   uploadComponentHeaderHistory: async () => {}
 }))
@@ -45,12 +48,12 @@ vi.mock('./editor/index', () => ({
   getComponentDefiniton: async () => ({}),
   updateComponentDefinition: async () => {},
   commitComponentDefinition: async () => {},
-  deleteComponent: async () => {}
+  deleteComponent: async (component: { uid: string }) => { created.push(`removed-everything:${component.uid}`) }
 }))
 
 const { createAuthContext } = await import('$lib/script/authorization/context')
 const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
-const { registerUserComponent } = await import('./registration.server')
+const { registerUserComponent, deleteUserComponentByReference } = await import('./registration.server')
 
 const grant = (permission: Permission): Grant => ({ permission, resource: '*' } as Grant)
 const contextWith = (permissions: Permission[]): AuthContext =>
@@ -58,7 +61,10 @@ const contextWith = (permissions: Permission[]): AuthContext =>
 
 const REGISTER: Permission = 'components:register'
 
-beforeEach(() => { created.length = 0 })
+beforeEach(() => {
+  created.length = 0
+  stored = null
+})
 
 describe('what registering demands', () => {
   it('is allowed for either kind with components:register', async () => {
@@ -125,5 +131,47 @@ describe('what registering stores', () => {
     await registerUserComponent(contextWith([REGISTER]), { name: 'Card', type: 'prebuilt' })
 
     expect(created).toEqual(['header:prebuilt:Card'])
+  })
+})
+
+describe('deleting a component', () => {
+  it('removes a prebuilt one through the header service', async () => {
+    stored = { uid: 'card', type: 'prebuilt', name: 'Card' }
+
+    await deleteUserComponentByReference(contextWith([REGISTER]), 'card')
+
+    expect(created).toEqual(['removed-header:card'])
+  })
+
+  it('removes a dynamic one through the service that owns its source', async () => {
+    // The defect that made the catalog hide dynamic components: removing one through the header
+    // service deletes the description and strands the definition, every commit under it, and every
+    // executable it published — each still signed and still verifying, for a component that is gone.
+    stored = { uid: 'hero', type: 'dynamic', name: 'Hero' }
+
+    await deleteUserComponentByReference(contextWith([REGISTER]), 'hero')
+
+    expect(created).toEqual(['removed-everything:hero'])
+    expect(created).not.toContain('removed-header:hero')
+  })
+
+  it('reads the stored kind rather than believing the request', async () => {
+    // The reference is all the request carries, so there is nothing to forge — asserting it here is
+    // what stops a later signature growing a caller-supplied type as a convenience.
+    stored = { uid: 'hero', type: 'dynamic', name: 'Hero' }
+
+    await deleteUserComponentByReference(contextWith([REGISTER]), 'hero')
+
+    expect(created).toEqual(['removed-everything:hero'])
+  })
+
+  it('is denied without components:register, for either kind', async () => {
+    for (const type of ['prebuilt', 'dynamic']) {
+      stored = { uid: 'x', type, name: 'X' }
+      await expect(
+        deleteUserComponentByReference(contextWith(['components:modify']), 'x')
+      ).rejects.toBeInstanceOf(PermissionDeniedError)
+    }
+    expect(created).toEqual([])
   })
 })
