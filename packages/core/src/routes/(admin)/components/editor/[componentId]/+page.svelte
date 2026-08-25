@@ -4,6 +4,7 @@
   import TopPanel from '$lib/components/TopPanel.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
   import Editor from './Editor.svelte'
+  import Signature from './Signature.svelte'
   import CommitComponent from './CommitComponent.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
 
@@ -39,6 +40,10 @@
     </PermissionGate>
   {/snippet}
 </TopPanel>
+
+<!-- The signature sits above the body it wraps, in reading order: an author sees what they are
+     given before what they are to write with it. -->
+<Signature signature={data.signature} />
 
 <Editor
   uid={data.component.uid}

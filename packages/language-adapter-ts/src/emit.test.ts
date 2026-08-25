@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Attribute, ComponentHeaderAttributes } from '@genoacms/internal/attributes'
 import type { ComponentShape } from '@genoacms/internal/languageAdapter'
-import { assemble, identifierFor, runtimeType } from './emit.js'
+import { assemble, identifierFor, runtimeType, signatureOf } from './emit.js'
 
 /**
  * Emitting the entry function a body is wrapped in.
@@ -11,8 +11,15 @@ import { assemble, identifierFor, runtimeType } from './emit.js'
  * else, so there is no second place for it to drift.
  */
 
+/**
+ * An attribute as the registrar stores one.
+ *
+ * `name` is deliberately set to the uid, which is what the registrar actually writes: the field is
+ * left over from deriving shapes out of code, and the name a person types goes to `schema.title`.
+ * A fixture that put the real name in both would pass whichever field the emitter read.
+ */
 const attribute = (uid: string, name: string, type: Attribute['type']): Attribute =>
-  ({ uid, name, type, schema: { title: name, description: '', required: false } } as Attribute)
+  ({ uid, name: uid, type, schema: { title: name, description: '', required: false } } as Attribute)
 
 const shapeOf = (...attributes: Attribute[]): ComponentShape => {
   const byUid: ComponentHeaderAttributes = {}
@@ -107,6 +114,25 @@ describe('turning an attribute name into a parameter name', () => {
   it('reports a name with nothing usable in it', async () => {
     expect(identifierFor('---')).toBeUndefined()
   })
+
+  it('reads the name a person typed, not the uid stored beside it', async () => {
+    // The registrar writes the typed name to `schema.title` and leaves `name` holding the uid, so
+    // emitting from `name` produced parameters called `_3f2a1b…` — signatures nobody can write
+    // against, which is how this was found.
+    const { text } = signatureOf(shapeOf(attribute('3f2a1b04-0000-4000-8000-000000000000', 'heading', 'string')))
+
+    expect(text).toContain('heading: string')
+    expect(text).not.toContain('3f2a1b04')
+  })
+
+  it('says an attribute is unnamed rather than reporting an empty identifier', async () => {
+    // The ordinary case: added in the registrar and not yet named.
+    const unnamed = { uid: 'u', name: 'u', type: 'string', schema: { title: '', description: '', required: false } } as Attribute
+    const { diagnostics } = signatureOf(shapeOf(unnamed))
+
+    expect(diagnostics).toMatchObject([{ rule: 'unnameable-attribute' }])
+    expect(diagnostics[0].message).toMatch(/no name yet/i)
+  })
 })
 
 describe('what the emitter refuses', () => {
@@ -157,5 +183,35 @@ describe('where the author\'s body starts', () => {
     const { source, prologueLines } = assemble('return 1', shapeOf())
 
     expect(source.split('\n')[prologueLines]).toBe('return 1')
+  })
+})
+
+describe('the signature shown to the author', () => {
+  it('is exactly what the body is wrapped in', async () => {
+    // The property the preview exists for. Composing it separately — in the CMS, or here from a
+    // second template — would let the editor show an author one parameter list while their code was
+    // compiled against another, which is the drift emitting the signature exists to remove.
+    const shape = shapeOf(attribute('a', 'heading', 'string'), attribute('b', 'visible', 'boolean'))
+
+    const { text } = signatureOf(shape)
+    const { source } = assemble('return heading', shape)
+
+    expect(source.startsWith(text)).toBe(true)
+  })
+
+  it('carries the same refusals, so the editor can say why there is no signature', async () => {
+    const shape = shapeOf(attribute('a', 'heading text', 'string'), attribute('b', 'heading-text', 'string'))
+
+    expect(signatureOf(shape).diagnostics).toMatchObject([{ rule: 'colliding-attribute-names' }])
+  })
+
+  it('names every parameter an author has to write against', async () => {
+    const { text } = signatureOf(shapeOf(
+      attribute('a', 'Heading text', 'string'),
+      attribute('b', 'Show border', 'boolean')
+    ))
+
+    expect(text).toContain('HeadingText: string')
+    expect(text).toContain('ShowBorder: boolean')
   })
 })

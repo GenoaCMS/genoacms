@@ -107,6 +107,25 @@ interface CompilationRequest extends SourceRequest {
   platform: ExecutablePlatform
 }
 
+/**
+ * The signature a body is wrapped in, written out so an author can read it.
+ *
+ * The editor shows a body and nothing else, so without this an author writes against parameters
+ * that nothing on screen names — they would have to infer the parameter list from the registrar and
+ * guess how each attribute's name was turned into an identifier.
+ *
+ * It comes from the adapter and not from the CMS for the same reason assembly does: the syntax, the
+ * type each attribute becomes and the name each one is given are facts about the target language. A
+ * preview the CMS composed would be a second implementation of the emitter, free to drift from the
+ * one that actually compiles — exactly the class of defect emitting the signature exists to remove.
+ */
+interface SignaturePreview {
+  /** The declaration, without the body. Display only: nothing is compiled from it. */
+  text: string
+  /** What stops this shape being emitted — a name that cannot become a parameter, or two that collide. */
+  diagnostics: Diagnostic[]
+}
+
 interface CompilationResult {
   /** The bundle, ready to be signed and published. Absent when compilation failed. */
   executableCode?: string
@@ -126,6 +145,14 @@ interface LanguageAdapter {
    * file system: everything it needs is in the request.
    */
   analyze: (request: AnalysisRequest) => Promise<AnalysisResult> | AnalysisResult
+
+  /**
+   * Write out the signature a body will be wrapped in, for the author to read.
+   *
+   * Display only. It must produce exactly what `analyze` and `compileBundle` assemble around, or it
+   * is a lie an author writes code against.
+   */
+  emitSignature: (shape: ComponentShape) => Promise<SignaturePreview> | SignaturePreview
 
   /**
    * Assemble the body into an entry function and compile it into a bundle for one platform.
@@ -156,6 +183,7 @@ type LanguageProvider<Extension extends object = object> = Extension & {
 
 export type {
   ComponentShape,
+  SignaturePreview,
   SourceRequest,
   LanguageProvider,
   DiagnosticSeverity,

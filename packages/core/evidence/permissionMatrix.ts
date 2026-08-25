@@ -52,6 +52,7 @@ const matrixOperations = [
   'listUserComponents',
   'getUserComponent',
   'getUserComponentDefinition',
+  'getUserComponentSignature',
   'createUserComponent',
   'updateUserComponentDefinition',
   'commitUserComponentDefinition',
@@ -222,7 +223,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: [
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
-      'updateUserComponentDefinition', 'commitUserComponentDefinition'
+      'getUserComponentSignature', 'updateUserComponentDefinition', 'commitUserComponentDefinition'
     ]
   },
   ComponentCurator: {

@@ -1,5 +1,9 @@
 import { error } from '@sveltejs/kit'
-import { getUserComponent, getUserComponentDefinition } from '$lib/script/components/editor/user.server'
+import {
+  getUserComponent,
+  getUserComponentDefinition,
+  getUserComponentSignature
+} from '$lib/script/components/editor/user.server'
 import { NoSuchComponentError } from '$lib/script/components/editor/errors'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 
@@ -24,10 +28,14 @@ export const load = async ({ params, locals }) => {
   try {
     const component = await getUserComponent(ctx, componentId)
     const componentDefinition = await getUserComponentDefinition(ctx, component.uid)
+    // What the body is wrapped in. Shown above the editor, because an author writing a body needs
+    // to see the parameters it receives — and how each attribute's name became an identifier.
+    const signature = await getUserComponentSignature(ctx, component.uid)
 
     return {
       component,
-      componentDefinition
+      componentDefinition,
+      signature
     }
   } catch (cause) {
     if (cause instanceof NoSuchComponentError) error(404, cause.message)

@@ -76,7 +76,9 @@ vi.mock('$lib/script/components/editor', () => ({
   createComponent: async () => 'uid-1',
   listOrCreateComponentList: async () => [],
   getComponent: async () => ({ uid: 'uid-1', name: 'hero' }),
-  getComponentDefiniton: async () => ({ uid: 'uid-1', code: '', uncommitedCode: '' }),
+  // `language` is what resolves the adapter, and the signature preview needs one. Without it the
+  // operation fails for a reason that has nothing to do with the permission under test.
+  getComponentDefiniton: async () => ({ uid: 'uid-1', language: 'typescript', code: '', uncommitedCode: '' }),
   updateComponentDefinition: async () => {},
   commitComponentDefinition: async () => {},
   deleteComponent: async () => {}
@@ -213,6 +215,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   listUserComponents: ctx => editor.listUserComponents(ctx),
   getUserComponent: ctx => editor.getUserComponent(ctx, 'uid-1'),
   getUserComponentDefinition: ctx => editor.getUserComponentDefinition(ctx, 'uid-1'),
+  getUserComponentSignature: ctx => editor.getUserComponentSignature(ctx, 'uid-1'),
   createUserComponent: ctx => editor.createUserComponent(ctx, 'hero'),
   updateUserComponentDefinition: ctx =>
     editor.updateUserComponentDefinition(ctx, 'uid-1', definition => definition),

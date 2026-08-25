@@ -3,10 +3,12 @@ import type {
   AnalysisResult,
   CompilationRequest,
   CompilationResult,
-  Diagnostic
+  ComponentShape,
+  Diagnostic,
+  SignaturePreview
 } from '@genoacms/internal/languageAdapter'
 import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
-import { assemble } from './emit.js'
+import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
 import { target } from './config.js'
 
@@ -70,6 +72,13 @@ const analyze = (request: AnalysisRequest): AnalysisResult => {
   return { diagnostics }
 }
 
+/**
+ * The signature, for the editor to show above the body.
+ *
+ * The same function `assemble` builds from, so the preview cannot drift from what compiles.
+ */
+const emitSignature = (shape: ComponentShape): SignaturePreview => signatureOf(shape)
+
 const compileBundle = async (request: CompilationRequest): Promise<CompilationResult> => {
   const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
   // A shape that cannot be emitted has no source worth compiling, and compiling it would report
@@ -87,9 +96,10 @@ const adapter: LanguageAdapter = {
   language: 'typescript',
   platforms: ['web-esmodule'],
   analyze,
+  emitSignature,
   compileBundle
 }
 
 export default adapter
-export { adapter, analyze, compileBundle }
+export { adapter, analyze, emitSignature, compileBundle }
 export { DEFAULT_TARGET } from './config.js'

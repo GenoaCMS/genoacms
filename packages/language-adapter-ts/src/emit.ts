@@ -26,6 +26,13 @@ import type { ComponentShape, Diagnostic } from '@genoacms/internal/languageAdap
  * distinct attributes collide, which is reported rather than resolved silently. Emitting `p0`, `p1`
  * instead would dodge both problems and leave the author writing a body against parameters with no
  * meaning, which is worse than being asked to rename something.
+ *
+ * **The name is `schema.title`, not `name`.** An attribute carries both, and the one called `name`
+ * is not the one a person typed: it held the parameter name read out of a hand-written signature,
+ * and an attribute added in the registrar has no signature to read, so it is filled with the
+ * attribute's uid. Everything a person sees already uses `schema.title` — the registrar's own Name
+ * field writes it, and the page editor labels its inputs from it. Emitting from `name` produced
+ * parameters called `_3f2a1b…`, which is unusable to write against.
  */
 
 /** Reserved words that would be syntax errors as a parameter name. Not exhaustive by design — */
@@ -80,6 +87,15 @@ const identifierFor = (name: string): string | undefined => {
   return RESERVED.has(safe) ? `${safe}_` : safe
 }
 
+/**
+ * What a person calls this attribute.
+ *
+ * `schema.title` is the field the registrar's Name input writes and the page editor labels from, so
+ * it is the name in every sense that matters to a person. `attribute.name` is left over from
+ * deriving shapes out of code and now holds a uid.
+ */
+const nameOf = (attribute: Attribute): string => attribute.schema.title ?? ''
+
 /** The attributes a shape names, in the order a consumer calls them. */
 const orderedAttributes = (shape: ComponentShape): Attribute[] =>
   shape.attributeOrder
@@ -103,14 +119,18 @@ const parametersOf = (shape: ComponentShape): Parameters => {
   const declarations: string[] = []
 
   for (const attribute of orderedAttributes(shape)) {
-    const identifier = identifierFor(attribute.name)
+    const name = nameOf(attribute)
+    const identifier = identifierFor(name)
     if (identifier === undefined) {
       diagnostics.push({
         severity: 'fatal',
         rule: 'unnameable-attribute',
-        message:
-          `The attribute "${attribute.name}" cannot become a parameter name. Give it a name ` +
-          'containing at least one letter, digit or underscore.'
+        message: name.trim() === ''
+          // The ordinary case: an attribute was added and never named. Saying so is more use than
+          // reporting that an empty string cannot be an identifier.
+          ? 'One attribute has no name yet. Name it in the registrar, and it becomes a parameter.'
+          : `The attribute "${name}" cannot become a parameter name. Give it a name containing ` +
+            'at least one letter, digit or underscore.'
       })
       continue
     }
@@ -120,12 +140,12 @@ const parametersOf = (shape: ComponentShape): Parameters => {
         severity: 'fatal',
         rule: 'colliding-attribute-names',
         message:
-          `The attributes "${owner}" and "${attribute.name}" both become the parameter ` +
+          `The attributes "${owner}" and "${name}" both become the parameter ` +
           `\`${identifier}\`. Rename one of them so the two can be told apart in code.`
       })
       continue
     }
-    taken.set(identifier, attribute.name)
+    taken.set(identifier, name)
     declarations.push(`  ${identifier}: ${runtimeType(attribute.type)}`)
   }
 
@@ -148,23 +168,36 @@ interface Assembly {
 /** The entry function's name, fixed so that a component's own name never has to be an identifier. */
 const ENTRY_FUNCTION = 'component'
 
-const assemble = (body: string, shape: ComponentShape): Assembly & { diagnostics: Diagnostic[] } => {
+/**
+ * The declaration a body is wrapped in.
+ *
+ * The single source of both the assembled module and the preview the editor shows, so the two
+ * cannot disagree about what an author is writing against.
+ */
+const signatureOf = (shape: ComponentShape): { text: string, diagnostics: Diagnostic[] } => {
   const parameters = parametersOf(shape)
-  const signature = parameters.text.length === 0
-    ? `export default function ${ENTRY_FUNCTION} () {`
-    : `export default function ${ENTRY_FUNCTION} (\n${parameters.text}\n) {`
-  const prologueLines = signature.split('\n').length
+  return {
+    text: parameters.text.length === 0
+      ? `export default function ${ENTRY_FUNCTION} () {`
+      : `export default function ${ENTRY_FUNCTION} (\n${parameters.text}\n) {`,
+    diagnostics: parameters.diagnostics
+  }
+}
+
+const assemble = (body: string, shape: ComponentShape): Assembly & { diagnostics: Diagnostic[] } => {
+  const { text, diagnostics } = signatureOf(shape)
 
   return {
-    source: `${signature}\n${body}\n}\n`,
-    prologueLines,
-    diagnostics: parameters.diagnostics
+    source: `${text}\n${body}\n}\n`,
+    prologueLines: text.split('\n').length,
+    diagnostics
   }
 }
 
 export {
   ENTRY_FUNCTION,
   assemble,
+  signatureOf,
   identifierFor,
   runtimeType
 }

@@ -1,6 +1,10 @@
 import { requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import type { Component, ComponentDefinition, ComponentReference } from './types'
+import type { SignaturePreview } from '@genoacms/internal/languageAdapter'
+import { getComponentHeader } from '../componentHeader/io.server'
+import { NoSuchComponentError } from './errors'
+import { signatureFor } from './compilation'
 import {
   createComponent,
   listOrCreateComponentList,
@@ -67,6 +71,29 @@ const getUserComponent = async (ctx: AuthContext, uid: string): Promise<Componen
   return await getComponent(uid)
 }
 
+/**
+ * The signature the component's body is wrapped in.
+ *
+ * Gated with the source rather than with the catalog: it is derived from the shape, which is public
+ * enough, but it is only ever shown beside the code and a principal who may not read the code has no
+ * page to show it on.
+ */
+const getUserComponentSignature = async (
+  ctx: AuthContext,
+  reference: ComponentReference
+): Promise<SignaturePreview> => {
+  requirePermission(ctx, 'components:code')
+  const [definition, header] = await Promise.all([
+    getComponentDefiniton(reference),
+    getComponentHeader(reference)
+  ])
+  if (header === null) throw new NoSuchComponentError(reference, `components/no-such-component: ${reference} does not exist.`)
+  return await signatureFor(definition.language, {
+    attributes: header.attributes,
+    attributeOrder: header.attributeOrder
+  })
+}
+
 const getUserComponentDefinition = async (
   ctx: AuthContext,
   reference: ComponentReference
@@ -128,6 +155,7 @@ export {
   getUserComponent,
   getUserComponentDefinition,
   createUserComponent,
+  getUserComponentSignature,
   updateUserComponentDefinition,
   commitUserComponentDefinition,
   deleteUserComponent

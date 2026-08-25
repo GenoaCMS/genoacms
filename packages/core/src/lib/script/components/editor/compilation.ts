@@ -1,7 +1,8 @@
 import type {
   ComponentShape,
   CompilationResult,
-  ExecutablePlatform
+  ExecutablePlatform,
+  SignaturePreview
 } from '@genoacms/internal/languageAdapter'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
@@ -91,9 +92,29 @@ const analyzeComponentBody = async (
   raiseFatal((await adapter.analyze({ body, shape })).diagnostics)
 }
 
+/**
+ * The signature the editor shows above a body.
+ *
+ * Asked of the adapter rather than composed here, for the same reason assembly is: a preview the CMS
+ * wrote would be a second emitter, free to drift from the one that compiles — and an author writing
+ * against a signature that is not the real one is the exact failure emitting it exists to prevent.
+ *
+ * A shape that cannot be emitted returns its diagnostics rather than raising. There is nothing to
+ * refuse yet — the author has not asked to publish — and the editor's job here is to explain why no
+ * signature is on screen, not to stop them opening the page.
+ */
+const signatureFor = async (
+  language: string,
+  shape: ComponentShape
+): Promise<SignaturePreview> => {
+  const adapter = await getLanguageAdapter(language)
+  return await adapter.emitSignature(shape)
+}
+
 export {
   analyzeComponentBody,
-  compileComponentBody
+  compileComponentBody,
+  signatureFor
 }
 
 export type {

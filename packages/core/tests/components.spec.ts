@@ -467,6 +467,32 @@ test.describe('a dynamic component', () => {
     await expect(page.locator('.cm-content').first()).toBeVisible({ timeout: SLOW })
   })
 
+  test('shows the signature its body is wrapped in', async ({ page }) => {
+    // An author writes a body, so without this they are writing against parameters nothing on
+    // screen names — and against identifiers the CMS derived from attribute names they never saw
+    // normalized. A component registered with no attributes still has a signature to show.
+    await createDynamic(page, name, created)
+
+    await expect(page.getByText('export default function component')).toBeVisible({ timeout: SLOW })
+  })
+
+  test('names the parameter after the attribute, not after its identifier', async ({ page }) => {
+    // Reported from using the CMS: the signature declared parameters called `_3f2a1b…`, because the
+    // emitter read the attribute's `name` — a field left over from deriving shapes out of code,
+    // which the registrar fills with the attribute's uid. The name a person types goes to
+    // `schema.title`, which is what the registrar's own Name field writes.
+    const uid = await createDynamic(page, name, created)
+
+    await page.goto(`/components/registrar/${uid}`)
+    await page.getByRole('button', { name: 'Add attribute' }).click()
+    await page.getByText('string', { exact: true }).click()
+    await page.getByLabel('Name:').last().fill('heading')
+    await page.getByRole('button', { name: 'Submit' }).click()
+
+    await page.goto(`/components/editor/${uid}`)
+    await expect(page.getByText('heading: string')).toBeVisible({ timeout: SLOW })
+  })
+
   test('keeps draft code without committing it', async ({ page }) => {
     uid = await createDynamic(page, name, created)
     await writeCode(page, 'const answer = 42\nreturn answer\n')
