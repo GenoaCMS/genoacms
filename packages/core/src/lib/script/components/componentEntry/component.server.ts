@@ -7,9 +7,7 @@ const createComponentEntry = async (creation: ComponentEntryCreation) => {
     type: 'prebuilt',
     name: creation.name,
     attributes: {},
-    attributeOrder: [],
-    history: [],
-    future: []
+    attributeOrder: []
   }
   await uploadComponentEntry(componentEntry)
   return componentEntry

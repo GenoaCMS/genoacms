@@ -100,10 +100,26 @@ describe('component entry', () => {
       name: 'August10Test',
       type: 'prebuilt' as ComponentType,
       attributes,
-      attributeOrder: Object.keys(attributes),
+      attributeOrder: Object.keys(attributes)
+    }
+    expect(validate(roundTrip(entry))).toBe(true)
+  })
+
+  it('rejects an entry still carrying an editing history', () => {
+    // Editing history moved into UndoRedoEnvelope, and an entry is now only what describes a
+    // component — which is what makes it publishable and signable. Asserted rather than assumed,
+    // because additionalProperties: false is the only thing enforcing it and a schema is easy to
+    // relax by accident.
+    const validate = validator(componentEntrySchema)
+    const entry = {
+      uid: 'entry-uid',
+      name: 'August10Test',
+      type: 'prebuilt' as ComponentType,
+      attributes: {},
+      attributeOrder: [],
       history: [],
       future: []
     }
-    expect(validate(roundTrip(entry))).toBe(true)
+    expect(validate(roundTrip(entry))).toBe(false)
   })
 })

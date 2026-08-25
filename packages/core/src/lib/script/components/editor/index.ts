@@ -37,9 +37,7 @@ async function createComponentEntry (uid: string, type: ComponentType, name: str
     type,
     name,
     attributes: {},
-    attributeOrder: [],
-    history: [],
-    future: []
+    attributeOrder: []
   }
   await uploadComponentEntry(emptyComponentEntry)
 }

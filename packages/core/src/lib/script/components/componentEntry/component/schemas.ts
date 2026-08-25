@@ -323,11 +323,9 @@ const componentEntrySchema: Schema = {
     // described here; additionalProperties: false is what turned that from invisible into a failure.
     type: { type: 'string', enum: ['prebuilt', 'dynamic'] },
     attributeOrder: { type: 'array', items: { type: 'string' } },
-    attributes: componentEntryAttributesSchema,
-    history: {},
-    future: {}
+    attributes: componentEntryAttributesSchema
   },
-  required: ['uid', 'name', 'type', 'attributes', 'attributeOrder', 'history', 'future']
+  required: ['uid', 'name', 'type', 'attributes', 'attributeOrder']
 }
 
 const componentEntryCreationSchema: Schema = {

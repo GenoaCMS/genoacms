@@ -1,4 +1,3 @@
-import type { Diff } from 'deep-diff'
 import type {
   AttributeReference,
   ComponentEntryAttributes
@@ -12,8 +11,26 @@ import type {
  * component's source, this application validates and signs them, and a consumer SDK reads them to
  * render. It is re-exported below so that every module here keeps importing it from one place.
  *
- * What stays is the part the CMS owns and no adapter should see: a component's identity, the order
- * its attributes are shown in, and the undo history of editing them.
+ * What stays is the part the CMS owns and no adapter should see: a component's identity and the
+ * order its attributes are shown in.
+ *
+ * ## Editing history is no longer part of it
+ *
+ * The entry used to carry `history` and `future` of its own. They were declared, initialized empty,
+ * required by the schema, and **never read or written** — the prebuilt editor's undo and redo are
+ * still empty server actions. So nothing is lost by moving them out, and two things are gained.
+ *
+ * An entry now describes a component and nothing else, which is what lets it be **published and
+ * signed**: a consumer needs `attributeOrder` to call a component's parameters in the right order,
+ * and has no use for how the author arrived at it. Signing an entry that carried its history would
+ * publish every intermediate state of an author's afternoon, and would change the signature whenever
+ * an unrelated edit was undone.
+ *
+ * And when undo and redo are wired up, the steps live in an `UndoRedoAdjunct` stored beside this —
+ * the same operations the page editor already uses, rather than a second implementation of them.
+ * An adjunct rather than a wrapper, so that this description stays a single stored fact: a wrapper
+ * would put it inside the history object, and publishing it would mean two copies with nothing to
+ * say which wins when they disagree.
  */
 
 export type {
@@ -59,16 +76,12 @@ type ComponentType = 'prebuilt' | 'dynamic'
 
 type ComponentEntryReference = string
 
-type AttributesChange = Array<Diff<ComponentEntryAttributes>>
-
 interface ComponentEntry {
   uid: ComponentEntryReference,
   type: ComponentType,
   name: string,
   attributes: ComponentEntryAttributes,
-  attributeOrder: Array<AttributeReference>,
-  history: Array<AttributesChange>,
-  future: Array<AttributesChange>
+  attributeOrder: Array<AttributeReference>
 }
 
 interface ComponentEntryCreation {
@@ -78,7 +91,6 @@ interface ComponentEntryCreation {
 export type {
   ComponentType,
   ComponentEntryReference,
-  AttributesChange,
   ComponentEntry,
   ComponentEntryCreation
 }
