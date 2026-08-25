@@ -49,7 +49,7 @@ import {
  * SuperAdmin — leaving the Tier-1 seed administrator as the only way to create one.
  *
  * The honest statement is therefore that `config:roles:manage` **is** SuperAdmin by another route,
- * and it should be granted as sparingly as `components:dynamic:commit`. A guard that looked like
+ * and it should be granted as sparingly as `components:code`. A guard that looked like
  * containment but was not would be worse than the documented truth.
  */
 

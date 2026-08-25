@@ -25,27 +25,30 @@ import {
  * ## Why this layer arrived late
  *
  * It did not exist at all until now: the editor's routes and remote functions called the primary
- * module directly, so **every dynamic-component operation was unenforced** while
- * `components:dynamic:*` sat in the taxonomy consumed by nothing — a permission that decides
- * nothing looks like a control and is not one.
+ * module directly, so **every operation here was unenforced** while the component permissions sat
+ * in the taxonomy consumed by nothing — a permission that decides nothing looks like a control and
+ * is not one.
  *
- * ## The permissions, and why each is the one demanded
+ * ## The two permissions, and why they are two
  *
- * - `components:dynamic:manage` — a component's **existence**: creating one, and deleting it.
- *   Deleting destroys the source outright, which no amount of `edit` should imply, and creating
- *   also registers a header in the prebuilt catalog.
- * - `components:dynamic:view_code` — reading a definition. Source is the thing worth restricting
- *   here; the catalog of *names* is `components:prebuilt:read`, which the listing demands.
- * - `components:dynamic:edit` — writing the draft. The editor saves as it is typed, so this is the
- *   permission the autosave path demands on every keystroke that lands.
- * - `components:dynamic:commit` — the highest-value permission in the system: it runs static
- *   analysis, compiles, signs with the key hierarchy and publishes an executable that consumers
- *   will run.
+ * - `components:register` — a component's **existence**: creating one, and deleting it. Deleting
+ *   destroys the source and every publication outright, which no amount of authoring should imply,
+ *   and creating brings a component into the catalog that pages can then be built on. It is the same
+ *   permission that registers a component whose code lives in the consuming application, because
+ *   existence is the same act for both kinds.
+ * - `components:code` — **everything a component's source is**: reading it, writing the draft, and
+ *   publishing it. The highest-value permission in the system, since publishing runs static
+ *   analysis, compiles, signs with the key hierarchy and produces an executable that consumers will
+ *   run.
  *
- * Creating and deleting also touch the prebuilt catalog, but they are **not** additionally gated
- * on `components:prebuilt:register`: a coded component's header is how the CMS stores it, not a
- * separate thing an operator registers, and demanding both would make authoring impossible without
- * a permission whose own description is about plugins and packages.
+ * Reading and writing and publishing used to be three permissions — `view_code`, `edit` and
+ * `commit` — which allowed a reviewer who could not write and a publisher who could not author.
+ * **Those arrangements are no longer expressible**, deliberately: one permission reaches source at
+ * all, and anything holding it holds all three.
+ *
+ * The catalog of *names* is `components:read`, which the listing demands, and which is not implied
+ * by holding the source permission: seeing what a component does and seeing that it exists are
+ * different questions.
  */
 
 /**
@@ -55,12 +58,12 @@ import {
  * principal who may see that a component exists is not thereby permitted to read what it does.
  */
 const listUserComponents = async (ctx: AuthContext): Promise<Component[]> => {
-  requirePermission(ctx, 'components:prebuilt:read')
+  requirePermission(ctx, 'components:read')
   return await listOrCreateComponentList()
 }
 
 const getUserComponent = async (ctx: AuthContext, uid: string): Promise<Component> => {
-  requirePermission(ctx, 'components:prebuilt:read')
+  requirePermission(ctx, 'components:read')
   return await getComponent(uid)
 }
 
@@ -68,12 +71,12 @@ const getUserComponentDefinition = async (
   ctx: AuthContext,
   reference: ComponentReference
 ): Promise<ComponentDefinition> => {
-  requirePermission(ctx, 'components:dynamic:view_code')
+  requirePermission(ctx, 'components:code')
   return await getComponentDefiniton(reference)
 }
 
 const createUserComponent = async (ctx: AuthContext, name: string): Promise<string> => {
-  requirePermission(ctx, 'components:dynamic:manage')
+  requirePermission(ctx, 'components:register')
   return await createComponent(name)
 }
 
@@ -82,7 +85,7 @@ const updateUserComponentDefinition = async (
   reference: ComponentReference,
   updater: (definition: ComponentDefinition) => ComponentDefinition
 ): Promise<void> => {
-  requirePermission(ctx, 'components:dynamic:edit')
+  requirePermission(ctx, 'components:code')
   await updateComponentDefinition(reference, updater)
 }
 
@@ -102,12 +105,12 @@ const commitUserComponentDefinition = async (
   ctx: AuthContext,
   order: Parameters<typeof commitComponentDefinition>[0]
 ): Promise<void> => {
-  requirePermission(ctx, 'components:dynamic:commit')
+  requirePermission(ctx, 'components:code')
   await commitComponentDefinition(order, ctx.subject)
 }
 
 const deleteUserComponent = async (ctx: AuthContext, component: Component): Promise<void> => {
-  requirePermission(ctx, 'components:dynamic:manage')
+  requirePermission(ctx, 'components:register')
   await deleteComponent(component)
 }
 

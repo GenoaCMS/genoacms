@@ -28,8 +28,8 @@ const card = (page: Page, name: string): Locator =>
 // ---------------------------------------------------------------------------------------------
 
 const openPrebuilt = async (page: Page): Promise<void> => {
-  await page.goto('/components/prebuilt')
-  await expect(page.getByRole('heading', { name: 'Prebuilt component management' })).toBeVisible()
+  await page.goto('/components/registrar')
+  await expect(page.getByRole('heading', { name: 'Component registrar' })).toBeVisible()
 }
 
 /** Registering navigates to the new entry, so the URL is what confirms it. */

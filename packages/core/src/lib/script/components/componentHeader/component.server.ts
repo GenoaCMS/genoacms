@@ -4,7 +4,7 @@ import { uploadComponentHeader } from './io.server'
 const createComponentHeader = async (creation: ComponentHeaderCreation) => {
   const componentHeader: ComponentHeader = {
     uid: crypto.randomUUID(),
-    type: 'prebuilt',
+    type: creation.type,
     name: creation.name,
     attributes: {},
     attributeOrder: []

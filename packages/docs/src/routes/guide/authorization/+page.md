@@ -23,13 +23,10 @@ invent one.
 | `db:collection:read` | a collection |
 | `db:collection:write` | a collection |
 | `db:collection:delete` | a collection |
-| `components:prebuilt:read` | instance |
-| `components:prebuilt:register` | instance |
-| `components:prebuilt:modify` | instance |
-| `components:dynamic:manage` | instance |
-| `components:dynamic:view_code` | instance |
-| `components:dynamic:edit` | instance |
-| `components:dynamic:commit` | instance |
+| `components:read` | instance |
+| `components:register` | instance |
+| `components:modify` | instance |
+| `components:code` | instance |
 | `pages:read` | instance |
 | `pages:content_edit` | instance |
 | `pages:structure_edit` | instance |
@@ -48,14 +45,22 @@ A few are worth reading twice:
   the first and not the second.
 - **A move is a write, not a delete.** Renaming or relocating an object needs `storage:bucket:write`.
   `storage:bucket:delete` is only for destroying things.
-- **Removing a prebuilt component needs `components:prebuilt:register`**, not `modify`. Removal is
-  the inverse of registration, so a role meant to adjust a component's attributes cannot destroy one
-  that pages depend on.
-- **`components:dynamic:manage` is about a component's existence**, not its source. Creating and
-  deleting need it; reading, editing and committing the code do not. Deleting destroys the source,
-  which is why editing alone does not permit it.
-- **Committing does not require editing.** A role can publish what others wrote without being able
-  to change it first, which is the point of keeping the two apart.
+- **The four component permissions do not distinguish the two kinds of component.** A component
+  whose code lives in your application and one written in the CMS are described the same way and
+  listed in the same catalog, so the line the permissions draw is between *describing* a component
+  and *writing its code* — not between the kinds. `components:code` is simply a capability only a
+  component authored here has any use for.
+- **Removing a component needs `components:register`**, not `modify`. Removal is the inverse of
+  registration, so a role meant to adjust a component's attributes cannot destroy one that pages
+  depend on.
+- **`components:register` is about a component's existence**, not its source. Creating and deleting
+  need it; reading, editing and publishing the code do not.
+- **`components:code` covers reading source, writing it and publishing it.** These are deliberately
+  one permission and not three: anything that can read a component's source can also publish an
+  executable built from it. A reviewer who may read but not write, or a publisher who may release
+  what others wrote without altering it first, cannot be expressed. Publishing runs static analysis,
+  compiles, signs with the key hierarchy and produces code your visitors execute — so grant this as
+  narrowly as you grant `config:roles:manage`.
 - **`config:keys:manage` covers reading the key registry as well as changing it.** There is no
   separate read permission: the registry is published for consumers to fetch, so there would be
   nothing to withhold. See [signing keys](/guide/signing-keys).
@@ -65,7 +70,7 @@ A few are worth reading twice:
 :::caution[`config:roles:manage` is full authority]
 Whoever can administer roles can create a role holding every permission and assign it to themselves.
 No barrier against that is attempted, because a partial one would be worse than an honest statement:
-grant this permission as narrowly as you would grant `components:dynamic:commit`.
+grant this permission as narrowly as you would grant `components:code`.
 :::
 
 ## Scopes

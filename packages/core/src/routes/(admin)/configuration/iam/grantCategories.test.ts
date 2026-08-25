@@ -48,9 +48,11 @@ describe('categoryOf', () => {
 })
 
 describe('option groups', () => {
-  it('splits content by pages and component kind', () => {
+  it('splits content into pages and components, and no further', () => {
+    // Components are not subdivided by kind: prebuilt and dynamic ones are described and governed
+    // identically, so a group per kind would offer a distinction the permissions do not make.
     const labels = optionGroups('content').map(group => group.label)
-    expect(labels).toEqual(['Pages', 'Prebuilt components', 'Dynamic components'])
+    expect(labels).toEqual(['Pages', 'Components'])
   })
 
   it('covers every permission of the category it groups', () => {
@@ -70,8 +72,8 @@ describe('option labels', () => {
     const storage = optionGroups('storage')[0].options
     expect(storage.map(o => o.label)).toEqual(['read', 'write', 'delete'])
 
-    const dynamic = optionGroups('content')[2].options
-    expect(dynamic.map(o => o.label)).toEqual(['manage', 'view code', 'edit', 'commit'])
+    const components = optionGroups('content')[1].options
+    expect(components.map(o => o.label)).toEqual(['read', 'register', 'modify', 'code'])
   })
 
   it('keep the segment that distinguishes, even when it is not the last', () => {

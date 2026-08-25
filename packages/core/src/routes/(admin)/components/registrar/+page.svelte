@@ -18,16 +18,16 @@
 </script>
 
 <TopPanel>
-    <h1 class="text-2xl">Prebuilt component management</h1>
+    <h1 class="text-2xl">Component registrar</h1>
     {#snippet right()}
         <!-- Registering and removing are the same permission: removal is the inverse of
              registration, so a role that may adjust a component cannot destroy one.
              Selection itself is not gated — selecting is not an operation, what it enables is. -->
-        <PermissionGate permission="components:prebuilt:register">
+        <PermissionGate permission="components:register">
             <DeleteSelected {selection} action="?/deleteSelected" noun="component" />
         </PermissionGate>
         <SelectionToggle {selection} {entries} />
-        <PermissionGate permission="components:prebuilt:register">
+        <PermissionGate permission="components:register">
             <CreateComponentSchema />
         </PermissionGate>
     {/snippet}

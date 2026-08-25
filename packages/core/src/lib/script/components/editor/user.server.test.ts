@@ -8,7 +8,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
  *
  * This layer did not exist until the interface was being gated: the editor's routes called the
  * primary module directly, so creating, reading, editing, committing and deleting a coded component
- * were all unenforced while `components:dynamic:*` sat in the taxonomy consumed by nothing.
+ * were all unenforced while the component permissions sat in the taxonomy consumed by nothing.
  *
  * The cases that matter most are the separations the taxonomy claims to express — reading source
  * without writing it, publishing without authoring, and creating or destroying a component without
@@ -39,11 +39,10 @@ const contextWith = (permissions: Permission[]): AuthContext =>
   createAuthContext('subject-1', permissions.map(grant))
 
 const nobody = () => contextWith([])
-const reader = () => contextWith(['components:prebuilt:read'])
-const viewer = () => contextWith(['components:dynamic:view_code'])
-const author = () => contextWith(['components:dynamic:edit'])
-const publisher = () => contextWith(['components:dynamic:commit'])
-const manager = () => contextWith(['components:dynamic:manage'])
+const reader = () => contextWith(['components:read'])
+/** Reading, writing and publishing source are one permission: `components:code`. */
+const developer = () => contextWith(['components:code'])
+const manager = () => contextWith(['components:register'])
 
 const component = { uid: 'uid-1', name: 'hero' } as never
 const order = { componentId: 'uid-1', message: 'a message' } as never
@@ -81,41 +80,37 @@ describe('reading', () => {
     await expectDenied(() => editor.getUserComponentDefinition(reader(), 'uid-1'))
   })
 
-  it('lets source be read without being writable', async () => {
-    await editor.getUserComponentDefinition(viewer(), 'uid-1')
+  it('needs components:code, which reading the catalog does not imply', async () => {
+    await editor.getUserComponentDefinition(developer(), 'uid-1')
     expect(calls).toEqual(['definition:uid-1'])
-
-    calls.length = 0
-    await expectDenied(() => editor.updateUserComponentDefinition(viewer(), 'uid-1', d => d))
   })
 })
 
 describe('authoring', () => {
-  it('writes the draft with edit alone', async () => {
-    await editor.updateUserComponentDefinition(author(), 'uid-1', d => d)
+  it('writes the draft with components:code', async () => {
+    await editor.updateUserComponentDefinition(developer(), 'uid-1', d => d)
     expect(calls).toEqual(['update:uid-1'])
   })
 
-  it('does not permit publishing', async () => {
-    // Committing signs and publishes an executable. Authoring must not imply it.
-    await expectDenied(() => editor.commitUserComponentDefinition(author(), order))
-  })
-
   it('does not permit creating or destroying a component', async () => {
-    await expectDenied(() => editor.createUserComponent(author(), 'hero'))
-    await expectDenied(() => editor.deleteUserComponent(author(), component))
+    // Existence is `components:register`. Holding the key to a component's source is not a licence
+    // to add components pages can be built on, or to destroy one every page depends on.
+    await expectDenied(() => editor.createUserComponent(developer(), 'hero'))
+    await expectDenied(() => editor.deleteUserComponent(developer(), component))
   })
 })
 
 describe('publishing', () => {
-  it('needs commit alone, so a publisher need not be an author', async () => {
-    // The arrangement the taxonomy exists to allow: a small trusted set publishes what others
-    // wrote, without being able to alter it first.
-    await editor.commitUserComponentDefinition(publisher(), order)
+  it('rides on components:code, the same permission that reads and writes source', async () => {
+    // Reading, writing and publishing are deliberately one permission. It is the highest-value one
+    // in the system — publishing analyzes, compiles, signs and produces an executable consumers run
+    // — so anything holding it holds all three, and this is what says so out loud.
+    await editor.commitUserComponentDefinition(developer(), order)
     expect(calls).toEqual(['commit:uid-1:subject-1'])
+  })
 
-    calls.length = 0
-    await expectDenied(() => editor.updateUserComponentDefinition(publisher(), 'uid-1', d => d))
+  it('is denied to a principal who may only read the catalog', async () => {
+    await expectDenied(() => editor.commitUserComponentDefinition(reader(), order))
   })
 
   it('attributes the commit to the authenticated principal, not to the order', async () => {
@@ -123,7 +118,7 @@ describe('publishing', () => {
     // its own publication to somebody else, and the signed executable would carry that claim.
     const forged = { componentId: 'uid-1', message: 'a message', authorId: 'someone-else' } as never
 
-    await editor.commitUserComponentDefinition(publisher(), forged)
+    await editor.commitUserComponentDefinition(developer(), forged)
 
     expect(calls).toEqual(['commit:uid-1:subject-1'])
   })

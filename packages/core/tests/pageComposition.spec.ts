@@ -43,7 +43,7 @@ const componentFor = (type: string): string =>
 
 /** Registers a prebuilt component and lands on its editor. */
 const createComponent = async (page: Page, name: string): Promise<void> => {
-  await page.goto('/components/prebuilt')
+  await page.goto('/components/registrar')
   await page.getByRole('button', { name: 'Register component' }).click()
   await page.getByLabel('Component name:').fill(name)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
@@ -68,7 +68,7 @@ const saveComponent = async (page: Page): Promise<void> => {
 }
 
 const openComponent = async (page: Page, name: string): Promise<void> => {
-  await page.goto('/components/prebuilt')
+  await page.goto('/components/registrar')
   // `.first()` rather than a strict match: an interrupted run can leave a second component of the
   // same name behind, and failing to open either would hide the real result behind a fixture problem.
   await page.getByRole('link', { name: new RegExp(`\\b${name}$`) }).first().click()
@@ -171,7 +171,7 @@ test.describe('building the component catalog', () => {
       await saveComponent(page)
     }
 
-    await page.goto('/components/prebuilt')
+    await page.goto('/components/registrar')
     for (const type of ATTRIBUTE_TYPES) {
       await expect(page.getByText(componentFor(type), { exact: true })).toBeVisible()
     }
@@ -357,7 +357,7 @@ test.describe('removing everything', () => {
   test('refuses a confirmation that does not name everything selected', async ({ page }) => {
     // The guard the sequence exists for: one name is what someone types out of habit, and it must
     // not be enough to remove several things.
-    await page.goto('/components/prebuilt')
+    await page.goto('/components/registrar')
     const boxes = await ownCheckboxes(page).all()
     expect(boxes.length).toBeGreaterThan(1)
     for (const box of boxes) await box.click()
@@ -379,7 +379,7 @@ test.describe('removing everything', () => {
   })
 
   test('deletes every component it created', async ({ page }) => {
-    await page.goto('/components/prebuilt')
+    await page.goto('/components/registrar')
     expect(await ownFixturesOn(page)).not.toEqual([])
 
     await deleteFixtures(page)

@@ -62,22 +62,25 @@ const databasePermissions = {
  * page publishing. They are instance-scoped — the architecture does not define per-component or
  * per-page grants.
  *
- * `components:dynamic:commit` is the highest-value permission in the system: it runs static
- * analysis, compiles a bundle, signs it, and publishes an executable that consumers will run.
- * Restricting it to a small trusted set is itself a compensating control.
+ * The four component permissions govern one component vocabulary, not two. A component's kind —
+ * whether its code lives in the consuming application or is written here — decides what the CMS
+ * stores for it, and nothing about who may act on it: the registrar describes both the same way, so
+ * a permission naming a kind would draw a line the interface does not have.
  *
- * `components:dynamic:manage` governs a coded component's **existence** — creating and deleting it —
- * as distinct from authoring its source. Deleting removes the source outright, which no amount of
- * `edit` should imply.
+ * `components:code` is the highest-value permission in the system: it is what reaches a component's
+ * source at all, and publishing runs static analysis, compiles a bundle, signs it, and produces an
+ * executable that consumers will run. Restricting it to a small trusted set is itself a
+ * compensating control.
+ *
+ * `components:register` governs a component's **existence** — creating and deleting it — as distinct
+ * from describing its shape (`modify`) or writing its code (`code`). Deleting removes the source and
+ * every publication outright, which no amount of either should imply.
  */
 const contentPermissions = {
-  'components:prebuilt:read': { domain: 'content', scope: 'instance' },
-  'components:prebuilt:register': { domain: 'content', scope: 'instance' },
-  'components:prebuilt:modify': { domain: 'content', scope: 'instance' },
-  'components:dynamic:manage': { domain: 'content', scope: 'instance' },
-  'components:dynamic:view_code': { domain: 'content', scope: 'instance' },
-  'components:dynamic:edit': { domain: 'content', scope: 'instance' },
-  'components:dynamic:commit': { domain: 'content', scope: 'instance' },
+  'components:read': { domain: 'content', scope: 'instance' },
+  'components:register': { domain: 'content', scope: 'instance' },
+  'components:modify': { domain: 'content', scope: 'instance' },
+  'components:code': { domain: 'content', scope: 'instance' },
   'pages:read': { domain: 'content', scope: 'instance' },
   'pages:content_edit': { domain: 'content', scope: 'instance' },
   'pages:structure_edit': { domain: 'content', scope: 'instance' },

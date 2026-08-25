@@ -1,6 +1,7 @@
 import { requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
-import type { ComponentHeader, ComponentHeaderReference } from './component/types'
+import type { ComponentHeader, ComponentHeaderCreation, ComponentHeaderReference } from './component/types'
+import { createComponentHeader } from './component.server'
 import {
   listOrCreateComponentHeaderList,
   getComponentHeader,
@@ -28,19 +29,19 @@ import type { HistoryDepth } from './editing.server'
  *
  * A dynamic component has a header too, so the storage these operations read holds both kinds. They
  * are **not** interchangeable here. Deleting a dynamic component means removing its definition, its
- * commits and every published executable, and it is gated on `components:dynamic:manage`; removing
+ * commits and every published executable, and it is gated on `components:register`; removing
  * only its header leaves all of that orphaned in the bucket, still signed and still verifying, while
  * the component disappears from the editor that would have fixed it.
  *
- * The catalog used to list both, so `components:prebuilt:register` could destroy a dynamic component
- * without holding `components:dynamic:manage` at all. Filtering the listing is not the fix — a
+ * The catalog used to list both, so `components:register` could destroy a dynamic component
+ * without holding `components:register` at all. Filtering the listing is not the fix — a
  * request naming a dynamic component directly would still be served. So every operation here reads
  * the **stored** type and refuses anything that is not prebuilt.
  *
  * The upload primitive is an upsert, but the two capabilities it serves are not the same: adding a
  * component to the catalog and altering one already in it are separate permissions. Rather than
  * probing storage to find out which is happening, this layer exposes the *intent* and lets the call
- * site declare it. Registration has no route yet, so no wrapper for it exists.
+ * site declare it.
  */
 
 /** Raised when an operation for prebuilt components is aimed at a dynamic one. */
@@ -68,8 +69,30 @@ const requirePrebuilt = async (reference: ComponentHeaderReference): Promise<Com
   return entry
 }
 
+/**
+ * Adds a prebuilt component to the catalog.
+ *
+ * `register` rather than `modify`, and the same permission deletion demands: a principal who may
+ * adjust an existing component's attributes is not thereby allowed to add components to the catalog
+ * that pages can then be built on.
+ *
+ * **Prebuilt only.** A dynamic component is registered through `registration.server.ts`, which
+ * routes it to the editor's service so that its source definition is created too and
+ * `components:register` is what decides it. Creating a dynamic component here would write a
+ * header with no definition behind it — a component the editor cannot open and the catalog still
+ * lists.
+ */
+const registerUserComponentHeader = async (
+  ctx: AuthContext,
+  creation: ComponentHeaderCreation
+): Promise<ComponentHeader> => {
+  requirePermission(ctx, 'components:register')
+  if (creation.type !== 'prebuilt') throw new NotAPrebuiltComponentError(creation.name)
+  return await createComponentHeader(creation)
+}
+
 const listUserComponentEntries = async (ctx: AuthContext): Promise<ComponentHeader[]> => {
-  requirePermission(ctx, 'components:prebuilt:read')
+  requirePermission(ctx, 'components:read')
   const entries = await listOrCreateComponentHeaderList()
   return entries.filter(entry => entry.type === 'prebuilt')
 }
@@ -78,12 +101,12 @@ const getUserComponentHeader = async (
   ctx: AuthContext,
   reference: ComponentHeaderReference
 ): Promise<ComponentHeader | null> => {
-  requirePermission(ctx, 'components:prebuilt:read')
+  requirePermission(ctx, 'components:read')
   return await requirePrebuilt(reference)
 }
 
 const updateUserComponentHeader = async (ctx: AuthContext, entry: ComponentHeader) => {
-  requirePermission(ctx, 'components:prebuilt:modify')
+  requirePermission(ctx, 'components:modify')
   await requirePrebuilt(entry.uid)
   return await saveComponentHeader(entry)
 }
@@ -98,7 +121,7 @@ const getUserComponentHeaderDepth = async (
   ctx: AuthContext,
   reference: ComponentHeaderReference
 ): Promise<HistoryDepth> => {
-  requirePermission(ctx, 'components:prebuilt:read')
+  requirePermission(ctx, 'components:read')
   await requirePrebuilt(reference)
   return await getComponentHeaderDepth(reference)
 }
@@ -110,13 +133,13 @@ const getUserComponentHeaderDepth = async (
  * edit — it *is* an edit, expressed as the reverse of one.
  */
 const undoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
-  requirePermission(ctx, 'components:prebuilt:modify')
+  requirePermission(ctx, 'components:modify')
   await requirePrebuilt(reference)
   return await undoComponentHeader(reference)
 }
 
 const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
-  requirePermission(ctx, 'components:prebuilt:modify')
+  requirePermission(ctx, 'components:modify')
   await requirePrebuilt(reference)
   return await redoComponentHeader(reference)
 }
@@ -129,13 +152,14 @@ const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHea
  * meant to edit attributes could destroy a component that pages depend on.
  */
 const deleteUserComponentHeader = async (ctx: AuthContext, name: string) => {
-  requirePermission(ctx, 'components:prebuilt:register')
+  requirePermission(ctx, 'components:register')
   await requirePrebuilt(name)
   return await deleteComponentHeader(name)
 }
 
 export {
   NotAPrebuiltComponentError,
+  registerUserComponentHeader,
   listUserComponentEntries,
   getUserComponentHeader,
   updateUserComponentHeader,

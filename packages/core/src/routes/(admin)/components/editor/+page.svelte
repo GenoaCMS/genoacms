@@ -2,7 +2,6 @@
   import Grid from '$lib/components/Grid.svelte'
   import TopPanel from '$lib/components/TopPanel.svelte'
   import Component from './Component.svelte'
-  import CreateComponent from './CreateComponent.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
   import SelectableCard from '$lib/components/selection/SelectableCard.svelte'
   import SelectionToggle from '$lib/components/selection/SelectionToggle.svelte'
@@ -12,8 +11,8 @@
   const { data } = $props()
 
   const selection = new NamedSelection()
-  // Acted on by uid and read by name, as in the prebuilt catalog: two components may share a name,
-  // and only the uid tells them apart.
+  // Acted on by uid and read by name, as in the registrar: two components may share a name, and
+  // only the uid tells them apart.
   const entries = $derived(data.components.map(component => ({
     id: component.uid,
     name: component.name
@@ -29,14 +28,12 @@
          Delete is placed before the toggle deliberately. The toolbar is right-anchored, so a
          control that appears takes the coordinates the one beside it had, and putting Delete where
          "select all" was makes a second click destructive. -->
-    <PermissionGate permission="components:dynamic:manage">
+    <PermissionGate permission="components:register">
       <DeleteSelected {selection} action="?/deleteSelected" noun="component" />
     </PermissionGate>
     <SelectionToggle {selection} {entries} />
-    <!-- Bringing a coded component into being, which is what the editor service demands. -->
-    <PermissionGate permission="components:dynamic:manage">
-      <CreateComponent />
-    </PermissionGate>
+    <!-- There is no create control here. A component is born in the registrar, whichever kind it
+         is, so that one act decides its type and demands the permission that type calls for. -->
   {/snippet}
 </TopPanel>
 

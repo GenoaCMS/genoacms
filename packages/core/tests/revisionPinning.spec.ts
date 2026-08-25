@@ -187,7 +187,7 @@ test.afterAll(async ({ browser }) => {
   await sweep(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
   if (uid !== undefined) {
     await sweep(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
-    for (const directory of [['dynamic'], ['prebuilt']]) {
+    for (const directory of [['dynamic'], ['headers']]) {
       await sweep(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
     }
   }
@@ -263,7 +263,7 @@ test('deleting the component removes every revision it published', async ({ page
   await deleteComponent(page, uid, componentName)
 
   await assertGone(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
-  for (const directory of [['dynamic'], ['prebuilt']]) {
+  for (const directory of [['dynamic'], ['headers']]) {
     await assertGone(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
   }
 })

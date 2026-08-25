@@ -57,6 +57,7 @@ const matrixOperations = [
   'commitUserComponentDefinition',
   'deleteUserComponent',
   // prebuilt components
+  'registerUserComponentHeader',
   'listUserComponentEntries',
   'getUserComponentHeader',
   'updateUserComponentHeader',
@@ -203,49 +204,34 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserPages', 'getUserPageEntry', 'saveUserPageContent', 'generateUserReadablePageTree'
     ]
   },
-  /** Reads source but cannot change it, which is what `view_code` exists to express. */
-  ComponentReviewer: {
-    grants: [instanceGrant('components:prebuilt:read'), instanceGrant('components:dynamic:view_code')],
-    allowed: [
-      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
-      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition'
-    ]
-  },
-  /** Authors code without being able to publish it, or to create and destroy components. */
-  ComponentAuthor: {
-    grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:dynamic:view_code'),
-      instanceGrant('components:dynamic:edit')
-    ],
+  /**
+   * Everything a component's source can be: reading it, writing it, and publishing it.
+   *
+   * **One role where there were three.** `view_code`, `edit` and `commit` used to separate reading
+   * source from writing it and from publishing an executable, and the matrix carried a role per
+   * step — a reviewer who could read and not write, an author who could write and not publish, a
+   * publisher who could publish what others wrote without altering it first. `components:code`
+   * covers all three, so those arrangements are no longer expressible and the roles that
+   * demonstrated them are gone rather than left asserting a separation the permissions do not make.
+   *
+   * This is the highest-value role in the system: publishing runs static analysis, compiles a
+   * bundle, signs it with the key hierarchy, and produces an executable that consumers will run.
+   */
+  ComponentDeveloper: {
+    grants: [instanceGrant('components:read'), instanceGrant('components:code')],
     allowed: [
       'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
-      'updateUserComponentDefinition'
+      'updateUserComponentDefinition', 'commitUserComponentDefinition'
     ]
-  },
-  /**
-   * Publishes what others authored, without being able to alter it first.
-   *
-   * The arrangement `commit` exists to allow, and the reason committing is not additionally gated
-   * on `edit`.
-   */
-  ComponentPublisher: {
-    grants: [instanceGrant('components:dynamic:commit')],
-    allowed: ['commitUserComponentDefinition']
-  },
-  /** Creates and destroys coded components without being able to read or write their source. */
-  ComponentManager: {
-    grants: [instanceGrant('components:dynamic:manage')],
-    allowed: ['createUserComponent', 'deleteUserComponent']
   },
   ComponentCurator: {
     grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:prebuilt:modify')
+      instanceGrant('components:read'),
+      instanceGrant('components:modify')
     ],
     // The catalog permission covers coded components too: their names are catalog information,
-    // and what distinguishes them — their source — is `components:dynamic:view_code`.
+    // and what distinguishes them — their source — is `components:code`.
     allowed: [
       'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
@@ -254,12 +240,16 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   },
   ComponentRegistrar: {
     grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:prebuilt:register')
+      instanceGrant('components:read'),
+      instanceGrant('components:register')
     ],
+    // Registering covers a component's **existence**, of either kind: the same permission creates a
+    // prebuilt component's description and brings a coded component into being with its source.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth', 'deleteUserComponentHeader',
-      'listUserComponents', 'getUserComponent'
+      'listUserComponentEntries', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'registerUserComponentHeader', 'deleteUserComponentHeader',
+      'listUserComponents', 'getUserComponent',
+      'createUserComponent', 'deleteUserComponent'
     ]
   },
   RoleAdministrator: {

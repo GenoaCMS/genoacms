@@ -11,5 +11,5 @@
 <CardLink
   text="Component {record.componentName}"
   icon="boxes"
-  href="/components/prebuilt/{record.componentId}"
+  href="/components/registrar/{record.componentId}"
 />

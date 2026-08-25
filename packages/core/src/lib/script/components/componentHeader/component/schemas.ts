@@ -335,9 +335,13 @@ const componentHeaderCreationSchema: Schema = {
     name: {
       type: 'string',
       minLength: 1
+    },
+    type: {
+      type: 'string',
+      enum: ['prebuilt', 'dynamic']
     }
   },
-  required: ['name']
+  required: ['name', 'type']
 }
 
 export {

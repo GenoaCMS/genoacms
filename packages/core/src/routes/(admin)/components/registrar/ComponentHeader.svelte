@@ -10,4 +10,4 @@
 
 <!-- `noscale`: SelectableCard scales the card and its checkbox together, so scaling here too would
      leave the checkbox behind. -->
-<CardLink href="prebuilt/{entry.uid}" icon="box" text={entry.name} noscale />
+<CardLink href="registrar/{entry.uid}" icon="box" text={entry.name} noscale />

@@ -3,22 +3,35 @@
   import { createComponent } from './create.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { goto } from '$app/navigation'
+  import ComponentTypeChoice from './ComponentTypeChoice.svelte'
+  import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
 
+  /**
+   * Registering a component.
+   *
+   * Both kinds are created here. A dynamic one is opened in the editor rather than the registrar,
+   * because its next step is writing it — the registrar page has nothing more to offer until there
+   * is code to describe.
+   */
   let name = $state('')
+  let type = $state<ComponentType>('prebuilt')
   let isModalOpen = $state(false)
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
 
+  const createdComponentURL = (uid: string): string =>
+    type === 'dynamic' ? `../components/editor/${uid}` : `registrar/${uid}`
+
   async function submit () {
-    const result = await createComponent({ name })
-    if (result.status === 'success') {
-      toastSuccess(result.text)
-      isModalOpen = false
-      goto(`prebuilt/${result.uid}`)
-    } else {
+    const result = await createComponent({ name, type })
+    if (result.status !== 'success') {
       toastError(result.text)
+      return
     }
+    toastSuccess(result.text)
+    isModalOpen = false
+    goto(createdComponentURL(result.uid as string))
   }
 </script>
 
@@ -43,6 +56,7 @@
         Component name:
         <Input type="text" class="w-full mt-1" name="name" bind:value={name} required />
       </Label>
+      <ComponentTypeChoice bind:value={type} />
       <Button preset="filled" class="w-full mt-4" type="submit">Create</Button>
     </form>
   </div>

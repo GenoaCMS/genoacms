@@ -84,19 +84,20 @@ function labeled (group: Permission[]): Option[] {
 /**
  * The select options for a category, grouped where the group is meaningful.
  *
- * Content contains both pages and components (prebuilt and dynamic), which are grouped separately.
+ * Content covers two lifecycles — building pages, and the components pages are built from — so those
+ * are grouped apart. Components are **not** subdivided further: prebuilt and dynamic components are
+ * described and governed identically, and the one permission that only a dynamic component can use,
+ * `components:code`, is a capability rather than a kind.
  */
 function optionGroups (id: string): OptionGroup[] {
   const available = permissionsIn(id)
   if (id === 'content') {
-    const pages = available.filter(permission => permission.startsWith('pages:'))
-    const ofKind = (kind: string): Permission[] =>
-      available.filter(permission => permission.startsWith(`components:${kind}:`))
+    const startingWith = (prefix: string): Permission[] =>
+      available.filter(permission => permission.startsWith(prefix))
 
     return [
-      { label: 'Pages', options: labeled(pages) },
-      { label: 'Prebuilt components', options: labeled(ofKind('prebuilt')) },
-      { label: 'Dynamic components', options: labeled(ofKind('dynamic')) }
+      { label: 'Pages', options: labeled(startingWith('pages:')) },
+      { label: 'Components', options: labeled(startingWith('components:')) }
     ].filter(group => group.options.length > 0)
   }
 

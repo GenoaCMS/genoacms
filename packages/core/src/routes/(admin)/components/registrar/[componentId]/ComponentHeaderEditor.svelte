@@ -84,10 +84,10 @@
     {form.name}
   </div>
   {#snippet right()}
-    <PermissionGate permission="components:prebuilt:register">
+    <PermissionGate permission="components:register">
       <DeleteComponent name={form.name} />
     </PermissionGate>
-    <PermissionGate permission="components:prebuilt:modify">
+    <PermissionGate permission="components:modify">
       <ChangeName bind:name={form.name} onrename={submit} />
       <Undo historyLength={depth.historyLength} />
       <Redo futureLength={depth.futureLength} />

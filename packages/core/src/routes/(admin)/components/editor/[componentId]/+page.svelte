@@ -27,10 +27,10 @@
   {#snippet right()}
     <!-- Deleting destroys the source, so it is governed by the component's existence rather than by
          authoring; committing signs and publishes an executable and is its own permission. -->
-    <PermissionGate permission="components:dynamic:manage">
+    <PermissionGate permission="components:register">
       <DeleteComponent uid={data.component.uid} name={data.component.name} />
     </PermissionGate>
-    <PermissionGate permission="components:dynamic:commit">
+    <PermissionGate permission="components:code">
       <CommitComponent
         componentId={data.component.uid}
         {uncommitedCode}

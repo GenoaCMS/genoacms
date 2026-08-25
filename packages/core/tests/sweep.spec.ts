@@ -17,7 +17,7 @@ test('sweeps leftover fixtures from both catalogs', async ({ page }) => {
   await signIn(page)
 
   for (const [label, path] of [
-    ['prebuilt', '/components/prebuilt'],
+    ['prebuilt', '/components/registrar'],
     ['dynamic', '/components/editor']
   ]) {
     await page.goto(path)

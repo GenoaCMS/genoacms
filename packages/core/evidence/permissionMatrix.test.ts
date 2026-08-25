@@ -221,6 +221,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
+  registerUserComponentHeader: ctx => components.registerUserComponentHeader(ctx, { name: 'Hero', type: 'prebuilt' }),
   listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
   getUserComponentHeader: ctx => components.getUserComponentHeader(ctx, 'hero'),
   updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader),
