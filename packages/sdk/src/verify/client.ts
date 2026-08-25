@@ -132,7 +132,7 @@ const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name
 
 /** Where a compiled revision lives. Immutable, which is what lets a consumer cache it forever. */
 const executablePath = (uid: string, commitId: string): string =>
-  `.genoacms/components/${uid}/${commitId}.json`
+  `.genoacms/components/dynamic/executables/${uid}/${commitId}.json`
 
 class Verifier {
   readonly #rootPublicKey: Uint8Array

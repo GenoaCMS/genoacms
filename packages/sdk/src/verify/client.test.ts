@@ -325,7 +325,7 @@ describe('fetching a page tree', () => {
 
 describe('fetching an executable', () => {
   const pin = { uid: 'component-1', commitId: 'commit-2' }
-  const path = '.genoacms/components/component-1/commit-2.json'
+  const path = '.genoacms/components/dynamic/executables/component-1/commit-2.json'
 
   const payload = (over: Record<string, unknown> = {}) => ({
     uid: 'component-1',

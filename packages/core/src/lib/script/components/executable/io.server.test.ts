@@ -38,14 +38,14 @@ describe('where an executable is written', () => {
     // A page pins a revision. The path has to keep resolving to that artifact after the component
     // has moved on, which it can only do if the revision is part of the path.
     expect(componentExecutablePath('component-1', 'commit-1'))
-      .toBe('.genoacms/components/component-1/commit-1.json')
+      .toBe('.genoacms/components/dynamic/executables/component-1/commit-1.json')
   })
 
   it('writes it there', async () => {
     await uploadComponentExecutable(envelope)
 
     expect(uploadInternalObjectJSON.mock.calls[0][0])
-      .toBe('.genoacms/components/component-1/commit-1.json')
+      .toBe('.genoacms/components/dynamic/executables/component-1/commit-1.json')
   })
 
   it('writes the envelope whole, so a consumer can verify the bytes', async () => {
@@ -65,7 +65,7 @@ describe('written once, never rewritten', () => {
   it('refuses when the revision is already published', async () => {
     uploadInternalObjectJSON.mockRejectedValue(
       new PreconditionFailedError(
-        { bucket: 'b', name: '.genoacms/components/component-1/commit-1.json' },
+        { bucket: 'b', name: '.genoacms/components/dynamic/executables/component-1/commit-1.json' },
         'object already exists'
       )
     )
@@ -79,7 +79,7 @@ describe('written once, never rewritten', () => {
     )
 
     await expect(uploadComponentExecutable(envelope))
-      .rejects.toThrow(/\.genoacms\/components\/component-1\/commit-1\.json/)
+      .rejects.toThrow(/\.genoacms\/components\/dynamic\/executables\/component-1\/commit-1\.json/)
   })
 
   it('lets a storage failure through as itself', async () => {

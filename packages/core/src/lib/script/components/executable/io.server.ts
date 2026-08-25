@@ -31,7 +31,15 @@ import type { SignedComponentExecutable } from './executable'
  * artifact unverifiable outside it.
  */
 
-const executablePath = join('.genoacms', 'components')
+/**
+ * Where published artifacts live.
+ *
+ * Under `dynamic/` beside the definitions they were built from, rather than directly in
+ * `components/`. Sitting at the top they were indistinguishable from the catalog's own directories:
+ * one `{uid}/` per component, mixed in with `dynamic/` and `prebuilt/`, so the shape of the tree
+ * said nothing about what any of it was.
+ */
+const executablePath = join('.genoacms', 'components', 'dynamic', 'executables')
 
 const componentExecutablePath = (uid: string, commitId: string): string =>
   join(executablePath, uid, `${commitId}.json`)
