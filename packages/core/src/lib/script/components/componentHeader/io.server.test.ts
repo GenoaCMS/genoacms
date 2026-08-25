@@ -3,7 +3,7 @@ import { stringify as stringifyFlatted, parse as parseFlatted } from 'flatted'
 import type { ComponentHeader } from './component/types'
 
 /**
- * Storing a prebuilt component as two objects.
+ * Storing a component's header as two objects.
  *
  * A component's description is published and signed, so it is stored as plain JSON on its own. Its
  * editing history is stored beside it, flatted, and is nobody's business but the editor's. These
@@ -12,16 +12,21 @@ import type { ComponentHeader } from './component/types'
  *
  * Only storage is stood in for — and it **throws** on a missing object, because that is what real
  * storage does. An earlier version of this mock returned `undefined` instead, every test passed, and
- * the application answered 500 on the components list: every component predating the split is stored
- * at the old path, so reading the new one throws before the fallback is reached.
+ * the application answered 500 on the components list.
+ *
+ * Nothing here covers an older storage shape, because nothing reads one: a header stored under the
+ * previous directory, or in the single flatted form, or without an attribute order, is absent as far
+ * as this module is concerned and the component has to be created again.
  */
 
 const objects = new Map<string, string>()
 
 vi.mock('$lib/script/storage/storage.server', () => ({
   defaultBucketId: 'default',
-  listOrCreateDirectory: async () => ({
-    files: [...objects.keys()].map(name => ({ name })),
+  // Filters by the directory asked for, because real storage does — otherwise a listing scoped to
+  // one directory is indistinguishable from one that reads the whole bucket.
+  listOrCreateDirectory: async ({ name }: { name: string }) => ({
+    files: [...objects.keys()].filter(path => path.startsWith(name)).map(name => ({ name })),
     directories: []
   }),
   fullyQualifiedNameToFilename: (name: string) => name.split('/').at(-1) ?? name,
@@ -56,7 +61,7 @@ const {
   listOrCreateComponentHeaderList
 } = await import('./io.server')
 
-const PREFIX = '.genoacms/components/prebuilt'
+const PREFIX = '.genoacms/components/headers'
 
 const entry = (uid: string): ComponentHeader => ({
   uid,
@@ -89,7 +94,7 @@ describe('storing the description', () => {
 
 describe('storing the history beside it', () => {
   it('keeps the history out of the description', async () => {
-    // The whole point of the split: an entry that carried its history would publish every
+    // The whole point of the split: a header that carried its history would publish every
     // intermediate state of an author's afternoon.
     await uploadComponentHeader(entry('c1'))
     await uploadComponentHeaderHistory('c1', { history: [[]], future: [] })
@@ -125,10 +130,9 @@ describe('listing components', () => {
   })
 
   it('does not read a history file as though it were a component', async () => {
-    // Counting the result is not enough to show this. A history read as an entry fails the schema
-    // and is dropped, so the count comes out right while every listing does an extra storage read
-    // and warns about a component that was never stored the old way. Asserting silence is what
-    // distinguishes "filtered" from "never looked at".
+    // Counting the result is not enough to show this. A history read as a header fails the schema
+    // and is dropped, so the count comes out right while every listing still does an extra storage
+    // read. Asserting silence is what distinguishes "filtered" from "never looked at".
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await uploadComponentHeader(entry('c1'))
     await uploadComponentHeaderHistory('c1', { history: [], future: [] })
@@ -140,29 +144,6 @@ describe('listing components', () => {
   })
 })
 
-describe('components stored before the split', () => {
-  it('reads the description out of the old single flatted object', async () => {
-    objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
-
-    expect(await getComponentHeader('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
-  })
-
-  it('drops the inline history rather than carrying it into the description', async () => {
-    // It has to be removed rather than ignored: the schema refuses an entry carrying it, so a
-    // component stored the old way would otherwise read back as invalid and vanish from the list.
-    objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
-
-    expect(await getComponentHeader('c1')).not.toHaveProperty('history')
-  })
-
-  it('prefers the new object once one has been written', async () => {
-    objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), name: 'Stale', history: [], future: [] }))
-    await uploadComponentHeader({ ...entry('c1'), name: 'Current' })
-
-    expect(await getComponentHeader('c1')).toMatchObject({ name: 'Current' })
-  })
-})
-
 describe('deleting a component', () => {
   it('removes a component that was never edited, which has no history object', async () => {
     // Storage raises on removing an object that is not there. Requiring the history to exist made
@@ -170,15 +151,6 @@ describe('deleting a component', () => {
     await uploadComponentHeader(entry('c1'))
 
     await expect(deleteComponentHeader('c1')).resolves.not.toThrow()
-    expect([...objects.keys()]).toEqual([])
-  })
-
-  it('removes a component still stored in the old single-object form', async () => {
-    // It has no `.json` and no history, so a delete that requires either cannot remove it at all.
-    objects.set(`${PREFIX}/c1`, stringifyFlatted({ ...entry('c1'), history: [], future: [] }))
-
-    await deleteComponentHeader('c1')
-
     expect([...objects.keys()]).toEqual([])
   })
 

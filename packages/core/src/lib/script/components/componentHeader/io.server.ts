@@ -17,9 +17,24 @@ import type { Json } from '@exodus/schemasafe'
 import { componentHeaderSchema } from './component/schemas'
 
 /**
- * Where a prebuilt component is stored, and why it is two objects rather than one.
+ * Where a component's header is stored, and why it is two objects rather than one.
  *
- * A header used to be a single flatted object carrying its own editing history. It is now split, so
+ * ## `headers/`, because both kinds of component live here
+ *
+ * This directory was called `prebuilt/`, and that name was wrong from the moment dynamic components
+ * gained a header: `createComponent` writes one for a dynamic component too, to this same place. So
+ * a reader of the bucket saw a directory claiming to hold one kind of component while holding both,
+ * and the type that actually distinguishes them was inside the objects rather than in the tree.
+ *
+ * `headers/` says what is there — every component's description, of either kind — and leaves the
+ * distinction where it is decidable.
+ *
+ * **Nothing reads the old directory.** A component stored under `prebuilt/` is not found, not
+ * listed, and not repaired — it has to be created again. This is a pre-release system with no
+ * deployment and no stored data anyone is owed, so a fallback here would be a second storage path
+ * kept under test for a caller that does not exist.
+ *
+ * A header is two objects, so
  * that each of the two is stored in the form its readers need:
  *
  * - **`{uid}.json`** — the description. Plain JSON, because this is what gets published and signed
@@ -38,16 +53,16 @@ import { componentHeaderSchema } from './component/schemas'
  * rather than to this editing copy.
  */
 
-const prebuiltSchemaPath = join('.genoacms', 'components', 'prebuilt/')
+const headerDirectory = join('.genoacms', 'components', 'headers/')
 const validateComponentHeader = validator(componentHeaderSchema, { includeErrors: true })
 
 const HISTORY_SUFFIX = '.history'
 
-const entryPath = (reference: ComponentHeaderReference): string =>
-  join(prebuiltSchemaPath, `${reference}.json`)
+const headerPath = (reference: ComponentHeaderReference): string =>
+  join(headerDirectory, `${reference}.json`)
 
 const historyPath = (reference: ComponentHeaderReference): string =>
-  join(prebuiltSchemaPath, `${reference}${HISTORY_SUFFIX}`)
+  join(headerDirectory, `${reference}${HISTORY_SUFFIX}`)
 
 /**
  * Runs a storage operation that is allowed to find nothing there.
@@ -56,7 +71,7 @@ const historyPath = (reference: ComponentHeaderReference): string =>
  * covers reads whose object may not exist, and deletes of an object that may already be gone —
  * removing something that is not there is the state the caller wanted, not a failure. The
  * page tree does the same thing inline; this is the same pattern named, because two reads here need
- * it and a legacy fallback that cannot tell absence from failure would be the bug it exists to fix.
+ * it, and a read that cannot tell absence from failure would be the bug it exists to fix.
  *
  * The weakness is stated rather than hidden: a network fault is indistinguishable from an absent
  * object here, so it reads as absent. The clean fix is an `ObjectNotFoundError` in
@@ -84,11 +99,8 @@ const referenceOf = (filename: string): ComponentHeaderReference | undefined => 
 }
 
 const listOrCreateComponentHeaderList = async (): Promise<Array<ComponentHeader>> => {
-  const componentList = await listOrCreateDirectory({
-    bucket: defaultBucketId,
-    name: prebuiltSchemaPath
-  })
-  const references = componentList.files
+  const listing = await listOrCreateDirectory({ bucket: defaultBucketId, name: headerDirectory })
+  const references = listing.files
     .map(component => referenceOf(fullyQualifiedNameToFilename(component.name)))
     .filter((reference): reference is ComponentHeaderReference => reference !== undefined)
   const componentSchemas = await Promise.all(references.map(getComponentHeader))
@@ -96,45 +108,26 @@ const listOrCreateComponentHeaderList = async (): Promise<Array<ComponentHeader>
 }
 
 /**
- * Reads the description, falling back to the single flatted object entries used to be.
+ * Reads the description, or nothing.
  *
- * Stated as a repair rather than hidden behind a default, and logged for the same reason the
- * attribute-order repair below is: it should stop happening, and once no component triggers it the
- * branch can go.
+ * One path, one form. Every older shape a header was stored in — the single flatted object that
+ * carried its own history, the two-object form under `prebuilt/`, and headers written before
+ * `attributeOrder` was required — is gone rather than repaired, and a component in any of them reads
+ * as absent and has to be created again.
  */
-const readEntry = async (reference: ComponentHeaderReference): Promise<Record<string, unknown> | undefined> => {
-  const stored = await toleratingAbsence(getInternalObjectJSON(entryPath(reference))) as Record<string, unknown> | undefined
-  if (stored !== undefined && stored !== null) return stored
+const readHeader = async (reference: ComponentHeaderReference): Promise<Record<string, unknown> | undefined> =>
+  await toleratingAbsence(getInternalObjectJSON(headerPath(reference))) as Record<string, unknown> | undefined
 
-  const legacy = await toleratingAbsence(getInternalObjectFlatted(join(prebuiltSchemaPath, reference))) as Record<string, unknown> | undefined
-  if (legacy === undefined || legacy === null) return undefined
-
-  console.warn(`[genoacms:components] ${reference} is stored in the old single-object form; reading its description out of it`)
-  // The old object carried its history inline. Dropped rather than migrated: it was never read or
-  // written by anything, so there is no history in it to preserve. Removed rather than ignored,
-  // because the schema refuses a header carrying them.
-  delete legacy.history
-  delete legacy.future
-  return legacy
-}
-
+/**
+ * A stored header, or `null` if there is nothing valid there.
+ *
+ * Absence and invalidity are deliberately the same answer to a caller: both mean the catalog has no
+ * component to show, and neither is recoverable from here.
+ */
 const getComponentHeader = async (reference: ComponentHeaderReference): Promise<ComponentHeader | null> => {
-  const stored = await readEntry(reference)
-  if (stored === undefined) return null
-
-  // Repairs headers written before `attributeOrder` existed, which are otherwise refused by the
-  // schema that now requires it. Both writers supply it, so this fires only for those older
-  // headers — and being able to say that is why it is a stated repair rather than a default.
-  if (stored.attributeOrder === undefined) {
-    // Logged, not silent. This is a migration, and the point of saying so is that it should stop
-    // happening: once no header triggers it, the branch can go.
-    console.warn(`[genoacms:components] ${reference} was stored without an attribute order; deriving one from its attributes`)
-    stored.attributeOrder = Object.keys(stored.attributes ?? {})
-  }
-
-  if (!validateComponentHeader(stored as unknown as Json)) {
-    return null
-  }
+  const stored = await readHeader(reference)
+  if (stored === undefined || stored === null) return null
+  if (!validateComponentHeader(stored as unknown as Json)) return null
   return stored as unknown as ComponentHeader
 }
 
@@ -154,8 +147,8 @@ const getComponentHeaderHistory = async (
   return { history: stored.history, future: stored.future }
 }
 
-const uploadComponentHeader = async (entry: ComponentHeader) =>
-  await uploadInternalObjectJSON(entryPath(entry.uid), entry)
+const uploadComponentHeader = async (header: ComponentHeader) =>
+  await uploadInternalObjectJSON(headerPath(header.uid), header)
 
 const uploadComponentHeaderHistory = async (
   reference: ComponentHeaderReference,
@@ -165,19 +158,19 @@ const uploadComponentHeaderHistory = async (
 /**
  * Removes everything stored for a component.
  *
- * All three are tolerant of not being there, and each for its own reason. A component that was never
- * edited has **no history object**, one stored since the split has no legacy object, and one stored
- * before it has no `.json`. Requiring any of them to exist makes deleting an ordinary component fail
- * — which is what happened: removing a freshly created component raised `No such object` on its
- * absent history and the route answered 500 instead of redirecting.
+ * Both objects are tolerant of not being there: a component that was never edited has **no history
+ * object**, and requiring one made deleting an ordinary component fail — removing a freshly created
+ * component raised `No such object` on its absent history and the route answered 500 instead of
+ * redirecting.
  *
  * The history is removed too. One outliving its component is unreachable state in the bucket, and
  * would be adopted by the next component to be given the same identifier.
  */
 const deleteComponentHeader = async (reference: ComponentHeaderReference) => {
-  await toleratingAbsence(deleteInternalObject(entryPath(reference)))
-  await toleratingAbsence(deleteInternalObject(historyPath(reference)))
-  await toleratingAbsence(deleteInternalObject(join(prebuiltSchemaPath, reference)))
+  await Promise.all([
+    toleratingAbsence(deleteInternalObject(headerPath(reference))),
+    toleratingAbsence(deleteInternalObject(historyPath(reference)))
+  ])
 }
 
 export {
