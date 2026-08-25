@@ -18,13 +18,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // How deep the history runs is what enables or disables the buttons. Without it they render
   // permanently disabled, which is how undo appeared to exist without working.
-  //
-  // A dynamic component has no editable description here — its attributes come from its source —
-  // so it has no editing history either, and asking for one would be refused. Zero depth is not a
-  // stand-in for the answer: there is genuinely nothing to step back through.
-  const depth = componentHeader.type === 'prebuilt'
-    ? await getUserComponentHeaderDepth(ctx, componentId)
-    : { historyLength: 0, futureLength: 0 }
+  const depth = await getUserComponentHeaderDepth(ctx, componentId)
 
   return {
     id: componentId,

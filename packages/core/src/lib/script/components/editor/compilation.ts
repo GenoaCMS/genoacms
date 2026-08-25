@@ -1,18 +1,22 @@
-import type { CompilationResult, ExecutablePlatform } from '@genoacms/internal/languageAdapter'
+import type {
+  ComponentShape,
+  CompilationResult,
+  ExecutablePlatform
+} from '@genoacms/internal/languageAdapter'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
 
 /**
- * Compiling a component's source into the bundle a consumer runs.
+ * Compiling a component into the bundle a consumer runs.
  *
- * The counterpart to `analyzer.ts`: that one asks the adapter what the component *accepts*, this one
- * asks it for something executable. Both resolve the adapter from the language the component
- * records, and both turn a fatal diagnostic into the refusal the commit path acts on.
+ * The adapter is given the author's **body** and the component's shape, and wraps the one in the
+ * other itself. Nothing here assembles anything: the entry function's syntax, the type each
+ * attribute becomes, and how many lines the wrapper occupies are all facts about the target
+ * language, and a CMS that knew them would be a TypeScript compiler with a CMS attached.
  *
- * **Compilation follows analysis and never replaces it.** They answer different questions — an
- * import that the compiler refuses is invisible to attribute derivation, and a parameter type the
- * analyzer cannot read compiles perfectly well.
+ * The adapter is resolved from the language the component records, and a fatal diagnostic becomes
+ * the refusal the publish path acts on.
  */
 
 /**
@@ -60,19 +64,36 @@ interface CompiledComponent {
   executableCode: string
 }
 
-const compileComponentSource = async (
+const compileComponentBody = async (
   language: string,
-  functionName: string,
-  code: string
+  body: string,
+  shape: ComponentShape
 ): Promise<CompiledComponent> => {
   const adapter = await getLanguageAdapter(language)
   const platform = soleTargetOf(language, adapter.platforms)
-  const result = await adapter.compileBundle({ source: code, entryFunction: functionName, platform })
+  const result = await adapter.compileBundle({ body, shape, platform })
   return { platform, executableCode: compiledCode(language, result) }
 }
 
+/**
+ * Checks a body against the language's safety rules before anything is built from it.
+ *
+ * Separate from compiling because the two answer different questions and one of them is about to
+ * grow: the safety ruleset is the guard work's, and a component that compiles perfectly well is
+ * exactly the kind that needs checking.
+ */
+const analyzeComponentBody = async (
+  language: string,
+  body: string,
+  shape: ComponentShape
+): Promise<void> => {
+  const adapter = await getLanguageAdapter(language)
+  raiseFatal((await adapter.analyze({ body, shape })).diagnostics)
+}
+
 export {
-  compileComponentSource
+  analyzeComponentBody,
+  compileComponentBody
 }
 
 export type {

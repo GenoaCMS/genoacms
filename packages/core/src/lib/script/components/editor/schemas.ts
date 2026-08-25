@@ -1,17 +1,17 @@
 import type { Schema } from '@exodus/schemasafe'
-import { COMPONENT_NAME_PATTERN } from './names'
 
 /**
  * Creating a component.
  *
- * The name is constrained to an identifier because it is the function the component's source has to
- * declare — see `names.ts`. Refusing it here is what keeps an author from creating a component that
- * can never be committed.
+ * The name is **not** constrained to an identifier. It used to be, because it was the function the
+ * component's source had to declare, so a name a source file could not name was a component nobody
+ * could ever publish. The CMS emits that function under a fixed name of its own now, and a
+ * component's name is a label a person reads.
  */
 const componentCreationSchema: Schema = {
   type: 'object',
   properties: {
-    name: { type: 'string', pattern: COMPONENT_NAME_PATTERN }
+    name: { type: 'string', minLength: 1 }
   },
   required: ['name']
 }

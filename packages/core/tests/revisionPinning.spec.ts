@@ -27,10 +27,14 @@ test.describe.configure({ mode: 'serial' })
 
 const READABLES = ['.genoacms', 'pages', 'readables']
 
-/** A component's name is the function its source declares, so both revisions define exactly that. */
-const sourceFor = (name: string, heading: string): string =>
-  'interface StringAttribute<Pattern, MaxLength, Default> { _brand: Pattern }\n' +
-  `export function ${name} (heading: StringAttribute<".*", 120, "${heading}">) { return heading }\n`
+/**
+ * A component **body**, which is all an author writes.
+ *
+ * The entry function and its parameters are emitted from the component's header, so nothing here
+ * declares a signature — and a component registered without attributes has none, which is why the
+ * two revisions differ in a returned literal rather than in a parameter.
+ */
+const sourceFor = (heading: string): string => `return '${heading}'\n`
 
 const createDynamic = async (page: Page, name: string): Promise<string> => {
   // Through the registrar: a component is born in one place whichever kind it is, and the kind is
@@ -205,7 +209,7 @@ const assertGone = async (page: Page, directory: string[], match: RegExp): Promi
 test('a component is committed once', async ({ page }) => {
   test.setTimeout(180_000)
   uid = await createDynamic(page, componentName)
-  await commitRevision(page, uid, sourceFor(componentName, 'first'))
+  await commitRevision(page, uid, sourceFor('first'))
 })
 
 test('a page built against it is pinned to that revision', async ({ page }) => {
@@ -222,7 +226,7 @@ test('committing a newer revision does not change the published page', async ({ 
   // The point of the whole mechanism. Without the pin the published tree would follow this commit
   // immediately, and every assertion above would still have passed.
   test.setTimeout(180_000)
-  await commitRevision(page, uid, sourceFor(componentName, 'second'))
+  await commitRevision(page, uid, sourceFor('second'))
 
   expect(await publishedRevision(page, pageName)).toBe(firstRevision)
 })

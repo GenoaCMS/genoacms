@@ -95,25 +95,15 @@ describe('what registering demands', () => {
   })
 })
 
-describe('what registering refuses', () => {
-  it('refuses a coded component whose name no source file could declare', async () => {
-    // The name is the entry function. Accepting this would create a component that can never be
-    // published, and the only error the author would ever see is that no such function exists.
-    //
-    // This lived in the editor's create action until the registrar became the one creation surface,
-    // and was lost for exactly as long as it took to delete that action. It belongs to the service.
-    await expect(
-      registerUserComponent(contextWith([REGISTER]), { name: 'e2e-not-an-identifier', type: 'dynamic' })
-    ).rejects.toThrow(/identifier/i)
-    expect(created).toEqual([])
-  })
+describe('what a component may be called', () => {
+  it('accepts a name no source file could declare, for either kind', async () => {
+    // This was refused while a component's name was the entry function its source had to declare.
+    // The CMS emits that function under a fixed name now, so the name is a label and nothing else —
+    // and `my-hero`, which could once be created and never published, is ordinary.
+    await registerUserComponent(contextWith([REGISTER]), { name: 'my-hero', type: 'dynamic' })
+    await registerUserComponent(contextWith([REGISTER]), { name: 'my-hero', type: 'prebuilt' })
 
-  it('accepts the same name for a component coded in the consuming application', async () => {
-    // Nothing there has to declare a function, so the rule does not apply and must not be extended
-    // to a kind it was never about.
-    await registerUserComponent(contextWith([REGISTER]), { name: 'e2e-not-an-identifier', type: 'prebuilt' })
-
-    expect(created).toEqual(['header:prebuilt:e2e-not-an-identifier'])
+    expect(created).toEqual(['definition:my-hero', 'header:prebuilt:my-hero'])
   })
 })
 

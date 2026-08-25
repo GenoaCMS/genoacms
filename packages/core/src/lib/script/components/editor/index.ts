@@ -12,9 +12,7 @@ import {
 } from './io'
 import diff from 'deep-diff'
 import { ComponentCodeError, ComponentDiffError } from './errors'
-import { componentNameRefusal, isValidComponentName } from './names'
-import { componentCodeToHeader } from './analyzer'
-import { compileComponentSource } from './compilation'
+import { analyzeComponentBody, compileComponentBody } from './compilation'
 import { signComponentExecutable } from '../executable/executable.server'
 import { deleteComponentExecutables, uploadComponentExecutable } from '../executable/io.server'
 
@@ -101,15 +99,18 @@ async function buildRevision (
   { definition, component, header }: Awaited<ReturnType<typeof readCommitSubject>>,
   commit: ComponentCommit
 ) {
-  // Components created before names were constrained can hold one no source file can declare. The
-  // analyzer would report only that no such function exists, which is true and unfixable; saying
-  // why is what turns it into something the author can act on.
-  if (!isValidComponentName(component.name)) {
-    throw new ComponentCodeError('invalid-component-name', componentNameRefusal(component.name))
-  }
-  const code = definition.uncommitedCode
-  const newHeader = await componentCodeToHeader(definition.language, component.name, code, header)
-  const compiled = await compileComponentSource(definition.language, component.name, code)
+  if (header === null) throw new ComponentCodeError('no-header', `${component.uid} has no header`)
+
+  // The shape the component is published with is the one the registrar holds, not one read back out
+  // of the code. Deriving it was how the CMS used to learn what a component accepted; the registrar
+  // describes both kinds of component now, so there is nothing left to discover — and re-deriving
+  // rematched every attribute's identity by parameter name on each publication, which detached the
+  // page nodes holding those identities whenever a match failed.
+  const shape = { attributes: header.attributes, attributeOrder: header.attributeOrder }
+  const body = definition.uncommitedCode
+
+  await analyzeComponentBody(definition.language, body, shape)
+  const compiled = await compileComponentBody(definition.language, body, shape)
   const executable = await signComponentExecutable(
     {
       uid: component.uid,
@@ -120,7 +121,7 @@ async function buildRevision (
     compiled.platform,
     compiled.executableCode
   )
-  return { newHeader, executable }
+  return { executable }
 }
 
 /**
@@ -135,7 +136,7 @@ async function buildRevision (
 async function publishRevision (
   definition: ComponentDefinition,
   commit: ComponentCommit,
-  { newHeader, executable }: Awaited<ReturnType<typeof buildRevision>>
+  { executable }: Awaited<ReturnType<typeof buildRevision>>
 ): Promise<void> {
   await uploadComponentExecutable(executable)
   await Promise.all([
@@ -144,8 +145,7 @@ async function publishRevision (
       d.history.push(commit.uid)
       return d
     }, definition),
-    uploadComponentCommit(commit),
-    uploadComponentHeader(newHeader)
+    uploadComponentCommit(commit)
   ])
 }
 

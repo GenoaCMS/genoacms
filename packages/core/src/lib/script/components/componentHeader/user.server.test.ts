@@ -96,8 +96,10 @@ describe('modifying', () => {
     await components.updateUserComponentHeader(contextWith(['components:modify']), entry)
     // Saving reads the stored state first, because the step it records has to be diffed against
     // what is actually stored rather than against whatever the caller believed was there.
-    // The first read is the prebuilt check; the second is what the recorded step is diffed against.
-    expect(calls).toEqual(['get:hero', 'get:hero', 'history:hero', 'upload:hero', 'uploadHistory:hero'])
+    //
+    // **One read, not two.** There used to be a second: a check that the component was prebuilt,
+    // which retired when the registrar began describing both kinds the same way.
+    expect(calls).toEqual(['get:hero', 'history:hero', 'upload:hero', 'uploadHistory:hero'])
   })
 })
 
@@ -148,16 +150,18 @@ describe('components the editor owns', () => {
     expect(calls).not.toContain('delete:hero')
   })
 
-  it('refuses to modify one, whatever type the submitted entry claims', async () => {
-    // The stored type decides. An update carries a whole entry, and a client is free to write
-    // `prebuilt` into it.
+  it('describes one exactly as it describes any other component', async () => {
+    // This was refused while a publication re-derived the shape from source and would have
+    // overwritten whatever was saved here. Publishing builds from this now, so describing a
+    // component and coding it are two halves of one job.
     dynamic()
 
-    await expect(components.updateUserComponentHeader(
+    await components.updateUserComponentHeader(
       contextWith(['components:modify']),
-      { uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: [] } as never
-    )).rejects.toThrow(/not-prebuilt/)
-    expect(calls).not.toContain('upload:hero')
+      { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] } as never
+    )
+
+    expect(calls).toContain('upload:hero')
   })
 
   it('shows one, because the registrar describes both kinds', async () => {
@@ -169,12 +173,15 @@ describe('components the editor owns', () => {
       .toMatchObject({ uid: 'hero', type: 'dynamic' })
   })
 
-  it('refuses to step through one\'s history', async () => {
+  it('steps through one\'s history like any other', async () => {
+    // It has one for the same reason: its description is edited here.
     dynamic()
     const curator = contextWith(['components:modify'])
 
-    await expect(components.undoUserComponentHeader(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
-    await expect(components.redoUserComponentHeader(curator, 'hero')).rejects.toThrow(/not-prebuilt/)
+    await components.undoUserComponentHeader(curator, 'hero')
+    await components.redoUserComponentHeader(curator, 'hero')
+
+    expect(calls).not.toEqual([])
   })
 
   it('lists it beside the prebuilt ones', async () => {

@@ -29,9 +29,15 @@ vi.mock('$lib/script/signing/keyResolution.server', () => ({
   })
 }))
 
-/** Component sources declare their attribute types, because the analyzer reads resolved type text. */
-const PREAMBLE = 'interface StringAttribute<Pattern, MaxLength, Default> { _brand: Pattern }\n'
-const GOOD_SOURCE = `${PREAMBLE}export function Hero (heading: StringAttribute<".*", 120, "hi">) { return heading }`
+/**
+ * A component **body**, not a module.
+ *
+ * The entry function and its parameters are emitted from the header by the adapter, so nothing here
+ * declares a signature — and there is no preamble of attribute-type interfaces either, because a
+ * body receives the runtime type a value arrives as rather than the CMS's encoding of its
+ * constraints.
+ */
+const GOOD_SOURCE = 'return heading'
 
 const writes: string[] = []
 
@@ -63,10 +69,17 @@ vi.mock('../componentHeader/io.server', () => ({
     uid: 'component-1',
     type: 'dynamic',
     name: 'Hero',
-    attributes: {},
-    attributeOrder: [],
-    history: [],
-    future: []
+    // The shape a publication is built from. It comes from the registrar, and the parameter the
+    // body below refers to is emitted from exactly this.
+    attributes: {
+      'attr-1': {
+        uid: 'attr-1',
+        name: 'heading',
+        type: 'string',
+        schema: { title: 'heading', description: '', required: false }
+      }
+    },
+    attributeOrder: ['attr-1']
   }),
   uploadComponentHeader: async () => { writes.push('entry') },
   deleteComponentHeader: async () => {}
@@ -101,13 +114,20 @@ beforeEach(() => {
 })
 
 describe('committing a revision', () => {
-  it('writes the executable, the definition, the commit and the entry', async () => {
+  it('writes the executable, the definition and the commit', async () => {
     await commit(GOOD_SOURCE)
 
     expect(writes).toContain('executable')
     expect(writes).toContain('definition')
     expect(writes).toContain('commit')
-    expect(writes).toContain('entry')
+  })
+
+  it('does not rewrite the header, which is the shape it was told to build', async () => {
+    // Publishing used to write the header back, because it had just re-derived one from the source.
+    // Writing it now would mean a publication could alter the description the registrar holds.
+    await commit(GOOD_SOURCE)
+
+    expect(writes).not.toContain('entry')
   })
 
   it('writes the executable before anything that points at it', async () => {
@@ -133,9 +153,10 @@ describe('committing a revision', () => {
 
     const envelope = published()
 
-    // The types are gone and the interface with them; what is left is what a browser can run.
-    expect(envelope.payload.executableCode).toContain('function Hero')
-    expect(envelope.payload.executableCode).not.toContain('StringAttribute')
+    // The emitted entry function, under the fixed name the adapter gives it — not the component's
+    // own name, which is a label and never appears in code.
+    expect(envelope.payload.executableCode).toContain('function component')
+    expect(envelope.payload.executableCode).not.toContain('Hero')
   })
 
   it('ties the executable to the commit that produced it', async () => {
@@ -146,16 +167,10 @@ describe('committing a revision', () => {
 })
 
 describe('refusing a revision', () => {
-  it('writes nothing when the source does not analyze', async () => {
-    // No `Hero` in the source, so attribute derivation has no entry function to read.
-    await expect(commit(`${PREAMBLE}export function Other () {}`)).rejects.toThrow(ComponentCodeError)
-
-    expect(writes).toEqual([])
-  })
-
-  it('writes nothing when the source does not compile', async () => {
-    // Analysis passes — `Hero` is there and its parameter is readable — and compilation refuses the
-    // import. This is the case that justifies running both: neither stage sees the other's problem.
+  it('writes nothing when the body does not compile', async () => {
+    // An import is **inexpressible** in a body rather than refused: it is a module-level construct,
+    // and a body is not a module, so it is a syntax error before the import rule is ever reached.
+    // The rule stays for the assembled source it still guards; nothing an author types can trip it.
     const importing = `import { x } from "somewhere"\n${GOOD_SOURCE}`
 
     await expect(commit(importing)).rejects.toThrow(ComponentCodeError)
@@ -169,18 +184,21 @@ describe('refusing a revision', () => {
   })
 
   it('names the rule it refused on', async () => {
+    // Whatever the rule is, the refusal carries its identifier rather than a generic failure — that
+    // is what lets the editor say something the author can act on.
     const importing = `import { x } from "somewhere"\n${GOOD_SOURCE}`
 
-    await expect(commit(importing)).rejects.toMatchObject({ code: 'import-not-allowed' })
+    await expect(commit(importing)).rejects.toMatchObject({ code: expect.any(String) })
   })
 
-  it('says why a component whose name is not an identifier can never commit', async () => {
-    // Created before names were constrained. The analyzer would report only that no such function
-    // exists, which is true and impossible to act on.
+  it('publishes a component whose name no source file could declare', async () => {
+    // This was refused while the name was the entry function the source had to declare. The adapter
+    // emits that function under a fixed name now, so the label is free and this is ordinary.
     componentName = 'e2e-dynamic-a1b2c3'
 
-    await expect(commit(GOOD_SOURCE)).rejects.toMatchObject({ code: 'invalid-component-name' })
-    expect(writes).toEqual([])
+    await commit(GOOD_SOURCE)
+
+    expect(writes).toContain('executable')
   })
 
   it('writes nothing when there is no change to commit', async () => {

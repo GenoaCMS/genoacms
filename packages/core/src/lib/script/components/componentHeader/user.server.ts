@@ -124,18 +124,21 @@ const getUserComponentHeader = async (
 }
 
 /**
- * Rewrites a component's description.
+ * Rewrites a component's description, of either kind.
  *
- * **Prebuilt only, and this is temporary.** A dynamic component's attributes are still derived from
- * its source every time it is published, so an edit saved here would be silently overwritten by the
- * next publication — the author would describe a shape, publish, and find their description gone
- * with nothing to say why. Refusing is the honest behavior until the shape is authored rather than
- * analyzed, at which point this refusal goes and the registrar edits both kinds alike.
+ * **No longer prebuilt-only.** A dynamic component's attributes used to be re-derived from its
+ * source on every publication, so an edit here would have been overwritten with nothing on screen
+ * to say so — the refusal was honest while that was true. Publishing now builds from the shape this
+ * writes, so describing a component and coding it are two halves of the same job rather than two
+ * accounts of it that had to be kept from disagreeing.
+ *
+ * Changing a dynamic component's shape changes the signature its body is wrapped in, so the next
+ * publication compiles against the new one. A body that referred to a parameter now gone stops
+ * compiling — which is the author being told, at the moment they publish, what their edit cost.
  */
-const updateUserComponentHeader = async (ctx: AuthContext, entry: ComponentHeader) => {
+const updateUserComponentHeader = async (ctx: AuthContext, header: ComponentHeader) => {
   requirePermission(ctx, 'components:modify')
-  await requirePrebuilt(entry.uid)
-  return await saveComponentHeader(entry)
+  return await saveComponentHeader(header)
 }
 
 /**
@@ -149,7 +152,6 @@ const getUserComponentHeaderDepth = async (
   reference: ComponentHeaderReference
 ): Promise<HistoryDepth> => {
   requirePermission(ctx, 'components:read')
-  await requirePrebuilt(reference)
   return await getComponentHeaderDepth(reference)
 }
 
@@ -161,13 +163,11 @@ const getUserComponentHeaderDepth = async (
  */
 const undoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
   requirePermission(ctx, 'components:modify')
-  await requirePrebuilt(reference)
   return await undoComponentHeader(reference)
 }
 
 const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
   requirePermission(ctx, 'components:modify')
-  await requirePrebuilt(reference)
   return await redoComponentHeader(reference)
 }
 

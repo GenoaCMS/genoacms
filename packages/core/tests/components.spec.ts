@@ -397,15 +397,13 @@ const writeCode = async (page: Page, code: string): Promise<void> => {
 }
 
 /**
- * A component the pipeline accepts.
+ * A component **body** the pipeline accepts.
  *
- * The entry function is named after the component, because that is how the CMS finds it. The
- * attribute type is declared in the source rather than imported: the analyzer reads a parameter's
- * resolved type text, and a component may not import anything anyway.
+ * An author writes a body and nothing around it: the entry function, its parameters and their types
+ * are emitted from the component's header. A component registered without attributes has no
+ * parameters, so this refers to none.
  */
-const componentSource = (name: string): string =>
-  'interface StringAttribute<Pattern, MaxLength, Default> { _brand: Pattern }\n' +
-  `export function ${name} (heading: StringAttribute<".*", 120, "hi">) { return heading }\n`
+const componentSource = (): string => "return 'hi'\n"
 
 /** Opens the commit dialog and submits it. */
 const commitDraft = async (page: Page): Promise<void> => {
@@ -471,7 +469,7 @@ test.describe('a dynamic component', () => {
 
   test('keeps draft code without committing it', async ({ page }) => {
     uid = await createDynamic(page, name, created)
-    await writeCode(page, 'export const answer = 42\n')
+    await writeCode(page, 'const answer = 42\nreturn answer\n')
 
     // The draft is saved as it is typed; reloading shows whether it really was.
     await page.reload()
@@ -481,7 +479,7 @@ test.describe('a dynamic component', () => {
   test('commits, which signs and publishes it', async ({ page }) => {
     test.setTimeout(180_000)
     uid = await createDynamic(page, name, created)
-    await writeCode(page, componentSource(name))
+    await writeCode(page, componentSource())
 
     // Committing runs static analysis, compiles, signs with the key hierarchy and publishes. It is
     // the slowest thing the product does, and the one most worth knowing still works.
@@ -504,12 +502,14 @@ test.describe('a dynamic component', () => {
     test.setTimeout(180_000)
     uid = await createDynamic(page, name, created)
 
-    // Analysis passes and compilation refuses: a component may not import anything, because what is
-    // signed has to be a function of the source alone.
-    await writeCode(page, `import { format } from "date-fns"\n${componentSource(name)}`)
+    // A component may not import anything: what is signed has to be a function of the source alone.
+    // Since an author writes a **body**, an import is not merely refused but inexpressible — it is a
+    // module-level construct in something that is not a module — so the refusal arrives as a syntax
+    // error rather than as the import rule. What matters is that a refusal is reported at all.
+    await writeCode(page, `import { format } from "date-fns"\n${componentSource()}`)
     await commitDraft(page)
 
-    await reported(page, /cannot import|self-contained/i)
+    await reported(page, /.+/)
     await expect(page.getByText('Code commited')).toHaveCount(0)
 
     // Nothing was published, so the component has no executables.
@@ -517,18 +517,16 @@ test.describe('a dynamic component', () => {
     await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(0, { timeout: SLOW })
   })
 
-  test('refuses a name no source file could declare', async ({ page }) => {
-    // The name is the entry function. Accepting `my-hero` would create a component that can never be
-    // committed, and the only error the author would ever see is that no such function exists.
-    await openRegistrar(page)
-    await page.getByRole('button', { name: 'Register component' }).click()
+  test('accepts a name no source file could declare', async ({ page }) => {
+    // This was refused for as long as a component's name was the entry function its source had to
+    // declare: `my-hero` could be created and never published, and the only error it could produce
+    // was that no such function existed. The CMS emits that function under a fixed name of its own
+    // now, so the name is a label a person reads and a hyphen in it means nothing.
+    const labelled = `${fixtureName('dynamic')}-with-hyphens`
 
-    const dialog = page.getByRole('dialog', { name: 'Register a new component' })
-    await dialog.getByLabel('Component name:').fill('e2e-not-an-identifier')
-    await dialog.getByRole('radio', { name: 'Code it here' }).check()
-    await dialog.getByRole('button', { name: 'Create' }).click()
+    const createdUid = await createDynamic(page, labelled, created)
 
-    await expect(page).not.toHaveURL(/\/components\/editor\/[^/]+$/)
+    expect(createdUid).toMatch(/^[0-9a-f-]{36}$/)
   })
 
   /**

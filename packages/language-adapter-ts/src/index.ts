@@ -3,9 +3,10 @@ import type {
   AnalysisResult,
   CompilationRequest,
   CompilationResult,
-  LanguageAdapter
+  Diagnostic
 } from '@genoacms/internal/languageAdapter'
-import { deriveAttributes } from './attributes.js'
+import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
+import { assemble } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
 import { target } from './config.js'
 
@@ -15,18 +16,72 @@ import { target } from './config.js'
  * The reference implementation of `LanguageAdapter`, and currently the only one. Registered in
  * `genoa.config`, and selected by the language a component records rather than by a global setting.
  *
- * This module is where configuration meets the two things that do the work. `attributes.ts` and
- * `compile.ts` take everything they need as arguments and read no configuration of their own, so
- * both can be exercised without an instance existing.
+ * This module is where configuration meets the things that do the work. `emit.ts` and `compile.ts`
+ * take everything they need as arguments and read no configuration of their own, so both can be
+ * exercised without an instance existing.
+ *
+ * ## Assembly happens here, twice, and never leaves
+ *
+ * Both entry points are given the author's **body** and the component's shape, and each assembles
+ * the entry function itself. Assembling is pure and cheap, so doing it twice costs nothing worth
+ * saving — and the alternative, handing assembled source back to the CMS to pass along, would put
+ * TypeScript the CMS cannot read into the CMS, and positions in it that only this package can
+ * interpret.
  */
 
-const analyze = (request: AnalysisRequest): AnalysisResult => {
-  const { attributes, diagnostics } = deriveAttributes(request.source, request.entryFunction)
-  return { attributes, diagnostics }
+/**
+ * Moves a diagnostic from the assembled source into the author's body.
+ *
+ * The author is looking at a body; the compiler saw a body with a signature above it. Reporting the
+ * compiler's line number would point at a line the author never wrote, and for a short body at one
+ * that does not exist at all.
+ *
+ * A diagnostic **inside the prologue is dropped**, not clamped to line 1. The prologue is emitted
+ * code: a fault in it is this adapter's to fix, and showing it to an author as though they had
+ * written it would be asking them to correct something they cannot see. Dropping it is a deliberate
+ * silence rather than an oversight — if the emitter can produce an invalid signature, that is a bug
+ * here and belongs in this package's own tests.
+ */
+const intoBodyCoordinates = (diagnostic: Diagnostic, prologueLines: number): Diagnostic | undefined => {
+  if (diagnostic.line === undefined) return diagnostic
+  if (diagnostic.line <= prologueLines) return undefined
+  return { ...diagnostic, line: diagnostic.line - prologueLines }
 }
 
-const compileBundle = async (request: CompilationRequest): Promise<CompilationResult> =>
-  await compileToWebEsModule(request.source, request.platform, target)
+const reported = (diagnostics: Diagnostic[], prologueLines: number): Diagnostic[] =>
+  diagnostics
+    .map(diagnostic => intoBodyCoordinates(diagnostic, prologueLines))
+    .filter((diagnostic): diagnostic is Diagnostic => diagnostic !== undefined)
+
+/**
+ * Checks what the author wrote against the language's safety rules.
+ *
+ * **There are no safety rules yet**, so this reports only what emitting the signature had to say —
+ * an attribute that cannot become a parameter name, or two that would become the same one. The
+ * ruleset that will fill this in is Block D's, and the seam exists so it has somewhere to land
+ * rather than arriving as a new concept.
+ *
+ * It does not report what a component *accepts*. That used to be its purpose, and it is gone: a
+ * component's shape is authored in the registrar, so an adapter reporting attributes would be
+ * handing back what it was just given.
+ */
+const analyze = (request: AnalysisRequest): AnalysisResult => {
+  const { diagnostics } = assemble(request.body, request.shape)
+  return { diagnostics }
+}
+
+const compileBundle = async (request: CompilationRequest): Promise<CompilationResult> => {
+  const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
+  // A shape that cannot be emitted has no source worth compiling, and compiling it would report
+  // syntax errors about a signature the author did not write.
+  if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
+
+  const compiled = await compileToWebEsModule(source, request.platform, target)
+  return {
+    ...compiled,
+    diagnostics: [...diagnostics, ...reported(compiled.diagnostics, prologueLines)]
+  }
+}
 
 const adapter: LanguageAdapter = {
   language: 'typescript',
@@ -38,4 +93,3 @@ const adapter: LanguageAdapter = {
 export default adapter
 export { adapter, analyze, compileBundle }
 export { DEFAULT_TARGET } from './config.js'
-export type { TypeScriptLanguageSettings, TypeScriptLanguageProvider } from './config.js'

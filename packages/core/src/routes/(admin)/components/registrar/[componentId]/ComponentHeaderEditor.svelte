@@ -13,6 +13,7 @@
   import Attribute from './Editor/Attribute.svelte'
   import AddAttribute from './AddAttribute.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
+  import CodeLink from './CodeLink.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
   import { updateComponent } from './update.remote.js'
@@ -20,7 +21,7 @@
   import { tick } from 'svelte'
 
   /**
-   * Editing one prebuilt component.
+   * Editing one component's description, of either kind.
    *
    * Split out of the route so the route can key it on the loaded entry. Undo and redo are form
    * actions that redirect, so `load` re-runs and hands down a different entry — and the working copy
@@ -84,6 +85,11 @@
     {form.name}
   </div>
   {#snippet right()}
+    {#if entry.type === 'dynamic'}
+      <PermissionGate permission="components:code">
+        <CodeLink {id} />
+      </PermissionGate>
+    {/if}
     <PermissionGate permission="components:register">
       <DeleteComponent name={form.name} />
     </PermissionGate>
