@@ -10,10 +10,15 @@ import {
   listOrCreateComponentList,
   getComponent,
   getComponentDefiniton,
-  updateComponentDefinition,
-  commitComponentDefinition,
   deleteComponent
 } from './index'
+import {
+  saveComponentBody,
+  undoComponentBody,
+  redoComponentBody,
+  getComponentDefinitionDepth,
+  type HistoryDepth
+} from './editing.server'
 
 /**
  * Dynamic component operations performed **by a user**.
@@ -41,14 +46,13 @@ import {
  *   permission that registers a component whose code lives in the consuming application, because
  *   existence is the same act for both kinds.
  * - `components:code` — **everything a component's source is**: reading it, writing the draft, and
- *   publishing it. The highest-value permission in the system, since publishing runs static
- *   analysis, compiles, signs with the key hierarchy and produces an executable that consumers will
- *   run.
+ *   stepping that draft backwards and forwards through its history. It is also the second permission
+ *   publishing a *dynamic* component demands, on top of `components:modify` — see
+ *   `publication/user.server.ts`, which owns that act now.
  *
- * Reading and writing and publishing used to be three permissions — `view_code`, `edit` and
- * `commit` — which allowed a reviewer who could not write and a publisher who could not author.
- * **Those arrangements are no longer expressible**, deliberately: one permission reaches source at
- * all, and anything holding it holds all three.
+ * Reading and writing used to be separate from publishing — `view_code`, `edit` and `commit` — which
+ * allowed a reviewer who could not write. **That arrangement is no longer expressible**,
+ * deliberately: one permission reaches source at all, and anything holding it holds both.
  *
  * The catalog of *names* is `components:read`, which the listing demands, and which is not implied
  * by holding the source permission: seeing what a component does and seeing that it exists are
@@ -116,33 +120,57 @@ const createUserComponent = async (ctx: AuthContext, name: string): Promise<stri
   return await createComponent(name)
 }
 
-const updateUserComponentDefinition = async (
+/**
+ * Writes the draft, and records a step that can be undone.
+ *
+ * Takes a **body** rather than an updater. The updater form let a caller rewrite any member of the
+ * stored definition — including `publishedBody` and `lastPublicationId`, which say what a component
+ * has released — through a permission meant for authoring. Narrowing it to the one member an author
+ * edits makes the reachable set of writes the same as the intended one.
+ */
+const saveUserComponentBody = async (
   ctx: AuthContext,
   reference: ComponentReference,
-  updater: (definition: ComponentDefinition) => ComponentDefinition
-): Promise<void> => {
+  body: string
+): Promise<HistoryDepth> => {
   requirePermission(ctx, 'components:code')
-  await updateComponentDefinition(reference, updater)
+  return await saveComponentBody(reference, body)
 }
 
 /**
- * Commits the draft: analyze, compile, sign, publish.
+ * Steps the draft backwards or forwards.
  *
- * Gated on `commit` alone rather than on `edit` as well. Committing does write the definition, but
- * demanding `edit` too would prevent the arrangement the taxonomy exists to allow — a small trusted
- * set that may publish what others have authored without being able to alter it first.
- *
- * **The author comes from here, not from the order.** `ctx.subject` is what the session established;
- * the order is what the browser sent. The commit is attributed to the principal who was permitted to
- * make it, and the signed executable built from it carries that name, so a client able to supply it
- * could attribute its own publication to someone else.
+ * Gated with writing rather than with reading: both rewrite the stored body, and a principal
+ * permitted only to read source must not be able to move it.
  */
-const commitUserComponentDefinition = async (
+const undoUserComponentBody = async (
   ctx: AuthContext,
-  order: Parameters<typeof commitComponentDefinition>[0]
-): Promise<void> => {
+  reference: ComponentReference
+): Promise<ComponentDefinition> => {
   requirePermission(ctx, 'components:code')
-  await commitComponentDefinition(order, ctx.subject)
+  return await undoComponentBody(reference)
+}
+
+const redoUserComponentBody = async (
+  ctx: AuthContext,
+  reference: ComponentReference
+): Promise<ComponentDefinition> => {
+  requirePermission(ctx, 'components:code')
+  return await redoComponentBody(reference)
+}
+
+/**
+ * How far the history runs in each direction, which is what enables or disables the two controls.
+ *
+ * Gated with the source, because it is only ever shown beside the code: a principal who may not read
+ * a component's body has no page for it to appear on.
+ */
+const getUserComponentDefinitionDepth = async (
+  ctx: AuthContext,
+  reference: ComponentReference
+): Promise<HistoryDepth> => {
+  requirePermission(ctx, 'components:code')
+  return await getComponentDefinitionDepth(reference)
 }
 
 const deleteUserComponent = async (ctx: AuthContext, component: Component): Promise<void> => {
@@ -156,7 +184,9 @@ export {
   getUserComponentDefinition,
   createUserComponent,
   getUserComponentSignature,
-  updateUserComponentDefinition,
-  commitUserComponentDefinition,
+  saveUserComponentBody,
+  undoUserComponentBody,
+  redoUserComponentBody,
+  getUserComponentDefinitionDepth,
   deleteUserComponent
 }

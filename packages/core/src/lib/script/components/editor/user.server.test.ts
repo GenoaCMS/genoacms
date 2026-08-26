@@ -7,12 +7,15 @@ import type { AuthContext } from '$lib/script/authorization/context'
  * Enforcement on the dynamic component surface.
  *
  * This layer did not exist until the interface was being gated: the editor's routes called the
- * primary module directly, so creating, reading, editing, committing and deleting a coded component
- * were all unenforced while the component permissions sat in the taxonomy consumed by nothing.
+ * primary module directly, so creating, reading, editing and deleting a coded component were all
+ * unenforced while the component permissions sat in the taxonomy consumed by nothing.
  *
- * The cases that matter most are the separations the taxonomy claims to express — reading source
- * without writing it, publishing without authoring, and creating or destroying a component without
- * either. A permission that cannot be held alone is not really a permission.
+ * The cases that matter most are the separations the taxonomy claims to express — reading the
+ * catalog without reading source, and creating or destroying a component without authoring it. A
+ * permission that cannot be held alone is not really a permission.
+ *
+ * **Publishing is not tested here**, because it is not this module's. It is an act on the whole
+ * component and lives in `publication/user.server.ts`, which has its own enforcement tests.
  *
  * The primary layer is stubbed and records what reached it, so "denied" means the operation never
  * ran rather than that an error surfaced somewhere.
@@ -25,9 +28,20 @@ vi.mock('./index', () => ({
   listOrCreateComponentList: async () => { calls.push('list'); return [] },
   getComponent: async (uid: string) => { calls.push(`get:${uid}`); return { uid, name: 'hero' } },
   getComponentDefiniton: async (uid: string) => { calls.push(`definition:${uid}`); return { uid } },
-  updateComponentDefinition: async (uid: string) => { calls.push(`update:${uid}`) },
-  commitComponentDefinition: async (order: { componentId: string }, authorId: string) => { calls.push(`commit:${order.componentId}:${authorId}`) },
   deleteComponent: async (component: { uid: string }) => { calls.push(`delete:${component.uid}`) }
+}))
+
+vi.mock('./editing.server', () => ({
+  saveComponentBody: async (uid: string, body: string) => {
+    calls.push(`save:${uid}:${body}`)
+    return { historyLength: 1, futureLength: 0 }
+  },
+  undoComponentBody: async (uid: string) => { calls.push(`undo:${uid}`); return { uid } },
+  redoComponentBody: async (uid: string) => { calls.push(`redo:${uid}`); return { uid } },
+  getComponentDefinitionDepth: async (uid: string) => {
+    calls.push(`depth:${uid}`)
+    return { historyLength: 0, futureLength: 0 }
+  }
 }))
 
 const { createAuthContext } = await import('$lib/script/authorization/context')
@@ -40,12 +54,11 @@ const contextWith = (permissions: Permission[]): AuthContext =>
 
 const nobody = () => contextWith([])
 const reader = () => contextWith(['components:read'])
-/** Reading, writing and publishing source are one permission: `components:code`. */
+/** Reading and writing source are one permission: `components:code`. */
 const developer = () => contextWith(['components:code'])
 const manager = () => contextWith(['components:register'])
 
 const component = { uid: 'uid-1', name: 'hero' } as never
-const order = { componentId: 'uid-1', message: 'a message' } as never
 
 beforeEach(() => {
   calls.length = 0
@@ -63,8 +76,10 @@ describe('every operation', () => {
     await expectDenied(() => editor.getUserComponent(nobody(), 'uid-1'))
     await expectDenied(() => editor.getUserComponentDefinition(nobody(), 'uid-1'))
     await expectDenied(() => editor.createUserComponent(nobody(), 'hero'))
-    await expectDenied(() => editor.updateUserComponentDefinition(nobody(), 'uid-1', d => d))
-    await expectDenied(() => editor.commitUserComponentDefinition(nobody(), order))
+    await expectDenied(() => editor.saveUserComponentBody(nobody(), 'uid-1', 'return 1'))
+    await expectDenied(() => editor.undoUserComponentBody(nobody(), 'uid-1'))
+    await expectDenied(() => editor.redoUserComponentBody(nobody(), 'uid-1'))
+    await expectDenied(() => editor.getUserComponentDefinitionDepth(nobody(), 'uid-1'))
     await expectDenied(() => editor.deleteUserComponent(nobody(), component))
   })
 })
@@ -88,8 +103,21 @@ describe('reading', () => {
 
 describe('authoring', () => {
   it('writes the draft with components:code', async () => {
-    await editor.updateUserComponentDefinition(developer(), 'uid-1', d => d)
-    expect(calls).toEqual(['update:uid-1'])
+    await editor.saveUserComponentBody(developer(), 'uid-1', 'return 1')
+    expect(calls).toEqual(['save:uid-1:return 1'])
+  })
+
+  it('steps the history with the same permission that writes it', async () => {
+    // Undo and redo rewrite the stored body, so they are gated with writing rather than with
+    // reading. A principal permitted only to read source must not be able to move it.
+    await editor.undoUserComponentBody(developer(), 'uid-1')
+    await editor.redoUserComponentBody(developer(), 'uid-1')
+    expect(calls).toEqual(['undo:uid-1', 'redo:uid-1'])
+  })
+
+  it('does not let a reader step the history', async () => {
+    await expectDenied(() => editor.undoUserComponentBody(reader(), 'uid-1'))
+    await expectDenied(() => editor.redoUserComponentBody(reader(), 'uid-1'))
   })
 
   it('does not permit creating or destroying a component', async () => {
@@ -97,30 +125,6 @@ describe('authoring', () => {
     // to add components pages can be built on, or to destroy one every page depends on.
     await expectDenied(() => editor.createUserComponent(developer(), 'hero'))
     await expectDenied(() => editor.deleteUserComponent(developer(), component))
-  })
-})
-
-describe('publishing', () => {
-  it('rides on components:code, the same permission that reads and writes source', async () => {
-    // Reading, writing and publishing are deliberately one permission. It is the highest-value one
-    // in the system — publishing analyzes, compiles, signs and produces an executable consumers run
-    // — so anything holding it holds all three, and this is what says so out loud.
-    await editor.commitUserComponentDefinition(developer(), order)
-    expect(calls).toEqual(['commit:uid-1:subject-1'])
-  })
-
-  it('is denied to a principal who may only read the catalog', async () => {
-    await expectDenied(() => editor.commitUserComponentDefinition(reader(), order))
-  })
-
-  it('attributes the commit to the authenticated principal, not to the order', async () => {
-    // The order is what the browser sent. If it could name the author, a publisher could attribute
-    // its own publication to somebody else, and the signed executable would carry that claim.
-    const forged = { componentId: 'uid-1', message: 'a message', authorId: 'someone-else' } as never
-
-    await editor.commitUserComponentDefinition(developer(), forged)
-
-    expect(calls).toEqual(['commit:uid-1:subject-1'])
   })
 })
 
@@ -135,6 +139,6 @@ describe('managing a component', () => {
     // Deleting destroys source, which is why it is not implied by `edit` — and managing existence
     // is not a way to read what a component does either.
     await expectDenied(() => editor.getUserComponentDefinition(manager(), 'uid-1'))
-    await expectDenied(() => editor.updateUserComponentDefinition(manager(), 'uid-1', d => d))
+    await expectDenied(() => editor.saveUserComponentBody(manager(), 'uid-1', 'return 1'))
   })
 })

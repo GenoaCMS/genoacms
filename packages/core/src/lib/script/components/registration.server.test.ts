@@ -47,7 +47,7 @@ vi.mock('./editor/index', () => ({
   getComponent: async () => ({ uid: 'x', name: 'x' }),
   getComponentDefiniton: async () => ({}),
   updateComponentDefinition: async () => {},
-  commitComponentDefinition: async () => {},
+  publishComponentDefinition: async () => {},
   deleteComponent: async (component: { uid: string }) => { created.push(`removed-everything:${component.uid}`) }
 }))
 

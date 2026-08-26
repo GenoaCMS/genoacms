@@ -54,9 +54,14 @@ const matrixOperations = [
   'getUserComponentDefinition',
   'getUserComponentSignature',
   'createUserComponent',
-  'updateUserComponentDefinition',
-  'commitUserComponentDefinition',
+  'saveUserComponentBody',
+  'undoUserComponentBody',
+  'redoUserComponentBody',
+  'getUserComponentDefinitionDepth',
   'deleteUserComponent',
+  // publication
+  'publishUserComponent',
+  'getUserPublishedComponent',
   // prebuilt components
   'registerUserComponentHeader',
   'listUserComponentHeaders',
@@ -206,24 +211,25 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     ]
   },
   /**
-   * Everything a component's source can be: reading it, writing it, and publishing it.
+   * Everything a component's source can be: reading it and writing it.
    *
-   * **One role where there were three.** `view_code`, `edit` and `commit` used to separate reading
-   * source from writing it and from publishing an executable, and the matrix carried a role per
-   * step — a reviewer who could read and not write, an author who could write and not publish, a
-   * publisher who could publish what others wrote without altering it first. `components:code`
-   * covers all three, so those arrangements are no longer expressible and the roles that
-   * demonstrated them are gone rather than left asserting a separation the permissions do not make.
+   * **One role where there were two.** `view_code` and `edit` used to separate reading source from
+   * writing it, and the matrix carried a role for each — a reviewer who could read and not write.
+   * `components:code` covers both, so that arrangement is no longer expressible and the role that
+   * demonstrated it is gone rather than left asserting a separation the permissions do not make.
    *
-   * This is the highest-value role in the system: publishing runs static analysis, compiles a
-   * bundle, signs it with the key hierarchy, and produces an executable that consumers will run.
+   * **It cannot publish**, and that is the interesting line. Publishing is an act on the whole
+   * component: it signs the description as well as the code, so it demands `components:modify`,
+   * which this role does not hold. Authoring a component's source is not authority to release it
+   * under a description one may not edit.
    */
   ComponentDeveloper: {
     grants: [instanceGrant('components:read'), instanceGrant('components:code')],
     allowed: [
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
-      'getUserComponentSignature', 'updateUserComponentDefinition', 'commitUserComponentDefinition'
+      'getUserComponentSignature', 'saveUserComponentBody', 'undoUserComponentBody',
+      'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent'
     ]
   },
   ComponentCurator: {
@@ -231,12 +237,21 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('components:read'),
       instanceGrant('components:modify')
     ],
-    // The catalog permission covers coded components too: their names are catalog information,
-    // and what distinguishes them — their source — is `components:code`.
+    /*
+     * The catalog permission covers coded components too: their names are catalog information, and
+     * what distinguishes them — their source — is `components:code`.
+     *
+     * **This role publishes**, and the component under test is prebuilt. A prebuilt component has
+     * no code, so releasing one is releasing a description, which is exactly what `modify` governs.
+     * A *dynamic* component would additionally demand `components:code` and be refused here — a
+     * distinction the matrix cannot express, because it exercises one component and that check
+     * depends on which. `publication/user.server.test.ts` is where it is asserted.
+     */
     allowed: [
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
-      'listUserComponents', 'getUserComponent'
+      'listUserComponents', 'getUserComponent',
+      'publishUserComponent', 'getUserPublishedComponent'
     ]
   },
   ComponentRegistrar: {
@@ -249,7 +264,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: [
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
-      'listUserComponents', 'getUserComponent',
+      'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
       'createUserComponent', 'deleteUserComponent'
     ]
   },

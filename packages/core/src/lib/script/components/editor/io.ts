@@ -1,5 +1,7 @@
-import type { Component, ComponentCommit, ComponentDefinition, ComponentDefinitionReference } from './types'
+import type { Component, ComponentDefinition, ComponentReference } from './types'
 import type { ComponentHeader, ComponentHeaderReference } from '../componentHeader/component/types'
+import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import { noHistory } from '$lib/script/undoRedo'
 
 import { join } from 'path'
 import {
@@ -11,15 +13,16 @@ import {
 import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
 import { NoSuchComponentError } from './errors'
 import { validator } from '@exodus/schemasafe'
-import { componentCommitSchema, componentDefinitionSchema } from './schemas'
+import { componentDefinitionSchema } from './schemas'
 
 /**
- * Where a dynamic component lives.
+ * Where a dynamic component's source lives.
  *
- * `dynamic/{uid}` holds the source and every commit under it. Published artifacts sit beside them
- * under `dynamic/executables`, which `executable/io.server.ts` owns — named here only to say that
- * the two are siblings rather than nested, and that a component identifier is a UUID so it can never
- * collide with that one reserved name.
+ * `dynamic/{uid}/data.json`, with its editing history beside it at `history.json`. What a component
+ * *publishes* lives in
+ * `components/public/`, which `publication/io.server.ts` owns — a publication is a fact about a
+ * component rather than about its code, and a prebuilt component makes one without ever having a
+ * directory here.
  *
  * ## There is no separate component file
  *
@@ -30,11 +33,53 @@ import { componentCommitSchema, componentDefinitionSchema } from './schemas'
  * and the catalog disagreeing about what a component is called.
  */
 const componentDefinitionPath = join('.genoacms', 'components/', 'dynamic/')
+
+const definitionPath = (reference: ComponentReference): string =>
+  join(componentDefinitionPath, reference, 'data.json')
+
+/**
+ * The editing history, stored **beside** the definition rather than inside it.
+ *
+ * An adjunct, exactly as a component header's history is. Keeping it out of the definition is what
+ * lets the definition stay a single stored fact: the body a publication compiles must not carry
+ * every intermediate state of an author's afternoon, and reading the source should not mean reading
+ * a history that can be far larger than it.
+ */
+const historyPath = (reference: ComponentReference): string =>
+  join(componentDefinitionPath, reference, 'history.json')
+
 async function uploadComponentDefinition (definition: ComponentDefinition) {
-  await uploadInternalObjectFlatted(join(componentDefinitionPath, definition.uid, 'data.json'), definition)
+  await uploadInternalObjectFlatted(definitionPath(definition.uid), definition)
 }
-async function uploadComponentCommit (commit: ComponentCommit) {
-  await uploadInternalObjectFlatted(join(componentDefinitionPath, commit.componentId, commit.uid), commit)
+
+const uploadComponentDefinitionHistory = async (
+  reference: ComponentReference,
+  adjunct: UndoRedoAdjunct<ComponentDefinition>
+): Promise<void> => await uploadInternalObjectFlatted(historyPath(reference), adjunct)
+
+/**
+ * A component's editing history. Absent is empty, not an error: nothing has been edited yet.
+ *
+ * An unreadable history is also empty, with a warning rather than a failure. The source is intact
+ * either way, and the worst outcome is that the author cannot undo past this point — which is not
+ * worth refusing an edit over.
+ */
+const getComponentDefinitionHistory = async (
+  reference: ComponentReference
+): Promise<UndoRedoAdjunct<ComponentDefinition>> => {
+  let stored
+  try {
+    stored = await getInternalObjectFlatted(historyPath(reference)) as
+      Partial<UndoRedoAdjunct<ComponentDefinition>> | undefined | null
+  } catch {
+    return noHistory<ComponentDefinition>()
+  }
+  if (stored === undefined || stored === null) return noHistory<ComponentDefinition>()
+  if (!Array.isArray(stored.history) || !Array.isArray(stored.future)) {
+    console.warn(`[genoacms:components] ${reference} has an unreadable editing history; starting a new one`)
+    return noHistory<ComponentDefinition>()
+  }
+  return { history: stored.history, future: stored.future }
 }
 
 /** A dynamic component, as the editor lists it. Derived from its header, which is where it lives. */
@@ -45,7 +90,7 @@ async function getComponent (reference: ComponentHeaderReference): Promise<Compo
   if (entry === null) {
     throw new NoSuchComponentError(reference, `components/no-such-component: ${reference} does not exist.`)
   }
-  // A prebuilt component has no source and no commits, so the editor cannot open one. Refused by
+  // A prebuilt component has no source, so the editor cannot open one. Refused by
   // name rather than by a missing definition, which would surface as a confusing storage error.
   if (entry.type !== 'dynamic') {
     throw new NoSuchComponentError(
@@ -57,32 +102,13 @@ async function getComponent (reference: ComponentHeaderReference): Promise<Compo
   return asComponent(entry)
 }
 
-async function getComponentDefiniton (reference: ComponentDefinitionReference) {
-  const potentialComponentDefinition = await getInternalObjectFlatted(join(componentDefinitionPath, reference, 'data.json'))
+async function getComponentDefiniton (reference: ComponentReference) {
+  const potentialComponentDefinition = await getInternalObjectFlatted(definitionPath(reference))
   const validateComponentDefinition = validator(componentDefinitionSchema)
   if (!validateComponentDefinition(potentialComponentDefinition)) throw Error(`Invalid component definition: ${reference}`)
   return potentialComponentDefinition
 }
 
-/**
- * Reads a stored commit, refusing one that does not validate.
- *
- * A commit written before commits recorded their author fails here. That is deliberate rather than
- * an oversight: the author cannot be recovered afterwards, and an executable rebuilt from such a
- * commit would either carry a placeholder — a signed claim of attribution that is not true — or no
- * attribution at all. Recommitting the component writes a commit that does record one.
- */
-async function getComponentCommit (componentId: string, commitId: string) {
-  const potentialComponentCommit = await getInternalObjectFlatted(join(componentDefinitionPath, componentId, commitId))
-  const validateComponentCommit = validator(componentCommitSchema)
-  if (!validateComponentCommit(potentialComponentCommit)) {
-    throw Error(
-      `Invalid component commit: ${commitId}. A commit stored without an authorId predates commits ` +
-      'recording one; recommit the component to produce a commit that does.'
-    )
-  }
-  return potentialComponentCommit
-}
 /**
  * Every dynamic component.
  *
@@ -96,22 +122,22 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
 }
 
 /**
- * Removes a definition and every commit under it.
+ * Removes a definition.
  *
- * A **directory**, not an object. The source lives at `{uid}/data.json` and each commit beside it,
- * so `{uid}` is a prefix and deleting it as though it were a single object fails with a 404 for a
- * component that exists. That went unnoticed because the deletion never reached here: the server
- * refused on the confirmation name first, every time.
+ * A **directory**, not an object. The source lives at `{uid}/data.json`, so `{uid}` is a prefix and
+ * deleting it as though it were a single object fails with a 404 for a component that exists. That
+ * went unnoticed because the deletion never reached here: the server refused on the confirmation
+ * name first, every time.
  */
-const deleteComponentDefinition = (reference: ComponentDefinitionReference) =>
+const deleteComponentDefinition = (reference: ComponentReference) =>
   deleteDirectory({ bucket: defaultBucketId, name: join(componentDefinitionPath, reference) })
 
 export {
   uploadComponentDefinition,
-  uploadComponentCommit,
+  uploadComponentDefinitionHistory,
   getComponent,
   getComponentDefiniton,
-  getComponentCommit,
+  getComponentDefinitionHistory,
   listOrCreateComponentList,
   deleteComponentDefinition
 }

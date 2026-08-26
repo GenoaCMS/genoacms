@@ -78,9 +78,10 @@ vi.mock('$lib/script/components/editor', () => ({
   getComponent: async () => ({ uid: 'uid-1', name: 'hero' }),
   // `language` is what resolves the adapter, and the signature preview needs one. Without it the
   // operation fails for a reason that has nothing to do with the permission under test.
-  getComponentDefiniton: async () => ({ uid: 'uid-1', language: 'typescript', code: '', uncommitedCode: '' }),
+  getComponentDefiniton: async () => ({
+    uid: 'uid-1', language: 'typescript', body: '', publishedBody: '', publishedSignature: ''
+  }),
   updateComponentDefinition: async () => {},
-  commitComponentDefinition: async () => {},
   deleteComponent: async () => {}
 }))
 
@@ -95,6 +96,32 @@ vi.mock('$lib/script/components/componentHeader/io.server', () => ({
   deleteComponentHeader: async () => {},
   getComponentHeaderHistory: async () => ({ history: [], future: [] }),
   uploadComponentHeaderHistory: async () => {}
+}))
+
+// The definition's editing history, stubbed like the other primary layers: the matrix is about
+// which principal may call what, not about what reaches the bucket.
+vi.mock('$lib/script/components/editor/editing.server', () => ({
+  saveComponentBody: async () => ({ historyLength: 1, futureLength: 0 }),
+  undoComponentBody: async () => ({ uid: 'uid-1' }),
+  redoComponentBody: async () => ({ uid: 'uid-1' }),
+  getComponentDefinitionDepth: async () => ({ historyLength: 0, futureLength: 0 })
+}))
+
+// Storage-level, mocked because deleting a component header now removes its publications too.
+vi.mock('$lib/script/components/publication/io.server', () => ({
+  deleteComponentPublications: async () => {}
+}))
+
+vi.mock('$lib/script/components/publication', () => ({
+  publishComponent: async () => ({
+    uid: 'uid-1',
+    publicationId: 'pub-1',
+    publisherId: 'subject-1',
+    publishedAt: 0,
+    note: 'n',
+    headerDigest: 'd'
+  }),
+  getPublishedComponent: async () => null
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
@@ -164,6 +191,7 @@ const storage = await import('$lib/script/storage/user.server')
 const database = await import('$lib/script/database/user.server')
 const components = await import('$lib/script/components/componentHeader/user.server')
 const editor = await import('$lib/script/components/editor/user.server')
+const publication = await import('$lib/script/components/publication/user.server')
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
 const signing = await import('$lib/script/signing/user.server')
@@ -217,10 +245,13 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   getUserComponentDefinition: ctx => editor.getUserComponentDefinition(ctx, 'uid-1'),
   getUserComponentSignature: ctx => editor.getUserComponentSignature(ctx, 'uid-1'),
   createUserComponent: ctx => editor.createUserComponent(ctx, 'hero'),
-  updateUserComponentDefinition: ctx =>
-    editor.updateUserComponentDefinition(ctx, 'uid-1', definition => definition),
-  commitUserComponentDefinition: ctx =>
-    editor.commitUserComponentDefinition(ctx, { componentId: 'uid-1', message: 'm' } as never),
+  saveUserComponentBody: ctx => editor.saveUserComponentBody(ctx, 'uid-1', 'return 1'),
+  undoUserComponentBody: ctx => editor.undoUserComponentBody(ctx, 'uid-1'),
+  redoUserComponentBody: ctx => editor.redoUserComponentBody(ctx, 'uid-1'),
+  getUserComponentDefinitionDepth: ctx => editor.getUserComponentDefinitionDepth(ctx, 'uid-1'),
+  publishUserComponent: ctx =>
+    publication.publishUserComponent(ctx, { componentId: 'uid-1', note: 'n' }),
+  getUserPublishedComponent: ctx => publication.getUserPublishedComponent(ctx, 'uid-1'),
   deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
@@ -294,6 +325,7 @@ describe('the matrix is complete over the service surface', () => {
     database,
     components,
     editor,
+    publication,
     pages: pagesService,
     configuration,
     signing

@@ -18,9 +18,9 @@ import {
 
 const SUBJECT = {
   uid: 'component-1',
-  commitId: 'commit-1',
-  authorId: 'user-1',
-  committedAt: 1_700_000_000_000
+  publicationId: 'commit-1',
+  publisherId: 'user-1',
+  publishedAt: 1_700_000_000_000
 }
 
 const build = (overrides: Partial<typeof SUBJECT> = {}, code = 'export const a = 1') =>
@@ -47,9 +47,9 @@ describe('building a payload', () => {
 
     expect(executable).toEqual({
       uid: 'component-1',
-      commitId: 'commit-1',
-      authorId: 'user-1',
-      committedAt: 1_700_000_000_000,
+      publicationId: 'commit-1',
+      publisherId: 'user-1',
+      publishedAt: 1_700_000_000_000,
       platform: 'web-esmodule',
       executableCode: 'export const a = 1',
       compiledAt: 1_700_000_001_000
@@ -59,7 +59,7 @@ describe('building a payload', () => {
   it('keeps the commit time and the compile time apart', () => {
     const executable = build()
 
-    expect(executable.compiledAt).not.toBe(executable.committedAt)
+    expect(executable.compiledAt).not.toBe(executable.publishedAt)
   })
 
   it('canonicalizes, which is what the signature is taken over', () => {
@@ -71,8 +71,8 @@ describe('building a payload', () => {
 describe('refusing a half-built payload', () => {
   it.each([
     ['uid', { uid: '' }],
-    ['commitId', { commitId: '' }],
-    ['authorId', { authorId: '' }]
+    ['publicationId', { publicationId: '' }],
+    ['publisherId', { publisherId: '' }]
   ])('refuses a missing %s', (field, override) => {
     expect(() => build(override)).toThrow(ExecutableError)
     expect(() => build(override)).toThrow(new RegExp(field))
@@ -80,11 +80,11 @@ describe('refusing a half-built payload', () => {
 
   it('refuses a blank identifier, not just an absent one', () => {
     // Whitespace signs as cleanly as a name and attributes the artifact to nobody.
-    expect(() => build({ authorId: '   ' })).toThrow(ExecutableError)
+    expect(() => build({ publisherId: '   ' })).toThrow(ExecutableError)
   })
 
   it('refuses a timestamp that is not a number', () => {
-    expect(() => build({ committedAt: Number.NaN })).toThrow(ExecutableError)
+    expect(() => build({ publishedAt: Number.NaN })).toThrow(ExecutableError)
   })
 
   it('refuses an empty bundle', () => {
@@ -94,8 +94,8 @@ describe('refusing a half-built payload', () => {
   })
 
   it('names the field it refused, so the pipeline says what was missing', () => {
-    expect(() => build({ authorId: '' })).toThrow(
-      expect.objectContaining({ field: 'authorId' })
+    expect(() => build({ publisherId: '' })).toThrow(
+      expect.objectContaining({ field: 'publisherId' })
     )
   })
 })

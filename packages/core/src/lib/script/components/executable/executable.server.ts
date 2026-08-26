@@ -29,7 +29,7 @@ import {
  * Builds and signs an executable for one platform.
  *
  * `compiledAt` is stamped here, at the moment of signing, because it records when *the server* built
- * the artifact. It is deliberately a different fact from `committedAt`, which came from the person
+ * the artifact. It is deliberately a different fact from `publishedAt`, which came from the person
  * who committed the revision, and the two diverge whenever an artifact is rebuilt.
  */
 const signComponentExecutable = async (

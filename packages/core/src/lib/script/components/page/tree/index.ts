@@ -83,35 +83,35 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
 }
 
 /**
- * The revision a node is pinned to, or nothing if the component is prebuilt.
+ * The publication a node is pinned to, or nothing if the component is prebuilt.
  *
  * Read at build time and written into the tree, which is what makes the pin a pin: the page names
- * the revision that was current when it was published, and keeps naming it after the component has
- * moved on. Resolving the latest revision at render time instead would make every published page
- * follow the newest commit, which is the behavior this exists to prevent.
+ * the publication that was current when it was built, and keeps naming it after the component has
+ * moved on. Resolving the latest at render time instead would make every published page follow the
+ * newest publication, which is the behavior this exists to prevent.
  *
- * A component with no commits has nothing to pin and nothing to serve. That is left absent rather
- * than reported here: publishing a page is not the place to discover that one of its components was
- * never committed, and the consumer's own verification is what refuses to render it.
+ * A component that has never been published has nothing to pin and nothing to serve. That is left
+ * absent rather than reported here: building a page is not the place to discover that one of its
+ * components was never published, and the consumer's own verification is what refuses to render it.
  */
 const pinnedRevision = async (entryReference: string): Promise<string | undefined> => {
   const entry = await getComponentHeader(entryReference)
   if (entry === null || entry.type !== 'dynamic') return undefined
 
   const definition = await getComponentDefiniton(entryReference)
-  return definition.history.at(-1)
+  return definition.lastPublicationId
 }
 
 /**
  * What a node needs in order for a consumer to fetch what it pins.
  *
- * `uid` and `commitId` travel together: an executable lives at `{uid}/{commitId}`, so either alone
+ * `uid` and `publicationId` travel together: an executable lives at `{uid}/{publicationId}`, so either alone
  * is a pin nobody can resolve. Both are omitted for a prebuilt component, which has no artifact.
  */
-const artifactReference = async (entryReference: string): Promise<{ uid: string, commitId: string } | undefined> => {
-  const commitId = await pinnedRevision(entryReference)
-  if (commitId === undefined) return undefined
-  return { uid: entryReference, commitId }
+const artifactReference = async (entryReference: string): Promise<{ uid: string, publicationId: string } | undefined> => {
+  const publicationId = await pinnedRevision(entryReference)
+  if (publicationId === undefined) return undefined
+  return { uid: entryReference, publicationId }
 }
 
 const componentNodeToReadablePageNode = async (node: ComponentNode,
@@ -121,7 +121,7 @@ const componentNodeToReadablePageNode = async (node: ComponentNode,
     component: node.name,
     // Omitted rather than set to undefined for a prebuilt component: the tree is signed, and
     // canonicalization drops an undefined member silently while refusing to represent it — so an
-    // explicit `commitId: undefined` would sign as though the key had never been written.
+    // explicit `publicationId: undefined` would sign as though the key had never been written.
     ...(artifact ?? {}),
     data: {}
   }

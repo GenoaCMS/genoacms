@@ -14,6 +14,8 @@
   import AddAttribute from './AddAttribute.svelte'
   import DeleteComponent from './DeleteComponent.svelte'
   import CodeLink from './CodeLink.svelte'
+  import PublishComponent from './PublishComponent.svelte'
+  import PublicationStatus from './PublicationStatus.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
   import { updateComponent } from './update.remote.js'
@@ -33,10 +35,21 @@
     entry: ComponentHeader
     historyLength: number
     futureLength: number
+    /** When this component was last published, or `undefined` if it never has been. */
+    publishedAt?: number
   }
-  const { id, entry, historyLength, futureLength }: Props = $props()
+  const { id, entry, historyLength, futureLength, publishedAt }: Props = $props()
 
   const form = $state(entry)
+
+  /**
+   * When the component was last published, advanced by publishing rather than by reloading.
+   *
+   * Seeded from `load` and written by the publish control, so the badge answers immediately. Undo
+   * and redo navigate and re-create this component, which reseeds it — the same arrangement `depth`
+   * uses one field below, and for the same reason.
+   */
+  let lastPublishedAt = $state(publishedAt)
 
   /**
    * How deep the history runs, kept locally because saving does not reload the page.
@@ -80,9 +93,14 @@
 </script>
 
 <TopPanel>
-  <div class="text-2xl">
-    Component:
-    {form.name}
+  <div class="flex items-center gap-3">
+    <div class="text-2xl">
+      Component:
+      {form.name}
+    </div>
+    <!-- Beside the name rather than among the controls: it reports a state, and is the one thing
+         here a principal who may only read the catalog can still make use of. -->
+    <PublicationStatus publishedAt={lastPublishedAt} />
   </div>
   {#snippet right()}
     {#if entry.type === 'dynamic'}
@@ -99,6 +117,13 @@
       <Redo futureLength={depth.futureLength} />
       <AddAttribute onadd={addAttribute} />
       <Submit />
+      <!-- Gated on `modify`, which is what publishing demands of every component. A dynamic one
+           demands `components:code` as well, and that check is the server's: it depends on the
+           stored type, and a gate here would only hide a control the server would refuse. -->
+      <PublishComponent
+        componentId={id}
+        onpublished={(at) => { lastPublishedAt = at }}
+      />
     </PermissionGate>
   {/snippet}
 </TopPanel>

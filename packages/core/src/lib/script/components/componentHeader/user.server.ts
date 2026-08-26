@@ -14,6 +14,7 @@ import {
   getComponentHeaderDepth
 } from './editing.server'
 import type { HistoryDepth } from './editing.server'
+import { deleteComponentPublications } from '../publication/io.server'
 
 /**
  * Prebuilt component operations performed **by a user**.
@@ -178,10 +179,21 @@ const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHea
  * who may not add a component may not delete one either. Letting `modify` cover it would mean a role
  * meant to edit attributes could destroy a component that pages depend on.
  */
+/**
+ * Removes a prebuilt component, and everything it published.
+ *
+ * The publications go with it for the same reason a dynamic component's do: each is written once,
+ * signed and independently verifiable, so one left behind keeps verifying for a component that no
+ * longer exists. A prebuilt component publishes a header and no executable, which changes what is
+ * in the directory and not whether it should survive its component.
+ */
 const deleteUserComponentHeader = async (ctx: AuthContext, name: string) => {
   requirePermission(ctx, 'components:register')
   await requirePrebuilt(name)
-  return await deleteComponentHeader(name)
+  await Promise.all([
+    deleteComponentHeader(name),
+    deleteComponentPublications(name)
+  ])
 }
 
 export {

@@ -38,9 +38,9 @@ const { readSignedDocument } = await import('$lib/script/signing/signedDocument.
 
 const SUBJECT = {
   uid: 'component-1',
-  commitId: 'commit-1',
-  authorId: 'user-1',
-  committedAt: 1_700_000_000_000
+  publicationId: 'commit-1',
+  publisherId: 'user-1',
+  publishedAt: 1_700_000_000_000
 }
 
 const signed = async (code = 'export const a = 1') =>
@@ -73,11 +73,11 @@ describe('signing an executable', () => {
     expect(envelope.payload.executableCode).toBe('export function Component () { return 1 }')
   })
 
-  it('stamps compiledAt at signing time, leaving committedAt as it was', async () => {
+  it('stamps compiledAt at signing time, leaving publishedAt as it was', async () => {
     const before = Date.now()
     const envelope = await signed()
 
-    expect(envelope.payload.committedAt).toBe(SUBJECT.committedAt)
+    expect(envelope.payload.publishedAt).toBe(SUBJECT.publishedAt)
     expect(envelope.payload.compiledAt).toBeGreaterThanOrEqual(before)
   })
 })
@@ -132,7 +132,7 @@ describe('what the signature covers', () => {
     // Attribution is the audit trail. If it could be edited after signing, the signature would prove
     // the instance built the artifact and nothing about who shipped it.
     const envelope = await signed()
-    const tampered = { ...envelope, payload: { ...envelope.payload, authorId: 'someone-else' } }
+    const tampered = { ...envelope, payload: { ...envelope.payload, publisherId: 'someone-else' } }
 
     expect(verify(tampered, EXECUTABLE_DOCUMENT, keypair.publicKey).valid).toBe(false)
   })

@@ -130,9 +130,16 @@ const REGISTRY_PATH = '.genoacms/keys/public.json'
 /** Where a published page lives. The CMS's layout, which is why a consumer never assembles one. */
 const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name}`
 
-/** Where a compiled revision lives. Immutable, which is what lets a consumer cache it forever. */
-const executablePath = (uid: string, commitId: string): string =>
-  `.genoacms/components/dynamic/executables/${uid}/${commitId}.json`
+/**
+ * Where a publication's compiled code lives. Immutable, which is what lets a consumer cache forever.
+ *
+ * One directory per publication, holding the signed header and — for a component that has code —
+ * this. It used to sit under the source it was built from, at
+ * `dynamic/executables/{uid}/{publicationId}.json`, which said a publication was a fact about code.
+ * It is a fact about a component, and a component with no code publishes into the same layout.
+ */
+const executablePath = (uid: string, publicationId: string): string =>
+  `.genoacms/components/public/${uid}/${publicationId}/executable.json`
 
 class Verifier {
   readonly #rootPublicKey: Uint8Array
@@ -243,9 +250,9 @@ class Verifier {
    * never written, or has since been deleted.
    */
   async executable (
-    pin: { uid: string, commitId: string }
+    pin: { uid: string, publicationId: string }
   ): Promise<Verdict<ComponentExecutable> | undefined> {
-    const verified = await this.fetchVerified(executablePath(pin.uid, pin.commitId), EXECUTABLE_DOCUMENT)
+    const verified = await this.fetchVerified(executablePath(pin.uid, pin.publicationId), EXECUTABLE_DOCUMENT)
     if (verified === undefined) return undefined
     if (!verified.valid) return verified
 

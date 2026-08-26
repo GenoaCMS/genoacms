@@ -6,11 +6,11 @@ import { SLOW, openDirectory, readObjectJSON } from './support/storage'
  * A published page names the revision it was built against, and keeps naming it.
  *
  * This is the property the whole delivery model rests on, and **the half that matters is the
- * negative one**: committing a newer revision must not change what a published page serves. A pin
- * that silently follows the latest commit is not a pin, and nothing about the happy path would
+ * negative one**: publishing a newer revision must not change what a published page serves. A pin
+ * that silently follows the latest publication is not a pin, and nothing about the happy path would
  * reveal the difference — the page would render, the signature would verify, and the artifact it
  * named would be a perfectly valid one. Only comparing the published document before and after an
- * unrelated commit can tell the two apart.
+ * unrelated publication can tell the two apart.
  *
  * So this suite reads the **contents** of the published tree rather than checking that a file
  * exists. Everything else in these suites stops at "it is listed", which cannot distinguish a
@@ -18,9 +18,9 @@ import { SLOW, openDirectory, readObjectJSON } from './support/storage'
  *
  * ## Serial, and one fixture throughout
  *
- * Each step depends on the state the previous one left: a component with two commits, and a page
- * built between them. Splitting that into independent tests would mean rebuilding the whole history
- * per test, and every one of them would take the slowest path the product has.
+ * Each step depends on the state the previous one left: a component with two publications, and a
+ * page built between them. Splitting that into independent tests would mean rebuilding the whole
+ * history per test, and every one of them would take the slowest path the product has.
  */
 
 test.describe.configure({ mode: 'serial' })
@@ -47,18 +47,24 @@ const createDynamic = async (page: Page, name: string): Promise<string> => {
   await dialog.getByRole('radio', { name: 'Code it here' }).check()
   await dialog.getByRole('button', { name: 'Create' }).click()
 
-  await expect(page).toHaveURL(/\/components\/editor\/[^/]+$/, { timeout: SLOW })
+  // Registering opens the registrar whichever kind was chosen; `publishRevision` navigates to the
+  // code and back, so nothing here needs the editor.
+  await expect(page).toHaveURL(/\/components\/registrar\/[^/]+$/, { timeout: SLOW })
   return page.url().split('/').pop() as string
 }
 
 /**
- * Types a revision into the editor and commits it.
+ * Types a revision into the editor and publishes it from the registrar.
  *
- * The draft is written a second after typing stops, with nothing on screen to say so, so the
- * autosave request is waited for — otherwise the commit races the save and commits the previous
- * revision, which would make this suite pass for the wrong reason.
+ * Two surfaces, because the CMS has two: the code is written in the editor and the release happens
+ * in the registrar, which is the one place both kinds of component are published from.
+ *
+ * **The save is explicit**, which is what makes this reliable rather than a race. The editor used to
+ * write a second after typing stopped, so the helper waited on a request it could only recognize by
+ * shape; a save the author performs is reported on screen, and waiting for that is waiting for the
+ * thing itself.
  */
-const commitRevision = async (page: Page, uid: string, source: string): Promise<void> => {
+const publishRevision = async (page: Page, uid: string, source: string): Promise<void> => {
   await page.goto(`/components/editor/${uid}`)
 
   const editor = page.locator('.cm-content').first()
@@ -66,19 +72,18 @@ const commitRevision = async (page: Page, uid: string, source: string): Promise<
   await editor.click()
   await page.keyboard.press('ControlOrMeta+a')
 
-  const autoSaved = page.waitForResponse(
-    (response) => response.request().method() === 'POST' && response.ok(),
-    { timeout: SLOW }
-  )
   await page.keyboard.type(source)
-  await autoSaved
 
-  await page.getByRole('button', { name: 'Commit' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Commit changes' })
-  await dialog.getByRole('textbox').last().fill('committed by the end-to-end suite')
-  await dialog.getByRole('button', { name: /commit/i }).click()
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Code saved').first()).toBeVisible({ timeout: SLOW })
 
-  await expect(page.getByText('Code commited').first()).toBeVisible({ timeout: SLOW })
+  await page.goto(`/components/registrar/${uid}`)
+  await page.getByRole('button', { name: 'Publish' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Publish the component' })
+  await dialog.getByRole('textbox').last().fill('published by the end-to-end suite')
+  await dialog.getByRole('button', { name: /publish/i }).click()
+
+  await expect(page.getByText('Component published').first()).toBeVisible({ timeout: SLOW })
 }
 
 const createPageRootedIn = async (page: Page, name: string, component: string): Promise<void> => {
@@ -102,13 +107,13 @@ const buildPage = async (page: Page, name: string): Promise<void> => {
 const publishedRevision = async (page: Page, name: string): Promise<string | undefined> => {
   const envelope = await readObjectJSON(page, READABLES, name) as {
     type: string
-    payload: { commitId?: string }
+    payload: { publicationId?: string }
   }
 
   // Asserted here rather than in a test of its own: every read below depends on it, and a tree that
   // arrived unsigned would otherwise show up as a confusing `undefined` revision.
   expect(envelope.type).toBe('genoacms.pageTree.v1')
-  return envelope.payload.commitId
+  return envelope.payload.publicationId
 }
 
 /**
@@ -188,7 +193,8 @@ test.afterAll(async ({ browser }) => {
   await sweep(page, ['.genoacms', 'pages', 'readables'], new RegExp(`^select-.*${pageName}`))
   await sweep(page, ['.genoacms', 'pages', 'entries'], new RegExp(`^select-.*${pageName}`))
   if (uid !== undefined) {
-    await sweep(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
+    await sweep(page, ['.genoacms', 'components', 'public'], new RegExp(`^select-.*${uid}`))
+    await sweep(page, ['.genoacms', 'components', 'publications'], new RegExp(`^select-.*${uid}`))
     for (const directory of [['dynamic'], ['headers']]) {
       await sweep(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
     }
@@ -206,10 +212,10 @@ const assertGone = async (page: Page, directory: string[], match: RegExp): Promi
   await expect(page.getByRole('button', { name: match })).toHaveCount(0, { timeout: SLOW })
 }
 
-test('a component is committed once', async ({ page }) => {
+test('a component is published once', async ({ page }) => {
   test.setTimeout(180_000)
   uid = await createDynamic(page, componentName)
-  await commitRevision(page, uid, sourceFor('first'))
+  await publishRevision(page, uid, sourceFor('first'))
 })
 
 test('a page built against it is pinned to that revision', async ({ page }) => {
@@ -222,18 +228,18 @@ test('a page built against it is pinned to that revision', async ({ page }) => {
   expect(firstRevision).toMatch(/^[0-9a-f-]{36}$/)
 })
 
-test('committing a newer revision does not change the published page', async ({ page }) => {
-  // The point of the whole mechanism. Without the pin the published tree would follow this commit
+test('publishing a newer revision does not change the published page', async ({ page }) => {
+  // The point of the whole mechanism. Without the pin the published tree would follow this release
   // immediately, and every assertion above would still have passed.
   test.setTimeout(180_000)
-  await commitRevision(page, uid, sourceFor('second'))
+  await publishRevision(page, uid, sourceFor('second'))
 
   expect(await publishedRevision(page, pageName)).toBe(firstRevision)
 })
 
 test('republishing moves the pin to the newer revision', async ({ page }) => {
   // The other half: a pin that could never move would not be a pin either, it would be a component
-  // frozen at its first commit.
+  // frozen at its first publication.
   test.setTimeout(180_000)
   await buildPage(page, pageName)
 
@@ -244,9 +250,9 @@ test('republishing moves the pin to the newer revision', async ({ page }) => {
 })
 
 test('every published revision keeps its own executable', async ({ page }) => {
-  // Two commits, two artifacts, neither overwritten — which is what makes the older pin still
+  // Two publications, two directories, neither overwritten — which is what makes the older pin still
   // resolve to something after the component has moved on.
-  expect(await openDirectory(page, ['.genoacms', 'components', 'dynamic', 'executables', uid])).toBe(true)
+  expect(await openDirectory(page, ['.genoacms', 'components', 'public', uid])).toBe(true)
 
   await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(2, { timeout: SLOW })
 })
@@ -259,12 +265,13 @@ test('deleting the page removes what it published', async ({ page }) => {
 })
 
 test('deleting the component removes every revision it published', async ({ page }) => {
-  // The reason deletion and immutable artifacts are one step: each commit left an artifact that is
-  // signed and independently verifiable, so any left behind would keep verifying for a component
+  // The reason deletion and immutable artifacts are one step: each publication left documents that
+  // are signed and independently verifiable, so any left behind would keep verifying for a component
   // that no longer exists.
   await deleteComponent(page, uid, componentName)
 
-  await assertGone(page, ['.genoacms', 'components', 'dynamic', 'executables', uid], /^select-/)
+  await assertGone(page, ['.genoacms', 'components', 'public', uid], /^select-/)
+  await assertGone(page, ['.genoacms', 'components', 'publications'], new RegExp(`^select-.*${uid}`))
   for (const directory of [['dynamic'], ['headers']]) {
     await assertGone(page, ['.genoacms', 'components', ...directory], new RegExp(`^select-.*${uid}`))
   }

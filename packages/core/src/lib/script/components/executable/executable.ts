@@ -26,11 +26,11 @@ interface ExecutableSubject {
   /** The component this belongs to. */
   uid: string
   /** The revision it was built from. */
-  commitId: string
+  publicationId: string
   /** The principal who committed that revision — `AuthContext.subject`. */
-  authorId: string
+  publisherId: string
   /** When they committed it. */
-  committedAt: number
+  publishedAt: number
 }
 
 class ExecutableError extends Error {
@@ -43,7 +43,7 @@ class ExecutableError extends Error {
 /**
  * Refuses an identifier that is absent or blank.
  *
- * Blank counts as absent. An empty `authorId` would sign cleanly and produce an artifact attributing
+ * Blank counts as absent. An empty `publisherId` would sign cleanly and produce an artifact attributing
  * itself to nobody, which reads as attribution while carrying none.
  */
 const requireIdentifier = (field: string, value: string): string => {
@@ -88,9 +88,9 @@ const buildComponentExecutable = (
   compiledAt: number
 ): ComponentExecutable => ({
   uid: requireIdentifier('uid', subject.uid),
-  commitId: requireIdentifier('commitId', subject.commitId),
-  authorId: requireIdentifier('authorId', subject.authorId),
-  committedAt: requireTimestamp('committedAt', subject.committedAt),
+  publicationId: requireIdentifier('publicationId', subject.publicationId),
+  publisherId: requireIdentifier('publisherId', subject.publisherId),
+  publishedAt: requireTimestamp('publishedAt', subject.publishedAt),
   platform,
   executableCode: requireCode(executableCode),
   compiledAt: requireTimestamp('compiledAt', compiledAt)

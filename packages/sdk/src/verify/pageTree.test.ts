@@ -13,7 +13,7 @@ import type { ReadablePageNode } from './pageTree.js'
 const node = (over: Partial<ReadablePageNode> = {}): unknown => ({
   component: 'Hero',
   uid: 'component-1',
-  commitId: 'commit-1',
+  publicationId: 'commit-1',
   data: {},
   ...over
 })
@@ -26,21 +26,21 @@ describe('reading a tree', () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { component: 'Hero', uid: 'component-1', commitId: 'commit-1', data: {} }
+      value: { component: 'Hero', uid: 'component-1', publicationId: 'commit-1', data: {} }
     })
   })
 
   it('reads a prebuilt node, which pins nothing', () => {
     const result = read({ component: 'Card', data: {} })
 
-    expect(result.ok && 'commitId' in result.value).toBe(false)
+    expect(result.ok && 'publicationId' in result.value).toBe(false)
     expect(result.ok && 'uid' in result.value).toBe(false)
   })
 
   it('refuses a node pinned by halves', () => {
-    // An artifact is at `{uid}/{commitId}`; either alone is a pin nobody can resolve. Refused rather
+    // An artifact is at `{uid}/{publicationId}`; either alone is a pin nobody can resolve. Refused rather
     // than read as prebuilt, because a node naming a revision is asking for one to be run.
-    expect(read({ component: 'Hero', commitId: 'commit-1', data: {} }))
+    expect(read({ component: 'Hero', publicationId: 'commit-1', data: {} }))
       .toEqual({ ok: false, reason: 'node-half-pinned' })
     expect(read({ component: 'Hero', uid: 'component-1', data: {} }))
       .toEqual({ ok: false, reason: 'node-half-pinned' })
@@ -80,10 +80,10 @@ describe('refusing a tree a renderer would have to guess about', () => {
     expect(read(candidate)).toEqual({ ok: false, reason })
   })
 
-  it('refuses a commitId that is present but not a string', () => {
+  it('refuses a publicationId that is present but not a string', () => {
     // It would otherwise reach the executable lookup as something that is neither a revision nor a
     // prebuilt node.
-    expect(read(node({ commitId: 7 as never })))
+    expect(read(node({ publicationId: 7 as never })))
       .toEqual({ ok: false, reason: 'node-commit-id-not-a-string' })
   })
 
@@ -107,10 +107,10 @@ describe('walking a tree', () => {
   const tree = {
     component: 'Page',
     uid: 'uid-page',
-    commitId: 'commit-page',
+    publicationId: 'commit-page',
     data: {
       body: [
-        { component: 'Hero', uid: 'uid-hero', commitId: 'commit-hero', data: {} },
+        { component: 'Hero', uid: 'uid-hero', publicationId: 'commit-hero', data: {} },
         { component: 'Card', data: { links: ['https://example.com'] } }
       ]
     }
@@ -127,8 +127,8 @@ describe('walking a tree', () => {
   it('lists the revisions the page pinned, and only those', () => {
     // The prebuilt node contributes nothing: there is no revision of it for the CMS to pin.
     expect(pinnedRevisions(tree)).toEqual([
-      { uid: 'uid-page', commitId: 'commit-page' },
-      { uid: 'uid-hero', commitId: 'commit-hero' }
+      { uid: 'uid-page', publicationId: 'commit-page' },
+      { uid: 'uid-hero', publicationId: 'commit-hero' }
     ])
   })
 })

@@ -6,6 +6,7 @@ import {
   redoUserComponentHeader
 } from '$lib/script/components/componentHeader/user.server'
 import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
+import { getUserPublishedComponent } from '$lib/script/components/publication/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
@@ -18,11 +19,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // How deep the history runs is what enables or disables the buttons. Without it they render
   // permanently disabled, which is how undo appeared to exist without working.
-  const depth = await getUserComponentHeaderDepth(ctx, componentId)
+  //
+  // The publication record is what the status badge reads, and it is `null` for a component nobody
+  // has released. Read for both kinds: a prebuilt component publishes a signed header, so "never
+  // published" is as meaningful for it as for one with code.
+  const [depth, published] = await Promise.all([
+    getUserComponentHeaderDepth(ctx, componentId),
+    getUserPublishedComponent(ctx, componentId)
+  ])
 
   return {
     id: componentId,
     componentHeader,
+    publishedAt: published?.publishedAt,
     ...depth
   }
 }

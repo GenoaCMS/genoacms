@@ -31,11 +31,11 @@ interface ComponentExecutable {
   /** The component this belongs to. */
   uid: string
   /** The revision it was built from. */
-  commitId: string
+  publicationId: string
   /** The principal who committed that revision. Attribution, and the audit trail. */
-  authorId: string
+  publisherId: string
   /** When they committed it. */
-  committedAt: number
+  publishedAt: number
   /** The target this bundle was built for. */
   platform: string
   /** The bundle itself. */
@@ -56,14 +56,14 @@ const nonEmptyString = (value: JsonValue | undefined): value is string =>
 const readExecutable = (payload: JsonValue): Read<ComponentExecutable> => {
   if (!isRecord(payload)) return failed('executable-not-an-object')
 
-  const { uid, commitId, authorId, committedAt, platform, executableCode, compiledAt } = payload
+  const { uid, publicationId, publisherId, publishedAt, platform, executableCode, compiledAt } = payload
 
   if (!nonEmptyString(uid)) return failed('executable-missing-uid')
-  if (!nonEmptyString(commitId)) return failed('executable-missing-commit-id')
+  if (!nonEmptyString(publicationId)) return failed('executable-missing-commit-id')
   // Attribution is what makes the audit trail real, so an artifact attributing itself to nobody is
   // refused rather than rendered anonymously.
-  if (!nonEmptyString(authorId)) return failed('executable-missing-author-id')
-  if (typeof committedAt !== 'number') return failed('executable-missing-committed-at')
+  if (!nonEmptyString(publisherId)) return failed('executable-missing-author-id')
+  if (typeof publishedAt !== 'number') return failed('executable-missing-committed-at')
   if (!nonEmptyString(platform)) return failed('executable-missing-platform')
   if (typeof compiledAt !== 'number') return failed('executable-missing-compiled-at')
   // Empty code is not an executable with nothing in it — it is a component that renders nothing
@@ -72,7 +72,7 @@ const readExecutable = (payload: JsonValue): Read<ComponentExecutable> => {
 
   return {
     ok: true,
-    value: { uid, commitId, authorId, committedAt, platform, executableCode, compiledAt }
+    value: { uid, publicationId, publisherId, publishedAt, platform, executableCode, compiledAt }
   }
 }
 
@@ -85,13 +85,13 @@ const readExecutable = (payload: JsonValue): Read<ComponentExecutable> => {
  */
 const matchesPin = (
   executable: ComponentExecutable,
-  expected: { uid: string, commitId: string }
+  expected: { uid: string, publicationId: string }
 ): Read<ComponentExecutable> => {
   if (executable.uid !== expected.uid) {
     return failed(`executable-wrong-component: expected ${expected.uid}, found ${executable.uid}`)
   }
-  if (executable.commitId !== expected.commitId) {
-    return failed(`executable-wrong-revision: expected ${expected.commitId}, found ${executable.commitId}`)
+  if (executable.publicationId !== expected.publicationId) {
+    return failed(`executable-wrong-revision: expected ${expected.publicationId}, found ${executable.publicationId}`)
   }
   return { ok: true, value: executable }
 }

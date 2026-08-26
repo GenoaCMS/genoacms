@@ -18,6 +18,7 @@ const DOCUMENT_TYPES = [
   'genoacms.keyRegistry.v1',
   'genoacms.securityPolicy.v1',
   'genoacms.session.v1',
+  'genoacms.componentHeader.v1',
   'genoacms.componentExecutable.v1',
   'genoacms.pageTree.v1'
 ] as const

@@ -9,9 +9,11 @@
   /**
    * Registering a component.
    *
-   * Both kinds are created here. A dynamic one is opened in the editor rather than the registrar,
-   * because its next step is writing it — the registrar page has nothing more to offer until there
-   * is code to describe.
+   * Both kinds are created here and **both open in the registrar**, because describing a component
+   * comes before coding it. A component registered a moment ago has no attributes, so the signature
+   * emitted for it has no parameters — opening the editor would put an author in front of an empty
+   * function and nothing to write against. The way to the code is the link the registrar shows once
+   * there is a shape to write against.
    */
   let name = $state('')
   let type = $state<ComponentType>('prebuilt')
@@ -19,9 +21,6 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-
-  const createdComponentURL = (uid: string): string =>
-    type === 'dynamic' ? `../components/editor/${uid}` : `registrar/${uid}`
 
   async function submit () {
     const result = await createComponent({ name, type })
@@ -31,7 +30,7 @@
     }
     toastSuccess(result.text)
     isModalOpen = false
-    goto(createdComponentURL(result.uid as string))
+    goto(`registrar/${result.uid as string}`)
   }
 </script>
 

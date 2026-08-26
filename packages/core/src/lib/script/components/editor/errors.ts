@@ -17,6 +17,14 @@ class NoSuchComponentError extends Error {
   }
 }
 
+/**
+ * Raised when there is nothing to record, or the wrong thing.
+ *
+ * Three codes, one per refusal: `no-change` from a commit whose code matches the last one and from a
+ * publication whose code and shape both match the last one, and `uncommitted-draft` from a
+ * publication attempted over an unsaved edit. All three are things an author did rather than faults,
+ * so the routes report the message and leave the editor as it was.
+ */
 class ComponentDiffError extends Error {
   constructor (public code: string, message: string) {
     super(message)

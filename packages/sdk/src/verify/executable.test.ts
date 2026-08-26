@@ -11,9 +11,9 @@ import type { ComponentExecutable } from './executable.js'
 
 const artifact = (over: Partial<ComponentExecutable> = {}): ComponentExecutable => ({
   uid: 'component-1',
-  commitId: 'commit-2',
-  authorId: 'user-1',
-  committedAt: 1_700_000_000_000,
+  publicationId: 'commit-2',
+  publisherId: 'user-1',
+  publishedAt: 1_700_000_000_000,
   platform: WEB_ESMODULE,
   executableCode: 'export function Hero () { return 1 }',
   compiledAt: 1_700_000_001_000,
@@ -29,8 +29,8 @@ describe('reading an executable', () => {
 
   it.each([
     ['uid', 'executable-missing-uid'],
-    ['commitId', 'executable-missing-commit-id'],
-    ['authorId', 'executable-missing-author-id'],
+    ['publicationId', 'executable-missing-commit-id'],
+    ['publisherId', 'executable-missing-author-id'],
     ['platform', 'executable-missing-platform'],
     ['executableCode', 'executable-missing-code']
   ])('refuses a missing %s', (field, reason) => {
@@ -45,7 +45,7 @@ describe('reading an executable', () => {
 
   it('refuses an artifact attributing itself to nobody', () => {
     // Attribution is what makes the audit trail real; rendering it anonymously would discard that.
-    expect(read(artifact({ authorId: '' }))).toEqual({ ok: false, reason: 'executable-missing-author-id' })
+    expect(read(artifact({ publisherId: '' }))).toEqual({ ok: false, reason: 'executable-missing-author-id' })
   })
 
   it('refuses something that is not an object at all', () => {
@@ -55,20 +55,20 @@ describe('reading an executable', () => {
 
 describe('matching the revision the page pinned', () => {
   it('accepts the artifact the page asked for', () => {
-    expect(matchesPin(artifact(), { uid: 'component-1', commitId: 'commit-2' }).ok).toBe(true)
+    expect(matchesPin(artifact(), { uid: 'component-1', publicationId: 'commit-2' }).ok).toBe(true)
   })
 
   it('refuses a genuine artifact of an older revision', () => {
     // The attack this exists for: move a real, correctly signed older executable to the path a newer
     // one occupies. Every signature stays valid and the page renders code it did not publish.
-    const result = matchesPin(artifact({ commitId: 'commit-1' }), { uid: 'component-1', commitId: 'commit-2' })
+    const result = matchesPin(artifact({ publicationId: 'commit-1' }), { uid: 'component-1', publicationId: 'commit-2' })
 
     expect(result).toMatchObject({ ok: false })
     expect(!result.ok && result.reason).toContain('executable-wrong-revision')
   })
 
   it('refuses a genuine artifact of a different component', () => {
-    const result = matchesPin(artifact({ uid: 'component-9' }), { uid: 'component-1', commitId: 'commit-2' })
+    const result = matchesPin(artifact({ uid: 'component-9' }), { uid: 'component-1', publicationId: 'commit-2' })
 
     expect(!result.ok && result.reason).toContain('executable-wrong-component')
   })

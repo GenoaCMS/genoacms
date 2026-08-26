@@ -45,11 +45,11 @@ const { uploadReadablePageTree, getReadablePageTree, PAGE_TREE_DOCUMENT, readabl
 
 const tree: ReadablePageNode = {
   component: 'Hero',
-  commitId: 'commit-1',
+  publicationId: 'commit-1',
   data: {
     heading: 'hello',
     links: ['https://example.com'],
-    children: [{ component: 'Card', commitId: 'commit-2', data: {} }]
+    children: [{ component: 'Card', publicationId: 'commit-2', data: {} }]
   }
 }
 
@@ -76,8 +76,8 @@ describe('publishing a tree', () => {
     await uploadReadablePageTree('home', tree)
 
     const payload = (stored as { payload: ReadablePageNode }).payload
-    expect(payload.commitId).toBe('commit-1')
-    expect((payload.data.children as ReadablePageNode[])[0].commitId).toBe('commit-2')
+    expect(payload.publicationId).toBe('commit-1')
+    expect((payload.data.children as ReadablePageNode[])[0].publicationId).toBe('commit-2')
   })
 })
 
@@ -99,7 +99,7 @@ describe('reading one back', () => {
   it('refuses a tree whose revision pin was rolled back after signing', async () => {
     await uploadReadablePageTree('home', tree)
     const envelope = stored as { payload: ReadablePageNode }
-    stored = { ...envelope, payload: { ...envelope.payload, commitId: 'an-older-commit' } }
+    stored = { ...envelope, payload: { ...envelope.payload, publicationId: 'an-older-commit' } }
 
     await expect(getReadablePageTree('home')).rejects.toThrow(/did not verify/)
   })

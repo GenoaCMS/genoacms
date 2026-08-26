@@ -20,5 +20,6 @@
     entry={data.componentHeader}
     historyLength={data.historyLength}
     futureLength={data.futureLength}
+    publishedAt={data.publishedAt}
   />
 {/key}

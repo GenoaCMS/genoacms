@@ -31,8 +31,8 @@ interface ReadablePageNode {
   /**
    * Which component this is, for one authored in the CMS.
    *
-   * Present exactly when `commitId` is. Together they name the artifact: executables are published
-   * at `{uid}/{commitId}`, so either alone is a pin that cannot be resolved.
+   * Present exactly when `publicationId` is. Together they name the artifact: executables are published
+   * at `{uid}/{publicationId}`, so either alone is a pin that cannot be resolved.
    */
   uid?: string
   /**
@@ -41,7 +41,7 @@ interface ReadablePageNode {
    * Absent for a prebuilt component, whose code is in the consuming application and which the CMS
    * therefore has no revision of. Absent, not empty — the two are different documents once signed.
    */
-  commitId?: string
+  publicationId?: string
   data: Record<string, ReadableAttributeValue>
 }
 
@@ -86,19 +86,19 @@ const readAttributeValue = (value: JsonValue): Read<ReadableAttributeValue> => {
 /**
  * Reads one node, refusing anything a renderer would have to guess about.
  *
- * `commitId` is accepted only as a string or as absent. Present-but-not-a-string would otherwise
+ * `publicationId` is accepted only as a string or as absent. Present-but-not-a-string would otherwise
  * reach the executable lookup as something that is neither a revision nor a prebuilt node.
  */
 const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
   if (!isRecord(candidate)) return failed('node-not-an-object')
 
-  const { component, uid, commitId, data } = candidate
+  const { component, uid, publicationId, data } = candidate
   if (typeof component !== 'string' || component.length === 0) return failed('node-missing-component')
-  if (commitId !== undefined && typeof commitId !== 'string') return failed('node-commit-id-not-a-string')
+  if (publicationId !== undefined && typeof publicationId !== 'string') return failed('node-commit-id-not-a-string')
   if (uid !== undefined && typeof uid !== 'string') return failed('node-uid-not-a-string')
-  // Either alone is a pin nobody can resolve: an artifact is at `{uid}/{commitId}`. Refused rather
+  // Either alone is a pin nobody can resolve: an artifact is at `{uid}/{publicationId}`. Refused rather
   // than treated as prebuilt, because a node that names a revision is asking for one to be run.
-  if ((uid === undefined) !== (commitId === undefined)) return failed('node-half-pinned')
+  if ((uid === undefined) !== (publicationId === undefined)) return failed('node-half-pinned')
   if (!isRecord(data)) return failed('node-missing-data')
 
   const read: Record<string, ReadableAttributeValue> = {}
@@ -114,7 +114,7 @@ const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
       component,
       // Omitted rather than set to undefined, so what is read back matches what was signed.
       ...(uid === undefined ? {} : { uid }),
-      ...(commitId === undefined ? {} : { commitId }),
+      ...(publicationId === undefined ? {} : { publicationId }),
       data: read
     }
   }
@@ -136,11 +136,11 @@ const walkTree = function * (root: ReadablePageNode): Generator<ReadablePageNode
 }
 
 /** What a tree pins, in the order met — enough to fetch each. Prebuilt nodes contribute nothing. */
-const pinnedRevisions = (root: ReadablePageNode): Array<{ uid: string, commitId: string }> =>
+const pinnedRevisions = (root: ReadablePageNode): Array<{ uid: string, publicationId: string }> =>
   [...walkTree(root)]
-    .filter((node): node is ReadablePageNode & { uid: string, commitId: string } =>
-      node.uid !== undefined && node.commitId !== undefined)
-    .map(node => ({ uid: node.uid, commitId: node.commitId }))
+    .filter((node): node is ReadablePageNode & { uid: string, publicationId: string } =>
+      node.uid !== undefined && node.publicationId !== undefined)
+    .map(node => ({ uid: node.uid, publicationId: node.publicationId }))
 
 export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedRevisions }
 export type { ReadablePageNode, ReadableAttributeValue, Read }

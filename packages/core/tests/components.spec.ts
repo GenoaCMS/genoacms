@@ -1,12 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { fixtureName, identifierFixtureName, signIn } from './support/session'
+import { openDirectory } from './support/storage'
 
 /**
  * The two component surfaces: the prebuilt catalog, and the dynamic code editor.
  *
  * They are different products sharing a menu. A **prebuilt** entry describes a component that
  * already exists in the consuming app — the CMS holds its name and attribute schema. A **dynamic**
- * component is authored here: its source lives in the CMS, and committing it runs static analysis,
+ * component is authored here: its source lives in the CMS, and publishing it runs static analysis,
  * compiles a bundle, signs it and publishes an executable.
  *
  * Every fixture is created by the test that uses it and deleted afterwards. Deleting a prebuilt
@@ -147,6 +148,54 @@ test.describe('a prebuilt component', () => {
     await expect(page.getByText(`Component: ${renamed}`)).toBeVisible({ timeout: SLOW })
 
     name = renamed
+  })
+
+  test('publishes a signed header, and no executable', async ({ page }) => {
+    test.setTimeout(180_000)
+    // The case the release path did not previously have at all. A component whose code lives in the
+    // consuming application still has a description consumers must agree with — without a signed
+    // one, the parameter list a consumer calls by is something anyone in between may rewrite.
+    await registerComponent(page, name)
+    const uid = page.url().split('/').pop() as string
+
+    await expect(page.getByText('Unpublished')).toBeVisible({ timeout: SLOW })
+
+    await page.getByRole('button', { name: 'Publish' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Publish the component' })
+    await dialog.getByRole('textbox').last().fill('published by the end-to-end suite')
+    await dialog.getByRole('button', { name: /publish/i }).click()
+    await reported(page, 'Component published')
+
+    // The badge is what tells an author a component is usable on a page, and it has to answer
+    // without a reload — the publication does not navigate.
+    await expect(page.getByText('Published', { exact: true })).toBeVisible({ timeout: SLOW })
+
+    // One document, and it is the header. An executable here would mean the CMS had compiled
+    // something for a component that has no source.
+    const documents = await openSolePublication(page, uid)
+    await expect(documents).toHaveCount(1, { timeout: SLOW })
+    await expect(documents.first()).toHaveAccessibleName(/\/header\.json$/)
+  })
+
+  test('refuses to publish twice with nothing changed', async ({ page }) => {
+    // A prebuilt component has no code, so the header digest is the *whole* of `no change, no
+    // publication` for it. Without the comparison, every click would write another immutable
+    // directory identical to the last.
+    await registerComponent(page, name)
+
+    const publish = async () => {
+      await page.getByRole('button', { name: 'Publish' }).click()
+      const dialog = page.getByRole('dialog', { name: 'Publish the component' })
+      await dialog.getByRole('textbox').last().fill('published by the end-to-end suite')
+      await dialog.getByRole('button', { name: /publish/i }).click()
+    }
+
+    await publish()
+    await reported(page, 'Component published')
+    await expect(page.getByText('Component published')).toHaveCount(0, { timeout: SLOW })
+
+    await publish()
+    await reported(page, /Nothing has changed/)
   })
 
   test('takes an attribute, which survives saving', async ({ page }) => {
@@ -300,12 +349,25 @@ const openStorageDirectory = async (page: Page, segments: string[]): Promise<voi
 }
 
 /**
- * Removes the published executables, which live in a directory of the component's own.
+ * Walks into the one publication a component has, and answers what is inside it.
  *
- * Unlike the objects above, these are named for the commit rather than the component, so they are
- * removed by emptying the directory rather than by matching a name. A committed component has one
- * per commit, and an uncommitted one has no directory at all.
+ * The directory is named for the publication, whose identifier the test never sees — so the walk
+ * stops at the component and finds the single child by shape. `openStorageDirectory` rather than a
+ * direct URL: the listing is built by navigating, and a `goto` straight to a nested path renders
+ * nothing, which would make an emptiness assertion pass whatever the bucket held.
+ *
+ * The returned locator matches on a **suffix**, because a file's select control is labelled with its
+ * whole path rather than its name — anchoring at the start would only ever match the bucket root.
  */
+const openSolePublication = async (page: Page, uid: string): Promise<Locator> => {
+  await openStorageDirectory(page, ['.genoacms', 'components', 'public', uid])
+
+  const publication = page.getByRole('main').getByRole('link', { name: /[0-9a-f-]{36}/ }).first()
+  await expect(publication).toBeVisible({ timeout: SLOW })
+  await publication.click()
+
+  return page.getByRole('button', { name: /\.json$/ })
+}
 
 /** Removes a dynamic component's objects, since the delete action cannot. */
 /**
@@ -317,7 +379,7 @@ const openStorageDirectory = async (page: Page, segments: string[]): Promise<voi
  * surfaced in the prebuilt catalog.
  *
  * Deleting through the UI removes the dependence on filenames entirely, and exercises the deletion
- * the application actually performs: the definition and its commits, the entry, the component file,
+ * the application actually performs: the definition and its publications, the header, the
  * and every published executable, removed together.
  *
  * **Selects named fixtures only, never "select all".** The editor lists the instance's own
@@ -368,9 +430,16 @@ const createDynamic = async (page: Page, name: string, record: string[] = []): P
   await dialog.getByRole('radio', { name: 'Code it here' }).check()
   await dialog.getByRole('button', { name: 'Create' }).click()
 
-  // A dynamic component opens in the editor rather than the registrar: its next step is writing it.
-  await expect(page).toHaveURL(/\/components\/editor\/[^/]+$/, { timeout: SLOW })
+  // Registering opens the registrar, whichever kind was chosen: a component with no attributes has
+  // no parameters to write a body against, so describing it comes first.
+  await expect(page).toHaveURL(/\/components\/registrar\/[^/]+$/, { timeout: SLOW })
   return page.url().split('/').pop() as string
+}
+
+/** Opens a dynamic component's code, which is where most of these tests are about to work. */
+const openCodeFor = async (page: Page, uid: string): Promise<void> => {
+  await page.goto(`/components/editor/${uid}`)
+  await expect(page.locator('.cm-content').first()).toBeVisible({ timeout: SLOW })
 }
 
 /**
@@ -380,20 +449,16 @@ const createDynamic = async (page: Page, name: string, record: string[] = []): P
  * keyboard the way an author would enter it.
  */
 const writeCode = async (page: Page, code: string): Promise<void> => {
-  // The commit modal holds a diff editor of its own, so once it is open there is more than one
-  // editor on the page. The author's is first either way.
   const editor = page.locator('.cm-content').first()
   await editor.click()
   await page.keyboard.press('ControlOrMeta+a')
-
-  // The draft is written a second after typing stops, with nothing on screen to say so. Waiting for
-  // that request is the difference between testing the editor and testing how fast the test types.
-  const autoSaved = page.waitForResponse(
-    (response) => response.request().method() === 'POST' && response.ok(),
-    { timeout: SLOW }
-  )
   await page.keyboard.type(code)
-  await autoSaved
+
+  // **Saving is an act now.** The editor used to write a second after typing stopped, and the helper
+  // waited on that request; there is no autosave to wait for, and a test that skipped this would
+  // publish whatever the draft held before it typed.
+  await page.getByRole('button', { name: 'Save' }).click()
+  await reported(page, 'Code saved')
 }
 
 /**
@@ -405,13 +470,21 @@ const writeCode = async (page: Page, code: string): Promise<void> => {
  */
 const componentSource = (): string => "return 'hi'\n"
 
-/** Opens the commit dialog and submits it. */
-const commitDraft = async (page: Page): Promise<void> => {
-  await page.getByRole('button', { name: 'Commit' }).click()
+/**
+ * Publishes, from the registrar.
+ *
+ * **The registrar, not the editor**, and navigating there is part of the helper rather than an
+ * inconvenience it works around: publishing is an act on the whole component, so it lives on the one
+ * surface both kinds share. A helper that could publish from the code editor would be describing a
+ * flow the CMS does not have.
+ */
+const publishFrom = async (page: Page, uid: string): Promise<void> => {
+  await page.goto(`/components/registrar/${uid}`)
+  await page.getByRole('button', { name: 'Publish' }).click()
 
-  const dialog = page.getByRole('dialog', { name: 'Commit changes' })
-  await dialog.getByRole('textbox').last().fill('committed by the end-to-end suite')
-  await dialog.getByRole('button', { name: /commit/i }).click()
+  const dialog = page.getByRole('dialog', { name: 'Publish the component' })
+  await dialog.getByRole('textbox').last().fill('published by the end-to-end suite')
+  await dialog.getByRole('button', { name: /publish/i }).click()
 }
 
 /**
@@ -462,16 +535,32 @@ test.describe('a dynamic component', () => {
     await deleteDynamicFixtures(page, created)
   })
 
-  test('is created and opens in the code editor', async ({ page }) => {
+  test('is created and opens in the registrar, where its shape is described', async ({ page }) => {
+    // Not the code editor. A component registered a moment ago has no attributes, so its signature
+    // has no parameters and there is nothing yet to write a body against — describing comes first,
+    // which is also the order the cards on /components are in.
     uid = await createDynamic(page, name, created)
-    await expect(page.locator('.cm-content').first()).toBeVisible({ timeout: SLOW })
+
+    await expect(page).toHaveURL(new RegExp(`/components/registrar/${uid}$`))
+    await expect(page.getByRole('button', { name: 'Add attribute' })).toBeVisible()
+  })
+
+  test('links from the registrar to its code', async ({ page }) => {
+    // The one place the two kinds differ on screen: a component whose code lives in the consuming
+    // application has none for the CMS to open.
+    uid = await createDynamic(page, name, created)
+
+    await page.getByRole('link', { name: 'Edit the code' }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/components/editor/${uid}$`))
   })
 
   test('shows the signature its body is wrapped in', async ({ page }) => {
     // An author writes a body, so without this they are writing against parameters nothing on
     // screen names — and against identifiers the CMS derived from attribute names they never saw
     // normalized. A component registered with no attributes still has a signature to show.
-    await createDynamic(page, name, created)
+    const createdId = await createDynamic(page, name, created)
+    await openCodeFor(page, createdId)
 
     await expect(page.getByText('export default function component')).toBeVisible({ timeout: SLOW })
   })
@@ -483,64 +572,161 @@ test.describe('a dynamic component', () => {
     // `schema.title`, which is what the registrar's own Name field writes.
     const uid = await createDynamic(page, name, created)
 
-    await page.goto(`/components/registrar/${uid}`)
     await page.getByRole('button', { name: 'Add attribute' }).click()
     await page.getByText('string', { exact: true }).click()
     await page.getByLabel('Name:').last().fill('heading')
     await page.getByRole('button', { name: 'Submit' }).click()
 
+    // Waited for, not assumed. Submitting is a remote call, and navigating straight afterwards
+    // raced it — the editor would load a header saved a moment later and show a signature with no
+    // parameters. It passed for as long as the save happened to win.
+    await reported(page, 'Component updated')
+
     await page.goto(`/components/editor/${uid}`)
     await expect(page.getByText('heading: string')).toBeVisible({ timeout: SLOW })
   })
 
-  test('keeps draft code without committing it', async ({ page }) => {
+  test('keeps the draft once it is saved', async ({ page }) => {
     uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
     await writeCode(page, 'const answer = 42\nreturn answer\n')
 
-    // The draft is saved as it is typed; reloading shows whether it really was.
+    // Reloading shows whether the save really wrote. Reloading is also the point at which an unsaved
+    // draft would be lost, which is why the guard below exists.
     await page.reload()
     await expect(page.locator('.cm-content').first()).toContainText('answer', { timeout: SLOW })
   })
 
-  test('commits, which signs and publishes it', async ({ page }) => {
+  test('steps the body back and forward through saved states', async ({ page }) => {
     test.setTimeout(180_000)
+    // What replaced commits. An author marks a point by saving, and undo returns to the point
+    // before it — the same `UndoRedoAdjunct` the registrar and the page editor use.
     uid = await createDynamic(page, name, created)
-    await writeCode(page, componentSource())
+    await openCodeFor(page, uid)
 
-    // Committing runs static analysis, compiles, signs with the key hierarchy and publishes. It is
-    // the slowest thing the product does, and the one most worth knowing still works.
-    await commitDraft(page)
+    await writeCode(page, 'return 1\n')
+    await writeCode(page, 'return 2\n')
 
-    // The exact string the server returns on success. A pattern that also matched a failure message
-    // was what let this test pass for months while every commit was in fact being refused.
-    await reported(page, 'Code commited')
+    const editor = page.locator('.cm-content').first()
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(editor).toContainText('return 1', { timeout: SLOW })
 
-    // What "publishes" means: one object under the component's own directory, named for the commit
-    // that produced it. Matched on the per-file select control rather than on links, because the
-    // listing also renders navigation the count would otherwise include.
-    await openStorageDirectory(page, ['.genoacms', 'components', 'dynamic', 'executables', uid])
-    const executables = page.getByRole('button', { name: /^select-/ })
-    await expect(executables).toHaveCount(1, { timeout: SLOW })
-    await expect(executables.first()).toHaveAccessibleName(/[0-9a-f-]{36}\.json$/)
+    await page.getByRole('button', { name: 'Redo' }).click()
+    await expect(editor).toContainText('return 2', { timeout: SLOW })
+
+    // The step is stored, not held on the page: a reload must show what the redo produced.
+    await page.reload()
+    await expect(page.locator('.cm-content').first()).toContainText('return 2', { timeout: SLOW })
   })
 
-  test('reports a refusal instead of claiming to have committed', async ({ page }) => {
+  test('offers nothing to undo before anything is saved', async ({ page }) => {
+    // A control that is always enabled is how the registrar's undo appeared to exist without
+    // working. Depth comes from the stored history, and a component nobody has edited has none.
+    uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
+
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled()
+  })
+
+  test('warns before leaving with unsaved changes, and lets the author stay', async ({ page }) => {
     test.setTimeout(180_000)
     uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
+
+    // Typed and deliberately not saved. Nothing is saved first: a freshly registered component has
+    // an empty body, so typing into it is already a difference worth warning about — and adding a
+    // save would only put a revalidation between the edit and the click for no gain.
+    const editor = page.locator('.cm-content').first()
+    await editor.click()
+    await page.keyboard.type('return 2')
+
+    /*
+     * Dismissing the dialog is what "stay" means.
+     *
+     * **Awaited rather than counted afterwards.** `click()` resolves as soon as the click is
+     * dispatched, and the dialog event reaches Node some time later — so asserting a counter
+     * straight after the click read it before the dialog had arrived, and the test failed while the
+     * guard was working perfectly.
+     */
+    let asked: string | undefined
+    const wasAsked = new Promise<void>((resolve) => {
+      page.on('dialog', async (dialog) => {
+        asked = dialog.message()
+        await dialog.dismiss()
+        resolve()
+      })
+    })
+
+    // The editor's own link back to the registrar: an ordinary in-app navigation, which is the case
+    // `beforeNavigate` can actually cancel.
+    await page.getByRole('link', { name: 'Edit the description' }).click()
+    await wasAsked
+
+    expect(asked).toMatch(/unsaved changes/i)
+
+    // Still here, and still holding the unsaved text — a guard that warned and navigated anyway
+    // would satisfy an assertion about the dialog alone.
+    await expect(page).toHaveURL(new RegExp(`/components/editor/${uid}$`))
+    await expect(page.locator('.cm-content').first()).toContainText('return 2')
+
+    // Saved before leaving, so the fixture teardown can navigate away without meeting the guard.
+    await page.getByRole('button', { name: 'Save' }).click()
+    await reported(page, 'Code saved')
+  })
+
+  test('publishes, which compiles and signs it', async ({ page }) => {
+    test.setTimeout(180_000)
+    uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
+    await writeCode(page, componentSource())
+
+    // Publishing runs analysis, compiles, signs with the key hierarchy and writes the documents. It
+    // is the slowest thing the product does, and the one most worth knowing still works. There is
+    // no act in between: the draft is saved as it is typed and is what gets built.
+    await publishFrom(page, uid)
+
+    // The exact string the server returns on success. A pattern that also matched a failure message
+    // was what let this test pass for months while every publication was in fact being refused.
+    await reported(page, 'Component published')
+
+    // What "publishes" means for a component with code: **two** signed documents in one directory
+    // named for the publication. Asserting only that something was written would not catch a header
+    // that never reached the bucket, which is the half a consumer needs to call the other half.
+    const documents = await openSolePublication(page, uid)
+    await expect(documents).toHaveCount(2, { timeout: SLOW })
+    await expect(page.getByRole('button', { name: /\/header\.json$/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /\/executable\.json$/ })).toBeVisible()
+  })
+
+  test('reports a refusal instead of claiming to have published', async ({ page }) => {
+    test.setTimeout(180_000)
+    uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
 
     // A component may not import anything: what is signed has to be a function of the source alone.
     // Since an author writes a **body**, an import is not merely refused but inexpressible — it is a
     // module-level construct in something that is not a module — so the refusal arrives as a syntax
     // error rather than as the import rule. What matters is that a refusal is reported at all.
     await writeCode(page, `import { format } from "date-fns"\n${componentSource()}`)
-    await commitDraft(page)
 
-    await reported(page, /.+/)
-    await expect(page.getByText('Code commited')).toHaveCount(0)
+    await publishFrom(page, uid)
 
-    // Nothing was published, so the component has no executables.
-    await page.goto(`/storage/${BUCKET}/contents/.genoacms/components/dynamic/executables/${uid}`)
-    await expect(page.getByRole('button', { name: /^select-/ })).toHaveCount(0, { timeout: SLOW })
+    // Matched on the located line rather than on "some text appeared". The registrar carries hidden
+    // helper text that `/.+/` resolves to, so the loose pattern passed whether or not anything was
+    // refused — and the contract's claim is precisely that a refusal an author cannot locate is a
+    // refusal without a reason.
+    await reported(page, /line \d+/)
+    await expect(page.getByText('Component published')).toHaveCount(0)
+
+    // Nothing was published — and that includes the **header**, which is built before the code is
+    // compiled but written after it. A refusal that still wrote a header would leave a publication a
+    // consumer could fetch and find half of.
+    //
+    // Asserted as "the directory does not exist", which is the strongest form of absent: a prefix
+    // only exists while something is under it. `openStorageDirectory` would throw on the missing
+    // segment, so the walk is the tolerant one from the storage helpers.
+    expect(await openDirectory(page, ['.genoacms', 'components', 'public', uid])).toBe(false)
   })
 
   test('accepts a name no source file could declare', async ({ page }) => {
@@ -628,7 +814,9 @@ test.describe('a dynamic component', () => {
   })
 
   test('is gone once deleted', async ({ page }) => {
+    // Deleted from the code editor, which is the flow this asserts; the registrar has its own.
     uid = await createDynamic(page, name, created)
+    await openCodeFor(page, uid)
 
     await page.getByRole('button', { name: 'Delete component' }).click()
     const dialog = page.getByRole('dialog', { name: 'Delete the component' })

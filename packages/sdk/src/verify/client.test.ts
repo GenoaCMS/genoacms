@@ -259,7 +259,7 @@ describe('fetching a page tree', () => {
   const treePayload = {
     component: 'Page',
     uid: 'component-1',
-    commitId: 'commit-1',
+    publicationId: 'commit-1',
     data: { body: [{ component: 'Card', data: {} }] }
   }
 
@@ -298,7 +298,7 @@ describe('fetching a page tree', () => {
     publish()
     const envelope = served['.genoacms/pages/readables/home'] as { payload: Record<string, unknown> }
     served['.genoacms/pages/readables/home'] =
-      { ...envelope, payload: { ...envelope.payload, commitId: 'an-older-commit' } }
+      { ...envelope, payload: { ...envelope.payload, publicationId: 'an-older-commit' } }
 
     expect(await verifier().pageTree('home'))
       .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
@@ -324,14 +324,17 @@ describe('fetching a page tree', () => {
 })
 
 describe('fetching an executable', () => {
-  const pin = { uid: 'component-1', commitId: 'commit-2' }
-  const path = '.genoacms/components/dynamic/executables/component-1/commit-2.json'
+  const pin = { uid: 'component-1', publicationId: 'publication-2' }
+  // One directory per publication, holding the signed header and — when the component has code —
+  // this. The executable used to live under the source it was built from, which said a publication
+  // was a fact about code rather than about a component.
+  const path = '.genoacms/components/public/component-1/publication-2/executable.json'
 
   const payload = (over: Record<string, unknown> = {}) => ({
     uid: 'component-1',
-    commitId: 'commit-2',
-    authorId: 'user-1',
-    committedAt: 1_700_000_000_000,
+    publicationId: 'publication-2',
+    publisherId: 'user-1',
+    publishedAt: 1_700_000_000_000,
     platform: 'web-esmodule',
     executableCode: 'export function Hero () { return 1 }',
     compiledAt: 1_700_000_001_000,
@@ -370,7 +373,7 @@ describe('fetching an executable', () => {
   it('refuses a genuine artifact of an older revision moved onto this path', async () => {
     // The attack the pin comparison exists for. Everything about this artifact is real and correctly
     // signed — it is simply not the revision the page published.
-    publish(path, payload({ commitId: 'commit-1' }))
+    publish(path, payload({ publicationId: 'commit-1' }))
 
     const verdict = await verifier().executable(pin)
 
