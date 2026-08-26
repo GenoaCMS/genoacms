@@ -2,6 +2,8 @@ import { canonicalString, digest, type JsonValue } from '../src/lib/script/signi
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '../src/lib/script/signing/algorithms'
 import { deriveKeyId } from '../src/lib/script/signing/keyId'
 import { sign, verify, toBase64 } from '../src/lib/script/signing/envelope'
+import { HEADER_DOCUMENT } from '../src/lib/script/components/publication/header'
+import { EXECUTABLE_DOCUMENT } from '../src/lib/script/components/executable/executable'
 
 /**
  * Emits the conformance corpus for the verification specification.
@@ -95,6 +97,147 @@ const checked = envelopeVectors.map(vector => {
   return vector
 })
 
+/**
+ * The two documents one publication produces, and the tampering each is signed against.
+ *
+ * The envelope vectors above use an authorization manifest, which exercises the envelope and nothing
+ * about components. These exist because a **component** publication is a *pair*: a header saying what
+ * the component accepts and — when it has code — an executable saying what it does. A second-language
+ * implementer has two things to get right that the manifest cannot show them.
+ *
+ * The first is that the header is signed **at all**. A verifier checking only the executable would
+ * accept a rewritten parameter list, call the bundle with values in the wrong parameters, and find
+ * every signature valid.
+ *
+ * The second is that the two document types must not be interchangeable. Both describe the same
+ * component and share most of their identity fields, so an implementation that verified the envelope
+ * without binding `type` would accept a header where an executable belongs.
+ */
+const componentUid = '00000000-0000-4000-8000-000000000001'
+const publicationId = '00000000-0000-4000-8000-0000000000a2'
+
+const headerPayload: JsonValue = {
+  uid: componentUid,
+  publicationId,
+  publisherId: 'user-1',
+  publishedAt: 1_700_000_000_000,
+  note: 'the reference publication',
+  type: 'dynamic',
+  name: 'Hero',
+  attributes: { 'attr-1': { uid: 'attr-1', type: 'string', schema: { title: 'heading' } } },
+  attributeOrder: ['attr-1']
+}
+
+const executablePayload: JsonValue = {
+  uid: componentUid,
+  publicationId,
+  publisherId: 'user-1',
+  publishedAt: 1_700_000_000_000,
+  platform: 'web-esmodule',
+  executableCode: 'export default function component (heading) { return heading }',
+  compiledAt: 1_700_000_001_000
+}
+
+const componentKey = { alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey }
+const signedHeader = sign(HEADER_DOCUMENT, headerPayload, componentKey)
+const signedExecutable = sign(EXECUTABLE_DOCUMENT, executablePayload, componentKey)
+
+interface DocumentVector {
+  name: string
+  why: string
+  /** The type a verifier is asked to accept it as. */
+  expectedType: string
+  envelope: unknown
+  accept: boolean
+}
+
+const documentVectors: DocumentVector[] = [
+  {
+    name: 'component-header',
+    why: 'The reference header. A publication of a prebuilt component is this document alone.',
+    expectedType: HEADER_DOCUMENT,
+    envelope: signedHeader,
+    accept: true
+  },
+  {
+    name: 'component-header-attribute-order-edited',
+    why: 'Reordering the attributes reorders the arguments, so every value lands in the wrong parameter while the executable stays valid. This is what signing the header prevents.',
+    expectedType: HEADER_DOCUMENT,
+    envelope: { ...signedHeader, payload: { ...headerPayload as object, attributeOrder: ['attr-9', 'attr-1'] } },
+    accept: false
+  },
+  {
+    name: 'component-header-presented-as-executable',
+    why: 'The two documents of one publication share their identity fields; only the bound type tells them apart.',
+    expectedType: EXECUTABLE_DOCUMENT,
+    envelope: signedHeader,
+    accept: false
+  },
+  {
+    name: 'component-executable',
+    why: 'The reference executable. Published beside the header when a component has code.',
+    expectedType: EXECUTABLE_DOCUMENT,
+    envelope: signedExecutable,
+    accept: true
+  },
+  {
+    name: 'component-executable-presented-as-header',
+    why: 'The mirror of the case above.',
+    expectedType: HEADER_DOCUMENT,
+    envelope: signedExecutable,
+    accept: false
+  }
+]
+
+const checkedDocuments = documentVectors.map(vector => {
+  const observed = verify(vector.envelope, vector.expectedType as never, keypair.publicKey).valid
+  if (observed !== vector.accept) {
+    throw new Error(`conformance/disagreement: '${vector.name}' expected ${String(vector.accept)}, implementation says ${String(observed)}`)
+  }
+  return vector
+})
+
+/**
+ * Whether a header and an executable belong to each other.
+ *
+ * **Signature-free on purpose.** Each document here is properly signed in practice; what these
+ * vectors describe is the check that comes *after* both verify. The pair is fetched and cached
+ * separately, so nothing about either document prevents a header from one publication being used
+ * with an executable from another — the shapes disagree, the bundle is called with the wrong
+ * parameter list, and both signatures are perfectly valid.
+ */
+interface BindingVector {
+  name: string
+  why: string
+  header: { uid: string, publicationId: string }
+  executable: { uid: string, publicationId: string }
+  accept: boolean
+}
+
+const bindingVectors: BindingVector[] = [
+  {
+    name: 'same-publication',
+    why: 'The ordinary case: one publication produced both.',
+    header: { uid: componentUid, publicationId },
+    executable: { uid: componentUid, publicationId },
+    accept: true
+  },
+  {
+    name: 'different-publication',
+    why: 'Two genuine documents of the same component from different publications. Both verify; the pair must still be refused.',
+    header: { uid: componentUid, publicationId },
+    executable: { uid: componentUid, publicationId: '00000000-0000-4000-8000-0000000000a3' },
+    accept: false
+  },
+  {
+    name: 'different-component',
+    why: "A header describing one component beside another component's code.",
+    header: { uid: componentUid, publicationId },
+    executable: { uid: '00000000-0000-4000-8000-000000000009', publicationId },
+    accept: false
+  }
+]
+
 const corpus = {
   note: 'Generated by packages/core/scripts/generate-conformance.ts. Do not edit by hand.',
   algorithm: SUBORDINATE_ALGORITHM,
@@ -104,7 +247,9 @@ const corpus = {
     keyId
   },
   canonicalization: canonicalVectors,
-  envelopes: checked
+  envelopes: checked,
+  documents: checkedDocuments,
+  binding: bindingVectors
 }
 
 console.log(JSON.stringify(corpus, null, 2))

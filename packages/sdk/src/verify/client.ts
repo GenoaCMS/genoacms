@@ -10,6 +10,13 @@ import {
   WEB_ESMODULE,
   type ComponentExecutable
 } from './executable.js'
+import {
+  HEADER_DOCUMENT,
+  readHeader,
+  matchesPin as headerMatchesPin,
+  sharesPublication,
+  type PublishedComponentHeader
+} from './header.js'
 import type { JsonValue } from './canonical.js'
 
 /**
@@ -141,6 +148,21 @@ const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name
 const executablePath = (uid: string, publicationId: string): string =>
   `.genoacms/components/public/${uid}/${publicationId}/executable.json`
 
+/** Where a publication's signed description lives. Present for every component, coded or not. */
+const headerPath = (uid: string, publicationId: string): string =>
+  `.genoacms/components/public/${uid}/${publicationId}/header.json`
+
+/**
+ * A publication as a consumer uses it: what the component accepts, and the code to run if it has any.
+ *
+ * `executable` is absent exactly when the header says `prebuilt` — such a component's code lives in
+ * the consuming application, and the header is the whole of what the CMS published.
+ */
+interface PublishedComponent {
+  header: PublishedComponentHeader
+  executable?: ComponentExecutable
+}
+
 class Verifier {
   readonly #rootPublicKey: Uint8Array
   readonly #source: Source
@@ -269,6 +291,89 @@ class Verifier {
   }
 
   /**
+   * The description a node pinned: fetched, verified, and checked against the pin.
+   *
+   * The same three questions the executable is asked, minus the platform — a description has no
+   * runtime. The pin check matters for the same reason it does there: whoever can write to storage
+   * can move a **genuine, correctly signed** header of an older publication onto a newer one's path,
+   * and every signature stays valid.
+   *
+   * `undefined` means nothing is published there — a page pinning a publication whose header was
+   * never written, or has since been deleted.
+   */
+  async componentHeader (
+    pin: { uid: string, publicationId: string }
+  ): Promise<Verdict<PublishedComponentHeader> | undefined> {
+    const verified = await this.fetchVerified(headerPath(pin.uid, pin.publicationId), HEADER_DOCUMENT)
+    if (verified === undefined) return undefined
+    if (!verified.valid) return verified
+
+    const read = readHeader(verified.value)
+    if (!read.ok) return { valid: false, reason: read.reason }
+
+    const pinned = headerMatchesPin(read.value, pin)
+    if (!pinned.ok) return { valid: false, reason: pinned.reason }
+
+    return { valid: true, value: pinned.value }
+  }
+
+  /**
+   * A whole publication: the description, and the code when the component has any.
+   *
+   * **This is the method a renderer should use**, and the reason it exists rather than leaving a
+   * consumer to call the two above in sequence is that the pair has to be checked *against each
+   * other*. They are separate objects, fetched separately and cached separately, so a consumer can
+   * hold a correctly signed header from one publication and a correctly signed executable from
+   * another — the shapes disagree, the bundle is called with the wrong parameter list, and nothing
+   * in either document is invalid.
+   *
+   * **The header decides whether an executable is expected**, which is what the published type is
+   * for. A `prebuilt` component's code lives in the consuming application, so a bundle appearing
+   * beside its header is not something to run: it is a publication that should not exist, and
+   * refusing is the only answer that does not depend on guessing which document is right.
+   *
+   * `undefined` means nothing is published at that publication at all.
+   */
+  async component (
+    pin: { uid: string, publicationId: string }
+  ): Promise<Verdict<PublishedComponent> | undefined> {
+    const header = await this.componentHeader(pin)
+    if (header === undefined) return undefined
+    if (!header.valid) return header
+
+    const executable = await this.executable(pin)
+
+    if (header.value.type === 'prebuilt') {
+      // Refused rather than ignored. An executable here is either a header that has been swapped
+      // for a prebuilt one, or a bundle nobody asked for — both are reasons to stop.
+      if (executable !== undefined) {
+        return {
+          valid: false,
+          reason: `component-unexpected-executable: ${pin.uid} is prebuilt, so its code lives in ` +
+            'the consuming application, yet an executable is published beside its header'
+        }
+      }
+      return { valid: true, value: { header: header.value } }
+    }
+
+    // A dynamic component with no bundle is a publication that renders nothing. Kept apart from
+    // "nothing is published here", which the caller reads as an unpublished component.
+    if (executable === undefined) {
+      return {
+        valid: false,
+        reason: `component-missing-executable: ${pin.uid} is dynamic, so ${pin.publicationId} ` +
+          'should have published code, and none is there'
+      }
+    }
+    if (!executable.valid) return executable
+
+    const bound = sharesPublication(header.value, executable.value)
+    if (!bound.ok) return { valid: false, reason: bound.reason }
+
+    return { valid: true, value: { header: header.value, executable: executable.value } }
+  }
+
+  /**
    * Fetches a path and verifies it as the document type the caller expects.
    *
    * Throws if the object cannot be fetched; returns a verdict about it otherwise.
@@ -303,5 +408,7 @@ class Verifier {
   }
 }
 
-export { Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, httpSource }
-export type { VerifierOptions, Verdict, Source }
+export {
+  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, headerPath, httpSource
+}
+export type { VerifierOptions, Verdict, Source, PublishedComponent }

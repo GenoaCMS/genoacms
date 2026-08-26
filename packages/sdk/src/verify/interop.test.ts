@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
 import { canonicalize, digest } from './canonical.js'
+import { verifyEnvelope, fromBase64 } from './envelope.js'
+import { readHeader, sharesPublication } from './header.js'
 
 /**
  * Agreement with the signer, checked against the corpus rather than against the signer's code.
@@ -13,8 +15,14 @@ import { canonicalize, digest } from './canonical.js'
  * this document, which is the artefact under evaluation — not the implementations."* So a failure
  * here is a finding about the specification first, and about this code second.
  *
- * The envelope vectors and their verdicts are step 19's business; this is the canonicalization half,
- * which is what the verifier already has.
+ * The envelope vectors and their verdicts are step 19's business. What this file covers is
+ * canonicalization, and the **component documents** — a header and an executable, and whether the
+ * two belong to each other.
+ *
+ * The component vectors are here because they are the ones a second-language implementer is most
+ * likely to get subtly wrong. A verifier that checked only the executable would accept a rewritten
+ * parameter list; one that verified both envelopes without comparing them to each other would accept
+ * a header and a bundle from different publications. Both failures leave every signature valid.
  */
 
 interface CanonicalVector {
@@ -41,11 +49,36 @@ const hex = (bytes: Uint8Array): string =>
  */
 const CORPUS = process.env.GENOACMS_CONFORMANCE_CORPUS ?? ''
 
+interface DocumentVector {
+  name: string
+  why: string
+  expectedType: string
+  envelope: { alg: string, keyId: string, type: string, payload: unknown, signature: string }
+  accept: boolean
+}
+
+interface BindingVector {
+  name: string
+  why: string
+  header: { uid: string, publicationId: string }
+  executable: { uid: string, publicationId: string }
+  accept: boolean
+}
+
+interface Corpus {
+  key?: { publicKey: string }
+  canonicalization?: CanonicalVector[]
+  documents?: DocumentVector[]
+  binding?: BindingVector[]
+}
+
 const corpus = CORPUS !== '' && existsSync(CORPUS)
-  ? JSON.parse(readFileSync(CORPUS, 'utf8')) as { canonicalization?: CanonicalVector[] }
+  ? JSON.parse(readFileSync(CORPUS, 'utf8')) as Corpus
   : undefined
 
 const vectors = corpus?.canonicalization ?? []
+const documents = corpus?.documents ?? []
+const bindings = corpus?.binding ?? []
 
 describe.skipIf(vectors.length === 0)('the conformance corpus', () => {
   it('has vectors to check', () => {
@@ -63,6 +96,55 @@ describe.skipIf(vectors.length === 0)('the conformance corpus', () => {
     'digests %s as the signer did',
     (_name, vector) => {
       expect(hex(digest(vector.payload as never))).toBe(vector.digest)
+    }
+  )
+})
+
+describe.skipIf(documents.length === 0)('component documents in the corpus', () => {
+  const publicKey = fromBase64(corpus?.key?.publicKey ?? '')
+
+  it.each(documents.map(vector => [vector.name, vector] as const))(
+    'reaches the signer\'s verdict on %s',
+    (_name, vector) => {
+      // The corpus records what the *signer's* implementation answered. Disagreeing here means the
+      // two implementations differ about a document, which the specification asks to be read as an
+      // ambiguity in the specification first.
+      const verified = verifyEnvelope(vector.envelope, vector.expectedType, publicKey)
+      expect(verified.valid).toBe(vector.accept)
+    }
+  )
+
+  it('reads the reference header into something a component can be called by', () => {
+    const reference = documents.find(vector => vector.name === 'component-header')
+    expect(reference).toBeDefined()
+
+    const verified = verifyEnvelope(reference!.envelope, reference!.expectedType, publicKey)
+    expect(verified.valid).toBe(true)
+
+    // Verifying is not enough on its own: a signature attests to bytes, not to their shape, and a
+    // header without an attribute order is one whose component cannot be called correctly.
+    const read = readHeader(verified.valid ? verified.payload : null as never)
+    expect(read.ok).toBe(true)
+    expect(read.ok && read.value.attributeOrder).toEqual(['attr-1'])
+  })
+})
+
+describe.skipIf(bindings.length === 0)('binding a header to an executable', () => {
+  it.each(bindings.map(vector => [vector.name, vector] as const))(
+    'agrees with the signer about %s',
+    (_name, vector) => {
+      // Signature-free by design: this is the check that comes *after* both documents verify.
+      const header = {
+        ...vector.header,
+        publisherId: 'user-1',
+        publishedAt: 0,
+        note: '',
+        type: 'dynamic' as const,
+        name: 'Hero',
+        attributes: {},
+        attributeOrder: []
+      }
+      expect(sharesPublication(header, vector.executable).ok).toBe(vector.accept)
     }
   )
 })

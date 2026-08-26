@@ -9,9 +9,9 @@
  */
 
 export {
-  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, httpSource
+  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, headerPath, httpSource
 } from './client.js'
-export type { VerifierOptions, Verdict, Source } from './client.js'
+export type { VerifierOptions, Verdict, Source, PublishedComponent } from './client.js'
 
 export { canonicalize, digest, CanonicalizationError } from './canonical.js'
 export type { JsonValue } from './canonical.js'
@@ -30,3 +30,6 @@ export type { ReadablePageNode, ReadableAttributeValue, Read } from './pageTree.
 
 export { EXECUTABLE_DOCUMENT, WEB_ESMODULE, readExecutable, matchesPin, isRunnable } from './executable.js'
 export type { ComponentExecutable } from './executable.js'
+
+export { HEADER_DOCUMENT, readHeader, sharesPublication } from './header.js'
+export type { PublishedComponentHeader, ComponentType } from './header.js'

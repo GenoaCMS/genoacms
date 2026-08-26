@@ -418,6 +418,188 @@ describe('fetching an executable', () => {
   })
 })
 
+describe('fetching a header', () => {
+  const pin = { uid: 'component-1', publicationId: 'publication-2' }
+  const path = '.genoacms/components/public/component-1/publication-2/header.json'
+
+  const payload = (over: Record<string, unknown> = {}) => ({
+    uid: 'component-1',
+    publicationId: 'publication-2',
+    publisherId: 'user-1',
+    publishedAt: 1_700_000_000_000,
+    note: 'released by the suite',
+    type: 'dynamic',
+    name: 'Hero',
+    attributes: { 'attr-1': { uid: 'attr-1', type: 'string' } },
+    attributeOrder: ['attr-1'],
+    ...over
+  })
+
+  const publish = (at = path, body = payload()) => {
+    served[at] = sign(
+      'ML-DSA-65', subordinateId, 'genoacms.componentHeader.v1',
+      body as JsonValue, subordinate.secretKey, subordinateScheme
+    )
+  }
+
+  it('returns the description the page pinned', async () => {
+    publish()
+
+    const verdict = await verifier().componentHeader(pin)
+
+    expect(verdict).toMatchObject({ valid: true })
+    expect(verdict?.valid === true && verdict.value.attributeOrder).toEqual(['attr-1'])
+  })
+
+  it('reports one that was never published as absent', async () => {
+    expect(await verifier().componentHeader(pin)).toBeUndefined()
+  })
+
+  it('refuses one whose attribute order was edited after signing', async () => {
+    // The attack signing a header exists to stop. Reordering the attributes reorders the arguments,
+    // so every value lands in the wrong parameter — and the executable it is used with stays
+    // perfectly valid, which is why nothing downstream could notice.
+    publish()
+    const envelope = served[path] as { payload: Record<string, unknown> }
+    served[path] = {
+      ...envelope,
+      payload: { ...envelope.payload, attributeOrder: ['attr-9', 'attr-1'] }
+    }
+
+    expect(await verifier().componentHeader(pin))
+      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
+  })
+
+  it('refuses a genuine header of an older publication moved onto this path', async () => {
+    publish(path, payload({ publicationId: 'publication-1' }))
+
+    const verdict = await verifier().componentHeader(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('header-wrong-publication')
+  })
+
+  it('refuses one with no attribute order, which nothing could be called by', async () => {
+    // The key is **removed**, not set to `undefined`: canonicalization refuses an undefined member
+    // rather than dropping it, so a fixture that set one would fail while being built and never
+    // reach the verifier at all.
+    const { attributeOrder, ...withoutOrder } = payload()
+    void attributeOrder
+    publish(path, withoutOrder as ReturnType<typeof payload>)
+
+    expect(await verifier().componentHeader(pin))
+      .toMatchObject({ valid: false, reason: 'header-missing-attribute-order' })
+  })
+
+  it('refuses one attributing itself to nobody', async () => {
+    publish(path, payload({ publisherId: '' }))
+
+    expect(await verifier().componentHeader(pin))
+      .toMatchObject({ valid: false, reason: 'header-missing-publisher-id' })
+  })
+})
+
+describe('fetching a whole publication', () => {
+  const pin = { uid: 'component-1', publicationId: 'publication-2' }
+  const headerAt = '.genoacms/components/public/component-1/publication-2/header.json'
+  const executableAt = '.genoacms/components/public/component-1/publication-2/executable.json'
+
+  const headerPayload = (over: Record<string, unknown> = {}) => ({
+    uid: 'component-1',
+    publicationId: 'publication-2',
+    publisherId: 'user-1',
+    publishedAt: 1_700_000_000_000,
+    note: 'released by the suite',
+    type: 'dynamic',
+    name: 'Hero',
+    attributes: {},
+    attributeOrder: [],
+    ...over
+  })
+
+  const executablePayload = (over: Record<string, unknown> = {}) => ({
+    uid: 'component-1',
+    publicationId: 'publication-2',
+    publisherId: 'user-1',
+    publishedAt: 1_700_000_000_000,
+    platform: 'web-esmodule',
+    executableCode: 'export function Hero () { return 1 }',
+    compiledAt: 1_700_000_001_000,
+    ...over
+  })
+
+  const publishHeader = (body = headerPayload(), at = headerAt) => {
+    served[at] = sign('ML-DSA-65', subordinateId, 'genoacms.componentHeader.v1',
+      body as JsonValue, subordinate.secretKey, subordinateScheme)
+  }
+  const publishExecutable = (body = executablePayload(), at = executableAt) => {
+    served[at] = sign('ML-DSA-65', subordinateId, 'genoacms.componentExecutable.v1',
+      body as JsonValue, subordinate.secretKey, subordinateScheme)
+  }
+
+  it('returns both documents for a dynamic component', async () => {
+    publishHeader()
+    publishExecutable()
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict).toMatchObject({ valid: true })
+    expect(verdict?.valid === true && verdict.value.executable?.executableCode).toContain('Hero')
+  })
+
+  it('returns a prebuilt component as a header alone', async () => {
+    // Its code is in the consuming application, so the header is the whole of what was published.
+    publishHeader(headerPayload({ type: 'prebuilt' }))
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict).toMatchObject({ valid: true })
+    expect(verdict?.valid === true && verdict.value.executable).toBeUndefined()
+  })
+
+  it('refuses a header and an executable from different publications', async () => {
+    /*
+     * The header is genuine and pinned correctly; the executable is genuine and was moved here from
+     * publication 3.
+     *
+     * **What catches it is the executable's own pin check, not `sharesPublication`.** Both documents
+     * are compared against the same pin, so two that pass cannot disagree with each other — the
+     * binding is *implied* here rather than independently enforced. That is worth stating plainly:
+     * `sharesPublication` exists for a caller who fetches the pair itself, without a pin to check
+     * either against, and it is tested directly in `header.test.ts`.
+     */
+    publishHeader()
+    publishExecutable(executablePayload({ publicationId: 'publication-3' }))
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-revision')
+  })
+
+  it('refuses a dynamic component with no code published', async () => {
+    // A publication that renders nothing, kept apart from "this component was never published".
+    publishHeader()
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('component-missing-executable')
+  })
+
+  it('refuses an executable published beside a prebuilt header', async () => {
+    // Either the header was swapped for a prebuilt one, or a bundle nobody asked for is sitting
+    // there. Both are reasons to stop rather than to pick whichever document looks right.
+    publishHeader(headerPayload({ type: 'prebuilt' }))
+    publishExecutable()
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('component-unexpected-executable')
+  })
+
+  it('reports a publication that does not exist as absent', async () => {
+    expect(await verifier().component(pin)).toBeUndefined()
+  })
+})
+
 describe('unreachable is neither answer', () => {
   it('reports an object that is not there as absent, not as invalid', async () => {
     // A page that was never published is an ordinary answer, and a different one from a page that
