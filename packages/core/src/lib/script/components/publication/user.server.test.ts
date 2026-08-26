@@ -31,6 +31,10 @@ vi.mock('./index', () => ({
   getPublishedComponent: async (uid: string) => {
     calls.push(`published:${uid}`)
     return null
+  },
+  listComposableComponentHeaders: async () => {
+    calls.push('composable')
+    return []
   }
 }))
 
@@ -142,6 +146,21 @@ describe('reading publication status', () => {
 
   it('is denied to a principal with no grants', async () => {
     await expect(Promise.resolve().then(() => publication.getUserPublishedComponent(nobody(), 'uid-1')))
+      .rejects.toBeInstanceOf(PermissionDeniedError)
+    expect(calls).toEqual([])
+  })
+})
+
+describe('listing what a page may be composed from', () => {
+  it('rides on the catalog permission', async () => {
+    // Which components can be put on a page is the same order of fact as which components exist, and
+    // a principal composing a page is not thereby permitted to change anything.
+    await publication.listUserComposableComponents(reader())
+    expect(calls).toEqual(['composable'])
+  })
+
+  it('is denied to a principal with no grants', async () => {
+    await expect(Promise.resolve().then(() => publication.listUserComposableComponents(nobody())))
       .rejects.toBeInstanceOf(PermissionDeniedError)
     expect(calls).toEqual([])
   })

@@ -62,6 +62,7 @@ const matrixOperations = [
   // publication
   'publishUserComponent',
   'getUserPublishedComponent',
+  'listUserComposableComponents',
   // prebuilt components
   'registerUserComponentHeader',
   'listUserComponentHeaders',
@@ -229,7 +230,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
       'getUserComponentSignature', 'saveUserComponentBody', 'undoUserComponentBody',
-      'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent'
+      'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent',
+      'listUserComposableComponents'
     ]
   },
   ComponentCurator: {
@@ -251,7 +253,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
       'listUserComponents', 'getUserComponent',
-      'publishUserComponent', 'getUserPublishedComponent'
+      'publishUserComponent', 'getUserPublishedComponent', 'listUserComposableComponents'
     ]
   },
   ComponentRegistrar: {
@@ -265,7 +267,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
-      'createUserComponent', 'deleteUserComponent'
+      'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent'
     ]
   },
   RoleAdministrator: {

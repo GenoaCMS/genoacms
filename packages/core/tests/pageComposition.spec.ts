@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, confirm, toast } from './support/session'
+import { SLOW, reported } from './support/storage'
 
 /**
  * Composing a page out of components, end to end.
@@ -65,6 +66,22 @@ const addAttribute = async (page: Page, type: string, name: string): Promise<voi
 const saveComponent = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Submit' }).click()
   await expect(toast(page, /success|saved|updated/i)).toBeVisible()
+}
+
+/**
+ * Publishes the component whose registrar page is open.
+ *
+ * **Every fixture here has to be published**, because under R3 a page may only be composed from
+ * components that have been. Before R3 these fixtures were saved and never released, and the pickers
+ * offered them anyway — so this is not setup that happens to be needed, it is the rule under test
+ * being satisfied the way an author would satisfy it.
+ */
+const publishComponent = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Publish' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Publish the component' })
+  await dialog.getByRole('textbox').last().fill('published by the end-to-end suite')
+  await dialog.getByRole('button', { name: /publish/i }).click()
+  await reported(page, 'Component published')
 }
 
 const openComponent = async (page: Page, name: string): Promise<void> => {
@@ -154,9 +171,12 @@ test.describe('building the component catalog', () => {
   test.describe.configure({ mode: 'serial' })
 
   test('creates a page component with a components slot', async ({ page }) => {
+    // Registering, describing, saving and publishing are four round trips to real storage.
+    test.setTimeout(180_000)
     await createComponent(page, PAGE_COMPONENT)
     await addAttribute(page, 'components', SLOT)
     await saveComponent(page)
+    await publishComponent(page)
 
     await openComponent(page, PAGE_COMPONENT)
     // Reopening is the assertion: an attribute that only exists in unsaved local state would pass
@@ -165,10 +185,15 @@ test.describe('building the component catalog', () => {
   })
 
   test('creates one component per remaining attribute type', async ({ page }) => {
+    // Eight components, each registered, described, saved and **published** — R3 means a fixture is
+    // not usable until it has been released, so this builder does twice the round trips it used to
+    // and comfortably exceeds the default per-test budget.
+    test.setTimeout(180_000)
     for (const type of ATTRIBUTE_TYPES) {
       await createComponent(page, componentFor(type))
       await addAttribute(page, type, `${type}Value`)
       await saveComponent(page)
+      await publishComponent(page)
     }
 
     await page.goto('/components/registrar')
@@ -194,6 +219,7 @@ test.describe('composing the page', () => {
   })
 
   test('nests every test component in the slot', async ({ page }) => {
+    test.setTimeout(180_000)
     await page.goto(`/components/pages/${PAGE_NAME}`)
 
     for (const type of ATTRIBUTE_TYPES) {
@@ -216,6 +242,50 @@ test.describe('composing the page', () => {
 
     // The nested node's own editor, showing the attribute that component declares.
     await expect(page.getByText('booleanValue', { exact: true })).toBeVisible()
+  })
+})
+
+test.describe('what a page may be composed from', () => {
+  /*
+   * **R3.** A page is built against a component's shape, and a shape nobody published is one no
+   * consumer can verify — so an unpublished component must not be offerable at all.
+   *
+   * The fixture is registered and saved and deliberately **not** published, which is the whole of
+   * the test: a component that reached the picker before this rule and must not now. Asserting only
+   * that the published ones appear would pass just as well with the filter deleted.
+   */
+  const UNPUBLISHED = `${PREFIX}UnpublishedComponent`
+
+  test.describe.configure({ mode: 'serial' })
+
+  test('registers a component and leaves it unpublished', async ({ page }) => {
+    test.setTimeout(180_000)
+    await createComponent(page, UNPUBLISHED)
+    await addAttribute(page, 'string', 'headline')
+    await saveComponent(page)
+
+    // The state the rest of this group depends on, asserted rather than assumed: were it published,
+    // both tests below would pass for the opposite reason.
+    // Exact: the component's own name contains the word, so a substring match finds the heading too.
+    await expect(page.getByText('Unpublished', { exact: true })).toBeVisible({ timeout: SLOW })
+  })
+
+  test('does not offer it as the root of a new page', async ({ page }) => {
+    await page.goto('/components/pages')
+    await page.getByRole('button', { name: 'Create page' }).click()
+
+    const select = page.getByLabel('Component:')
+    await expect(select.getByRole('option', { name: PAGE_COMPONENT })).toHaveCount(1)
+    await expect(select.getByRole('option', { name: UNPUBLISHED })).toHaveCount(0)
+  })
+
+  test('does not offer it to fill a slot', async ({ page }) => {
+    await openPage(page, PAGE_NAME)
+    await page.getByRole('button', { name: 'Add component' }).click()
+
+    const picker = page.getByRole('dialog', { name: 'Add a new component' })
+    await expect(picker.getByText(componentFor('string'), { exact: true })).toBeVisible()
+    await expect(picker.getByText(UNPUBLISHED, { exact: true })).toHaveCount(0)
   })
 })
 
@@ -375,7 +445,9 @@ test.describe('removing everything', () => {
 
     await deleteFixtures(page)
 
-    await expect(ownCheckboxes(page)).toHaveCount(0)
+    // On the suite's real-storage budget: removing a component now removes its publications too, so
+    // the listing settles later than it did when these fixtures were never published.
+    await expect(ownCheckboxes(page)).toHaveCount(0, { timeout: SLOW })
   })
 
   test('deletes every component it created', async ({ page }) => {
@@ -384,6 +456,8 @@ test.describe('removing everything', () => {
 
     await deleteFixtures(page)
 
-    await expect(ownCheckboxes(page)).toHaveCount(0)
+    // On the suite's real-storage budget: removing a component now removes its publications too, so
+    // the listing settles later than it did when these fixtures were never published.
+    await expect(ownCheckboxes(page)).toHaveCount(0, { timeout: SLOW })
   })
 })

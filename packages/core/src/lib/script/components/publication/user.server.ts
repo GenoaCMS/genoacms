@@ -1,10 +1,11 @@
 import type { AuthContext } from '$lib/script/authorization/context'
+import type { ComponentHeader } from '../componentHeader/component/types'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
 
 import { requirePermission } from '$lib/script/authorization/enforce'
 import { getComponentHeader } from '../componentHeader/io.server'
 import { NoSuchComponentError } from '../editor/errors'
-import { publishComponent, getPublishedComponent } from './index'
+import { publishComponent, getPublishedComponent, listComposableComponentHeaders } from './index'
 
 /**
  * Publishing, performed **by a user**.
@@ -68,4 +69,16 @@ const getUserPublishedComponent = async (
   return await getPublishedComponent(uid)
 }
 
-export { publishUserComponent, getUserPublishedComponent }
+/**
+ * The catalog a page may be composed from, for the page editor's pickers.
+ *
+ * On `components:read`, like the catalog listing it narrows: this answers *which* components exist
+ * and can be used, which is the same order of fact as which components exist. A principal composing
+ * a page needs it and is not thereby permitted to change anything.
+ */
+const listUserComposableComponents = async (ctx: AuthContext): Promise<ComponentHeader[]> => {
+  requirePermission(ctx, 'components:read')
+  return await listComposableComponentHeaders()
+}
+
+export { publishUserComponent, getUserPublishedComponent, listUserComposableComponents }

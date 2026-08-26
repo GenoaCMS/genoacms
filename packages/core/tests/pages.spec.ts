@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { fixtureName, signIn } from './support/session'
+import { registerPublishedComponent, removeComponent } from './support/components'
 
 /**
  * Pages: creating one, editing its content, and publishing it.
@@ -13,6 +14,16 @@ import { fixtureName, signIn } from './support/session'
  *
  * Publishing is exercised, and it writes a readable tree for real consumers. The published objects
  * are removed by the same cleanup.
+ *
+ * ## The component fixture is new, and it is R3 that made it necessary
+ *
+ * These tests used to create a page without choosing a component, taking whatever the select
+ * happened to offer — which meant the suite silently depended on the instance's own catalog. Under
+ * **R3** a page may only be composed from a **published** component, so on an instance with none the
+ * modal states that rather than offering a form, and every test here failed on a missing Name field.
+ *
+ * So the suite now registers and publishes a component of its own. That is not a workaround: it is
+ * the suite owning a precondition it always had and had never declared.
  */
 
 const SLOW = 20_000
@@ -53,11 +64,14 @@ const openPages = async (page: Page): Promise<void> => {
  * The component list comes from the prebuilt catalog, so the test picks whatever this instance
  * has rather than depending on a particular component existing.
  */
-const createPage = async (page: Page, name: string): Promise<void> => {
+const createPage = async (page: Page, name: string, component: string): Promise<void> => {
   await page.getByRole('button', { name: 'Create page' }).click()
 
   const dialog = page.getByRole('dialog', { name: 'Create a new page' })
   await dialog.getByLabel('Name:').fill(name)
+  // Named rather than left to whichever option comes first: the instance may hold published
+  // components of its own, and a page rooted in one of those is not this suite's fixture.
+  await dialog.getByLabel('Component:').selectOption({ label: component })
   await dialog.getByRole('button', { name: 'Create' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/components/pages/${name}`), { timeout: SLOW })
@@ -143,33 +157,43 @@ const removePageObjects = async (browser: Page, name: string): Promise<void> => 
 
 test.describe('a page', () => {
   let name: string
+  let componentName: string
 
   test.beforeEach(async ({ page }) => {
+    // Longer than the default: signing in, registering, publishing and opening the page list are
+    // four round trips to real storage before the test's own subject is touched.
+    test.setTimeout(180_000)
     name = fixtureName('page')
+    componentName = fixtureName('component')
     await signIn(page)
+    // Per test rather than once for the suite, because each test gets a fresh context and the
+    // component has to be removed with the page it was composed into — a fixture shared across
+    // tests would outlive whichever one failed.
+    await registerPublishedComponent(page, componentName)
     await openPages(page)
   })
 
   test.afterEach(async ({ page }) => {
     await removePageObjects(page, name)
+    await removeComponent(page, componentName)
   })
 
   test('is created and appears in the list', async ({ page }) => {
-    await createPage(page, name)
+    await createPage(page, name, componentName)
 
     await openPages(page)
     await expect(card(page, name).first()).toBeVisible({ timeout: SLOW })
   })
 
   test('opens its editor with the component tree', async ({ page }) => {
-    await createPage(page, name)
+    await createPage(page, name, componentName)
 
     await expect(page.getByRole('heading', { name })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
   })
 
   test('takes a preview URL, which persists', async ({ page }) => {
-    await createPage(page, name)
+    await createPage(page, name, componentName)
 
     await page.getByRole('button', { name: 'Update preview URL' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit preview URL:' })
@@ -189,7 +213,7 @@ test.describe('a page', () => {
   })
 
   test('saves edited content', async ({ page }) => {
-    await createPage(page, name)
+    await createPage(page, name, componentName)
 
     await page.getByRole('button', { name: 'Save' }).click()
     await reported(page, 'Saved')
@@ -197,7 +221,7 @@ test.describe('a page', () => {
 
   test('publishes, writing a readable tree', async ({ page }) => {
     test.setTimeout(120_000)
-    await createPage(page, name)
+    await createPage(page, name, componentName)
 
     // Build generates the readable tree consumers fetch. It is the last step of the page lifecycle
     // and the only one that leaves something outside the CMS's own state.

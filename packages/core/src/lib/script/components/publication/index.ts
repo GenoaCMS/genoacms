@@ -5,7 +5,7 @@ import type { SignedComponentExecutable } from '../executable/executable'
 import type { SignedComponentHeader } from './header'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
 
-import { getComponentHeader } from '../componentHeader/io.server'
+import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
 import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
@@ -14,6 +14,7 @@ import { signComponentHeader } from './header.server'
 import { describingDigest } from './header'
 import {
   getPublishedComponent,
+  listPublishedComponentUids,
   uploadPublishedComponent,
   uploadPublishedExecutable,
   uploadPublishedHeader
@@ -233,7 +234,33 @@ const publishComponent = async (
   return record
 }
 
-export { publishComponent, getPublishedComponent }
+/**
+ * The components a page may be composed from: those that have been published.
+ *
+ * **R3.** A page is built against a component's shape, and a shape nobody has published is one no
+ * consumer can verify — so composing from it produces a page whose nodes name a publication that
+ * does not exist. Refusing at render time would be discovering it too late; the editor is where the
+ * choice is made, so the editor is where the choice is narrowed.
+ *
+ * A filter over the whole catalog rather than a listing of the publication directory, because the
+ * **header** is what the editor needs and the pointer record holds no shape. The publications are
+ * read as a *set of uids* — two listings, not one listing and a read per component. The page editor
+ * asks this on every load, so an answer costing a round trip per component in the catalog would get
+ * slower as the catalog grew, on the path an author waits on.
+ *
+ * This does not decide which shape a node is built from. That stays the header the registrar holds,
+ * so an author editing a published component's description still sees their edits in the page
+ * editor — what is gated here is whether the component may be *introduced* to a page at all.
+ */
+const listComposableComponentHeaders = async (): Promise<ComponentHeader[]> => {
+  const [headers, published] = await Promise.all([
+    listOrCreateComponentHeaderList(),
+    listPublishedComponentUids()
+  ])
+  return headers.filter(header => published.has(header.uid))
+}
+
+export { publishComponent, getPublishedComponent, listComposableComponentHeaders }
 export type { PublishedComponent }
 
 // Re-exported so callers have one import for the concept rather than reaching into storage.

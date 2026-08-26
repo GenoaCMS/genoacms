@@ -6,6 +6,8 @@ import { join } from 'path'
 import {
   defaultBucketId,
   deleteDirectory,
+  listOrCreateDirectory,
+  fullyQualifiedNameToFilename,
   uploadInternalObjectJSON,
   getInternalObjectFlatted,
   uploadInternalObjectFlatted
@@ -160,8 +162,34 @@ const tolerateMissing = async (removal: () => Promise<unknown>): Promise<void> =
 /** Object storage has no directories, so removing one that holds nothing is not an error. */
 const isMissing = (error: unknown): boolean => (error as { code?: number })?.code === 404
 
+/**
+ * Every component that has published something, by uid.
+ *
+ * **One listing, not one read per component.** The page editor asks "which of these may be composed
+ * with" on every load, and answering it by fetching each component's pointer record is a round trip
+ * per component in the catalog — which grows with the catalog and lands on the path an author waits
+ * on. The pointers all live in one directory, and its filenames *are* the uids, so the whole answer
+ * is one listing.
+ *
+ * Only the names are read. The records hold a publication identifier and a digest, and neither is
+ * needed to answer whether something has been published — reading them would put the N back.
+ */
+const listPublishedComponentUids = async (): Promise<Set<string>> => {
+  // The trailing slash is what makes this a *directory* to the storage abstraction — without it the
+  // listing comes back empty rather than failing, and an empty listing here reads as "nothing has
+  // been published", which is an ordinary state. So the mistake is invisible at this layer and
+  // surfaces as a page editor that offers nothing.
+  const listing = await listOrCreateDirectory({ bucket: defaultBucketId, name: `${pointerPath}/` })
+  const uids = listing.files
+    .map(file => fullyQualifiedNameToFilename(file.name))
+    .filter(name => name.endsWith('.json'))
+    .map(name => name.slice(0, -'.json'.length))
+  return new Set(uids)
+}
+
 export {
   publicationDirectory,
+  listPublishedComponentUids,
   publishedHeaderPath,
   publishedExecutablePath,
   publishedComponentPath,

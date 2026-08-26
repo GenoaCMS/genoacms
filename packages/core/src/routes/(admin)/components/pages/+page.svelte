@@ -27,7 +27,7 @@
         <SelectionToggle {selection} {entries} />
         <!-- Creating a page writes its structure. -->
         <PermissionGate permission="pages:structure_edit">
-            <CreatePage components={data.componentSchemas}/>
+            <CreatePage components={data.composableComponents}/>
         </PermissionGate>
     {/snippet}
 </TopPanel>

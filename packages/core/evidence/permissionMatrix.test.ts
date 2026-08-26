@@ -121,7 +121,8 @@ vi.mock('$lib/script/components/publication', () => ({
     note: 'n',
     headerDigest: 'd'
   }),
-  getPublishedComponent: async () => null
+  getPublishedComponent: async () => null,
+  listComposableComponentHeaders: async () => []
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
@@ -252,6 +253,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   publishUserComponent: ctx =>
     publication.publishUserComponent(ctx, { componentId: 'uid-1', note: 'n' }),
   getUserPublishedComponent: ctx => publication.getUserPublishedComponent(ctx, 'uid-1'),
+  listUserComposableComponents: ctx => publication.listUserComposableComponents(ctx),
   deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
