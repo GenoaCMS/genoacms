@@ -298,11 +298,15 @@ class Verifier {
    * can move a **genuine, correctly signed** header of an older publication onto a newer one's path,
    * and every signature stays valid.
    *
+   * When the pin carries a `type` — as one taken from a page node does — that is compared as well,
+   * because the page and the header state it under separate signatures and only comparing them
+   * catches one having been changed.
+   *
    * `undefined` means nothing is published there — a page pinning a publication whose header was
    * never written, or has since been deleted.
    */
   async componentHeader (
-    pin: { uid: string, publicationId: string }
+    pin: { uid: string, publicationId: string, type?: PublishedComponentHeader['type'] }
   ): Promise<Verdict<PublishedComponentHeader> | undefined> {
     const verified = await this.fetchVerified(headerPath(pin.uid, pin.publicationId), HEADER_DOCUMENT)
     if (verified === undefined) return undefined
@@ -333,9 +337,12 @@ class Verifier {
    * refusing is the only answer that does not depend on guessing which document is right.
    *
    * `undefined` means nothing is published at that publication at all.
+   *
+   * A pin taken straight from a page node carries the kind the page claimed, and it is checked
+   * against the header's before anything else is decided — see `matchesPin`.
    */
   async component (
-    pin: { uid: string, publicationId: string }
+    pin: { uid: string, publicationId: string, type?: PublishedComponentHeader['type'] }
   ): Promise<Verdict<PublishedComponent> | undefined> {
     const header = await this.componentHeader(pin)
     if (header === undefined) return undefined

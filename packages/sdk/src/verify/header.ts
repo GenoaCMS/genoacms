@@ -85,22 +85,40 @@ const readHeader = (payload: JsonValue): Read<PublishedComponentHeader> => {
 }
 
 /**
- * Refuses a header that is not the publication the page pinned.
+ * Refuses a header that is not the publication the page pinned, or not the kind it said.
  *
- * The same check the executable gets, and for the same reason: whoever can write to storage can move
- * a **genuine, correctly signed** header of an older publication onto the path a newer one occupies.
- * Every signature involved stays valid; only comparing what the page pinned against what the
- * document says it is catches it.
+ * The identity half is the same check the executable gets, and for the same reason: whoever can
+ * write to storage can move a **genuine, correctly signed** header of an older publication onto the
+ * path a newer one occupies. Every signature involved stays valid; only comparing what the page
+ * pinned against what the document says it is catches it.
+ *
+ * ## Why the kind is compared too
+ *
+ * The page tree and the header both state it, under **different signatures made at different
+ * times** — so they can disagree, and the disagreement is the finding. A page saying `prebuilt`
+ * where the header says `dynamic` means a consumer is about to render its own local component under
+ * a name the CMS published code for; the reverse means it will look for a bundle the publication
+ * never had. Neither is caught by verifying either document on its own.
+ *
+ * `expected.type` is optional because a caller that resolves a publication **without a page** — a
+ * tool inspecting storage, a prefetcher given a uid — has no claim to compare against, and demanding
+ * one would make it invent the answer it is checking.
  */
 const matchesPin = (
   header: PublishedComponentHeader,
-  expected: { uid: string, publicationId: string }
+  expected: { uid: string, publicationId: string, type?: ComponentType }
 ): Read<PublishedComponentHeader> => {
   if (header.uid !== expected.uid) {
     return failed(`header-wrong-component: expected ${expected.uid}, found ${header.uid}`)
   }
   if (header.publicationId !== expected.publicationId) {
     return failed(`header-wrong-publication: expected ${expected.publicationId}, found ${header.publicationId}`)
+  }
+  if (expected.type !== undefined && header.type !== expected.type) {
+    return failed(
+      `header-wrong-type: the page pinned a ${expected.type} component and the published header ` +
+      `describes a ${header.type} one`
+    )
   }
   return { ok: true, value: header }
 }

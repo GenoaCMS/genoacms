@@ -12,13 +12,14 @@ import type {
   LinksAttributeValue,
   StorageResourcesAttributeValue
 } from '$lib/script/components/componentHeader/attribute/types'
+import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
 import { getPublicURL } from '$lib/script/storage/storage.server'
 import { getPageEntry } from '$lib/script/components/page/page.server'
 import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import { getComponentDefiniton } from '$lib/script/components/editor/io'
+import { getPublishedComponent } from '$lib/script/components/publication/io.server'
 
 const parseMarkdown = async (markdown: string) => {
   const window = new JSDOM('').window
@@ -83,46 +84,47 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
 }
 
 /**
- * The publication a node is pinned to, or nothing if the component is prebuilt.
+ * What a node says about the component it references: its kind, and the publication it pins.
  *
- * Read at build time and written into the tree, which is what makes the pin a pin: the page names
- * the publication that was current when it was built, and keeps naming it after the component has
- * moved on. Resolving the latest at render time instead would make every published page follow the
- * newest publication, which is the behavior this exists to prevent.
+ * The pin is read at build time and written into the tree, which is what makes it a pin: the page
+ * names the publication that was current when it was built, and keeps naming it after the component
+ * has moved on. Resolving the latest at render time instead would make every published page follow
+ * the newest publication, which is the behavior this exists to prevent.
  *
- * A component that has never been published has nothing to pin and nothing to serve. That is left
+ * **Both kinds are pinned.** A prebuilt component publishes a signed header describing what it
+ * accepts, so it has a publication like any other; only its *code* is the consuming application's.
+ * The pin used to be read from the dynamic component's definition, which could not answer for a
+ * prebuilt one at all — the pointer record can, and holds the same value for both.
+ *
+ * A component that has never been published has nothing to pin and nothing to serve. Its pin is left
  * absent rather than reported here: building a page is not the place to discover that one of its
  * components was never published, and the consumer's own verification is what refuses to render it.
- */
-const pinnedRevision = async (entryReference: string): Promise<string | undefined> => {
-  const entry = await getComponentHeader(entryReference)
-  if (entry === null || entry.type !== 'dynamic') return undefined
-
-  const definition = await getComponentDefiniton(entryReference)
-  return definition.lastPublicationId
-}
-
-/**
- * What a node needs in order for a consumer to fetch what it pins.
  *
- * `uid` and `publicationId` travel together: an executable lives at `{uid}/{publicationId}`, so either alone
- * is a pin nobody can resolve. Both are omitted for a prebuilt component, which has no artifact.
+ * `uid` and `publicationId` travel together: a publication lives at `{uid}/{publicationId}`, so
+ * either alone is a pin nobody can resolve.
  */
-const artifactReference = async (entryReference: string): Promise<{ uid: string, publicationId: string } | undefined> => {
-  const publicationId = await pinnedRevision(entryReference)
-  if (publicationId === undefined) return undefined
-  return { uid: entryReference, publicationId }
+const publishedReference = async (
+  entryReference: string
+): Promise<{ type: ComponentType, uid?: string, publicationId?: string }> => {
+  const header = await getComponentHeader(entryReference)
+  // A node referencing a header that is gone is one nothing can be said about. Read as prebuilt and
+  // left unpinned, which is the shape a consumer refuses rather than renders.
+  if (header === null) return { type: 'prebuilt' }
+
+  const published = await getPublishedComponent(entryReference)
+  if (published === null) return { type: header.type }
+  return { type: header.type, uid: entryReference, publicationId: published.publicationId }
 }
 
 const componentNodeToReadablePageNode = async (node: ComponentNode,
   componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
-  const artifact = await artifactReference(node.entryReference)
   const readableNode: ReadablePageNode = {
     component: node.name,
-    // Omitted rather than set to undefined for a prebuilt component: the tree is signed, and
-    // canonicalization drops an undefined member silently while refusing to represent it — so an
-    // explicit `publicationId: undefined` would sign as though the key had never been written.
-    ...(artifact ?? {}),
+    // Spread rather than assigned, because the pair is omitted entirely when a component has never
+    // been published: the tree is signed, and canonicalization drops an undefined member silently
+    // while refusing to represent it — so an explicit `publicationId: undefined` would sign as
+    // though the key had never been written.
+    ...(await publishedReference(node.entryReference)),
     data: {}
   }
   for (const data of Object.values(node.data)) {

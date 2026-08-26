@@ -25,8 +25,8 @@ export type { SignedEnvelope, UnverifiedHeader, VerificationResult } from './env
 export { KEY_REGISTRY_DOCUMENT, deriveKeyId, readRegistry, resolveKey } from './registry.js'
 export type { KeyRegistry, RegistryKey } from './registry.js'
 
-export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedRevisions } from './pageTree.js'
-export type { ReadablePageNode, ReadableAttributeValue, Read } from './pageTree.js'
+export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedPublications } from './pageTree.js'
+export type { ReadablePageNode, ReadableAttributeValue, PublicationPin, Read } from './pageTree.js'
 
 export { EXECUTABLE_DOCUMENT, WEB_ESMODULE, readExecutable, matchesPin, isRunnable } from './executable.js'
 export type { ComponentExecutable } from './executable.js'

@@ -258,9 +258,10 @@ describe('verifying a document', () => {
 describe('fetching a page tree', () => {
   const treePayload = {
     component: 'Page',
+    type: 'dynamic',
     uid: 'component-1',
-    publicationId: 'commit-1',
-    data: { body: [{ component: 'Card', data: {} }] }
+    publicationId: 'publication-1',
+    data: { body: [{ component: 'Card', type: 'prebuilt', uid: 'component-2', publicationId: 'publication-2', data: {} }] }
   }
 
   const publish = (payload: JsonValue = treePayload as JsonValue) => {
@@ -294,11 +295,11 @@ describe('fetching a page tree', () => {
       .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
   })
 
-  it('refuses a tree whose revision pin was rolled back after signing', async () => {
+  it('refuses a tree whose publication pin was rolled back after signing', async () => {
     publish()
     const envelope = served['.genoacms/pages/readables/home'] as { payload: Record<string, unknown> }
     served['.genoacms/pages/readables/home'] =
-      { ...envelope, payload: { ...envelope.payload, publicationId: 'an-older-commit' } }
+      { ...envelope, payload: { ...envelope.payload, publicationId: 'an-older-publication' } }
 
     expect(await verifier().pageTree('home'))
       .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
@@ -306,7 +307,7 @@ describe('fetching a page tree', () => {
 
   it('refuses a malformed tree that is correctly signed', async () => {
     // A signature attests to the bytes, not to their shape. Whoever holds the key can sign this.
-    publish({ component: 'Page' } as JsonValue)
+    publish({ component: 'Page', type: 'dynamic' } as JsonValue)
 
     expect(await verifier().pageTree('home'))
       .toMatchObject({ valid: false, reason: 'node-missing-data' })
@@ -315,7 +316,7 @@ describe('fetching a page tree', () => {
   it('does not return a degraded tree when one fails', async () => {
     // There is no safe partial form: the plausible tampering leaves a document that looks entirely
     // ordinary, so anything handed back would be whatever was written to the bucket.
-    publish({ component: 'Page' } as JsonValue)
+    publish({ component: 'Page', type: 'dynamic' } as JsonValue)
     const verdict = await verifier().pageTree('home')
 
     expect(verdict?.valid).toBe(false)
@@ -554,6 +555,30 @@ describe('fetching a whole publication', () => {
 
     expect(verdict).toMatchObject({ valid: true })
     expect(verdict?.valid === true && verdict.value.executable).toBeUndefined()
+  })
+
+  it('refuses a publication whose kind is not the one the page pinned', async () => {
+    /*
+     * The pin a renderer passes comes from a page node, which states the kind under the page tree's
+     * signature; the header states it under its own, made at a different time. Verifying either
+     * alone settles nothing about the other.
+     *
+     * Here the page composed a prebuilt component — code the consuming application supplies — and
+     * the publication at that path describes a dynamic one. Rendering it would run the application's
+     * own component under a name the CMS published code for.
+     */
+    publishHeader()
+
+    const verdict = await verifier().component({ ...pin, type: 'prebuilt' })
+
+    expect(verdict?.valid === false && verdict.reason).toContain('header-wrong-type')
+  })
+
+  it('accepts a publication whose kind is the one the page pinned', async () => {
+    publishHeader()
+    publishExecutable()
+
+    expect(await verifier().component({ ...pin, type: 'dynamic' })).toMatchObject({ valid: true })
   })
 
   it('refuses a header and an executable from different publications', async () => {

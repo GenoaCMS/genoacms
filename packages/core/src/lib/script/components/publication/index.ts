@@ -175,7 +175,7 @@ const store = async (
 
   await Promise.all([
     uploadPublishedComponent(record),
-    advanceDefinition(subject, built, record)
+    advanceDefinition(subject, built)
   ])
 }
 
@@ -184,19 +184,21 @@ const store = async (
  *
  * Only for a dynamic component, and only the code half: the body that was built and the signature it
  * was built against are what `no change, no publication` compares next time, and neither can be
- * recovered from the header. `lastPublicationId` is what a page pins when it is built.
+ * recovered from the header.
+ *
+ * **The publication identifier is not recorded here.** The definition used to keep a copy of it for
+ * a page build to pin, which meant one fact in two places — and the copy could only ever answer for
+ * a dynamic component, so a prebuilt one had no pin at all. The pointer record holds it for both.
  */
 const advanceDefinition = async (
   subject: PublicationSubject,
-  built: BuiltPublication,
-  record: PublishedComponent
+  built: BuiltPublication
 ): Promise<void> => {
   const { definition } = subject
   if (definition === undefined || built.signature === undefined) return
   await updateComponentDefinition(definition.uid, d => {
     d.publishedBody = definition.body
     d.publishedSignature = built.signature as string
-    d.lastPublicationId = record.publicationId
     return d
   }, definition)
 }

@@ -45,11 +45,19 @@ const { uploadReadablePageTree, getReadablePageTree, PAGE_TREE_DOCUMENT, readabl
 
 const tree: ReadablePageNode = {
   component: 'Hero',
-  publicationId: 'commit-1',
+  type: 'dynamic',
+  uid: 'component-1',
+  publicationId: 'publication-1',
   data: {
     heading: 'hello',
     links: ['https://example.com'],
-    children: [{ component: 'Card', publicationId: 'commit-2', data: {} }]
+    children: [{
+      component: 'Card',
+      type: 'prebuilt',
+      uid: 'component-2',
+      publicationId: 'publication-2',
+      data: {}
+    }]
   }
 }
 
@@ -70,14 +78,18 @@ describe('publishing a tree', () => {
     expect(verify(stored, PAGE_TREE_DOCUMENT, keypair.publicKey).valid).toBe(true)
   })
 
-  it('signs the revision pins, not only the component names', async () => {
-    // The pins are the part worth protecting: repointing a page at an older revision of the same
-    // component changes what runs without changing which component it is.
+  it('signs the publication pins and the kinds, not only the component names', async () => {
+    // The pins are the part worth protecting: repointing a page at an older publication of the same
+    // component changes what runs without changing which component it is. The kind is signed for
+    // the same reason — it is what tells a consumer whether to run published code or its own.
     await uploadReadablePageTree('home', tree)
 
     const payload = (stored as { payload: ReadablePageNode }).payload
-    expect(payload.publicationId).toBe('commit-1')
-    expect((payload.data.children as ReadablePageNode[])[0].publicationId).toBe('commit-2')
+    const child = (payload.data.children as ReadablePageNode[])[0]
+    expect(payload.publicationId).toBe('publication-1')
+    expect(payload.type).toBe('dynamic')
+    expect(child.publicationId).toBe('publication-2')
+    expect(child.type).toBe('prebuilt')
   })
 })
 

@@ -1,5 +1,4 @@
 import type { ComponentHeaderReference } from '../componentHeader/component/types'
-import type { ComponentPublicationReference } from '../publication/types'
 
 type ComponentReference = string
 type ComponentCode = string
@@ -34,6 +33,10 @@ interface ComponentDeletion extends ComponentCreation {
  * `UndoRedoAdjunct`'s**, the same one the page and registrar editors use — which is what a commit
  * would mostly have been used for, done in the surface where the editing happens rather than as a
  * stored revision of its own.
+ *
+ * **Nothing here says which publication is current.** That is `PublishedComponent`'s, which answers
+ * for a prebuilt component too — this holds only what the last publication *compiled*, which is the
+ * half a header cannot recover.
  */
 interface ComponentDefinition {
   uid: ComponentReference,
@@ -49,20 +52,7 @@ interface ComponentDefinition {
    * change: the question `no change, no publication` asks is whether the *current* shape still emits
    * what the last publication compiled, and the header alone cannot answer it.
    */
-  publishedSignature: string,
-  /**
-   * The publication a page pins when it is built.
-   *
-   * **Absent until something has been published**, which is what a page-tree build reads to decide
-   * that a component has nothing to serve yet.
-   *
-   * Duplicated, knowingly: `PublishedComponent.publicationId` holds the same value for both kinds of
-   * component, and is what the registrar reads to show a status. This copy exists because the page
-   * build already reads the definition and the pin is dynamic-only today. **When the page tree
-   * learns to pin a prebuilt component's publication, the pin should move to the pointer record and
-   * this field should go** — one fact in two places is one place too many.
-   */
-  lastPublicationId?: ComponentPublicationReference
+  publishedSignature: string
 }
 
 interface Component extends ComponentCreation {

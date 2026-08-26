@@ -15,14 +15,14 @@ import type { PageEntry } from '../entry/types'
 
 const entries: Record<string, { type: string } | null> = {
   'entry-dynamic': { type: 'dynamic' },
-  'entry-prebuilt': { type: 'prebuilt' }
+  'entry-prebuilt': { type: 'prebuilt' },
+  'entry-unpublished': { type: 'dynamic' }
 }
 /**
- * Both components have been published.
+ * What each component has last published, as the pointer record holds it.
  *
- * The prebuilt one deliberately has been too. Without it, "prebuilt components are not pinned" would
- * pass for the wrong reason — an unpublished component yields no pin either — and the test would not
- * notice a builder that pinned everything it could.
+ * A third component is deliberately absent from this map: a component that has never been published
+ * has no publication to pin, and that is the only case a node goes out unpinned now.
  */
 const published: Record<string, string | undefined> = {
   'entry-dynamic': 'publication-new',
@@ -33,8 +33,11 @@ vi.mock('$lib/script/components/componentHeader/io.server', () => ({
   getComponentHeader: async (reference: string) => entries[reference] ?? null
 }))
 
-vi.mock('$lib/script/components/editor/io', () => ({
-  getComponentDefiniton: async (reference: string) => ({ lastPublicationId: published[reference] })
+vi.mock('$lib/script/components/publication/io.server', () => ({
+  getPublishedComponent: async (reference: string) => {
+    const publicationId = published[reference]
+    return publicationId === undefined ? null : { uid: reference, publicationId }
+  }
 }))
 
 vi.mock('$lib/script/storage/storage.server', () => ({
@@ -71,15 +74,15 @@ beforeEach(() => {
   published['entry-prebuilt'] = 'publication-prebuilt'
 })
 
-describe('pinning a revision', () => {
-  it('pins a dynamic node to the newest revision at build time', async () => {
+describe('pinning a publication', () => {
+  it('pins a dynamic node to the newest publication at build time', async () => {
     const tree = await pageEntryToReadableTree(pageWith('entry-dynamic'))
 
     expect(tree.publicationId).toBe('publication-new')
   })
 
-  it('names which component the revision belongs to', async () => {
-    // An executable lives at `{uid}/{publicationId}`, so a pin without the uid is one nobody can resolve.
+  it('names which component the publication belongs to', async () => {
+    // A publication lives at `{uid}/{publicationId}`, so a pin without the uid is one nobody can resolve.
     const tree = await pageEntryToReadableTree(pageWith('entry-dynamic'))
 
     expect(tree.uid).toBe('entry-dynamic')
@@ -87,27 +90,47 @@ describe('pinning a revision', () => {
 
   it('carries uid and publicationId together or not at all', async () => {
     const dynamic = await pageEntryToReadableTree(pageWith('entry-dynamic'))
-    const prebuilt = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
+    const unpublished = await pageEntryToReadableTree(pageWith('entry-unpublished'))
 
     expect([dynamic.uid !== undefined, dynamic.publicationId !== undefined]).toEqual([true, true])
-    expect([prebuilt.uid !== undefined, prebuilt.publicationId !== undefined]).toEqual([false, false])
+    expect([unpublished.uid !== undefined, unpublished.publicationId !== undefined]).toEqual([false, false])
   })
 
-  it('keeps the pin the page was built with, even after a newer commit exists', async () => {
+  it('keeps the pin the page was built with, even after a newer publication exists', async () => {
     const before = await pageEntryToReadableTree(pageWith('entry-dynamic'))
     published['entry-dynamic'] = 'publication-newer'
 
-    // A tree already built is a published document; nothing rereads the history for it. Rebuilding
+    // A tree already built is a published document; nothing rereads the pointer for it. Rebuilding
     // is what moves the pin, and rebuilding is what republishing means.
     expect(before.publicationId).toBe('publication-new')
     expect((await pageEntryToReadableTree(pageWith('entry-dynamic'))).publicationId).toBe('publication-newer')
   })
 
-  it('gives a prebuilt node no revision at all, even where one could be read', async () => {
-    // Its code is in the consuming application. There is nothing for the CMS to pin, and the
-    // fixture gives it a commit history precisely so that reading one would show up here.
+  it('pins a prebuilt node too', async () => {
+    // The half of R1 this step exists for. A prebuilt component's *code* is in the consuming
+    // application, but its description is published and signed like any other — so it has a
+    // publication, and a builder that still skipped it would leave the consumer calling the
+    // component from an unsigned local assumption about its parameter order.
     const tree = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
 
+    expect(tree.publicationId).toBe('publication-prebuilt')
+    expect(tree.uid).toBe('entry-prebuilt')
+  })
+
+  it('states the kind rather than leaving it to be inferred', async () => {
+    // Both kinds are pinned now, so absence distinguishes nothing and the node has to say which it
+    // is. It is what tells a consumer whether to expect code at the publication.
+    const dynamic = await pageEntryToReadableTree(pageWith('entry-dynamic'))
+    const prebuilt = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
+
+    expect(dynamic.type).toBe('dynamic')
+    expect(prebuilt.type).toBe('prebuilt')
+  })
+
+  it('leaves a component that was never published unpinned, but still typed', async () => {
+    const tree = await pageEntryToReadableTree(pageWith('entry-unpublished'))
+
+    expect(tree.type).toBe('dynamic')
     expect('publicationId' in tree).toBe(false)
     expect('uid' in tree).toBe(false)
   })
@@ -115,9 +138,9 @@ describe('pinning a revision', () => {
   it('omits the key rather than writing undefined', async () => {
     // The tree is signed. Canonicalization drops an undefined member silently, so an explicit
     // `publicationId: undefined` would sign as though the key had never been written.
-    const tree = await pageEntryToReadableTree(pageWith('entry-prebuilt'))
+    const tree = await pageEntryToReadableTree(pageWith('entry-unpublished'))
 
-    expect(Object.keys(tree)).toEqual(['component', 'data'])
+    expect(Object.keys(tree)).toEqual(['component', 'type', 'data'])
   })
 
   it('carries no source code', async () => {

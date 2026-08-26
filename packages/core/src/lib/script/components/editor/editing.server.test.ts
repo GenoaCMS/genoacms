@@ -157,21 +157,20 @@ describe('redoing', () => {
 describe('what the history does not touch', () => {
   it('leaves a publication where it is', async () => {
     // Publishing records no step, so undo has nothing that would revert it. Were a step ever to
-    // cover these members, an author could walk a component back to claiming a publication it no
-    // longer has — and a page pinning it would resolve to an artifact that was never written.
+    // cover these members, an author could walk a component back to a body the last publication did
+    // not compile, and `no change, no publication` would then refuse a release that had changed.
     await saveComponentBody(UID, 'second')
 
     stored.set(`definition:${UID}`, {
       ...definitionOf(),
       publishedBody: 'second',
-      publishedSignature: 'a signature',
-      lastPublicationId: 'publication-1'
+      publishedSignature: 'a signature'
     })
 
     await undoComponentBody(UID)
 
     expect(bodyOf()).toBe('first')
     expect(definitionOf().publishedBody).toBe('second')
-    expect(definitionOf().lastPublicationId).toBe('publication-1')
+    expect(definitionOf().publishedSignature).toBe('a signature')
   })
 })

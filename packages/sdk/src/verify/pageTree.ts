@@ -1,4 +1,8 @@
 import type { JsonValue } from './canonical.js'
+// The same vocabulary the published header uses, imported rather than restated. A node's `type` is a
+// claim about the component's kind and the header is the signed answer to it — two spellings of one
+// union here would let the two drift and make the comparison between them unwritable.
+import type { ComponentType } from './header.js'
 
 /**
  * The published page, as a consumer receives it.
@@ -29,17 +33,29 @@ interface ReadablePageNode {
   /** The component's name. For a prebuilt node, what the consumer resolves against its own map. */
   component: string
   /**
-   * Which component this is, for one authored in the CMS.
+   * Which kind of component this is.
    *
-   * Present exactly when `publicationId` is. Together they name the artifact: executables are published
-   * at `{uid}/{publicationId}`, so either alone is a pin that cannot be resolved.
+   * **Stated by the node, not inferred from what is present.** A prebuilt node used to be the one
+   * with no pin; both kinds are pinned now, because a prebuilt component publishes a signed
+   * description even though its code stays in the consuming application. Absence therefore
+   * distinguishes nothing, and this says which of the two to expect at the publication.
+   *
+   * A consumer must still check it against the **signed header**, which says the same thing under a
+   * signature. The two are separate documents and only one of them is this one.
+   */
+  type: ComponentType
+  /**
+   * Which component this is.
+   *
+   * Present exactly when `publicationId` is. Together they name the publication: documents are
+   * published at `{uid}/{publicationId}`, so either alone is a pin that cannot be resolved.
    */
   uid?: string
   /**
-   * The revision this node was pinned to, for a component authored in the CMS.
+   * The publication this node was pinned to.
    *
-   * Absent for a prebuilt component, whose code is in the consuming application and which the CMS
-   * therefore has no revision of. Absent, not empty — the two are different documents once signed.
+   * Absent for a component that was never published, which is a node nothing can be fetched for.
+   * Absent, not empty — the two are different documents once signed.
    */
   publicationId?: string
   data: Record<string, ReadableAttributeValue>
@@ -87,17 +103,21 @@ const readAttributeValue = (value: JsonValue): Read<ReadableAttributeValue> => {
  * Reads one node, refusing anything a renderer would have to guess about.
  *
  * `publicationId` is accepted only as a string or as absent. Present-but-not-a-string would otherwise
- * reach the executable lookup as something that is neither a revision nor a prebuilt node.
+ * reach the publication lookup as something that is neither a pin nor an unpublished node.
  */
 const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
   if (!isRecord(candidate)) return failed('node-not-an-object')
 
-  const { component, uid, publicationId, data } = candidate
+  const { component, type, uid, publicationId, data } = candidate
   if (typeof component !== 'string' || component.length === 0) return failed('node-missing-component')
-  if (publicationId !== undefined && typeof publicationId !== 'string') return failed('node-commit-id-not-a-string')
+  // Required, and not defaulted. Defaulting to `prebuilt` would make a node with the member stripped
+  // out resolve against the consumer's local map instead of the code the CMS published for it, and
+  // defaulting to `dynamic` would send a consumer looking for a bundle that was never meant to
+  // exist. Neither guess is one a renderer should make on a signed document's behalf.
+  if (type !== 'prebuilt' && type !== 'dynamic') return failed('node-unknown-type')
+  if (publicationId !== undefined && typeof publicationId !== 'string') return failed('node-publication-id-not-a-string')
   if (uid !== undefined && typeof uid !== 'string') return failed('node-uid-not-a-string')
-  // Either alone is a pin nobody can resolve: an artifact is at `{uid}/{publicationId}`. Refused rather
-  // than treated as prebuilt, because a node that names a revision is asking for one to be run.
+  // Either alone is a pin nobody can resolve: a publication is at `{uid}/{publicationId}`.
   if ((uid === undefined) !== (publicationId === undefined)) return failed('node-half-pinned')
   if (!isRecord(data)) return failed('node-missing-data')
 
@@ -112,6 +132,7 @@ const readNode = (candidate: JsonValue): Read<ReadablePageNode> => {
     ok: true,
     value: {
       component,
+      type,
       // Omitted rather than set to undefined, so what is read back matches what was signed.
       ...(uid === undefined ? {} : { uid }),
       ...(publicationId === undefined ? {} : { publicationId }),
@@ -135,12 +156,34 @@ const walkTree = function * (root: ReadablePageNode): Generator<ReadablePageNode
   }
 }
 
-/** What a tree pins, in the order met — enough to fetch each. Prebuilt nodes contribute nothing. */
-const pinnedRevisions = (root: ReadablePageNode): Array<{ uid: string, publicationId: string }> =>
+/**
+ * What a node asks a verifier to fetch, and what it claims to be.
+ *
+ * The `type` travels with the pin so that the verifier can compare the page's claim against the
+ * publication's own signed one. Both are signed, by different documents, at different times — and it
+ * is the disagreement between them that says something has been moved.
+ */
+interface PublicationPin {
+  uid: string
+  publicationId: string
+  type: ComponentType
+}
+
+/**
+ * What a tree pins, in the order met — enough to fetch each.
+ *
+ * **Both kinds are included now.** A prebuilt node used to contribute nothing, because there was
+ * nothing published for it; there is now a signed header saying what it accepts, and a consumer that
+ * skipped it would go on calling such a component from an unsigned local assumption about its
+ * parameter order.
+ *
+ * A node that was never published contributes nothing, because there is no publication to name.
+ */
+const pinnedPublications = (root: ReadablePageNode): PublicationPin[] =>
   [...walkTree(root)]
     .filter((node): node is ReadablePageNode & { uid: string, publicationId: string } =>
       node.uid !== undefined && node.publicationId !== undefined)
-    .map(node => ({ uid: node.uid, publicationId: node.publicationId }))
+    .map(node => ({ uid: node.uid, publicationId: node.publicationId, type: node.type }))
 
-export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedRevisions }
-export type { ReadablePageNode, ReadableAttributeValue, Read }
+export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedPublications }
+export type { ReadablePageNode, ReadableAttributeValue, PublicationPin, Read }

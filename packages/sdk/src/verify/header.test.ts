@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readHeader, sharesPublication, type PublishedComponentHeader } from './header.js'
+import { readHeader, matchesPin, sharesPublication, type PublishedComponentHeader } from './header.js'
 import type { JsonValue } from './canonical.js'
 
 /**
@@ -53,6 +53,48 @@ describe('reading a header', () => {
 
   it('accepts a component with no attributes, which is an ordinary component', () => {
     expect(readHeader(header({ attributes: {}, attributeOrder: [] }))).toMatchObject({ ok: true })
+  })
+})
+
+describe('checking a header against what the page pinned', () => {
+  /*
+   * The kind is the part added in step 10, and it is the one a pin check could not make before: a
+   * prebuilt node used to carry no pin at all, so there was nothing to compare it with.
+   *
+   * The page tree and the header both state it, under separate signatures made at different times.
+   * Verifying either document alone says nothing about the other, which is why the comparison is
+   * here and not inside `readHeader`.
+   */
+  const pin = { uid: 'component-1', publicationId: 'publication-2' }
+
+  it('accepts a header the page pinned by identity alone', () => {
+    expect(matchesPin(read(header()), pin)).toMatchObject({ ok: true })
+  })
+
+  it('accepts a header whose kind is the one the page claimed', () => {
+    expect(matchesPin(read(header()), { ...pin, type: 'dynamic' })).toMatchObject({ ok: true })
+  })
+
+  it('refuses a header whose kind is not the one the page claimed', () => {
+    // The page would render its own local component under a name the CMS published code for.
+    const result = matchesPin(read(header()), { ...pin, type: 'prebuilt' })
+
+    expect(result.ok).toBe(false)
+    expect(!result.ok && result.reason).toContain('header-wrong-type')
+  })
+
+  it('refuses a prebuilt header where the page pinned a dynamic component', () => {
+    // The reverse: a consumer goes looking for a bundle this publication never had.
+    const result = matchesPin(read(header({ type: 'prebuilt' })), { ...pin, type: 'dynamic' })
+
+    expect(result.ok).toBe(false)
+    expect(!result.ok && result.reason).toContain('header-wrong-type')
+  })
+
+  it('does not invent a kind for a caller resolving a publication without a page', () => {
+    // A tool inspecting storage has no claim to compare against. Demanding one would make it supply
+    // the answer it is checking, which is not a check.
+    expect(matchesPin(read(header({ type: 'prebuilt' })), pin)).toMatchObject({ ok: true })
   })
 })
 

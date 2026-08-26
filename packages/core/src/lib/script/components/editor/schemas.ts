@@ -41,10 +41,7 @@ const componentDefinitionSchema: Schema = {
     language: { type: 'string' },
     body: { type: 'string' },
     publishedBody: { type: 'string' },
-    publishedSignature: { type: 'string' },
-    // Absent until the component has been published, which is how a page build tells that it has
-    // nothing to serve yet.
-    lastPublicationId: { type: 'string', format: 'uuid' }
+    publishedSignature: { type: 'string' }
   },
   required: ['uid', 'language', 'body', 'publishedBody', 'publishedSignature']
 }

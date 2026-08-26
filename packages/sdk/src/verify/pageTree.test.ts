@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readPageTree, walkTree, pinnedRevisions } from './pageTree.js'
+import { readPageTree, walkTree, pinnedPublications } from './pageTree.js'
 import type { ReadablePageNode } from './pageTree.js'
 
 /**
@@ -12,8 +12,9 @@ import type { ReadablePageNode } from './pageTree.js'
 
 const node = (over: Partial<ReadablePageNode> = {}): unknown => ({
   component: 'Hero',
+  type: 'dynamic',
   uid: 'component-1',
-  publicationId: 'commit-1',
+  publicationId: 'publication-1',
   data: {},
   ...over
 })
@@ -21,28 +22,46 @@ const node = (over: Partial<ReadablePageNode> = {}): unknown => ({
 const read = (candidate: unknown) => readPageTree(candidate as never)
 
 describe('reading a tree', () => {
-  it('reads a node and the revision it pins', () => {
+  it('reads a node and the publication it pins', () => {
     const result = read(node())
 
     expect(result).toEqual({
       ok: true,
-      value: { component: 'Hero', uid: 'component-1', publicationId: 'commit-1', data: {} }
+      value: {
+        component: 'Hero',
+        type: 'dynamic',
+        uid: 'component-1',
+        publicationId: 'publication-1',
+        data: {}
+      }
     })
   })
 
-  it('reads a prebuilt node, which pins nothing', () => {
-    const result = read({ component: 'Card', data: {} })
+  it('reads a prebuilt node, which pins a publication of its own', () => {
+    // The half of R1 this step exists for. A prebuilt component's *code* stays in the consuming
+    // application, but its description is published and signed like any other — so it carries a pin,
+    // and a reader that dropped it would leave the consumer calling the component from an unsigned
+    // local assumption about its parameter order.
+    const result = read(node({ type: 'prebuilt', component: 'Card' }))
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: { type: 'prebuilt', uid: 'component-1', publicationId: 'publication-1' }
+    })
+  })
+
+  it('reads a node for a component that was never published', () => {
+    const result = read({ component: 'Card', type: 'prebuilt', data: {} })
 
     expect(result.ok && 'publicationId' in result.value).toBe(false)
     expect(result.ok && 'uid' in result.value).toBe(false)
   })
 
   it('refuses a node pinned by halves', () => {
-    // An artifact is at `{uid}/{publicationId}`; either alone is a pin nobody can resolve. Refused rather
-    // than read as prebuilt, because a node naming a revision is asking for one to be run.
-    expect(read({ component: 'Hero', publicationId: 'commit-1', data: {} }))
+    // A publication is at `{uid}/{publicationId}`; either alone is a pin nobody can resolve.
+    expect(read({ component: 'Hero', type: 'dynamic', publicationId: 'publication-1', data: {} }))
       .toEqual({ ok: false, reason: 'node-half-pinned' })
-    expect(read({ component: 'Hero', uid: 'component-1', data: {} }))
+    expect(read({ component: 'Hero', type: 'dynamic', uid: 'component-1', data: {} }))
       .toEqual({ ok: false, reason: 'node-half-pinned' })
   })
 
@@ -75,16 +94,19 @@ describe('refusing a tree a renderer would have to guess about', () => {
     ['a payload that is not an object', 'a string', 'node-not-an-object'],
     ['a node with no component', { data: {} }, 'node-missing-component'],
     ['a node whose component is empty', { component: '', data: {} }, 'node-missing-component'],
-    ['a node with no data', { component: 'Hero' }, 'node-missing-data']
+    ['a node with no data', { component: 'Hero', type: 'dynamic' }, 'node-missing-data'],
+    // Absence no longer means prebuilt, so it cannot be defaulted either way — see `readNode`.
+    ['a node that does not say which kind it is', { component: 'Hero', data: {} }, 'node-unknown-type'],
+    ['a node claiming a kind nobody publishes', { component: 'Hero', type: 'native', data: {} }, 'node-unknown-type']
   ])('refuses %s', (_why, candidate, reason) => {
     expect(read(candidate)).toEqual({ ok: false, reason })
   })
 
   it('refuses a publicationId that is present but not a string', () => {
-    // It would otherwise reach the executable lookup as something that is neither a revision nor a
-    // prebuilt node.
+    // It would otherwise reach the publication lookup as something that is neither a pin nor an
+    // absent one.
     expect(read(node({ publicationId: 7 as never })))
-      .toEqual({ ok: false, reason: 'node-commit-id-not-a-string' })
+      .toEqual({ ok: false, reason: 'node-publication-id-not-a-string' })
   })
 
   it('refuses a malformed node nested inside a slot, naming where it was', () => {
@@ -106,29 +128,35 @@ describe('refusing a tree a renderer would have to guess about', () => {
 describe('walking a tree', () => {
   const tree = {
     component: 'Page',
+    type: 'dynamic',
     uid: 'uid-page',
-    publicationId: 'commit-page',
+    publicationId: 'publication-page',
     data: {
       body: [
-        { component: 'Hero', uid: 'uid-hero', publicationId: 'commit-hero', data: {} },
-        { component: 'Card', data: { links: ['https://example.com'] } }
+        { component: 'Hero', type: 'dynamic', uid: 'uid-hero', publicationId: 'publication-hero', data: {} },
+        { component: 'Card', type: 'prebuilt', uid: 'uid-card', publicationId: 'publication-card', data: {} },
+        { component: 'Unpublished', type: 'prebuilt', data: { links: ['https://example.com'] } }
       ]
     }
   } as ReadablePageNode
 
   it('yields every node, parents before children', () => {
-    expect([...walkTree(tree)].map(n => n.component)).toEqual(['Page', 'Hero', 'Card'])
+    expect([...walkTree(tree)].map(n => n.component))
+      .toEqual(['Page', 'Hero', 'Card', 'Unpublished'])
   })
 
   it('does not mistake a list of URLs for nodes', () => {
     expect([...walkTree(tree)].every(n => typeof n.component === 'string')).toBe(true)
   })
 
-  it('lists the revisions the page pinned, and only those', () => {
-    // The prebuilt node contributes nothing: there is no revision of it for the CMS to pin.
-    expect(pinnedRevisions(tree)).toEqual([
-      { uid: 'uid-page', publicationId: 'commit-page' },
-      { uid: 'uid-hero', publicationId: 'commit-hero' }
+  it('lists the publications the page pinned, of both kinds', () => {
+    // The prebuilt node is listed. It used to contribute nothing, and a consumer that still skipped
+    // it would never fetch the signed description it is now supposed to call the component by.
+    // The unpublished node contributes nothing, because there is no publication to name.
+    expect(pinnedPublications(tree)).toEqual([
+      { uid: 'uid-page', publicationId: 'publication-page', type: 'dynamic' },
+      { uid: 'uid-hero', publicationId: 'publication-hero', type: 'dynamic' },
+      { uid: 'uid-card', publicationId: 'publication-card', type: 'prebuilt' }
     ])
   })
 })
