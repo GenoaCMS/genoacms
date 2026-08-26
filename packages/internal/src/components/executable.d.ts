@@ -1,31 +1,16 @@
 /**
- * The artifact a consumer executes.
+ * Where a compiled component runs.
  *
- * A component's source is authored in the CMS and never leaves it. What leaves is this: a compiled
- * bundle for one target platform, produced once per publication, written to a path that is never
- * rewritten, and signed.
+ * **This file used to describe the artifact as well**, as a `ComponentExecutable` interface: the
+ * whole payload a consumer verified and executed, with its own identity, publisher and timestamps.
+ * That artifact no longer exists as a document of its own. A component is released as **one** signed
+ * publication carrying both what it accepts and the bundles it compiled to, so the shape belongs to
+ * the CMS's publication payload and to whatever a consumer restates from the published format —
+ * neither of which is a contract between packages.
  *
- * ## It is a payload, not a self-signed object
- *
- * There is no `signature` or `keyId` here. An executable travels inside the same signed envelope
- * every other published document uses, and that envelope's digest covers the algorithm, the key
- * identifier and the document type **together with** this payload. Binding them closes three
- * substitutions otherwise available to anyone who can write to the bucket: weakening the algorithm
- * to a lesser registered one, rewriting the key identifier to a key whose signatures they can
- * produce, and lifting a valid signature from one document onto another.
- *
- * An artifact that carried its own signature would need those protections written a second time, or
- * would go without them — and a consumer would have two shapes to verify instead of one.
- *
- * ## What is inside, and why
- *
- * `publisherId` is load-bearing rather than informational. Containment of a determined author is not
- * claimed, so attribution is what makes the audit trail real: without it a signature proves *this
- * instance produced this artifact*, not *this author shipped it*.
- *
- * The two timestamps are genuinely different facts. `publishedAt` is when a person committed the
- * revision; `compiledAt` is when the server built and signed it. They diverge whenever an artifact
- * is rebuilt, and collapsing them would lose the distinction exactly when it matters.
+ * What is left here is the one part that genuinely is: the platform a bundle is built for. A
+ * language adapter names its own target when it compiles, and the CMS records that name inside the
+ * signed payload, so the two must mean the same thing by it.
  */
 
 /**
@@ -36,36 +21,15 @@
  * `android-dex` could not name its own target without the CMS being edited to permit it.
  *
  * **This value is inside the signed payload**, so it is part of what a consumer verifies. Openness
- * therefore does not mean laxity: a consumer refuses an artifact built for a platform it cannot run,
- * and refuses it *after* verifying the signature — an unrecognized platform is a correctly signed
- * artifact meant for somebody else, not a corrupted one.
+ * therefore does not mean laxity: a consumer runs the bundle built for a platform it supports, and
+ * decides *after* verifying the signature — a publication compiled only for other targets is a
+ * correctly signed release meant for somebody else, not a corrupted one.
+ *
+ * It is carried per bundle rather than per publication, which is what lets one release serve several
+ * runtimes — and what keeps a page pinning a publication rather than a platform.
  */
 type ExecutablePlatform = string
 
-interface ComponentExecutable {
-  /** The component this belongs to. */
-  uid: string
-  /**
-   * The publication it was built from. Opaque — an identifier, not a digest of anything.
-   *
-   * A component has no revisions of its own any more: an author edits a draft, and **publishing is
-   * the only act that produces anything**. So this names the publication rather than a commit, and
-   * it is what a page pins.
-   */
-  publicationId: string
-  /** Who published it. */
-  publisherId: string
-  /** When they published it. */
-  publishedAt: number
-  /** The target this bundle was built for. */
-  platform: ExecutablePlatform
-  /** The bundle itself, ready to execute. */
-  executableCode: string
-  /** When the server compiled and signed it. */
-  compiledAt: number
-}
-
 export type {
-  ExecutablePlatform,
-  ComponentExecutable
+  ExecutablePlatform
 }

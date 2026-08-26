@@ -1,5 +1,4 @@
-import type { SignedComponentHeader } from './header'
-import type { SignedComponentExecutable } from '../executable/executable'
+import type { SignedComponentPublication } from './payload'
 import type { PublishedComponent } from './types'
 
 import { join } from 'path'
@@ -20,14 +19,14 @@ import { publishedComponentSchema } from './schemas'
  * Where publications live, and the rule that each is written exactly once.
  *
  * ```
- * .genoacms/components/public/{uid}/{publicationId}/header.json
- * .genoacms/components/public/{uid}/{publicationId}/executable.json   (dynamic only)
- * .genoacms/components/publications/{uid}.json                        (the mutable pointer)
+ * .genoacms/components/public/{uid}/{publicationId}.json    (the signed release)
+ * .genoacms/components/publications/{uid}.json              (the mutable pointer)
  * ```
  *
- * One directory per publication rather than one object per document, so that the pair belongs
- * together in the layout as well as in the payloads. A consumer resolving a pinned publication reads
- * one prefix and finds everything that publication is.
+ * **One object per publication.** It used to be a directory holding a header and, for a dynamic
+ * component, an executable — two signed documents that a consumer had to fetch separately and then
+ * check against each other, because neither said the other belonged to it. Merging them makes that
+ * check unnecessary rather than merely reliable, and turns one round trip into what used to be two.
  *
  * The executable used to live at `dynamic/executables/{uid}/{publicationId}.json`, under the source
  * it was built from. That said a publication was a fact about *code*; it is a fact about a component,
@@ -40,7 +39,7 @@ import { publishedComponentSchema } from './schemas'
  * document would be served from caches as the old one indefinitely, and both would verify, since
  * both are properly signed. A stale document that verifies is worse than one that does not.
  *
- * So both writes are conditional on absence. A publication identifier is minted once, so a collision
+ * So the write is conditional on absence. A publication identifier is minted once, so a collision
  * is not a retry: it means either that this publication already exists or that two instances built
  * it. Both are conditions to stop on, not to overwrite through.
  *
@@ -53,14 +52,14 @@ import { publishedComponentSchema } from './schemas'
 const publicPath = join('.genoacms', 'components', 'public')
 const pointerPath = join('.genoacms', 'components', 'publications')
 
-const publicationDirectory = (uid: string, publicationId: string): string =>
-  join(publicPath, uid, publicationId)
-
-const publishedHeaderPath = (uid: string, publicationId: string): string =>
-  join(publicationDirectory(uid, publicationId), 'header.json')
-
-const publishedExecutablePath = (uid: string, publicationId: string): string =>
-  join(publicationDirectory(uid, publicationId), 'executable.json')
+/**
+ * Where one release lives.
+ *
+ * Still under a `{uid}/` prefix even though a publication is one object now, so that removing a
+ * component stays one directory deletion rather than a listing and a delete per release.
+ */
+const publishedPublicationPath = (uid: string, publicationId: string): string =>
+  join(publicPath, uid, `${publicationId}.json`)
 
 const publishedComponentPath = (uid: string): string => join(pointerPath, `${uid}.json`)
 
@@ -89,14 +88,16 @@ const writeOnce = async (path: string, document: unknown): Promise<void> => {
   }
 }
 
-const uploadPublishedHeader = async (envelope: SignedComponentHeader): Promise<void> => {
+/**
+ * Writes the release, once.
+ *
+ * The path is taken from the **payload** rather than from the caller, so the object cannot land
+ * somewhere its own contents disagree with — which is the thing a consumer's pin check exists to
+ * catch, and there is no reason to let the CMS create it.
+ */
+const uploadPublication = async (envelope: SignedComponentPublication): Promise<void> => {
   const { uid, publicationId } = envelope.payload
-  await writeOnce(publishedHeaderPath(uid, publicationId), envelope)
-}
-
-const uploadPublishedExecutable = async (envelope: SignedComponentExecutable): Promise<void> => {
-  const { uid, publicationId } = envelope.payload
-  await writeOnce(publishedExecutablePath(uid, publicationId), envelope)
+  await writeOnce(publishedPublicationPath(uid, publicationId), envelope)
 }
 
 /**
@@ -188,13 +189,10 @@ const listPublishedComponentUids = async (): Promise<Set<string>> => {
 }
 
 export {
-  publicationDirectory,
   listPublishedComponentUids,
-  publishedHeaderPath,
-  publishedExecutablePath,
+  publishedPublicationPath,
   publishedComponentPath,
-  uploadPublishedHeader,
-  uploadPublishedExecutable,
+  uploadPublication,
   uploadPublishedComponent,
   getPublishedComponent,
   deleteComponentPublications,

@@ -1,8 +1,8 @@
 import type { JsonValue } from './canonical.js'
-// The same vocabulary the published header uses, imported rather than restated. A node's `type` is a
-// claim about the component's kind and the header is the signed answer to it — two spellings of one
-// union here would let the two drift and make the comparison between them unwritable.
-import type { ComponentType } from './header.js'
+// The same vocabulary the publication uses, imported rather than restated. A node's `type` is a
+// claim about the component's kind and the publication is the signed answer to it — two spellings of
+// one union here would let the two drift and make the comparison between them unwritable.
+import type { ComponentType } from './publication.js'
 
 /**
  * The published page, as a consumer receives it.
@@ -40,8 +40,8 @@ interface ReadablePageNode {
    * description even though its code stays in the consuming application. Absence therefore
    * distinguishes nothing, and this says which of the two to expect at the publication.
    *
-   * A consumer must still check it against the **signed header**, which says the same thing under a
-   * signature. The two are separate documents and only one of them is this one.
+   * A consumer must still check it against the **signed publication**, which says the same thing
+   * under a signature. The two are separate documents and only one of them is this one.
    */
   type: ComponentType
   /**

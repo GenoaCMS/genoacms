@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
 import { deriveKeyId } from '$lib/script/signing/keyId'
 import { verify } from '$lib/script/signing/envelope'
-import { EXECUTABLE_DOCUMENT } from '../executable/executable'
-import { HEADER_DOCUMENT } from './header'
+import { PUBLICATION_DOCUMENT } from './payload'
 import { ComponentCodeError, ComponentDiffError } from '../editor/errors'
 
 /**
@@ -92,7 +91,7 @@ vi.mock('../componentHeader/io.server', () => ({
   getComponentHeader: async () => stored
 }))
 
-interface HeaderEnvelope {
+interface PublicationEnvelope {
   payload: {
     uid: string
     publicationId: string
@@ -101,28 +100,25 @@ interface HeaderEnvelope {
     type: string
     name: string
     attributeOrder: string[]
+    executables?: Array<{ platform: string, executableCode: string, compiledAt: number }>
   }
 }
-interface ExecutableEnvelope {
-  payload: { uid: string, publicationId: string, publisherId: string, executableCode: string }
-}
 
-const uploadPublishedHeader = vi.fn(async (_e: HeaderEnvelope) => { writes.push('header') })
-const uploadPublishedExecutable = vi.fn(async (_e: ExecutableEnvelope) => { writes.push('executable') })
+const uploadPublication = vi.fn(async (_e: PublicationEnvelope) => { writes.push('publication') })
 
 vi.mock('./io.server', () => ({
-  uploadPublishedHeader: async (e: HeaderEnvelope) => { await uploadPublishedHeader(e) },
-  uploadPublishedExecutable: async (e: ExecutableEnvelope) => { await uploadPublishedExecutable(e) },
+  uploadPublication: async (e: PublicationEnvelope) => { await uploadPublication(e) },
   uploadPublishedComponent: async () => { writes.push('pointer') },
   getPublishedComponent: async () => published,
+  listPublishedComponentUids: async () => new Set<string>(),
   deleteComponentPublications: async () => {}
 }))
 
-const signedHeader = (): HeaderEnvelope => uploadPublishedHeader.mock.calls[0][0]
-const signedExecutable = (): ExecutableEnvelope => uploadPublishedExecutable.mock.calls[0][0]
+const published_ = (): PublicationEnvelope => uploadPublication.mock.calls[0][0]
+const bundles = () => published_().payload.executables ?? []
 
 const { publishComponent } = await import('./index')
-const { describingDigest } = await import('./header')
+const { describingDigest } = await import('./payload')
 
 const order = { componentId: 'component-1', note: 'a note' }
 
@@ -133,15 +129,14 @@ const asPrebuilt = (): void => {
 
 beforeEach(() => {
   writes.length = 0
-  uploadPublishedHeader.mockClear()
-  uploadPublishedExecutable.mockClear()
+  uploadPublication.mockClear()
   draft = { ...definition }
   stored = { ...header }
   published = null
 })
 
 describe('publishing a prebuilt component', () => {
-  it('writes a signed header, a pointer, and nothing else', async () => {
+  it('writes one signed document, a pointer, and nothing else', async () => {
     // The whole point of the rework reaching the release path. A component whose code lives in the
     // consuming application still has a description consumers must agree with, and until now it had
     // no way to publish one.
@@ -149,10 +144,18 @@ describe('publishing a prebuilt component', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('header')
-    expect(writes).toContain('pointer')
-    expect(writes).not.toContain('executable')
-    expect(uploadPublishedExecutable).not.toHaveBeenCalled()
+    expect(writes).toEqual(['publication', 'pointer'])
+  })
+
+  it('carries no bundle at all, not an empty list of them', async () => {
+    // `{}` and `{"executables":[]}` canonicalize differently, so the two would sign the same release
+    // two ways. The payload builder refuses the first; this is the release path proving it never
+    // has to.
+    asPrebuilt()
+
+    await publishComponent(order, 'user-1')
+
+    expect('executables' in published_().payload).toBe(false)
   })
 
   it('does not advance a definition it does not have', async () => {
@@ -163,13 +166,13 @@ describe('publishing a prebuilt component', () => {
     expect(writes).not.toContain('definition')
   })
 
-  it('signs a header a consumer can verify', async () => {
+  it('signs a publication a consumer can verify', async () => {
     asPrebuilt()
 
     await publishComponent(order, 'user-1')
-    const envelope = signedHeader()
+    const envelope = published_()
 
-    expect(verify(envelope, HEADER_DOCUMENT, keypair.publicKey).valid).toBe(true)
+    expect(verify(envelope, PUBLICATION_DOCUMENT, keypair.publicKey).valid).toBe(true)
     expect(envelope.payload.type).toBe('prebuilt')
     expect(envelope.payload.publisherId).toBe('user-1')
   })
@@ -181,45 +184,38 @@ describe('publishing a prebuilt component', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(signedHeader().payload.attributeOrder).toEqual(['attr-1'])
+    expect(published_().payload.attributeOrder).toEqual(['attr-1'])
   })
 })
 
 describe('publishing a dynamic component', () => {
-  it('writes both documents, the pointer and the definition', async () => {
+  it('writes one document, the pointer and the definition', async () => {
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('executable')
-    expect(writes).toContain('header')
+    expect(writes).toContain('publication')
     expect(writes).toContain('pointer')
     expect(writes).toContain('definition')
   })
 
-  it('writes both signed documents before anything that points at them', async () => {
-    // A pointer advanced past documents that were never written is a component reporting a
-    // publication nothing can serve. Documents nothing points at are merely unreferenced.
+  it('writes the signed release before anything that points at it', async () => {
+    // A pointer advanced past a document that was never written is a component reporting a
+    // publication nothing can serve. A publication nothing points at is merely unreferenced.
     await publishComponent(order, 'user-1')
 
-    expect(writes.slice(0, 2)).toEqual(['executable', 'header'])
+    expect(writes[0]).toBe('publication')
   })
 
-  it('binds the header and the executable to one publication', async () => {
-    // Served separately and cached separately, so a consumer could otherwise be handed two properly
-    // signed documents from different publications whose shapes disagree. The shared identifier is
-    // what makes the pair checkable.
+  it('carries the description and the code in one signature', async () => {
+    // **What the merge is for.** The two used to be signed and served separately, so a consumer
+    // could hold a properly signed description from one publication and properly signed code from
+    // another, with the shapes disagreeing and neither document invalid. One document cannot be
+    // paired with itself wrongly.
     await publishComponent(order, 'user-1')
+    const envelope = published_()
 
-    expect(signedHeader().payload.publicationId)
-      .toBe(signedExecutable().payload.publicationId)
-  })
-
-  it('signs an executable a consumer can verify', async () => {
-    await publishComponent(order, 'user-1')
-    const envelope = signedExecutable()
-
-    expect(verify(envelope, EXECUTABLE_DOCUMENT, keypair.publicKey).valid).toBe(true)
-    expect(envelope.payload.uid).toBe('component-1')
-    expect(envelope.payload.publisherId).toBe('user-1')
+    expect(verify(envelope, PUBLICATION_DOCUMENT, keypair.publicKey).valid).toBe(true)
+    expect(envelope.payload.attributeOrder).toEqual(['attr-1'])
+    expect(bundles()).toHaveLength(1)
   })
 
   it('publishes compiled code, not the source', async () => {
@@ -227,8 +223,17 @@ describe('publishing a dynamic component', () => {
 
     // The emitted entry function, under the fixed name the adapter gives it — not the component's
     // own name, which is a label and never appears in code.
-    expect(signedExecutable().payload.executableCode).toContain('function component')
-    expect(signedExecutable().payload.executableCode).not.toContain('Hero')
+    expect(bundles()[0].executableCode).toContain('function component')
+    expect(bundles()[0].executableCode).not.toContain('Hero')
+  })
+
+  it('names the target its code was built for', async () => {
+    // Inside the signed payload, so a consumer refuses code meant for a runtime it is not — and
+    // refuses it after verifying, because that is a correctly signed artifact meant for somebody
+    // else rather than a corrupted one.
+    await publishComponent(order, 'user-1')
+
+    expect(bundles()[0].platform).toBe('web-esmodule')
   })
 
   it('does not rewrite the header it was told to build from', async () => {
@@ -242,7 +247,7 @@ describe('publishing a dynamic component', () => {
   it('carries the publisher\'s note into the signed header', async () => {
     await publishComponent(order, 'user-1')
 
-    expect(signedHeader().payload.note).toBe('a note')
+    expect(published_().payload.note).toBe('a note')
   })
 })
 
@@ -276,7 +281,7 @@ describe('refusing a publication', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('executable')
+    expect(writes).toContain('publication')
   })
 
   it('writes nothing when neither the description nor the code has changed', async () => {
@@ -319,7 +324,7 @@ describe('refusing a publication', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('header')
+    expect(writes).toContain('publication')
   })
 
   it('publishes a prebuilt description change, which has no other rule to pass', async () => {
@@ -331,7 +336,7 @@ describe('refusing a publication', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('header')
+    expect(writes).toContain('publication')
   })
 
   it('publishes a code change even though the description is untouched', async () => {
@@ -345,6 +350,6 @@ describe('refusing a publication', () => {
 
     await publishComponent(order, 'user-1')
 
-    expect(writes).toContain('executable')
+    expect(writes).toContain('publication')
   })
 })

@@ -2,8 +2,7 @@ import { canonicalString, digest, type JsonValue } from '../src/lib/script/signi
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '../src/lib/script/signing/algorithms'
 import { deriveKeyId } from '../src/lib/script/signing/keyId'
 import { sign, verify, toBase64 } from '../src/lib/script/signing/envelope'
-import { HEADER_DOCUMENT } from '../src/lib/script/components/publication/header'
-import { EXECUTABLE_DOCUMENT } from '../src/lib/script/components/executable/executable'
+import { PUBLICATION_DOCUMENT } from '../src/lib/script/components/publication/payload'
 
 /**
  * Emits the conformance corpus for the verification specification.
@@ -98,25 +97,40 @@ const checked = envelopeVectors.map(vector => {
 })
 
 /**
- * The two documents one publication produces, and the tampering each is signed against.
+ * A publication, and the tampering it is signed against.
  *
  * The envelope vectors above use an authorization manifest, which exercises the envelope and nothing
- * about components. These exist because a **component** publication is a *pair*: a header saying what
- * the component accepts and — when it has code — an executable saying what it does. A second-language
- * implementer has two things to get right that the manifest cannot show them.
+ * about components. These exist because a **component publication** is the document a consumer has
+ * to get right in order to call anything: it says what the component accepts, in what order, and —
+ * when the component has code — what to run.
  *
- * The first is that the header is signed **at all**. A verifier checking only the executable would
- * accept a rewritten parameter list, call the bundle with values in the wrong parameters, and find
- * every signature valid.
+ * ## What changed, and what a second implementer should know about it
  *
- * The second is that the two document types must not be interchangeable. Both describe the same
- * component and share most of their identity fields, so an implementation that verified the envelope
- * without binding `type` would accept a header where an executable belongs.
+ * A publication used to be **two** documents, a header and an executable, signed separately and
+ * written side by side. Everything a consumer needed was there, and nothing in either document said
+ * the other belonged to it — so a correctly signed description from one release could be served
+ * beside correctly signed code from another, the shapes would disagree, the bundle would be called
+ * with the wrong parameter list, and no signature would be invalid.
+ *
+ * The corpus carried a `binding` section for exactly that hazard. **It is gone**, because the hazard
+ * is: one document cannot be paired with itself wrongly. What survives is the pair of shape rules
+ * the binding used to express across two documents, and they are vectors here — a prebuilt component
+ * carrying code, and a dynamic one carrying none. An implementation that accepts either will run
+ * something nobody published.
+ *
+ * The first property remains what it always was: the description is signed **at all**. A verifier
+ * checking only the code would accept a rewritten parameter list and find every signature valid.
  */
 const componentUid = '00000000-0000-4000-8000-000000000001'
 const publicationId = '00000000-0000-4000-8000-0000000000a2'
 
-const headerPayload: JsonValue = {
+const webBundle = {
+  platform: 'web-esmodule',
+  executableCode: 'export default function component (heading) { return heading }',
+  compiledAt: 1_700_000_001_000
+}
+
+const publicationPayload: JsonValue = {
   uid: componentUid,
   publicationId,
   publisherId: 'user-1',
@@ -125,22 +139,17 @@ const headerPayload: JsonValue = {
   type: 'dynamic',
   name: 'Hero',
   attributes: { 'attr-1': { uid: 'attr-1', type: 'string', schema: { title: 'heading' } } },
-  attributeOrder: ['attr-1']
-}
+  attributeOrder: ['attr-1'],
+  executables: [webBundle]
+} as unknown as JsonValue
 
-const executablePayload: JsonValue = {
-  uid: componentUid,
-  publicationId,
-  publisherId: 'user-1',
-  publishedAt: 1_700_000_000_000,
-  platform: 'web-esmodule',
-  executableCode: 'export default function component (heading) { return heading }',
-  compiledAt: 1_700_000_001_000
-}
+/** The prebuilt reference: the key **absent**, never an empty list. See the vector's `why`. */
+const { executables: _noCode, ...prebuiltRest } = publicationPayload as Record<string, unknown>
+const prebuiltPayload = { ...prebuiltRest, type: 'prebuilt' } as JsonValue
 
 const componentKey = { alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey }
-const signedHeader = sign(HEADER_DOCUMENT, headerPayload, componentKey)
-const signedExecutable = sign(EXECUTABLE_DOCUMENT, executablePayload, componentKey)
+const signedPublication = sign(PUBLICATION_DOCUMENT, publicationPayload, componentKey)
+const signedPrebuilt = sign(PUBLICATION_DOCUMENT, prebuiltPayload, componentKey)
 
 interface DocumentVector {
   name: string
@@ -153,38 +162,44 @@ interface DocumentVector {
 
 const documentVectors: DocumentVector[] = [
   {
-    name: 'component-header',
-    why: 'The reference header. A publication of a prebuilt component is this document alone.',
-    expectedType: HEADER_DOCUMENT,
-    envelope: signedHeader,
+    name: 'component-publication',
+    why: 'The reference publication: a description and the code it compiled to, under one signature.',
+    expectedType: PUBLICATION_DOCUMENT,
+    envelope: signedPublication,
     accept: true
   },
   {
-    name: 'component-header-attribute-order-edited',
-    why: 'Reordering the attributes reorders the arguments, so every value lands in the wrong parameter while the executable stays valid. This is what signing the header prevents.',
-    expectedType: HEADER_DOCUMENT,
-    envelope: { ...signedHeader, payload: { ...headerPayload as object, attributeOrder: ['attr-9', 'attr-1'] } },
-    accept: false
-  },
-  {
-    name: 'component-header-presented-as-executable',
-    why: 'The two documents of one publication share their identity fields; only the bound type tells them apart.',
-    expectedType: EXECUTABLE_DOCUMENT,
-    envelope: signedHeader,
-    accept: false
-  },
-  {
-    name: 'component-executable',
-    why: 'The reference executable. Published beside the header when a component has code.',
-    expectedType: EXECUTABLE_DOCUMENT,
-    envelope: signedExecutable,
+    name: 'component-publication-prebuilt',
+    why: 'A component whose code lives in the consuming application. Its description is the entire artifact, and the executables key is absent rather than empty — an empty list canonicalizes differently and would sign the same release two ways.',
+    expectedType: PUBLICATION_DOCUMENT,
+    envelope: signedPrebuilt,
     accept: true
   },
   {
-    name: 'component-executable-presented-as-header',
-    why: 'The mirror of the case above.',
-    expectedType: HEADER_DOCUMENT,
-    envelope: signedExecutable,
+    name: 'component-publication-attribute-order-edited',
+    why: 'Reordering the attributes reorders the arguments, so every value lands in the wrong parameter while the code stays valid. This is what signing the description prevents.',
+    expectedType: PUBLICATION_DOCUMENT,
+    envelope: { ...signedPublication, payload: { ...publicationPayload as object, attributeOrder: ['attr-9', 'attr-1'] } },
+    accept: false
+  },
+  {
+    name: 'component-publication-code-edited',
+    why: 'The bundle is inside the signed payload, so substituting it invalidates the same signature the description travels under. Two documents made this two separate checks.',
+    expectedType: PUBLICATION_DOCUMENT,
+    envelope: {
+      ...signedPublication,
+      payload: {
+        ...publicationPayload as object,
+        executables: [{ ...webBundle, executableCode: 'export default () => "owned"' }]
+      }
+    },
+    accept: false
+  },
+  {
+    name: 'component-publication-presented-as-page-tree',
+    why: 'The envelope binds the document type into the digest, so a publication cannot be accepted where another kind of document belongs.',
+    expectedType: 'genoacms.pageTree.v1',
+    envelope: signedPublication,
     accept: false
   }
 ]
@@ -198,56 +213,78 @@ const checkedDocuments = documentVectors.map(vector => {
 })
 
 /**
- * Whether a header and an executable belong to each other.
+ * The shape rules a signature does not settle, inside one publication.
  *
- * **Signature-free on purpose.** Each document here is properly signed in practice; what these
- * vectors describe is the check that comes *after* both verify. The pair is fetched and cached
- * separately, so nothing about either document prevents a header from one publication being used
- * with an executable from another — the shapes disagree, the bundle is called with the wrong
- * parameter list, and both signatures are perfectly valid.
+ * **Signature-free on purpose.** Each payload here is properly signed in practice; what these
+ * vectors describe is what a verifier must refuse *after* the signature checks out. They are the
+ * heirs of the old `binding` section: the same two hazards, no longer expressible as a mismatched
+ * pair, still expressible by whoever holds the signing key.
+ *
+ * A verifier that skips them runs code for a component whose author never published any, or ignores
+ * code a page was told to run. Both render something nobody released.
  */
-interface BindingVector {
+interface ShapeVector {
   name: string
   why: string
-  header: { uid: string, publicationId: string }
-  executable: { uid: string, publicationId: string }
+  /** The declared kind, and the bundles the payload carries. */
+  payload: { type: string, executables?: Array<{ platform: string }> }
   accept: boolean
 }
 
-const bindingVectors: BindingVector[] = [
+const shapeVectors: ShapeVector[] = [
   {
-    name: 'same-publication',
-    why: 'The ordinary case: one publication produced both.',
-    header: { uid: componentUid, publicationId },
-    executable: { uid: componentUid, publicationId },
+    name: 'dynamic-with-code',
+    why: 'The ordinary case: a component authored in the CMS, published with what it compiled to.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule' }] },
     accept: true
   },
   {
-    name: 'different-publication',
-    why: 'Two genuine documents of the same component from different publications. Both verify; the pair must still be refused.',
-    header: { uid: componentUid, publicationId },
-    executable: { uid: componentUid, publicationId: '00000000-0000-4000-8000-0000000000a3' },
+    name: 'prebuilt-without-code',
+    why: 'The ordinary case for a component the consuming application already contains.',
+    payload: { type: 'prebuilt' },
+    accept: true
+  },
+  {
+    name: 'prebuilt-carrying-code',
+    why: 'A bundle where a prebuilt component published none. Either the description was substituted or the code is nobody\'s: choosing which to believe would be guessing.',
+    payload: { type: 'prebuilt', executables: [{ platform: 'web-esmodule' }] },
     accept: false
   },
   {
-    name: 'different-component',
-    why: "A header describing one component beside another component's code.",
-    header: { uid: componentUid, publicationId },
-    executable: { uid: '00000000-0000-4000-8000-000000000009', publicationId },
+    name: 'dynamic-without-code',
+    why: 'A component authored in the CMS with nothing to run. It verifies and renders nothing, which must be told apart from a component that was never published.',
+    payload: { type: 'dynamic' },
     accept: false
+  },
+  {
+    name: 'dynamic-with-empty-code-list',
+    why: 'An empty list is not an absent key, and neither is a runnable release.',
+    payload: { type: 'dynamic', executables: [] },
+    accept: false
+  },
+  {
+    name: 'duplicate-platforms',
+    why: 'Two bundles for one target do not say which to run, and whichever a consumer picked would be signed — so nothing downstream could report the ambiguity.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule' }, { platform: 'web-esmodule' }] },
+    accept: false
+  },
+  {
+    name: 'several-platforms',
+    why: 'One release compiled for more than one target. A consumer selects the bundle it can run and must not refuse the release for also serving another runtime.',
+    payload: { type: 'dynamic', executables: [{ platform: 'android-dex' }, { platform: 'web-esmodule' }] },
+    accept: true
   }
 ]
 
 /**
- * Whether a published header is the one the **page** pinned.
+ * Whether a published document is the one the **page** pinned.
  *
- * Signature-free for the same reason the binding vectors are: both documents involved are properly
+ * Signature-free for the same reason the shape vectors are: the documents involved are properly
  * signed, and what these describe is the comparison that comes after each verifies on its own.
  *
- * The difference from `binding` is which pair is compared. There it is two documents of one
- * publication against each other. Here it is the **page tree** against the header — two documents
- * signed at different times, by different acts, each perfectly valid, that can nonetheless disagree
- * about what a node is.
+ * The pair compared here is the **page tree** against the publication — two documents signed at
+ * different times, by different acts, each perfectly valid, that can nonetheless disagree about what
+ * a node is.
  *
  * `type` is the member a second-language implementer is most likely to skip, because a page renders
  * correctly without ever checking it. A node claiming `prebuilt` where the publication says
@@ -260,8 +297,8 @@ interface PinVector {
   why: string
   /** What the page node claimed. */
   pin: { uid: string, publicationId: string, type: string }
-  /** What the published header says, under its own signature. */
-  header: { uid: string, publicationId: string, type: string }
+  /** What the published document says, under its own signature. */
+  publication: { uid: string, publicationId: string, type: string }
   accept: boolean
 }
 
@@ -273,35 +310,35 @@ const pinVectors: PinVector[] = [
     name: 'pinned-publication-agrees',
     why: 'The ordinary case: the page pinned this publication and it is what was published there.',
     pin: dynamicPin,
-    header: dynamicPin,
+    publication: dynamicPin,
     accept: true
   },
   {
     name: 'pinned-prebuilt-published-dynamic',
     why: 'The page composed a component whose code it supplies itself, and the publication carries code of its own. Both documents verify.',
     pin: { ...dynamicPin, type: 'prebuilt' },
-    header: dynamicPin,
+    publication: dynamicPin,
     accept: false
   },
   {
     name: 'pinned-dynamic-published-prebuilt',
     why: 'The mirror: the consumer goes looking for a bundle this publication never had.',
     pin: dynamicPin,
-    header: { ...dynamicPin, type: 'prebuilt' },
+    publication: { ...dynamicPin, type: 'prebuilt' },
     accept: false
   },
   {
     name: 'pinned-publication-replaced',
-    why: 'A genuine, correctly signed header of another publication moved onto the path this one occupies. Only comparing the pin with the document catches it.',
+    why: 'A genuine, correctly signed release of another publication moved onto the path this one occupies. Merging the documents does not close this — only comparing the pin with the document does.',
     pin: dynamicPin,
-    header: { ...dynamicPin, publicationId: otherPublication },
+    publication: { ...dynamicPin, publicationId: otherPublication },
     accept: false
   },
   {
     name: 'pinned-component-replaced',
-    why: "Another component's header entirely, correctly signed.",
+    why: "Another component's publication entirely, correctly signed.",
     pin: dynamicPin,
-    header: { ...dynamicPin, uid: '00000000-0000-4000-8000-000000000009' },
+    publication: { ...dynamicPin, uid: '00000000-0000-4000-8000-000000000009' },
     accept: false
   }
 ]
@@ -317,7 +354,7 @@ const corpus = {
   canonicalization: canonicalVectors,
   envelopes: checked,
   documents: checkedDocuments,
-  binding: bindingVectors,
+  shapes: shapeVectors,
   pins: pinVectors
 }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
 import { canonicalize, digest } from './canonical.js'
 import { verifyEnvelope, fromBase64 } from './envelope.js'
-import { readHeader, matchesPin, sharesPublication } from './header.js'
+import { readPublication, matchesPin } from './publication.js'
 
 /**
  * Agreement with the signer, checked against the corpus rather than against the signer's code.
@@ -16,8 +16,8 @@ import { readHeader, matchesPin, sharesPublication } from './header.js'
  * here is a finding about the specification first, and about this code second.
  *
  * The envelope vectors and their verdicts are step 19's business. What this file covers is
- * canonicalization, and the **component documents** — a header and an executable, and whether the
- * two belong to each other.
+ * canonicalization, and the **component publication** — one signed document carrying what a
+ * component accepts and, when it has any, the code that implements it.
  *
  * The component vectors are here because they are the ones a second-language implementer is most
  * likely to get subtly wrong. A verifier that checked only the executable would accept a rewritten
@@ -57,11 +57,21 @@ interface DocumentVector {
   accept: boolean
 }
 
-interface BindingVector {
+/**
+ * A publication's shape, checked after its signature.
+ *
+ * Signature-free on purpose. Each payload is properly signed in practice; what these describe is
+ * what a verifier must refuse once the signature checks out.
+ *
+ * **These replaced the corpus's `binding` section.** A publication used to be two signed documents,
+ * and the two hazards below were expressible as a *mismatched pair* — code beside a description that
+ * published none, a description whose code was never fetched. Merging the documents makes them one
+ * payload's shape, so they are checked by the reader rather than by a comparison between fetches.
+ */
+interface ShapeVector {
   name: string
   why: string
-  header: { uid: string, publicationId: string }
-  executable: { uid: string, publicationId: string }
+  payload: { type: string, executables?: Array<{ platform: string }> }
   accept: boolean
 }
 
@@ -76,7 +86,7 @@ interface PinVector {
   name: string
   why: string
   pin: { uid: string, publicationId: string, type: string }
-  header: { uid: string, publicationId: string, type: string }
+  publication: { uid: string, publicationId: string, type: string }
   accept: boolean
 }
 
@@ -92,7 +102,7 @@ interface Corpus {
   key?: { publicKey: string }
   canonicalization?: CanonicalVector[]
   documents?: DocumentVector[]
-  binding?: BindingVector[]
+  shapes?: ShapeVector[]
   pins?: PinVector[]
 }
 
@@ -102,7 +112,7 @@ const corpus = CORPUS !== '' && existsSync(CORPUS)
 
 const vectors = corpus?.canonicalization ?? []
 const documents = corpus?.documents ?? []
-const bindings = corpus?.binding ?? []
+const shapes = corpus?.shapes ?? []
 const pins = corpus?.pins ?? []
 
 describe.skipIf(vectors.length === 0)('the conformance corpus', () => {
@@ -139,37 +149,51 @@ describe.skipIf(documents.length === 0)('component documents in the corpus', () 
     }
   )
 
-  it('reads the reference header into something a component can be called by', () => {
-    const reference = documents.find(vector => vector.name === 'component-header')
+  it('reads the reference publication into something a component can be called by', () => {
+    const reference = documents.find(vector => vector.name === 'component-publication')
     expect(reference).toBeDefined()
 
     const verified = verifyEnvelope(reference!.envelope, reference!.expectedType, publicKey)
     expect(verified.valid).toBe(true)
 
     // Verifying is not enough on its own: a signature attests to bytes, not to their shape, and a
-    // header without an attribute order is one whose component cannot be called correctly.
-    const read = readHeader(verified.valid ? verified.payload : null as never)
+    // publication without an attribute order is one whose component cannot be called correctly.
+    const read = readPublication(verified.valid ? verified.payload : null as never)
     expect(read.ok).toBe(true)
     expect(read.ok && read.value.attributeOrder).toEqual(['attr-1'])
+    // The half that used to be a second document, a second signature and a second fetch.
+    expect(read.ok && read.value.executables?.[0].executableCode).toContain('function component')
   })
 })
 
-describe.skipIf(bindings.length === 0)('binding a header to an executable', () => {
-  it.each(bindings.map(vector => [vector.name, vector] as const))(
+describe.skipIf(shapes.length === 0)('the shape of a publication', () => {
+  it.each(shapes.map(vector => [vector.name, vector] as const))(
     'agrees with the signer about %s',
     (_name, vector) => {
-      // Signature-free by design: this is the check that comes *after* both documents verify.
-      const header = {
-        ...vector.header,
+      // Filled out around what the vector varies, because `readPublication` reads a whole payload and
+      // the members it does not name are not what is under test.
+      const payload = {
+        uid: 'component-1',
+        publicationId: 'publication-2',
         publisherId: 'user-1',
         publishedAt: 0,
         note: '',
-        type: 'dynamic' as const,
         name: 'Hero',
         attributes: {},
-        attributeOrder: []
+        attributeOrder: [],
+        ...vector.payload,
+        ...(vector.payload.executables === undefined
+          ? {}
+          : {
+              executables: vector.payload.executables.map(executable => ({
+                platform: executable.platform,
+                executableCode: 'export default function component () { return 1 }',
+                compiledAt: 0
+              }))
+            })
       }
-      expect(sharesPublication(header, vector.executable).ok).toBe(vector.accept)
+
+      expect(readPublication(payload as never).ok).toBe(vector.accept)
     }
   )
 })
@@ -178,12 +202,12 @@ describe.skipIf(pins.length === 0)('checking a header against what a page pinned
   it.each(pins.map(vector => [vector.name, vector] as const))(
     'agrees with the signer about %s',
     (_name, vector) => {
-      // The rest of the header is filled in because `matchesPin` takes a read header, and the
-      // members it compares are the only ones the vector varies. Anything else here would be an
-      // assertion about members the vector says nothing about.
-      const header = {
-        ...vector.header,
-        type: vector.header.type as 'prebuilt' | 'dynamic',
+      // The rest is filled in because `matchesPin` takes a read publication, and the members it
+      // compares are the only ones the vector varies. Anything else here would be an assertion
+      // about members the vector says nothing about.
+      const publication = {
+        ...vector.publication,
+        type: vector.publication.type as 'prebuilt' | 'dynamic',
         publisherId: 'user-1',
         publishedAt: 0,
         note: '',
@@ -193,7 +217,7 @@ describe.skipIf(pins.length === 0)('checking a header against what a page pinned
       }
       const pin = { ...vector.pin, type: vector.pin.type as 'prebuilt' | 'dynamic' }
 
-      expect(matchesPin(header, pin).ok).toBe(vector.accept)
+      expect(matchesPin(publication, pin).ok).toBe(vector.accept)
     }
   )
 })

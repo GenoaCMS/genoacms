@@ -170,11 +170,10 @@ test.describe('a prebuilt component', () => {
     // without a reload — the publication does not navigate.
     await expect(page.getByText('Published', { exact: true })).toBeVisible({ timeout: SLOW })
 
-    // One document, and it is the header. An executable here would mean the CMS had compiled
-    // something for a component that has no source.
+    // One signed object, carrying the description and no code — a component with no source has
+    // nothing for the CMS to compile, and its description is the whole of what it publishes.
     const documents = await openSolePublication(page, uid)
     await expect(documents).toHaveCount(1, { timeout: SLOW })
-    await expect(documents.first()).toHaveAccessibleName(/\/header\.json$/)
   })
 
   test('refuses to publish twice with nothing changed', async ({ page }) => {
@@ -349,12 +348,15 @@ const openStorageDirectory = async (page: Page, segments: string[]): Promise<voi
 }
 
 /**
- * Walks into the one publication a component has, and answers what is inside it.
+ * Opens a component's public directory and answers what has been published there.
  *
- * The directory is named for the publication, whose identifier the test never sees — so the walk
- * stops at the component and finds the single child by shape. `openStorageDirectory` rather than a
- * direct URL: the listing is built by navigating, and a `goto` straight to a nested path renders
- * nothing, which would make an emptiness assertion pass whatever the bucket held.
+ * **One object per release**, named for the publication whose identifier the test never sees — so
+ * the walk stops at the component and matches the child by shape. It used to be one *directory* per
+ * release holding two documents, which is why this once had to descend a further level.
+ *
+ * `openStorageDirectory` rather than a direct URL: the listing is built by navigating, and a `goto`
+ * straight to a nested path renders nothing, which would make an emptiness assertion pass whatever
+ * the bucket held.
  *
  * The returned locator matches on a **suffix**, because a file's select control is labelled with its
  * whole path rather than its name — anchoring at the start would only ever match the bucket root.
@@ -362,11 +364,7 @@ const openStorageDirectory = async (page: Page, segments: string[]): Promise<voi
 const openSolePublication = async (page: Page, uid: string): Promise<Locator> => {
   await openStorageDirectory(page, ['.genoacms', 'components', 'public', uid])
 
-  const publication = page.getByRole('main').getByRole('link', { name: /[0-9a-f-]{36}/ }).first()
-  await expect(publication).toBeVisible({ timeout: SLOW })
-  await publication.click()
-
-  return page.getByRole('button', { name: /\.json$/ })
+  return page.getByRole('button', { name: /[0-9a-f-]{36}\.json$/ })
 }
 
 /** Removes a dynamic component's objects, since the delete action cannot. */
@@ -690,13 +688,11 @@ test.describe('a dynamic component', () => {
     // was what let this test pass for months while every publication was in fact being refused.
     await reported(page, 'Component published')
 
-    // What "publishes" means for a component with code: **two** signed documents in one directory
-    // named for the publication. Asserting only that something was written would not catch a header
-    // that never reached the bucket, which is the half a consumer needs to call the other half.
+    // What "publishes" means for a component with code: **one** signed object carrying both what the
+    // component accepts and what it compiled to. It used to be two documents in a directory, and a
+    // consumer had to check that the pair belonged together; one object cannot disagree with itself.
     const documents = await openSolePublication(page, uid)
-    await expect(documents).toHaveCount(2, { timeout: SLOW })
-    await expect(page.getByRole('button', { name: /\/header\.json$/ })).toBeVisible()
-    await expect(page.getByRole('button', { name: /\/executable\.json$/ })).toBeVisible()
+    await expect(documents).toHaveCount(1, { timeout: SLOW })
   })
 
   test('reports a refusal instead of claiming to have published', async ({ page }) => {

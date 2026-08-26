@@ -1,5 +1,5 @@
 import type { AttributeReference, ComponentHeaderAttributes } from './attributes'
-import type { ComponentExecutable, ExecutablePlatform } from './executable'
+import type { ExecutablePlatform } from './executable'
 
 /**
  * What a language must provide for components to be authored in it.
@@ -193,6 +193,5 @@ export type {
   CompilationRequest,
   CompilationResult,
   LanguageAdapter,
-  ComponentExecutable,
   ExecutablePlatform
 }

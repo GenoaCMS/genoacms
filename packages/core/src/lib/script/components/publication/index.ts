@@ -1,23 +1,20 @@
 import type { ComponentHeader } from '../componentHeader/component/types'
 import type { ComponentDefinition } from '../editor/types'
 import type { ComponentShape } from '@genoacms/internal/languageAdapter'
-import type { SignedComponentExecutable } from '../executable/executable'
-import type { SignedComponentHeader } from './header'
+import type { PublishedExecutable, SignedComponentPublication } from './payload'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
 
 import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
 import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
-import { signComponentExecutable } from '../executable/executable.server'
-import { signComponentHeader } from './header.server'
-import { describingDigest } from './header'
+import { signComponentPublication } from './payload.server'
+import { describingDigest } from './payload'
 import {
   getPublishedComponent,
   listPublishedComponentUids,
-  uploadPublishedComponent,
-  uploadPublishedExecutable,
-  uploadPublishedHeader
+  uploadPublication,
+  uploadPublishedComponent
 } from './io.server'
 import { ComponentDiffError, NoSuchComponentError } from '../editor/errors'
 
@@ -26,9 +23,16 @@ import { ComponentDiffError, NoSuchComponentError } from '../editor/errors'
  *
  * **One act for both kinds**, which is the governing idea of the whole rework reaching the release
  * path: a prebuilt component and a dynamic one differ only in that the dynamic one also has
- * executable code. So publishing always signs a header, and additionally compiles and signs an
- * executable when there is code to compile. There is no second pipeline for the second kind, and no
- * branch anywhere except the one that asks whether code exists.
+ * executable code. So publishing always signs one document describing the component, and that
+ * document additionally carries the compiled bundles when there is code to compile. There is no
+ * second pipeline for the second kind, and no branch anywhere except the one that asks whether code
+ * exists.
+ *
+ * **One document, and therefore one signature.** A release used to be a header and an executable
+ * signed separately — everything a consumer needed, with nothing saying the two belonged together.
+ * Merging them retires the binding check, the corpus section that demonstrated the hazard, and the
+ * write ordering that made a partial failure survivable. A publication is now either written or it
+ * is not.
  *
  * This module lives outside `editor/` on purpose. Publication used to be the editor's, because only
  * dynamic components had one; an act a prebuilt component performs cannot be owned by the surface
@@ -37,10 +41,13 @@ import { ComponentDiffError, NoSuchComponentError } from '../editor/errors'
  * ## The order is the point
  *
  * Everything that can refuse runs before anything is written — reading, the no-change rule, static
- * analysis, compilation and both signatures. A component that does not analyze, does not compile or
+ * analysis, compilation and the signature. A component that does not analyze, does not compile or
  * cannot be signed leaves the bucket exactly as it was, so a rejected publication is something to
- * fix rather than something to recover from. Writing as each stage succeeded would leave a
- * publication directory holding a header and no executable, which verifies and serves nothing.
+ * fix rather than something to recover from.
+ *
+ * Merging the two documents removed the *other* reason this mattered — a half-written release that
+ * verified and served nothing — but not this one. Compiling after writing would still publish a
+ * description of a component whose code turned out not to build.
  */
 
 /** Everything a publication is built from, read together because none of it is useful alone. */
@@ -108,10 +115,8 @@ const requireSomethingToPublish = async (subject: PublicationSubject): Promise<v
 }
 
 interface BuiltPublication {
-  header: SignedComponentHeader
-  /** Present exactly when the component is dynamic. */
-  executable: SignedComponentExecutable | undefined
-  /** The signature the executable was compiled around, recorded so the next rule can compare it. */
+  publication: SignedComponentPublication
+  /** The signature the bundles were compiled around, recorded so the next rule can compare it. */
   signature: string | undefined
 }
 
@@ -130,12 +135,12 @@ const build = async (
   note: string
 ): Promise<BuiltPublication> => {
   const { header, definition } = subject
-  const signedHeader = await signComponentHeader(
-    { publicationId, publisherId, publishedAt, note },
-    header
-  )
+  const release = { publicationId, publisherId, publishedAt, note }
   if (definition === undefined) {
-    return { header: signedHeader, executable: undefined, signature: undefined }
+    return {
+      publication: await signComponentPublication(release, header),
+      signature: undefined
+    }
   }
 
   const shape = shapeOf(header)
@@ -144,35 +149,50 @@ const build = async (
   // Taken from the adapter rather than rebuilt here, so it is the same text the bundle was compiled
   // around and not a second emitter's opinion of it.
   const { text: signature } = await signatureFor(definition.language, shape)
-  const executable = await signComponentExecutable(
-    { uid: header.uid, publicationId, publisherId, publishedAt },
-    compiled.platform,
-    compiled.executableCode
-  )
-  return { header: signedHeader, executable, signature }
+
+  return {
+    publication: await signComponentPublication(release, header, [compiledBundle(compiled)]),
+    signature
+  }
 }
+
+/**
+ * The bundles one compilation produced.
+ *
+ * A list of one, because `compileComponentBody` compiles for a single target and the adapter
+ * contract emits one bundle per call. The publication carries a list so that a second target is an
+ * extra element rather than a second signed format — see `payload.ts`.
+ *
+ * `compiledAt` is stamped here rather than inside the payload builder, so the payload stays a
+ * function of its inputs and a test can assert the exact bytes that get signed.
+ */
+const compiledBundle = (
+  compiled: { platform: string, executableCode: string }
+): PublishedExecutable => ({
+  platform: compiled.platform,
+  executableCode: compiled.executableCode,
+  compiledAt: Date.now()
+})
 
 /**
  * Writes what was built.
  *
- * **The signed documents first, the pointers after.** Object storage has no transaction, so the
- * writes cannot be one act; what can be chosen is which failure is survivable. A publication
- * directory nothing points at is unreferenced and harmless — the next publication supersedes it. A
- * pointer advanced past documents that were never written is a component that reports a publication
- * nothing can serve.
+ * **The signed release first, the pointers after.** Object storage has no transaction, so the writes
+ * cannot be one act; what can be chosen is which failure is survivable. A publication nothing points
+ * at is unreferenced and harmless — the next publication supersedes it. A pointer advanced past a
+ * document that was never written is a component that reports a publication nothing can serve.
  *
- * Within the documents, the executable goes first. A header alone describes a component that has no
- * code to run; an executable alone is an artifact nothing can call, and a consumer resolving the
- * directory reads the header to learn whether to expect the other. Writing the header last means the
- * pair is never observably half-formed in the direction that matters.
+ * **There is no longer an order to get right among the documents**, because there is one. A release
+ * used to be written as an executable and then a header, sequenced so that the pair was never
+ * observably half-formed in the direction a consumer would notice. A single conditional write is
+ * either there or it is not.
  */
 const store = async (
   subject: PublicationSubject,
   built: BuiltPublication,
   record: PublishedComponent
 ): Promise<void> => {
-  if (built.executable !== undefined) await uploadPublishedExecutable(built.executable)
-  await uploadPublishedHeader(built.header)
+  await uploadPublication(built.publication)
 
   await Promise.all([
     uploadPublishedComponent(record),
@@ -208,8 +228,8 @@ const advanceDefinition = async (
  * Publishes a component: read, refuse, analyze, compile, sign, write.
  *
  * `publisherId` is a parameter rather than something read here, because this module has no
- * principal: the authenticated subject arrives from `user.server.ts`. It is carried into both signed
- * documents so each artifact names who released it.
+ * principal: the authenticated subject arrives from `user.server.ts`. It is carried into the signed
+ * payload so the artifact names who released it.
  */
 const publishComponent = async (
   order: ComponentPublicationOrder,

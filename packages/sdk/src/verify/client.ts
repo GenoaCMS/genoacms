@@ -3,20 +3,15 @@ import { peekUnverifiedHeader, verifyEnvelope } from './envelope.js'
 import { KEY_REGISTRY_DOCUMENT, readRegistry, resolveKey, type KeyRegistry } from './registry.js'
 import { PAGE_TREE_DOCUMENT, readPageTree, type ReadablePageNode } from './pageTree.js'
 import {
-  EXECUTABLE_DOCUMENT,
-  readExecutable,
-  matchesPin,
-  isRunnable,
+  PUBLICATION_DOCUMENT,
   WEB_ESMODULE,
-  type ComponentExecutable
-} from './executable.js'
-import {
-  HEADER_DOCUMENT,
-  readHeader,
-  matchesPin as headerMatchesPin,
-  sharesPublication,
-  type PublishedComponentHeader
-} from './header.js'
+  readPublication,
+  matchesPin,
+  runnableOn,
+  type ComponentPublication,
+  type PublishedExecutable,
+  type ComponentType
+} from './publication.js'
 import type { JsonValue } from './canonical.js'
 
 /**
@@ -138,29 +133,25 @@ const REGISTRY_PATH = '.genoacms/keys/public.json'
 const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name}`
 
 /**
- * Where a publication's compiled code lives. Immutable, which is what lets a consumer cache forever.
+ * Where a publication lives. Immutable, which is what lets a consumer cache forever.
  *
- * One directory per publication, holding the signed header and — for a component that has code —
- * this. It used to sit under the source it was built from, at
- * `dynamic/executables/{uid}/{publicationId}.json`, which said a publication was a fact about code.
- * It is a fact about a component, and a component with no code publishes into the same layout.
+ * **One object per release.** It used to be a directory holding a signed header and, for a component
+ * with code, a signed executable — two documents to fetch, two signatures to check, and a pairing
+ * between them that had to be verified separately because neither said the other belonged to it.
  */
-const executablePath = (uid: string, publicationId: string): string =>
-  `.genoacms/components/public/${uid}/${publicationId}/executable.json`
-
-/** Where a publication's signed description lives. Present for every component, coded or not. */
-const headerPath = (uid: string, publicationId: string): string =>
-  `.genoacms/components/public/${uid}/${publicationId}/header.json`
+const publicationPath = (uid: string, publicationId: string): string =>
+  `.genoacms/components/public/${uid}/${publicationId}.json`
 
 /**
- * A publication as a consumer uses it: what the component accepts, and the code to run if it has any.
+ * A publication as a consumer uses it: what the component accepts, and the code to run.
  *
- * `executable` is absent exactly when the header says `prebuilt` — such a component's code lives in
- * the consuming application, and the header is the whole of what the CMS published.
+ * `executable` is the **one bundle this runtime will execute**, already selected from however many
+ * the release carries. Absent exactly when the component is prebuilt — such a component's code lives
+ * in the consuming application, and the description is the whole of what the CMS published.
  */
 interface PublishedComponent {
-  header: PublishedComponentHeader
-  executable?: ComponentExecutable
+  publication: ComponentPublication
+  executable?: PublishedExecutable
 }
 
 class Verifier {
@@ -258,127 +249,59 @@ class Verifier {
   }
 
   /**
-   * The compiled artifact a node pinned: fetched, verified, and checked against the pin.
+   * A publication a node pinned: fetched, verified, read, checked against the pin, and resolved to
+   * the bundle this runtime will run.
    *
-   * Three things a valid signature does not settle are checked here, in this order — the artifact is
-   * shaped like one, it is the revision that was asked for, and this runtime can execute it.
+   * **This is the whole component-resolution path**, and it is one method because a publication is
+   * one document. It used to be three — a header fetch, an executable fetch, and a binding check
+   * between them — and the binding check was the one nothing in the happy path exercised.
    *
-   * The middle one is the attack worth naming. Whoever can write to storage can move a **genuine,
-   * correctly signed** executable of an older revision onto the path a newer one occupies. Every
-   * signature involved stays valid; only comparing what the page pinned against what the artifact
-   * says it is catches it.
+   * Four things a valid signature does not settle are checked here, in this order:
    *
-   * `undefined` means nothing is published there — a page pinning a revision whose artifact was
-   * never written, or has since been deleted.
+   * 1. **Is it shaped like a publication?** A signature attests to bytes, not to their shape, and
+   *    whoever holds the signing key can sign a malformed payload. This is also where a prebuilt
+   *    component carrying code, and a dynamic one carrying none, are refused.
+   * 2. **Is it the publication the page pinned?** Whoever can write to storage can move a genuine,
+   *    correctly signed older release onto the path a newer one occupies, and every signature stays
+   *    valid.
+   * 3. **Is it the kind the page said?** Stated in two documents signed at different times, so they
+   *    can disagree — see `matchesPin`.
+   * 4. **Can this runtime run it?** A release compiled only for other platforms is a correctly
+   *    signed artifact meant for somebody else.
+   *
+   * `undefined` means nothing is published there — a page pinning a publication that was never
+   * written, or has since been deleted. That is an ordinary answer and a different one from a
+   * publication that failed to verify.
    */
-  async executable (
-    pin: { uid: string, publicationId: string }
-  ): Promise<Verdict<ComponentExecutable> | undefined> {
-    const verified = await this.fetchVerified(executablePath(pin.uid, pin.publicationId), EXECUTABLE_DOCUMENT)
+  async component (
+    pin: { uid: string, publicationId: string, type?: ComponentType }
+  ): Promise<Verdict<PublishedComponent> | undefined> {
+    const verified = await this.fetchVerified(
+      publicationPath(pin.uid, pin.publicationId), PUBLICATION_DOCUMENT
+    )
     if (verified === undefined) return undefined
     if (!verified.valid) return verified
 
-    const read = readExecutable(verified.value)
+    const read = readPublication(verified.value)
     if (!read.ok) return { valid: false, reason: read.reason }
 
     const pinned = matchesPin(read.value, pin)
     if (!pinned.ok) return { valid: false, reason: pinned.reason }
 
-    const runnable = isRunnable(pinned.value, this.#platforms)
+    const runnable = runnableOn(pinned.value, this.#platforms)
     if (!runnable.ok) return { valid: false, reason: runnable.reason }
 
-    return { valid: true, value: runnable.value }
-  }
-
-  /**
-   * The description a node pinned: fetched, verified, and checked against the pin.
-   *
-   * The same three questions the executable is asked, minus the platform — a description has no
-   * runtime. The pin check matters for the same reason it does there: whoever can write to storage
-   * can move a **genuine, correctly signed** header of an older publication onto a newer one's path,
-   * and every signature stays valid.
-   *
-   * When the pin carries a `type` — as one taken from a page node does — that is compared as well,
-   * because the page and the header state it under separate signatures and only comparing them
-   * catches one having been changed.
-   *
-   * `undefined` means nothing is published there — a page pinning a publication whose header was
-   * never written, or has since been deleted.
-   */
-  async componentHeader (
-    pin: { uid: string, publicationId: string, type?: PublishedComponentHeader['type'] }
-  ): Promise<Verdict<PublishedComponentHeader> | undefined> {
-    const verified = await this.fetchVerified(headerPath(pin.uid, pin.publicationId), HEADER_DOCUMENT)
-    if (verified === undefined) return undefined
-    if (!verified.valid) return verified
-
-    const read = readHeader(verified.value)
-    if (!read.ok) return { valid: false, reason: read.reason }
-
-    const pinned = headerMatchesPin(read.value, pin)
-    if (!pinned.ok) return { valid: false, reason: pinned.reason }
-
-    return { valid: true, value: pinned.value }
-  }
-
-  /**
-   * A whole publication: the description, and the code when the component has any.
-   *
-   * **This is the method a renderer should use**, and the reason it exists rather than leaving a
-   * consumer to call the two above in sequence is that the pair has to be checked *against each
-   * other*. They are separate objects, fetched separately and cached separately, so a consumer can
-   * hold a correctly signed header from one publication and a correctly signed executable from
-   * another — the shapes disagree, the bundle is called with the wrong parameter list, and nothing
-   * in either document is invalid.
-   *
-   * **The header decides whether an executable is expected**, which is what the published type is
-   * for. A `prebuilt` component's code lives in the consuming application, so a bundle appearing
-   * beside its header is not something to run: it is a publication that should not exist, and
-   * refusing is the only answer that does not depend on guessing which document is right.
-   *
-   * `undefined` means nothing is published at that publication at all.
-   *
-   * A pin taken straight from a page node carries the kind the page claimed, and it is checked
-   * against the header's before anything else is decided — see `matchesPin`.
-   */
-  async component (
-    pin: { uid: string, publicationId: string, type?: PublishedComponentHeader['type'] }
-  ): Promise<Verdict<PublishedComponent> | undefined> {
-    const header = await this.componentHeader(pin)
-    if (header === undefined) return undefined
-    if (!header.valid) return header
-
-    const executable = await this.executable(pin)
-
-    if (header.value.type === 'prebuilt') {
-      // Refused rather than ignored. An executable here is either a header that has been swapped
-      // for a prebuilt one, or a bundle nobody asked for — both are reasons to stop.
-      if (executable !== undefined) {
-        return {
-          valid: false,
-          reason: `component-unexpected-executable: ${pin.uid} is prebuilt, so its code lives in ` +
-            'the consuming application, yet an executable is published beside its header'
-        }
-      }
-      return { valid: true, value: { header: header.value } }
-    }
-
-    // A dynamic component with no bundle is a publication that renders nothing. Kept apart from
-    // "nothing is published here", which the caller reads as an unpublished component.
-    if (executable === undefined) {
-      return {
-        valid: false,
-        reason: `component-missing-executable: ${pin.uid} is dynamic, so ${pin.publicationId} ` +
-          'should have published code, and none is there'
+    return {
+      valid: true,
+      value: {
+        publication: pinned.value,
+        // Omitted rather than set to undefined, so a prebuilt component's result has no such key —
+        // `'executable' in value` is then the same question as "does this have code".
+        ...(runnable.value === undefined ? {} : { executable: runnable.value })
       }
     }
-    if (!executable.valid) return executable
-
-    const bound = sharesPublication(header.value, executable.value)
-    if (!bound.ok) return { valid: false, reason: bound.reason }
-
-    return { valid: true, value: { header: header.value, executable: executable.value } }
   }
+
 
   /**
    * Fetches a path and verifies it as the document type the caller expects.
@@ -416,6 +339,6 @@ class Verifier {
 }
 
 export {
-  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, headerPath, httpSource
+  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, publicationPath, httpSource
 }
 export type { VerifierOptions, Verdict, Source, PublishedComponent }

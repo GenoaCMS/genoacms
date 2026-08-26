@@ -9,7 +9,7 @@
  */
 
 export {
-  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, executablePath, headerPath, httpSource
+  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, publicationPath, httpSource
 } from './client.js'
 export type { VerifierOptions, Verdict, Source, PublishedComponent } from './client.js'
 
@@ -28,8 +28,7 @@ export type { KeyRegistry, RegistryKey } from './registry.js'
 export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedPublications } from './pageTree.js'
 export type { ReadablePageNode, ReadableAttributeValue, PublicationPin, Read } from './pageTree.js'
 
-export { EXECUTABLE_DOCUMENT, WEB_ESMODULE, readExecutable, matchesPin, isRunnable } from './executable.js'
-export type { ComponentExecutable } from './executable.js'
-
-export { HEADER_DOCUMENT, readHeader, sharesPublication } from './header.js'
-export type { PublishedComponentHeader, ComponentType } from './header.js'
+export {
+  PUBLICATION_DOCUMENT, WEB_ESMODULE, readPublication, matchesPin, runnableOn
+} from './publication.js'
+export type { ComponentPublication, PublishedExecutable, ComponentType } from './publication.js'

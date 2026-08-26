@@ -324,187 +324,23 @@ describe('fetching a page tree', () => {
   })
 })
 
-describe('fetching an executable', () => {
+describe('fetching a publication', () => {
   const pin = { uid: 'component-1', publicationId: 'publication-2' }
-  // One directory per publication, holding the signed header and — when the component has code —
-  // this. The executable used to live under the source it was built from, which said a publication
-  // was a fact about code rather than about a component.
-  const path = '.genoacms/components/public/component-1/publication-2/executable.json'
+  /*
+   * **One object per release.** It used to be a directory holding `header.json` and, for a component
+   * with code, `executable.json` — two fetches, two signatures, and a pairing between them that no
+   * amount of verifying either document could establish.
+   */
+  const path = '.genoacms/components/public/component-1/publication-2.json'
 
-  const payload = (over: Record<string, unknown> = {}) => ({
-    uid: 'component-1',
-    publicationId: 'publication-2',
-    publisherId: 'user-1',
-    publishedAt: 1_700_000_000_000,
+  const bundle = (over: Record<string, unknown> = {}) => ({
     platform: 'web-esmodule',
-    executableCode: 'export function Hero () { return 1 }',
+    executableCode: 'export default function component () { return 1 }',
     compiledAt: 1_700_000_001_000,
     ...over
   })
 
-  const publish = (at = path, body = payload()) => {
-    served[at] = sign(
-      'ML-DSA-65', subordinateId, 'genoacms.componentExecutable.v1',
-      body as JsonValue, subordinate.secretKey, subordinateScheme
-    )
-  }
-
-  it('returns the artifact the page pinned', async () => {
-    publish()
-
-    const verdict = await verifier().executable(pin)
-
-    expect(verdict).toMatchObject({ valid: true })
-    expect(verdict?.valid === true && verdict.value.executableCode).toContain('function Hero')
-  })
-
-  it('reports an artifact that was never published as absent', async () => {
-    expect(await verifier().executable(pin)).toBeUndefined()
-  })
-
-  it('refuses one whose code was edited after signing', async () => {
-    publish()
-    const envelope = served[path] as { payload: Record<string, unknown> }
-    served[path] = { ...envelope, payload: { ...envelope.payload, executableCode: 'globalThis.stolen = 1' } }
-
-    expect(await verifier().executable(pin))
-      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
-  })
-
-  it('refuses a genuine artifact of an older revision moved onto this path', async () => {
-    // The attack the pin comparison exists for. Everything about this artifact is real and correctly
-    // signed — it is simply not the revision the page published.
-    publish(path, payload({ publicationId: 'commit-1' }))
-
-    const verdict = await verifier().executable(pin)
-
-    expect(verdict?.valid).toBe(false)
-    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-revision')
-  })
-
-  it('refuses a genuine artifact belonging to another component', async () => {
-    publish(path, payload({ uid: 'component-9' }))
-
-    const verdict = await verifier().executable(pin)
-
-    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-component')
-  })
-
-  it('refuses one built for a platform it cannot run', async () => {
-    // Correctly signed, and meant for a different SDK.
-    publish(path, payload({ platform: 'android-dex' }))
-
-    const verdict = await verifier().executable(pin)
-
-    expect(verdict?.valid === false && verdict.reason).toContain('unsupported-platform')
-  })
-
-  it('runs a platform the consumer declared it supports', async () => {
-    publish(path, payload({ platform: 'node-esmodule' }))
-
-    const client = new Verifier({
-      rootPublicKey: root.publicKey,
-      source: { read: async (p) => p in served ? JSON.stringify(served[p]) : undefined },
-      platforms: ['web-esmodule', 'node-esmodule']
-    })
-
-    expect(await client.executable(pin)).toMatchObject({ valid: true })
-  })
-
-  it('refuses a malformed artifact that is correctly signed', async () => {
-    publish(path, payload({ executableCode: '' }))
-
-    expect(await verifier().executable(pin))
-      .toMatchObject({ valid: false, reason: 'executable-missing-code' })
-  })
-})
-
-describe('fetching a header', () => {
-  const pin = { uid: 'component-1', publicationId: 'publication-2' }
-  const path = '.genoacms/components/public/component-1/publication-2/header.json'
-
   const payload = (over: Record<string, unknown> = {}) => ({
-    uid: 'component-1',
-    publicationId: 'publication-2',
-    publisherId: 'user-1',
-    publishedAt: 1_700_000_000_000,
-    note: 'released by the suite',
-    type: 'dynamic',
-    name: 'Hero',
-    attributes: { 'attr-1': { uid: 'attr-1', type: 'string' } },
-    attributeOrder: ['attr-1'],
-    ...over
-  })
-
-  const publish = (at = path, body = payload()) => {
-    served[at] = sign(
-      'ML-DSA-65', subordinateId, 'genoacms.componentHeader.v1',
-      body as JsonValue, subordinate.secretKey, subordinateScheme
-    )
-  }
-
-  it('returns the description the page pinned', async () => {
-    publish()
-
-    const verdict = await verifier().componentHeader(pin)
-
-    expect(verdict).toMatchObject({ valid: true })
-    expect(verdict?.valid === true && verdict.value.attributeOrder).toEqual(['attr-1'])
-  })
-
-  it('reports one that was never published as absent', async () => {
-    expect(await verifier().componentHeader(pin)).toBeUndefined()
-  })
-
-  it('refuses one whose attribute order was edited after signing', async () => {
-    // The attack signing a header exists to stop. Reordering the attributes reorders the arguments,
-    // so every value lands in the wrong parameter — and the executable it is used with stays
-    // perfectly valid, which is why nothing downstream could notice.
-    publish()
-    const envelope = served[path] as { payload: Record<string, unknown> }
-    served[path] = {
-      ...envelope,
-      payload: { ...envelope.payload, attributeOrder: ['attr-9', 'attr-1'] }
-    }
-
-    expect(await verifier().componentHeader(pin))
-      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
-  })
-
-  it('refuses a genuine header of an older publication moved onto this path', async () => {
-    publish(path, payload({ publicationId: 'publication-1' }))
-
-    const verdict = await verifier().componentHeader(pin)
-
-    expect(verdict?.valid === false && verdict.reason).toContain('header-wrong-publication')
-  })
-
-  it('refuses one with no attribute order, which nothing could be called by', async () => {
-    // The key is **removed**, not set to `undefined`: canonicalization refuses an undefined member
-    // rather than dropping it, so a fixture that set one would fail while being built and never
-    // reach the verifier at all.
-    const { attributeOrder, ...withoutOrder } = payload()
-    void attributeOrder
-    publish(path, withoutOrder as ReturnType<typeof payload>)
-
-    expect(await verifier().componentHeader(pin))
-      .toMatchObject({ valid: false, reason: 'header-missing-attribute-order' })
-  })
-
-  it('refuses one attributing itself to nobody', async () => {
-    publish(path, payload({ publisherId: '' }))
-
-    expect(await verifier().componentHeader(pin))
-      .toMatchObject({ valid: false, reason: 'header-missing-publisher-id' })
-  })
-})
-
-describe('fetching a whole publication', () => {
-  const pin = { uid: 'component-1', publicationId: 'publication-2' }
-  const headerAt = '.genoacms/components/public/component-1/publication-2/header.json'
-  const executableAt = '.genoacms/components/public/component-1/publication-2/executable.json'
-
-  const headerPayload = (over: Record<string, unknown> = {}) => ({
     uid: 'component-1',
     publicationId: 'publication-2',
     publisherId: 'user-1',
@@ -514,116 +350,176 @@ describe('fetching a whole publication', () => {
     name: 'Hero',
     attributes: {},
     attributeOrder: [],
+    executables: [bundle()],
     ...over
   })
 
-  const executablePayload = (over: Record<string, unknown> = {}) => ({
-    uid: 'component-1',
-    publicationId: 'publication-2',
-    publisherId: 'user-1',
-    publishedAt: 1_700_000_000_000,
-    platform: 'web-esmodule',
-    executableCode: 'export function Hero () { return 1 }',
-    compiledAt: 1_700_000_001_000,
-    ...over
-  })
-
-  const publishHeader = (body = headerPayload(), at = headerAt) => {
-    served[at] = sign('ML-DSA-65', subordinateId, 'genoacms.componentHeader.v1',
-      body as JsonValue, subordinate.secretKey, subordinateScheme)
-  }
-  const publishExecutable = (body = executablePayload(), at = executableAt) => {
-    served[at] = sign('ML-DSA-65', subordinateId, 'genoacms.componentExecutable.v1',
-      body as JsonValue, subordinate.secretKey, subordinateScheme)
+  /** A prebuilt payload: the key absent rather than empty, which is what the CMS writes. */
+  const prebuiltPayload = (over: Record<string, unknown> = {}) => {
+    const { executables: _dropped, ...rest } = payload({ type: 'prebuilt', ...over })
+    return rest
   }
 
-  it('returns both documents for a dynamic component', async () => {
-    publishHeader()
-    publishExecutable()
+  const publish = (body: Record<string, unknown> = payload(), at = path) => {
+    served[at] = sign(
+      'ML-DSA-65', subordinateId, 'genoacms.componentPublication.v1',
+      body as JsonValue, subordinate.secretKey, subordinateScheme
+    )
+  }
+
+  it('returns the description and the code in one fetch', async () => {
+    publish()
 
     const verdict = await verifier().component(pin)
 
     expect(verdict).toMatchObject({ valid: true })
-    expect(verdict?.valid === true && verdict.value.executable?.executableCode).toContain('Hero')
+    expect(verdict?.valid === true && verdict.value.publication.name).toBe('Hero')
+    expect(verdict?.valid === true && verdict.value.executable?.executableCode)
+      .toContain('function component')
   })
 
-  it('returns a prebuilt component as a header alone', async () => {
-    // Its code is in the consuming application, so the header is the whole of what was published.
-    publishHeader(headerPayload({ type: 'prebuilt' }))
+  it('returns a prebuilt component as a description alone', async () => {
+    // Its code is in the consuming application, so the description is the whole of what was
+    // published — and the absent key is the answer rather than a bundle that failed to arrive.
+    publish(prebuiltPayload())
 
     const verdict = await verifier().component(pin)
 
     expect(verdict).toMatchObject({ valid: true })
-    expect(verdict?.valid === true && verdict.value.executable).toBeUndefined()
+    expect(verdict?.valid === true && 'executable' in verdict.value).toBe(false)
+  })
+
+  it('reports a publication that was never written as absent', async () => {
+    // An ordinary answer, and a different one from a publication that failed to verify.
+    expect(await verifier().component(pin)).toBeUndefined()
+  })
+
+  it('refuses a publication whose payload was edited after signing', async () => {
+    publish()
+    const envelope = served[path] as { payload: Record<string, unknown> }
+    served[path] = { ...envelope, payload: { ...envelope.payload, name: 'Attacker' } }
+
+    expect(await verifier().component(pin))
+      .toMatchObject({ valid: false, reason: 'envelope-signature-invalid' })
+  })
+
+  it('refuses a genuine release of another publication moved onto this path', async () => {
+    /*
+     * The attack the pin check exists for, and the one the merge does **not** close. Whoever can
+     * write to storage can move a correctly signed older release onto the path a newer one occupies;
+     * every signature stays valid, and only comparing the pin against the document catches it.
+     */
+    publish(payload({ publicationId: 'publication-1' }))
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('publication-wrong-publication')
+  })
+
+  it('refuses another component published at this path', async () => {
+    publish(payload({ uid: 'component-9' }))
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('publication-wrong-component')
   })
 
   it('refuses a publication whose kind is not the one the page pinned', async () => {
     /*
-     * The pin a renderer passes comes from a page node, which states the kind under the page tree's
-     * signature; the header states it under its own, made at a different time. Verifying either
-     * alone settles nothing about the other.
+     * The page tree states the kind under its own signature; the publication states it under
+     * another, made at a different time. Verifying either alone settles nothing about the other.
      *
      * Here the page composed a prebuilt component — code the consuming application supplies — and
-     * the publication at that path describes a dynamic one. Rendering it would run the application's
-     * own component under a name the CMS published code for.
+     * the publication carries code of its own.
      */
-    publishHeader()
+    publish()
 
     const verdict = await verifier().component({ ...pin, type: 'prebuilt' })
 
-    expect(verdict?.valid === false && verdict.reason).toContain('header-wrong-type')
+    expect(verdict?.valid === false && verdict.reason).toContain('publication-wrong-type')
   })
 
   it('accepts a publication whose kind is the one the page pinned', async () => {
-    publishHeader()
-    publishExecutable()
+    publish()
 
     expect(await verifier().component({ ...pin, type: 'dynamic' })).toMatchObject({ valid: true })
   })
 
-  it('refuses a header and an executable from different publications', async () => {
-    /*
-     * The header is genuine and pinned correctly; the executable is genuine and was moved here from
-     * publication 3.
-     *
-     * **What catches it is the executable's own pin check, not `sharesPublication`.** Both documents
-     * are compared against the same pin, so two that pass cannot disagree with each other — the
-     * binding is *implied* here rather than independently enforced. That is worth stating plainly:
-     * `sharesPublication` exists for a caller who fetches the pair itself, without a pin to check
-     * either against, and it is tested directly in `header.test.ts`.
-     */
-    publishHeader()
-    publishExecutable(executablePayload({ publicationId: 'publication-3' }))
-
-    const verdict = await verifier().component(pin)
-
-    expect(verdict?.valid === false && verdict.reason).toContain('executable-wrong-revision')
-  })
-
   it('refuses a dynamic component with no code published', async () => {
-    // A publication that renders nothing, kept apart from "this component was never published".
-    publishHeader()
+    // A release that verifies and renders nothing, kept apart from "never published".
+    publish(prebuiltPayload({ type: 'dynamic' }))
 
     const verdict = await verifier().component(pin)
 
-    expect(verdict?.valid === false && verdict.reason).toContain('component-missing-executable')
+    expect(verdict?.valid === false && verdict.reason).toContain('publication-missing-executables')
   })
 
-  it('refuses an executable published beside a prebuilt header', async () => {
-    // Either the header was swapped for a prebuilt one, or a bundle nobody asked for is sitting
-    // there. Both are reasons to stop rather than to pick whichever document looks right.
-    publishHeader(headerPayload({ type: 'prebuilt' }))
-    publishExecutable()
+  it('refuses a prebuilt component that carries code', () => {
+    /*
+     * This and the case above used to be **cross-document** failures — a bundle sitting beside a
+     * prebuilt header, a dynamic header with none beside it — reachable only after two fetches and
+     * two verifications. They are now one payload's shape, and the CMS cannot emit either: only a
+     * signing key in the wrong hands produces one, which is exactly what must not render.
+     */
+    publish(payload({ type: 'prebuilt' }))
+
+    return verifier().component(pin).then(verdict => {
+      expect(verdict?.valid === false && verdict.reason).toContain('publication-unexpected-executables')
+    })
+  })
+
+  it('refuses a release with nothing this runtime can run', async () => {
+    // Checked after verification: a correctly signed artifact meant for another runtime, not a
+    // corrupted one, and the two deserve different answers.
+    publish(payload({ executables: [bundle({ platform: 'android-dex' })] }))
 
     const verdict = await verifier().component(pin)
 
-    expect(verdict?.valid === false && verdict.reason).toContain('component-unexpected-executable')
+    expect(verdict?.valid === false && verdict.reason).toContain('publication-unsupported-platform')
   })
 
-  it('reports a publication that does not exist as absent', async () => {
-    expect(await verifier().component(pin)).toBeUndefined()
+  it('runs the supported bundle from a release that also serves another runtime', async () => {
+    // What the list of targets buys: one release, several platforms, and a page that pins the
+    // release rather than the platform.
+    publish(payload({ executables: [bundle({ platform: 'android-dex' }), bundle()] }))
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === true && verdict.value.executable?.platform).toBe('web-esmodule')
+  })
+
+  it('runs a bundle a consumer configured itself to run', async () => {
+    publish(payload({ executables: [bundle({ platform: 'android-dex' })] }))
+    const client = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: { read: async (path) => path in served ? JSON.stringify(served[path]) : undefined },
+      platforms: ['android-dex']
+    })
+
+    expect(await client.component(pin)).toMatchObject({ valid: true })
+  })
+
+  it('refuses a publication that is correctly signed but malformed', async () => {
+    // A signature attests to bytes, not to their shape. Whoever holds the key can sign this.
+    publish(payload({ attributeOrder: 'attr-1' }))
+
+    expect(await verifier().component(pin))
+      .toMatchObject({ valid: false, reason: 'publication-missing-attribute-order' })
+  })
+
+  it('refuses a publication signed as some other kind of document', async () => {
+    // The envelope binds the document type into the digest, so a page tree cannot be served here.
+    served[path] = sign(
+      'ML-DSA-65', subordinateId, 'genoacms.pageTree.v1',
+      payload() as JsonValue, subordinate.secretKey, subordinateScheme
+    )
+
+    const verdict = await verifier().component(pin)
+
+    expect(verdict?.valid === false && verdict.reason).toContain('envelope-wrong-type')
   })
 })
+
 
 describe('unreachable is neither answer', () => {
   it('reports an object that is not there as absent, not as invalid', async () => {
