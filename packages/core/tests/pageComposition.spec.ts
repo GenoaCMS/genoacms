@@ -301,12 +301,23 @@ test.describe('editing the tree', () => {
   }
 
   test('undoes the last change', async ({ page }) => {
+    /*
+     * **Two faults, told apart.** The server's history is correct — `entry/history.test.ts` drives
+     * it directly — so an undo that appears to do nothing is either a step that was never taken or a
+     * screen that did not refresh. Asserting only what is on screen conflates them, and asserting
+     * only what survives a reload would pass while the editor showed the wrong tree.
+     */
     const before = await withTree(page)
 
     await page.getByRole('button', { name: 'Undo' }).click()
     await page.waitForLoadState('networkidle')
+    const onScreen = await nestedNames(page)
 
-    expect(await nestedNames(page)).not.toEqual(before)
+    await page.reload()
+    const stored = await nestedNames(page)
+
+    expect(stored).not.toEqual(before)
+    expect(onScreen).toEqual(stored)
   })
 
   test('redoes it', async ({ page }) => {
@@ -323,9 +334,28 @@ test.describe('editing the tree', () => {
     await page.waitForLoadState('networkidle')
     expect(await nestedNames(page)).not.toEqual(before)
 
+    // Asserted before the click: a disabled Redo means the undo did not record a future, which is a
+    // different fault from a redo that runs and restores nothing.
+    await expect(page.getByRole('button', { name: 'Redo' })).toBeEnabled()
+
     await page.getByRole('button', { name: 'Redo' }).click()
     await page.waitForLoadState('networkidle')
-    expect(await nestedNames(page)).toEqual(before)
+    const onScreen = await nestedNames(page)
+
+    /*
+     * Told apart the same way undo is: a redo that appears to do nothing is either a step that was
+     * never replayed or a screen that did not refresh, and the two need different fixes.
+     *
+     * The stored read **retries**, because object storage here is eventually consistent: a write can
+     * succeed and the next read still miss it, so a single reload can report a redo that did happen
+     * as one that did not.
+     */
+    await expect(async () => {
+      await page.reload()
+      expect(await nestedNames(page)).toEqual(before)
+    }).toPass({ timeout: SLOW })
+
+    expect(onScreen).toEqual(before)
   })
 
   test('removes a nested component', async ({ page }) => {
@@ -379,12 +409,38 @@ test.describe('reordering', () => {
 
     const first = nestedCards(page).nth(0).getByRole('button', { name: 'Dragger' })
     const second = nestedCards(page).nth(1)
+
+    /*
+     * **Moved to the target's own coordinates, in steps.**
+     *
+     * This used to finish with `page.mouse.move(0, 40)`, which is an **absolute** position and not a
+     * delta — so after picking the first card up the pointer jumped to the top-left of the viewport,
+     * well outside the list, and the card was dropped wherever that landed. The order did change;
+     * it changed into `[b, c, a]`, which is what dropping past the end looks like, and the test read
+     * that as "dragging does not reorder".
+     *
+     * `svelte-dnd-action` tracks pointer movement rather than HTML5 drag events, so the pointer has
+     * to travel: a single jump to the destination is not a drag it recognizes.
+     */
+    const start = await first.boundingBox()
+    if (!start) throw new Error('the dragger has no box to pick up from')
+
     await first.hover()
     await page.mouse.down()
-    // svelte-dnd-action needs movement to register a drag rather than a click.
-    await second.hover()
-    await page.mouse.move(0, 40)
+    // A first move is what turns the press into a drag. The list reflows once it does — the dragged
+    // card leaves the flow and a placeholder takes its place — so the destination has to be measured
+    // *after* this, not before: a box read while the list was still at rest points at where the
+    // second card used to be, which is how a drop meant for position 1 landed past the end.
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2 + 12, { steps: 4 })
+
+    const target = await second.boundingBox()
+    if (!target) throw new Error('the second card has no box to drop onto')
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 })
+    // The list animates each reorder over `flipDurationMs`, and the drop is resolved against where
+    // the cards are *now*. Releasing mid-animation drops onto a layout that is still moving.
+    await page.waitForTimeout(500)
     await page.mouse.up()
+    await page.waitForLoadState('networkidle')
 
     const after = await nestedNames(page)
     expect(after[0]).toBe(before[1])
