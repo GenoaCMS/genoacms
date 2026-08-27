@@ -156,3 +156,60 @@ describe.each([...ALGORITHM_NAMES])('%s', (name) => {
     })
   })
 })
+
+describe('signing the same bytes twice', () => {
+  /*
+   * **Hedged by default, and repeatable only when asked.**
+   *
+   * ML-DSA and SLH-DSA both take fresh entropy per signature, which is what FIPS 204 and 205
+   * recommend: the purely deterministic path is the one a fault-injection or side-channel attack has
+   * something to work with. So signing one payload twice gives two different signatures, both valid,
+   * and every published document is signed that way.
+   *
+   * The one caller that needs the other behavior is the conformance generator. Its output declares
+   * *"do not edit by hand"*, and the only way anybody can check that nobody did is to regenerate it
+   * and find the bytes identical — which randomized signatures make impossible.
+   *
+   * Asserted on the **subordinate** algorithm alone. SLH-DSA signs in about a second, and what is
+   * under test is the option rather than either scheme.
+   */
+  const algorithm = () => getAlgorithm(SUBORDINATE_ALGORITHM)
+  const keypair = () => fixtures.get(SUBORDINATE_ALGORITHM)!.keypair
+
+  it('produces different signatures by default', () => {
+    const { secretKey } = keypair()
+
+    const first = algorithm().sign(message, secretKey)
+    const second = algorithm().sign(message, secretKey)
+
+    expect(first).not.toEqual(second)
+  })
+
+  it('produces the same signature when repeatability is asked for', () => {
+    const { secretKey } = keypair()
+
+    const first = algorithm().sign(message, secretKey, { reproducible: true })
+    const second = algorithm().sign(message, secretKey, { reproducible: true })
+
+    expect(first).toEqual(second)
+  })
+
+  it('produces a signature that verifies either way', () => {
+    // Repeatability changes how the signature is made, not whether it is a signature. A vector in the
+    // corpus is verified by implementations that know nothing about how it was produced.
+    const { secretKey, publicKey } = keypair()
+    const repeatable = algorithm().sign(message, secretKey, { reproducible: true })
+
+    expect(algorithm().verify(repeatable, message, publicKey)).toBe(true)
+  })
+
+  it('stays hedged when the option says so explicitly', () => {
+    // `{ reproducible: false }` must not be read as "an options bag was passed, so switch it off".
+    const { secretKey } = keypair()
+
+    const first = algorithm().sign(message, secretKey, { reproducible: false })
+    const second = algorithm().sign(message, secretKey, { reproducible: false })
+
+    expect(first).not.toEqual(second)
+  })
+})

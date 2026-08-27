@@ -37,7 +37,8 @@
     "build": "rimraf dist && tsc",
     "prepare": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "conformance": "GENOACMS_CONFORMANCE_REQUIRED=1 vitest run src/verify/interop.test.ts"
   },
   "dependencies": {
     "@noble/hashes": "^2.3.0",

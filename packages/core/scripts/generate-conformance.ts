@@ -49,7 +49,20 @@ const canonicalVectors: CanonicalVector[] = [
   canonicalCase('nested-empty', 'Empty containers nest.', { a: { b: {} } })
 ]
 
-/** Deterministic from a fixed seed, so the corpus is reproducible by anyone. */
+/**
+ * The signing key, and what makes the whole corpus reproducible.
+ *
+ * The keypair comes from a fixed seed, so anyone gets the same key. That alone is not enough: signing
+ * is **hedged** — fresh entropy per signature, which is what FIPS 204 recommends — so the same
+ * payload signs differently every run, and regenerating this file used to rewrite every signature in
+ * it while changing nothing it says.
+ *
+ * That matters because the file declares *"do not edit by hand"*, and the only way to check that
+ * nobody did is to regenerate it and find the bytes identical. So every signature below is made with
+ * the option that switches the hedging off. **Nothing that signs a real document does this** — see
+ * `SigningOptions`, which says why at length.
+ */
+const REPRODUCIBLE = { reproducible: true }
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const seed = new Uint8Array(algorithm.lengths.seed).fill(42)
 const keypair = algorithm.generateKeypair(seed)
@@ -60,7 +73,7 @@ const valid = sign('genoacms.roles.v1', payload, {
   alg: SUBORDINATE_ALGORITHM,
   keyId,
   secretKey: keypair.secretKey
-})
+}, REPRODUCIBLE)
 
 const mutate = (changes: Record<string, unknown>): unknown => ({ ...valid, ...changes })
 
@@ -148,8 +161,8 @@ const { executables: _noCode, ...prebuiltRest } = publicationPayload as Record<s
 const prebuiltPayload = { ...prebuiltRest, type: 'prebuilt' } as JsonValue
 
 const componentKey = { alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey }
-const signedPublication = sign(PUBLICATION_DOCUMENT, publicationPayload, componentKey)
-const signedPrebuilt = sign(PUBLICATION_DOCUMENT, prebuiltPayload, componentKey)
+const signedPublication = sign(PUBLICATION_DOCUMENT, publicationPayload, componentKey, REPRODUCIBLE)
+const signedPrebuilt = sign(PUBLICATION_DOCUMENT, prebuiltPayload, componentKey, REPRODUCIBLE)
 
 interface DocumentVector {
   name: string
@@ -343,6 +356,120 @@ const pinVectors: PinVector[] = [
   }
 ]
 
+/**
+ * How a page's values reach a component's parameters.
+ *
+ * **The join a second implementation is most likely to miss entirely**, because nothing in either
+ * document points at the other. A publication states its parameter order as attribute *references* —
+ * uids, which exist so that renaming an attribute in the CMS does not lose the value bound to it. A
+ * published page keys each node's `data` by the attribute's **name**, the one a person typed. So a
+ * consumer walks the order, turns each reference into a name through the publication's `attributes`,
+ * and looks the value up under it.
+ *
+ * An implementation that instead read the page's `data` in its own key order would render every
+ * ordinary page correctly and silently mis-assign values the moment an author reordered anything.
+ * That is why the accepted vectors carry the expected `names`: agreeing that a publication is
+ * acceptable is not the property under test, the **order** is.
+ *
+ * Signature-free, like the shape and pin vectors, and for the same reason: every payload here is
+ * properly signed in practice, and what these describe is what a verifier must work out once the
+ * signature checks out.
+ *
+ * ## Why a duplicate name is refused rather than resolved
+ *
+ * The page's `data` is keyed by name, so when two attributes share one the second value overwrites
+ * the first as the tree is built — and the tree is signed **afterwards**. One parameter silently
+ * receives another's value and every signature over the result is valid. The CMS refuses to save such
+ * a component, but publications are immutable and a page pins one, so a release made before that rule
+ * existed still verifies and is still reachable. A consumer that does not check is a consumer that
+ * renders it.
+ *
+ * Two names are compared with their ends trimmed, which is a wider net than equality: `Body` and
+ * `Body ` are different keys and the same name to anybody reading them. Case is **not** folded —
+ * `Body` and `body` are two names a person chose to write differently, and both survive into two
+ * distinct parameters.
+ */
+interface AttributeNameVector {
+  name: string
+  why: string
+  /** What the publication describes, by reference. */
+  attributes: Record<string, unknown>
+  /** The references, in the order the component's parameters take them. */
+  attributeOrder: string[]
+  accept: boolean
+  /** For an accepted vector, the names to look each value up by, in that same order. */
+  names?: string[]
+}
+
+/** An attribute as a publication carries it. `title` is the name a person typed into the registrar. */
+const describes = (reference: string, title: unknown): [string, unknown] =>
+  [reference, { uid: reference, type: 'string', schema: title === undefined ? {} : { title } }]
+
+const attributeNameVectors: AttributeNameVector[] = [
+  {
+    name: 'attribute-names-in-parameter-order',
+    why: 'The order is the publication\'s: not the order the attributes are written in, and not alphabetical. Three names arranged so that reading them by insertion order, by sorting, or by reversing each produces a different answer — because each of those is a plausible implementation that renders every ordinary page correctly and shuffles the arguments of this one.',
+    attributes: Object.fromEntries([
+      describes('attr-1', 'Body'), describes('attr-2', 'Alpha'), describes('attr-3', 'Zebra')
+    ]),
+    attributeOrder: ['attr-3', 'attr-1', 'attr-2'],
+    accept: true,
+    names: ['Zebra', 'Body', 'Alpha']
+  },
+  {
+    name: 'attribute-name-taken-verbatim',
+    why: 'The name is a storage key, not a label: it is what the page wrote. Tidying it would look for a value under something no page ever stored.',
+    attributes: Object.fromEntries([describes('attr-1', ' Heading ')]),
+    attributeOrder: ['attr-1'],
+    accept: true,
+    names: [' Heading ']
+  },
+  {
+    name: 'attribute-names-none',
+    why: 'A component that takes no parameters. An empty order is an ordinary release, not a malformed one.',
+    attributes: {},
+    attributeOrder: [],
+    accept: true,
+    names: []
+  },
+  {
+    name: 'attribute-names-differing-in-case',
+    why: 'Two names a person chose to write differently. They key a page differently and survive into two distinct parameters, so folding case here would refuse a perfectly good release.',
+    attributes: Object.fromEntries([describes('attr-1', 'Body'), describes('attr-2', 'body')]),
+    attributeOrder: ['attr-2', 'attr-1'],
+    accept: true,
+    names: ['body', 'Body']
+  },
+  {
+    name: 'attribute-names-duplicated',
+    why: 'The page stores one value where two belong, because its data is keyed by name and the tree is signed after the collision. One parameter receives another\'s value with every signature valid.',
+    attributes: Object.fromEntries([describes('attr-1', 'Heading'), describes('attr-2', 'Heading')]),
+    attributeOrder: ['attr-1', 'attr-2'],
+    accept: false
+  },
+  {
+    name: 'attribute-names-differing-only-at-the-ends',
+    why: 'Different keys, and the same name to anyone reading them. Refused on the wider comparison, because nobody should have to tell "Body" from "Body " by eye to know which value was lost.',
+    attributes: Object.fromEntries([describes('attr-1', 'Body'), describes('attr-2', 'Body ')]),
+    attributeOrder: ['attr-1', 'attr-2'],
+    accept: false
+  },
+  {
+    name: 'attribute-order-names-an-undescribed-attribute',
+    why: 'One parameter would have no name and therefore no value, while every later argument stayed in place — a call that looks ordinary and is wrong from that position onward.',
+    attributes: Object.fromEntries([describes('attr-1', 'Heading')]),
+    attributeOrder: ['attr-1', 'attr-2'],
+    accept: false
+  },
+  {
+    name: 'attribute-without-a-name',
+    why: 'There is nothing to look a value up by. Passing nothing would leave the parameter undefined with no way to tell that from an attribute a page genuinely left empty.',
+    attributes: Object.fromEntries([describes('attr-1', undefined)]),
+    attributeOrder: ['attr-1'],
+    accept: false
+  }
+]
+
 const corpus = {
   note: 'Generated by packages/core/scripts/generate-conformance.ts. Do not edit by hand.',
   algorithm: SUBORDINATE_ALGORITHM,
@@ -355,7 +482,8 @@ const corpus = {
   envelopes: checked,
   documents: checkedDocuments,
   shapes: shapeVectors,
-  pins: pinVectors
+  pins: pinVectors,
+  attributeNames: attributeNameVectors
 }
 
 console.log(JSON.stringify(corpus, null, 2))

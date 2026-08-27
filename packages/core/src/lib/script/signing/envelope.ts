@@ -1,4 +1,6 @@
-import { getAlgorithm, isAlgorithmName, type AlgorithmName } from './algorithms'
+import {
+  getAlgorithm, isAlgorithmName, type AlgorithmName, type SigningOptions
+} from './algorithms'
 import { digest, type JsonValue } from './canonical'
 
 /**
@@ -79,14 +81,22 @@ interface SigningKey {
   secretKey: Uint8Array
 }
 
+/**
+ * Signs a payload as a document of the given type.
+ *
+ * `options` reaches the algorithm untouched and exists for one caller: the conformance generator,
+ * which needs the same bytes every run so that regenerating the corpus and finding it unchanged is a
+ * check anyone can perform. See `SigningOptions` — nothing that signs a real document passes it.
+ */
 function sign<T extends JsonValue> (
   type: DocumentType,
   payload: T,
-  key: SigningKey
+  key: SigningKey,
+  options?: SigningOptions
 ): SignedEnvelope<T> {
   const algorithm = getAlgorithm(key.alg)
   const signed = canonicalSignedObject(key.alg, key.keyId, type, payload)
-  const signature = algorithm.sign(digest(signed), key.secretKey)
+  const signature = algorithm.sign(digest(signed), key.secretKey, options)
   return {
     alg: key.alg,
     keyId: key.keyId,

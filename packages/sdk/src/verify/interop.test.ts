@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync } from 'node:fs'
 import { canonicalize, digest } from './canonical.js'
 import { verifyEnvelope, fromBase64 } from './envelope.js'
-import { readPublication, matchesPin } from './publication.js'
+import { readPublication, matchesPin, attributeNames } from './publication.js'
 
 /**
  * Agreement with the signer, checked against the corpus rather than against the signer's code.
@@ -15,14 +15,16 @@ import { readPublication, matchesPin } from './publication.js'
  * this document, which is the artefact under evaluation — not the implementations."* So a failure
  * here is a finding about the specification first, and about this code second.
  *
- * The envelope vectors and their verdicts are step 19's business. What this file covers is
- * canonicalization, and the **component publication** — one signed document carrying what a
- * component accepts and, when it has any, the code that implements it.
+ * **Every section of the corpus is checked here** — canonicalization, the envelope, the component
+ * publication, the shape rules a signature does not settle, the pin a page states, and the names a
+ * page stores its values under. Only `./verify` is imported: running the whole SDK would drag in the
+ * browser executor, which no other implementation has and the corpus says nothing about.
  *
- * The component vectors are here because they are the ones a second-language implementer is most
- * likely to get subtly wrong. A verifier that checked only the executable would accept a rewritten
- * parameter list; one that verified both envelopes without comparing them to each other would accept
- * a header and a bundle from different publications. Both failures leave every signature valid.
+ * The component vectors are the ones a second-language implementer is most likely to get subtly
+ * wrong. A verifier that checked only the executable would accept a rewritten parameter list; one
+ * that skipped the pin would accept a genuine older release moved onto a newer one's path; one that
+ * read a page's own key order would call every component with its values shuffled. All three leave
+ * every signature valid.
  */
 
 interface CanonicalVector {
@@ -44,16 +46,36 @@ const hex = (bytes: Uint8Array): string =>
  * is **not this repository** — so a hard-coded path would work on exactly one machine and would ship
  * inside a package that other people install.
  *
- * Absent, these are skipped. Step 19 makes the corpus a first-class input rather than an optional
- * one; until then this runs wherever it is pointed at something.
+ * Absent, these are skipped — see `REQUIRED` below for when that is not good enough.
  */
 const CORPUS = process.env.GENOACMS_CONFORMANCE_CORPUS ?? ''
+
+type Envelope = { alg: string, keyId: string, type: string, payload: unknown, signature: string }
+
+/**
+ * The envelope itself: what a signature covers, and what it does not.
+ *
+ * These use an authorization manifest rather than anything about components, because what they
+ * exercise is the envelope — that `alg`, `keyId` and `type` are bound into the digest, that a
+ * truncated or loosely-decoded signature is a verdict rather than a crash, and that the order of an
+ * envelope's own members means nothing.
+ *
+ * **The most valuable of them are the ones that must be refused for the right reason.** A verifier
+ * that rejected `signature-trailing-whitespace` by throwing, or accepted it by decoding leniently,
+ * would pass a naive test of "does the good one verify" and fail an attacker's first probe.
+ */
+interface EnvelopeVector {
+  name: string
+  why: string
+  envelope: unknown
+  accept: boolean
+}
 
 interface DocumentVector {
   name: string
   why: string
   expectedType: string
-  envelope: { alg: string, keyId: string, type: string, payload: unknown, signature: string }
+  envelope: Envelope
   accept: boolean
 }
 
@@ -91,6 +113,28 @@ interface PinVector {
 }
 
 /**
+ * How a page's values reach a component's parameters.
+ *
+ * **The join a second implementation is most likely to miss altogether**, because neither document
+ * points at the other. A publication orders its parameters by attribute *reference*; a published page
+ * keys each node's `data` by the attribute's *name*. Only the publication's `attributes` connect the
+ * two.
+ *
+ * An implementation that read the page's own key order instead would render every ordinary page
+ * correctly and mis-assign values the moment an author reordered anything — which is why the accepted
+ * vectors carry the names they expect, in order. Agreeing that a publication is acceptable is not the
+ * property under test.
+ */
+interface AttributeNameVector {
+  name: string
+  why: string
+  attributes: Record<string, unknown>
+  attributeOrder: string[]
+  accept: boolean
+  names?: string[]
+}
+
+/**
  * The corpus as this implementation reads it.
  *
  * **Every section is optional.** The corpus is an external file located by an environment variable
@@ -101,19 +145,59 @@ interface PinVector {
 interface Corpus {
   key?: { publicKey: string }
   canonicalization?: CanonicalVector[]
+  envelopes?: EnvelopeVector[]
   documents?: DocumentVector[]
   shapes?: ShapeVector[]
   pins?: PinVector[]
+  attributeNames?: AttributeNameVector[]
 }
 
 const corpus = CORPUS !== '' && existsSync(CORPUS)
   ? JSON.parse(readFileSync(CORPUS, 'utf8')) as Corpus
   : undefined
 
+/**
+ * Whether an absent corpus is a skip or a failure.
+ *
+ * **Both, depending on who is asking.** A clean checkout of this package has no corpus — it lives
+ * beside the specification, in another repository — so `pnpm test` skipping is the honest answer
+ * there: "not checked", which is different from "checked and agreed".
+ *
+ * But a check that can silently not run is not much of a check, and the point of the corpus is that
+ * this implementation answers to an oracle outside itself. `pnpm run conformance` sets this, and a
+ * missing corpus then fails loudly rather than passing quietly.
+ */
+const REQUIRED = process.env.GENOACMS_CONFORMANCE_REQUIRED === '1'
+
+describe.runIf(REQUIRED)('the corpus this implementation answers to', () => {
+  it('is where it was said to be', () => {
+    expect(CORPUS, 'GENOACMS_CONFORMANCE_CORPUS is not set').not.toBe('')
+    expect(existsSync(CORPUS), `no corpus at ${CORPUS}`).toBe(true)
+  })
+
+  /*
+   * A corpus generated before a section existed is an older corpus, not a broken one — every suite
+   * below skips rather than fails for that reason. Which is right, and also means an empty section
+   * disappears without trace. This names them, so a run that checked less than it could says so.
+   */
+  it.each([
+    ['canonicalization', corpus?.canonicalization],
+    ['envelopes', corpus?.envelopes],
+    ['documents', corpus?.documents],
+    ['shapes', corpus?.shapes],
+    ['pins', corpus?.pins],
+    ['attributeNames', corpus?.attributeNames]
+  ])('covers %s', (_section, vectors) => {
+    expect(vectors?.length ?? 0).toBeGreaterThan(0)
+  })
+})
+
 const vectors = corpus?.canonicalization ?? []
+const envelopes = corpus?.envelopes ?? []
 const documents = corpus?.documents ?? []
 const shapes = corpus?.shapes ?? []
 const pins = corpus?.pins ?? []
+const attributes = corpus?.attributeNames ?? []
 
 describe.skipIf(vectors.length === 0)('the conformance corpus', () => {
   it('has vectors to check', () => {
@@ -220,4 +304,75 @@ describe.skipIf(pins.length === 0)('checking a header against what a page pinned
       expect(matchesPin(publication, pin).ok).toBe(vector.accept)
     }
   )
+})
+
+describe.skipIf(envelopes.length === 0)('the envelope, checked against the signer', () => {
+  const publicKey = fromBase64(corpus?.key?.publicKey ?? '')
+
+  /*
+   * The corpus does not record what type each envelope vector was read as, because every one of them
+   * is read as the same thing: the type the reference envelope carries. Taken from the vector rather
+   * than written here, so that renaming the document in the CMS does not leave this asserting against
+   * a constant nobody updated — and `type-swapped` is a vector precisely because the type asked for
+   * and the type found must be compared.
+   */
+  const reference = envelopes.find(vector => vector.name === 'valid')
+  const expectedType = (reference?.envelope as Envelope | undefined)?.type ?? ''
+
+  it('has a reference envelope to read the others against', () => {
+    expect(expectedType).not.toBe('')
+  })
+
+  it.each(envelopes.map(vector => [vector.name, vector] as const))(
+    'reaches the signer\'s verdict on %s',
+    (_name, vector) => {
+      expect(verifyEnvelope(vector.envelope, expectedType, publicKey).valid).toBe(vector.accept)
+    }
+  )
+
+  it('answers about a malformed envelope rather than raising', () => {
+    // The specification is explicit that malformed input is *invalid*, not an error: an
+    // implementation that throws on a truncated signature turns a failed verification into a crashed
+    // request. Every refusing vector above already asserts a verdict — this says the same thing about
+    // the shape of the answer, for the ones most likely to reach a verifier from an attacker.
+    for (const vector of envelopes.filter(one => !one.accept)) {
+      expect(() => verifyEnvelope(vector.envelope, expectedType, publicKey)).not.toThrow()
+    }
+  })
+})
+
+describe.skipIf(attributes.length === 0)('reaching a component\'s parameters', () => {
+  /** Filled out around what the vector varies; `attributeNames` reads a whole publication. */
+  const publicationWith = (vector: AttributeNameVector) => ({
+    uid: 'component-1',
+    publicationId: 'publication-2',
+    publisherId: 'user-1',
+    publishedAt: 0,
+    note: '',
+    type: 'prebuilt' as const,
+    name: 'Hero',
+    attributes: vector.attributes as never,
+    attributeOrder: vector.attributeOrder
+  })
+
+  it.each(attributes.map(vector => [vector.name, vector] as const))(
+    'agrees with the signer about %s',
+    (_name, vector) => {
+      expect(attributeNames(publicationWith(vector)).ok).toBe(vector.accept)
+    }
+  )
+
+  it.each(
+    attributes
+      .filter(vector => vector.names !== undefined)
+      .map(vector => [vector.name, vector] as const)
+  )('looks values up in the same order the signer does, for %s', (_name, vector) => {
+    // **The assertion the accept/refuse one cannot make.** Both implementations agreeing that a
+    // publication is acceptable says nothing about whether they would call its component the same
+    // way, and calling it differently puts the right values in the wrong parameters with every
+    // signature valid.
+    const read = attributeNames(publicationWith(vector))
+
+    expect(read.ok && read.value).toEqual(vector.names)
+  })
 })
