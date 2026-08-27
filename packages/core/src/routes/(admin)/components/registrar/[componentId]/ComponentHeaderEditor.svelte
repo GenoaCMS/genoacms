@@ -109,7 +109,7 @@
       </PermissionGate>
     {/if}
     <PermissionGate permission="components:register">
-      <DeleteComponent name={form.name} />
+      <DeleteComponent uid={form.uid} name={form.name} />
     </PermissionGate>
     <PermissionGate permission="components:modify">
       <ChangeName bind:name={form.name} onrename={submit} />

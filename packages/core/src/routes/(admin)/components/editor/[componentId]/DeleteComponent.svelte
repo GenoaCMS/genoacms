@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Button, Input, Label, Modal } from '$lib/components/ui/index'
+    import PagesPinningComponent from '$lib/components/components/PagesPinningComponent.svelte'
     import { toastError, toastSuccess } from '$lib/script/alert.svelte'
     import { deleteComponentRemote } from './delete.remote.js'
     import { goto } from '$app/navigation'
@@ -49,6 +50,11 @@
 
 <Modal title="Delete the component" bind:open={isModalOpen}>
   <div class="w-full">
+      <!-- Rendered only while the dialog is open: the scan reads every published tree, which is the
+           right price for a warning somebody is about to act on and the wrong one for a page load. -->
+      {#if isModalOpen}
+        <PagesPinningComponent {uid} />
+      {/if}
       <form
         {...enhance}
         class="w-full"

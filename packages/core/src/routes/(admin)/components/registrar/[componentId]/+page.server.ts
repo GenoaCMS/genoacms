@@ -6,6 +6,7 @@ import {
   redoUserComponentHeader
 } from '$lib/script/components/componentHeader/user.server'
 import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
+import { isComponentInUse } from '$lib/script/components/page/tree/dependents.server'
 import { getUserPublishedComponent } from '$lib/script/components/publication/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
@@ -65,8 +66,15 @@ export const actions = {
     const { componentId } = params
     if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
     // Routed by the component's stored kind: deleting a dynamic component means its source and
-    // every executable it published, not only the description shown on this page.
-    await deleteUserComponentByReference(ctx, componentId)
+    // every publication it made, not only the description shown on this page.
+    try {
+      await deleteUserComponentByReference(ctx, componentId)
+    } catch (error) {
+      // A component a published page is built on is refused. Reported rather than thrown: the
+      // author is meant to go and change those pages, and a 500 page tells them nothing about which.
+      if (isComponentInUse(error)) return fail(409, { reason: (error as Error).message })
+      throw error
+    }
     return redirect(307, '.')
   }
 } satisfies Actions

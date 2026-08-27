@@ -72,6 +72,7 @@ const matrixOperations = [
   'undoUserComponentHeader',
   'redoUserComponentHeader',
   'deleteUserComponentHeader',
+  'listUserPagesPinningComponent',
   // pages
   'listUserPages',
   'getUserPageEntry',
@@ -267,7 +268,11 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
-      'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent'
+      'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent',
+      // Q4's warning rides on the permission that deletes, not on `pages:read`. Gating it on the
+      // page domain would hide it from exactly this role — the one that deletes components — and an
+      // empty list meaning "you may not see this" reads as "nothing depends on it".
+      'listUserPagesPinningComponent'
     ]
   },
   RoleAdministrator: {

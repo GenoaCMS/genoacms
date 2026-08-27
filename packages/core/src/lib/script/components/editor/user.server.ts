@@ -1,4 +1,5 @@
 import { requirePermission } from '$lib/script/authorization/enforce'
+import { requireNoPublishedDependents } from '../page/tree/dependents.server'
 import type { AuthContext } from '$lib/script/authorization/context'
 import type { Component, ComponentDefinition, ComponentReference } from './types'
 import type { SignaturePreview } from '@genoacms/internal/languageAdapter'
@@ -173,8 +174,17 @@ const getUserComponentDefinitionDepth = async (
   return await getComponentDefinitionDepth(reference)
 }
 
+/**
+ * Removes a dynamic component's source and everything it published.
+ *
+ * The dependants check is the same one a prebuilt component's deletion makes, and it is here rather
+ * than in the route for the same reason the permission is: **four surfaces delete a component** —
+ * this editor's dialog and its bulk selection, the registrar's dialog and its bulk selection — and a
+ * rule enforced at one of them is a rule the other three do not have.
+ */
 const deleteUserComponent = async (ctx: AuthContext, component: Component): Promise<void> => {
   requirePermission(ctx, 'components:register')
+  await requireNoPublishedDependents(component.uid)
   await deleteComponent(component)
 }
 

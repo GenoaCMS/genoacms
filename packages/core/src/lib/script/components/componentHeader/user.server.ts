@@ -15,6 +15,8 @@ import {
 } from './editing.server'
 import type { HistoryDepth } from './editing.server'
 import { deleteComponentPublications } from '../publication/io.server'
+import { listPagesPinning, requireNoPublishedDependents } from '../page/tree/dependents.server'
+import type { ComponentDependents } from '../page/tree/dependents.server'
 
 /**
  * Prebuilt component operations performed **by a user**.
@@ -187,9 +189,37 @@ const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHea
  * longer exists. A prebuilt component publishes a header and no executable, which changes what is
  * in the directory and not whether it should survive its component.
  */
+/**
+ * What a deletion would break, for the confirmation to name.
+ *
+ * **On `components:register`, the permission that deletes**, rather than on `pages:read`. That is a
+ * deliberate crossing of the two domains and worth the sentence: this is not a page-reading feature
+ * that happens to be useful here, it is part of the deletion act — the impact of a thing the
+ * principal is about to do, computed from documents the CMS already holds.
+ *
+ * Gating it on `pages:read` would have been the tidier line and would have made the warning useless:
+ * a principal holding component permissions and not page ones is exactly who deletes components, and
+ * they would have been shown an empty list rather than told they could not be shown one. An empty
+ * list that means "you may not see this" is indistinguishable from one that means "nothing depends
+ * on it", and the two lead to opposite decisions.
+ *
+ * What it discloses is page *names*, to someone who can already delete the components those pages
+ * are built from.
+ */
+const listUserPagesPinningComponent = async (
+  ctx: AuthContext,
+  reference: ComponentHeaderReference
+): Promise<ComponentDependents> => {
+  requirePermission(ctx, 'components:register')
+  return await listPagesPinning(reference)
+}
+
 const deleteUserComponentHeader = async (ctx: AuthContext, name: string) => {
   requirePermission(ctx, 'components:register')
   await requirePrebuilt(name)
+  // Refused rather than warned about. R6 accepted the break and using the CMS showed why that was
+  // wrong: a warning belongs to a surface, and the bulk selection has none.
+  await requireNoPublishedDependents(name)
   await Promise.all([
     deleteComponentHeader(name),
     deleteComponentPublications(name)
@@ -205,5 +235,6 @@ export {
   getUserComponentHeaderDepth,
   undoUserComponentHeader,
   redoUserComponentHeader,
-  deleteUserComponentHeader
+  deleteUserComponentHeader,
+  listUserPagesPinningComponent
 }

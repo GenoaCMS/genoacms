@@ -310,14 +310,22 @@ test.describe('editing the tree', () => {
   })
 
   test('redoes it', async ({ page }) => {
+    /*
+     * **Both halves, in order.** This asserted only that the tree differed from where it started,
+     * which is what an *undo* leaves behind — a working redo puts the tree back, so the old
+     * assertion was the opposite of the property and could not have passed against a correct
+     * editor. Asserting the restoration alone would be no better: it holds trivially while undo does
+     * nothing, which is the state the editor is actually in.
+     */
     const before = await withTree(page)
 
     await page.getByRole('button', { name: 'Undo' }).click()
     await page.waitForLoadState('networkidle')
+    expect(await nestedNames(page)).not.toEqual(before)
+
     await page.getByRole('button', { name: 'Redo' }).click()
     await page.waitForLoadState('networkidle')
-
-    expect(await nestedNames(page)).not.toEqual(before)
+    expect(await nestedNames(page)).toEqual(before)
   })
 
   test('removes a nested component', async ({ page }) => {
@@ -420,6 +428,84 @@ const deleteFixtures = async (page: Page): Promise<number> => {
   await page.getByRole('button', { name: /^Yes, delete/ }).click()
   return boxes.length
 }
+
+test.describe('warning before a deletion breaks a page', () => {
+  /*
+   * **R6 and Q4.** Deleting a component removes its publications, and a published page pinning one
+   * of them breaks — as an *unresolvable pin*, which a consumer cannot tell apart from a component
+   * that never existed or a bucket it cannot reach. Nothing notices, nobody is told, and the page
+   * renders short.
+   *
+   * R6 accepts that. What is asserted here is that it is accepted **knowingly**: the confirmation
+   * names the published pages that would break before an author types the component's name.
+   *
+   * The deletion is deliberately **cancelled**. The warning is the subject, and actually deleting a
+   * shared fixture would take the cleanup group's own assertions with it.
+   */
+  test.describe.configure({ mode: 'serial' })
+
+  const PINNED_PAGE = `${PAGE_NAME}Pinned`
+  const USED = componentFor('boolean')
+
+  test('publishes a page that pins a component', async ({ page }) => {
+    await createPage(page, PINNED_PAGE)
+    await nestComponent(page, USED)
+
+    await page.getByRole('button', { name: 'Build' }).click()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(/error|failed/i)).toHaveCount(0)
+  })
+
+  test('names that page when the component is about to be deleted', async ({ page }) => {
+    await openComponent(page, USED)
+    await page.getByRole('button', { name: 'Delete component' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Delete the component' })
+    // The page by name, because "some pages use this" is not something an author can act on.
+    await expect(dialog.getByText(PINNED_PAGE)).toBeVisible({ timeout: SLOW })
+  })
+
+  test('refuses the deletion, not merely warns about it', async ({ page }) => {
+    /*
+     * **What the warning alone did not do.** R6 accepted the break and the confirmation named it;
+     * four surfaces delete a component and only two carried the warning, so the other two went on
+     * silently breaking published pages. The refusal is below all four, which is what this asserts:
+     * the author confirms properly, and the component is still there afterwards.
+     */
+    await openComponent(page, USED)
+    await page.getByRole('button', { name: 'Delete component' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Delete the component' })
+    await dialog.getByRole('textbox').fill(USED)
+    await dialog.getByRole('button', { name: `Yes, delete ${USED}` }).click()
+
+    // Reported where the author is looking, and naming the pages so they can act on it. Asserted
+    // after the refusal itself, because a silent deletion and an unreported refusal are different
+    // faults and checking the message first would confuse them.
+    await expect(dialog.getByText(/used by .* published page/i)).toBeVisible({ timeout: SLOW })
+
+    // **The property that matters.** Refused means the component is still there, not merely that
+    // something was said about it.
+    await openComponent(page, USED)
+    await expect(page.getByText(`Component: ${USED}`)).toBeVisible({ timeout: SLOW })
+  })
+
+  test('says so plainly when nothing depends on a component', async ({ page }) => {
+    /*
+     * The other half, and the one that makes the first mean anything. A dialog that renders an empty
+     * space where a warning would go reads as one that has not finished loading — so the absence of
+     * dependents is **stated**. Without this, a warning that silently failed to load would look
+     * exactly like a component that is safe to delete.
+     */
+    await createComponent(page, `${PREFIX}UnusedComponent`)
+    await saveComponent(page)
+    await page.getByRole('button', { name: 'Delete component' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Delete the component' })
+    await expect(dialog.getByText(/No published page uses this component/i))
+      .toBeVisible({ timeout: SLOW })
+  })
+})
 
 test.describe('removing everything', () => {
   test.describe.configure({ mode: 'serial' })

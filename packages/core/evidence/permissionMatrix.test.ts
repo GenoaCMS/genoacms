@@ -107,6 +107,15 @@ vi.mock('$lib/script/components/editor/editing.server', () => ({
   getComponentDefinitionDepth: async () => ({ historyLength: 0, futureLength: 0 })
 }))
 
+// The primary layer behind Q4's warning. Stubbed like every other, so a denial means the operation
+// never ran rather than that a scan of the bucket failed somewhere inside it.
+vi.mock('$lib/script/components/page/tree/dependents.server', () => ({
+  listPagesPinning: async () => ({ pages: [], unreadable: [] }),
+  // Permits, so the matrix measures the *permission* rather than the dependants rule. What happens
+  // when a page does depend on the component is `dependents.server.test.ts`'s.
+  requireNoPublishedDependents: async () => {}
+}))
+
 // Storage-level, mocked because deleting a component header now removes its publications too.
 vi.mock('$lib/script/components/publication/io.server', () => ({
   deleteComponentPublications: async () => {}
@@ -265,6 +274,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   undoUserComponentHeader: ctx => components.undoUserComponentHeader(ctx, 'hero'),
   redoUserComponentHeader: ctx => components.redoUserComponentHeader(ctx, 'hero'),
   deleteUserComponentHeader: ctx => components.deleteUserComponentHeader(ctx, 'hero'),
+  listUserPagesPinningComponent: ctx => components.listUserPagesPinningComponent(ctx, 'uid-1'),
 
   // pages
   listUserPages: ctx => pagesService.listUserPages(ctx),
