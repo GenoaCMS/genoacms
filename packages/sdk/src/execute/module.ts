@@ -90,22 +90,29 @@ const loadModule = async (
 /**
  * The component function a module is supposed to export.
  *
- * **A component's entry is an export named after the component**, which is a stronger requirement
- * than the CMS currently enforces — the analyzer locates the entry with a declaration lookup that
- * finds an unexported function just as happily. An artifact built from such a source is correctly
- * signed and cannot be run, and this is where that shows up. Refused with the name that was looked
- * for, because "no default export" would send an author hunting for the wrong thing.
+ * **A component's entry is the default export**, always, whatever the component is called. It used to
+ * be an export named after the component, and this looked one up by name — a rule that made a
+ * component's name its identifier too, so a component called `my-hero` could be authored and never
+ * published. The CMS now emits the whole declaration around an author's body, under a fixed internal
+ * name, and a name is free text again.
+ *
+ * Nothing is looked up by the component's name here as a result, which also removes a way for the
+ * page and the artifact to disagree: a node naming one component could not reach into a bundle built
+ * for another and find something callable.
  */
-const entryFunction = (
-  namespace: ModuleNamespace,
-  name: string
-): Loaded<(...args: never[]) => unknown> => {
-  const exported = namespace[name]
+const entryFunction = (namespace: ModuleNamespace): Loaded<(...args: never[]) => unknown> => {
+  const exported = namespace.default
   if (exported === undefined) {
-    return { ok: false, reason: `executable-missing-export: no export named '${name}'` }
+    return {
+      ok: false,
+      reason: 'executable-missing-export: the bundle has no default export'
+    }
   }
   if (typeof exported !== 'function') {
-    return { ok: false, reason: `executable-export-not-a-function: '${name}' is ${typeof exported}` }
+    return {
+      ok: false,
+      reason: `executable-export-not-a-function: the default export is ${typeof exported}`
+    }
   }
   return { ok: true, value: exported as (...args: never[]) => unknown }
 }

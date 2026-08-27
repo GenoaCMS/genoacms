@@ -5,6 +5,7 @@ import {
   uploadComponentHeaderHistory
 } from './io.server'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
+import { requireDistinctAttributeNames } from './component/attributeNames'
 import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 
@@ -54,6 +55,11 @@ const getComponentHeaderDepth = async (reference: ComponentHeaderReference): Pro
  * reload.
  */
 const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth> => {
+  // Before anything is read or written. A published page keys each value by its attribute's name, so
+  // two attributes sharing one silently lose a value with every signature over the result still
+  // valid — and this is the one place both kinds of component are written through.
+  requireDistinctAttributeNames(entry)
+
   const previous = await getComponentHeader(entry.uid)
   const adjunct = await getComponentHeaderHistory(entry.uid)
 

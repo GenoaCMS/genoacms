@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { readPublication, matchesPin, runnableOn, type ComponentPublication } from './publication.js'
+import {
+  readPublication, matchesPin, runnableOn, attributeNames, type ComponentPublication
+} from './publication.js'
 import type { JsonValue } from './canonical.js'
 
 /**
@@ -223,5 +225,92 @@ describe('choosing the bundle this runtime will run', () => {
     const runnable = runnableOn(read(prebuilt()), ['web-esmodule'])
 
     expect(runnable).toEqual({ ok: true, value: undefined })
+  })
+})
+
+describe('the names a page stores its values under', () => {
+  /*
+   * **What joins a publication to a page.** A publication states its parameter order as attribute
+   * *references* — uids, which exist so renaming an attribute in the CMS does not lose the value
+   * bound to it. A published page keys each node's `data` by the attribute's **name**. So a renderer
+   * walks the order, turns each reference into a name here, and looks the value up under it.
+   *
+   * Getting this wrong is not visible from either document on its own: every signature stays valid
+   * while a component is called with the right values in the wrong parameters.
+   */
+
+  const described = (attributes: Array<[string, unknown]>): JsonValue => publication({
+    attributes: Object.fromEntries(
+      attributes.map(([reference, title]) => [reference, { uid: reference, schema: { title } }])
+    ),
+    attributeOrder: attributes.map(([reference]) => reference)
+  }) as JsonValue
+
+  it('answers in the order the parameters take them, not the order the attributes are written in', () => {
+    const payload = described([['a2', 'Body'], ['a1', 'Heading']])
+
+    expect(attributeNames(read(payload))).toEqual({ ok: true, value: ['Body', 'Heading'] })
+  })
+
+  it('answers with the name exactly as it was signed', () => {
+    // It is a storage key, not a label. Tidying it here would look for a value under something the
+    // page never wrote.
+    const payload = described([['a1', ' Heading ']])
+
+    expect(attributeNames(read(payload))).toEqual({ ok: true, value: [' Heading '] })
+  })
+
+  it('answers nothing for a component that takes no parameters', () => {
+    expect(attributeNames(read(described([])))).toEqual({ ok: true, value: [] })
+  })
+
+  it('refuses two attributes named the same thing', () => {
+    // The CMS refuses to save such a component, but publications are immutable and a page pins one:
+    // a release made before that rule existed still verifies and is still reachable. The page would
+    // hold one value where two belong, and one parameter would silently receive the other's.
+    const refused = attributeNames(read(described([['a1', 'Heading'], ['a2', 'Heading']])))
+
+    expect(refused.ok).toBe(false)
+    expect(!refused.ok && refused.reason).toContain('publication-duplicate-attribute-name')
+  })
+
+  it('refuses two names that differ only at their ends', () => {
+    // Different keys, and the same name to anyone reading them. A wider net than equality, on
+    // purpose: nobody should have to tell "Body" from "Body " by eye to know which value is lost.
+    const refused = attributeNames(read(described([['a1', 'Body'], ['a2', 'Body ']])))
+
+    expect(refused.ok).toBe(false)
+  })
+
+  it('keeps two names apart when they differ in case', () => {
+    // Two names a person chose to write differently, which survive into two distinct parameters.
+    expect(attributeNames(read(described([['a1', 'Body'], ['a2', 'body']]))).ok).toBe(true)
+  })
+
+  it('refuses an order naming an attribute the publication does not describe', () => {
+    // One parameter would have no name and therefore no value, while every later argument stayed in
+    // place — a call that looks ordinary and is wrong from that position on.
+    const payload = publication({
+      attributes: { a1: { uid: 'a1', schema: { title: 'Heading' } } },
+      attributeOrder: ['a1', 'a2']
+    })
+
+    expect(attributeNames(read(payload)).ok).toBe(false)
+  })
+
+  it('refuses an attribute with no name to look a value up by', () => {
+    const refused = attributeNames(read(described([['a1', undefined]])))
+
+    expect(refused.ok).toBe(false)
+    expect(!refused.ok && refused.reason).toContain('publication-attribute-unnamed')
+  })
+
+  it('refuses an attribute whose schema is not an object', () => {
+    const payload = publication({
+      attributes: { a1: { uid: 'a1', schema: 'Heading' } },
+      attributeOrder: ['a1']
+    })
+
+    expect(attributeNames(read(payload)).ok).toBe(false)
   })
 })

@@ -6,8 +6,15 @@
  * and neither pretends to be — other platforms are third-party work against the verification
  * specification, and `@genoacms/sdk/verify` is the half that specification describes.
  *
- * Execution and rendering arrive with the later steps of this phase; until then the root re-exports
- * verification so a consumer has one import to start from.
+ * A consumer that only wants a verdict imports `./verify` and never ships an executor it cannot use.
+ * One that renders imports this, and the two halves meet at `renderPage`, which takes a `Verifier`
+ * and a tree that verifier has already accepted.
  */
 
 export * from './verify/index.js'
+export { renderPage, isNode } from './execute/render.js'
+export { loadModule, entryFunction, defaultLoader } from './execute/module.js'
+export type {
+  Rendered, RenderOptions, PrebuiltComponents, ComponentFunction, NodeFailure
+} from './execute/render.js'
+export type { ModuleLoader, ModuleNamespace, Loaded } from './execute/module.js'

@@ -49,33 +49,42 @@ describe('loading a module', () => {
 })
 
 describe('reaching the entry function', () => {
-  it('finds the export named after the component', async () => {
-    const loaded = await loadModule('export function Hero () { return "hi" }')
-    const entry = loaded.ok ? entryFunction(loaded.value, 'Hero') : undefined
+  /*
+   * **The entry is the default export.** It used to be an export named after the component, which
+   * made a component's name its identifier as well as its label — and the CMS now emits the whole
+   * declaration around an author's body under a fixed internal name, so nothing here knows or needs
+   * the component's name.
+   */
+
+  it('finds the default export', async () => {
+    const loaded = await loadModule('export default function component () { return "hi" }')
+    const entry = loaded.ok ? entryFunction(loaded.value) : undefined
 
     expect(entry?.ok === true && (entry.value as () => string)()).toBe('hi')
   })
 
-  it('refuses an artifact whose entry was never exported, naming what it looked for', async () => {
-    // The CMS locates a component's entry by declaration, so a source that declares `Hero` without
-    // exporting it compiles, signs and publishes. It cannot be run, and this is where that surfaces.
-    const loaded = await loadModule('function Hero () { return "hi" }\nexport const other = 1')
-    const entry = loaded.ok ? entryFunction(loaded.value, 'Hero') : undefined
+  it('refuses a bundle whose entry is declared but not exported', async () => {
+    // Still reachable, and still an artifact that is correctly signed and cannot be run. A body that
+    // compiled is wrapped in the emitted declaration, so this is the shape of a bundle assembled by
+    // something other than the CMS.
+    const loaded = await loadModule('function component () { return "hi" }\nexport const other = 1')
+    const entry = loaded.ok ? entryFunction(loaded.value) : undefined
 
     expect(entry?.ok).toBe(false)
-    expect(entry?.ok === false && entry.reason).toContain("no export named 'Hero'")
+    expect(entry?.ok === false && entry.reason).toContain('no default export')
   })
 
-  it('refuses an export that is not callable', async () => {
-    const loaded = await loadModule('export const Hero = "not a component"')
-    const entry = loaded.ok ? entryFunction(loaded.value, 'Hero') : undefined
+  it('refuses a default export that is not callable', async () => {
+    const loaded = await loadModule('export default "not a component"')
+    const entry = loaded.ok ? entryFunction(loaded.value) : undefined
 
     expect(entry?.ok === false && entry.reason).toContain('executable-export-not-a-function')
   })
 
-  it('does not mistake an export from another component for this one', async () => {
-    const loaded = await loadModule('export function Card () { return "card" }')
-    const entry = loaded.ok ? entryFunction(loaded.value, 'Hero') : undefined
+  it('does not accept a named export in place of the default one', async () => {
+    // A bundle exporting `component` without defaulting it is one the emitter did not produce.
+    const loaded = await loadModule('export function component () { return "hi" }')
+    const entry = loaded.ok ? entryFunction(loaded.value) : undefined
 
     expect(entry?.ok).toBe(false)
   })

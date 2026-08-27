@@ -215,7 +215,10 @@ const directoryRef = { bucket: BUCKET, name: 'folder/' }
 const collectionRef = { name: COLLECTION, schema: {} } as never
 const documentRef = { collection: { name: COLLECTION }, id: 'doc-1' } as never
 const pageEntry = { name: 'home' } as never
-const componentHeader = { uid: 'hero' } as never
+// `attributes` is present because saving a header checks that no two of them share a name before it
+// reaches storage. Empty rather than populated: this file answers which permission each operation
+// demands, and a header that failed that check would never reach the permission at all.
+const componentHeader = { uid: 'hero', attributes: {} } as never
 const accountRecord = { subject: 's-1', email: 's-1@example.com', roles: [] }
 const roleRecord = { name: 'Editor', grants: [] }
 

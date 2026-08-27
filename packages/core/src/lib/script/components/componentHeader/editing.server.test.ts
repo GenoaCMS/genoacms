@@ -166,3 +166,50 @@ describe('stepping back and forward', () => {
     expect((await getComponentHeaderDepth('c1')).futureLength).toBe(0)
   })
 })
+
+describe('the names a save refuses', () => {
+  /*
+   * **The wiring, not the rule.** The rule is `attributeNames.ts` and is tested there. What is
+   * asserted here is that saving actually applies it — and that it does so *before* touching either
+   * stored object, because a header written and then objected to would leave the collision in
+   * storage with a refusal on screen.
+   */
+  const named = (uid: string, title: string) => ({
+    uid, name: uid, type: 'string', schema: { type: 'string', title }
+  })
+
+  const colliding = entry({
+    attributes: { a: named('a', 'Heading'), b: named('b', 'Heading') } as never,
+    attributeOrder: ['a', 'b']
+  })
+
+  it('refuses two attributes sharing a name', async () => {
+    await expect(saveComponentHeader(colliding)).rejects.toThrow(/duplicate-attribute-name/)
+  })
+
+  it('writes nothing when it refuses', async () => {
+    await existing()
+    const before = structuredClone(entries.get('c1'))
+
+    await saveComponentHeader(colliding).catch(() => undefined)
+
+    expect(entries.get('c1')).toEqual(before)
+  })
+
+  it('records no step when it refuses', async () => {
+    await existing()
+
+    await saveComponentHeader(colliding).catch(() => undefined)
+
+    expect(await getComponentHeaderDepth('c1')).toEqual({ historyLength: 0, futureLength: 0 })
+  })
+
+  it('saves a component whose attributes are named distinctly', async () => {
+    const distinct = entry({
+      attributes: { a: named('a', 'Heading'), b: named('b', 'Body') } as never,
+      attributeOrder: ['a', 'b']
+    })
+
+    await expect(saveComponentHeader(distinct)).resolves.toBeDefined()
+  })
+})

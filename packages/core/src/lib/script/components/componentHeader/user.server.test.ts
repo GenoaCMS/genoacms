@@ -56,7 +56,10 @@ const grant = (permission: Permission): Grant =>
 const contextWith = (permissions: Permission[]): AuthContext =>
   createAuthContext('subject-1', permissions.map(grant))
 
-const entry = { uid: 'hero' } as never
+// `attributes` is present because saving checks that no two of them share a name before it touches
+// storage. Empty rather than populated: this file is about which permission each operation demands,
+// and the check itself is covered where it lives.
+const entry = { uid: 'hero', attributes: {} } as never
 
 beforeEach(() => {
   calls.length = 0

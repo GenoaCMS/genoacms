@@ -69,12 +69,15 @@ const runtimeType = (type: AttributeType): string => {
     /*
      * A slot arrives as its children, already rendered.
      *
-     * `unknown[]` because **what a rendered child is has not been settled** — it is the client SDK's
-     * to define, and it does not render trees yet. Emitting a guess would put it in the signature of
-     * every component anyone writes, and changing it later would change code that already compiled.
-     * `unknown` makes an author cast deliberately, which is the honest state of this today.
+     * **A rendered child is a DOM `Node`** — settled by the SDK when it learned to render trees, and
+     * deliberately left as `unknown[]` until then rather than guessed at, because a guess would have
+     * landed in the signature of every component anyone writes.
+     *
+     * `readonly` because the array is the renderer's, handed to a component to place. A component
+     * that sorted or spliced it would be editing the page's structure from inside one of its nodes,
+     * and the next render would not remember it.
      */
-    case 'components': return 'unknown[]'
+    case 'components': return 'readonly Node[]'
   }
 }
 

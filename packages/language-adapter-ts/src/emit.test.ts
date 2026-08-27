@@ -82,9 +82,18 @@ describe('the runtime type an author receives', () => {
       ['richText', 'string'],
       ['link', 'readonly string[]'],
       ['storageResource', 'readonly string[]'],
-      ['components', 'unknown[]']
+      // A rendered child is a DOM node, settled by the SDK once it could render a tree. It stood at
+      // `unknown[]` until then rather than being guessed at, because a guess would have landed in
+      // the signature of every component anyone writes.
+      ['components', 'readonly Node[]']
     ]
     for (const [type, expected] of types) expect(runtimeType(type)).toBe(expected)
+  })
+
+  it('hands a slot to the author as an array they may read and not rearrange', async () => {
+    // The array belongs to the renderer. A component that sorted or spliced it would be editing the
+    // page's structure from inside one of its nodes, and the next render would not remember it.
+    expect(runtimeType('components')).toBe('readonly Node[]')
   })
 })
 

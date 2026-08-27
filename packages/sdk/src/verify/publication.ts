@@ -81,7 +81,14 @@ interface ComponentPublication {
   type: ComponentType
   /** What a person calls it, and how a prebuilt component is resolved against the host's map. */
   name: string
-  /** The attributes, by reference. Opaque to this SDK, which passes them on rather than reading. */
+  /**
+   * The attributes, by reference.
+   *
+   * Read only for each attribute's **name** — see `attributeNames`, which is what connects this to a
+   * page's `data`. Everything else in an attribute is the CMS's validation vocabulary and is passed
+   * over: a renderer receives values that have already been resolved, and re-checking a constraint
+   * the CMS enforced would be a second opinion nobody asked for.
+   */
   attributes: Record<string, JsonValue>
   /** **The order the attributes are passed in.** Without it the values have no destination. */
   attributeOrder: string[]
@@ -286,12 +293,70 @@ const runnableOn = (
   return { ok: true, value: runnable }
 }
 
+/**
+ * The name of each attribute, in the order the component's parameters take them.
+ *
+ * **This is what joins a publication to a page.** A publication states its parameter order as
+ * attribute *references* — uids, which exist so that renaming an attribute in the CMS does not lose
+ * the value already bound to it. A published page, meanwhile, keys each node's `data` by the
+ * attribute's **name**, the one a person typed. So a renderer walks the order, turns each reference
+ * into a name here, and looks the value up under it.
+ *
+ * The name is returned **exactly as it was signed**, because that is the key a page used. Two names
+ * are compared with their ends trimmed, though, which is a slightly wider net than equality: `Body`
+ * and `Body ` are different keys and the same name to anybody reading them.
+ *
+ * ## Why a duplicate is refused here as well
+ *
+ * The CMS refuses to save a component whose attributes share a name, for the reason this exists: the
+ * page's `data` is keyed by name, so the second value overwrites the first as the tree is built, and
+ * the tree is signed **afterwards**. One parameter silently receives another's value and every
+ * signature is valid.
+ *
+ * A consumer checks it again anyway. Publications are immutable and a page pins one, so a release
+ * made before the CMS enforced this is still out there, still verifying, and still reachable — the
+ * same reason this SDK refuses a bundle whose entry was never exported. A rule the producer enforces
+ * protects documents made after it; a rule the consumer enforces protects the documents it is handed.
+ */
+const attributeNames = (publication: ComponentPublication): Read<string[]> => {
+  const names: string[] = []
+  const seen = new Set<string>()
+
+  for (const reference of publication.attributeOrder) {
+    const attribute = publication.attributes[reference]
+    // The order names something the attributes do not describe, so one parameter has no name and
+    // therefore no value. Calling the component anyway would leave every later argument in place and
+    // this one undefined, with nothing to say which.
+    if (!isRecord(attribute)) {
+      return failed(`publication-unknown-attribute: the order names ${reference}, which is not described`)
+    }
+    const schema = attribute.schema
+    if (!isRecord(schema)) return failed(`publication-attribute-missing-schema: ${reference}`)
+    if (typeof schema.title !== 'string') {
+      return failed(`publication-attribute-unnamed: ${reference} has no name to look a value up by`)
+    }
+
+    const name = schema.title
+    if (seen.has(name.trim())) {
+      return failed(
+        `publication-duplicate-attribute-name: two attributes are named "${name.trim()}", so a ` +
+        'page stores one value where two belong'
+      )
+    }
+    seen.add(name.trim())
+    names.push(name)
+  }
+
+  return { ok: true, value: names }
+}
+
 export {
   PUBLICATION_DOCUMENT,
   WEB_ESMODULE,
   readPublication,
   matchesPin,
-  runnableOn
+  runnableOn,
+  attributeNames
 }
 
 export type { ComponentPublication, PublishedExecutable, ComponentType }
