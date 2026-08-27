@@ -12,9 +12,11 @@
  */
 
 export * from './verify/index.js'
-export { renderPage, isNode } from './execute/render.js'
+export { renderPage, renderResolved, isNode } from './execute/render.js'
+export { resolvePage, isChildren, componentsUsed, missingComponents } from './execute/resolve.js'
 export { loadModule, entryFunction, defaultLoader } from './execute/module.js'
 export type {
   Rendered, RenderOptions, PrebuiltComponents, ComponentFunction, NodeFailure
 } from './execute/render.js'
+export type { ResolvedNode, ResolvedValue, Resolved } from './execute/resolve.js'
 export type { ModuleLoader, ModuleNamespace, Loaded } from './execute/module.js'

@@ -29,6 +29,6 @@ export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedPublication
 export type { ReadablePageNode, ReadableAttributeValue, PublicationPin, Read } from './pageTree.js'
 
 export {
-  PUBLICATION_DOCUMENT, WEB_ESMODULE, readPublication, matchesPin, runnableOn
+  PUBLICATION_DOCUMENT, WEB_ESMODULE, readPublication, matchesPin, runnableOn, attributeNames
 } from './publication.js'
 export type { ComponentPublication, PublishedExecutable, ComponentType } from './publication.js'

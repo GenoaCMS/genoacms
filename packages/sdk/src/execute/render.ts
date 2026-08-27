@@ -1,51 +1,48 @@
 import { loadModule, entryFunction, type ModuleLoader } from './module.js'
-import { attributeNames } from '../verify/publication.js'
+import { resolvePage, isChildren, missingComponents } from './resolve.js'
+import type { ResolvedNode, ResolvedValue } from './resolve.js'
 import type { Verifier } from '../verify/client.js'
-import type { ComponentPublication, PublishedExecutable } from '../verify/publication.js'
-import type { ReadablePageNode, ReadableAttributeValue } from '../verify/pageTree.js'
+import type { ReadablePageNode } from '../verify/pageTree.js'
 
 /**
- * Turning a verified page tree into DOM.
+ * Rendering a resolved page into DOM.
+ *
+ * ## One of several renderers, and the one every consumer needs some of
+ *
+ * `resolvePage` does everything that is not framework-specific: verifying each node's publication,
+ * checking it against the pin, and putting the page's values into the component's parameter order.
+ * This file is what turns that into a document — and it is not the only thing that can. A React or
+ * Vue wrapper consumes the same resolved tree and renders its own components instead.
+ *
+ * Every wrapper still needs **this**, though, for two reasons. A **dynamic** component is compiled to
+ * a function that returns a DOM node and takes its slot as `Node[]`, so a wrapper meeting one hands
+ * the whole subtree here and places what comes back. And a consumer with no framework at all has
+ * nothing else.
  *
  * ## A rendered child is a `Node`
  *
- * A component is a function that returns a DOM node, and a slot arrives as its children **already
- * rendered** — `readonly Node[]`, in the order the page holds them. That is the whole contract, and
- * it is deliberately the smallest thing every browser framework can accept: a Svelte, React or
- * vanilla consumer can all place a node, and none of them has to be the one this SDK chose.
+ * A component is a function taking its values positionally and returning a DOM node; a slot arrives
+ * as `readonly Node[]`, already rendered. That is deliberately the smallest thing every browser
+ * framework can accept without the SDK adopting one.
  *
- * The SDK builds no nodes of its own. Components do, and this orchestrates them — which is also why
- * nothing here needs a `document`.
+ * The SDK builds no nodes of its own. Components do, and this orchestrates them.
  *
- * ## Two ways a node fails, and two answers
+ * ## What can fail here, and what cannot
  *
- * The distinction is **not** how severe the fault is. It is whether the fault says something about
- * the documents or about the code inside one, and the two are told apart in the type below rather
- * than by where they happen to be caught.
+ * Only one kind of thing: **a verified artifact whose code will not run.** A bundle that throws while
+ * evaluating, one with no default export, a component that raises, a component that returns something
+ * that is not a node. All of them are an author's mistake rather than a fact about the documents, so
+ * each fails **its own node only** — the node contributes nothing to its parent's slot and is
+ * reported in `failures`. Nothing is invented in its place, because a stand-in would put content on
+ * the page that no component produced.
  *
- * **A node that cannot be resolved fails the whole page.** Its publication is absent, or does not
- * verify, or is not the one the page pinned, or is a kind the page did not expect, or names a
- * prebuilt component this consumer does not have. Every one of those is either tampering or a
- * consumer that is not configured for this page, and the plausible tampering leaves a document that
- * looks entirely ordinary. There is no safe degraded shape to fall back to: rendering the rest would
- * be rendering whatever was written to the bucket, minus the part that gave it away.
+ * Everything that fails the *page* was already decided by `resolvePage`, which is why that is a
+ * separate call returning a separate answer. The one exception is a component this consumer has not
+ * supplied — that is a fact about the consumer, not the documents, and it is checked up front so the
+ * page is refused rather than rendered with a hole.
  *
- * **A node whose code will not run fails only itself.** A bundle that throws while evaluating, one
- * with no default export, a component that raises, a component that returns something that is not a
- * node — all of them are verified artifacts that are simply wrong, and one author's mistake is a fact
- * about that component rather than grounds for failing a request. Such a node contributes nothing to
- * its parent's slot and is reported in `failures`. Nothing is invented in its place: a renderer that
- * substituted content would be putting something on the page that no component produced.
- *
- * The root is the one node where the two meet. If the root's own code will not run there is no page,
- * so it is returned as a page-level failure carrying the reason the node gave.
- *
- * ## Each publication is fetched, verified and evaluated once
- *
- * A page that places one card twenty times pins one publication twenty times. Verifying it twenty
- * times would be twenty signature checks for one answer, and evaluating its bundle twenty times would
- * produce twenty modules with twenty copies of whatever module state the author wrote. The cache
- * lives for one render and is not shared between them, so nothing is remembered across a page.
+ * The root is where the two rules meet: if the root's own code will not run there is no page, so it
+ * is reported as a page-level failure carrying the reason the node gave.
  */
 
 /** A component: given its attribute values in order, it returns a node. */
@@ -76,20 +73,6 @@ interface NodeFailure {
 }
 
 /**
- * A step's answer, carrying **which kind of failure it is** rather than leaving that to the caller.
- *
- * The alternative was to classify at the call site by reading the reason, which puts the rule in
- * every place that handles one instead of in the place that discovers it — and gets it silently wrong
- * the first time a new reason is added.
- */
-type Step<T> =
-  | { ok: true, value: T }
-  /** The documents cannot be trusted or resolved. Fails the page. */
-  | { ok: false, fatal: true, reason: string }
-  /** A verified artifact will not run. Fails only its own node. */
-  | { ok: false, fatal: false, reason: string }
-
-/**
  * A rendered page, and everything that went wrong inside it that did not stop it.
  *
  * `failures` is empty on an ordinary render and is **not** an error channel — a page with one failing
@@ -99,11 +82,17 @@ type Rendered =
   | { ok: true, value: Node, failures: NodeFailure[] }
   | { ok: false, reason: string }
 
-/** Something is wrong with the documents. */
-const refuse = (reason: string): Step<never> => ({ ok: false, fatal: true, reason })
+/** A single node's answer: rendered, or the reason its code would not run. */
+type NodeRendered =
+  | { ok: true, value: Node }
+  | { ok: false, reason: string }
 
-/** Something is wrong with the code inside them. */
-const contain = (reason: string): Step<never> => ({ ok: false, fatal: false, reason })
+/** A component this renderer can call, or why it cannot be reached. */
+type Callable =
+  | { ok: true, value: ComponentFunction }
+  | { ok: false, reason: string }
+
+const contain = (reason: string): NodeRendered => ({ ok: false, reason })
 
 /**
  * Whether a value is a DOM node, asked by shape rather than by `instanceof Node`.
@@ -119,74 +108,18 @@ const isNode = (value: unknown): value is Node => {
   return typeof candidate.nodeType === 'number' && typeof candidate.nodeName === 'string'
 }
 
-/** Whether an attribute value is a slot rather than a list of resolved URLs. */
-const isSlot = (value: ReadableAttributeValue): value is ReadablePageNode[] =>
-  Array.isArray(value) && !value.every(member => typeof member === 'string')
-
-/**
- * The component a node names, fetched and verified.
- *
- * A node carrying no pin was never published — there is nothing to fetch and nothing to verify, so
- * there is no basis on which to run anything for it.
- */
-const publicationFor = async (
-  verifier: Verifier,
-  node: ReadablePageNode
-): Promise<Step<{ publication: ComponentPublication, executable?: PublishedExecutable }>> => {
-  if (node.uid === undefined || node.publicationId === undefined) {
-    return refuse(`node-unpublished: '${node.component}' was never published, so nothing can be run for it`)
-  }
-
-  const verdict = await verifier.component({
-    uid: node.uid, publicationId: node.publicationId, type: node.type
-  })
-  if (verdict === undefined) {
-    return refuse(`node-publication-absent: nothing is published at ${node.uid}/${node.publicationId}`)
-  }
-  if (!verdict.valid) return refuse(verdict.reason)
-
-  return { ok: true, value: verdict.value }
-}
-
-/**
- * The consumer's component of that name.
- *
- * A missing one fails the **page**, because it is not a fault in the page at all — it is a consumer
- * that has not been given the components the page is built from, and every other node of that
- * component would fail identically.
- */
-const prebuiltComponent = (
-  publication: ComponentPublication,
-  components: PrebuiltComponents
-): Step<ComponentFunction> => {
-  const component = components[publication.name]
-  if (component === undefined) {
-    return refuse(
-      `component-not-supplied: this page uses the prebuilt component '${publication.name}', ` +
-      'which is not in the map this consumer supplied'
-    )
-  }
-  if (typeof component !== 'function') {
-    return refuse(`component-not-a-function: '${publication.name}' is ${typeof component}`)
-  }
-  return { ok: true, value: component }
-}
-
 /**
  * The entry function of a published bundle.
  *
  * Evaluating a module and reaching its default export are both ways a **verified** artifact turns out
  * to be unrunnable, so both are contained to the node.
  */
-const dynamicComponent = async (
-  executable: PublishedExecutable,
-  loader?: ModuleLoader
-): Promise<Step<ComponentFunction>> => {
-  const loaded = await loadModule(executable.executableCode, loader)
-  if (!loaded.ok) return contain(loaded.reason)
+const dynamicComponent = async (code: string, loader?: ModuleLoader): Promise<Callable> => {
+  const loaded = await loadModule(code, loader)
+  if (!loaded.ok) return { ok: false, reason: loaded.reason }
 
   const entry = entryFunction(loaded.value)
-  if (!entry.ok) return contain(entry.reason)
+  if (!entry.ok) return { ok: false, reason: entry.reason }
   return { ok: true, value: entry.value }
 }
 
@@ -194,8 +127,8 @@ const dynamicComponent = async (
 const invoke = (
   component: ComponentFunction,
   values: unknown[],
-  node: ReadablePageNode
-): Step<Node> => {
+  node: ResolvedNode
+): NodeRendered => {
   let result: unknown
   try {
     result = (component as (...args: unknown[]) => unknown)(...values)
@@ -208,107 +141,59 @@ const invoke = (
   return { ok: true, value: result }
 }
 
-/** A publication and the callable it resolved to, remembered for one render. */
-interface ResolvedComponent {
-  publication: ComponentPublication
-  component: ComponentFunction
-}
-
 /**
- * A page tree rendered into a node.
+ * Renders an already-resolved tree into a document.
  *
- * The tree must already be **verified** — `Verifier.pageTree` returns one, and refuses an
- * unverifiable page rather than degrading to it. Nothing here re-opens that question; what it does is
- * resolve each node's component, which is a separate signature over a separate document.
+ * Separate from `renderPage` because this is what a framework wrapper calls when it meets a dynamic
+ * component: the subtree is already resolved, and what it needs is a node to place.
+ *
+ * `failures` is appended to rather than returned per node, so one traversal produces one report.
  */
-const renderPage = async (
-  verifier: Verifier,
-  tree: ReadablePageNode,
+const renderResolved = async (
+  root: ResolvedNode,
   options: RenderOptions = {}
 ): Promise<Rendered> => {
   const components = options.components ?? {}
-  const cache = new Map<string, Step<ResolvedComponent>>()
   const failures: NodeFailure[] = []
+  /** One module per publication, however many nodes run it. Twenty placements is one evaluation. */
+  const modules = new Map<string, Callable>()
 
-  const resolve = async (node: ReadablePageNode): Promise<Step<ResolvedComponent>> => {
-    const published = await publicationFor(verifier, node)
-    if (!published.ok) return published
+  const componentFor = async (node: ResolvedNode): Promise<Callable> => {
+    if (node.executable === undefined) {
+      const supplied = components[node.name]
+      // Reached only when a component vanished between the check up front and here, which cannot
+      // happen for one render — kept because the alternative is calling `undefined`.
+      if (typeof supplied !== 'function') {
+        return { ok: false, reason: `component-not-supplied: '${node.name}'` }
+      }
+      return { ok: true, value: supplied }
+    }
 
-    const { publication, executable } = published.value
-    // A prebuilt publication carries no bundle and a dynamic one carries the bundle this runtime
-    // selected. Either kind contradicting itself was refused by the reader long before here.
-    const component = executable === undefined
-      ? prebuiltComponent(publication, components)
-      : await dynamicComponent(executable, options.loader)
-
-    if (!component.ok) return component
-    return { ok: true, value: { publication, component: component.value } }
-  }
-
-  /** Resolved once per publication, however many nodes pin it. */
-  const resolved = async (node: ReadablePageNode): Promise<Step<ResolvedComponent>> => {
-    const key = `${node.uid ?? ''}/${node.publicationId ?? ''}`
-    const remembered = cache.get(key)
+    const key = `${node.publication.uid}/${node.publication.publicationId}`
+    const remembered = modules.get(key)
     if (remembered !== undefined) return remembered
 
-    const answer = await resolve(node)
-    cache.set(key, answer)
-    return answer
+    const loaded = await dynamicComponent(node.executable.executableCode, options.loader)
+    modules.set(key, loaded)
+    return loaded
   }
 
-  /**
-   * The values a node's component is called with, in its parameter order.
-   *
-   * The order names attribute *references* and the page keys its values by attribute *name*, so the
-   * two are joined through the publication — see `attributeNames`. A name the page holds no value for
-   * is refused rather than passed as nothing: the page and the publication it pinned were written
-   * from one description, so a gap means one of the two has changed since.
-   */
-  const argumentsFor = async (
-    publication: ComponentPublication,
-    node: ReadablePageNode
-  ): Promise<Step<unknown[]>> => {
-    const names = attributeNames(publication)
-    if (!names.ok) return refuse(names.reason)
-
-    const values: unknown[] = []
-    for (const name of names.value) {
-      if (!(name in node.data)) {
-        return refuse(
-          `node-missing-attribute: '${node.component}' takes "${name}", which this page holds no ` +
-          'value for'
-        )
-      }
-      const value = node.data[name]
-      if (!isSlot(value)) {
-        values.push(value)
-        continue
-      }
-      const children = await renderChildren(value)
-      if (!children.ok) return children
-      values.push(children.value)
-    }
-    return { ok: true, value: values }
-  }
-
-  /**
-   * A slot's children, in order.
-   *
-   * A child whose code would not run is left out — it is already in `failures`, and inventing a
-   * stand-in would put something on the page no component produced. A child that could not be
-   * *resolved* propagates, because that is the whole page's answer and not this slot's.
-   */
-  const renderChildren = async (children: ReadablePageNode[]): Promise<Step<Node[]>> => {
+  /** A slot's children, in order, with any whose code would not run left out. */
+  const renderChildren = async (children: readonly ResolvedNode[]): Promise<Node[]> => {
     const rendered: Node[] = []
     for (const child of children) {
       const node = await renderNode(child)
-      if (node.ok) {
-        rendered.push(node.value)
-        continue
-      }
-      if (node.fatal) return node
+      if (node.ok) rendered.push(node.value)
     }
-    return { ok: true, value: rendered }
+    return rendered
+  }
+
+  const valuesFor = async (node: ResolvedNode): Promise<unknown[]> => {
+    const values: unknown[] = []
+    for (const value of node.values) {
+      values.push(isChildren(value) ? await renderChildren(value) : value)
+    }
+    return values
   }
 
   /**
@@ -317,27 +202,71 @@ const renderPage = async (
    * Depth first, because a component is handed its slot already rendered — a parent cannot be called
    * until every child beneath it has been.
    */
-  const renderNode = async (node: ReadablePageNode): Promise<Step<Node>> => {
-    const component = await resolved(node)
+  const renderNode = async (node: ResolvedNode): Promise<NodeRendered> => {
+    const component = await componentFor(node)
     if (!component.ok) {
-      if (!component.fatal) failures.push({ component: node.component, reason: component.reason })
+      failures.push({ component: node.component, reason: component.reason })
       return component
     }
 
-    const values = await argumentsFor(component.value.publication, node)
-    if (!values.ok) return values
-
-    const rendered = invoke(component.value.component, values.value, node)
+    const rendered = invoke(component.value, await valuesFor(node), node)
     if (!rendered.ok) failures.push({ component: node.component, reason: rendered.reason })
     return rendered
   }
 
-  const root = await renderNode(tree)
+  /*
+   * **Both checks are up front, and both fail the page.**
+   *
+   * A component this consumer has not supplied, or has supplied as something that cannot be called,
+   * is a fact about *this application* rather than about the documents — and every other node of that
+   * component would fail identically. Discovering it per node would contain it, and containment is
+   * for an author's bug inside a verified artifact; this is a page the consumer cannot render.
+   *
+   * The two are reported apart because they are different mistakes: one is a component nobody wrote,
+   * the other is a name bound to the wrong thing.
+   */
+  const callable = Object.keys(components).filter(name => typeof components[name] === 'function')
+  const missing = missingComponents(root, callable)
+  const uncallable = missing.filter(name => name in components)
+  const absent = missing.filter(name => !(name in components))
+
+  if (uncallable.length > 0) {
+    const described = uncallable.map(name => `'${name}' is ${typeof components[name]}`).join(', ')
+    return { ok: false, reason: `component-not-a-function: ${described}` }
+  }
+  if (absent.length > 0) {
+    return {
+      ok: false,
+      reason:
+        `component-not-supplied: this page uses ${absent.map(name => `'${name}'`).join(', ')}, ` +
+        'which this consumer did not supply'
+    }
+  }
+
+  const rendered = await renderNode(root)
   // Where the two rules meet: a component that will not run fails only its own node, and when that
   // node is the root there is no page left to return.
-  if (!root.ok) return { ok: false, reason: root.reason }
-  return { ok: true, value: root.value, failures }
+  if (!rendered.ok) return { ok: false, reason: rendered.reason }
+  return { ok: true, value: rendered.value, failures }
 }
 
-export { renderPage, isNode }
-export type { Rendered, RenderOptions, PrebuiltComponents, ComponentFunction, NodeFailure }
+/**
+ * A verified page tree, resolved and rendered into a node.
+ *
+ * The two steps in one call, for a consumer that wants DOM and nothing else. A consumer rendering
+ * with a framework calls `resolvePage` and comes back here only for dynamic subtrees.
+ */
+const renderPage = async (
+  verifier: Verifier,
+  tree: ReadablePageNode,
+  options: RenderOptions = {}
+): Promise<Rendered> => {
+  const resolved = await resolvePage(verifier, tree)
+  if (!resolved.ok) return { ok: false, reason: resolved.reason }
+  return await renderResolved(resolved.value, options)
+}
+
+export { renderPage, renderResolved, isNode }
+export type {
+  Rendered, RenderOptions, PrebuiltComponents, ComponentFunction, NodeFailure, ResolvedValue
+}

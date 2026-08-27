@@ -1,0 +1,21 @@
+{
+  "name": "@genoacms/demo-vanilla",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A plain JavaScript consumer rendering a GenoaCMS page through @genoacms/sdk",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @genoacms/sdk run build && pnpm --filter @genoacms/demo-support run build && vite",
+    "build": "pnpm --filter @genoacms/sdk run build && pnpm --filter @genoacms/demo-support run build && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@genoacms/sdk": "workspace:*",
+    "@genoacms/demo-support": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
