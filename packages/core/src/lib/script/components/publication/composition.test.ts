@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 /**
  * Which components a page may be composed from.
  *
- * **R3.** A page is built against a component's shape, and a shape nobody has published is one no
+ * A page is built against a component's shape, and a shape nobody has published is one no
  * consumer can verify — so a page composed from it names a publication that does not exist. The
  * refusal belongs where the choice is made rather than where the page is rendered.
  *
@@ -66,7 +66,7 @@ describe('listing what a page may be composed from', () => {
 
   it('does not dispatch on the kind', async () => {
     // Both kinds publish, so both compose. A filter that let prebuilt components through unpublished
-    // would be the old behavior wearing R3's name, and every other assertion here would still pass.
+    // would be the old behavior wearing the new name, and every other assertion here would still pass.
     expect(await namesOf()).toEqual(['published-prebuilt', 'published-dynamic'])
   })
 

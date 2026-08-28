@@ -11,7 +11,7 @@ import { pageReadableTreePath, getReadablePageTree } from './io.server'
 /**
  * Which published pages depend on a component.
  *
- * **R6 accepted that deleting a component breaks the pages pinning it. It no longer does.** The
+ * **Deleting a component was once allowed to break the pages pinning it. It no longer does.** The
  * break is invisible from inside the CMS: a published tree goes on naming a publication that is no
  * longer there, and a consumer resolving that pin gets nothing back — which it cannot tell apart
  * from a component that never existed or a bucket it cannot reach. Nobody is notified, and the page
@@ -31,7 +31,7 @@ import { pageReadableTreePath, getReadablePageTree } from './io.server'
  *
  * A draft page referencing the component is not broken by the deletion — it simply cannot be built
  * afterwards, which the page editor says at the time. A **published** tree is the one already being
- * served to visitors, and it is what R6's accepted cost is about.
+ * served to visitors, and it is what that accepted cost was about.
  *
  * ## A tree that cannot be read is reported, never skipped
  *

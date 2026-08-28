@@ -15,11 +15,11 @@ import { registerPublishedComponent, removeComponent } from './support/component
  * Publishing is exercised, and it writes a readable tree for real consumers. The published objects
  * are removed by the same cleanup.
  *
- * ## The component fixture is new, and it is R3 that made it necessary
+ * ## The component fixture is new, and composing only from published components made it necessary
  *
  * These tests used to create a page without choosing a component, taking whatever the select
  * happened to offer — which meant the suite silently depended on the instance's own catalog. Under
- * **R3** a page may only be composed from a **published** component, so on an instance with none the
+ * A page may only be composed from a **published** component, so on an instance with none the
  * modal states that rather than offering a form, and every test here failed on a missing Name field.
  *
  * So the suite now registers and publishes a component of its own. That is not a workaround: it is

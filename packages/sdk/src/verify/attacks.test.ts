@@ -8,17 +8,19 @@ import { renderPage } from '../execute/render.js'
 import { resolvePage } from '../execute/resolve.js'
 
 /**
- * **E7, the live attack demonstration, as regression tests.**
+ * **The live attack demonstration, as regression tests.**
  *
- * The three attacks in E7's table that Block B's verification path can answer:
+ * The three attacks this SDK's verification path can answer, all of them by an attacker who can
+ * **write to the storage bucket** without going through the CMS:
  *
- * | # | Attack | Actor |
- * | :--- | :--- | :--- |
- * | **1** | Substitute a tampered `executableCode` in the bucket | **A4** |
- * | **2** | Serve an artifact signed by an unknown key | **A4/A5** |
- * | **D6** | Repoint a published page tree in the bucket | **A4** |
+ * | # | Attack |
+ * | :--- | :--- |
+ * | **1** | Substitute a tampered `executableCode` in the bucket |
+ * | **2** | Serve an artifact signed by an unknown key |
+ * | **3** | Repoint a published page tree in the bucket |
  *
- * Attacks 3-5 belong to Block D and 6-9 are covered by E, so they are not here.
+ * Attacks against the safety ruleset and against authorization are answered elsewhere and are not
+ * here.
  *
  * ## Why these are separate from the unit tests next door
  *
@@ -29,15 +31,16 @@ import { resolvePage } from '../execute/resolve.js'
  * path a real consumer drives -- `resolvePage`, `renderPage` -- rather than the one function that
  * happens to catch it.
  *
- * That distinction has already earned itself once in this block: the publication merge removed a
+ * That distinction has already earned itself once: the publication merge removed a
  * binding check between two documents that no happy path exercised. A refusal that only a unit test
  * reaches is a refusal that can be routed around without any test noticing.
  *
  * ## The assertion that matters is that nothing ran
  *
- * For attack 1 especially, "the verifier returned invalid" is the weaker half. The claim E7 makes is
- * that tampered code **does not execute**, so every test here holds a loader spy and asserts it was
- * never called. Without that, a renderer that verified and then executed regardless would pass.
+ * For attack 1 especially, "the verifier returned invalid" is the weaker half. The claim being
+ * demonstrated is that tampered code **does not execute**, so every test here holds a loader spy and
+ * asserts it was never called. Without that, a renderer that verified and then executed regardless
+ * would pass.
  */
 
 const toBase64 = (bytes: Uint8Array): string => {
@@ -167,7 +170,7 @@ beforeEach(() => {
  * security suite worthless.
  */
 describe('the instance before any attack', () => {
-  /** What a component returns. Duck-typed, as D10 requires -- the SDK permits another realm. */
+  /** What a component returns. Duck-typed deliberately: the SDK permits execution in another realm. */
   const element = (name: string) => ({ nodeType: 1, nodeName: name }) as unknown as Node
 
   it('renders, and evaluates the published code exactly once', async () => {
@@ -187,7 +190,7 @@ describe('the instance before any attack', () => {
   })
 })
 
-describe('E7 attack 1 — a tampered executableCode in the bucket (A4)', () => {
+describe('attack 1 — a tampered executableCode in the bucket', () => {
   /**
    * The attacker's edit. Everything but the code is left exactly as published, which is what makes
    * this the realistic version: the publication still names the right component, the right release,
@@ -246,7 +249,7 @@ describe('E7 attack 1 — a tampered executableCode in the bucket (A4)', () => {
   })
 })
 
-describe('E7 attack 2 — an artifact signed by an unknown key (A4/A5)', () => {
+describe('attack 2 — an artifact signed by an unknown key', () => {
   it('refuses a publication whose key the registry does not list', async () => {
     const client = verifier()
     bucket[publicationPath(UID, PUBLICATION_ID)] =
@@ -301,9 +304,10 @@ describe('E7 attack 2 — an artifact signed by an unknown key (A4/A5)', () => {
   })
 })
 
-describe('E7, the page-tree equivalent D6 makes possible — repointing a page (A4)', () => {
+describe('attack 3 — repointing a published page in the bucket', () => {
   /**
-   * **The attack D6 exists to answer.** Before the page tree was signed, bucket write was enough to
+   * **The attack that signing the page tree exists to answer.** Before it was signed, bucket write
+   * was enough to
    * change which component a page renders without breaking any signature: every publication stayed
    * genuine and correctly signed, and only the document saying *which* to render was swapped.
    *
@@ -340,7 +344,7 @@ describe('E7, the page-tree equivalent D6 makes possible — repointing a page (
   })
 
   it('refuses it even though every publication it points at is genuine', async () => {
-    // Stated separately because it is the whole of why D6 was needed. The attacker writes no invalid
+    // Stated separately because it is the whole of why the page tree is signed. The attacker writes no invalid
     // document here -- both publications are the instance's own, signed by the instance's own key.
     const client = verifier()
     expect(await client.component({ uid: OTHER_UID, publicationId: OTHER_PUBLICATION_ID }))

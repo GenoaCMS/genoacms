@@ -4,7 +4,8 @@
   /**
    * What the page editor says when no component can be composed yet.
    *
-   * **R3** means an empty picker is now an ordinary state rather than a fault: a component that has
+   * Composing only from **published** components means an empty picker is an ordinary state rather
+   * than a fault: a component that has
    * been registered but never published cannot be put on a page. An empty list on its own reads as
    * a broken screen, and an author looking at one has no way to tell whether the CMS has lost their
    * components or is refusing them for a reason.

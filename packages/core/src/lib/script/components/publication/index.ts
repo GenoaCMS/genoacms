@@ -257,7 +257,7 @@ const publishComponent = async (
 /**
  * The components a page may be composed from: those that have been published.
  *
- * **R3.** A page is built against a component's shape, and a shape nobody has published is one no
+ * A page is built against a component's shape, and a shape nobody has published is one no
  * consumer can verify — so composing from it produces a page whose nodes name a publication that
  * does not exist. Refusing at render time would be discovering it too late; the editor is where the
  * choice is made, so the editor is where the choice is narrowed.

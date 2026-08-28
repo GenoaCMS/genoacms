@@ -38,7 +38,7 @@ describe('reading a tree', () => {
   })
 
   it('reads a prebuilt node, which pins a publication of its own', () => {
-    // The half of R1 this step exists for. A prebuilt component's *code* stays in the consuming
+    // A prebuilt component's *code* stays in the consuming
     // application, but its description is published and signed like any other — so it carries a pin,
     // and a reader that dropped it would leave the consumer calling the component from an unsigned
     // local assumption about its parameter order.

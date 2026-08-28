@@ -71,8 +71,8 @@ const saveComponent = async (page: Page): Promise<void> => {
 /**
  * Publishes the component whose registrar page is open.
  *
- * **Every fixture here has to be published**, because under R3 a page may only be composed from
- * components that have been. Before R3 these fixtures were saved and never released, and the pickers
+ * **Every fixture here has to be published**, because a page may only be composed from components
+ * that have been. Before that rule these fixtures were saved and never released, and the pickers
  * offered them anyway — so this is not setup that happens to be needed, it is the rule under test
  * being satisfied the way an author would satisfy it.
  */
@@ -185,8 +185,8 @@ test.describe('building the component catalog', () => {
   })
 
   test('creates one component per remaining attribute type', async ({ page }) => {
-    // Eight components, each registered, described, saved and **published** — R3 means a fixture is
-    // not usable until it has been released, so this builder does twice the round trips it used to
+    // Eight components, each registered, described, saved and **published** — a fixture is not
+    // usable until it has been released, so this builder does twice the round trips it used to
     // and comfortably exceeds the default per-test budget.
     test.setTimeout(180_000)
     for (const type of ATTRIBUTE_TYPES) {
@@ -247,7 +247,7 @@ test.describe('composing the page', () => {
 
 test.describe('what a page may be composed from', () => {
   /*
-   * **R3.** A page is built against a component's shape, and a shape nobody published is one no
+   * A page is built against a component's shape, and a shape nobody published is one no
    * consumer can verify — so an unpublished component must not be offerable at all.
    *
    * The fixture is registered and saved and deliberately **not** published, which is the whole of
@@ -487,12 +487,13 @@ const deleteFixtures = async (page: Page): Promise<number> => {
 
 test.describe('warning before a deletion breaks a page', () => {
   /*
-   * **R6 and Q4.** Deleting a component removes its publications, and a published page pinning one
+   * Deleting a component removes its publications, and a published page pinning one
    * of them breaks — as an *unresolvable pin*, which a consumer cannot tell apart from a component
    * that never existed or a bucket it cannot reach. Nothing notices, nobody is told, and the page
    * renders short.
    *
-   * R6 accepts that. What is asserted here is that it is accepted **knowingly**: the confirmation
+   * That break was once accepted. What is asserted here is that it is accepted **knowingly**: the
+   * confirmation
    * names the published pages that would break before an author types the component's name.
    *
    * The deletion is deliberately **cancelled**. The warning is the subject, and actually deleting a
@@ -523,7 +524,7 @@ test.describe('warning before a deletion breaks a page', () => {
 
   test('refuses the deletion, not merely warns about it', async ({ page }) => {
     /*
-     * **What the warning alone did not do.** R6 accepted the break and the confirmation named it;
+     * **What the warning alone did not do.** The break was accepted and the confirmation named it;
      * four surfaces delete a component and only two carried the warning, so the other two went on
      * silently breaking published pages. The refusal is below all four, which is what this asserts:
      * the author confirms properly, and the component is still there afterwards.

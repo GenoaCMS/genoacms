@@ -15,7 +15,7 @@ import { publishComponent, getPublishedComponent, listComposableComponentHeaders
  *
  * ## Two permissions, and the second one only sometimes
  *
- * Publishing always demands **`components:modify`** — R5's decision, and the only permission that
+ * Publishing always demands **`components:modify`** — the only permission that
  * can gate an act a *prebuilt* component performs, since `components:code` names something a
  * prebuilt component does not have.
  *
@@ -23,7 +23,7 @@ import { publishComponent, getPublishedComponent, listComposableComponentHeaders
  * its source and signs an executable that consumers will run. Without it, a principal holding only
  * `components:modify` — the curator who edits descriptions and cannot read a line of source — could
  * release code they are not permitted to see. That is precisely the "publisher who releases what
- * others wrote" arrangement **R11** recorded as deliberately given up, and it should not return by
+ * others wrote" arrangement that was deliberately given up, and it should not return by
  * accident through a surface that publishes both kinds.
  *
  * The extra demand is **dispatched on the component's stored type**, never on anything a caller
@@ -31,7 +31,7 @@ import { publishComponent, getPublishedComponent, listComposableComponentHeaders
  * rather than an exception to it: a component with executable code needs the permission that reaches
  * executable code.
  *
- * **This is my call rather than a decision on record**, and it is the strict reading. R5 says
+ * **This is my call rather than a decision on record**, and it is the strict reading. The rule is
  * `modify` is enough for publishing; it was written when only dynamic components could be published
  * and `modify` did not reach them. If the intent is that `modify` alone should release code, this is
  * the line to relax.

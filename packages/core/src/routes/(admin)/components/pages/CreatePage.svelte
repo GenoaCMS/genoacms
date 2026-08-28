@@ -8,7 +8,7 @@
 
   interface Props {
     /**
-     * The components a page may be rooted in: published ones only, per **R3**.
+     * The components a page may be rooted in: **published ones only**.
      *
      * Empty is an ordinary state rather than a fault, and it is stated instead of shown as a blank
      * select — an author cannot tell a select with no options from one that failed to load.

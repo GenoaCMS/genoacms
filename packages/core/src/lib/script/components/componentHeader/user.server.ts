@@ -217,7 +217,7 @@ const listUserPagesPinningComponent = async (
 const deleteUserComponentHeader = async (ctx: AuthContext, name: string) => {
   requirePermission(ctx, 'components:register')
   await requirePrebuilt(name)
-  // Refused rather than warned about. R6 accepted the break and using the CMS showed why that was
+  // Refused rather than warned about. The break was once accepted and using the CMS showed why that was
   // wrong: a warning belongs to a surface, and the bulk selection has none.
   await requireNoPublishedDependents(name)
   await Promise.all([

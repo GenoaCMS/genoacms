@@ -145,7 +145,7 @@ describe('digest', () => {
     {}
   ])('agrees with an independent SHA-256 implementation for %j', (payload) => {
     // A second implementation is the only thing that distinguishes "correct" from "self-consistent"
-    // — the same reasoning E2 applies across languages, applied here across libraries.
+    // — the same reasoning applied across languages, applied here across libraries.
     const expected = createHash('sha256').update(canonicalBytes(payload as JsonValue)).digest('hex')
     expect(hex(digest(payload as JsonValue))).toBe(expected)
   })

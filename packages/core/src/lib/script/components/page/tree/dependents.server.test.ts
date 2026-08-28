@@ -7,7 +7,7 @@ import type { ReadablePageNode } from './types'
  * Two things are built on the same scan: the **warning** a confirmation shows, and the **refusal**
  * that stops the deletion whichever surface it came from.
  *
- * R6 accepted the break and Q4 answered it by informing. Using the CMS showed that was not enough: a
+ * The break was once accepted and answered by informing. Using the CMS showed that was not enough: a
  * warning belongs to a surface, there are four ways to delete a component, and the one without a
  * warning is the one that silently breaks a site. So the rule moved below all four and the warning
  * became the explanation rather than the protection.
@@ -171,7 +171,7 @@ describe('listing the published pages', () => {
 
 describe('refusing to break a published page', () => {
   /*
-   * **R6 accepted the break; using the CMS showed why that was wrong.** A warning belongs to a
+   * **The break was once accepted; using the CMS showed why that was wrong.** A warning belongs to a
    * surface, and four things delete a component — two dialogs and two bulk selections. The one
    * without a warning is the one that silently breaks a site, so the rule moved below all four.
    */

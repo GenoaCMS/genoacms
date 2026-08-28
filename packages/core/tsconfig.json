@@ -12,7 +12,7 @@
 		"moduleResolution": "bundler"
 	},
 	// Overriding `include` means restating the generated list: TypeScript replaces it rather than
-	// merging. Copied from .svelte-kit/tsconfig.json, plus `evidence/`, which holds the E6 matrix and
+	// merging. Copied from .svelte-kit/tsconfig.json, plus `evidence/`, which holds the permission matrix and
 	// is not under src/ — without this it would be run by vitest but never type-checked.
 	"include": [
 		".svelte-kit/ambient.d.ts",

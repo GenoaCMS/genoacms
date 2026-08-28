@@ -80,7 +80,7 @@ interface ReadablePageNode {
    * **Absent only for a component that has never been published**, which has nothing to pin. Such a
    * node names a component a consumer cannot resolve, and it is the consumer's verification that
    * refuses to render it rather than anything here. Composing a page from unpublished components is
-   * what the page editor stops offering under R3.
+   * what the page editor stops offering once composition is limited to published components.
    */
   publicationId?: string
   data: Record<string, ReadableAttributeValue>

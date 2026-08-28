@@ -59,7 +59,7 @@ import { bytesToHex } from '@noble/hashes/utils.js'
  *
  * Versioned, so the shape can change later without leaving old signatures ambiguous about which one
  * they attested to. It replaces `genoacms.componentHeader.v1` and `genoacms.componentExecutable.v1`,
- * which are gone rather than deprecated — nothing has been released (**R10**), and leaving them
+ * which are gone rather than deprecated — nothing has been released, and leaving them
  * registered would let a verifier accept half a publication as a whole document.
  */
 const PUBLICATION_DOCUMENT: DocumentType = 'genoacms.componentPublication.v1'

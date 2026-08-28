@@ -18,7 +18,7 @@
  *   there. Browsers largely refuse `data:` in `script-src`, so it is not a browser fallback — it is
  *   the other host's only route.
  *
- * D10 says the consumer chooses where each step runs, so neither choice is imposed: `loadModule` is
+ * The consumer chooses where each step runs, so neither choice is imposed: `loadModule` is
  * an option, and a consumer with a stricter policy, a worker, or a sandboxed iframe supplies its
  * own.
  */

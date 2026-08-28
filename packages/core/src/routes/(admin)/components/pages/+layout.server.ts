@@ -7,7 +7,7 @@ import { requireAuthContext } from '$lib/script/authorization/request.server'
  * Two lists, because the page editor asks two different questions about a component.
  *
  * **`composableComponents`** is what may be *introduced* to a page: only components that have been
- * published, per **R3**. A page is built against a shape, and a shape nobody published is one no
+ * **published**. A page is built against a shape, and a shape nobody published is one no
  * consumer can verify — so offering it would let an author compose a page that cannot be served.
  *
  * **`componentSchemas`** is the whole catalog, and it is what an *existing* node's header is

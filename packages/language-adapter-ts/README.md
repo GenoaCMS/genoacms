@@ -20,7 +20,7 @@ shape is authored in the registrar and passed in, so there is nothing to discove
 attributes would be reporting back what it had just been handed.
 
 The diagnostics it returns today are those of assembly and compilation. The safety ruleset that will
-fill this in is Block D's work; the seam exists so that it has somewhere to land.
+fill this in arrives later; the seam exists so that it has somewhere to land.
 
 :::note
 An earlier version of this adapter **derived** attributes by reading parameter type annotations.

@@ -60,7 +60,7 @@ const reported = (diagnostics: Diagnostic[], prologueLines: number): Diagnostic[
  *
  * **There are no safety rules yet**, so this reports only what emitting the signature had to say —
  * an attribute that cannot become a parameter name, or two that would become the same one. The
- * ruleset that will fill this in is Block D's, and the seam exists so it has somewhere to land
+ * ruleset that will fill this in arrives later, and the seam exists so it has somewhere to land
  * rather than arriving as a new concept.
  *
  * It does not report what a component *accepts*. That used to be its purpose, and it is gone: a

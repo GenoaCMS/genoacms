@@ -61,7 +61,7 @@ type PrebuiltComponents = Record<string, ComponentFunction>
 interface RenderOptions {
   /** Prebuilt components this consumer supplies. See `PrebuiltComponents`. */
   components?: PrebuiltComponents
-  /** How source text becomes a module. See `ModuleLoader` — the seam D10 needs. */
+  /** How source text becomes a module. See `ModuleLoader`. */
   loader?: ModuleLoader
 }
 
@@ -97,7 +97,7 @@ const contain = (reason: string): NodeRendered => ({ ok: false, reason })
 /**
  * Whether a value is a DOM node, asked by shape rather than by `instanceof Node`.
  *
- * **Deliberate, and not laxity.** D10 lets a consumer execute components somewhere other than the
+ * **Deliberate, and not laxity.** A consumer may execute components somewhere other than the
  * page's own realm — a worker, a sandboxed iframe — and a node built there is a perfectly good node
  * that `instanceof` answers `false` for, because the constructor it came from is a different object.
  * Refusing those would refuse exactly the placement the SDK was designed to allow.

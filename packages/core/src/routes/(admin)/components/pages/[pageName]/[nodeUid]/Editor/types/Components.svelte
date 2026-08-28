@@ -58,7 +58,7 @@
     onvalue(data.value)
   }
   /*
-   * Drawn from the **composable** catalog, not the whole one: under R3 a slot may only be filled
+   * Drawn from the **composable** catalog, not the whole one: a slot may only be filled
    * with a component that has been published. The slot's own `enum` narrows it further, and the two
    * are different refusals — one says the component cannot be used anywhere yet, the other that this
    * slot does not accept it.

@@ -126,7 +126,7 @@ describe('rendering a node', () => {
 
 describe('passing values to parameters', () => {
   it('passes them in the publication\'s order, not the page\'s', async () => {
-    // **The property D11 exists for.** A component's attributes are positional and a node's data is
+    // **The property the resolution seam exists for.** A component's attributes are positional and a node's data is
     // keyed, so the order has to come from the signed publication. Written with the page's keys in
     // the opposite order, so a renderer reading `data` would pass them the wrong way round and this
     // would fail.

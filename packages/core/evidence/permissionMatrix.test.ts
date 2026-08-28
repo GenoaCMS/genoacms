@@ -4,7 +4,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
 import type { Grant } from '$lib/script/authorization/grants'
 
 /**
- * **E6 — the exhaustive permission matrix.**
+ * **The exhaustive permission matrix.**
  *
  * Every (role × service-layer function) pair is invoked against the **real** gated service and
  * checked against an independently declared expectation. Two properties make this evidence rather
@@ -21,9 +21,9 @@ import type { Grant } from '$lib/script/authorization/grants'
  * Only the primary (unprivileged) layers are stubbed. Nothing between the call and the check is
  * mocked, so a missing check has nowhere to hide.
  *
- * **Not covered here:** the field-level assertions E6 also calls for — new-field default deny and
+ * **Not covered here:** the field-level assertions the matrix also calls for — new-field default deny and
  * write-merge integrity — because field masking is step 17 and is not built. They are absent rather
- * than approximated, and E6 must report them as such.
+ * than approximated, and the evidence must report them as such.
  */
 
 // ---------------------------------------------------------------------------------------------
@@ -389,7 +389,7 @@ describe('the permission matrix', () => {
 
 describe('default deny', () => {
   it('refuses a principal with no grants at every service function', async () => {
-    // E6's first additional assertion, stated directly rather than inferred from the matrix.
+    // The first additional assertion, stated directly rather than inferred from the matrix.
     for (const operation of operationNames) {
       expect(await isAllowed('Nobody', operation)).toBe(false)
     }
@@ -416,7 +416,7 @@ describe('default deny', () => {
 })
 
 /**
- * **Field-level masking**, the part of the E6 evidence that was reported as absent until it landed.
+ * **Field-level masking**, the part of this evidence that was reported as absent until it landed.
  *
  * Driven through the same gated service the matrix uses, so these are assertions about the product
  * rather than about the masking helpers, which are unit-tested separately.

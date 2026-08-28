@@ -91,7 +91,7 @@ interface ComponentHeader {
 /**
  * What the registrar is given to make a component.
  *
- * The **type is chosen here and never again** (R4-equivalent): it decides whether the component also
+ * The **type is chosen here and never again**: it decides whether the component also
  * gets a source definition, which permission the creation demands, and how a page resolves it once
  * published. Changing it later would orphan a definition or invalidate every page that resolved the
  * component the other way, so it is fixed at creation and every operation reads the stored value

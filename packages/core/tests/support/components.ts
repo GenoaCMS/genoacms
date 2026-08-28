@@ -6,7 +6,7 @@ import { expect, type Page } from '@playwright/test'
  * `components.spec.ts` owns the registrar as a *subject* and drives it in its own terms. What lives
  * here is the registrar as a **fixture**: what a page suite has to do before it can compose anything.
  *
- * Shared rather than copied because **R3** made this a precondition of two suites at once. A page is
+ * Shared rather than copied because publishing became a precondition of two suites at once. A page is
  * composed only from components that have been published, so every suite that builds a page now has
  * to register and release one first — and two suites each keeping their own idea of what "published"
  * involves will eventually disagree, with the one that is wrong looking like a product defect.

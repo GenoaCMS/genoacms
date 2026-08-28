@@ -34,7 +34,7 @@ describe('loading a module', () => {
   })
 
   it('uses a loader the consumer supplies instead of choosing one', async () => {
-    // The seam D10 needs: a consumer whose policy forbids both URL schemes, or who runs components
+    // The seam a pluggable loader needs: a consumer whose policy forbids both URL schemes, or who runs components
     // inside a worker, supplies its own way of turning source into a module.
     const loaded = await loadModule('ignored', async () => ({ Hero: () => 'from the consumer' }))
 

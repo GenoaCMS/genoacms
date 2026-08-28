@@ -107,7 +107,7 @@ describe('pinning a publication', () => {
   })
 
   it('pins a prebuilt node too', async () => {
-    // The half of R1 this step exists for. A prebuilt component's *code* is in the consuming
+    // A prebuilt component's *code* is in the consuming
     // application, but its description is published and signed like any other — so it has a
     // publication, and a builder that still skipped it would leave the consumer calling the
     // component from an unsigned local assumption about its parameter order.

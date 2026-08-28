@@ -4,13 +4,13 @@
   /**
    * What deleting this component would break, shown inside the confirmation.
    *
-   * **R6 accepts that deletion breaks pinned pages; this is Q4's answer.** The break is silent
+   * **Deletion is allowed to break pinned pages; this is how that is surfaced.** The break is silent
    * everywhere else: a published tree goes on naming a publication that is no longer there, and a
    * consumer resolving that pin gets nothing back — indistinguishable from a component that never
    * existed or a bucket it cannot reach. Nobody is notified and the page renders short.
    *
    * So the cost is turned into an informed one at the only moment it can be: before the author
-   * confirms. It does not *prevent* the deletion, which is R6's decision and not this component's to
+   * confirms. It does not *prevent* the deletion, which is settled elsewhere and not this component's to
    * revisit.
    *
    * ## Three states, and none of them is a blank space

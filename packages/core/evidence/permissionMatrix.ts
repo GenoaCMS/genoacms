@@ -2,7 +2,7 @@ import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
 import type { Permission } from '$lib/script/authorization/permissions'
 
 /**
- * The E6 permission matrix: the roles under test and what each is expected to be allowed.
+ * The permission matrix: the roles under test and what each is expected to be allowed.
  *
  * **Data only, and deliberately separate from the test that runs it.** The expectations are written
  * by hand from the permission taxonomy — never derived from the `requirePermission` calls they check —
