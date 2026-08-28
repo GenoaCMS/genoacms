@@ -16,13 +16,31 @@ import { Storage } from '@google-cloud/storage'
  * It should not. The SDK needs a 32-byte public key and a way to fetch bytes — no credentials, no
  * vendor. This instance keeps its published documents in a **private** bucket, so there is nowhere
  * public to fetch them from. Publish mirrors are what fix that, and when they land this file goes.
+ *
+ * ## Two ways to hold them, and the better one holds nothing
+ *
+ * A service-account JSON is what a developer has on their own machine, and it is passed in as a
+ * string. **Deployed, there is none**: a hosted function has an identity of its own, and asking for
+ * a key file there would mean putting one in a bundle. So an absent credential is not a
+ * misconfiguration — it means *use the ambient identity*, which is what `new Storage()` with no
+ * arguments does.
+ *
+ * That is why this is one reader rather than two. The deployed copy differed from this one in
+ * exactly this line, and a second copy of the reader is a second place for the 404-versus-502
+ * distinction below to be got wrong.
  */
 
 /** Built once and kept: the client pools connections, and one per request would not. */
 let client: Storage | undefined
 
+/**
+ * `credentials` empty means Application Default Credentials — the ambient identity — rather than
+ * no access. The bucket name is the only thing genuinely required.
+ */
 const bucketFor = (credentials: string, bucket: string) => {
-  client ??= new Storage({ credentials: JSON.parse(credentials) as Record<string, unknown> })
+  client ??= credentials === ''
+    ? new Storage()
+    : new Storage({ credentials: JSON.parse(credentials) as Record<string, unknown> })
   return client.bucket(bucket)
 }
 
@@ -62,13 +80,14 @@ type Served =
 
 const serveArtifact = async (
   path: string,
-  configuration: { bucket: string, credentials: string }
+  configuration: { bucket: string, credentials?: string }
 ): Promise<Served> => {
-  const { bucket, credentials } = configuration
-  if (bucket === '' || credentials === '') {
+  const { bucket, credentials = '' } = configuration
+  if (bucket === '') {
     // Named, because "could not read the bucket" sends whoever is setting this up to look at the
-    // network rather than at their `.env`.
-    return { status: 500, body: 'demo/unconfigured: GENOACMS_BUCKET and GENOACMS_CREDENTIALS must be set' }
+    // network rather than at their `.env`. Credentials are *not* required: absent means the ambient
+    // identity, which is how this runs deployed.
+    return { status: 500, body: 'demo/unconfigured: GENOACMS_BUCKET must be set' }
   }
 
   try {

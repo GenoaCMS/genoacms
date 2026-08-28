@@ -1,0 +1,121 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "genoacms-demo",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "node \"$PROJECT_DIR/leakcheck.mjs\" \"$RESOURCE_DIR\""
+      ],
+      "//gate": "Refuses to upload a payload containing the service account. On every entry rather than one, so that a partial deploy -- firebase deploy --only hosting:genoacms-demo-react -- is gated too. $RESOURCE_DIR is the directory being uploaded, so each unit checks its own bytes."
+    }
+  ],
+  "hosting": [
+    {
+      "site": "genoacms-demo-svelte",
+      "public": "public/svelte",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "function": {
+            "functionId": "demoSvelte",
+            "region": "europe-west3"
+          }
+        }
+      ],
+      "//": "SvelteKit is server-rendered on a function, so anything Hosting has no file for goes there -- including /artifacts, which this application serves from its own route rather than from the shared function.",
+      "predeploy": [
+        "node \"$PROJECT_DIR/leakcheck.mjs\" \"$RESOURCE_DIR\""
+      ]
+    },
+    {
+      "site": "genoacms-demo-react",
+      "public": "public/react",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/artifacts/**",
+          "function": {
+            "functionId": "artifacts",
+            "region": "europe-west3"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "//": "A static build. /artifacts is matched first and goes to the shared function; everything else falls back to index.html, because these are single-page applications. Order matters: a catch-all placed first would swallow the artifact requests and answer them with HTML.",
+      "predeploy": [
+        "node \"$PROJECT_DIR/leakcheck.mjs\" \"$RESOURCE_DIR\""
+      ]
+    },
+    {
+      "site": "genoacms-demo-vue",
+      "public": "public/vue",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/artifacts/**",
+          "function": {
+            "functionId": "artifacts",
+            "region": "europe-west3"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "//": "A static build. /artifacts is matched first and goes to the shared function; everything else falls back to index.html, because these are single-page applications. Order matters: a catch-all placed first would swallow the artifact requests and answer them with HTML.",
+      "predeploy": [
+        "node \"$PROJECT_DIR/leakcheck.mjs\" \"$RESOURCE_DIR\""
+      ]
+    },
+    {
+      "site": "genoacms-demo-vanilla",
+      "public": "public/vanilla",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/artifacts/**",
+          "function": {
+            "functionId": "artifacts",
+            "region": "europe-west3"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "//": "A static build. /artifacts is matched first and goes to the shared function; everything else falls back to index.html, because these are single-page applications. Order matters: a catch-all placed first would swallow the artifact requests and answer them with HTML.",
+      "predeploy": [
+        "node \"$PROJECT_DIR/leakcheck.mjs\" \"$RESOURCE_DIR\""
+      ]
+    }
+  ]
+}
