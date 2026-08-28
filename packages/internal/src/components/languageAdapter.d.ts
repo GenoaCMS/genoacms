@@ -1,5 +1,6 @@
 import type { AttributeReference, ComponentHeaderAttributes } from './attributes'
 import type { ExecutablePlatform } from './executable'
+import type { SastRuleId } from './sast'
 
 /**
  * What a language must provide for components to be authored in it.
@@ -54,22 +55,62 @@ import type { ExecutablePlatform } from './executable'
 /** How much a diagnostic matters. A `fatal` one stops a commit; a `warning` is reported and does not. */
 type DiagnosticSeverity = 'fatal' | 'warning'
 
+/** What was violated. Both kinds come from the adapter — the security ruleset is its work too. */
+type DiagnosticType = 'language-rule' | 'security-rule'
+
+/** Everything a diagnostic carries regardless of which kind of rule produced it. */
+interface DiagnosticBase {
+  severity: DiagnosticSeverity
+  /** What is wrong, in the author's terms. */
+  message: string
+  line?: number
+  column?: number
+}
+
+/**
+ * A rule of the language itself: a name that cannot become a parameter, two that collide, an import
+ * the assembly will not accept, a compile that failed.
+ *
+ * Its `rule` is an **open string**, because these identifiers belong to the adapter that emitted
+ * them. A Kotlin adapter fails in ways a TypeScript one has no name for, and a shared contract
+ * enumerating TypeScript's failure modes would either bloat or block it.
+ */
+interface LanguageRuleDiagnostic extends DiagnosticBase {
+  type: 'language-rule'
+  rule: string
+}
+
+/**
+ * A violation of the SAST ruleset.
+ *
+ * Its `rule` is a **closed union**, because the ruleset is GenoaCMS's rather than any adapter's:
+ * every adapter implements the same rules, reports the same identifiers, and is measured against
+ * them. That is what lets a coverage report compare two adapters at all.
+ */
+interface SecurityRuleDiagnostic extends DiagnosticBase {
+  type: 'security-rule'
+  rule: SastRuleId
+}
+
 /**
  * Something the adapter has to say about a source file.
  *
  * **Where** is not optional in practice: a diagnostic an author cannot locate is a refusal without a
  * reason, and the commit it blocks is then a guess. `line` and `column` are 1-based, matching how
  * editors count and how a person reads an error.
+ *
+ * ## Why the two kinds are separated
+ *
+ * They were one field with an open string, and that made a compiler crash indistinguishable from a
+ * rule that fired. **Coverage is reported as rules rejected over rules attempted**, so a run where the
+ * compiler failed six times would have counted six rejections and reported a ruleset working better
+ * than it was. Discriminating on `type` makes that miscount unrepresentable rather than merely
+ * unlikely.
+ *
+ * Both kinds are produced by the language adapter — the SAST analysis lives there, since detecting a
+ * violation means walking that language's AST. What differs is who owns the *identifier*.
  */
-interface Diagnostic {
-  severity: DiagnosticSeverity
-  /** Stable identifier for the rule that produced this, so it can be cited and suppressed. */
-  rule: string
-  /** What is wrong, in the author's terms. */
-  message: string
-  line?: number
-  column?: number
-}
+type Diagnostic = LanguageRuleDiagnostic | SecurityRuleDiagnostic
 
 /**
  * A component's parameters, in the order a consumer calls them.
@@ -98,7 +139,7 @@ interface AnalysisResult {
    *
    * A `fatal` entry stops a publication. An empty array means the adapter found nothing to say —
    * which is what the TypeScript adapter returns today, because the safety ruleset that will fill
-   * this in is Block D's work and the seam exists so that it has somewhere to land.
+   * this in arrives later, and the seam exists so that it has somewhere to land.
    */
   diagnostics: Diagnostic[]
 }
@@ -187,6 +228,10 @@ export type {
   SourceRequest,
   LanguageProvider,
   DiagnosticSeverity,
+  DiagnosticType,
+  DiagnosticBase,
+  LanguageRuleDiagnostic,
+  SecurityRuleDiagnostic,
   Diagnostic,
   AnalysisRequest,
   AnalysisResult,

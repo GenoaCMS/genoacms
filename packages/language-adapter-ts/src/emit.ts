@@ -126,6 +126,7 @@ const parametersOf = (shape: ComponentShape): Parameters => {
     const identifier = identifierFor(name)
     if (identifier === undefined) {
       diagnostics.push({
+        type: 'language-rule',
         severity: 'fatal',
         rule: 'unnameable-attribute',
         message: name.trim() === ''
@@ -140,6 +141,7 @@ const parametersOf = (shape: ComponentShape): Parameters => {
     const owner = taken.get(identifier)
     if (owner !== undefined) {
       diagnostics.push({
+        type: 'language-rule',
         severity: 'fatal',
         rule: 'colliding-attribute-names',
         message:

@@ -42,6 +42,10 @@
     "./languageAdapter": {
       "import": "./src/components/languageAdapter.js",
       "types": "./src/components/languageAdapter.d.ts"
+    },
+    "./sast": {
+      "import": "./src/components/sast.js",
+      "types": "./src/components/sast.d.ts"
     }
   },
   "scripts": {

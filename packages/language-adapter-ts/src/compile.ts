@@ -51,6 +51,7 @@ const importRefusal = (
   position: number,
   specifier: string
 ): Diagnostic => ({
+  type: 'language-rule',
   severity: 'fatal',
   rule: 'import-not-allowed',
   message:
@@ -110,6 +111,7 @@ const refusals = (source: string): Diagnostic[] => {
 /** An `esbuild` message, in the shape the rest of the CMS reports problems in. */
 const fromEsbuild = (severity: Diagnostic['severity']) =>
   (message: { text: string, location: { line: number, column: number } | null }): Diagnostic => ({
+    type: 'language-rule',
     severity,
     rule: 'compilation-failed',
     message: message.text,
@@ -144,7 +146,7 @@ const toEsModule = async (source: string, target: string): Promise<CompilationRe
     return {
       diagnostics: messages.length > 0
         ? messages
-        : [{ severity: 'fatal', rule: 'compilation-failed', message: String(error) }]
+        : [{ type: 'language-rule', severity: 'fatal', rule: 'compilation-failed', message: String(error) }]
     }
   }
 }
@@ -156,6 +158,7 @@ const toEsModule = async (source: string, target: string): Promise<CompilationRe
  * something else would publish an artifact no consumer can run.
  */
 const unsupportedPlatform = (platform: ExecutablePlatform): Diagnostic => ({
+  type: 'language-rule',
   severity: 'fatal',
   rule: 'unsupported-platform',
   message: `The TypeScript adapter compiles for 'web-esmodule', not '${platform}'`
@@ -169,6 +172,7 @@ const unsupportedPlatform = (platform: ExecutablePlatform): Diagnostic => ({
  * was intended.
  */
 const emptyOutput = (): Diagnostic => ({
+  type: 'language-rule',
   severity: 'fatal',
   rule: 'empty-executable',
   message: 'This component compiles to an empty module. There is nothing for a consumer to run.'
