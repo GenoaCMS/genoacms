@@ -1,7 +1,8 @@
 # `@genoacms/language-adapter-ts`
 
-The TypeScript implementation of GenoaCMS's `LanguageAdapter`: it reads a component's source to
-learn what values the component accepts, and compiles that source into something a consumer can run.
+The TypeScript implementation of GenoaCMS's `LanguageAdapter`: it wraps a component's body in an
+entry function emitted from the component's header, checks the result, and compiles it into
+something a consumer can run.
 
 It is registered in `genoa.config` like any other adapter, and a component records the language it
 is written in, so the CMS resolves this adapter from the component rather than from a global
@@ -9,14 +10,25 @@ setting.
 
 ## What it does, and does not
 
-`analyze` derives **attributes** — nothing else. It does not know a component's identity, the order
-its attributes are displayed in, or its editing history; those belong to the CMS. Merging what comes
-back into a stored entry, and preserving each attribute's uid so that pages keep working, happens
-there.
+It is handed the author's **body** and the component's **shape** — the parameters and the order a
+consumer calls them in — and assembles the two itself. `assemble` is the one function behind all
+three methods, so the signature an author reads, the source that is analyzed, and the source that is
+compiled cannot drift apart.
 
-Attribute types are read from the component function's **parameter type annotations**. The analyzer
-reads a parameter's *resolved* type text, which is why component sources declare those types as
-generic interfaces: a `type` alias resolves to its right-hand side and is no longer recognizable.
+`analyze` returns **diagnostics and nothing else**. It does not report what a component accepts: the
+shape is authored in the registrar and passed in, so there is nothing to discover, and reporting
+attributes would be reporting back what it had just been handed.
+
+The diagnostics it returns today are those of assembly and compilation. The safety ruleset that will
+fill this in is Block D's work; the seam exists so that it has somewhere to land.
+
+:::note
+An earlier version of this adapter **derived** attributes by reading parameter type annotations.
+That is gone, and the removal fixed a live hazard rather than merely redundant work: re-derivation
+produced fresh attributes on every publication, which had to be rematched to the stored ones by
+parameter name to preserve each attribute's uid — and a page node holds that uid, so a match that
+failed detached every page using the attribute, silently.
+:::
 
 ## It is the reference implementation of an unvalidated interface
 
