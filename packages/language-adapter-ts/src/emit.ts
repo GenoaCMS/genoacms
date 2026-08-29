@@ -124,6 +124,19 @@ const parametersOf = (shape: ComponentShape): Parameters => {
   for (const attribute of orderedAttributes(shape)) {
     const name = nameOf(attribute)
     const identifier = identifierFor(name)
+    if (identifier === PASSTHROUGH) {
+      // The registrar refuses this name at creation. Repeated here because the emitted signature is
+      // this package's to keep valid, and two parameters of one name do not compile.
+      diagnostics.push({
+        type: 'language-rule',
+        severity: 'fatal',
+        rule: 'reserved-parameter-name',
+        message:
+          `The attribute "${name}" becomes the parameter \`${PASSTHROUGH}\`, which every component ` +
+          'already receives from the consuming application. Rename the attribute.'
+      })
+      continue
+    }
     if (identifier === undefined) {
       diagnostics.push({
         type: 'language-rule',
@@ -174,6 +187,25 @@ interface Assembly {
 const ENTRY_FUNCTION = 'component'
 
 /**
+ * The capability parameter every component receives, and the one name an attribute may not take.
+ *
+ *     attributes (positional, from attributeOrder)          passthrough
+ *     ├─────────────────────────────────────────┤           ├─────────┤
+ *     component(heading, body, cards,            ...        , passthrough)
+ *
+ * **Last, and always present.** Last because the attributes ahead of it are addressed by position,
+ * so putting it first would shift every one of them. Always present because the alternative is every
+ * author writing a presence check for something the SDK always supplies.
+ *
+ * It defaults to `{}` in the signature as well as in the SDK. A component is then callable on its
+ * own — in a test, or by a consumer that grants nothing — without the parameter being undefined.
+ */
+const PASSTHROUGH = 'passthrough'
+
+/** What a consumer may put in it is the consumer's decision, so the type says only that it is an object. */
+const PASSTHROUGH_DECLARATION = `  ${PASSTHROUGH}: Record<string, unknown> = {}`
+
+/**
  * The declaration a body is wrapped in.
  *
  * The single source of both the assembled module and the preview the editor shows, so the two
@@ -181,10 +213,12 @@ const ENTRY_FUNCTION = 'component'
  */
 const signatureOf = (shape: ComponentShape): { text: string, diagnostics: Diagnostic[] } => {
   const parameters = parametersOf(shape)
+  const declarations = parameters.text.length === 0
+    ? PASSTHROUGH_DECLARATION
+    : `${parameters.text},\n${PASSTHROUGH_DECLARATION}`
+
   return {
-    text: parameters.text.length === 0
-      ? `export default function ${ENTRY_FUNCTION} () {`
-      : `export default function ${ENTRY_FUNCTION} (\n${parameters.text}\n) {`,
+    text: `export default function ${ENTRY_FUNCTION} (\n${declarations}\n) {`,
     diagnostics: parameters.diagnostics
   }
 }
@@ -201,6 +235,7 @@ const assemble = (body: string, shape: ComponentShape): Assembly & { diagnostics
 
 export {
   ENTRY_FUNCTION,
+  PASSTHROUGH,
   assemble,
   signatureOf,
   identifierFor,

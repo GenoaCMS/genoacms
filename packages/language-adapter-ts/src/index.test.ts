@@ -109,6 +109,30 @@ describe('compiling', () => {
     expect(result.diagnostics[0].line).toBe(1)
   })
 
+  it('compiles a body that uses the capability parameter', async () => {
+    // End to end: the parameter is emitted, survives compilation, and is there for a component to
+    // read. Without this the signature could be right and the artifact still not carry it.
+    const result = await adapter.compileBundle({
+      body: 'return String(passthrough.locale)',
+      shape: shapeOf(attribute('a', 'heading', 'string')),
+      platform: 'web-esmodule'
+    })
+
+    expect(result.diagnostics).toEqual([])
+    expect(result.executableCode).toContain('passthrough')
+  })
+
+  it('does not read a capability as a banned global', async () => {
+    // `passthrough.fetch` is the sanctioned route by construction: it is a property of an object the
+    // consumer supplied, not the global primitive SAST-05 refuses.
+    const result = await adapter.analyze({
+      body: 'return passthrough.fetch("/products")',
+      shape: shapeOf(attribute('a', 'heading', 'string'))
+    })
+
+    expect(result.diagnostics).toEqual([])
+  })
+
   it('refuses a platform it cannot target', async () => {
     const result = await adapter.compileBundle({
       body: 'return 1',

@@ -49,10 +49,52 @@ describe('the emitted signature', () => {
     expect(source.indexOf('beta')).toBeLessThan(source.indexOf('alpha'))
   })
 
-  it('takes a component with no attributes', async () => {
+  it('gives a component with no attributes the capability parameter alone', async () => {
     const { source } = assemble('return 1', shapeOf())
 
-    expect(source).toContain('export default function component () {')
+    expect(source).toContain('passthrough: Record<string, unknown> = {}')
+    expect(source).toContain('export default function component (')
+  })
+
+  it('puts the capability parameter last, after every attribute', async () => {
+    // The attributes ahead of it are addressed by position, so anywhere but last would shift them.
+    const { source } = assemble(
+      'return 1',
+      shapeOf(attribute('a', 'heading', 'string'), attribute('b', 'body', 'text'))
+    )
+    const signature = source.slice(0, source.indexOf(') {'))
+
+    expect(signature.indexOf('heading')).toBeLessThan(signature.indexOf('passthrough'))
+    expect(signature.indexOf('body')).toBeLessThan(signature.indexOf('passthrough'))
+  })
+
+  it('defaults it, so a component is callable without one', async () => {
+    // A consumer that grants nothing, or a test calling the component directly, still gets an object
+    // rather than undefined — which is what saves every author from writing a presence check.
+    const { source } = assemble('return 1', shapeOf(attribute('a', 'heading', 'string')))
+
+    expect(source).toContain('= {}')
+  })
+
+  it('refuses an attribute that would take the reserved name', async () => {
+    const { diagnostics } = assemble('return 1', shapeOf(attribute('a', 'passthrough', 'string')))
+
+    expect(diagnostics).toMatchObject([{ severity: 'fatal', rule: 'reserved-parameter-name' }])
+  })
+
+  it('names the attribute in that refusal, so the author knows which to rename', async () => {
+    const { diagnostics } = assemble('return 1', shapeOf(attribute('a', 'passthrough', 'string')))
+
+    expect(diagnostics[0].message).toContain('passthrough')
+  })
+
+  it('allows a name differing only in case, which becomes a different parameter', async () => {
+    // The reservation is of an identifier, not of a word. `Passthrough` compiles beside
+    // `passthrough` without colliding, so refusing it would cost an author a name for no reason.
+    const { source, diagnostics } = assemble('return 1', shapeOf(attribute('a', 'Passthrough', 'string')))
+
+    expect(diagnostics).toEqual([])
+    expect(source).toContain('Passthrough: string')
   })
 
   it('wraps the body verbatim', async () => {
