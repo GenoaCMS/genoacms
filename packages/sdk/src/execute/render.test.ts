@@ -156,6 +156,7 @@ describe('passing values to parameters', () => {
       { components: { Hero: (...values: unknown[]) => { received = values; return element('DIV') } } }
     )
 
+    // A prebuilt component is the consumer's own code and receives its attributes and nothing else.
     expect(received).toEqual(['Welcome'])
   })
 
@@ -450,6 +451,78 @@ describe('a dynamic component', () => {
     expect(rendered.ok && rendered.value).toBe(built)
   })
 
+  it('is not given to a prebuilt component, whose code the consumer already owns', async () => {
+    // The boundary of the channel. A prebuilt component is this application's own function and can
+    // close over anything it needs, so handing it a capability object would add an argument its
+    // author never declared and shift nothing into place.
+    published(publicationOf({ attributes: [{ reference: 'a1', title: 'Heading' }] }))
+    let received: unknown[] = []
+
+    await renderPage(
+      verifier,
+      node({ data: { Heading: 'Welcome' } as never }),
+      {
+        passthrough: { locale: {} },
+        components: { Hero: (...values: unknown[]) => { received = values; return element('DIV') } }
+      }
+    )
+
+    expect(received).toEqual(['Welcome'])
+  })
+
+  it('receives what the consumer supplied, after its attributes', async () => {
+    const locale = { format: (value: string) => value }
+    published(publicationOf({
+      type: 'dynamic',
+      code: 'ignored',
+      attributes: [{ reference: 'a1', title: 'Heading' }]
+    }))
+    let received: unknown[] = []
+
+    await renderPage(
+      verifier,
+      node({ type: 'dynamic', data: { Heading: 'Welcome' } as never }),
+      {
+        passthrough: { locale },
+        loader: async () => ({ default: (...values: unknown[]) => { received = values; return element('DIV') } })
+      }
+    )
+
+    expect(received).toEqual(['Welcome', { locale }])
+  })
+
+  it('gives every component the same object, not a copy each', async () => {
+    // By reference, so a capability holding state is one capability. Building it per invocation
+    // would make that silently impossible and is the obvious way to write this wrongly.
+    const supplied = { shared: {} }
+    published(publicationOf({ attributes: [{ reference: 'a1', title: 'Body' }] }))
+    published(publicationOf({
+      uid: 'component-2',
+      publicationId: 'publication-2',
+      name: 'Card',
+      type: 'dynamic',
+      code: 'ignored'
+    }))
+    const card = node({
+      component: 'Card',
+      type: 'dynamic',
+      uid: 'component-2',
+      publicationId: 'publication-2'
+    })
+    const seen: unknown[] = []
+
+    await renderPage(verifier, node({ data: { Body: [card, card] } as never }), {
+      passthrough: supplied,
+      components: { Hero: () => element('SECTION') },
+      loader: async () => ({
+        default: (...values: unknown[]) => { seen.push(values.at(-1)); return element('ARTICLE') }
+      })
+    })
+
+    expect(seen).toHaveLength(2)
+    for (const one of seen) expect(one).toBe(supplied)
+  })
+
   it('is called with its values in order, like any other component', async () => {
     published(publicationOf({
       type: 'dynamic',
@@ -464,7 +537,8 @@ describe('a dynamic component', () => {
       { loader: async () => ({ default: (...values: unknown[]) => { received = values; return element('DIV') } }) }
     )
 
-    expect(received).toEqual(['Welcome'])
+    // The capability object follows the attributes, which are addressed by position.
+    expect(received).toEqual(['Welcome', {}])
   })
 
   it('does not consult the prebuilt map for a component that published code', async () => {

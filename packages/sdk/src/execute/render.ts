@@ -63,6 +63,31 @@ interface RenderOptions {
   components?: PrebuiltComponents
   /** How source text becomes a module. See `ModuleLoader`. */
   loader?: ModuleLoader
+  /**
+   * What this application makes available to every dynamic component it renders.
+   *
+   *     component(heading, cards, …attributes, passthrough)
+   *                                            └── this object, by reference
+   *
+   * Components authored in the CMS cannot reach a global, import a package, or call the network —
+   * so without a channel they can only rearrange the values they were given. This is that channel:
+   * a date formatter, an icon set, a design-system helper, whatever this application chooses.
+   *
+   * **One object for the whole deployment**, not one per component. Components are authored in the
+   * CMS *after* a consumer is built, so keying capabilities by component name would starve every
+   * component written later, or force a redeploy to introduce one.
+   *
+   * **What goes in it is this application's security decision, and not GenoaCMS's.** The components
+   * receiving it were compiled and signed by the CMS and this application has almost certainly never
+   * read them, so anything placed here is granted to code nobody here reviewed. Passing `fetch` gives
+   * every component the network. Nothing verifies or constrains the contents, deliberately: a check
+   * performed here would be a guarantee that cannot be kept.
+   *
+   * It is never signed and never part of a document — it is an argument, supplied when a component
+   * is called. Prebuilt components do not receive it: their code is this application's own and
+   * already has whatever it needs.
+   */
+  passthrough?: Record<string, unknown>
 }
 
 /** A node that was resolved and verified, and whose code still would not run. */
@@ -154,6 +179,10 @@ const renderResolved = async (
   options: RenderOptions = {}
 ): Promise<Rendered> => {
   const components = options.components ?? {}
+  // Defaulted once, so every dynamic component receives the same object rather than a fresh empty
+  // one per call — a component that writes to it can be read by the next, which is the consumer's
+  // to allow or prevent, and would be silently impossible if this were built per invocation.
+  const passthrough = options.passthrough ?? {}
   const failures: NodeFailure[] = []
   /** One module per publication, however many nodes run it. Twenty placements is one evaluation. */
   const modules = new Map<string, Callable>()
@@ -209,7 +238,14 @@ const renderResolved = async (
       return component
     }
 
-    const rendered = invoke(component.value, await valuesFor(node), node)
+    // Appended, never inserted: the attributes ahead of it are addressed by position. Only a
+    // dynamic component gets it — a prebuilt one is this application's own code.
+    const values = await valuesFor(node)
+    const rendered = invoke(
+      component.value,
+      node.executable === undefined ? values : [...values, passthrough],
+      node
+    )
     if (!rendered.ok) failures.push({ component: node.component, reason: rendered.reason })
     return rendered
   }
