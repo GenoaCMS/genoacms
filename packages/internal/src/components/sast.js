@@ -78,11 +78,14 @@ const dynamicExecutionRules = {
 const moduleIsolationRules = {
   'SAST-04': {
     id: 'SAST-04',
-    name: 'NoSystemModuleImport',
+    name: 'NoModuleImport',
     group: 'module-isolation',
     severity: 'CRITICAL',
     enforcement: 'fatal',
-    description: 'Blocks importing native OS/system modules (fs, child_process, net, http, os, cluster).'
+    description:
+      'A component may not import at all — every specifier, and both the static and the dynamic ' +
+      'form. Native OS/system modules (fs, child_process, net, http, os, cluster) are the sharpest ' +
+      'case rather than the boundary.'
   },
   'SAST-05': {
     id: 'SAST-05',

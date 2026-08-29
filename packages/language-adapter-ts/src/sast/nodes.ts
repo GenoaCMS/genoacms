@@ -1,5 +1,5 @@
 import { Node, SyntaxKind } from 'ts-morph'
-import type { Identifier, SourceFile } from 'ts-morph'
+import type { CallExpression, Identifier, SourceFile } from 'ts-morph'
 import type { SecurityRuleDiagnostic } from '@genoacms/internal/languageAdapter'
 import { sastRule, type SastRuleId } from '@genoacms/internal/sast'
 
@@ -96,6 +96,21 @@ const freeReferences = (sourceFile: SourceFile, name: string): Identifier[] =>
     .filter(id => !resolvesLocally(id, sourceFile))
 
 /**
+ * Calls where `name` is the thing being *called*, not merely mentioned.
+ *
+ * Both rules that use this were wrong without it, in the same way: matching the text of an
+ * identifier reports `register('tick', setTimeout)` as deferred evaluation, and a component's own
+ * `require` helper as a module load. The name has to resolve to nothing local *and* be the callee.
+ */
+const callsTo = (sourceFile: SourceFile, name: string): CallExpression[] =>
+  freeReferences(sourceFile, name).flatMap(id => {
+    const parent = id.getParent()
+    return parent !== undefined && Node.isCallExpression(parent) && parent.getExpression() === id
+      ? [parent]
+      : []
+  })
+
+/**
  * The property name an access reads, when it can be read statically.
  *
  * Covers `a.b` and `a['b']` alike, because the two are the same access written differently and a
@@ -129,6 +144,7 @@ export {
   locate,
   violation,
   freeReferences,
+  callsTo,
   accessedName,
   accessesNamed,
   accessTargetText,

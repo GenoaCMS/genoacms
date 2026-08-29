@@ -10,7 +10,7 @@ import type {
 import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
 import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
-import { scanSource } from './sast/scan.js'
+import { scanBody, scanAssembled } from './sast/scan.js'
 import { target } from './config.js'
 
 /**
@@ -75,7 +75,14 @@ const analyze = (request: AnalysisRequest): AnalysisResult => {
   const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
   if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
 
-  return { diagnostics: [...diagnostics, ...reported(scanSource(source), prologueLines)] }
+  return {
+    diagnostics: [
+      ...diagnostics,
+      // Already the author's coordinates: the body was not assembled, so nothing to subtract.
+      ...scanBody(request.body),
+      ...reported(scanAssembled(source), prologueLines)
+    ]
+  }
 }
 
 /**
@@ -90,6 +97,13 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   // A shape that cannot be emitted has no source worth compiling, and compiling it would report
   // syntax errors about a signature the author did not write.
   if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
+
+  // Body coordinates, so this is *not* passed through `reported` — subtracting the prologue would
+  // move a first-line diagnostic to line zero, where it is dropped as belonging to emitted code.
+  // Repeated from `analyze` because the contract says compilation follows a clean analysis without
+  // enforcing it, and compiling an import emits an artifact no consumer can resolve.
+  const refused = scanBody(request.body)
+  if (refused.length > 0) return { diagnostics: [...diagnostics, ...refused] }
 
   const compiled = await compileToWebEsModule(source, request.platform, target)
   return {

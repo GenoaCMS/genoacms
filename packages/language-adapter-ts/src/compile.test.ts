@@ -54,58 +54,6 @@ describe('emitting a module', () => {
   })
 })
 
-describe('refusing imports', () => {
-  it('refuses a package import, and locates it', async () => {
-    const result = await compile('import { format } from "date-fns"\nexport const a = 1')
-
-    expect(rules(result)).toEqual(['import-not-allowed'])
-    expect(result.executableCode).toBeUndefined()
-    expect(result.diagnostics[0].message).toContain('date-fns')
-    expect(result.diagnostics[0].line).toBe(1)
-  })
-
-  it('refuses a re-export from another module', async () => {
-    const result = await compile('export { helper } from "./other"')
-
-    expect(rules(result)).toEqual(['import-not-allowed'])
-  })
-
-  it('refuses a dynamic import, which would fetch after the artifact was signed', async () => {
-    const result = await compile('export async function Component () { return await import("./late") }')
-
-    expect(rules(result)).toEqual(['import-not-allowed'])
-    expect(result.diagnostics[0].message).toContain('./late')
-  })
-
-  it('refuses require', async () => {
-    const result = await compile('const fs = require("node:fs")\nexport const a = 1')
-
-    expect(rules(result)).toEqual(['import-not-allowed'])
-  })
-
-  it('reports every import, not just the first', async () => {
-    // An author fixing one import at a time re-commits once per import. The whole file is analyzed
-    // anyway, so there is no reason to hand back one problem at a time.
-    const result = await compile('import a from "one"\nimport b from "two"\nexport const c = 1')
-
-    expect(rules(result)).toEqual(['import-not-allowed', 'import-not-allowed'])
-    expect(result.diagnostics.map(diagnostic => diagnostic.line)).toEqual([1, 2])
-  })
-
-  it('allows a type-only import, which puts nothing in the artifact', async () => {
-    const result = await compile('import type { Thing } from "./types"\nexport const a: Thing = 1 as Thing')
-
-    expect(result.diagnostics).toEqual([])
-    expect(result.executableCode).not.toContain('./types')
-  })
-
-  it('refuses a mixed import even though part of it is a type', async () => {
-    const result = await compile('import { type A, b } from "./mixed"\nexport const c = b')
-
-    expect(rules(result)).toEqual(['import-not-allowed'])
-  })
-})
-
 describe('refusing what cannot be published', () => {
   it('refuses a source that compiles to nothing', async () => {
     const result = await compile('// a component that forgot to be one\n')

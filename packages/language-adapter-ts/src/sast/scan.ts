@@ -6,40 +6,59 @@ import {
   noGlobalScopeAccess,
   noPrototypeManipulation
 } from './rules/dynamicExecution.js'
+import {
+  noModuleImport,
+  noDynamicImports,
+  noUnrestrictedNetworkCalls
+} from './rules/moduleIsolation.js'
 
 /**
- * Running the security ruleset over an assembled component.
+ * Running the ruleset, over the two sources a component has.
  *
- * One parse, then every rule over the same tree. The rules take a `SourceFile` and return
- * diagnostics; none of them parses, reads configuration, or knows how a component was assembled, so
- * each can be exercised on a fragment on its own.
+ *     author body ──┬──▶ scanBody      ──▶ diagnostics in author coordinates (no offset)
+ *                   │
+ *                   └──▶ assemble ──▶ scanAssembled ──▶ diagnostics offset by the prologue
  *
- * ## Positions are in the assembled source
+ * Most rules read the assembled source, which is what actually compiles. Imports are the exception:
+ * the body is wrapped in a function, so a top-level import cannot survive assembly — the parser
+ * reports an unexpected token and the rule would see nothing.
  *
- * The rules see the body with its emitted signature above it, so a line number here is not the
- * author's. Mapping back is the adapter's job and happens once, where the prologue length is known —
- * the alternative, passing an offset into every rule, would put a coordinate system into code whose
- * subject is entirely different.
+ * The split is a coordinate decision as much as a parsing one. A body diagnostic already points at
+ * the line the author is looking at, so shifting it by the prologue would move it off the fault.
  */
 
-/** Every rule in the ruleset that is implemented, in identifier order. */
-const RULES: Array<(sourceFile: SourceFile) => SecurityRuleDiagnostic[]> = [
+type Rule = (sourceFile: SourceFile) => SecurityRuleDiagnostic[]
+
+/** Read the author's body, where an import is still an import. */
+const BODY_RULES: Rule[] = [noModuleImport, noDynamicImports]
+
+/** Read the assembled source, which is what compiles and what runs. */
+const ASSEMBLED_RULES: Rule[] = [
   noDynamicEvaluation,
   noGlobalScopeAccess,
-  noPrototypeManipulation
+  noPrototypeManipulation,
+  noUnrestrictedNetworkCalls
 ]
 
 /**
- * Parses once and applies every rule.
+ * Parses in memory, with no lib and no `node_modules`.
  *
- * The file is created in memory with no lib and no `node_modules`, which is also what makes a
- * reference to `window` resolve to nothing and therefore read as free. A component declaring its own
- * `window` resolves to that declaration and is left alone.
+ * That absence is load-bearing rather than incidental: it is what makes `window` resolve to nothing
+ * and therefore read as a free reference, while a component's own `window` resolves to its
+ * declaration and is left alone.
  */
-const scanSource = (source: string): SecurityRuleDiagnostic[] => {
-  const project = new Project({ useInMemoryFileSystem: true })
-  const sourceFile = project.createSourceFile('component.ts', source)
-  return RULES.flatMap(rule => rule(sourceFile))
-}
+const parse = (source: string, name: string): SourceFile =>
+  new Project({ useInMemoryFileSystem: true }).createSourceFile(name, source)
 
-export { scanSource }
+const runAll = (rules: Rule[], sourceFile: SourceFile): SecurityRuleDiagnostic[] =>
+  rules.flatMap(rule => rule(sourceFile))
+
+/** Diagnostics already in the author's coordinates. */
+const scanBody = (body: string): SecurityRuleDiagnostic[] =>
+  runAll(BODY_RULES, parse(body, 'body.ts'))
+
+/** Diagnostics in assembled coordinates, which the caller maps back. */
+const scanAssembled = (source: string): SecurityRuleDiagnostic[] =>
+  runAll(ASSEMBLED_RULES, parse(source, 'component.ts'))
+
+export { scanBody, scanAssembled }

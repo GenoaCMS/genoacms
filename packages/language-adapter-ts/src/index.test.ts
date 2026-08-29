@@ -35,8 +35,9 @@ describe('checking what the author wrote', () => {
   })
 
   it('reports a shape whose attributes cannot become parameters', async () => {
-    // Emission is the only thing with anything to say today. The safety ruleset that will fill this
-    // in belongs to the guard work, and the seam exists so that it has somewhere to land.
+    // Emission runs before the ruleset: a shape that cannot become a parameter list has no assembled
+    // source worth scanning, and scanning it anyway reports security rules about a signature the
+    // author never wrote.
     const result = await adapter.analyze({
       body: 'return null',
       shape: shapeOf(attribute('a', 'heading text', 'string'), attribute('b', 'heading-text', 'string'))
@@ -90,6 +91,21 @@ describe('compiling', () => {
     })
 
     expect(result.diagnostics.length).toBeGreaterThan(0)
+    expect(result.diagnostics[0].line).toBe(1)
+  })
+
+  it('refuses an import before compiling, at the line the author wrote it on', async () => {
+    // The coordinate hazard this arrangement exists for: the ban reads the body, so its line is
+    // already the author's. Passing it through the prologue mapping turned line 1 into line 0, which
+    // is dropped as belonging to emitted code — the diagnostic disappeared entirely.
+    const result = await adapter.compileBundle({
+      body: 'import fs from "fs"\nreturn heading',
+      shape: shapeOf(attribute('a', 'heading', 'string')),
+      platform: 'web-esmodule'
+    })
+
+    expect(result.executableCode).toBeUndefined()
+    expect(result.diagnostics.map(one => one.rule)).toEqual(['SAST-04'])
     expect(result.diagnostics[0].line).toBe(1)
   })
 

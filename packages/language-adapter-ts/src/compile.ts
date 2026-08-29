@@ -5,7 +5,6 @@ import type {
 } from '@genoacms/internal/languageAdapter'
 import type { SourceFile } from 'ts-morph'
 
-import { Project, SyntaxKind } from 'ts-morph'
 import { transform } from 'esbuild'
 
 /**
@@ -44,68 +43,6 @@ import { transform } from 'esbuild'
 const locate = (sourceFile: SourceFile, position: number): Pick<Diagnostic, 'line' | 'column'> => {
   const { line, column } = sourceFile.getLineAndColumnAtPos(position)
   return { line, column }
-}
-
-const importRefusal = (
-  sourceFile: SourceFile,
-  position: number,
-  specifier: string
-): Diagnostic => ({
-  type: 'language-rule',
-  severity: 'fatal',
-  rule: 'import-not-allowed',
-  message:
-    `This component imports '${specifier}'. A component has to be self-contained: ` +
-    'it cannot import another component, and it cannot import a package. Inline what it needs.',
-  ...locate(sourceFile, position)
-})
-
-/**
- * Every static `import ... from` and `export ... from` that brings in a value.
- *
- * Type-only forms are skipped. `import { type A, B }` is not type-only — `B` is a value — so it is
- * refused, which is correct.
- */
-const staticImports = (sourceFile: SourceFile): Diagnostic[] => {
-  const declarations = [
-    ...sourceFile.getImportDeclarations(),
-    ...sourceFile.getExportDeclarations()
-  ]
-  return declarations
-    .filter(declaration => !declaration.isTypeOnly())
-    .filter(declaration => declaration.getModuleSpecifier() !== undefined)
-    .map(declaration => importRefusal(
-      sourceFile,
-      declaration.getStart(),
-      declaration.getModuleSpecifierValue() ?? ''
-    ))
-}
-
-/**
- * `import(...)` and `require(...)`.
- *
- * Refused for the same reason as a static import, and separately worth catching: these are the forms
- * that would otherwise reach the network or the file system at run time, after the artifact was
- * signed. The specifier may be computed, so it is reported as written rather than resolved.
- */
-const dynamicImports = (sourceFile: SourceFile): Diagnostic[] =>
-  sourceFile
-    .getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter(call => {
-      const callee = call.getExpression()
-      return callee.getKind() === SyntaxKind.ImportKeyword || callee.getText() === 'require'
-    })
-    .map(call => importRefusal(
-      sourceFile,
-      call.getStart(),
-      call.getArguments()[0]?.getText() ?? '<computed>'
-    ))
-
-/** Everything the source is refused for, before it is worth compiling. */
-const refusals = (source: string): Diagnostic[] => {
-  const project = new Project({ useInMemoryFileSystem: true })
-  const sourceFile = project.createSourceFile('component.ts', source)
-  return [...staticImports(sourceFile), ...dynamicImports(sourceFile)]
 }
 
 /** An `esbuild` message, in the shape the rest of the CMS reports problems in. */
@@ -184,9 +121,6 @@ const compileToWebEsModule = async (
   target: string
 ): Promise<CompilationResult> => {
   if (platform !== 'web-esmodule') return { diagnostics: [unsupportedPlatform(platform)] }
-
-  const refused = refusals(source)
-  if (refused.length > 0) return { diagnostics: refused }
 
   const compiled = await toEsModule(source, target)
   if (compiled.executableCode === undefined) return compiled

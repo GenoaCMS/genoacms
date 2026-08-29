@@ -1,7 +1,7 @@
 import { Node, SyntaxKind } from 'ts-morph'
 import type { CallExpression, SourceFile } from 'ts-morph'
 import type { SecurityRuleDiagnostic } from '@genoacms/internal/languageAdapter'
-import { violation, freeReferences, accessesNamed, accessTargetText } from '../nodes.js'
+import { violation, freeReferences, callsTo, accessesNamed, accessTargetText } from '../nodes.js'
 
 /**
  * The rules that stop a component reaching outside itself: `SAST-01`, `SAST-02`, `SAST-03`.
@@ -16,21 +16,6 @@ const EVALUATORS = ['eval', 'Function']
 
 /** These take code as a string in one overload, and a function in the other. Only the first is a fault. */
 const DEFERRED = ['setTimeout', 'setInterval']
-
-/**
- * Calls where `name` is the thing being *called*, not merely mentioned.
- *
- * The distinction is the rule's accuracy: `register('tick', setTimeout)` mentions the name inside a
- * call whose first argument is a string, and matching on that alone reported it as evaluation. The
- * identifier has to be the callee.
- */
-const callsTo = (sourceFile: SourceFile, name: string): CallExpression[] =>
-  freeReferences(sourceFile, name).flatMap(id => {
-    const parent = id.getParent()
-    return parent !== undefined && Node.isCallExpression(parent) && parent.getExpression() === id
-      ? [parent]
-      : []
-  })
 
 /** A literal string of code, in any of the spellings that produce one. */
 const isCodeString = (node: Node): boolean =>
