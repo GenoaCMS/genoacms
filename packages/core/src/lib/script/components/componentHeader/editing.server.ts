@@ -5,7 +5,10 @@ import {
   uploadComponentHeaderHistory
 } from './io.server'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
-import { requireDistinctAttributeNames } from './component/attributeNames'
+import {
+  requireDistinctAttributeNames,
+  requireUnreservedAttributeNames
+} from './component/attributeNames'
 import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 
@@ -59,6 +62,7 @@ const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth
   // two attributes sharing one silently lose a value with every signature over the result still
   // valid — and this is the one place both kinds of component are written through.
   requireDistinctAttributeNames(entry)
+  requireUnreservedAttributeNames(entry)
 
   const previous = await getComponentHeader(entry.uid)
   const adjunct = await getComponentHeaderHistory(entry.uid)

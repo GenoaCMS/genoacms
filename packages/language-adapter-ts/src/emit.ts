@@ -1,3 +1,4 @@
+import { PASSTHROUGH_PARAMETER } from '@genoacms/internal/languageAdapter'
 import type { Attribute, AttributeType } from '@genoacms/internal/attributes'
 import type { ComponentShape, Diagnostic } from '@genoacms/internal/languageAdapter'
 
@@ -187,7 +188,7 @@ interface Assembly {
 const ENTRY_FUNCTION = 'component'
 
 /**
- * The capability parameter every component receives, and the one name an attribute may not take.
+ * Where the capability parameter sits in the emitted signature.
  *
  *     attributes (positional, from attributeOrder)          passthrough
  *     ├─────────────────────────────────────────┤           ├─────────┤
@@ -197,10 +198,9 @@ const ENTRY_FUNCTION = 'component'
  * so putting it first would shift every one of them. Always present because the alternative is every
  * author writing a presence check for something the SDK always supplies.
  *
- * It defaults to `{}` in the signature as well as in the SDK. A component is then callable on its
- * own — in a test, or by a consumer that grants nothing — without the parameter being undefined.
+ * The name itself is shared with the registrar, which refuses an attribute that would collide.
  */
-const PASSTHROUGH = 'passthrough'
+const PASSTHROUGH = PASSTHROUGH_PARAMETER
 
 /** What a consumer may put in it is the consumer's decision, so the type says only that it is an object. */
 const PASSTHROUGH_DECLARATION = `  ${PASSTHROUGH}: Record<string, unknown> = {}`

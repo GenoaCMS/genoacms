@@ -1,3 +1,4 @@
+import { PASSTHROUGH_PARAMETER } from '@genoacms/internal/languageAdapter'
 import type { Attribute, ComponentHeader } from './types'
 
 /**
@@ -99,8 +100,56 @@ const requireDistinctAttributeNames = (header: ComponentHeader): void => {
   throw new DuplicateAttributeNameError(duplicated)
 }
 
+/**
+ * Names an attribute may not take, because a component already receives a parameter so called.
+ *
+ * Refused here rather than only at publication: the registrar authors **prebuilt** components too,
+ * and those never reach an emitter. Caught at creation, an author renames a field; caught at commit,
+ * they have already written a body against a parameter that was never going to exist.
+ *
+ * Compared case-sensitively and with the ends trimmed, matching how the parameter is emitted —
+ * `Passthrough` becomes a different identifier, compiles beside it, and costs nobody anything.
+ */
+const RESERVED_ATTRIBUTE_NAMES = new Set<string>([PASSTHROUGH_PARAMETER])
+
+const reservedAttributeNames = (header: ComponentHeader): string[] => {
+  const found = new Set<string>()
+  for (const attribute of Object.values(header.attributes)) {
+    const name = nameOf(attribute)
+    if (RESERVED_ATTRIBUTE_NAMES.has(name)) found.add(name)
+  }
+  return [...found]
+}
+
+class ReservedAttributeNameError extends Error {
+  constructor (readonly names: string[]) {
+    super(
+      `components/reserved-attribute-name: ${describeNames(names)} reserved. Every component ` +
+      `already receives a \`${PASSTHROUGH_PARAMETER}\` parameter carrying whatever the consuming ` +
+      'application chose to provide, so an attribute of that name would leave a component with two ' +
+      'parameters it cannot tell apart. Rename the attribute.'
+    )
+    this.name = 'ReservedAttributeNameError'
+  }
+}
+
+/** Recognized by name for the same reason as its neighbor: two module graphs, two copies of a class. */
+const isReservedAttributeName = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'ReservedAttributeNameError'
+
+const requireUnreservedAttributeNames = (header: ComponentHeader): void => {
+  const reserved = reservedAttributeNames(header)
+  if (reserved.length === 0) return
+  throw new ReservedAttributeNameError(reserved)
+}
+
 export {
   nameOf,
+  RESERVED_ATTRIBUTE_NAMES,
+  reservedAttributeNames,
+  requireUnreservedAttributeNames,
+  ReservedAttributeNameError,
+  isReservedAttributeName,
   duplicateAttributeNames,
   requireDistinctAttributeNames,
   DuplicateAttributeNameError,

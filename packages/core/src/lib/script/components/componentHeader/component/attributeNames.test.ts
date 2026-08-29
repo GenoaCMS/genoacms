@@ -3,7 +3,10 @@ import {
   duplicateAttributeNames,
   requireDistinctAttributeNames,
   DuplicateAttributeNameError,
-  isDuplicateAttributeName
+  isDuplicateAttributeName,
+  requireUnreservedAttributeNames,
+  ReservedAttributeNameError,
+  isReservedAttributeName
 } from './attributeNames'
 import type { Attribute, ComponentHeader } from './types'
 
@@ -176,5 +179,48 @@ describe('recognizing the refusal at a route', () => {
     expect(isDuplicateAttributeName(new Error('storage unreachable'))).toBe(false)
     expect(isDuplicateAttributeName('components/duplicate-attribute-name')).toBe(false)
     expect(isDuplicateAttributeName(undefined)).toBe(false)
+  })
+})
+
+describe('a name the component already uses', () => {
+  it('refuses an attribute called passthrough', () => {
+    // Every component receives that parameter, so the attribute would become a second one of the
+    // same name and the emitted signature would not compile.
+    const header = headerWith(attribute('a', 'passthrough'))
+
+    expect(() => requireUnreservedAttributeNames(header)).toThrow(ReservedAttributeNameError)
+  })
+
+  it('says what already uses the name rather than only that it is taken', () => {
+    const header = headerWith(attribute('a', 'passthrough'))
+
+    expect(() => requireUnreservedAttributeNames(header)).toThrow(/consuming application/)
+  })
+
+  it('trims the ends before deciding, as the emitter does', () => {
+    const header = headerWith(attribute('a', ' passthrough '))
+
+    expect(() => requireUnreservedAttributeNames(header)).toThrow(ReservedAttributeNameError)
+  })
+
+  it('allows a name differing only in case, which becomes a different parameter', () => {
+    // Refusing it would cost an author a usable name for a collision that does not happen.
+    const header = headerWith(attribute('a', 'Passthrough'))
+
+    expect(() => requireUnreservedAttributeNames(header)).not.toThrow()
+  })
+
+  it('leaves ordinary names alone', () => {
+    const header = headerWith(attribute('a', 'Heading'), attribute('b', 'Body'))
+
+    expect(() => requireUnreservedAttributeNames(header)).not.toThrow()
+  })
+
+  it('is recognized across module graphs, by name rather than by instanceof', () => {
+    const fromElsewhere = new Error('components/reserved-attribute-name: ...')
+    fromElsewhere.name = 'ReservedAttributeNameError'
+
+    expect(isReservedAttributeName(fromElsewhere)).toBe(true)
+    expect(isReservedAttributeName(new Error('storage unreachable'))).toBe(false)
   })
 })

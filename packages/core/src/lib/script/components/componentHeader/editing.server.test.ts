@@ -187,6 +187,17 @@ describe('the names a save refuses', () => {
     await expect(saveComponentHeader(colliding)).rejects.toThrow(/duplicate-attribute-name/)
   })
 
+  it('refuses an attribute named for the parameter every component already receives', async () => {
+    // Asserted through the save path rather than against the rule directly: the rule had tests and
+    // was still droppable from here without anything failing.
+    const reserved = entry({
+      attributes: { a: named('a', 'passthrough') } as never,
+      attributeOrder: ['a']
+    })
+
+    await expect(saveComponentHeader(reserved)).rejects.toThrow(/reserved-attribute-name/)
+  })
+
   it('writes nothing when it refuses', async () => {
     await existing()
     const before = structuredClone(entries.get('c1'))

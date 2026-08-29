@@ -3,7 +3,10 @@ import { validator } from '@exodus/schemasafe'
 import { componentHeaderSchema } from '$lib/script/components/componentHeader/component/schemas'
 import { updateUserComponentHeader } from '$lib/script/components/componentHeader/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isDuplicateAttributeName } from '$lib/script/components/componentHeader/component/attributeNames'
+import {
+  isDuplicateAttributeName,
+  isReservedAttributeName
+} from '$lib/script/components/componentHeader/component/attributeNames'
 import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
 
 const validate = validator(componentHeaderSchema)
@@ -22,7 +25,9 @@ export const updateComponent = command('unchecked', async (data: ComponentHeader
     // Two attributes of one name. Returned in the same shape as every other refusal, so the editor
     // reports it where it already reports invalid data rather than showing a server error — and the
     // message names the attributes, because "invalid" is not something anyone can act on.
-    if (isDuplicateAttributeName(error)) return { status: 'fail', text: (error as Error).message }
+    if (isDuplicateAttributeName(error) || isReservedAttributeName(error)) {
+      return { status: 'fail', text: (error as Error).message }
+    }
     throw error
   }
 })

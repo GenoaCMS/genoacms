@@ -6,4 +6,14 @@
  * that has no JavaScript behind it.
  */
 
-export {}
+/**
+ * The capability parameter every component's signature ends with.
+ *
+ * Shared rather than defined per package: the adapter emits it, the registrar refuses an attribute
+ * that would collide with it, and the SDK supplies its value. Three packages, one spelling.
+ *
+ * The reservation is of the **identifier**, so `Passthrough` is a different parameter and is allowed.
+ */
+const PASSTHROUGH_PARAMETER = 'passthrough'
+
+export { PASSTHROUGH_PARAMETER }

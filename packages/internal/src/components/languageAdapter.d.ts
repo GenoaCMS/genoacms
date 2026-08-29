@@ -222,6 +222,8 @@ type LanguageProvider<Extension extends object = object> = Extension & {
   adapter: Promise<{ default: LanguageAdapter }>
 }
 
+export declare const PASSTHROUGH_PARAMETER: 'passthrough'
+
 export type {
   ComponentShape,
   SignaturePreview,
