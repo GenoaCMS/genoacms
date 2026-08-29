@@ -10,6 +10,7 @@ import type {
 import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
 import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
+import { scanSource } from './sast/scan.js'
 import { target } from './config.js'
 
 /**
@@ -58,18 +59,23 @@ const reported = (diagnostics: Diagnostic[], prologueLines: number): Diagnostic[
 /**
  * Checks what the author wrote against the language's safety rules.
  *
- * **There are no safety rules yet**, so this reports only what emitting the signature had to say —
- * an attribute that cannot become a parameter name, or two that would become the same one. The
- * ruleset that will fill this in arrives later, and the seam exists so it has somewhere to land
- * rather than arriving as a new concept.
+ * Two kinds of answer, and the order between them matters. **Emitting the signature comes first**:
+ * a shape that cannot become a parameter list has no assembled source worth scanning, and scanning
+ * it anyway would report security rules about a signature the author never wrote.
+ *
+ * With a signature that emits, the security ruleset runs over the assembled source and its findings
+ * are mapped back into the author's coordinates — the author is looking at a body, and a line number
+ * counted from the top of the assembly would point at a line they cannot see.
  *
  * It does not report what a component *accepts*. That used to be its purpose, and it is gone: a
  * component's shape is authored in the registrar, so an adapter reporting attributes would be
  * handing back what it was just given.
  */
 const analyze = (request: AnalysisRequest): AnalysisResult => {
-  const { diagnostics } = assemble(request.body, request.shape)
-  return { diagnostics }
+  const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
+  if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
+
+  return { diagnostics: [...diagnostics, ...reported(scanSource(source), prologueLines)] }
 }
 
 /**
