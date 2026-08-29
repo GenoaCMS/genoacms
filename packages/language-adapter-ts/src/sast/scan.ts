@@ -1,6 +1,6 @@
 import { Project } from 'ts-morph'
 import type { SourceFile } from 'ts-morph'
-import type { SecurityRuleDiagnostic } from '@genoacms/internal/languageAdapter'
+import type { ComponentShape, SecurityRuleDiagnostic } from '@genoacms/internal/languageAdapter'
 import {
   noDynamicEvaluation,
   noGlobalScopeAccess,
@@ -11,6 +11,7 @@ import {
   noDynamicImports,
   noUnrestrictedNetworkCalls
 } from './rules/moduleIsolation.js'
+import { requireDeclaredBounds } from './rules/declaredBounds.js'
 
 /**
  * Running the ruleset, over the two sources a component has.
@@ -27,7 +28,14 @@ import {
  * the line the author is looking at, so shifting it by the prologue would move it off the fault.
  */
 
-type Rule = (sourceFile: SourceFile) => SecurityRuleDiagnostic[]
+/**
+ * A rule reads the parsed source, and the shape when it needs to know what a parameter *is*.
+ *
+ * Only `SAST-07` uses the shape — whether a value may size a loop is a fact about the attribute
+ * behind the parameter, not about the code. Passed to every rule rather than special-casing one, so
+ * adding the next rule that needs it changes nothing here.
+ */
+type Rule = (sourceFile: SourceFile, shape: ComponentShape) => SecurityRuleDiagnostic[]
 
 /** Read the author's body, where an import is still an import. */
 const BODY_RULES: Rule[] = [noModuleImport, noDynamicImports]
@@ -37,7 +45,8 @@ const ASSEMBLED_RULES: Rule[] = [
   noDynamicEvaluation,
   noGlobalScopeAccess,
   noPrototypeManipulation,
-  noUnrestrictedNetworkCalls
+  noUnrestrictedNetworkCalls,
+  requireDeclaredBounds
 ]
 
 /**
@@ -50,15 +59,16 @@ const ASSEMBLED_RULES: Rule[] = [
 const parse = (source: string, name: string): SourceFile =>
   new Project({ useInMemoryFileSystem: true }).createSourceFile(name, source)
 
-const runAll = (rules: Rule[], sourceFile: SourceFile): SecurityRuleDiagnostic[] =>
-  rules.flatMap(rule => rule(sourceFile))
+const runAll = (
+  rules: Rule[], sourceFile: SourceFile, shape: ComponentShape
+): SecurityRuleDiagnostic[] => rules.flatMap(rule => rule(sourceFile, shape))
 
 /** Diagnostics already in the author's coordinates. */
-const scanBody = (body: string): SecurityRuleDiagnostic[] =>
-  runAll(BODY_RULES, parse(body, 'body.ts'))
+const scanBody = (body: string, shape: ComponentShape): SecurityRuleDiagnostic[] =>
+  runAll(BODY_RULES, parse(body, 'body.ts'), shape)
 
 /** Diagnostics in assembled coordinates, which the caller maps back. */
-const scanAssembled = (source: string): SecurityRuleDiagnostic[] =>
-  runAll(ASSEMBLED_RULES, parse(source, 'component.ts'))
+const scanAssembled = (source: string, shape: ComponentShape): SecurityRuleDiagnostic[] =>
+  runAll(ASSEMBLED_RULES, parse(source, 'component.ts'), shape)
 
 export { scanBody, scanAssembled }

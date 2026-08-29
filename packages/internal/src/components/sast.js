@@ -124,9 +124,9 @@ const algorithmicComplexityRules = {
     enforcement: 'fatal',
     description:
       'Rejects a numeric attribute reaching a loop condition, allocation size, or recursion bound ' +
-      'unless the author has declared minimum/maximum in its schema. No bound is ever inferred or ' +
-      'injected. A value arriving through passthrough has no schema to declare bounds on, so it is ' +
-      'permitted, statically unbounded, and warned about.'
+      'unless the author has declared a maximum in its schema. A minimum bounds nothing a loop ' +
+      'cares about. No bound is ever inferred or injected. A value arriving through passthrough has ' +
+      'no schema to declare one on, so it is permitted, statically unbounded, and warned about.'
   },
   'SAST-08': {
     id: 'SAST-08',

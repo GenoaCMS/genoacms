@@ -96,6 +96,21 @@ const freeReferences = (sourceFile: SourceFile, name: string): Identifier[] =>
     .filter(id => !resolvesLocally(id, sourceFile))
 
 /**
+ * Uses of a name that resolve to a **parameter**.
+ *
+ * The mirror of `freeReferences`, and needed because the two questions are opposite. A banned global
+ * is a name nothing declares; an attribute is a name the emitted signature declares, so every use of
+ * it resolves locally and `freeReferences` returns none — which is how a rule about attributes came
+ * to report nothing at all.
+ */
+const parameterReferences = (sourceFile: SourceFile, name: string): Identifier[] =>
+  sourceFile
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .filter(id => id.getText() === name)
+    .filter(id => !isPropertyName(id) && !isPropertyKey(id) && !isDeclarationName(id))
+    .filter(id => (id.getSymbol()?.getDeclarations() ?? []).some(Node.isParameterDeclaration))
+
+/**
  * Calls where `name` is the thing being *called*, not merely mentioned.
  *
  * Both rules that use this were wrong without it, in the same way: matching the text of an
@@ -144,6 +159,7 @@ export {
   locate,
   violation,
   freeReferences,
+  parameterReferences,
   callsTo,
   accessedName,
   accessesNamed,

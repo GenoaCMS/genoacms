@@ -79,8 +79,8 @@ const analyze = (request: AnalysisRequest): AnalysisResult => {
     diagnostics: [
       ...diagnostics,
       // Already the author's coordinates: the body was not assembled, so nothing to subtract.
-      ...scanBody(request.body),
-      ...reported(scanAssembled(source), prologueLines)
+      ...scanBody(request.body, request.shape),
+      ...reported(scanAssembled(source, request.shape), prologueLines)
     ]
   }
 }
@@ -102,7 +102,7 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   // move a first-line diagnostic to line zero, where it is dropped as belonging to emitted code.
   // Repeated from `analyze` because the contract says compilation follows a clean analysis without
   // enforcing it, and compiling an import emits an artifact no consumer can resolve.
-  const refused = scanBody(request.body)
+  const refused = scanBody(request.body, request.shape)
   if (refused.length > 0) return { diagnostics: [...diagnostics, ...refused] }
 
   const compiled = await compileToWebEsModule(source, request.platform, target)
