@@ -104,6 +104,65 @@ describe('where the ticks go', () => {
   })
 })
 
+describe('sites inside other sites', () => {
+  /*
+   * Where an edit that replaced a span rather than inserting at a point emitted source that did not
+   * parse: the inner arrow's edit landed inside the outer one's span, and the outer replacement
+   * spliced over it.
+   *
+   *     () => xs.map(x => x * 2)
+   *     └───┬───┘   └────┬────┘
+   *      outer          inner
+   */
+  const ticks = (body: string): number =>
+    injected(body).source.split(`${injected(body).guards}.tick()`).length - 1
+
+  it('instruments an arrow nested in an arrow', () => {
+    expect(ticks('const f = () => [1, 2].map(x => x * 2)\nreturn String(f().length)')).toBe(2)
+  })
+
+  it('instruments an arrow that returns an arrow, which ends where it does', () => {
+    // Both bodies close at the same character, so the two edits land on one offset.
+    expect(ticks('const f = () => (n: number) => n\nreturn String(f()(count))')).toBe(2)
+  })
+
+  it('instruments a loop inside a function inside a loop', () => {
+    const body =
+      'for (const a of [1]) {\n' +
+      '  const f = () => { for (const b of [2]) { void b } }\n' +
+      '  f()\n' +
+      '  void a\n}\nreturn ""'
+
+    expect(ticks(body)).toBe(3)
+  })
+
+  it.each([
+    ['nested arrows', 'const f = () => [1, 2].map(x => x * 2)\nreturn String(f().join(","))', '2,4'],
+    ['an arrow returning an arrow', 'const f = () => (n: number) => n * 2\nreturn String(f()(count))', '10'],
+    ['a loop inside a function inside a loop',
+      'let t = 0\nfor (const a of [1, 2]) { const f = () => { for (const b of [3]) { t += a * b } }\n f() }\nreturn String(t)',
+      '9']
+  ])('still computes the same answer for %s', async (_, body, expected) => {
+    const component = await runnable(body)
+
+    expect(component(5)).toBe(expected)
+  })
+
+  it('still runs a component with an empty function in it', async () => {
+    const component = await runnable('function noop () {}\nnoop()\nreturn "ok"')
+
+    expect(component(1)).toBe('ok')
+  })
+
+  it('charges every nested site, not only the outermost', async () => {
+    // A tick that is emitted but never reached would look the same in the source as one that is.
+    const body = 'const f = () => [1, 2, 3].map(x => x * 2)\nreturn String(f().length)'
+    const component = await runnable(body, { ...GENEROUS, fuel: 3 })
+
+    expect(await thrownBy(() => component(1))).toMatchObject({ guard: 'fuel' })
+  })
+})
+
 describe('what the ticks cost in lines', () => {
   it('adds none', () => {
     // Everything goes on the line that already opens the block. The alternative is a line map
@@ -174,8 +233,9 @@ describe('spending it', () => {
   })
 
   it('stops runaway recursion with no loop in sight', async () => {
+    // Depth is left wide open, so this is fuel doing it and not the depth guard getting there first.
     const body = 'function down (n: number): number { return down(n + 1) }\nreturn String(down(0))'
-    const component = await runnable(body, { ...GENEROUS, fuel: 500 })
+    const component = await runnable(body, { fuel: 500, depth: 100_000, allocation: 10_000_000 })
 
     expect(await thrownBy(() => component(1))).toMatchObject({ guard: 'fuel' })
   })
@@ -186,7 +246,7 @@ describe('spending it', () => {
       'function a (n: number): number { return b(n) }\n' +
       'function b (n: number): number { return a(n) }\n' +
       'return String(a(0))'
-    const component = await runnable(body, { ...GENEROUS, fuel: 500 })
+    const component = await runnable(body, { fuel: 500, depth: 100_000, allocation: 10_000_000 })
 
     expect(await thrownBy(() => component(1))).toMatchObject({ guard: 'fuel' })
   })

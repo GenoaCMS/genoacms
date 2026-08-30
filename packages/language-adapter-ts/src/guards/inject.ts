@@ -4,6 +4,7 @@ import type { GuardBudgets } from '@genoacms/internal/guards'
 import { ENTRY_FUNCTION } from '../emit.js'
 import { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime } from './runtime.js'
 import { spendFuel } from './fuel.js'
+import { boundDepth } from './depth.js'
 
 /**
  * Putting the guard helper into a component's source, before it is compiled and signed.
@@ -42,8 +43,9 @@ import { spendFuel } from './fuel.js'
  *
  * ## What spends them
  *
- * Fuel, at every loop header and every function the author declared — see `fuel.ts`, which also
- * explains why none of those calls costs a line. Depth and allocation join it as those are built.
+ * Fuel at every loop header and every declared function, and depth around every declared function.
+ * Allocation joins them as it is built. `instrument.ts` explains why none of those calls costs a
+ * line.
  */
 
 const identifiersIn = (file: SourceFile): Set<string> =>
@@ -112,15 +114,20 @@ const entryFunctionOf = (file: SourceFile): FunctionDeclaration => {
 }
 
 /**
- * The order the three edits happen in, which is not interchangeable.
+ * The order the passes happen in, none of which is interchangeable.
  *
  *     1. spend fuel      over the author's code only — the helper does not exist yet
- *     2. instantiate     one line, inside the entry function, paid for by the prologue
- *     3. append helper   after everything, hoisted, moving nothing
+ *     2. bound depth     re-reading the result, so every body is already a block
+ *     3. instantiate     one line, inside the entry function, paid for by the prologue
+ *     4. append helper   after everything, hoisted, moving nothing
  *
- * Fuel first because the sites are read from the entry function's descendants: appending the helper
- * before would put its own loops and functions in scope for instrumentation, and a component would
- * pay fuel for the counting.
+ * Fuel and depth are separate parses rather than one set of edits: both wrap the same bodies, and an
+ * arrow written as an expression would otherwise be given a block twice, each wrapping the other's
+ * `return`.
+ *
+ * The helper is appended last because sites are read from the entry function's descendants — adding
+ * it earlier would put its own loops and functions in scope, and a component would pay for the
+ * counting.
  */
 const injectGuards = (
   source: string,
@@ -135,7 +142,9 @@ const injectGuards = (
   // one of them into the other's family, which nothing else would catch.
   const guards = availableName(new Set([...taken, factory]), GUARD_INSTANCE)
 
-  const file = parse(spendFuel(source, entryFunctionOf(read), guards))
+  const fueled = parse(spendFuel(source, entryFunctionOf(read), guards))
+  const file = parse(boundDepth(fueled.getFullText(), entryFunctionOf(fueled), guards))
+
   entryFunctionOf(file).insertStatements(0, instantiation(guards, factory, ceilings))
   file.addStatements(guardRuntime(factory))
 
