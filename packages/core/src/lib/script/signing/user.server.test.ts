@@ -28,7 +28,10 @@ const loadSecurityPolicy = vi.fn(async () => ({
   subordinateKeyRotationDays: 90,
   accessTokenMinutes: 15,
   grantCacheSeconds: 30,
-  refreshTokenDays: 14
+  refreshTokenDays: 14,
+  maxFuel: 1_000_000,
+  maxDepth: 100,
+  maxAllocation: 10_000_000
 }))
 
 vi.mock('$lib/script/signing/keyResolution.server', () => ({

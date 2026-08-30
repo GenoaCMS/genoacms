@@ -89,6 +89,17 @@ type Config<Extension extends object = object> = Extension & {
     grantCacheSeconds?: number
     /** Refresh token lifetime in days. */
     refreshTokenDays?: number
+    /**
+     * Loop iterations and recursive branches a dynamic component may spend in one render.
+     *
+     * A ceiling rather than a budget: it is compiled into each artifact and covered by its
+     * signature, and a consumer may run below it but never above it.
+     */
+    maxFuel?: number
+    /** How deep a dynamic component's recursive calls may nest. */
+    maxDepth?: number
+    /** Cumulative elements and bytes a dynamic component may ask for across one render. */
+    maxAllocation?: number
   }
   /**
    * The languages components may be authored in.

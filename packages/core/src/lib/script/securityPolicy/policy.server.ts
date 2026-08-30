@@ -47,7 +47,10 @@ function defaultPolicy (): SecurityPolicy {
     subordinateKeyRotationDays: config.security.subordinateKeyRotationDays ?? 90,
     accessTokenMinutes: config.security.accessTokenMinutes ?? 15,
     grantCacheSeconds: config.security.grantCacheSeconds ?? 30,
-    refreshTokenDays: config.security.refreshTokenDays ?? 14
+    refreshTokenDays: config.security.refreshTokenDays ?? 14,
+    maxFuel: config.security.maxFuel ?? 1_000_000,
+    maxDepth: config.security.maxDepth ?? 100,
+    maxAllocation: config.security.maxAllocation ?? 10_000_000
   })
   if (!parsed.ok) {
     throw new Error(

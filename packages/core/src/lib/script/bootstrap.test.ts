@@ -139,7 +139,7 @@ describe('bootstrapping a fresh instance', () => {
     const stored = JSON.parse(objects.get(policyPath) as string)
     expect(stored).toMatchObject({
       type: 'genoacms.securityPolicy.v1',
-      payload: { subordinateKeyRotationDays: 90 }
+      payload: { subordinateKeyRotationDays: 90, maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
     })
   })
 

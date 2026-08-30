@@ -1,9 +1,11 @@
+import type { GuardBudgets } from '@genoacms/internal/guards'
+
 /**
  * The instance's security policy, as a value.
  *
  * One document governed by one permission — `config:security:manage` — holding the settings that
- * feed security decisions rather than describe infrastructure. Rotation interval today; runtime
- * guard ceilings and the fetch origin allowlist join it as those are built.
+ * feed security decisions rather than describe infrastructure. Rotation interval, token and cache
+ * lifetimes, and the runtime guard ceilings; the fetch origin allowlist joins it as that is built.
  *
  * It is a **signed document** like the manifests, not a plain config file. Everything here is an
  * input to a security decision, so it cannot be the one thing in the bucket that is merely trusted:
@@ -38,6 +40,17 @@ interface SecurityPolicy {
   grantCacheSeconds: number
   /** Refresh token lifetime in days — how long a session survives without re-authenticating. */
   refreshTokenDays: number
+  /**
+   * Loop iterations and recursive branches a component may spend in one render.
+   *
+   * The ceiling, not the budget: a consumer may run below it and can never exceed it, because the
+   * value is compiled into the artifact and covered by its signature.
+   */
+  maxFuel: number
+  /** How deep a component's recursive calls may nest before the depth guard stops it. */
+  maxDepth: number
+  /** Cumulative elements and bytes a component may ask for across one render. */
+  maxAllocation: number
 }
 
 type PolicyParseResult =
@@ -63,63 +76,70 @@ const MIN_GRANT_CACHE_SECONDS = 0
 const MAX_REFRESH_TOKEN_DAYS = 365
 const MIN_REFRESH_TOKEN_DAYS = 1
 
+/** Below a thousand iterations, ordinary presentational work stops fitting. */
+const MIN_FUEL = 1_000
+/** A billion iterations is long enough that the render is the outage the guard was meant to stop. */
+const MAX_FUEL = 1_000_000_000
+
+/** Below eight levels, a component cannot walk a nested slot tree of any depth. */
+const MIN_DEPTH = 8
+/** The engine's own stack gives out around here, so a higher ceiling would never be the binding one. */
+const MAX_DEPTH = 10_000
+
+const MIN_ALLOCATION = 1_000
+/** Past a billion the process is out of memory before the counter notices. */
+const MAX_ALLOCATION = 1_000_000_000
+
+/**
+ * Every field, and the range it is meaningful in.
+ *
+ * A table rather than a check per field: the parser reads a signed document and every field is
+ * validated identically, so writing the comparison seven times would be seven chances to write it
+ * differently. **The key order is the order faults are reported in**, which is why the fields a
+ * document has always had come first.
+ */
+const BOUNDS = {
+  subordinateKeyRotationDays: { min: MIN_ROTATION_DAYS, max: MAX_ROTATION_DAYS },
+  accessTokenMinutes: { min: MIN_ACCESS_TOKEN_MINUTES, max: MAX_ACCESS_TOKEN_MINUTES },
+  grantCacheSeconds: { min: MIN_GRANT_CACHE_SECONDS, max: MAX_GRANT_CACHE_SECONDS },
+  refreshTokenDays: { min: MIN_REFRESH_TOKEN_DAYS, max: MAX_REFRESH_TOKEN_DAYS },
+  maxFuel: { min: MIN_FUEL, max: MAX_FUEL },
+  maxDepth: { min: MIN_DEPTH, max: MAX_DEPTH },
+  maxAllocation: { min: MIN_ALLOCATION, max: MAX_ALLOCATION }
+} as const satisfies Record<keyof SecurityPolicy, { min: number, max: number }>
+
+const POLICY_FIELDS = Object.keys(BOUNDS) as (keyof SecurityPolicy)[]
+
 function isPlainObject (value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Why this value cannot be this field, or nothing if it can. */
+function reject (field: keyof SecurityPolicy, value: unknown): string | undefined {
+  const { min, max } = BOUNDS[field]
+  if (typeof value !== 'number' || !Number.isInteger(value)) return `policy.${field} is not an integer`
+  if (value < min || value > max) return `policy.${field} must be between ${min} and ${max}`
+  return undefined
 }
 
 function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   if (!isPlainObject(payload)) return { ok: false, reason: 'policy is not an object' }
 
-  const { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, refreshTokenDays, ...rest } = payload
-  if (Object.keys(rest).length > 0) {
-    // A field this version does not know is a document from a version that does. Guessing at it
-    // would mean acting on a policy only half understood.
-    return { ok: false, reason: `policy has unexpected fields: ${Object.keys(rest).join(', ')}` }
-  }
-  if (typeof subordinateKeyRotationDays !== 'number' || !Number.isInteger(subordinateKeyRotationDays)) {
-    return { ok: false, reason: 'policy.subordinateKeyRotationDays is not an integer' }
-  }
-  if (subordinateKeyRotationDays < MIN_ROTATION_DAYS || subordinateKeyRotationDays > MAX_ROTATION_DAYS) {
-    return {
-      ok: false,
-      reason: `policy.subordinateKeyRotationDays must be between ${MIN_ROTATION_DAYS} and ${MAX_ROTATION_DAYS}`
-    }
+  // A field this version does not know is a document from a version that does. Guessing at it would
+  // mean acting on a policy only half understood.
+  const unexpected = Object.keys(payload).filter(key => !(key in BOUNDS))
+  if (unexpected.length > 0) {
+    return { ok: false, reason: `policy has unexpected fields: ${unexpected.join(', ')}` }
   }
 
-  if (typeof accessTokenMinutes !== 'number' || !Number.isInteger(accessTokenMinutes)) {
-    return { ok: false, reason: 'policy.accessTokenMinutes is not an integer' }
-  }
-  if (accessTokenMinutes < MIN_ACCESS_TOKEN_MINUTES || accessTokenMinutes > MAX_ACCESS_TOKEN_MINUTES) {
-    return {
-      ok: false,
-      reason: `policy.accessTokenMinutes must be between ${MIN_ACCESS_TOKEN_MINUTES} and ${MAX_ACCESS_TOKEN_MINUTES}`
-    }
+  const policy = {} as SecurityPolicy
+  for (const field of POLICY_FIELDS) {
+    const reason = reject(field, payload[field])
+    if (reason !== undefined) return { ok: false, reason }
+    policy[field] = payload[field] as number
   }
 
-  if (typeof grantCacheSeconds !== 'number' || !Number.isInteger(grantCacheSeconds)) {
-    return { ok: false, reason: 'policy.grantCacheSeconds is not an integer' }
-  }
-  if (grantCacheSeconds < MIN_GRANT_CACHE_SECONDS || grantCacheSeconds > MAX_GRANT_CACHE_SECONDS) {
-    return {
-      ok: false,
-      reason: `policy.grantCacheSeconds must be between ${MIN_GRANT_CACHE_SECONDS} and ${MAX_GRANT_CACHE_SECONDS}`
-    }
-  }
-
-  if (typeof refreshTokenDays !== 'number' || !Number.isInteger(refreshTokenDays)) {
-    return { ok: false, reason: 'policy.refreshTokenDays is not an integer' }
-  }
-  if (refreshTokenDays < MIN_REFRESH_TOKEN_DAYS || refreshTokenDays > MAX_REFRESH_TOKEN_DAYS) {
-    return {
-      ok: false,
-      reason: `policy.refreshTokenDays must be between ${MIN_REFRESH_TOKEN_DAYS} and ${MAX_REFRESH_TOKEN_DAYS}`
-    }
-  }
-
-  return {
-    ok: true,
-    policy: { subordinateKeyRotationDays, accessTokenMinutes, grantCacheSeconds, refreshTokenDays }
-  }
+  return { ok: true, policy }
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -145,6 +165,18 @@ function rotationDueAt (policy: SecurityPolicy, createdAt: number): number {
   return createdAt + policy.subordinateKeyRotationDays * DAY_MS
 }
 
+/**
+ * The ceilings, in the shape a compiled component is bounded by.
+ *
+ * A named translation rather than the policy being handed around: the policy spells its fields
+ * `maxFuel` because an administration screen reads them beside a rotation interval, and the guards
+ * spell them `fuel` because inside a component there is nothing to distinguish a ceiling from. One
+ * function owning the mapping is what stops the two vocabularies leaking into each other.
+ */
+function guardCeilings (policy: SecurityPolicy): GuardBudgets {
+  return { fuel: policy.maxFuel, depth: policy.maxDepth, allocation: policy.maxAllocation }
+}
+
 export {
   MIN_ROTATION_DAYS,
   MAX_ROTATION_DAYS,
@@ -154,7 +186,14 @@ export {
   MAX_GRANT_CACHE_SECONDS,
   MIN_REFRESH_TOKEN_DAYS,
   MAX_REFRESH_TOKEN_DAYS,
+  MIN_FUEL,
+  MAX_FUEL,
+  MIN_DEPTH,
+  MAX_DEPTH,
+  MIN_ALLOCATION,
+  MAX_ALLOCATION,
   DAY_MS,
+  guardCeilings,
   parseSecurityPolicy,
   isRotationDue,
   rotationDueAt

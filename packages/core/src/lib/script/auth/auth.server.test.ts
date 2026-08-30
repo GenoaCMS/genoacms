@@ -38,7 +38,10 @@ vi.mock('$lib/script/securityPolicy/policy.server', () => ({
     subordinateKeyRotationDays: 90,
     accessTokenMinutes: 15,
     grantCacheSeconds: 30,
-    refreshTokenDays: 14
+    refreshTokenDays: 14,
+    maxFuel: 1_000_000,
+    maxDepth: 100,
+    maxAllocation: 10_000_000
   })
 }))
 
