@@ -234,6 +234,18 @@ describe('publishing a dynamic component', () => {
     expect(bundles()[0].executableCode).not.toContain('Hero')
   })
 
+  it('publishes a bundle the runtime guards can bound', async () => {
+    // The ceilings come from the instance's signed policy and are compiled in, so they are covered
+    // by the signature over this payload. An artifact without them would be one nothing can stop.
+    //
+    // `depth` rather than `fuel`, because the compiler rewrites 1000000 as 1e6 and this should fail
+    // when the ceiling stops arriving, not when esbuild changes how it spells a number.
+    await publishComponent(order, 'user-1')
+
+    expect(bundles()[0].executableCode).toContain('depth: 100')
+    expect(bundles()[0].executableCode).toContain('GuardExhausted')
+  })
+
   it('names the target its code was built for', async () => {
     // Inside the signed payload, so a consumer refuses code meant for a runtime it is not — and
     // refuses it after verifying, because that is a correctly signed artifact meant for somebody

@@ -62,7 +62,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: 'return heading',
       shape: shapeOf(attribute('a', 'heading', 'string')),
-      platform: 'web-esmodule'
+      platform: 'web-esmodule',
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.diagnostics).toEqual([])
@@ -74,7 +75,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: 'return null',
       shape: shapeOf(attribute('a', '???', 'string')),
-      platform: 'web-esmodule'
+      platform: 'web-esmodule',
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.executableCode).toBeUndefined()
@@ -87,7 +89,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: "import { x } from 'somewhere'\nreturn x",
       shape: shapeOf(attribute('a', 'heading', 'string')),
-      platform: 'web-esmodule'
+      platform: 'web-esmodule',
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.diagnostics.length).toBeGreaterThan(0)
@@ -101,7 +104,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: 'import fs from "fs"\nreturn heading',
       shape: shapeOf(attribute('a', 'heading', 'string')),
-      platform: 'web-esmodule'
+      platform: 'web-esmodule',
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.executableCode).toBeUndefined()
@@ -115,7 +119,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: 'return String(passthrough.locale)',
       shape: shapeOf(attribute('a', 'heading', 'string')),
-      platform: 'web-esmodule'
+      platform: 'web-esmodule',
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.diagnostics).toEqual([])
@@ -137,7 +142,8 @@ describe('compiling', () => {
     const result = await adapter.compileBundle({
       body: 'return 1',
       shape: shapeOf(),
-      platform: 'jvm-class' as never
+      platform: 'jvm-class' as never,
+      ceilings: { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
     })
 
     expect(result.executableCode).toBeUndefined()

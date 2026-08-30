@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest'
 import type { Attribute, ComponentHeaderAttributes } from '@genoacms/internal/attributes'
 import type { ComponentShape } from '@genoacms/internal/languageAdapter'
 import { assemble } from '../emit.js'
+import type { GuardBudgets } from '@genoacms/internal/guards'
 import { injectGuards, availableName } from './inject.js'
-import { GUARD_FACTORY } from './runtime.js'
+import { GUARD_FACTORY, GUARD_INSTANCE } from './runtime.js'
 import adapter from '../index.js'
 
 /**
@@ -25,39 +26,73 @@ const shapeOf = (...attributes: Attribute[]): ComponentShape => {
 
 const heading = shapeOf(attribute('a', 'heading', 'string'))
 
+const CEILINGS: GuardBudgets = { fuel: 1_000_000, depth: 100, allocation: 10_000_000 }
+
 const sourceFor = (body: string): string => assemble(body, heading).source
 
+/** The prologue assembly reports, so a test can compare what injection reports against it. */
+const prologueFor = (body: string): number => assemble(body, heading).prologueLines
+
+const inject = (body: string) => injectGuards(sourceFor(body), CEILINGS, prologueFor(body))
+
 const compile = (body: string) =>
-  adapter.compileBundle({ body, shape: heading, platform: 'web-esmodule' })
+  adapter.compileBundle({ body, shape: heading, platform: 'web-esmodule', ceilings: CEILINGS })
 
 describe('putting the helper in', () => {
   it('declares it', () => {
-    const { source, factory } = injectGuards(sourceFor('return heading'))
+    const { source, factory } = inject('return heading')
 
     expect(source).toContain(`function ${factory} (`)
   })
 
-  it('leaves the author with what they wrote, byte for byte', () => {
-    // A prefix, not a substring: only this formulation also rules out an insertion above the body.
-    const original = sourceFor('const a = 1\nconst b = 2\nreturn heading')
+  it('leaves the author\'s body exactly where the reported prologue says it is', () => {
+    // The claim the coordinate mapping rests on, asserted directly: subtract the prologue and you
+    // are on the author's line. Written against the reported number rather than a fixed index, so
+    // it fails if the two ever disagree.
+    const body = 'const a = 1\nconst b = 2\nreturn heading'
+    const { source, prologueLines } = inject(body)
 
-    expect(injectGuards(original).source.startsWith(original)).toBe(true)
+    const lines = source.split('\n').slice(prologueLines, prologueLines + 3)
+
+    expect(lines.map(one => one.trim())).toEqual(body.split('\n'))
+  })
+
+  it('costs exactly one line, and says so', () => {
+    // The instantiation has to be inside the function, so it cannot be free. Reporting the new
+    // prologue is what keeps the mapping back to author coordinates exact.
+    const body = 'return heading'
+
+    expect(inject(body).prologueLines).toBe(prologueFor(body) + 1)
   })
 
   it('produces the same bytes for the same source', () => {
-    const original = sourceFor('return heading')
+    expect(inject('return heading').source).toBe(inject('return heading').source)
+  })
 
-    expect(injectGuards(original).source).toBe(injectGuards(original).source)
+  it('builds the guards inside the entry function, not beside it', () => {
+    // Module scope would build them once however many times the component is placed on a page, so
+    // twenty placements would share one budget.
+    const { source, guards, factory } = inject('return heading')
+    const entry = source.indexOf('function component')
+    const built = source.indexOf(`const ${guards} = ${factory}(`)
+
+    expect(built).toBeGreaterThan(entry)
+  })
+
+  it('writes the ceilings in as literals', () => {
+    // Inside the source, and therefore inside the signature. A budget passed as an argument would
+    // put the bound where a caller could choose it.
+    expect(inject('return heading').source).toContain('fuel: 1000000')
   })
 })
 
 describe('a name the author cannot shadow', () => {
   it('uses the plain name when nothing is in the way', () => {
-    expect(injectGuards(sourceFor('return heading')).factory).toBe(GUARD_FACTORY)
+    expect(inject('return heading').factory).toBe(GUARD_FACTORY)
   })
 
   it('steps aside when the author declares it', () => {
-    const { factory } = injectGuards(sourceFor(`const ${GUARD_FACTORY} = 1\nreturn heading`))
+    const { factory } = inject(`const ${GUARD_FACTORY} = 1\nreturn heading`)
 
     expect(factory).toBe(`${GUARD_FACTORY}_1`)
   })
@@ -65,11 +100,11 @@ describe('a name the author cannot shadow', () => {
   it('keeps stepping aside', () => {
     const body = `const ${GUARD_FACTORY} = 1\nconst ${GUARD_FACTORY}_1 = 2\nreturn heading`
 
-    expect(injectGuards(sourceFor(body)).factory).toBe(`${GUARD_FACTORY}_2`)
+    expect(inject(body).factory).toBe(`${GUARD_FACTORY}_2`)
   })
 
   it('declares whatever name it settled on, and only that one', () => {
-    const { source, factory } = injectGuards(sourceFor(`const ${GUARD_FACTORY} = 1\nreturn heading`))
+    const { source, factory } = inject(`const ${GUARD_FACTORY} = 1\nreturn heading`)
 
     expect(source).toContain(`function ${factory} (`)
     expect(source).not.toContain(`function ${GUARD_FACTORY} (`)
@@ -84,9 +119,26 @@ describe('a name the author cannot shadow', () => {
   it('is not fooled by a name that only appears in a string', () => {
     // Identifiers come from the AST, so a component printing the name does not push the helper to a
     // suffix nobody needed.
-    const { factory } = injectGuards(sourceFor(`return "${GUARD_FACTORY}"`))
+    const { factory } = inject(`return "${GUARD_FACTORY}"`)
 
     expect(factory).toBe(GUARD_FACTORY)
+  })
+
+  it('steps the guard binding aside as well', () => {
+    const { guards } = inject(`const ${GUARD_INSTANCE} = 1\nreturn heading`)
+
+    expect(guards).toBe(`${GUARD_INSTANCE}_1`)
+  })
+
+  it('declares each of its two names exactly once', () => {
+    // Weaker than it looks if written as `guards !== factory`: the two preferred names cannot
+    // collide, so that assertion holds however the code is written. What is worth pinning is that
+    // the emitted source binds each name once, which a collision would break.
+    const { source, factory, guards } = inject('return heading')
+    const occurrences = (name: string) =>
+      source.split(new RegExp(`\\b(?:function|const) ${name}\\b`)).length - 1
+
+    expect([occurrences(factory), occurrences(guards)]).toEqual([1, 1])
   })
 })
 

@@ -1,6 +1,7 @@
 import type { AttributeReference, ComponentHeaderAttributes } from './attributes'
 import type { ExecutablePlatform } from './executable'
 import type { SastRuleId } from './sast'
+import type { GuardBudgets } from './guards'
 
 /**
  * What a language must provide for components to be authored in it.
@@ -146,6 +147,15 @@ interface AnalysisResult {
 
 interface CompilationRequest extends SourceRequest {
   platform: ExecutablePlatform
+  /**
+   * What the compiled component may spend, resolved from the instance's signed security policy.
+   *
+   * Required, and deliberately not defaultable. An adapter able to compile without them would have a
+   * path producing an artifact the runtime guards cannot bound, with nothing in the result saying
+   * so. Ceilings rather than budgets: they are compiled in and covered by the artifact's signature,
+   * and a consumer may run below them but never above.
+   */
+  ceilings: GuardBudgets
 }
 
 /**

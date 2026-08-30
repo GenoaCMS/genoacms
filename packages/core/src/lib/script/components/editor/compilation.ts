@@ -4,6 +4,7 @@ import type {
   ExecutablePlatform,
   SignaturePreview
 } from '@genoacms/internal/languageAdapter'
+import type { GuardBudgets } from '@genoacms/internal/guards'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
@@ -19,6 +20,11 @@ import type { Diagnostic } from '@genoacms/internal/languageAdapter'
  *
  * The adapter is resolved from the language the component records, and a fatal diagnostic becomes
  * the refusal the publish path acts on.
+ *
+ * **The ceilings arrive as an argument, like everything else.** They come from the signed security
+ * policy, and reading that here would make compiling depend on storage — the thing that keeps an
+ * artifact a function of its inputs. The publish path resolves them, which is also where they are
+ * about to be signed.
  */
 
 /**
@@ -69,11 +75,12 @@ interface CompiledComponent {
 const compileComponentBody = async (
   language: string,
   body: string,
-  shape: ComponentShape
+  shape: ComponentShape,
+  ceilings: GuardBudgets
 ): Promise<CompiledComponent> => {
   const adapter = await getLanguageAdapter(language)
   const platform = soleTargetOf(language, adapter.platforms)
-  const result = await adapter.compileBundle({ body, shape, platform })
+  const result = await adapter.compileBundle({ body, shape, platform, ceilings })
   return { platform, executableCode: compiledCode(language, result) }
 }
 

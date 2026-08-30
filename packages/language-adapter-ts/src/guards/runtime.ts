@@ -57,6 +57,9 @@
  */
 const GUARD_FACTORY = '__genoaGuards'
 
+/** What the guards for one render are bound to. Renamed the same way, and for the same reason. */
+const GUARD_INSTANCE = '__genoa'
+
 /** The helper, as TypeScript: it is merged into a file compiled as TypeScript, and every annotation is erased. */
 const guardRuntime = (factory: string): string => `type __GenoaGuardFamily = 'fuel' | 'depth' | 'allocation'
 
@@ -127,4 +130,4 @@ function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
 }
 `
 
-export { GUARD_FACTORY, guardRuntime }
+export { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime }

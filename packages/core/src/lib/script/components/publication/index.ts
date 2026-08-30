@@ -9,6 +9,8 @@ import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
 import type { Diagnostic } from '@genoacms/internal/languageAdapter'
+import { guardCeilings } from '$lib/script/securityPolicy/policy'
+import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
 import { signComponentPublication } from './payload.server'
 import { describingDigest } from './payload'
 import {
@@ -150,7 +152,10 @@ const build = async (
 
   const shape = shapeOf(header)
   const warnings = await analyzeComponentBody(definition.language, definition.body, shape)
-  const compiled = await compileComponentBody(definition.language, definition.body, shape)
+  // Read at publish time rather than carried on the order: the bound a component runs under is the
+  // instance's, not something the person publishing gets to state.
+  const ceilings = guardCeilings(await loadSecurityPolicy())
+  const compiled = await compileComponentBody(definition.language, definition.body, shape, ceilings)
   // Taken from the adapter rather than rebuilt here, so it is the same text the bundle was compiled
   // around and not a second emitter's opinion of it.
   const { text: signature } = await signatureFor(definition.language, shape)

@@ -114,12 +114,13 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   const refused = scanBody(request.body, request.shape)
   if (refused.length > 0) return { diagnostics: [...diagnostics, ...refused] }
 
-  // Appended after the entry function, so `prologueLines` still describes this source.
-  const guarded = injectGuards(source)
+  // The guards cost one line inside the body, so the prologue to subtract is the one injection
+  // reports rather than the one assembly did.
+  const guarded = injectGuards(source, request.ceilings, prologueLines)
   const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
   return {
     ...compiled,
-    diagnostics: [...diagnostics, ...reported(compiled.diagnostics, prologueLines)]
+    diagnostics: [...diagnostics, ...reported(compiled.diagnostics, guarded.prologueLines)]
   }
 }
 
