@@ -11,6 +11,7 @@ import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
 import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
 import { scanBody, scanAssembled } from './sast/scan.js'
+import { injectGuards } from './guards/inject.js'
 import { target } from './config.js'
 
 /**
@@ -30,6 +31,14 @@ import { target } from './config.js'
  * saving — and the alternative, handing assembled source back to the CMS to pass along, would put
  * TypeScript the CMS cannot read into the CMS, and positions in it that only this package can
  * interpret.
+ *
+ * ## What each entry point does with the assembly
+ *
+ *     analyze        assemble ──▶ scan ──────────────────────▶ diagnostics
+ *     compileBundle  assemble ──▶ scan ──▶ inject ──▶ compile ─▶ artifact
+ *
+ * The guard helper is injected only where an artifact is produced. Analysis reports on what the
+ * author wrote, and a rule firing on code this package emitted would be a fault nobody can fix.
  */
 
 /**
@@ -105,7 +114,9 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   const refused = scanBody(request.body, request.shape)
   if (refused.length > 0) return { diagnostics: [...diagnostics, ...refused] }
 
-  const compiled = await compileToWebEsModule(source, request.platform, target)
+  // Appended after the entry function, so `prologueLines` still describes this source.
+  const guarded = injectGuards(source)
+  const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
   return {
     ...compiled,
     diagnostics: [...diagnostics, ...reported(compiled.diagnostics, prologueLines)]

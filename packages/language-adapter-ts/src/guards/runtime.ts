@@ -1,64 +1,64 @@
 /**
  * The counters a compiled component runs against.
  *
- * ## Why this is a string
- *
- * The text below is **bundled into every artifact**, which is what puts it inside the signature: a
- * component's bounds cannot be stripped by whoever stores the file or serves it, because removing
- * them changes bytes the signature covers. An artifact resolves no imports, so there is nothing to
- * import a helper *from* — the helper has to be in the file.
- *
- * It is a constant in this package's source rather than a module compiled and read back, so its
- * bytes are a function of the **adapter's source**. Derived from a build instead, they would be a
- * function of how the adapter was *packaged*, and the same adapter version bundled two ways would
- * sign one component two different ways. The cost is that an editor does not type-check this while
- * it is being written, which is why `runtime.test.ts` parses it and asserts it is clean.
- *
- * ## What it is not
- *
- * It knows nothing about components, attributes or ASTs. Budgets in, a throw when one runs out.
- * Inserting the calls that spend them is the transform's work, and this is tested without compiling
- * anything.
- *
  *     budgets ──▶ __genoaGuards(budgets) ──▶ { tick, enter, exit, charge }
  *                                                │      │      │      │
  *                        loop headers ───────────┘      │      │      │
  *                        recursive call sites ──────────┴──────┘      │
  *                        allocation expressions ───────────────────────┘
+ *
+ * ## Why this is a string
+ *
+ * The text is bundled into every artifact, which is what puts it inside the signature: bounds cannot
+ * be stripped by whoever stores or serves the file, because removing them changes signed bytes. An
+ * artifact resolves no imports, so there is nothing to import a helper *from*.
+ *
+ * It is a constant in this package's source rather than a module compiled and read back, so its
+ * bytes follow the **adapter's source**. Derived from a build, they would follow how the adapter was
+ * *packaged*, and one version bundled two ways would sign one component two ways. The cost is that
+ * an editor does not type-check it; `runtime.test.ts` parses it and asserts it is clean.
+ *
+ * **Nothing in the text is commented**, because a comment there is bytes in every published
+ * component forever. The reasoning is here instead.
+ *
+ * ## What the text is shaped by
+ *
+ * **A closure, not a class.** The emitted target is configurable per instance and defaults to
+ * `es2020`, where private class fields do not exist — `#fuel` lowers to `WeakMap` scaffolding, so the
+ * guard inside every artifact would vary in size with a setting. Public fields lower cleanly and are
+ * worse: an author's body could reset a counter mid-render. A closure has neither problem at any
+ * target, and its methods carry no receiver an injected call site can lose.
+ *
+ * **Frozen**, because unreachable counters are worth nothing if the methods reading them can be
+ * replaced with no-ops. An artifact is a module and therefore strict, so the attempt throws. It does
+ * not stop the identifier being rebound; `inject.ts` answers that by choosing a name nothing uses.
+ *
+ * **Budgets are read as unknowns**, not through their annotation. They arrive from a signed document
+ * and from a consumer's options, so what the type promises and what is there can differ.
+ *
+ * **Counters rise toward their limits** rather than counting down, so the limit is still around to
+ * report — the number an operator would change. `exit` floors at zero: it is emitted in a `finally`,
+ * so a throw can unwind past `enter`s already accounted for, and going negative would hand back
+ * budget nobody spent.
+ *
+ * ## Two failures, named apart
+ *
+ * A **trip** is a component reaching a bound set for it, which is the mechanism working. An
+ * **invalid budget** is nobody having set one, which is a defect in whatever resolved them. Refusing
+ * at construction rather than reading an absent budget as unlimited: a component running unbounded
+ * is the outcome the guards exist to prevent.
  */
-
-/** The factory's name in the emitted module. Underscored to stay clear of an author's identifiers. */
-const GUARD_FACTORY = '__genoaGuards'
 
 /**
- * The helper, as TypeScript.
+ * The name the factory is given when nothing is in the way.
  *
- * TypeScript rather than JavaScript because it is merged into a source file that is compiled as
- * TypeScript, and because the annotations are what let the test type-check it. Every one of them is
- * erased before anything ships.
- *
- * ### Two failures, named apart
- *
- * A **trip** is a component reaching a bound that was set for it, which is the mechanism working. An
- * **invalid budget** is nobody having set one, which is a defect in whatever resolved the budgets.
- * Refusing at construction rather than treating an absent budget as unlimited: a component running
- * with no bound is the one outcome the guards exist to prevent, so the failure is loud.
- *
- * ### Counting up, not down
- *
- * Each counter rises toward its limit, so the limit is still around to report when one is reached.
- * A counter decremented to zero has forgotten the number an operator would want to change.
- *
- * ### A closure rather than a class
- *
- * The emitted target is configurable per instance and defaults to `es2020`, where private class
- * fields do not exist — a class holding its counters in `#fuel` is lowered to `WeakMap` scaffolding,
- * so the guard inside every signed artifact would have a different shape and size depending on a
- * setting. Public fields avoid that and are worse: `__genoa.fuel = 0` from an author's body would
- * reset the counter mid-render. A closure has neither problem at any target, and its methods carry
- * no receiver for an injected call site to lose.
+ * Only a starting point. An author's body shares a scope with the helper, so `inject.ts` picks a name
+ * the source does not already use — which is why the text below takes one rather than baking it in.
  */
-const GUARD_RUNTIME = `type __GenoaGuardFamily = 'fuel' | 'depth' | 'allocation'
+const GUARD_FACTORY = '__genoaGuards'
+
+/** The helper, as TypeScript: it is merged into a file compiled as TypeScript, and every annotation is erased. */
+const guardRuntime = (factory: string): string => `type __GenoaGuardFamily = 'fuel' | 'depth' | 'allocation'
 
 interface __GenoaBudgets {
   fuel: number
@@ -73,28 +73,12 @@ interface __GenoaGuards {
   charge: (amount: number) => void
 }
 
-function ${GUARD_FACTORY} (budgets: __GenoaBudgets): __GenoaGuards {
-  const invalid = (family: __GenoaGuardFamily): never => {
+function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
+  const unusableBudget = (family: __GenoaGuardFamily): never => {
     const error = new Error('This component was given no usable ' + family + ' budget, so it cannot run.')
     error.name = 'GuardBudgetInvalid'
     throw error
   }
-
-  // Read as an unknown rather than through the annotation: budgets arrive from a signed document and
-  // a consumer's options, so what the type says and what is actually there can differ.
-  const required = (family: __GenoaGuardFamily): number => {
-    const limit = (budgets as unknown as Record<string, unknown>)[family]
-    if (typeof limit !== 'number' || !Number.isFinite(limit) || limit <= 0) return invalid(family)
-    return limit
-  }
-
-  const maxFuel = required('fuel')
-  const maxDepth = required('depth')
-  const maxAllocation = required('allocation')
-
-  let fuel = 0
-  let depth = 0
-  let allocated = 0
 
   const exhausted = (guard: __GenoaGuardFamily, limit: number): never => {
     const error = new Error(
@@ -106,9 +90,23 @@ function ${GUARD_FACTORY} (budgets: __GenoaBudgets): __GenoaGuards {
     throw error
   }
 
-  // Frozen, because the counters being unreachable is worth nothing if the methods reading them can
-  // be replaced. An artifact is a module and therefore strict, so an author's \`tick = () => {}\`
-  // throws rather than quietly succeeding. It does not stop the identifier itself being rebound.
+  const limitFor = (family: __GenoaGuardFamily): number => {
+    const limit = (budgets as unknown as Record<string, unknown>)[family]
+    if (typeof limit !== 'number' || !Number.isFinite(limit) || limit <= 0) return unusableBudget(family)
+    return limit
+  }
+
+  const spendable = (amount: number): number =>
+    typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? amount : 0
+
+  const maxFuel = limitFor('fuel')
+  const maxDepth = limitFor('depth')
+  const maxAllocation = limitFor('allocation')
+
+  let fuel = 0
+  let depth = 0
+  let allocated = 0
+
   return Object.freeze({
     tick: (): void => {
       fuel += 1
@@ -118,22 +116,15 @@ function ${GUARD_FACTORY} (budgets: __GenoaBudgets): __GenoaGuards {
       depth += 1
       if (depth > maxDepth) exhausted('depth', maxDepth)
     },
-    // Never below zero. An exit is emitted in a finally, so an inner throw can unwind past enters
-    // that a matching exit already accounted for, and a negative depth would hand back budget the
-    // component never returned.
     exit: (): void => {
       if (depth > 0) depth -= 1
     },
-    // Anything that is not a positive number costs nothing. A size is an arbitrary expression in the
-    // author's code, so it can be a NaN, a negative or a string — and none of those may buy budget
-    // back by being subtracted from the total.
     charge: (amount: number): void => {
-      const size = typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? amount : 0
-      allocated += size
+      allocated += spendable(amount)
       if (allocated > maxAllocation) exhausted('allocation', maxAllocation)
     }
   })
 }
 `
 
-export { GUARD_FACTORY, GUARD_RUNTIME }
+export { GUARD_FACTORY, guardRuntime }

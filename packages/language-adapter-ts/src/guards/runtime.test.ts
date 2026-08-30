@@ -3,16 +3,16 @@ import { Project, ScriptTarget } from 'ts-morph'
 import { transform } from 'esbuild'
 import { GUARD_EXHAUSTED, GUARD_BUDGET_INVALID, isGuardExhausted } from '@genoacms/internal/guards'
 import type { GuardBudgets } from '@genoacms/internal/guards'
-import { GUARD_FACTORY, GUARD_RUNTIME } from './runtime.js'
+import { GUARD_FACTORY, guardRuntime } from './runtime.js'
 
 /**
  * The helper, exercised as the text that actually ships.
  *
  * Not as a module imported beside it — there is no such module. The constant is what gets merged
- * into an artifact, so the constant is what these tests compile and run. That is the whole reason
- * the shape is affordable: everything here is a plain function of its budgets, with no AST, no
- * component and no compile in sight.
+ * into an artifact, so the constant is what these tests type-strip and run.
  */
+
+const GUARD_RUNTIME = guardRuntime(GUARD_FACTORY)
 
 interface Guards {
   tick: () => void
@@ -26,8 +26,6 @@ type Factory = (budgets: GuardBudgets) => Guards
 let build: Factory
 
 beforeAll(async () => {
-  // Type-stripped the same way a real artifact is, so the tests run the emitted form rather than a
-  // TypeScript-flavored approximation of it.
   const { code } = await transform(`${GUARD_RUNTIME}\nexport { ${GUARD_FACTORY} }\n`, {
     loader: 'ts',
     format: 'esm',
@@ -39,12 +37,10 @@ beforeAll(async () => {
   build = module[GUARD_FACTORY] as Factory
 })
 
-/** Budgets large enough that nothing trips unless a test asks it to. */
 const generous: GuardBudgets = { fuel: 1000, depth: 100, allocation: 1_000_000 }
 
 const budgets = (overrides: Partial<GuardBudgets>): GuardBudgets => ({ ...generous, ...overrides })
 
-/** What was thrown, so a test can assert on it rather than only that something failed. */
 const thrownBy = (act: () => void): unknown => {
   try {
     act()
@@ -54,30 +50,31 @@ const thrownBy = (act: () => void): unknown => {
   return undefined
 }
 
+const parsed = (compilerOptions = {}) =>
+  new Project({ useInMemoryFileSystem: true, compilerOptions })
+    .createSourceFile('runtime.ts', GUARD_RUNTIME)
+
 describe('the text itself', () => {
   it('is valid TypeScript, with nothing to report about it', () => {
-    // This is what the constant costs: no editor checks it while it is written, so the check is a
-    // test. A helper that does not compile would fail every component compiled after the transform.
-    const project = new Project({
-      useInMemoryFileSystem: true,
-      compilerOptions: { strict: true, target: ScriptTarget.ESNext }
-    })
-    const file = project.createSourceFile('runtime.ts', GUARD_RUNTIME)
+    // The cost of a constant: no editor checks it as it is written, so the check is a test.
+    const file = parsed({ strict: true, target: ScriptTarget.ESNext })
 
     expect(file.getPreEmitDiagnostics().map(one => one.getMessageText())).toEqual([])
   })
 
   it('declares the factory the transform will call', () => {
-    const project = new Project({ useInMemoryFileSystem: true })
-    const file = project.createSourceFile('runtime.ts', GUARD_RUNTIME)
-
-    expect(file.getFunction(GUARD_FACTORY)).toBeDefined()
+    expect(parsed().getFunction(GUARD_FACTORY)).toBeDefined()
   })
 
   it.each([GUARD_EXHAUSTED, GUARD_BUDGET_INVALID])('spells %s the way the SDK reads it', (name) => {
-    // The text cannot import the shared constant — an artifact resolves nothing — so it carries a
-    // literal, and this is what keeps the literal and the vocabulary from drifting apart.
+    // The text cannot import the shared constant, so it carries a literal; this is what keeps the
+    // literal and the vocabulary from drifting apart.
     expect(GUARD_RUNTIME).toContain(`'${name}'`)
+  })
+
+  it('carries no prose into the artifact', () => {
+    // A comment here is bytes in every published component forever.
+    expect(GUARD_RUNTIME).not.toMatch(/\/\/|\/\*/)
   })
 })
 
@@ -102,15 +99,9 @@ describe('a budget that was never usable', () => {
   })
 
   it('is not reported as a component exceeding its budget', () => {
-    // Different fault, different owner: an unbounded component is a misconfigured instance, and
-    // reporting it as a trip would show the guards working on a render where they were never armed.
-    const error = thrownBy(() => build(budgets({ fuel: 0 })))
-
-    expect(isGuardExhausted(error)).toBe(false)
-  })
-
-  it('refuses before returning anything to spend', () => {
-    expect(() => build(budgets({ fuel: -1 }))).toThrow()
+    // Different fault, different owner. Reporting it as a trip would show guards working on a render
+    // where they were never armed.
+    expect(isGuardExhausted(thrownBy(() => build(budgets({ fuel: 0 }))))).toBe(false)
   })
 })
 
@@ -129,8 +120,6 @@ describe('fuel', () => {
   })
 
   it('says which guard tripped, and what the limit was', () => {
-    // The limit travels because it is the number an operator would change. A message saying only
-    // that a component stopped leaves nobody anything to act on.
     const guards = build(budgets({ fuel: 1 }))
     guards.tick()
 
@@ -141,8 +130,7 @@ describe('fuel', () => {
   })
 
   it('stays tripped once it has tripped', () => {
-    // A caught trip must not leave a component with fuel to keep going on — a loop wrapped in a
-    // try/catch would otherwise run forever, one throw per iteration.
+    // A loop inside a try/catch would otherwise run forever, one throw per iteration.
     const guards = build(budgets({ fuel: 1 }))
     guards.tick()
     thrownBy(() => guards.tick())
@@ -178,8 +166,8 @@ describe('depth', () => {
   })
 
   it('gives the level back on the way out', () => {
-    // Depth is the only budget that is not cumulative: a component that recurses four deep, returns,
-    // and recurses four deep again has done nothing wrong.
+    // The only budget that is not cumulative: recursing four deep, returning, and recursing four
+    // deep again is not a fault.
     const guards = build(budgets({ depth: 2 }))
     nest(guards, 2)
     guards.exit()
@@ -189,8 +177,7 @@ describe('depth', () => {
   })
 
   it('cannot be given back more than was taken', () => {
-    // An exit runs in a finally, so a throw deep in a component can unwind past enters that were
-    // already accounted for. Crediting those would hand back budget nobody spent.
+    // An exit runs in a finally, so a throw can unwind past enters already accounted for.
     const guards = build(budgets({ depth: 1 }))
     guards.exit()
     guards.exit()
@@ -208,8 +195,8 @@ describe('allocation', () => {
   })
 
   it('accumulates across the whole render', () => {
-    // Cumulative rather than a high-water mark: nothing here observes a value being released, and
-    // treating each allocation independently would let a loop allocate the budget every iteration.
+    // Cumulative rather than a high-water mark: nothing here observes a value being released, so
+    // treating allocations independently would let a loop allocate the budget every iteration.
     const guards = build(budgets({ allocation: 100 }))
     guards.charge(60)
 
@@ -217,9 +204,7 @@ describe('allocation', () => {
   })
 
   it.each([-100, Number.NaN, Number.NEGATIVE_INFINITY])('buys nothing back with %s', (amount) => {
-    // A size is whatever expression the author wrote. None of these may buy budget back by being
-    // added to the total — so the spent budget has to still be spent afterwards, which the trailing
-    // charge is what actually proves. Asserting on the negative charge alone would pass either way.
+    // The trailing charge is what proves it: asserting on the bad charge alone passes either way.
     const guards = build(budgets({ allocation: 100 }))
     guards.charge(100)
     guards.charge(amount)
@@ -234,8 +219,6 @@ describe('allocation', () => {
   })
 
   it('trips on a single request larger than the whole budget', () => {
-    // The charge happens before the allocation does, which is the only ordering that prevents the
-    // memory being taken rather than reporting it afterwards.
     const guards = build(budgets({ allocation: 100 }))
 
     expect(() => guards.charge(1e9)).toThrow()
@@ -244,24 +227,20 @@ describe('allocation', () => {
 
 describe('what a component can do to its own guards', () => {
   /*
-   * The counters are unreachable — they are closure state, and nothing returns them. What is reachable
-   * is the object holding the methods, and an author's body is in scope to write to it.
-   *
    *     author's body ──▶ __genoa ──▶ { tick, enter, exit, charge }   ◀── frozen
    *                          │                    │
    *                          │                    └── cannot be replaced
-   *                          └── can still be rebound entirely (step 12's problem, not this one)
+   *                          └── can still be rebound (inject.ts answers that)
    */
-  it('cannot replace a guard method with a no-op', () => {
-    const guards = build(budgets({ fuel: 1 }))
+  const replaceTick = (guards: Guards) => { (guards as { tick: unknown }).tick = () => undefined }
 
-    // Strict mode, which every module is, so this throws rather than quietly succeeding.
-    expect(() => { (guards as { tick: unknown }).tick = () => undefined }).toThrow(TypeError)
+  it('cannot replace a guard method with a no-op', () => {
+    expect(() => replaceTick(build(budgets({})))).toThrow(TypeError)
   })
 
   it('still trips after trying', () => {
     const guards = build(budgets({ fuel: 1 }))
-    try { (guards as { tick: unknown }).tick = () => undefined } catch { /* expected */ }
+    thrownBy(() => replaceTick(guards))
     guards.tick()
 
     expect(isGuardExhausted(thrownBy(() => guards.tick()))).toBe(true)
@@ -274,18 +253,12 @@ describe('what a component can do to its own guards', () => {
   })
 
   it('hands back no way to read the counters', () => {
-    // Nothing to reset, because there is nothing to name. This is what the closure buys over a class
-    // with public fields.
-    const guards = build(budgets({}))
-
-    expect(Object.keys(guards).sort()).toEqual(['charge', 'enter', 'exit', 'tick'])
+    expect(Object.keys(build(budgets({}))).sort()).toEqual(['charge', 'enter', 'exit', 'tick'])
   })
 })
 
 describe('a component keeps its own counters', () => {
   it('counts separately from another component', () => {
-    // Every artifact builds its own, so a page of twenty components does not share one budget and a
-    // component near its limit cannot stop the one rendered after it.
     const first = build(budgets({ fuel: 1 }))
     const second = build(budgets({ fuel: 1 }))
     first.tick()

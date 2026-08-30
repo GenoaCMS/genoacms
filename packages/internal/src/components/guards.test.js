@@ -6,13 +6,11 @@ const trip = (guard) => Object.assign(new Error('exhausted'), { name: GUARD_EXHA
 
 describe('the guard families', () => {
   it('is exactly the three the design names', () => {
-    // Spelled out rather than derived, so adding a family to the list is a decision and not a typo.
+    // Spelled out rather than derived, so adding a family is a decision and not a typo.
     expect([...GUARD_FAMILIES]).toEqual(['fuel', 'depth', 'allocation'])
   })
 
   it('names the two failures apart', () => {
-    // A component reaching its bound and nobody having set one are different events with different
-    // owners; one name for both would let a misconfigured instance report guards working.
     expect(GUARD_EXHAUSTED).not.toBe(GUARD_BUDGET_INVALID)
   })
 })
@@ -23,8 +21,7 @@ describe('recognizing a trip', () => {
   })
 
   it('accepts one built in another realm', () => {
-    // The case `instanceof` gets wrong: a component executed in a worker throws an error whose
-    // constructor is a different object, and refusing it would reclassify a guard as a crash.
+    // The case `instanceof` gets wrong: a worker's Error is a different constructor.
     const foreign = { name: GUARD_EXHAUSTED, guard: 'fuel', limit: 10, message: 'exhausted' }
 
     expect(isGuardExhausted(foreign)).toBe(true)
@@ -35,8 +32,7 @@ describe('recognizing a trip', () => {
   })
 
   it('refuses an error wearing the name without a family', () => {
-    // A component's own code can throw whatever it likes, including this name. Accepting it would
-    // let an author report their bug as a guard doing its job.
+    // A component can throw whatever it likes, including this name.
     expect(isGuardExhausted(Object.assign(new Error('nice try'), { name: GUARD_EXHAUSTED }))).toBe(false)
   })
 
