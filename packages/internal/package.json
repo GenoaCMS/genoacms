@@ -46,6 +46,10 @@
     "./sast": {
       "import": "./src/components/sast.js",
       "types": "./src/components/sast.d.ts"
+    },
+    "./guards": {
+      "import": "./src/components/guards.js",
+      "types": "./src/components/guards.d.ts"
     }
   },
   "scripts": {
