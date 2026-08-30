@@ -3,6 +3,7 @@ import type { FunctionDeclaration, SourceFile } from 'ts-morph'
 import type { GuardBudgets } from '@genoacms/internal/guards'
 import { ENTRY_FUNCTION } from '../emit.js'
 import { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime } from './runtime.js'
+import { spendFuel } from './fuel.js'
 
 /**
  * Putting the guard helper into a component's source, before it is compiled and signed.
@@ -25,11 +26,13 @@ import { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime } from './runtime.js'
  * came in. Every author line shifts by the same one, so the subtraction that maps a diagnostic back
  * still lands on the line the author is looking at.
  *
- * ## Merged as an AST, not concatenated
+ * ## The AST decides where; nothing is found by searching text
  *
- * What that buys is invisible in this step and is the reason for doing it here: the steps that
- * follow insert calls *inside* the body, where a text edit means recomputing every byte offset after
- * it by hand, and where an AST does it correctly by construction.
+ * The helper is parsed and merged as a statement. The guard *calls* cannot be, because ts-morph
+ * inserts a statement on its own line and a line added inside the body is a line every diagnostic
+ * below it is wrong by. So their sites come from the AST and are applied to the source as offsets —
+ * furthest first, which is what makes the arithmetic correct without recomputing anything. `fuel.ts`
+ * carries that.
  *
  * ## The ceilings are literals, not a parameter
  *
@@ -37,8 +40,10 @@ import { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime } from './runtime.js'
  * signature and cannot be raised by whoever stores the file or serves it. A budget arriving as an
  * argument instead would put the bound outside the signature, where a caller could choose it.
  *
- * No guard *calls* yet: the counters exist and nothing spends them. Inserting the calls is what the
- * steps after this do, one guard family at a time.
+ * ## What spends them
+ *
+ * Fuel, at every loop header and every function the author declared — see `fuel.ts`, which also
+ * explains why none of those calls costs a line. Depth and allocation join it as those are built.
  */
 
 const identifiersIn = (file: SourceFile): Set<string> =>
@@ -106,19 +111,31 @@ const entryFunctionOf = (file: SourceFile): FunctionDeclaration => {
   return entry
 }
 
+/**
+ * The order the three edits happen in, which is not interchangeable.
+ *
+ *     1. spend fuel      over the author's code only — the helper does not exist yet
+ *     2. instantiate     one line, inside the entry function, paid for by the prologue
+ *     3. append helper   after everything, hoisted, moving nothing
+ *
+ * Fuel first because the sites are read from the entry function's descendants: appending the helper
+ * before would put its own loops and functions in scope for instrumentation, and a component would
+ * pay fuel for the counting.
+ */
 const injectGuards = (
   source: string,
   ceilings: GuardBudgets,
   prologueLines: number
 ): Injection => {
-  const file = parse(source)
-  const taken = identifiersIn(file)
+  const read = parse(source)
+  const taken = identifiersIn(read)
   const factory = availableName(taken, GUARD_FACTORY)
   // The chosen factory joins the taken set even though the two preferred names cannot collide
   // today — `__genoaGuards` never suffixes its way to `__genoa`. It is insurance against renaming
   // one of them into the other's family, which nothing else would catch.
   const guards = availableName(new Set([...taken, factory]), GUARD_INSTANCE)
 
+  const file = parse(spendFuel(source, entryFunctionOf(read), guards))
   entryFunctionOf(file).insertStatements(0, instantiation(guards, factory, ceilings))
   file.addStatements(guardRuntime(factory))
 
