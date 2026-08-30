@@ -135,8 +135,9 @@ const algorithmicComplexityRules = {
     severity: 'HIGH',
     enforcement: 'fatal',
     description:
-      'Rejects infinite loop constructs (while(true)) lacking statically provable termination ' +
-      'conditions.',
+      'Rejects an infinite loop construct with no exit in it — while(true) or for(;;) containing ' +
+      'neither a break nor a return. One with a reachable exit is accepted; whether it is reached ' +
+      'is undecidable and is carried by the fuel guard.',
     residue: 'fuel'
   },
   'SAST-09': {
@@ -177,8 +178,9 @@ const componentContractRules = {
     severity: 'MEDIUM',
     enforcement: 'fatal',
     description:
-      'Component execution must remain pure with respect to props; mutating external module ' +
-      'variables is rejected.'
+      'A component may not write to what it was given: the capability object, a slot, or an ' +
+      'attribute\'s contents. That state is shared with the host application and with sibling ' +
+      'components on the same page.'
   }
 }
 

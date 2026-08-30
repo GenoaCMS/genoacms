@@ -12,6 +12,12 @@ import {
   noUnrestrictedNetworkCalls
 } from './rules/moduleIsolation.js'
 import { requireDeclaredBounds } from './rules/declaredBounds.js'
+import {
+  noUnboundedLoops,
+  noUnboundedRecursion,
+  boundMemoryAllocation,
+  noGlobalSideEffects
+} from './rules/resourceUse.js'
 
 /**
  * Running the ruleset, over the two sources a component has.
@@ -46,7 +52,11 @@ const ASSEMBLED_RULES: Rule[] = [
   noGlobalScopeAccess,
   noPrototypeManipulation,
   noUnrestrictedNetworkCalls,
-  requireDeclaredBounds
+  requireDeclaredBounds,
+  noUnboundedLoops,
+  noUnboundedRecursion,
+  boundMemoryAllocation,
+  noGlobalSideEffects
 ]
 
 /**
