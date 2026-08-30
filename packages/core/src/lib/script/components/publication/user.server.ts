@@ -1,3 +1,4 @@
+import type { Diagnostic } from '@genoacms/internal/languageAdapter'
 import type { AuthContext } from '$lib/script/authorization/context'
 import type { ComponentHeader } from '../componentHeader/component/types'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
@@ -39,7 +40,7 @@ import { publishComponent, getPublishedComponent, listComposableComponentHeaders
 const publishUserComponent = async (
   ctx: AuthContext,
   order: ComponentPublicationOrder
-): Promise<PublishedComponent> => {
+): Promise<{ record: PublishedComponent, warnings: Diagnostic[] }> => {
   requirePermission(ctx, 'components:modify')
 
   const header = await getComponentHeader(order.componentId)

@@ -25,12 +25,19 @@ export const publishComponentRemote = form('unchecked', async (data: { component
 
   try {
     const ctx = requireAuthContext(getRequestEvent().locals)
-    const record = await publishUserComponent(ctx, data)
+    const { record, warnings } = await publishUserComponent(ctx, data)
     return {
       status: 'success',
       text: 'Component published',
       publicationId: record.publicationId,
-      publishedAt: record.publishedAt
+      publishedAt: record.publishedAt,
+      // Reported alongside the success rather than swallowed by it: a warning names a line a runtime
+      // guard is watching, which is the one moment the author is looking at that code.
+      warnings: warnings.map(one => ({
+        rule: one.rule,
+        message: one.message,
+        ...(one.line === undefined ? {} : { line: one.line })
+      }))
     }
   } catch (e) {
     console.log(e)

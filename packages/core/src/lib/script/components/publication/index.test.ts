@@ -44,8 +44,15 @@ vi.mock('$lib/script/signing/keyResolution.server', () => ({
  */
 const GOOD_SOURCE = 'return heading'
 
-/** What the header below emits, which is what a publication of it is built against. */
-const PUBLISHED_SIGNATURE = 'export default function component (\n  heading: string\n) {'
+/**
+ * What the header below emits, which is what a publication of it is built against.
+ *
+ * It ends with `passthrough` because every component receives the capability object the consuming
+ * application supplies. Adding that parameter changed this string, and a publication signed against
+ * the old one is legitimately "changed" — which is what this constant has to keep saying.
+ */
+const PUBLISHED_SIGNATURE =
+  'export default function component (\n  heading: string,\n  passthrough: Record<string, unknown> = {}\n) {'
 
 const writes: string[] = []
 
@@ -351,5 +358,59 @@ describe('refusing a publication', () => {
     await publishComponent(order, 'user-1')
 
     expect(writes).toContain('publication')
+  })
+})
+
+describe('what the ruleset does to a publication', () => {
+  /**
+   * The two answers analysis can give, driven through the path that actually publishes.
+   *
+   * Asserted here rather than against the adapter, because the adapter reporting a diagnostic and
+   * the CMS acting on it are different claims — and the second is the one an author experiences.
+   */
+  const withBody = (body: string): void => {
+    draft = { ...definition, body }
+  }
+
+  it('refuses a component that violates a rule, and names the rule', async () => {
+    withBody('return eval("1")')
+
+    // The rule travels as the error's code; the message is written for a person to read.
+    await expect(publishComponent(order, 'user-1')).rejects.toMatchObject({ code: 'SAST-01' })
+  })
+
+  it('says where, so the refusal is something the author can act on', async () => {
+    withBody('const safe = 1\nreturn eval("2")')
+
+    await expect(publishComponent(order, 'user-1')).rejects.toThrow(/line 2/)
+  })
+
+  it('writes nothing when it refuses', async () => {
+    // A refusal that had already signed and stored something would leave a published artifact for a
+    // component the ruleset rejected.
+    withBody('return eval("1")')
+
+    await publishComponent(order, 'user-1').catch(() => undefined)
+
+    expect(writes).toEqual([])
+  })
+
+  it('publishes a component that only warns, and hands the warning back', async () => {
+    // A warning is the ruleset saying it cannot decide something and naming the guard that will.
+    // Blocking on it would refuse a correct component for a value nothing can know yet.
+    withBody('const rows = new Array(heading.length)\nreturn String(rows.length)')
+
+    const { warnings } = await publishComponent(order, 'user-1')
+
+    expect(writes).toContain('publication')
+    expect(warnings.map(one => one.rule)).toContain('SAST-10')
+  })
+
+  it('reports no warnings for a body with nothing to say about it', async () => {
+    withBody('return heading')
+
+    const { warnings } = await publishComponent(order, 'user-1')
+
+    expect(warnings).toEqual([])
   })
 })

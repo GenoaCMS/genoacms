@@ -7,6 +7,7 @@ import type {
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
+import type { Diagnostic } from '@genoacms/internal/languageAdapter'
 
 /**
  * Compiling a component into the bundle a consumer runs.
@@ -79,17 +80,23 @@ const compileComponentBody = async (
 /**
  * Checks a body against the language's safety rules before anything is built from it.
  *
- * Separate from compiling because the two answer different questions and one of them is about to
- * grow: the safety ruleset is the guard work's, and a component that compiles perfectly well is
- * exactly the kind that needs checking.
+ * Separate from compiling because the two answer different questions: a component that compiles
+ * perfectly well is exactly the kind that needs checking.
+ *
+ * **Returns the warnings rather than dropping them.** A warning is the ruleset saying it found
+ * something it cannot decide — an allocation sized at run time, a bound coming from the consuming
+ * application — and which runtime guard will carry it. Discarding them would publish a component
+ * whose author was never told which line a guard is watching.
  */
 const analyzeComponentBody = async (
   language: string,
   body: string,
   shape: ComponentShape
-): Promise<void> => {
+): Promise<Diagnostic[]> => {
   const adapter = await getLanguageAdapter(language)
-  raiseFatal((await adapter.analyze({ body, shape })).diagnostics)
+  const { diagnostics } = await adapter.analyze({ body, shape })
+  raiseFatal(diagnostics)
+  return diagnostics.filter(one => one.severity === 'warning')
 }
 
 /**

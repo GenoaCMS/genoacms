@@ -8,6 +8,7 @@ import { getComponentHeader, listOrCreateComponentHeaderList } from '../componen
 import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
+import type { Diagnostic } from '@genoacms/internal/languageAdapter'
 import { signComponentPublication } from './payload.server'
 import { describingDigest } from './payload'
 import {
@@ -118,6 +119,8 @@ interface BuiltPublication {
   publication: SignedComponentPublication
   /** The signature the bundles were compiled around, recorded so the next rule can compare it. */
   signature: string | undefined
+  /** What analysis reported and did not refuse, for the author to read after a successful publish. */
+  warnings: Diagnostic[]
 }
 
 /**
@@ -137,14 +140,16 @@ const build = async (
   const { header, definition } = subject
   const release = { publicationId, publisherId, publishedAt, note }
   if (definition === undefined) {
+    // A prebuilt component has no body to analyze, so there is nothing to warn about.
     return {
       publication: await signComponentPublication(release, header),
-      signature: undefined
+      signature: undefined,
+      warnings: []
     }
   }
 
   const shape = shapeOf(header)
-  await analyzeComponentBody(definition.language, definition.body, shape)
+  const warnings = await analyzeComponentBody(definition.language, definition.body, shape)
   const compiled = await compileComponentBody(definition.language, definition.body, shape)
   // Taken from the adapter rather than rebuilt here, so it is the same text the bundle was compiled
   // around and not a second emitter's opinion of it.
@@ -152,7 +157,8 @@ const build = async (
 
   return {
     publication: await signComponentPublication(release, header, [compiledBundle(compiled)]),
-    signature
+    signature,
+    warnings
   }
 }
 
@@ -234,7 +240,7 @@ const advanceDefinition = async (
 const publishComponent = async (
   order: ComponentPublicationOrder,
   publisherId: string
-): Promise<PublishedComponent> => {
+): Promise<{ record: PublishedComponent, warnings: Diagnostic[] }> => {
   const subject = await readSubject(order.componentId)
   await requireSomethingToPublish(subject)
 
@@ -251,7 +257,9 @@ const publishComponent = async (
     headerDigest: describingDigest(subject.header)
   }
   await store(subject, built, record)
-  return record
+  // The record is what is stored; the warnings are for the person who just published and are not
+  // part of any document.
+  return { record, warnings: built.warnings }
 }
 
 /**

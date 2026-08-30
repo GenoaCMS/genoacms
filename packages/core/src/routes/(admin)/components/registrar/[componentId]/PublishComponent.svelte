@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Input, Label, Modal } from '$lib/components/ui/index'
   import { publishComponentRemote } from './publish.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess, toastWarning } from '$lib/script/alert.svelte'
 
   /**
    * Releasing the component: signs its header, and compiles and signs its code if it has any.
@@ -38,6 +38,21 @@
    * for every refusal. Publishing runs analysis and compilation, both of which reject ordinary
    * mistakes, so the refused case is the common one.
    */
+  interface Warning { rule: string, message: string, line?: number }
+
+  /**
+   * Shows what analysis reported and did not refuse.
+   *
+   * Separate toasts rather than one joined message: each names a different line, and a person acting
+   * on them reads them one at a time.
+   */
+  const reportWarnings = (warnings: Warning[] | undefined) => {
+    for (const warning of warnings ?? []) {
+      const where = warning.line === undefined ? '' : ` (line ${warning.line})`
+      toastWarning(`${warning.rule}: ${warning.message}${where}`)
+    }
+  }
+
   const enhance = publishComponentRemote.enhance(async ({ submit }) => {
     try {
       await submit()
@@ -47,6 +62,7 @@
         return
       }
       toastSuccess(result.text)
+      reportWarnings(result.warnings as Warning[] | undefined)
       onpublished(result.publishedAt as number)
       isModalOpen = false
       note = ''

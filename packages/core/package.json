@@ -12,8 +12,9 @@
 	},
 	"license": "ISC",
 	"scripts": {
-		"dev": "vite dev --host",
-		"build": "vite build",
+		"adapters": "pnpm --filter @genoacms/language-adapter-ts run build",
+		"dev": "pnpm run adapters && vite dev --host",
+		"build": "pnpm run adapters && vite build",
 		"build:genoa": "vite build --config genoa.vite.config.ts",
 		"preview": "vite preview",
 		"test": "pnpm run test:unit && pnpm run test:integration",
@@ -23,7 +24,7 @@
 		"test:integration": "playwright test",
 		"test:demo": "GENOACMS_DEMO=1 playwright test demoFixtures",
 		"test:demo:clean": "GENOACMS_DEMO=1 playwright test demoCleanup",
-		"test:unit": "vitest run",
+		"test:unit": "pnpm run adapters && vitest run",
 		"test:unit:watch": "vitest",
 		"rotate-root": "vite-node scripts/rotate-root.ts",
 		"generate-permission-matrix": "vite-node scripts/generate-permission-matrix.ts"
