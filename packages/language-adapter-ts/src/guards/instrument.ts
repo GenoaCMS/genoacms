@@ -69,6 +69,9 @@ const descendantsOfKinds = (node: TsNode, kinds: SyntaxKind[]): TsNode[] =>
 /** The loops inside a component, in no particular order. */
 const loopsIn = (node: TsNode): TsNode[] => descendantsOfKinds(node, LOOPS)
 
+/** Whether this node is itself a loop, for asking what something sits inside. */
+const isLoop = (node: TsNode): boolean => LOOPS.includes(node.getKind())
+
 /** Every function the author declared inside a component, in any of the ways one can be written. */
 const functionsIn = (node: TsNode): TsNode[] => descendantsOfKinds(node, FUNCTIONS)
 
@@ -110,6 +113,21 @@ const wrapBody = (body: TsNode, preamble: string, epilogue: string): Edit[] => {
 }
 
 /**
+ * Wraps an expression in a call, so the call sees the value the expression produced.
+ *
+ * Two inserts rather than a replacement, for the reason above, and because the expression may itself
+ * contain something being wrapped. `new Array(n)` becomes `new Array(__genoa.size(n))`: the size is
+ * evaluated once and the charge lands before the memory is taken.
+ */
+const wrapExpression = (node: TsNode, callee: string): Edit[] => {
+  const ownerStart = node.getStart()
+  return [
+    { at: node.getStart(), text: `${callee}(`, ownerStart },
+    { at: node.getEnd(), text: ')', ownerStart }
+  ]
+}
+
+/**
  * Furthest into the source first, and enclosing before enclosed.
  *
  * Later-applied text ends up to the left of earlier-applied text at the same offset, so putting the
@@ -123,5 +141,5 @@ const applyEdits = (source: string, edits: Edit[]): string =>
     .sort(inApplicationOrder)
     .reduce((text, edit) => text.slice(0, edit.at) + edit.text + text.slice(edit.at), source)
 
-export { applyEdits, wrapBody, loopsIn, functionsIn, loopBodyOf, functionBodyOf }
+export { applyEdits, wrapBody, wrapExpression, loopsIn, isLoop, functionsIn, loopBodyOf, functionBodyOf }
 export type { Edit }

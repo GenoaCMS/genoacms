@@ -18,7 +18,8 @@ interface Guards {
   tick: () => void
   enter: () => void
   exit: () => void
-  charge: (amount: number) => void
+  size: (amount: number) => number
+  text: (value: unknown) => unknown
 }
 
 type Factory = (budgets: GuardBudgets) => Guards
@@ -141,7 +142,7 @@ describe('fuel', () => {
   it('is not spent by the other guards', () => {
     const guards = build(budgets({ fuel: 1 }))
     guards.enter()
-    guards.charge(10)
+    guards.size(10)
 
     expect(() => guards.tick()).not.toThrow()
   })
@@ -191,37 +192,58 @@ describe('allocation', () => {
   it('allows exactly the budget, in one request', () => {
     const guards = build(budgets({ allocation: 100 }))
 
-    expect(() => guards.charge(100)).not.toThrow()
+    expect(() => guards.size(100)).not.toThrow()
   })
 
   it('accumulates across the whole render', () => {
     // Cumulative rather than a high-water mark: nothing here observes a value being released, so
     // treating allocations independently would let a loop allocate the budget every iteration.
     const guards = build(budgets({ allocation: 100 }))
-    guards.charge(60)
+    guards.size(60)
 
-    expect(thrownBy(() => guards.charge(41))).toMatchObject({ guard: 'allocation', limit: 100 })
+    expect(thrownBy(() => guards.size(41))).toMatchObject({ guard: 'allocation', limit: 100 })
   })
 
   it.each([-100, Number.NaN, Number.NEGATIVE_INFINITY])('buys nothing back with %s', (amount) => {
     // The trailing charge is what proves it: asserting on the bad charge alone passes either way.
     const guards = build(budgets({ allocation: 100 }))
-    guards.charge(100)
-    guards.charge(amount)
+    guards.size(100)
+    guards.size(amount)
 
-    expect(thrownBy(() => guards.charge(1))).toMatchObject({ guard: 'allocation' })
+    expect(thrownBy(() => guards.size(1))).toMatchObject({ guard: 'allocation' })
   })
 
   it('charges nothing for a size that is not a number at all', () => {
     const guards = build(budgets({ allocation: 100 }))
 
-    expect(() => guards.charge('99999' as unknown as number)).not.toThrow()
+    expect(() => guards.size('99999' as unknown as number)).not.toThrow()
+  })
+
+  it('hands the size back, so it can wrap the argument it charges', () => {
+    // Wrapping is what puts the charge before the allocation without evaluating the size twice.
+    const guards = build(budgets({ allocation: 100 }))
+
+    expect(guards.size(7)).toBe(7)
+  })
+
+  it('charges what a value costs as text, and hands the value back', () => {
+    const guards = build(budgets({ allocation: 10 }))
+
+    expect(guards.text('abcde')).toBe('abcde')
+    expect(thrownBy(() => guards.text('abcdef'))).toMatchObject({ guard: 'allocation' })
+  })
+
+  it('charges a non-string by what its text form costs', () => {
+    const guards = build(budgets({ allocation: 4 }))
+    guards.text(123)
+
+    expect(thrownBy(() => guards.text(45))).toMatchObject({ guard: 'allocation' })
   })
 
   it('trips on a single request larger than the whole budget', () => {
     const guards = build(budgets({ allocation: 100 }))
 
-    expect(() => guards.charge(1e9)).toThrow()
+    expect(() => guards.size(1e9)).toThrow()
   })
 })
 
@@ -253,7 +275,7 @@ describe('what a component can do to its own guards', () => {
   })
 
   it('hands back no way to read the counters', () => {
-    expect(Object.keys(build(budgets({}))).sort()).toEqual(['charge', 'enter', 'exit', 'tick'])
+    expect(Object.keys(build(budgets({}))).sort()).toEqual(['enter', 'exit', 'size', 'text', 'tick'])
   })
 })
 

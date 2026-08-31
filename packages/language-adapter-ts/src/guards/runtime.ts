@@ -1,11 +1,12 @@
 /**
  * The counters a compiled component runs against.
  *
- *     budgets ──▶ __genoaGuards(budgets) ──▶ { tick, enter, exit, charge }
- *                                                │      │      │      │
- *                        loop headers ───────────┘      │      │      │
- *                        recursive call sites ──────────┴──────┘      │
- *                        allocation expressions ───────────────────────┘
+ *     budgets ──▶ __genoaGuards(budgets) ──▶ { tick, enter, exit, size, text }
+ *                                                │      │      │     │     │
+ *                        loop headers ───────────┘      │      │     │     │
+ *                        function entries ──────────────┴──────┘     │     │
+ *                        array and buffer sizes ──────────────────────┘     │
+ *                        concatenation in a loop ──────────────────────────┘
  *
  * ## Why this is a string
  *
@@ -35,6 +36,11 @@
  *
  * **Budgets are read as unknowns**, not through their annotation. They arrive from a signed document
  * and from a consumer's options, so what the type promises and what is there can differ.
+ *
+ * **The allocation guard hands its argument back.** `size` charges a length and returns it, so it
+ * wraps the size a constructor is given rather than being called beside it — one evaluation, and the
+ * charge lands before the memory is taken rather than reporting it afterwards. `text` does the same
+ * for a value being concatenated, charging what its string form costs.
  *
  * **Counters rise toward their limits** rather than counting down, so the limit is still around to
  * report — the number an operator would change. `exit` floors at zero: it is emitted in a `finally`,
@@ -73,7 +79,8 @@ interface __GenoaGuards {
   tick: () => void
   enter: () => void
   exit: () => void
-  charge: (amount: number) => void
+  size: (amount: number) => number
+  text: (value: unknown) => unknown
 }
 
 function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
@@ -110,6 +117,11 @@ function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
   let depth = 0
   let allocated = 0
 
+  const spend = (amount: number): void => {
+    allocated += spendable(amount)
+    if (allocated > maxAllocation) exhausted('allocation', maxAllocation)
+  }
+
   return Object.freeze({
     tick: (): void => {
       fuel += 1
@@ -122,9 +134,13 @@ function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
     exit: (): void => {
       if (depth > 0) depth -= 1
     },
-    charge: (amount: number): void => {
-      allocated += spendable(amount)
-      if (allocated > maxAllocation) exhausted('allocation', maxAllocation)
+    size: (amount: number): number => {
+      spend(amount)
+      return amount
+    },
+    text: (value: unknown): unknown => {
+      spend(String(value).length)
+      return value
     }
   })
 }
