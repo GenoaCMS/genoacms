@@ -32,11 +32,14 @@ export interface GuardBudgets {
 /**
  * What a component may **never** be allowed to spend, whatever a consumer asks for.
  *
- * The same three quantities as `GuardBudgets` under the names a policy gives them. Two shapes rather
- * than one because they are different claims: a ceiling is an instance's decision, signed into the
- * artifact and unable to be raised; a budget is what one render actually runs against, which a
- * consumer may set lower. Sharing a shape would let a ceiling be passed where a budget belongs and
- * never be noticed.
+ * The same three quantities as `GuardBudgets`, under the names the security policy gives them. Two
+ * shapes because they belong to two vocabularies: a policy and a signed payload speak of `maxFuel`
+ * beside a key rotation interval, and the counters inside a component have no other kind of fuel to
+ * distinguish theirs from. `budgetsFrom` is the one place they meet.
+ *
+ * They hold the same numbers. Nothing lowers a ceiling on its way to becoming a budget — a consumer
+ * supplies no budget at all, and an instance lowering a ceiling does so in the policy, before
+ * anything is compiled.
  */
 export interface GuardCeilings {
   maxFuel: number

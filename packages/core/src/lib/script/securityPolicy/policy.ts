@@ -43,8 +43,9 @@ interface SecurityPolicy {
   /**
    * Loop iterations and recursive branches a component may spend in one render.
    *
-   * The ceiling, not the budget: a consumer may run below it and can never exceed it, because the
-   * value is compiled into the artifact and covered by its signature.
+   * Compiled into every component published while this value is in force, and covered by its
+   * signature. Changing it here binds what is published afterwards; artifacts already released keep
+   * the ceiling they were built against until they are recompiled.
    */
   maxFuel: number
   /** How deep a component's recursive calls may nest before the depth guard stops it. */

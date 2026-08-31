@@ -91,8 +91,8 @@ interface PublishedExecutable {
    * The bounds this bundle was compiled against.
    *
    * Recorded as well as compiled in, which is not redundant: the numbers inside the code are what
-   * stops a runaway, and these are what a consumer reads to decide whether it may run stricter ones.
-   * Both are inside the signature, so neither can be raised by whoever stores or serves the file.
+   * stops a runaway, and these are what an auditor reads to see what the bundle was built against
+   * without parsing it. Both are inside the signature, so neither can be changed after publication.
    */
   ceilings: GuardCeilings
 }

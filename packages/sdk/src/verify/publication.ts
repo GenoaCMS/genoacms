@@ -70,8 +70,9 @@ interface PublishedExecutable {
   /**
    * The bounds the CMS compiled this bundle against.
    *
-   * Signed, and therefore not something a storage tamperer or a CDN can raise. A consumer may run
-   * the component against **lower** budgets than these; it may never run it against higher ones.
+   * Signed, and therefore not something a storage tamperer or a CDN can raise — and not something
+   * this SDK can change either, high or low. They are here to be **read**: what an artifact is
+   * bounded by, without having to parse the code that enforces it.
    */
   ceilings: GuardCeilings
 }
