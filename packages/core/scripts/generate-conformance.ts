@@ -137,10 +137,14 @@ const checked = envelopeVectors.map(vector => {
 const componentUid = '00000000-0000-4000-8000-000000000001'
 const publicationId = '00000000-0000-4000-8000-0000000000a2'
 
+/** The bounds a bundle was compiled against, as an ordinary instance would have them. */
+const CEILINGS = { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
+
 const webBundle = {
   platform: 'web-esmodule',
   executableCode: 'export default function component (heading) { return heading }',
-  compiledAt: 1_700_000_001_000
+  compiledAt: 1_700_000_001_000,
+  ceilings: CEILINGS
 }
 
 const publicationPayload: JsonValue = {
@@ -236,19 +240,34 @@ const checkedDocuments = documentVectors.map(vector => {
  * A verifier that skips them runs code for a component whose author never published any, or ignores
  * code a page was told to run. Both render something nobody released.
  */
+/**
+ * One bundle, as a shape vector varies it.
+ *
+ * `ceilings` is carried per entry and may be **omitted**, which is itself a case: a bundle that
+ * cannot say what bounds it was built against is one whose signature attests to less than it
+ * appears to. A consumer of this corpus reproduces the entry exactly, including the omission.
+ */
+interface ShapeExecutable {
+  platform: string
+  ceilings?: unknown
+}
+
 interface ShapeVector {
   name: string
   why: string
   /** The declared kind, and the bundles the payload carries. */
-  payload: { type: string, executables?: Array<{ platform: string }> }
+  payload: { type: string, executables?: ShapeExecutable[] }
   accept: boolean
 }
+
+/** A bundle whose bounds are the ordinary ones, so a vector only spells out what it varies. */
+const bounded = (platform = 'web-esmodule'): ShapeExecutable => ({ platform, ceilings: CEILINGS })
 
 const shapeVectors: ShapeVector[] = [
   {
     name: 'dynamic-with-code',
     why: 'The ordinary case: a component authored in the CMS, published with what it compiled to.',
-    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule' }] },
+    payload: { type: 'dynamic', executables: [bounded()] },
     accept: true
   },
   {
@@ -260,7 +279,7 @@ const shapeVectors: ShapeVector[] = [
   {
     name: 'prebuilt-carrying-code',
     why: 'A bundle where a prebuilt component published none. Either the description was substituted or the code is nobody\'s: choosing which to believe would be guessing.',
-    payload: { type: 'prebuilt', executables: [{ platform: 'web-esmodule' }] },
+    payload: { type: 'prebuilt', executables: [bounded()] },
     accept: false
   },
   {
@@ -278,15 +297,58 @@ const shapeVectors: ShapeVector[] = [
   {
     name: 'duplicate-platforms',
     why: 'Two bundles for one target do not say which to run, and whichever a consumer picked would be signed — so nothing downstream could report the ambiguity.',
-    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule' }, { platform: 'web-esmodule' }] },
+    payload: { type: 'dynamic', executables: [bounded(), bounded()] },
     accept: false
   },
   {
     name: 'several-platforms',
     why: 'One release compiled for more than one target. A consumer selects the bundle it can run and must not refuse the release for also serving another runtime.',
-    payload: { type: 'dynamic', executables: [{ platform: 'android-dex' }, { platform: 'web-esmodule' }] },
+    payload: { type: 'dynamic', executables: [bounded('android-dex'), bounded()] },
+    accept: true
+  },
+  {
+    name: 'bundle-without-ceilings',
+    why: 'A bundle that does not say what bounds it was compiled against. The code inside it is bounded, but nothing signed says by how much, so the signature attests to less than it appears to.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule' }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-partial-ceilings',
+    why: 'Two of the three bounds. A verifier defaulting the third would be deciding a limit the instance never signed.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: 1_000_000, maxDepth: 100 } }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-a-ceiling-of-zero',
+    why: 'A bound that permits nothing is not a bound anyone meant to set; it is a component that cannot run.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: 0, maxDepth: 100, maxAllocation: 10_000_000 } }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-a-negative-ceiling',
+    why: 'Negative bounds cannot be reached, so every guard would trip on its first call.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: 1_000_000, maxDepth: -1, maxAllocation: 10_000_000 } }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-a-fractional-ceiling',
+    why: 'A signed document is canonicalized, and a fraction is a value two implementations can disagree about the spelling of.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: 1_000_000.5, maxDepth: 100, maxAllocation: 10_000_000 } }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-a-ceiling-written-as-text',
+    why: 'A bound a verifier would have to parse is a bound two verifiers could parse differently.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: '1000000', maxDepth: 100, maxAllocation: 10_000_000 } }] },
+    accept: false
+  },
+  {
+    name: 'bundle-with-severe-ceilings',
+    why: 'Bounds an author would find unusable are still bounds. Whether they are generous is the publishing instance\'s decision, and no business of a verifier.',
+    payload: { type: 'dynamic', executables: [{ platform: 'web-esmodule', ceilings: { maxFuel: 1, maxDepth: 1, maxAllocation: 1 } }] },
     accept: true
   }
+
 ]
 
 /**

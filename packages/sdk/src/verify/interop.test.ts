@@ -90,10 +90,16 @@ interface DocumentVector {
  * published none, a description whose code was never fetched. Merging the documents makes them one
  * payload's shape, so they are checked by the reader rather than by a comparison between fetches.
  */
+interface ShapeExecutable {
+  platform: string
+  /** Reproduced verbatim, and **omitted when the vector omits it** — absence is one of the cases. */
+  ceilings?: unknown
+}
+
 interface ShapeVector {
   name: string
   why: string
-  payload: { type: string, executables?: Array<{ platform: string }> }
+  payload: { type: string, executables?: ShapeExecutable[] }
   accept: boolean
 }
 
@@ -273,7 +279,9 @@ describe.skipIf(shapes.length === 0)('the shape of a publication', () => {
                 platform: executable.platform,
                 executableCode: 'export default function component () { return 1 }',
                 compiledAt: 0,
-                ceilings: { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
+                // Spread rather than defaulted: a vector that omits its bounds is testing exactly
+                // that, and filling one in here would make the case pass for the wrong reason.
+                ...('ceilings' in executable ? { ceilings: executable.ceilings } : {})
               }))
             })
       }
