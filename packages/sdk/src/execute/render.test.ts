@@ -434,6 +434,116 @@ describe('a fault in the code fails one node', () => {
   })
 })
 
+describe('a component stopped by its own guard', () => {
+  /*
+   * A budget running out is not an author's bug, and a consumer deciding whether a page is worth
+   * showing wants to know which of the two it met.
+   *
+   *     page ──┬── Hero          renders
+   *            └── Runaway       guard-exhausted: fuel (limit 1000)   ← contained here
+   *            page still renders
+   */
+  const tripped = (guard: string, limit: number) =>
+    Object.assign(new Error(`over its ${guard} budget`), { name: 'GuardExhausted', guard, limit })
+
+  const parentOf = (...children: ReadablePageNode[]): ReadablePageNode => {
+    published(publicationOf({ attributes: [{ reference: 'a1', title: 'Body' }] }))
+    return node({ data: { Body: children } as never })
+  }
+
+  const runaway = (): ReadablePageNode => {
+    published(publicationOf({ uid: 'component-2', publicationId: 'publication-2', name: 'Runaway' }))
+    return node({ component: 'Runaway', uid: 'component-2', publicationId: 'publication-2' })
+  }
+
+  it('renders the page around it', async () => {
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw tripped('fuel', 1_000) }
+      }
+    })
+
+    expect(rendered.ok).toBe(true)
+  })
+
+  it('names the guard that stopped it, and the limit it reached', async () => {
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw tripped('allocation', 250) }
+      }
+    })
+
+    expect(rendered.ok && rendered.failures).toEqual([
+      { component: 'Runaway', reason: 'guard-exhausted: allocation (limit 250)' }
+    ])
+  })
+
+  it('does not report it as an author bug', async () => {
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw tripped('depth', 100) }
+      }
+    })
+
+    expect(rendered.ok && rendered.failures[0].reason).not.toContain('component-threw')
+  })
+
+  it('accepts a trip thrown in another realm', async () => {
+    // The case `instanceof` gets wrong: a consumer running components in a worker gets an error
+    // whose constructor is a different object.
+    const foreign = { name: 'GuardExhausted', guard: 'fuel', limit: 1_000, message: 'over budget' }
+
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw foreign }
+      }
+    })
+
+    expect(rendered.ok && rendered.failures[0].reason).toContain('guard-exhausted: fuel')
+  })
+
+  it('still reports an ordinary throw as an author bug', async () => {
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw new Error('author bug') }
+      }
+    })
+
+    expect(rendered.ok && rendered.failures[0].reason).toContain('component-threw')
+  })
+
+  it('does not take a component at its word about having been guarded', async () => {
+    // A component's own code can throw an error wearing the name. Without the family being checked
+    // too, an author could report their bug as a bound doing its job.
+    const rendered = await renderPage(verifier, parentOf(runaway()), {
+      components: {
+        Hero: () => element('SECTION'),
+        Runaway: () => { throw Object.assign(new Error('nice try'), { name: 'GuardExhausted' }) }
+      }
+    })
+
+    expect(rendered.ok && rendered.failures[0].reason).toContain('component-threw')
+  })
+
+  it('fails the page when the root is the one that tripped', async () => {
+    // The failure split's one meeting point, unchanged by the guards: containing a root failure
+    // would leave nothing to return.
+    published(publicationOf())
+
+    const rendered = await renderPage(verifier, node(), {
+      components: { Hero: () => { throw tripped('fuel', 1_000) } }
+    })
+
+    expect(rendered.ok).toBe(false)
+    expect(!rendered.ok && rendered.reason).toContain('guard-exhausted: fuel')
+  })
+})
+
 describe('a dynamic component', () => {
   const dynamic = (code: string) => {
     published(publicationOf({ type: 'dynamic', code }))

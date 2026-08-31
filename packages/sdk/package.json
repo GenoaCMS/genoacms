@@ -41,6 +41,7 @@
     "conformance": "GENOACMS_CONFORMANCE_REQUIRED=1 vitest run src/verify/interop.test.ts"
   },
   "dependencies": {
+    "@genoacms/internal": "workspace:^",
     "@noble/hashes": "^2.3.0",
     "@noble/post-quantum": "^0.7.0"
   },

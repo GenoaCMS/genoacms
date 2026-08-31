@@ -654,6 +654,9 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@genoacms/internal':
+        specifier: workspace:^
+        version: link:../internal
       '@noble/hashes':
         specifier: ^2.3.0
         version: 2.3.0

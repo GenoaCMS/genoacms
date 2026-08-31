@@ -1,3 +1,4 @@
+import { isGuardExhausted } from '@genoacms/internal/guards'
 import { loadModule, entryFunction, type ModuleLoader } from './module.js'
 import { resolvePage, isChildren, missingComponents } from './resolve.js'
 import type { ResolvedNode, ResolvedValue } from './resolve.js'
@@ -35,6 +36,10 @@ import type { ReadablePageNode } from '../verify/pageTree.js'
  * each fails **its own node only** — the node contributes nothing to its parent's slot and is
  * reported in `failures`. Nothing is invented in its place, because a stand-in would put content on
  * the page that no component produced.
+ *
+ * A component stopped by its own **runtime guard** is contained the same way and reported apart. The
+ * two are different events: one is a bug, the other is a bound doing what it was compiled to do, and
+ * a consumer deciding whether a page is worth showing wants to know which it met.
  *
  * Everything that fails the *page* was already decided by `resolvePage`, which is why that is a
  * separate call returning a separate answer. The one exception is a component this consumer has not
@@ -148,6 +153,18 @@ const dynamicComponent = async (code: string, loader?: ModuleLoader): Promise<Ca
   return { ok: true, value: entry.value }
 }
 
+/**
+ * Why a component stopped.
+ *
+ * A guard trip is recognized by the error's shape rather than by `instanceof`: a consumer may run
+ * components in a worker or a sandboxed iframe, where `Error` is a different constructor and the
+ * check would answer `false` for a genuine trip.
+ */
+const reasonFor = (error: unknown): string =>
+  isGuardExhausted(error)
+    ? `guard-exhausted: ${error.guard} (limit ${error.limit})`
+    : `component-threw: ${String(error)}`
+
 /** Calls a component, containing whatever it does wrong to the node that named it. */
 const invoke = (
   component: ComponentFunction,
@@ -158,7 +175,7 @@ const invoke = (
   try {
     result = (component as (...args: unknown[]) => unknown)(...values)
   } catch (error) {
-    return contain(`component-threw: ${String(error)}`)
+    return contain(reasonFor(error))
   }
   if (!isNode(result)) {
     return contain(`component-returned-not-a-node: '${node.component}' returned ${typeof result}`)
