@@ -9,6 +9,7 @@
  *
  * @typedef {import('./guards.d.ts').GuardFamily} GuardFamily
  * @typedef {import('./guards.d.ts').GuardExhausted} GuardExhausted
+ * @typedef {import('./guards.d.ts').GuardBudgets} GuardBudgets
  */
 
 /**
@@ -50,4 +51,46 @@ const isGuardExhausted = (value) => {
     GUARD_FAMILIES.includes(/** @type {GuardFamily} */ (candidate.guard))
 }
 
-export { GUARD_EXHAUSTED, GUARD_BUDGET_INVALID, GUARD_FAMILIES, isGuardExhausted }
+/** The three ceilings, in the order they are documented, paired with the budget each one bounds. */
+const CEILING_OF = /** @type {const} */ ({ fuel: 'maxFuel', depth: 'maxDepth', allocation: 'maxAllocation' })
+
+/**
+ * The budgets a component runs against when nothing lowers its ceilings.
+ *
+ * @param {import('./guards.d.ts').GuardCeilings} ceilings
+ * @returns {GuardBudgets}
+ */
+const budgetsFrom = (ceilings) => ({
+  fuel: ceilings.maxFuel,
+  depth: ceilings.maxDepth,
+  allocation: ceilings.maxAllocation
+})
+
+/**
+ * Whether a value carries all three ceilings, each a positive whole number.
+ *
+ * Whole because a signed document is canonicalized, and a fraction is a number two implementations
+ * can disagree about the spelling of. Positive because a ceiling of zero is a component that cannot
+ * run, which is not a bound anyone meant to set.
+ *
+ * @param {unknown} value
+ * @returns {value is import('./guards.d.ts').GuardCeilings}
+ */
+const isGuardCeilings = (value) => {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = /** @type {Record<string, unknown>} */ (value)
+  return GUARD_FAMILIES.every((family) => {
+    const limit = candidate[CEILING_OF[family]]
+    return typeof limit === 'number' && Number.isInteger(limit) && limit > 0
+  })
+}
+
+export {
+  GUARD_EXHAUSTED,
+  GUARD_BUDGET_INVALID,
+  GUARD_FAMILIES,
+  CEILING_OF,
+  isGuardExhausted,
+  budgetsFrom,
+  isGuardCeilings
+}

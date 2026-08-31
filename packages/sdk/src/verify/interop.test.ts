@@ -272,7 +272,8 @@ describe.skipIf(shapes.length === 0)('the shape of a publication', () => {
               executables: vector.payload.executables.map(executable => ({
                 platform: executable.platform,
                 executableCode: 'export default function component () { return 1 }',
-                compiledAt: 0
+                compiledAt: 0,
+                ceilings: { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
               }))
             })
       }

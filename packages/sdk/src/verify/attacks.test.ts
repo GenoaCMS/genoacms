@@ -107,7 +107,8 @@ const publication = (over: { executableCode?: string } = {}): JsonValue => ({
   executables: [{
     platform: 'web-esmodule',
     executableCode: over.executableCode ?? HONEST_CODE,
-    compiledAt: 0
+    compiledAt: 0,
+    ceilings: { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
   }]
 } as JsonValue)
 
@@ -203,7 +204,7 @@ describe('attack 1 — a tampered executableCode in the bucket', () => {
       ...envelope,
       payload: {
         ...envelope.payload,
-        executables: [{ platform: 'web-esmodule', executableCode: HOSTILE_CODE, compiledAt: 0 }]
+        executables: [{ platform: 'web-esmodule', executableCode: HOSTILE_CODE, compiledAt: 0, ceilings: { maxFuel: 1000000, maxDepth: 100, maxAllocation: 10000000 } }]
       }
     }
   }
@@ -326,7 +327,7 @@ describe('attack 3 — repointing a published page in the bucket', () => {
         uid: OTHER_UID,
         publicationId: OTHER_PUBLICATION_ID,
         name: 'Other',
-        executables: [{ platform: 'web-esmodule', executableCode: HOSTILE_CODE, compiledAt: 0 }]
+        executables: [{ platform: 'web-esmodule', executableCode: HOSTILE_CODE, compiledAt: 0, ceilings: { maxFuel: 1000000, maxDepth: 100, maxAllocation: 10000000 } }]
       } as JsonValue
     )
   })

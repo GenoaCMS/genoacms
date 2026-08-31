@@ -44,7 +44,7 @@ const publicationOf = (
     attributeOrder: attributes.map(one => one.reference),
     ...(over.code === undefined
       ? {}
-      : { executables: [{ platform: 'web-esmodule', executableCode: over.code, compiledAt: 0 }] })
+      : { executables: [{ platform: 'web-esmodule', executableCode: over.code, compiledAt: 0, ceilings: { maxFuel: 1000000, maxDepth: 100, maxAllocation: 10000000 } }] })
   }
 }
 

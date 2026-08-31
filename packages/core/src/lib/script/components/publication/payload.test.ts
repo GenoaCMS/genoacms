@@ -37,10 +37,13 @@ const header = (over: Partial<ComponentHeader> = {}): ComponentHeader => ({
   ...over
 } as ComponentHeader)
 
+const CEILINGS = { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
+
 const bundle = (over: Partial<PublishedExecutable> = {}): PublishedExecutable => ({
   platform: 'web-esmodule',
   executableCode: 'export default function component () { return 1 }',
   compiledAt: 1_700_000_001_000,
+  ceilings: CEILINGS,
   ...over
 })
 

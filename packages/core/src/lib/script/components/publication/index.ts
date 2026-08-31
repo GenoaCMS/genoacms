@@ -8,6 +8,7 @@ import { getComponentHeader, listOrCreateComponentHeaderList } from '../componen
 import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
+import type { CompiledComponent } from '../editor/compilation'
 import type { Diagnostic } from '@genoacms/internal/languageAdapter'
 import { guardCeilings } from '$lib/script/securityPolicy/policy'
 import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
@@ -177,12 +178,13 @@ const build = async (
  * `compiledAt` is stamped here rather than inside the payload builder, so the payload stays a
  * function of its inputs and a test can assert the exact bytes that get signed.
  */
-const compiledBundle = (
-  compiled: { platform: string, executableCode: string }
-): PublishedExecutable => ({
+const compiledBundle = (compiled: CompiledComponent): PublishedExecutable => ({
   platform: compiled.platform,
   executableCode: compiled.executableCode,
-  compiledAt: Date.now()
+  compiledAt: Date.now(),
+  // Taken from what compiled, not read from the policy a second time: a second read could return a
+  // policy an administrator changed in between, and record bounds the code was never built against.
+  ceilings: compiled.ceilings
 })
 
 /**

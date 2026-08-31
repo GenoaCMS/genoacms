@@ -234,6 +234,20 @@ describe('publishing a dynamic component', () => {
     expect(bundles()[0].executableCode).not.toContain('Hero')
   })
 
+  it('records the bounds it compiled in, and the two agree', async () => {
+    // Two statements of one fact, and the risk is exactly that they disagree: the numbers inside the
+    // code are what stops a runaway, and the recorded ones are what a consumer compares against.
+    await publishComponent(order, 'user-1')
+
+    const { ceilings, executableCode } = bundles()[0] as unknown as {
+      ceilings: { maxFuel: number, maxDepth: number, maxAllocation: number }
+      executableCode: string
+    }
+
+    expect(ceilings).toEqual({ maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 })
+    expect(executableCode).toContain(`depth: ${ceilings.maxDepth}`)
+  })
+
   it('publishes a bundle the runtime guards can bound', async () => {
     // The ceilings come from the instance's signed policy and are compiled in, so they are covered
     // by the signature over this payload. An artifact without them would be one nothing can stop.

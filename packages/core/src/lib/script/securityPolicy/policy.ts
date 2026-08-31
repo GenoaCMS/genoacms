@@ -1,4 +1,4 @@
-import type { GuardBudgets } from '@genoacms/internal/guards'
+import type { GuardCeilings } from '@genoacms/internal/guards'
 
 /**
  * The instance's security policy, as a value.
@@ -166,15 +166,15 @@ function rotationDueAt (policy: SecurityPolicy, createdAt: number): number {
 }
 
 /**
- * The ceilings, in the shape a compiled component is bounded by.
+ * The three ceilings, lifted out of everything else the policy governs.
  *
- * A named translation rather than the policy being handed around: the policy spells its fields
- * `maxFuel` because an administration screen reads them beside a rotation interval, and the guards
- * spell them `fuel` because inside a component there is nothing to distinguish a ceiling from. One
- * function owning the mapping is what stops the two vocabularies leaking into each other.
+ * A named selection rather than the whole policy being handed around: what gets signed into an
+ * artifact is these three numbers, and passing a policy would put a key rotation interval inside a
+ * component's payload. Turning them into the budgets a render runs against is `budgetsFrom`, in the
+ * shared vocabulary, so the two shapes meet in exactly one place.
  */
-function guardCeilings (policy: SecurityPolicy): GuardBudgets {
-  return { fuel: policy.maxFuel, depth: policy.maxDepth, allocation: policy.maxAllocation }
+function guardCeilings (policy: SecurityPolicy): GuardCeilings {
+  return { maxFuel: policy.maxFuel, maxDepth: policy.maxDepth, maxAllocation: policy.maxAllocation }
 }
 
 export {

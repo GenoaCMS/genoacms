@@ -337,6 +337,7 @@ describe('fetching a publication', () => {
     platform: 'web-esmodule',
     executableCode: 'export default function component () { return 1 }',
     compiledAt: 1_700_000_001_000,
+    ceilings: { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 },
     ...over
   })
 

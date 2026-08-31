@@ -30,6 +30,21 @@ export interface GuardBudgets {
 }
 
 /**
+ * What a component may **never** be allowed to spend, whatever a consumer asks for.
+ *
+ * The same three quantities as `GuardBudgets` under the names a policy gives them. Two shapes rather
+ * than one because they are different claims: a ceiling is an instance's decision, signed into the
+ * artifact and unable to be raised; a budget is what one render actually runs against, which a
+ * consumer may set lower. Sharing a shape would let a ceiling be passed where a budget belongs and
+ * never be noticed.
+ */
+export interface GuardCeilings {
+  maxFuel: number
+  maxDepth: number
+  maxAllocation: number
+}
+
+/**
  * A budget that ran out.
  *
  * Not a class. What crosses from a component into the SDK is a plain error object, possibly from a
@@ -53,3 +68,12 @@ export declare const GUARD_FAMILIES: readonly GuardFamily[]
 
 /** Whether a caught value is a guard trip rather than an ordinary fault. */
 export declare function isGuardExhausted (value: unknown): value is GuardExhausted
+
+/** The budgets a component runs against when nothing lowers its ceilings. */
+export declare function budgetsFrom (ceilings: GuardCeilings): GuardBudgets
+
+/** Whether a value carries all three ceilings, each a positive whole number. */
+export declare function isGuardCeilings (value: unknown): value is GuardCeilings
+
+/** Which ceiling bounds which budget. */
+export declare const CEILING_OF: Readonly<Record<GuardFamily, keyof GuardCeilings>>

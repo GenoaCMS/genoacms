@@ -28,6 +28,7 @@ const bundle = (over: Record<string, unknown> = {}) => ({
   platform: 'web-esmodule',
   executableCode: 'export default function component () { return 1 }',
   compiledAt: 1_700_000_001_000,
+  ceilings: { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 },
   ...over
 })
 
@@ -118,6 +119,45 @@ describe('refusing a payload a renderer would have to guess about', () => {
     // saying it was meant to.
     expect(readPublication(publication({ executables: [bundle({ executableCode: '' })] })))
       .toEqual({ ok: false, reason: 'executable-missing-code' })
+  })
+
+  describe('the bounds a bundle was compiled against', () => {
+    /*
+     * Signed alongside the code, so nothing between the CMS and the browser can raise them. Refused
+     * rather than defaulted: inventing a ceiling here would be this SDK deciding a limit the
+     * instance never signed.
+     */
+    const withCeilings = (ceilings: unknown) =>
+      readPublication(publication({ executables: [bundle({ ceilings })] }))
+
+    it('reads them', () => {
+      const read = readPublication(publication({ executables: [bundle()] }))
+
+      expect(read.ok && read.value.executables?.[0].ceilings)
+        .toEqual({ maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 })
+    })
+
+    it('refuses a bundle that carries none', () => {
+      expect(readPublication(publication({ executables: [bundle({ ceilings: undefined })] })))
+        .toEqual({ ok: false, reason: 'executable-missing-ceilings' })
+    })
+
+    it.each([
+      ['one of the three missing', { maxFuel: 1_000, maxDepth: 10 }],
+      ['a ceiling of zero', { maxFuel: 0, maxDepth: 10, maxAllocation: 10 }],
+      ['a negative ceiling', { maxFuel: -1, maxDepth: 10, maxAllocation: 10 }],
+      ['a fractional ceiling', { maxFuel: 1.5, maxDepth: 10, maxAllocation: 10 }],
+      ['a ceiling written as text', { maxFuel: '1000', maxDepth: 10, maxAllocation: 10 }],
+      ['not an object at all', 1_000]
+    ])('refuses %s', (_why, ceilings) => {
+      expect(withCeilings(ceilings)).toEqual({ ok: false, reason: 'executable-missing-ceilings' })
+    })
+
+    it('accepts ceilings a consumer would find restrictive', () => {
+      // Whether the numbers are generous is the instance's decision, not this SDK's. What is checked
+      // is that they are readable bounds, not that they are comfortable ones.
+      expect(withCeilings({ maxFuel: 1, maxDepth: 1, maxAllocation: 1 }).ok).toBe(true)
+    })
   })
 
   it('refuses two bundles claiming the same target', () => {

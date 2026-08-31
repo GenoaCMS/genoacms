@@ -4,7 +4,8 @@ import type {
   ExecutablePlatform,
   SignaturePreview
 } from '@genoacms/internal/languageAdapter'
-import type { GuardBudgets } from '@genoacms/internal/guards'
+import type { GuardCeilings } from '@genoacms/internal/guards'
+import { budgetsFrom } from '@genoacms/internal/guards'
 import { getLanguageAdapter } from '$lib/script/components/language.server'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
@@ -70,18 +71,22 @@ const compiledCode = (language: string, result: CompilationResult): string => {
 interface CompiledComponent {
   platform: ExecutablePlatform
   executableCode: string
+  /** What the bundle was built against, handed back so the publication records what it compiled in. */
+  ceilings: GuardCeilings
 }
 
 const compileComponentBody = async (
   language: string,
   body: string,
   shape: ComponentShape,
-  ceilings: GuardBudgets
+  ceilings: GuardCeilings
 ): Promise<CompiledComponent> => {
   const adapter = await getLanguageAdapter(language)
   const platform = soleTargetOf(language, adapter.platforms)
-  const result = await adapter.compileBundle({ body, shape, platform, ceilings })
-  return { platform, executableCode: compiledCode(language, result) }
+  // The one place a ceiling becomes a budget. Returned alongside the code so that what is recorded
+  // in the publication is the same object that was compiled into it.
+  const result = await adapter.compileBundle({ body, shape, platform, ceilings: budgetsFrom(ceilings) })
+  return { platform, executableCode: compiledCode(language, result), ceilings }
 }
 
 /**

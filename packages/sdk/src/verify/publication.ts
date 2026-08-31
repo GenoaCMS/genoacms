@@ -1,3 +1,5 @@
+import { isGuardCeilings } from '@genoacms/internal/guards'
+import type { GuardCeilings } from '@genoacms/internal/guards'
 import type { JsonValue } from './canonical.js'
 import type { Read } from './pageTree.js'
 
@@ -65,6 +67,13 @@ interface PublishedExecutable {
   executableCode: string
   /** When the server compiled it. A different fact from `publishedAt`, which is when a person released it. */
   compiledAt: number
+  /**
+   * The bounds the CMS compiled this bundle against.
+   *
+   * Signed, and therefore not something a storage tamperer or a CDN can raise. A consumer may run
+   * the component against **lower** budgets than these; it may never run it against higher ones.
+   */
+  ceilings: GuardCeilings
 }
 
 interface ComponentPublication {
@@ -116,15 +125,19 @@ const isStringArray = (value: JsonValue | undefined): value is string[] =>
 const readExecutable = (candidate: JsonValue): Read<PublishedExecutable> => {
   if (!isRecord(candidate)) return failed('executable-not-an-object')
 
-  const { platform, executableCode, compiledAt } = candidate
+  const { platform, executableCode, compiledAt, ceilings } = candidate
 
   if (!nonEmptyString(platform)) return failed('executable-missing-platform')
   if (typeof compiledAt !== 'number') return failed('executable-missing-compiled-at')
   // Empty code is not a bundle with nothing in it — it is a component that renders nothing while
   // carrying a signature saying it was meant to.
   if (!nonEmptyString(executableCode)) return failed('executable-missing-code')
+  // Refused rather than defaulted. A bundle whose bounds cannot be read is one this SDK has nothing
+  // to compare a consumer's budget against, and inventing a ceiling here would be this SDK deciding
+  // a limit the instance never signed.
+  if (!isGuardCeilings(ceilings)) return failed('executable-missing-ceilings')
 
-  return { ok: true, value: { platform, executableCode, compiledAt } }
+  return { ok: true, value: { platform, executableCode, compiledAt, ceilings } }
 }
 
 /**

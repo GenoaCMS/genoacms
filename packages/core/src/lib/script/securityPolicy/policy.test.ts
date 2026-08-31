@@ -125,10 +125,10 @@ describe('the guard ceilings', () => {
 })
 
 describe('guardCeilings', () => {
-  it('translates the policy into what a component is bounded by', () => {
-    // The two vocabularies are deliberately different: a policy names ceilings, a component has
-    // only budgets.
-    expect(guardCeilings(policy(90))).toEqual({ fuel: 1_000_000, depth: 100, allocation: 10_000_000 })
+  it('lifts out the three ceilings and nothing else', () => {
+    // Not the whole policy: what gets signed into an artifact is these three numbers, and passing a
+    // policy would put a key rotation interval inside a component's payload.
+    expect(guardCeilings(policy(90))).toEqual(CEILINGS)
   })
 })
 

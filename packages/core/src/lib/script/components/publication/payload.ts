@@ -1,4 +1,6 @@
 import type { AttributeReference, ComponentHeaderAttributes } from '@genoacms/internal/attributes'
+import type { GuardCeilings } from '@genoacms/internal/guards'
+import { isGuardCeilings } from '@genoacms/internal/guards'
 import type { ExecutablePlatform } from '@genoacms/internal/executable'
 import type { ComponentHeader, ComponentType } from '../componentHeader/component/types'
 import type { DocumentType, SignedEnvelope } from '$lib/script/signing/envelope'
@@ -85,6 +87,14 @@ interface PublishedExecutable {
   platform: ExecutablePlatform
   executableCode: string
   compiledAt: number
+  /**
+   * The bounds this bundle was compiled against.
+   *
+   * Recorded as well as compiled in, which is not redundant: the numbers inside the code are what
+   * stops a runaway, and these are what a consumer reads to decide whether it may run stricter ones.
+   * Both are inside the signature, so neither can be raised by whoever stores or serves the file.
+   */
+  ceilings: GuardCeilings
 }
 
 /**
@@ -154,10 +164,26 @@ const requireCode = (executableCode: string): string => {
   return executableCode
 }
 
+/**
+ * Refuses a bundle whose bounds are missing or unusable.
+ *
+ * The compiler already refused to build without them, so reaching here without them means the
+ * pipeline lost them on the way. Signing that would publish an artifact whose recorded bounds a
+ * consumer cannot read, while the code inside it is bounded — a disagreement nothing downstream
+ * could resolve.
+ */
+const requireCeilings = (ceilings: GuardCeilings): GuardCeilings => {
+  if (!isGuardCeilings(ceilings)) {
+    throw new PublicationPayloadError('ceilings', 'A component executable needs its guard ceilings')
+  }
+  return ceilings
+}
+
 const buildExecutable = (executable: PublishedExecutable): PublishedExecutable => ({
   platform: requireIdentifier('platform', executable.platform),
   executableCode: requireCode(executable.executableCode),
-  compiledAt: requireTimestamp('compiledAt', executable.compiledAt)
+  compiledAt: requireTimestamp('compiledAt', executable.compiledAt),
+  ceilings: requireCeilings(executable.ceilings)
 })
 
 /**
