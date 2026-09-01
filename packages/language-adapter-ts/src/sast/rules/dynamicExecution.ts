@@ -65,7 +65,17 @@ const noDynamicEvaluation = (sourceFile: SourceFile): SecurityRuleDiagnostic[] =
  * `document` is **deliberately absent**: a component compiled for the web returns DOM, so it has to
  * be able to build nodes. What is banned is the one property that is not about building anything.
  */
-const BANNED_GLOBALS = ['globalThis', 'window', 'global', 'process', 'localStorage']
+/**
+ * Names that reach outside the component, refused as names.
+ *
+ * `document` is here for the reason the others are, and it was missed: from it a component reaches
+ * `defaultView` and therefore `window`, `eval`, `localStorage` and the network, in one hop through a
+ * name nothing banned. Refusing the members instead would not have worked — a property on a runtime
+ * value is reachable by computed access, which is the whole reason these are banned as names.
+ *
+ * What a component builds nodes with instead is the `dom` parameter, supplied by the consumer's SDK.
+ */
+const BANNED_GLOBALS = ['globalThis', 'window', 'global', 'process', 'localStorage', 'document']
 
 /**
  * `SAST-02` — no global scope access.

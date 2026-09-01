@@ -43,14 +43,25 @@ describeRule('SAST-02', {
     'return document.cookie',
     // The bracketed spelling of the same access, which is the first thing tried when the dotted one
     // is refused.
-    'return document["cookie"]'
+    'return document["cookie"]',
+    /*
+     * `document` was permitted until 1 September 2026, on the reasoning that a component has to build
+     * the DOM it returns. From it a component reached `window`, and through that `eval`,
+     * `localStorage` and the network — in one hop, through a name nothing banned. What replaces it is
+     * the `dom` parameter, so building a node no longer requires reaching a global.
+     */
+    'const node = document.createElement("div"); node.textContent = heading; return node',
+    'return String(document.defaultView)',
+    'return String(document.location.href)'
   ],
   accepts: [
     'return heading',
-    // A component builds the DOM it returns, so `document` itself has to stay available.
-    'const node = document.createElement("div"); node.textContent = heading; return node',
+    // What a component builds nodes with now: a parameter, not a global.
+    'const node = dom.element("div"); node.textContent = heading; return node',
     // The author's own local, which is not the global however it is spelled.
-    'const process = (value) => value.trim(); return process(heading)'
+    'const process = (value) => value.trim(); return process(heading)',
+    // And their own `document`, which is theirs and reaches nothing.
+    'const document = { title: heading }; return document.title'
   ]
 })
 

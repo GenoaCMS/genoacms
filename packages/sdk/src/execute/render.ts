@@ -1,4 +1,5 @@
 import { isGuardExhausted } from '@genoacms/internal/guards'
+import { facadeFor, inertDocumentFrom, hostDocument, unavailable, type DomFacade } from './dom.js'
 import { loadModule, entryFunction, type ModuleLoader } from './module.js'
 import { resolvePage, isChildren, missingComponents } from './resolve.js'
 import type { ResolvedNode, ResolvedValue } from './resolve.js'
@@ -93,6 +94,16 @@ interface RenderOptions {
    * already has whatever it needs.
    */
   passthrough?: Record<string, unknown>
+  /**
+   * The document dynamic components build their nodes from.
+   *
+   * Defaulted to the page's own. Supplied explicitly for server-side rendering, where there is none
+   * — without it a component that builds DOM fails its own node and the page renders around it.
+   *
+   * It is never handed to a component. What a component receives is a facade bound to an inert
+   * document created from this one, whose `defaultView` is null.
+   */
+  document?: Document
 }
 
 /** A node that was resolved and verified, and whose code still would not run. */
@@ -184,6 +195,17 @@ const invoke = (
 }
 
 /**
+ * Moves a finished tree out of the inert document and into the page's.
+ *
+ * Only when something was built there. A tree of prebuilt components already belongs to the page,
+ * and adopting it would be a no-op with a spec lookup attached.
+ */
+const placed = (node: Node, host?: Document, inert?: Document): Node =>
+  host !== undefined && inert !== undefined && node.ownerDocument === inert
+    ? host.adoptNode(node)
+    : node
+
+/**
  * Renders an already-resolved tree into a document.
  *
  * Separate from `renderPage` because this is what a framework wrapper calls when it meets a dynamic
@@ -200,6 +222,21 @@ const renderResolved = async (
   // one per call — a component that writes to it can be read by the next, which is the consumer's
   // to allow or prevent, and would be silently impossible if this were built per invocation.
   const passthrough = options.passthrough ?? {}
+  const host = hostDocument(options.document)
+  /**
+   * One inert document per render, built on first use.
+   *
+   * Per render rather than per component, so a parent can append a child another component built
+   * without either being adopted first. Lazily, so a page of prebuilt components creates nothing.
+   */
+  let inert: Document | undefined
+  let dom: DomFacade | undefined
+  const facade = (): DomFacade => {
+    if (dom !== undefined) return dom
+    if (host === undefined) return (dom = unavailable())
+    inert = inertDocumentFrom(host)
+    return (dom = facadeFor(inert))
+  }
   const failures: NodeFailure[] = []
   /** One module per publication, however many nodes run it. Twenty placements is one evaluation. */
   const modules = new Map<string, Callable>()
@@ -255,12 +292,13 @@ const renderResolved = async (
       return component
     }
 
-    // Appended, never inserted: the attributes ahead of it are addressed by position. Only a
-    // dynamic component gets it — a prebuilt one is this application's own code.
+    // Appended, never inserted: the attributes ahead of it are addressed by position, and the
+    // reserved two follow in the order the compiler emitted them. Only a dynamic component gets
+    // them — a prebuilt one is this application's own code.
     const values = await valuesFor(node)
     const rendered = invoke(
       component.value,
-      node.executable === undefined ? values : [...values, passthrough],
+      node.executable === undefined ? values : [...values, facade(), passthrough],
       node
     )
     if (!rendered.ok) failures.push({ component: node.component, reason: rendered.reason })
@@ -300,7 +338,7 @@ const renderResolved = async (
   // Where the two rules meet: a component that will not run fails only its own node, and when that
   // node is the root there is no page left to return.
   if (!rendered.ok) return { ok: false, reason: rendered.reason }
-  return { ok: true, value: rendered.value, failures }
+  return { ok: true, value: placed(rendered.value, host, inert), failures }
 }
 
 /**

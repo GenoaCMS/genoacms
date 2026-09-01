@@ -52,7 +52,9 @@ const GOOD_SOURCE = 'return heading'
  * the old one is legitimately "changed" — which is what this constant has to keep saying.
  */
 const PUBLISHED_SIGNATURE =
-  'export default function component (\n  heading: string,\n  passthrough: Record<string, unknown> = {}\n) {'
+  'export default function component (\n  heading: string,\n' +
+  '  dom: { element: (tag: string) => Element, text: (value: string) => Text, fragment: () => DocumentFragment },\n' +
+  '  passthrough: Record<string, unknown> = {}\n) {'
 
 const writes: string[] = []
 

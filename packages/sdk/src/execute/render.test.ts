@@ -598,7 +598,9 @@ describe('a dynamic component', () => {
       }
     )
 
-    expect(received).toEqual(['Welcome', { locale }])
+    // Attributes, then the DOM facade, then what the consumer supplied.
+    expect(received.at(-1)).toEqual({ locale })
+    expect(received.slice(0, 1)).toEqual(['Welcome'])
   })
 
   it('gives every component the same object, not a copy each', async () => {
@@ -647,8 +649,13 @@ describe('a dynamic component', () => {
       { loader: async () => ({ default: (...values: unknown[]) => { received = values; return element('DIV') } }) }
     )
 
-    // The capability object follows the attributes, which are addressed by position.
-    expect(received).toEqual(['Welcome', {}])
+    // The reserved parameters follow the attributes, which are addressed by position, and are
+    // emitted in a fixed order: the one the renderer always supplies before the one an application
+    // chooses.
+    expect(received).toHaveLength(3)
+    expect(received[0]).toBe('Welcome')
+    expect(Object.keys(received[1] as object).sort()).toEqual(['element', 'fragment', 'text'])
+    expect(received[2]).toEqual({})
   })
 
   it('does not consult the prebuilt map for a component that published code', async () => {

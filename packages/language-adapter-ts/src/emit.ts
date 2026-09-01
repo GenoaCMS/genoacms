@@ -125,7 +125,7 @@ const parametersOf = (shape: ComponentShape): Parameters => {
   for (const attribute of orderedAttributes(shape)) {
     const name = nameOf(attribute)
     const identifier = identifierFor(name)
-    if (identifier === PASSTHROUGH) {
+    if (identifier !== undefined && RESERVED_PARAMETER_NAMES.includes(identifier)) {
       // The registrar refuses this name at creation. Repeated here because the emitted signature is
       // this package's to keep valid, and two parameters of one name do not compile.
       diagnostics.push({
@@ -133,8 +133,8 @@ const parametersOf = (shape: ComponentShape): Parameters => {
         severity: 'fatal',
         rule: 'reserved-parameter-name',
         message:
-          `The attribute "${name}" becomes the parameter \`${PASSTHROUGH}\`, which every component ` +
-          'already receives from the consuming application. Rename the attribute.'
+          `The attribute "${name}" becomes the parameter \`${identifier}\`, which every component ` +
+          'already receives. Rename the attribute.'
       })
       continue
     }
@@ -202,8 +202,33 @@ const ENTRY_FUNCTION = 'component'
  */
 const PASSTHROUGH = PASSTHROUGH_PARAMETER
 
+/**
+ * The parameter a component builds its nodes with.
+ *
+ * **This adapter's, not the contract's.** It compiles for `web-esmodule`, so its components build a
+ * DOM; an adapter targeting a native runtime would emit something else here or nothing at all, and
+ * putting this name in the shared vocabulary would have claimed a DOM on every platform.
+ */
+const DOM = 'dom'
+
+/** The names an attribute may not take, in the order they are emitted after the attributes. */
+const RESERVED_PARAMETER_NAMES = [DOM, PASSTHROUGH]
+
 /** What a consumer may put in it is the consumer's decision, so the type says only that it is an object. */
 const PASSTHROUGH_DECLARATION = `  ${PASSTHROUGH}: Record<string, unknown> = {}`
+
+/**
+ * The constructors a component builds its nodes with.
+ *
+ * Named rather than typed as the DOM's own factories, because what a component receives is bound to a
+ * document with no browsing context — the same calls, reaching nothing.
+ */
+const DOM_DECLARATION =
+  `  ${DOM}: { element: (tag: string) => Element, text: (value: string) => Text, ` +
+  'fragment: () => DocumentFragment }'
+
+/** Everything after the attributes, in the order a consumer passes them. */
+const RESERVED_DECLARATIONS = `${DOM_DECLARATION},\n${PASSTHROUGH_DECLARATION}`
 
 /**
  * The declaration a body is wrapped in.
@@ -214,8 +239,8 @@ const PASSTHROUGH_DECLARATION = `  ${PASSTHROUGH}: Record<string, unknown> = {}`
 const signatureOf = (shape: ComponentShape): { text: string, diagnostics: Diagnostic[] } => {
   const parameters = parametersOf(shape)
   const declarations = parameters.text.length === 0
-    ? PASSTHROUGH_DECLARATION
-    : `${parameters.text},\n${PASSTHROUGH_DECLARATION}`
+    ? RESERVED_DECLARATIONS
+    : `${parameters.text},\n${RESERVED_DECLARATIONS}`
 
   return {
     text: `export default function ${ENTRY_FUNCTION} (\n${declarations}\n) {`,
@@ -236,6 +261,8 @@ const assemble = (body: string, shape: ComponentShape): Assembly & { diagnostics
 export {
   ENTRY_FUNCTION,
   PASSTHROUGH,
+  DOM,
+  RESERVED_PARAMETER_NAMES,
   assemble,
   signatureOf,
   identifierFor,
