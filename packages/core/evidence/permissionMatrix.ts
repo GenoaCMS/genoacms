@@ -93,7 +93,10 @@ const matrixOperations = [
   // signing keys
   'listUserSigningKeys',
   'rotateUserSubordinateKey',
-  'revokeUserSubordinateKey'
+  'revokeUserSubordinateKey',
+  // security policy
+  'readUserSecurityPolicy',
+  'updateUserSecurityPolicy'
 ] as const
 
 const bucketGrant = (permission: Permission): Grant =>
@@ -304,6 +307,22 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   KeyAdministrator: {
     grants: [instanceGrant('config:keys:manage')],
     allowed: ['listUserSigningKeys', 'rotateUserSubordinateKey', 'revokeUserSubordinateKey']
+  },
+  /**
+   * Administers the security policy and nothing else.
+   *
+   * Reading and writing sit in one allow-list, as they do for the keys, but for the opposite reason:
+   * the registry is published so a read permission would withhold nothing, while this document is
+   * private and a principal who could read the ceilings without changing them has no use for the
+   * screen the permission exists to serve.
+   *
+   * **It holds nothing over the keys**, which is the point of the row: the policy says when
+   * subordinate keys rotate, and a security administrator changing that interval still cannot rotate
+   * or revoke one.
+   */
+  SecurityAdministrator: {
+    grants: [instanceGrant('config:security:manage')],
+    allowed: ['readUserSecurityPolicy', 'updateUserSecurityPolicy']
   },
   SuperAdmin: {
     grants: [{ permission: WILDCARD, resource: WILDCARD }],

@@ -170,13 +170,20 @@ vi.mock('$lib/script/signing/rootKey.server', () => ({
   getRootPublicKey: async () => ({ keyId: 'root-1', alg: 'SLH-DSA-SHA2-128s', publicKey: 'AA==' })
 }))
 
+const POLICY = {
+  subordinateKeyRotationDays: 90,
+  accessTokenMinutes: 15,
+  grantCacheSeconds: 30,
+  refreshTokenDays: 14,
+  maxFuel: 1_000_000,
+  maxDepth: 100,
+  maxAllocation: 10_000_000
+}
+
 vi.mock('$lib/script/securityPolicy/policy.server', () => ({
-  loadSecurityPolicy: async () => ({
-    subordinateKeyRotationDays: 90,
-    accessTokenMinutes: 15,
-    grantCacheSeconds: 30,
-    refreshTokenDays: 14
-  })
+  loadSecurityPolicy: async () => POLICY,
+  readStoredPolicy: async () => ({ policy: POLICY, version: 'v1' }),
+  writePolicy: async () => undefined
 }))
 
 vi.mock('$lib/script/authorization/administration.server', () => ({
@@ -205,6 +212,7 @@ const publication = await import('$lib/script/components/publication/user.server
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
 const signing = await import('$lib/script/signing/user.server')
+const securityPolicy = await import('$lib/script/securityPolicy/user.server')
 
 // ---------------------------------------------------------------------------------------------
 // The operation table: every gated service function, invoked for real.
@@ -301,7 +309,11 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   // signing keys
   listUserSigningKeys: ctx => signing.listUserSigningKeys(ctx),
   rotateUserSubordinateKey: ctx => signing.rotateUserSubordinateKey(ctx),
-  revokeUserSubordinateKey: ctx => signing.revokeUserSubordinateKey(ctx, 'key-old')
+  revokeUserSubordinateKey: ctx => signing.revokeUserSubordinateKey(ctx, 'key-old'),
+
+  // security policy
+  readUserSecurityPolicy: ctx => securityPolicy.readUserSecurityPolicy(ctx),
+  updateUserSecurityPolicy: ctx => securityPolicy.updateUserSecurityPolicy(ctx, POLICY, 'v1')
 }
 
 // ---------------------------------------------------------------------------------------------
