@@ -94,44 +94,73 @@ async function createDefaultPolicy (): Promise<SecurityPolicy> {
  * default would relax a setting an administrator deliberately tightened. Falling back keeps the
  * instance running on known-safe values while leaving the document alone to be inspected.
  */
-async function loadSecurityPolicy (): Promise<SecurityPolicy> {
-  let raw
+/** The stored document as read, and everything about it an administrator would need to act. */
+interface StoredPolicy {
+  policy: SecurityPolicy
+  /**
+   * The storage version a conditional write must quote.
+   *
+   * Absent when no document was read at all, which is the one case a write may create rather than
+   * replace. Present even for a document that failed to parse — replacing something unreadable is
+   * still replacing a particular thing, and a blind write would clobber whatever arrived meanwhile.
+   */
+  version?: string
+  /** Why the stored document is not the one in use, when it is not. */
+  degraded?: string
+}
+
+/**
+ * Reads the document, and says what it found.
+ *
+ * The one read path. `loadSecurityPolicy` takes the policy from it and discards the rest, which is
+ * all the CMS itself needs; an administration screen needs the version to write conditionally and
+ * the reason to say why it is showing defaults. Two reads would be two chances to disagree about
+ * what the stored document says.
+ */
+async function readStoredPolicy (): Promise<StoredPolicy> {
+  let stored: { text: string, version?: string }
   try {
-    raw = await getInternalObjectStringVersioned(policyPath)
+    stored = await getInternalObjectStringVersioned(policyPath)
   } catch {
-    return await createDefaultPolicy()
+    return { policy: await createDefaultPolicy() }
+  }
+
+  const refuse = (reason: string): StoredPolicy => {
+    console.warn(
+      `[genoacms:security] ${policyPath} rejected (${reason}); running on configured defaults. ` +
+      'The document is left in place for inspection and is not overwritten.'
+    )
+    return { policy: defaultPolicy(), version: stored.version, degraded: reason }
   }
 
   let candidate: unknown
   try {
-    candidate = JSON.parse(raw.text)
+    candidate = JSON.parse(stored.text)
   } catch {
-    return degraded('not JSON')
+    return refuse('not JSON')
   }
 
   const read = await readRootSignedDocument(candidate, POLICY_DOCUMENT)
-  if (!read.ok) return degraded(read.reason)
+  if (!read.ok) return refuse(read.reason)
 
   const parsed = parseSecurityPolicy(read.payload)
-  if (!parsed.ok) return degraded(parsed.reason)
+  if (!parsed.ok) return refuse(parsed.reason)
 
-  return parsed.policy
+  return { policy: parsed.policy, version: stored.version }
 }
 
-function degraded (reason: string): SecurityPolicy {
-  const policy = defaultPolicy()
-  console.warn(
-    `[genoacms:security] ${policyPath} rejected (${reason}); running on configured defaults. ` +
-    'The document is left in place for inspection and is not overwritten.'
-  )
-  return policy
+async function loadSecurityPolicy (): Promise<SecurityPolicy> {
+  return (await readStoredPolicy()).policy
 }
 
 export {
   policyPath,
+  readStoredPolicy,
   POLICY_DOCUMENT,
   defaultPolicy,
   loadSecurityPolicy,
   writePolicy,
   createDefaultPolicy
 }
+
+export type { StoredPolicy }

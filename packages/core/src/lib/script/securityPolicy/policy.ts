@@ -111,6 +111,15 @@ const BOUNDS = {
 
 const POLICY_FIELDS = Object.keys(BOUNDS) as (keyof SecurityPolicy)[]
 
+/**
+ * The permitted range of every field, for a screen to show beside its input.
+ *
+ * The same table the parser refuses against, exported rather than restated: a screen offering a
+ * range the parser disagrees with would let an administrator enter a value the server then rejects,
+ * which teaches them the screen is lying rather than that the value was wrong.
+ */
+const policyBounds = (): Record<keyof SecurityPolicy, { min: number, max: number }> => ({ ...BOUNDS })
+
 function isPlainObject (value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -179,6 +188,8 @@ function guardCeilings (policy: SecurityPolicy): GuardCeilings {
 }
 
 export {
+  policyBounds,
+  POLICY_FIELDS,
   MIN_ROTATION_DAYS,
   MAX_ROTATION_DAYS,
   MIN_ACCESS_TOKEN_MINUTES,
