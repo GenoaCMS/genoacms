@@ -177,7 +177,8 @@ const POLICY = {
   refreshTokenDays: 14,
   maxFuel: 1_000_000,
   maxDepth: 100,
-  maxAllocation: 10_000_000
+  maxAllocation: 10_000_000,
+  fetchOrigins: []
 }
 
 vi.mock('$lib/script/securityPolicy/policy.server', () => ({

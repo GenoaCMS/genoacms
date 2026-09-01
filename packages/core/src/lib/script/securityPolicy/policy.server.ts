@@ -50,7 +50,10 @@ function defaultPolicy (): SecurityPolicy {
     refreshTokenDays: config.security.refreshTokenDays ?? 14,
     maxFuel: config.security.maxFuel ?? 1_000_000,
     maxDepth: config.security.maxDepth ?? 100,
-    maxAllocation: config.security.maxAllocation ?? 10_000_000
+    maxAllocation: config.security.maxAllocation ?? 10_000_000,
+    // Empty unless an operator says otherwise: the bridge grants nothing until somebody decides it
+    // should, which is the only default that is safe to ship.
+    fetchOrigins: config.security.fetchOrigins ?? []
   })
   if (!parsed.ok) {
     throw new Error(

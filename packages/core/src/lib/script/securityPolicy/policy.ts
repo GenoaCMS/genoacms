@@ -52,6 +52,16 @@ interface SecurityPolicy {
   maxDepth: number
   /** Cumulative elements and bytes a component may ask for across one render. */
   maxAllocation: number
+  /**
+   * The origins a component's data bridge may reach.
+   *
+   * **Empty by default, which permits nothing.** A bridge that reached everywhere until someone
+   * narrowed it would be indistinguishable from no bridge at all for as long as nobody noticed.
+   *
+   * An origin and nothing more — scheme, host and optional port. A path would suggest the allowlist
+   * constrains what a component may ask for, and it does not: it constrains who it may ask.
+   */
+  fetchOrigins: string[]
 }
 
 type PolicyParseResult =
@@ -92,6 +102,14 @@ const MIN_ALLOCATION = 1_000
 const MAX_ALLOCATION = 1_000_000_000
 
 /**
+ * Beyond this many origins the list stops being a decision and becomes a habit.
+ *
+ * It also bounds what gets compiled into every artifact: the allowlist travels inside each bundle,
+ * so an unbounded list is unbounded bytes in every published component.
+ */
+const MAX_FETCH_ORIGINS = 64
+
+/**
  * Every field, and the range it is meaningful in.
  *
  * A table rather than a check per field: the parser reads a signed document and every field is
@@ -107,9 +125,11 @@ const BOUNDS = {
   maxFuel: { min: MIN_FUEL, max: MAX_FUEL },
   maxDepth: { min: MIN_DEPTH, max: MAX_DEPTH },
   maxAllocation: { min: MIN_ALLOCATION, max: MAX_ALLOCATION }
-} as const satisfies Record<keyof SecurityPolicy, { min: number, max: number }>
+} as const satisfies Record<string, { min: number, max: number }>
 
-const POLICY_FIELDS = Object.keys(BOUNDS) as (keyof SecurityPolicy)[]
+/** The fields that are a bounded whole number, and the one that is not. */
+const NUMERIC_FIELDS = Object.keys(BOUNDS) as (keyof SecurityPolicy)[]
+const POLICY_FIELDS = [...NUMERIC_FIELDS, 'fetchOrigins'] as (keyof SecurityPolicy)[]
 
 /**
  * The permitted range of every field, for a screen to show beside its input.
@@ -118,26 +138,65 @@ const POLICY_FIELDS = Object.keys(BOUNDS) as (keyof SecurityPolicy)[]
  * range the parser disagrees with would let an administrator enter a value the server then rejects,
  * which teaches them the screen is lying rather than that the value was wrong.
  */
-const policyBounds = (): Record<keyof SecurityPolicy, { min: number, max: number }> => ({ ...BOUNDS })
+const policyBounds = (): Record<string, { min: number, max: number }> => ({ ...BOUNDS })
 
 function isPlainObject (value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Why this value cannot be this field, or nothing if it can. */
-function reject (field: keyof SecurityPolicy, value: unknown): string | undefined {
-  const { min, max } = BOUNDS[field]
+/** Why this value cannot be one of the bounded whole numbers, or nothing if it can. */
+function rejectNumber (field: string, value: unknown): string | undefined {
+  const { min, max } = BOUNDS[field as keyof typeof BOUNDS]
   if (typeof value !== 'number' || !Number.isInteger(value)) return `policy.${field} is not an integer`
   if (value < min || value > max) return `policy.${field} must be between ${min} and ${max}`
   return undefined
 }
+
+/**
+ * An origin, and nothing that is not one.
+ *
+ * Compared against what the platform's own parser calls the origin, so `https://api.example.com/`
+ * and `https://api.example.com/v1` are both refused rather than trimmed. An allowlist entry that
+ * did not survive a round trip through a URL parser is one the runtime check might read differently
+ * from the person who typed it.
+ */
+const isOrigin = (value: unknown): boolean => {
+  if (typeof value !== 'string' || value === '') return false
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && url.origin === value
+  } catch {
+    return false
+  }
+}
+
+/** Why this value cannot be the allowlist, or nothing if it can. */
+function rejectOrigins (value: unknown): string | undefined {
+  if (!Array.isArray(value)) return 'policy.fetchOrigins is not a list'
+  if (value.length > MAX_FETCH_ORIGINS) {
+    return `policy.fetchOrigins carries more than ${MAX_FETCH_ORIGINS} origins`
+  }
+  const offending = value.find(entry => !isOrigin(entry))
+  if (offending !== undefined) {
+    return `policy.fetchOrigins contains ${JSON.stringify(offending)}, which is not an origin`
+  }
+  // A repeated origin grants nothing twice, but it is a list somebody edited by hand and the
+  // duplicate is more likely a mistake than an intention.
+  if (new Set(value as string[]).size !== value.length) {
+    return 'policy.fetchOrigins lists the same origin more than once'
+  }
+  return undefined
+}
+
+const reject = (field: keyof SecurityPolicy, value: unknown): string | undefined =>
+  field === 'fetchOrigins' ? rejectOrigins(value) : rejectNumber(field, value)
 
 function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   if (!isPlainObject(payload)) return { ok: false, reason: 'policy is not an object' }
 
   // A field this version does not know is a document from a version that does. Guessing at it would
   // mean acting on a policy only half understood.
-  const unexpected = Object.keys(payload).filter(key => !(key in BOUNDS))
+  const unexpected = Object.keys(payload).filter(key => !POLICY_FIELDS.includes(key as keyof SecurityPolicy))
   if (unexpected.length > 0) {
     return { ok: false, reason: `policy has unexpected fields: ${unexpected.join(', ')}` }
   }
@@ -146,7 +205,11 @@ function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   for (const field of POLICY_FIELDS) {
     const reason = reject(field, payload[field])
     if (reason !== undefined) return { ok: false, reason }
-    policy[field] = payload[field] as number
+    // Copied rather than referenced, so the parsed policy does not alias the payload it was read
+    // from — a caller mutating the list afterwards would otherwise change what was validated.
+    policy[field] = (field === 'fetchOrigins'
+      ? [...(payload[field] as string[])]
+      : payload[field]) as never
   }
 
   return { ok: true, policy }
@@ -189,7 +252,10 @@ function guardCeilings (policy: SecurityPolicy): GuardCeilings {
 
 export {
   policyBounds,
+  isOrigin,
   POLICY_FIELDS,
+  NUMERIC_FIELDS,
+  MAX_FETCH_ORIGINS,
   MIN_ROTATION_DAYS,
   MAX_ROTATION_DAYS,
   MIN_ACCESS_TOKEN_MINUTES,

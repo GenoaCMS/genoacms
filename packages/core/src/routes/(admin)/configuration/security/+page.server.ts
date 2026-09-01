@@ -1,7 +1,7 @@
 import { fail, error, type Actions } from '@sveltejs/kit'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { readUserSecurityPolicy, updateUserSecurityPolicy } from '$lib/script/securityPolicy/user.server'
-import { POLICY_FIELDS } from '$lib/script/securityPolicy/policy'
+import { NUMERIC_FIELDS, MAX_FETCH_ORIGINS } from '$lib/script/securityPolicy/policy'
 
 /**
  * The security policy, as a screen.
@@ -18,7 +18,7 @@ export const load = async ({ locals }) => {
   // suggest nothing is configured, when the document may simply be unreadable.
   if (!result.ok) error(503, result.reason)
 
-  return result.value
+  return { ...result.value, maxOrigins: MAX_FETCH_ORIGINS }
 }
 
 /**
@@ -28,8 +28,26 @@ export const load = async ({ locals }) => {
  * anyone can post, and building the candidate from its keys would let an unexpected one through to
  * a parser whose whole job is to refuse those.
  */
-const submitted = (form: FormData): Record<string, unknown> =>
-  Object.fromEntries(POLICY_FIELDS.map(field => [field, Number(form.get(field))]))
+/**
+ * The allowlist as the form sent it.
+ *
+ * Anything unreadable is handed on as it arrived, so the parser refuses it. Silently clearing an
+ * allowlist because a field was malformed is the one outcome worth ruling out: it fails safe for the
+ * bridge and unsafe for whoever believed they had just saved their origins.
+ */
+const originsFrom = (value: FormDataEntryValue | null): unknown => {
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+const submitted = (form: FormData): Record<string, unknown> => ({
+  ...Object.fromEntries(NUMERIC_FIELDS.map(field => [field, Number(form.get(field))])),
+  fetchOrigins: originsFrom(form.get('fetchOrigins'))
+})
 
 const version = (form: FormData): string | undefined => {
   const value = form.get('version')

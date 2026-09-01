@@ -17,7 +17,8 @@ const POLICY = {
   refreshTokenDays: 14,
   maxFuel: 1_000_000,
   maxDepth: 100,
-  maxAllocation: 10_000_000
+  maxAllocation: 10_000_000,
+  fetchOrigins: ['https://api.example.com']
 }
 
 const readStoredPolicy = vi.fn(async () => ({ policy: POLICY, version: 'v1' }) as {
@@ -71,13 +72,14 @@ describe('reading it for a screen', () => {
     expect(result.ok && result.value.version).toBe('v1')
   })
 
-  it('carries the range of every field the parser will check', async () => {
+  it('carries the range of every field that has one', async () => {
     // A screen offering a range the parser disagrees with teaches an administrator that the screen
-    // is lying, rather than that the value was wrong.
+    // is lying, rather than that the value was wrong. The allowlist has no range — it is a list of
+    // origins, refused entry by entry — so it is absent here rather than given a meaningless pair.
     const result = await readUserSecurityPolicy(administrator())
 
     expect(result.ok && Object.keys(result.value.bounds).sort())
-      .toEqual(Object.keys(POLICY).sort())
+      .toEqual(Object.keys(POLICY).filter(field => field !== 'fetchOrigins').sort())
   })
 
   it('says when it is showing configured defaults rather than the stored document', async () => {
@@ -107,7 +109,8 @@ describe('writing it back', () => {
     ['a ceiling below its minimum', { maxDepth: 1 }],
     ['a ceiling above its maximum', { maxFuel: 2_000_000_000 }],
     ['a fractional value', { maxAllocation: 1.5 }],
-    ['a rotation interval nobody could have meant', { subordinateKeyRotationDays: 5_000 }]
+    ['a rotation interval nobody could have meant', { subordinateKeyRotationDays: 5_000 }],
+    ['an allowlist entry that is not an origin', { fetchOrigins: ['api.example.com'] }]
   ])('refuses %s, and signs nothing', async (_why, over) => {
     const result = await updateUserSecurityPolicy(administrator(), { ...POLICY, ...over }, 'v1')
 

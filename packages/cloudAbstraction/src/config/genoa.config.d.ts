@@ -100,6 +100,14 @@ type Config<Extension extends object = object> = Extension & {
     maxDepth?: number
     /** Cumulative elements and bytes a dynamic component may ask for across one render. */
     maxAllocation?: number
+    /**
+     * The origins a dynamic component's data bridge may reach.
+     *
+     * Each an origin and nothing more — scheme, host and optional port. Empty by default, which
+     * permits nothing: a bridge reaching everywhere until somebody narrowed it would be
+     * indistinguishable from no bridge at all for as long as nobody noticed.
+     */
+    fetchOrigins?: string[]
   }
   /**
    * The languages components may be authored in.
