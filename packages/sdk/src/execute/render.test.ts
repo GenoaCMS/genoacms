@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { renderPage } from './render.js'
 import type { Verifier } from '../verify/client.js'
 import type { ReadablePageNode } from '../verify/pageTree.js'
+import { JSDOM } from 'jsdom'
 
 /**
  * Rendering a verified tree.
@@ -541,6 +542,89 @@ describe('a component stopped by its own guard', () => {
 
     expect(rendered.ok).toBe(false)
     expect(!rendered.ok && rendered.reason).toContain('guard-exhausted: fuel')
+  })
+})
+
+describe('what a dynamic component is handed in its slot', () => {
+  /*
+   * The bypass arriving through a slot rather than a global: a prebuilt child is the consuming
+   * application's own node, built from the page's document, and `ownerDocument.defaultView` on it is
+   * `window`. It is adopted into the inert document before a dynamic parent ever sees it.
+   */
+  const page = () => new JSDOM('<!doctype html><body></body>').window.document
+
+  it('hands over a prebuilt child that leads nowhere', async () => {
+    const host = page()
+    published(publicationOf({
+      type: 'dynamic', code: 'ignored', attributes: [{ reference: 'a1', title: 'Body' }]
+    }))
+    published(publicationOf({ uid: 'component-2', publicationId: 'publication-2', name: 'Leaf' }))
+    let received: Node[] = []
+
+    await renderPage(
+      verifier,
+      node({
+        type: 'dynamic',
+        data: {
+          Body: [node({ component: 'Leaf', uid: 'component-2', publicationId: 'publication-2' })]
+        } as never
+      }),
+      {
+        document: host,
+        components: { Leaf: () => host.createElement('span') },
+        loader: async () => ({
+          default: (children: Node[]) => { received = children; return host.createElement('div') }
+        })
+      }
+    )
+
+    expect(received).toHaveLength(1)
+    expect(received[0].ownerDocument?.defaultView).toBeNull()
+  })
+})
+
+describe('what the renderer hands back', () => {
+  const page = () => new JSDOM('<!doctype html><body></body>').window.document
+
+  it('returns a tree belonging to the page, not to the inert document', async () => {
+    // A consumer receives a node it can insert. Leaving it in the inert document would work by
+    // accident, because appending adopts — but the renderer states that it places the tree.
+    const host = page()
+    published(publicationOf({ type: 'dynamic', code: 'ignored' }))
+
+    const rendered = await renderPage(verifier, node({ type: 'dynamic' }), {
+      document: host,
+      loader: async () => ({ default: (dom: { element: (t: string) => Element }) => dom.element('div') })
+    })
+
+    expect(rendered.ok && rendered.value.ownerDocument).toBe(host)
+  })
+
+  it('leaves a prebuilt component children where that component built them', async () => {
+    // Adoption is for untrusted code holding a node. A prebuilt component is the consuming
+    // application's own, and moving its nodes between documents is not the renderer's business.
+    const host = page()
+    published(publicationOf({ attributes: [{ reference: 'a1', title: 'Body' }] }))
+    published(publicationOf({ uid: 'component-2', publicationId: 'publication-2', name: 'Leaf' }))
+    let received: Node[] = []
+
+    await renderPage(
+      verifier,
+      node({
+        data: {
+          Body: [node({ component: 'Leaf', uid: 'component-2', publicationId: 'publication-2' })]
+        } as never
+      }),
+      {
+        document: host,
+        components: {
+          Hero: (children: Node[]) => { received = children; return host.createElement('div') },
+          Leaf: () => host.createElement('span')
+        }
+      }
+    )
+
+    expect(received[0].ownerDocument).toBe(host)
   })
 })
 

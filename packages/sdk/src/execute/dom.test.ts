@@ -87,6 +87,44 @@ describe('the escape the denylist closes', () => {
   })
 })
 
+describe('a child the component did not build', () => {
+  /*
+   * The same bypass arriving through a slot rather than a global. A prebuilt component is the
+   * consuming application's own code and builds from the page's document, so a dynamic parent handed
+   * one holds a node whose `ownerDocument` is the page.
+   *
+   *     prebuilt child ──▶ page document ──▶ defaultView ──▶ window
+   *     adopted into the inert one ──▶ null
+   */
+  it('reaches a window while it still belongs to the page', () => {
+    const window = new JSDOM('<!doctype html><body></body>').window
+
+    const child = window.document.createElement('span')
+
+    expect(child.ownerDocument.defaultView).not.toBeNull()
+  })
+
+  it('reaches nothing once adopted into the inert document', () => {
+    const page = new JSDOM('<!doctype html><body></body>').window.document
+    const inert = inertDocumentFrom(page)
+    const child = page.createElement('span')
+
+    inert.adoptNode(child)
+
+    expect(child.ownerDocument).toBe(inert)
+    expect(child.ownerDocument.defaultView).toBeNull()
+  })
+
+  it('is the same node afterwards, not a copy', () => {
+    // A consumer holding a reference to what its own component returned still holds that object.
+    const page = new JSDOM('<!doctype html><body></body>').window.document
+    const inert = inertDocumentFrom(page)
+    const child = page.createElement('span')
+
+    expect(inert.adoptNode(child)).toBe(child)
+  })
+})
+
 describe('where there is no document at all', () => {
   it('still hands a component the parameter', () => {
     // GenoaCMS is headless. A component that arranges the children it was given, or returns

@@ -271,10 +271,35 @@ const renderResolved = async (
     return rendered
   }
 
+  /**
+   * Children handed to a dynamic component, moved into the document its own nodes live in.
+   *
+   * **A child is not always built by the facade.** A prebuilt component is the consuming
+   * application's own code and builds from the page's document, so a dynamic parent given one as a
+   * slot child would hold a node whose `ownerDocument` is the page and whose `defaultView` is
+   * `window` — the bypass this phase closes, arriving through the slot instead of through a global.
+   *
+   * Adoption moves the node rather than copying it, so a consumer holding a reference to what its
+   * own component returned still holds the same object.
+   */
+  const given = (children: Node[]): Node[] => {
+    facade()
+    if (inert === undefined) return children
+    const target = inert
+    return children.map(child => child.ownerDocument === target ? child : target.adoptNode(child))
+  }
+
   const valuesFor = async (node: ResolvedNode): Promise<unknown[]> => {
     const values: unknown[] = []
     for (const value of node.values) {
-      values.push(isChildren(value) ? await renderChildren(value) : value)
+      if (!isChildren(value)) {
+        values.push(value)
+        continue
+      }
+      const children = await renderChildren(value)
+      // Only a dynamic component is untrusted code holding the nodes. A prebuilt one is this
+      // application's own and already has the page.
+      values.push(node.executable === undefined ? children : given(children))
     }
     return values
   }

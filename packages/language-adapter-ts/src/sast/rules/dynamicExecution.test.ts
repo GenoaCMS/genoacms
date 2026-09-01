@@ -52,7 +52,15 @@ describeRule('SAST-02', {
      */
     'const node = document.createElement("div"); node.textContent = heading; return node',
     'return String(document.defaultView)',
-    'return String(document.location.href)'
+    'return String(document.location.href)',
+    // The spellings that were missed, each one a hop the ban now closes at its source.
+    'return String(document.defaultView.eval("1"))',
+    'return String(document.defaultView.localStorage.getItem("token"))',
+    'return String(document.ownerDocument)',
+    'const d = document; return String(d.defaultView)',
+    'return String(document["defaultView"])',
+    'const key = "defaultView"; return String(document[key])',
+    'return String(document.body.ownerDocument.defaultView)'
   ],
   accepts: [
     'return heading',
@@ -61,7 +69,20 @@ describeRule('SAST-02', {
     // The author's own local, which is not the global however it is spelled.
     'const process = (value) => value.trim(); return process(heading)',
     // And their own `document`, which is theirs and reaches nothing.
-    'const document = { title: heading }; return document.title'
+    'const document = { title: heading }; return document.title',
+    /*
+     * **Silent on purpose, and the boundary is worth stating.** A member on a runtime value is not
+     * something a name-based rule can decide — `node['owner' + 'Document']` resolves to nothing
+     * statically, which is exactly why the globals are banned as *names* instead.
+     *
+     * What makes these safe is not this rule. Every node a component can reach belongs to a document
+     * with no browsing context: the ones it builds, because the facade builds there, and the ones it
+     * is handed, because the renderer adopts them before the component sees them. `ownerDocument`
+     * leads to that document and `defaultView` on it is null.
+     */
+    'const node = dom.element("div"); return String(node.ownerDocument)',
+    'const node = dom.element("div"); return String(node.ownerDocument.defaultView)',
+    'return String(children[0].ownerDocument)'
   ]
 })
 
