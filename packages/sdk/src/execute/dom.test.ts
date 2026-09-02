@@ -56,6 +56,13 @@ describe('what it will build', () => {
     expect(() => dom().element(tag)).toThrow(/dom-refused-tag/)
   })
 
+  it('refuses a stylesheet, which would both fetch and restyle the page', () => {
+    // `@import` in a stylesheet is a network request, and a rule written here applies to the whole
+    // page rather than to the nodes this component built. The mechanism that would have made
+    // styling safe was withdrawn, so there is no styling channel for this to be the unsafe half of.
+    expect(() => dom().element('style')).toThrow(/dom-refused-tag/)
+  })
+
   it('refuses a tag however it is capitalized', () => {
     expect(() => dom().element('ScRiPt')).toThrow(/dom-refused-tag/)
   })

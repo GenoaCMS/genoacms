@@ -26,7 +26,14 @@
 
 /** Tags that do something by being inserted, rather than by being looked at. */
 const REFUSED_TAGS = new Set([
-  'script', 'iframe', 'object', 'embed', 'link', 'base', 'meta', 'frame', 'frameset'
+  'script', 'iframe', 'object', 'embed', 'link', 'base', 'meta', 'frame', 'frameset',
+  /*
+   * `style` because a stylesheet is two things a component may not have: `@import` fetches a URL,
+   * and a rule written here applies to the whole page rather than to the nodes this component built.
+   * The scoped-CSS mechanism that would have made styling safe was withdrawn, so there is no
+   * styling channel for this to be the unsafe half of.
+   */
+  'style'
 ])
 
 /** The constructors a presentational component is given. */

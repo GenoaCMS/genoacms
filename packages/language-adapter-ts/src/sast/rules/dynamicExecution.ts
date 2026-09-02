@@ -77,6 +77,8 @@ const noDynamicEvaluation = (sourceFile: SourceFile): SecurityRuleDiagnostic[] =
  */
 const BANNED_GLOBALS = [
   'globalThis', 'window', 'global', 'process', 'localStorage', 'document',
+  // `navigator` carries `sendBeacon`, which is a network call, and a good deal else besides.
+  'navigator',
   /*
    * `arguments` is not a global, and is here because it defeats every rule that is expressed as a
    * name. A component's signature carries parameters the CMS supplies for its own use — the raw

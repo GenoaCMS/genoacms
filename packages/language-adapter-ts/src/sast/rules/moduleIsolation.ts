@@ -90,7 +90,15 @@ const noDynamicImports = (sourceFile: SourceFile): SecurityRuleDiagnostic[] =>
  * Not a ban on fetching. It is a ban on fetching *unmediated*: the sanctioned route is the data
  * bridge, which validates a target against an allowlist the instance signs.
  */
-const NETWORK = ['fetch', 'XMLHttpRequest', 'WebSocket']
+const NETWORK = [
+  'fetch', 'XMLHttpRequest', 'WebSocket',
+  /*
+   * The rest of the ways to ask for a URL by naming something. Added 1 September 2026 after each was
+   * measured reaching the network with nothing to stop it — the first three were not the whole list,
+   * they were the obvious part of it.
+   */
+  'EventSource', 'Worker', 'SharedWorker', 'Image', 'importScripts'
+]
 
 /**
  * How far a chain of aliases is followed.
