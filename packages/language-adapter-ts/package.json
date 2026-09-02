@@ -33,7 +33,8 @@
     "prepare": "pnpm run build",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
-    "generate-e3-report": "vite-node scripts/generate-e3-report.ts"
+    "generate-e3-report": "vite-node scripts/generate-e3-report.ts",
+    "generate-e4-e5-report": "vite-node scripts/generate-e4-e5-report.ts"
   },
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",
