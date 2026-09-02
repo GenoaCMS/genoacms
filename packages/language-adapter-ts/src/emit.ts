@@ -1,4 +1,5 @@
 import { PASSTHROUGH_PARAMETER } from '@genoacms/internal/languageAdapter'
+import { BRIDGE_FACTORY } from './guards/runtime.js'
 import type { Attribute, AttributeType } from '@genoacms/internal/attributes'
 import type { ComponentShape, Diagnostic } from '@genoacms/internal/languageAdapter'
 
@@ -211,8 +212,22 @@ const PASSTHROUGH = PASSTHROUGH_PARAMETER
  */
 const DOM = 'dom'
 
+/**
+ * The raw network call the consumer supplies, and what the author actually uses.
+ *
+ * Two names because the check has to be inside the artifact. `NET` is whatever the SDK passes;
+ * `bridge` is built from it in the signature itself, by a function the compiler appends, holding an
+ * allowlist the CMS signed. An author reaches only the second.
+ *
+ * A **parameter with a default** rather than a `const` at the top of the body: a body declaring its
+ * own `bridge` would collide with an injected binding, and a collision inside emitted code is a
+ * syntax error rather than something anyone can be told about.
+ */
+const NET = '__genoaNet'
+const BRIDGE = 'bridge'
+
 /** The names an attribute may not take, in the order they are emitted after the attributes. */
-const RESERVED_PARAMETER_NAMES = [DOM, PASSTHROUGH]
+const RESERVED_PARAMETER_NAMES = [NET, BRIDGE, DOM, PASSTHROUGH]
 
 /** What a consumer may put in it is the consumer's decision, so the type says only that it is an object. */
 const PASSTHROUGH_DECLARATION = `  ${PASSTHROUGH}: Record<string, unknown> = {}`
@@ -227,8 +242,22 @@ const DOM_DECLARATION =
   `  ${DOM}: { element: (tag: string) => Element, text: (value: string) => Text, ` +
   'fragment: () => DocumentFragment }'
 
+/** What the consumer hands over for the bridge to be built from. */
+const NET_DECLARATION = `  ${NET}: (url: string, init?: unknown) => Promise<unknown>`
+
+/**
+ * The bridge, built where the artifact can hold the rule.
+ *
+ * The default is evaluated by the component itself, from a function the compiler appends and a list
+ * it compiles in — so a consumer passing nothing here gets the checked bridge, which is the point.
+ */
+const BRIDGE_DECLARATION =
+  `  ${BRIDGE}: { fetch: (url: string, init?: unknown) => Promise<unknown> } = ` +
+  `${BRIDGE_FACTORY}(${NET})`
+
 /** Everything after the attributes, in the order a consumer passes them. */
-const RESERVED_DECLARATIONS = `${DOM_DECLARATION},\n${PASSTHROUGH_DECLARATION}`
+const RESERVED_DECLARATIONS =
+  `${NET_DECLARATION},\n${BRIDGE_DECLARATION},\n${DOM_DECLARATION},\n${PASSTHROUGH_DECLARATION}`
 
 /**
  * The declaration a body is wrapped in.
@@ -262,6 +291,8 @@ export {
   ENTRY_FUNCTION,
   PASSTHROUGH,
   DOM,
+  BRIDGE,
+  NET,
   RESERVED_PARAMETER_NAMES,
   assemble,
   signatureOf,

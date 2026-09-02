@@ -75,7 +75,17 @@ const noDynamicEvaluation = (sourceFile: SourceFile): SecurityRuleDiagnostic[] =
  *
  * What a component builds nodes with instead is the `dom` parameter, supplied by the consumer's SDK.
  */
-const BANNED_GLOBALS = ['globalThis', 'window', 'global', 'process', 'localStorage', 'document']
+const BANNED_GLOBALS = [
+  'globalThis', 'window', 'global', 'process', 'localStorage', 'document',
+  /*
+   * `arguments` is not a global, and is here because it defeats every rule that is expressed as a
+   * name. A component's signature carries parameters the CMS supplies for its own use — the raw
+   * network call the data bridge is built from among them — and `arguments[1]` reaches one without
+   * naming it. In a module, which is strict, `arguments` holds what was passed rather than tracking
+   * the parameters, so clearing a parameter afterwards does not clear this route to it.
+   */
+  'arguments'
+]
 
 /**
  * `SAST-02` — no global scope access.

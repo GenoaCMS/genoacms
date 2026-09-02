@@ -146,4 +146,61 @@ function ${factory} (budgets: __GenoaBudgets): __GenoaGuards {
 }
 `
 
-export { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime }
+/** The name the bridge factory is given, and the binding holding the allowlist. */
+const BRIDGE_FACTORY = '__genoaBridge'
+const BRIDGE_ORIGINS = '__genoaOrigins'
+
+/**
+ * The data bridge, as TypeScript.
+ *
+ * **The check lives here, inside the artifact, because the artifact is what the CMS signed.** The
+ * consumer supplies the raw network call; what it may be pointed at is decided by a list compiled in
+ * and covered by the signature, so no SDK can widen it and nothing in transit can either.
+ *
+ * An origin is compared after the platform's own parser has read the URL, so `https://api.example.com`
+ * matches `https://api.example.com/orders?page=2` and does not match `https://api.example.com.evil.test`.
+ * Comparing strings by prefix is the mistake that makes an allowlist look like one without being one.
+ *
+ * A relative URL has no origin of its own and is refused: it would resolve against whatever page the
+ * component happens to be rendered on, which is not a decision the allowlist ever made.
+ */
+const bridgeRuntime = (factory: string, origins: string, allowed: readonly string[]): string =>
+  `const ${origins}: readonly string[] = ${JSON.stringify([...allowed])}
+
+interface __GenoaBridge {
+  fetch: (url: string, init?: unknown) => Promise<unknown>
+}
+
+function ${factory} (net: (url: string, init?: unknown) => Promise<unknown>): __GenoaBridge {
+  const refused = (url: string): never => {
+    const error = new Error(
+      'This component may not reach ' + String(url) + '. The origins it may reach are set by the ' +
+      'instance that published it.'
+    )
+    error.name = 'BridgeOriginRefused'
+    throw error
+  }
+
+  const permitted = (url: string): boolean => {
+    try {
+      return ${origins}.indexOf(new URL(String(url)).origin) !== -1
+    } catch {
+      return false
+    }
+  }
+
+  return Object.freeze({
+    fetch: (url: string, init?: unknown): Promise<unknown> => {
+      if (!permitted(url)) return refused(url)
+      if (typeof net !== 'function') {
+        const error = new Error('This component asked for the network and none was supplied.')
+        error.name = 'NoNetwork'
+        throw error
+      }
+      return net(url, init)
+    }
+  })
+}
+`
+
+export { GUARD_FACTORY, GUARD_INSTANCE, BRIDGE_FACTORY, BRIDGE_ORIGINS, guardRuntime, bridgeRuntime }

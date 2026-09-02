@@ -155,8 +155,13 @@ const build = async (
   const warnings = await analyzeComponentBody(definition.language, definition.body, shape)
   // Read at publish time rather than carried on the order: the bound a component runs under is the
   // instance's, not something the person publishing gets to state.
-  const ceilings = guardCeilings(await loadSecurityPolicy())
-  const compiled = await compileComponentBody(definition.language, definition.body, shape, ceilings)
+  // One read, two things taken from it: a second read could return a policy an administrator
+  // changed in between, and compile a component against bounds it never records.
+  const policy = await loadSecurityPolicy()
+  const ceilings = guardCeilings(policy)
+  const compiled = await compileComponentBody(
+    definition.language, definition.body, shape, ceilings, policy.fetchOrigins
+  )
   // Taken from the adapter rather than rebuilt here, so it is the same text the bundle was compiled
   // around and not a second emitter's opinion of it.
   const { text: signature } = await signatureFor(definition.language, shape)

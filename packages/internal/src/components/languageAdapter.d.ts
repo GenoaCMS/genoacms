@@ -156,6 +156,16 @@ interface CompilationRequest extends SourceRequest {
    * and a consumer may run below them but never above.
    */
   ceilings: GuardBudgets
+  /**
+   * The origins a component's data bridge may reach, from the instance's signed security policy.
+   *
+   * Compiled into the artifact rather than supplied at run time, for the reason the ceilings are:
+   * the check has to be code the CMS signed. An empty list permits nothing, which is what an
+   * instance that has configured no origin means.
+   *
+   * Platform-neutral, unlike the DOM facade: an origin is an origin wherever a component runs.
+   */
+  fetchOrigins: readonly string[]
 }
 
 /**

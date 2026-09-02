@@ -116,7 +116,7 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
 
   // The guards cost one line inside the body, so the prologue to subtract is the one injection
   // reports rather than the one assembly did.
-  const guarded = injectGuards(source, request.ceilings, prologueLines)
+  const guarded = injectGuards(source, request.ceilings, prologueLines, request.fetchOrigins)
   const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
   return {
     ...compiled,

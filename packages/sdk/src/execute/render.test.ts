@@ -594,7 +594,12 @@ describe('what the renderer hands back', () => {
 
     const rendered = await renderPage(verifier, node({ type: 'dynamic' }), {
       document: host,
-      loader: async () => ({ default: (dom: { element: (t: string) => Element }) => dom.element('div') })
+      // Attributes first, then the reserved four in the order the compiler emits them.
+      loader: async () => ({
+        default: (
+          _net: unknown, _bridge: unknown, dom: { element: (t: string) => Element }
+        ) => dom.element('div')
+      })
     })
 
     expect(rendered.ok && rendered.value.ownerDocument).toBe(host)
@@ -733,13 +738,17 @@ describe('a dynamic component', () => {
       { loader: async () => ({ default: (...values: unknown[]) => { received = values; return element('DIV') } }) }
     )
 
-    // The reserved parameters follow the attributes, which are addressed by position, and are
-    // emitted in a fixed order: the one the renderer always supplies before the one an application
-    // chooses.
-    expect(received).toHaveLength(3)
+    // The reserved parameters follow the attributes, which are addressed by position, in the order
+    // the compiler emits them: the raw network call, the bridge built from it inside the artifact,
+    // the DOM facade, and last what the application chose to provide.
+    expect(received).toHaveLength(5)
     expect(received[0]).toBe('Welcome')
-    expect(Object.keys(received[1] as object).sort()).toEqual(['element', 'fragment', 'text'])
-    expect(received[2]).toEqual({})
+    expect(typeof received[1]).toBe('function')
+    // Left undefined on purpose, so the component's own default builds the bridge that carries the
+    // signed allowlist.
+    expect(received[2]).toBeUndefined()
+    expect(Object.keys(received[3] as object).sort()).toEqual(['element', 'fragment', 'text'])
+    expect(received[4]).toEqual({})
   })
 
   it('does not consult the prebuilt map for a component that published code', async () => {

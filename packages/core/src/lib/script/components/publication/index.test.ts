@@ -53,6 +53,8 @@ const GOOD_SOURCE = 'return heading'
  */
 const PUBLISHED_SIGNATURE =
   'export default function component (\n  heading: string,\n' +
+  '  __genoaNet: (url: string, init?: unknown) => Promise<unknown>,\n' +
+  '  bridge: { fetch: (url: string, init?: unknown) => Promise<unknown> } = __genoaBridge(__genoaNet),\n' +
   '  dom: { element: (tag: string) => Element, text: (value: string) => Text, fragment: () => DocumentFragment },\n' +
   '  passthrough: Record<string, unknown> = {}\n) {'
 

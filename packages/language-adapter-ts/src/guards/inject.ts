@@ -1,8 +1,8 @@
 import { Project, SyntaxKind } from 'ts-morph'
 import type { FunctionDeclaration, SourceFile } from 'ts-morph'
 import type { GuardBudgets } from '@genoacms/internal/guards'
-import { ENTRY_FUNCTION } from '../emit.js'
-import { GUARD_FACTORY, GUARD_INSTANCE, guardRuntime } from './runtime.js'
+import { ENTRY_FUNCTION, NET } from '../emit.js'
+import { GUARD_FACTORY, GUARD_INSTANCE, BRIDGE_FACTORY, BRIDGE_ORIGINS, guardRuntime, bridgeRuntime } from './runtime.js'
 import { spendFuel } from './fuel.js'
 import { boundDepth } from './depth.js'
 import { chargeAllocation } from './allocation.js'
@@ -95,7 +95,15 @@ const parse = (source: string): SourceFile =>
   new Project({ useInMemoryFileSystem: true }).createSourceFile('component.ts', source)
 
 /**
- * The guards for one render, built where the component is entered.
+ * The guards for one render, built where the component is entered — and the raw network dropped.
+ *
+ * **`__genoaNet` is cleared here, on purpose.** It is a parameter, so the author's body shares a
+ * scope with it and could call it directly, reaching any origin at all. A parameter default runs
+ * before the first statement of the body, so by the time this line executes the bridge has already
+ * closed over the real network call and nothing needs the raw one again.
+ *
+ * `arguments` is the other way to the same value and is refused by the ruleset instead, because
+ * clearing a parameter does not clear what `arguments` recorded in a module's strict mode.
  *
  * **Per call, not per module.** A module-scope binding would be built once however many times the
  * component appears on a page, so twenty placements would share one budget and the twentieth would
@@ -103,7 +111,7 @@ const parse = (source: string): SourceFile =>
  */
 const instantiation = (guards: string, factory: string, ceilings: GuardBudgets): string =>
   `const ${guards} = ${factory}({ fuel: ${ceilings.fuel}, depth: ${ceilings.depth}, ` +
-  `allocation: ${ceilings.allocation} })`
+  `allocation: ${ceilings.allocation} }); ${NET} = undefined`
 
 /** The emitted entry function, which `assemble` always produces. */
 const entryFunctionOf = (file: SourceFile): FunctionDeclaration => {
@@ -135,7 +143,8 @@ const entryFunctionOf = (file: SourceFile): FunctionDeclaration => {
 const injectGuards = (
   source: string,
   ceilings: GuardBudgets,
-  prologueLines: number
+  prologueLines: number,
+  fetchOrigins: readonly string[] = []
 ): Injection => {
   const read = parse(source)
   const taken = identifiersIn(read)
@@ -151,6 +160,9 @@ const injectGuards = (
 
   entryFunctionOf(file).insertStatements(0, instantiation(guards, factory, ceilings))
   file.addStatements(guardRuntime(factory))
+  // Appended like the guard helper, and hoisted for the same reason: the entry function's signature
+  // calls it before it is declared, because a parameter default runs when the component is called.
+  file.addStatements(bridgeRuntime(BRIDGE_FACTORY, BRIDGE_ORIGINS, fetchOrigins))
 
   return { source: file.getFullText(), factory, guards, prologueLines: prologueLines + 1 }
 }

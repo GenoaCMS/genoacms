@@ -104,6 +104,19 @@ interface RenderOptions {
    * document created from this one, whose `defaultView` is null.
    */
   document?: Document
+  /**
+   * What a component's data bridge actually calls.
+   *
+   * Defaulted to the environment's own `fetch`. **This is the raw capability, not the bridge** — what
+   * a component receives is a bridge built inside the artifact, which refuses any origin the CMS did
+   * not sign into it. Supplying this does not widen that list and cannot: the check is code the CMS
+   * compiled in, not something this SDK decides.
+   *
+   * Supply it to route a component's requests through your own client — for headers, retries, or a
+   * proxy. Where there is no `fetch` at all, a component that never asks for the network is
+   * unaffected and one that does fails its own node.
+   */
+  fetch?: (url: string, init?: unknown) => Promise<unknown>
 }
 
 /** A node that was resolved and verified, and whose code still would not run. */
@@ -224,6 +237,13 @@ const renderResolved = async (
   const passthrough = options.passthrough ?? {}
   const host = hostDocument(options.document)
   /**
+   * Handed to the bridge the artifact builds, never to the component directly.
+   *
+   * Absent under a runtime with no `fetch`, which the bridge reports when a component asks — rather
+   * than here, where it would refuse a component that never intended to.
+   */
+  const net = options.fetch ?? (globalThis as { fetch?: RenderOptions['fetch'] }).fetch
+  /**
    * One inert document per render, built on first use.
    *
    * Per render rather than per component, so a parent can append a child another component built
@@ -323,7 +343,12 @@ const renderResolved = async (
     const values = await valuesFor(node)
     const rendered = invoke(
       component.value,
-      node.executable === undefined ? values : [...values, facade(), passthrough],
+      node.executable === undefined
+        ? values
+        // The reserved parameters, in the order the compiler emitted them. `bridge` is skipped
+        // deliberately: leaving it undefined runs the default the artifact carries, which is the
+        // one holding the signed allowlist.
+        : [...values, net, undefined, facade(), passthrough],
       node
     )
     if (!rendered.ok) failures.push({ component: node.component, reason: rendered.reason })

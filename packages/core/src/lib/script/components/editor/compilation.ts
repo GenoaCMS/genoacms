@@ -79,13 +79,16 @@ const compileComponentBody = async (
   language: string,
   body: string,
   shape: ComponentShape,
-  ceilings: GuardCeilings
+  ceilings: GuardCeilings,
+  fetchOrigins: readonly string[]
 ): Promise<CompiledComponent> => {
   const adapter = await getLanguageAdapter(language)
   const platform = soleTargetOf(language, adapter.platforms)
   // The one place a ceiling becomes a budget. Returned alongside the code so that what is recorded
   // in the publication is the same object that was compiled into it.
-  const result = await adapter.compileBundle({ body, shape, platform, ceilings: budgetsFrom(ceilings) })
+  const result = await adapter.compileBundle({
+    body, shape, platform, ceilings: budgetsFrom(ceilings), fetchOrigins
+  })
   return { platform, executableCode: compiledCode(language, result), ceilings }
 }
 
