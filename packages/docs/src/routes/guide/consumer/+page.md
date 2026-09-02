@@ -147,8 +147,112 @@ componentsUsed(resolved.value)                       // every name this page nee
 missingComponents(resolved.value, Object.keys(mine)) // the ones you have not supplied
 ```
 
+## Running dynamic components
+
 **Dynamic** components are the other kind: their code was authored in the CMS, compiled, signed, and
-is executed by the SDK. You supply nothing for them.
+executed by the SDK in your process. You supply no code for them — but you do decide what they can
+reach, and that decision is yours rather than the CMS's.
+
+A dynamic component is handed four things, in this order, after its own attributes:
+
+```js
+component(...attributes, net, bridge, dom, passthrough)
+```
+
+You never build the middle two. `bridge` is constructed **inside the signed artifact** and refuses
+any origin the instance did not compile into it; `dom` is a facade over a document that is not your
+page. What you choose is `passthrough`, and optionally what `bridge` and `dom` are built from:
+
+```js
+await renderPage(verifier, page.value, {
+  document,                                   // defaults to the page's own
+  fetch: myClient,                            // what the bridge actually calls
+  passthrough: { formatDate, icons }          // your capabilities — see below
+})
+```
+
+### `passthrough` is your security decision, not GenoaCMS's
+
+Component code cannot reach a global, import a package, or call the network. Without a channel it can
+only rearrange the values it was given, so `passthrough` is that channel: a date formatter, an icon
+set, a design-system helper — whatever your application chooses to grant.
+
+:::caution[Nothing verifies what you put in it, deliberately]
+The components receiving it were compiled and signed by the CMS, and your application has almost
+certainly never read them. Anything you place here is granted to code nobody on your side reviewed.
+Passing `fetch` gives every component the network, and passing `document` gives it your page. A check
+performed by the SDK here would be a guarantee it cannot keep.
+:::
+
+It is **one object for the whole deployment**, passed by reference to every dynamic component on the
+page. Components are authored in the CMS after your application ships, so keying capabilities by
+component name would starve every component written later. A consequence worth knowing: a component
+that writes to it can be read by the next one rendered. That is yours to allow or prevent — freeze
+it, or hand each render a fresh copy, if you would rather it were not so.
+
+Prebuilt components never receive it. Their code is already yours.
+
+### What `fetch` and `document` change, and what they do not
+
+`fetch` is the **raw capability the bridge calls**, not the bridge. Supplying it routes a component's
+requests through your own client — headers, retries, a proxy — and does not widen what a component
+may ask for: the origin check is code the CMS compiled into the artifact. Where there is no `fetch`
+at all, a component that never asks for the network is unaffected and one that does fails its own
+node.
+
+`document` is what the SDK builds an **inert** document from — never the document a component
+receives. Supply it for server-side rendering, where there is no page. Without one, a component that
+builds DOM fails its own node and the rest of the page renders.
+
+### Ceilings, and what a trip looks like
+
+Every dynamic artifact is compiled with three bounds signed into it: **fuel** (loop iterations and
+function calls), **depth** (nested calls), and **allocation** (cumulative sized allocations and
+string growth). They are the instance's numbers, chosen by an administrator and covered by the
+artifact's signature.
+
+**You cannot set them, raise them, or lower them.** There is no runtime channel by which a budget
+reaches a component, so there is nothing to configure and nothing for the SDK to refuse. A component
+you find too expensive is a conversation with whoever administers the instance; components published
+after they change a ceiling are compiled against the new one.
+
+Exceeding a budget throws inside the component and **fails that node alone**:
+
+```js
+const rendered = await renderPage(verifier, page.value, { components: mine })
+
+rendered.ok         // true — the page rendered
+rendered.failures   // [{ component: 'Hero', reason: 'guard-exhausted: fuel (limit 1000000)' }]
+```
+
+The node contributes nothing to its parent's slot and nothing is put in its place — a stand-in would
+be content no component produced. Read `failures` if you want to log or report them; ignoring it
+renders a page with a hole where the component was, which is the intended behavior. A trip is
+deliberately distinguishable from an ordinary fault (`component-threw: …`): one is a bound doing its
+job, the other is a bug.
+
+The one exception is a trip in the page's **root**, which leaves no page to return and is reported as
+`rendered.ok === false` carrying the guard that stopped it.
+
+### What this does not protect you from
+
+The bounds above are about **resource exhaustion**, and the analysis that runs at commit time is a
+denylist of dangerous names. A denylist sees the names an author *writes*. An author who assembles a
+banned name at run time — building the string `"constructor"` from two halves, for instance — is
+outside what it can see, and the runtime guards do not carry that case: they bound what a component
+spends, and a few property reads spend nothing.
+
+So the accurate statement is that GenoaCMS makes a component's *cost* bounded and its *reach* narrow
+by default, against an author who is careless or whose account was taken for casual mischief. It is
+not a sandbox, and it does not claim to stop a determined author who is deliberately attacking the
+consumers of the instance that publishes them. Who may commit code is an authorization question, and
+the answer to it is in [authorization](/guide/authorization/); every publication is attributed and
+signed, so a component that did something is traceable to who released it.
+
+:::caution[Treat a dynamic component as code you are running]
+Because that is what it is. If your application handles data a component must never see, keep it out
+of the component's attributes and out of `passthrough` — that boundary is the one you control.
+:::
 
 ## Resolving without rendering
 

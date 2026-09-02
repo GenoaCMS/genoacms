@@ -84,6 +84,26 @@ return <div ref={host} />
 Place the node — never serialize it to markup. `innerHTML` or `{@html}` would discard every event
 handler the component attached.
 
+**Thread the render options through.** `renderResolved(node)` with no options gives a dynamic
+component an empty `passthrough`, the page's own document, and the environment's `fetch`. That is a
+reasonable default and it is not yours to fix silently: `passthrough` is the consuming application's
+security decision — the one channel by which a component reaches anything the application owns — so a
+wrapper that swallows it takes that decision away from the person using the wrapper. Accept the same
+options a consumer would pass to `renderPage`, and hand them on:
+
+```tsx
+renderResolved(node, { components, passthrough, document, fetch })
+```
+
+The consumer guide (`/guide/consumer/`, in `packages/docs`) documents what each one grants. A wrapper
+should repeat the caution rather than the detail: **whatever the application puts in `passthrough` is
+granted to code nobody on the consumer's side reviewed**, and passing `fetch` there gives every
+component the network.
+
+Nothing else about a dynamic component is a wrapper's concern. The `bridge` it uses and the `dom`
+facade it builds from are constructed inside the signed artifact and by the SDK respectively; there
+is no option that widens either, and a wrapper cannot supply them.
+
 ## What each framework needs
 
 | | how a slot is passed |
@@ -131,8 +151,10 @@ Copy this, fill in the framework, and paste it along with your component list.
 > 4. If `node.name` is not in the map, **fail the whole render** with a clear error. Do not skip the
 >    node and do not render a placeholder.
 > 5. If `node.executable` is present, do not try to render it as a framework component. Call
->    `renderResolved(node)`, await it, and place the returned DOM node into a host element using the
->    framework's ref/action mechanism. Never use `innerHTML` or an equivalent.
+>    `renderResolved(node, options)`, await it, and place the returned DOM node into a host element
+>    using the framework's ref/action mechanism. Never use `innerHTML` or an equivalent. `options`
+>    are the render options the application gave the wrapper — `components`, `passthrough`,
+>    `document`, `fetch` — passed through unchanged rather than defaulted by the wrapper.
 > 6. Pass the component map through context/provider rather than threading it through every
 >    component's props.
 >
