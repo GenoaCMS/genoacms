@@ -12,7 +12,6 @@ import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
 import { scanBody, scanAssembled } from './sast/scan.js'
 import { injectGuards } from './guards/inject.js'
-import { target } from './config.js'
 
 /**
  * The TypeScript language adapter.
@@ -39,6 +38,14 @@ import { target } from './config.js'
  *
  * The guard helper is injected only where an artifact is produced. Analysis reports on what the
  * author wrote, and a rule firing on code this package emitted would be a fault nobody can fix.
+ *
+ * ## Configuration is read only where it is used
+ *
+ * The compilation target comes from `genoa.config`, which exists inside a configured instance and
+ * nowhere else. It is imported **where it is needed** rather than at the top of this file, so that
+ * `analyze` — which has no use for it — can run without one: the evidence harness measures the
+ * ruleset against a corpus, and requiring an instance to do that would tie a measurement of the
+ * rules to the configuration of a deployment.
  */
 
 /**
@@ -117,6 +124,7 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   // The guards cost one line inside the body, so the prologue to subtract is the one injection
   // reports rather than the one assembly did.
   const guarded = injectGuards(source, request.ceilings, prologueLines, request.fetchOrigins)
+  const { target } = await import('./config.js')
   const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
   return {
     ...compiled,
@@ -134,4 +142,4 @@ const adapter: LanguageAdapter = {
 
 export default adapter
 export { adapter, analyze, emitSignature, compileBundle }
-export { DEFAULT_TARGET } from './config.js'
+export { DEFAULT_TARGET } from './target.js'

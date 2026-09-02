@@ -1,5 +1,6 @@
 import type { LanguageProvider } from '@genoacms/internal/languageAdapter'
 import { getProvider } from '@genoacms/cloudabstraction'
+import { DEFAULT_TARGET } from './target.js'
 
 /**
  * What this adapter reads from its entry in `genoa.config`.
@@ -7,9 +8,6 @@ import { getProvider } from '@genoacms/cloudabstraction'
  * Registered the way every other adapter is, and read the same way: `getProvider` returns this
  * adapter's own entry, and the settings on it are this adapter's to interpret.
  */
-
-/** ECMAScript level the output is lowered to when the instance does not choose one. */
-const DEFAULT_TARGET = 'es2020'
 
 const ADAPTER_PATH = '@genoacms/language-adapter-ts'
 
