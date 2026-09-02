@@ -210,6 +210,13 @@ const extension: CorpusEntry[] = [
     verdict: { escapes: 'rule-gap', carriedBy: 'nothing — the same residual as the URL in markup above' }
   },
   {
+    id: 'name-assembled-at-run-time',
+    origin: 'extension',
+    cite: 'Found on 2 September 2026 while writing the live attack demonstration. `constructor` written down is refused; the same three reads with the key built from two halves are not, and reach the global object.',
+    body: 'const key = "constr" + "uctor"\nconst reach = ({})[key][key]("return globalThis")()\nreturn String(reach)',
+    verdict: { escapes: 'rule-gap', carriedBy: 'nothing — the guards bound what a component spends, and three property reads spend nothing' }
+  },
+  {
     id: 'capability-the-consumer-granted',
     origin: 'extension',
     cite: 'The boundary the capability channel states rather than hides.',
