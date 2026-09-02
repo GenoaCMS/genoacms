@@ -169,6 +169,47 @@ describe('what the author cannot go around', () => {
   })
 })
 
+describe('the network a component can reach, in total', () => {
+  /*
+   * Where the rule and the bridge meet. `SAST-05` bans the primitives; the bridge is the sanctioned
+   * route and refuses an origin the instance did not sign in.
+   *
+   *     fetch / XMLHttpRequest / WebSocket ──▶ refused at commit
+   *     bridge.fetch(literal)              ──▶ refused at commit if the origin is not allowed
+   *     bridge.fetch(assembled)            ──▶ refused when called, by the artifact
+   *     passthrough.anything               ──▶ NOT refused; see below
+   */
+  const analysed = async (body: string) =>
+    await adapter.analyze({ body, shape: url, fetchOrigins: ['https://api.example.com'] })
+
+  const rules = async (body: string) =>
+    (await analysed(body)).diagnostics.map(one => (one as { rule?: string }).rule)
+
+  it.each([
+    ['fetch', 'return fetch("https://api.example.com/x")'],
+    ['XMLHttpRequest', 'const r = new XMLHttpRequest(); return target'],
+    ['WebSocket', 'const s = new WebSocket("wss://api.example.com"); return target']
+  ])('refuses %s, even pointed at an allowed origin', async (_name, body) => {
+    // The ban is on reaching the network unmediated, not on reaching a particular host.
+    expect(await rules(body)).toContain('SAST-05')
+  })
+
+  it('permits the bridge pointed where the instance allows', async () => {
+    expect(await rules('return bridge.fetch("https://api.example.com/x")')).not.toContain('SAST-05')
+  })
+
+  it('says nothing about what the consuming application handed over', async () => {
+    /*
+     * **Stated rather than hidden.** A consumer that puts a network client in `passthrough` has
+     * given every component the network, and no rule here describes it — GenoaCMS never saw the
+     * object and cannot enforce a policy over it. That is the boundary between the two channels: the
+     * bridge is where the CMS can enforce, `passthrough` is where it cannot and says so.
+     */
+    expect(await rules('return passthrough.client.get("https://elsewhere.test/x")'))
+      .not.toContain('SAST-05')
+  })
+})
+
 describe('what a consumer cannot do', () => {
   it('cannot widen the list by supplying its own bridge', async () => {
     // The reason the check is compiled in rather than left to the SDK. A caller passing a bridge of

@@ -88,8 +88,8 @@ const analyze = (request: AnalysisRequest): AnalysisResult => {
     diagnostics: [
       ...diagnostics,
       // Already the author's coordinates: the body was not assembled, so nothing to subtract.
-      ...scanBody(request.body, request.shape),
-      ...reported(scanAssembled(source, request.shape), prologueLines)
+      ...scanBody(request.body, request.shape, request.fetchOrigins),
+      ...reported(scanAssembled(source, request.shape, request.fetchOrigins), prologueLines)
     ]
   }
 }

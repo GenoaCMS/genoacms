@@ -132,7 +132,7 @@ interface SourceRequest {
   shape: ComponentShape
 }
 
-type AnalysisRequest = SourceRequest
+type AnalysisRequest = SourceRequest & AnalysisRequestExtras
 
 interface AnalysisResult {
   /**
@@ -143,6 +143,17 @@ interface AnalysisResult {
    * this in arrives later, and the seam exists so that it has somewhere to land.
    */
   diagnostics: Diagnostic[]
+}
+
+interface AnalysisRequestExtras {
+  /**
+   * The origins this instance allows, so a rule can decide a bridge call whose URL is written down.
+   *
+   * Required for the same reason the ceilings are on a compilation: an analyzer that could run
+   * without them would silently skip the one check the allowlist makes decidable at commit time,
+   * and report a clean result for a component pointed somewhere the instance never allowed.
+   */
+  fetchOrigins: readonly string[]
 }
 
 interface CompilationRequest extends SourceRequest {

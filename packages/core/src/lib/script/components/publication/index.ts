@@ -152,13 +152,15 @@ const build = async (
   }
 
   const shape = shapeOf(header)
-  const warnings = await analyzeComponentBody(definition.language, definition.body, shape)
-  // Read at publish time rather than carried on the order: the bound a component runs under is the
-  // instance's, not something the person publishing gets to state.
-  // One read, two things taken from it: a second read could return a policy an administrator
-  // changed in between, and compile a component against bounds it never records.
+  // Read at publish time rather than carried on the order: what a component runs under is the
+  // instance's decision, not something the person publishing gets to state. **One read**, because a
+  // second could return a policy an administrator changed in between — and then a component would be
+  // checked against one allowlist while another was compiled into it.
   const policy = await loadSecurityPolicy()
   const ceilings = guardCeilings(policy)
+  const warnings = await analyzeComponentBody(
+    definition.language, definition.body, shape, policy.fetchOrigins
+  )
   const compiled = await compileComponentBody(
     definition.language, definition.body, shape, ceilings, policy.fetchOrigins
   )

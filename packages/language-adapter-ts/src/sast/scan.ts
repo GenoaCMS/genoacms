@@ -41,7 +41,11 @@ import {
  * behind the parameter, not about the code. Passed to every rule rather than special-casing one, so
  * adding the next rule that needs it changes nothing here.
  */
-type Rule = (sourceFile: SourceFile, shape: ComponentShape) => SecurityRuleDiagnostic[]
+type Rule = (
+  sourceFile: SourceFile,
+  shape: ComponentShape,
+  fetchOrigins: readonly string[]
+) => SecurityRuleDiagnostic[]
 
 /** Read the author's body, where an import is still an import. */
 const BODY_RULES: Rule[] = [noModuleImport, noDynamicImports]
@@ -70,15 +74,21 @@ const parse = (source: string, name: string): SourceFile =>
   new Project({ useInMemoryFileSystem: true }).createSourceFile(name, source)
 
 const runAll = (
-  rules: Rule[], sourceFile: SourceFile, shape: ComponentShape
-): SecurityRuleDiagnostic[] => rules.flatMap(rule => rule(sourceFile, shape))
+  rules: Rule[],
+  sourceFile: SourceFile,
+  shape: ComponentShape,
+  fetchOrigins: readonly string[]
+): SecurityRuleDiagnostic[] => rules.flatMap(rule => rule(sourceFile, shape, fetchOrigins))
 
 /** Diagnostics already in the author's coordinates. */
-const scanBody = (body: string, shape: ComponentShape): SecurityRuleDiagnostic[] =>
-  runAll(BODY_RULES, parse(body, 'body.ts'), shape)
+const scanBody = (
+  body: string, shape: ComponentShape, fetchOrigins: readonly string[] = []
+): SecurityRuleDiagnostic[] => runAll(BODY_RULES, parse(body, 'body.ts'), shape, fetchOrigins)
 
 /** Diagnostics in assembled coordinates, which the caller maps back. */
-const scanAssembled = (source: string, shape: ComponentShape): SecurityRuleDiagnostic[] =>
-  runAll(ASSEMBLED_RULES, parse(source, 'component.ts'), shape)
+const scanAssembled = (
+  source: string, shape: ComponentShape, fetchOrigins: readonly string[] = []
+): SecurityRuleDiagnostic[] =>
+  runAll(ASSEMBLED_RULES, parse(source, 'component.ts'), shape, fetchOrigins)
 
 export { scanBody, scanAssembled }

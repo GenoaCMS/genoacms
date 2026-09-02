@@ -106,10 +106,11 @@ const compileComponentBody = async (
 const analyzeComponentBody = async (
   language: string,
   body: string,
-  shape: ComponentShape
+  shape: ComponentShape,
+  fetchOrigins: readonly string[]
 ): Promise<Diagnostic[]> => {
   const adapter = await getLanguageAdapter(language)
-  const { diagnostics } = await adapter.analyze({ body, shape })
+  const { diagnostics } = await adapter.analyze({ body, shape, fetchOrigins })
   raiseFatal(diagnostics)
   return diagnostics.filter(one => one.severity === 'warning')
 }

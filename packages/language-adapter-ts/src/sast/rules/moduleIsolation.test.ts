@@ -42,19 +42,72 @@ describeRule('SAST-06', {
   ]
 })
 
+const ALLOWED = ['https://api.example.com'] as const
+
 describeRule('SAST-05', {
   rejects: [
     'return fetch("https://example.com")',
     'const send = fetch; return send("https://example.com")',
     'const request = new XMLHttpRequest(); return heading',
-    'const socket = new WebSocket("wss://example.com"); return heading'
+    'const socket = new WebSocket("wss://example.com"); return heading',
+    /*
+     * The half of the allowlist that is decidable where the author is standing. A URL written down
+     * is one the ruleset can compare now; refusing it at commit is worth more than the same refusal
+     * arriving when somebody loads the page.
+     */
+    { body: 'return bridge.fetch("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'return bridge.fetch(`https://elsewhere.test/x`)', fetchOrigins: ALLOWED },
+    // A prefix of an allowed origin is a different origin.
+    { body: 'return bridge.fetch("https://api.example.com.evil.test/x")', fetchOrigins: ALLOWED },
+    /*
+     * Aliased first, in each of the ways a name can be passed along. Refused at commit rather than
+     * left to the runtime check, because the point of deciding it here is that the author finds out
+     * where they wrote it instead of when a page fails in production.
+     */
+    { body: 'const b = bridge; return b.fetch("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'const b = bridge; const c = b; return c.fetch("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'const f = bridge.fetch; return f("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'const { fetch } = bridge; return fetch("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'const { fetch: go } = bridge; return go("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    { body: 'return bridge["fetch"]("https://elsewhere.test/x")', fetchOrigins: ALLOWED },
+    // Relative: it would resolve against whatever page the component is rendered on.
+    { body: 'return bridge.fetch("/orders")', fetchOrigins: ALLOWED },
+    // An instance that has allowed nothing allows nothing, which is the shipped default.
+    { body: 'return bridge.fetch("https://api.example.com/x")', fetchOrigins: [] }
   ],
   accepts: [
     'return heading',
-    // The sanctioned route, once the data bridge exists.
+    // What the consuming application chose to grant, which this rule says nothing about.
     'return passthrough.client.load("/products")',
     // A method that shares the name on an object the component was given.
-    'const api = { fetch: (path) => path }; return api.fetch("/x")'
+    'const api = { fetch: (path) => path }; return api.fetch("/x")',
+    // The sanctioned route, pointed where the instance allows.
+    { body: 'return bridge.fetch("https://api.example.com/orders")', fetchOrigins: ALLOWED },
+    { body: 'return bridge.fetch("https://api.example.com/a?b=1#c")', fetchOrigins: ALLOWED },
+    /*
+     * Assembled at run time, so nothing here can decide it. Silent on purpose: the bridge refuses it
+     * when the call is made, and a rule that guessed would refuse correct components for a value
+     * nobody can know yet.
+     */
+    { body: 'return bridge.fetch("https://" + heading + "/x")', fetchOrigins: ALLOWED },
+    /*
+     * An author's own object of that name, in a scope where it can exist — `const bridge` beside the
+     * parameter is a syntax error, so shadowing means a nested function. It is theirs, it reaches
+     * nothing, and the rule resolves the name rather than matching it.
+     */
+    {
+      body: 'function own () { const bridge = { fetch: (u: string) => u }; return bridge.fetch("https://elsewhere.test/x") }\nreturn own()',
+      fetchOrigins: ALLOWED
+    },
+    // Aliased, and allowed: following the alias has to reach the accepting answer too, or the rule
+    // would be refusing every aliased call rather than checking the origin behind it.
+    { body: 'const b = bridge; return b.fetch("https://api.example.com/x")', fetchOrigins: ALLOWED },
+    /*
+     * Some other object's `fetch`, on a name nothing declares. It is not the bridge, so the origin
+     * rule has nothing to say about it — and the name resolves to nothing at run time either, so the
+     * component fails on its own. Treating every undeclared name as the bridge would refuse this.
+     */
+    { body: 'return whatever.fetch("https://elsewhere.test/x")', fetchOrigins: ALLOWED }
   ]
 })
 

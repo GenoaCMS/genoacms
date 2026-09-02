@@ -409,6 +409,15 @@ describe('what the ruleset does to a publication', () => {
     await expect(publishComponent(order, 'user-1')).rejects.toMatchObject({ code: 'SAST-01' })
   })
 
+  it('refuses a bridge call to an origin this instance does not allow', async () => {
+    // The instance under test allows none, which is the shipped default. A URL written down is one
+    // the ruleset can compare at publish time, so the author is refused where they are standing
+    // rather than when somebody loads the page.
+    withBody('return bridge.fetch("https://elsewhere.test/orders")')
+
+    await expect(publishComponent(order, 'user-1')).rejects.toMatchObject({ code: 'SAST-05' })
+  })
+
   it('says where, so the refusal is something the author can act on', async () => {
     withBody('const safe = 1\nreturn eval("2")')
 

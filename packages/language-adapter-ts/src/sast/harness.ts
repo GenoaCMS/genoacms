@@ -40,6 +40,8 @@ interface Fragment {
   body: string
   /** Defaults to a single string attribute, which is enough for most rules. */
   shape?: ComponentShape
+  /** The origins the instance allows. Empty unless a case is about the allowlist. */
+  fetchOrigins?: readonly string[]
 }
 
 /** Cases for one rule. Both directions are required — see the note above. */
@@ -89,8 +91,12 @@ const isSecurityDiagnostic = (diagnostic: Diagnostic): diagnostic is SecurityRul
 const harnessFor = (analyze: Analyze) => {
   /** Every diagnostic a fragment produces, of both kinds. */
   const diagnosticsIn = async (fragment: string | Fragment): Promise<Diagnostic[]> => {
-    const { body, shape } = asFragment(fragment)
-    const result = await analyze({ body, shape: shape ?? defaultShape() })
+    const { body, shape, fetchOrigins } = asFragment(fragment)
+    const result = await analyze({
+      body,
+      shape: shape ?? defaultShape(),
+      fetchOrigins: fetchOrigins ?? []
+    })
     return result.diagnostics
   }
 
