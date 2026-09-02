@@ -4,9 +4,9 @@ import { createAuthContext } from './context'
 import { WILDCARD, type Grant } from './grants'
 
 /**
- * Field-level masking (§4.2.2.2).
+ * Field-level masking.
  *
- * The two properties §4.4.6 names as evidence are asserted here directly: a field added to the
+ * The two properties the evaluation names as evidence are asserted here directly: a field added to the
  * schema later is denied by default, and a principal who cannot write a field cannot erase it by
  * leaving it out. Both are the kind of rule that looks obviously true and is easy to implement
  * backwards, so each is stated as its own case rather than inferred from the others.
@@ -91,7 +91,7 @@ describe('projecting a document on read', () => {
   })
 
   it('denies a field added to the schema later', () => {
-    // §4.4.6's new-field default deny. The grant names the fields that existed when it was written;
+    // Default deny for a new field. The grant names the fields that existed when it was written;
     // a field added afterwards is not among them and must not appear.
     const withNewField = { ...stored, margin: 8 }
     expect(projectDocument(withNewField, ['name', 'price'])).not.toHaveProperty('margin')
@@ -110,8 +110,8 @@ describe('merging a document on write', () => {
   })
 
   it('keeps a field the principal may not write', () => {
-    // §4.4.6's write-merge integrity. A submission without `wholesale_price` is the absence of
-    // permission to see it, not an instruction to clear it.
+    // Write-merge integrity. A submission without `wholesale_price` is the absence of permission
+    // to see it, not an instruction to clear it.
     const merged = mergeDocument(stored, { name: 'Stool' }, ['name'])
 
     expect(merged).toEqual({ name: 'Stool', price: 40, wholesale_price: 12 })

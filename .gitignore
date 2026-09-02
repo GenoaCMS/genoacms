@@ -27,3 +27,16 @@ authCredentials.js
 # Playwright artifacts
 test-results/
 playwright-report/
+
+# Assembled Firebase deploy payload for the consumer demos. Everything here is written by
+# `packages/demo-deploy/build.sh` from sources that are tracked, so none of it is worth a diff.
+# `functions/.env` is covered by the secrets rule above; it holds only GENOACMS_BUCKET.
+packages/demo-deploy/public/
+packages/demo-deploy/functions/svelte/
+packages/demo-deploy/functions/artifacts.js
+packages/demo-deploy/functions/bucket.js
+packages/demo-deploy/functions/package-lock.json
+
+# Firebase's own upload cache: one entry per Hosting site, holding path, mtime and hash so a
+# redeploy can skip unchanged files. Rewritten by every `firebase deploy`.
+.firebase/

@@ -1,7 +1,7 @@
 import type { SchemaObject } from '$lib/script/schema'
 import type { Diff } from 'deep-diff'
-import type { AttributeReference, AttributeType, ComponentEntryReference } from '$lib/script/components/componentEntry/component/types'
-import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentEntry/attribute/types'
+import type { AttributeReference, AttributeType, ComponentHeaderReference } from '$lib/script/components/componentHeader/component/types'
+import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentHeader/attribute/types'
 
 type IsSerializable = true
 
@@ -19,13 +19,20 @@ type ComponentNodeData<isSerializable extends boolean = false> =
   Record<AttributeReference, AttributeData<AttributeType, isSerializable>>
 interface NonSerializedComponentNode {
   uid: ComponentNodeReference,
-  entryReference: ComponentEntryReference,
+  /**
+   * Which component this node is.
+   *
+   * Still named `entryReference` while its type is `ComponentHeaderReference`, and deliberately so:
+   * this key is **written into stored page contents**, so renaming it is a migration of every saved
+   * page rather than part of a rename. It moves when the storage it lives in does.
+   */
+  entryReference: ComponentHeaderReference,
   name: string,
   data: ComponentNodeData
 }
 interface SerializedComponentNode {
   uid: ComponentNodeReference,
-  entryReference: ComponentEntryReference,
+  entryReference: ComponentHeaderReference,
   data: ComponentNodeData<IsSerializable>
 }
 type ComponentNode<isSerializable extends boolean = false> = isSerializable extends true ? SerializedComponentNode : NonSerializedComponentNode

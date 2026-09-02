@@ -2,7 +2,7 @@ import {
   permissions,
   getPermissionDomain,
   getPermissionScope
-} from '@genoacms/cloudabstraction/authorization'
+} from '@genoacms/internal/authorization'
 
 /**
  * The pure parts of composing a declaration: what to offer, and how to print it.

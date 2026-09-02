@@ -1,64 +1,64 @@
-import { SvelteSet } from 'svelte/reactivity'
+import { Selection } from '$lib/script/selection/Selection.svelte'
+
+/**
+ * The collection browser's selection, over document references.
+ *
+ * A document reference is an array of path segments, so its JSON is its identity — the key this
+ * selection has always used, now supplied by the shared `Selection` rather than restated.
+ *
+ * Nothing is added beyond the cap: unlike storage there is no second kind of thing to exclude, which
+ * is why this is a facade rather than a subclass with behavior of its own.
+ */
+
+type DocumentReference = string | number | Array<string | number>
 
 interface SelectionParameters {
   maxItems: number
 }
 
-class Selection <T extends string | number> {
-  #selectionSet: Set<string> = new SvelteSet()
-  #parameters: SelectionParameters = $state({
-    maxItems: 0
-  })
+class DocumentSelection {
+  #selection = new Selection<DocumentReference>()
 
-  setParameters (parameters: SelectionParameters) {
-    this.#parameters = {
-      ...this.#parameters,
-      ...parameters
-    }
+  setParameters (parameters: Partial<SelectionParameters>): void {
+    if (parameters.maxItems !== undefined) this.#selection.setMaxItems(parameters.maxItems)
   }
 
-  get value (): Array<T> {
-    const referenceStrings = Array.from(this.#selectionSet.values())
-    return referenceStrings.map(item => JSON.parse(item))
+  get value (): DocumentReference[] {
+    return this.#selection.value
   }
 
   get isEmpty (): boolean {
-    return this.#selectionSet.size === 0
+    return this.#selection.isEmpty
   }
 
-  get canSelect () {
-    if (!this.#parameters.maxItems) return true
-    return this.#selectionSet.size < this.#parameters.maxItems
+  /** Whether there is room for another, which is the only limit a document list has. */
+  get canSelectMore (): boolean {
+    return this.#selection.canSelectMore
   }
 
-  select (reference: T) {
-    const referenceString = JSON.stringify(reference)
-    if (this.#selectionSet.has(referenceString)) {
-      this.#selectionSet.delete(referenceString)
-      return
-    }
-    if (!this.canSelect) return
-    this.#selectionSet.add(referenceString)
+  /** Selects, or deselects when already selected. */
+  toggle (reference: DocumentReference): void {
+    this.#selection.toggle(reference)
   }
 
-  isSelected (reference: T) {
-    const referenceString = JSON.stringify(reference)
-    return this.#selectionSet.has(referenceString)
+  /** Adds every reference given, keeping what is already selected. */
+  selectAll (references: DocumentReference[]): void {
+    this.#selection.selectAll(references)
   }
 
-  clear () {
-    this.#selectionSet.clear()
+  isSelected (reference: DocumentReference): boolean {
+    return this.#selection.isSelected(reference)
   }
 
-  load (selection: Array<T> | undefined) {
-    if (!selection) return
-    for (const reference of selection) {
-      const referenceString = JSON.stringify(reference)
-      this.#selectionSet.add(referenceString)
-    }
+  clear (): void {
+    this.#selection.clear()
+  }
+
+  load (references: DocumentReference[] | undefined): void {
+    this.#selection.load(references)
   }
 }
 
-export type { SelectionParameters }
-const selection = new Selection()
+export type { SelectionParameters, DocumentReference }
+const selection = new DocumentSelection()
 export default selection

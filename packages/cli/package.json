@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "@genoacms/cloudabstraction": "workspace:^"
+    "@genoacms/cloudabstraction": "workspace:^",
+    "@genoacms/internal": "workspace:^"
   }
 }

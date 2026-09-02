@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { permissionOptions, render } from '../src/declaration.js'
-import { permissions, isPermission } from '@genoacms/cloudabstraction/authorization'
+import { permissions, isPermission } from '@genoacms/internal/authorization'
 
 /**
  * The pure half of `genoacms roles`.

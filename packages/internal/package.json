@@ -1,0 +1,61 @@
+{
+  "name": "@genoacms/internal",
+  "version": "0.2.0",
+  "description": "Contracts and vocabulary shared across the GenoaCMS packages, which are neither the CMS application nor a cloud abstraction",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/internal"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GenoaCMS/genoacms/issues"
+  },
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/internal#readme",
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    },
+    "./authorization": {
+      "import": "./src/authorization/permissions.js",
+      "types": "./src/authorization/permissions.d.ts"
+    },
+    "./attributes": {
+      "import": "./src/components/attributes.js",
+      "types": "./src/components/attributes.d.ts"
+    },
+    "./executable": {
+      "import": "./src/components/executable.js",
+      "types": "./src/components/executable.d.ts"
+    },
+    "./languageAdapter": {
+      "import": "./src/components/languageAdapter.js",
+      "types": "./src/components/languageAdapter.d.ts"
+    },
+    "./sast": {
+      "import": "./src/components/sast.js",
+      "types": "./src/components/sast.d.ts"
+    },
+    "./guards": {
+      "import": "./src/components/guards.js",
+      "types": "./src/components/guards.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  }
+}

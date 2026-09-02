@@ -1,12 +1,19 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
-  import type { ComponentEntry } from '$lib/script/components/componentEntry/component/types'
+  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { applyAction, enhance } from '$app/forms'
   import { Button, Input, Label, Modal, Select, } from '$lib/components/ui/index'
+  import NothingToCompose from '$lib/components/components/NothingToCompose.svelte'
 
   interface Props {
-    components: Array<ComponentEntry>
+    /**
+     * The components a page may be rooted in: **published ones only**.
+     *
+     * Empty is an ordinary state rather than a fault, and it is stated instead of shown as a blank
+     * select — an author cannot tell a select with no options from one that failed to load.
+     */
+    components: Array<ComponentHeader>
   }
   const { components }: Props = $props()
   let isModalOpen = $state(false)
@@ -34,21 +41,25 @@
 </button>
 
 <Modal title="Create a new page" bind:open={isModalOpen}>
-    <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-full space-y-3">
-        <Label>
-            Name:
-            <Input type="text" name="name" class="w-full" required/>
-        </Label>
-        <Label>
-            Component:
-            <Select name="componentUID" class="w-full">
-                {#each components as component (component.uid)}
-                    <option value={component.uid}>{component.name}</option>
-                {/each}
-            </Select>
-        </Label>
-        <Button preset="filled" class="w-full mt-4" type="submit">
-            Create
-        </Button>
-    </form>
+    {#if components.length === 0}
+        <NothingToCompose />
+    {:else}
+        <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-full space-y-3">
+            <Label>
+                Name:
+                <Input type="text" name="name" class="w-full" required/>
+            </Label>
+            <Label>
+                Component:
+                <Select name="componentUID" class="w-full">
+                    {#each components as component (component.uid)}
+                        <option value={component.uid}>{component.name}</option>
+                    {/each}
+                </Select>
+            </Label>
+            <Button preset="filled" class="w-full mt-4" type="submit">
+                Create
+            </Button>
+        </form>
+    {/if}
 </Modal>

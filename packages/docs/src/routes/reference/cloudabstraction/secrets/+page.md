@@ -41,7 +41,7 @@ absent, so deletion is idempotent.
 
 The contract is deliberately a flat key-value store. It maps 1:1 onto every major secret manager,
 and it does not expose versioning even where a provider has it — building on a provider-specific
-behaviour would defeat the abstraction.
+behavior would defeat the abstraction.
 
 | Platform | `getSecret` | `setSecret` | `deleteSecret` |
 | :--- | :--- | :--- | :--- |
@@ -78,7 +78,7 @@ type SecretProvider<Extension extends object = object> = Extension & {
 :::caution[Exactly one provider]
 Unlike storage and database, only one secret store may be configured. A secret store is a single
 authority: with two, `setSecret` has no defensible answer to *"written where?"*, and a key present
-in one but not the other would make behaviour depend on lookup order.
+in one but not the other would make behavior depend on lookup order.
 :::
 
 ## Key names
@@ -91,7 +91,7 @@ intersection is what makes a key that works against the `.env` emulator in devel
 against a cloud secret manager in production.
 
 The rule is exported from `@genoacms/cloudabstraction/secrets` so every adapter enforces the same
-one, and an invalid key throws rather than being normalised — folding `a-b` and `a_b` onto a single
+one, and an invalid key throws rather than being normalized — folding `a-b` and `a_b` onto a single
 name would silently merge two distinct secrets.
 
 ## Available adapters

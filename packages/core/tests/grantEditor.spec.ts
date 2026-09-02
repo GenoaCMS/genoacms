@@ -56,7 +56,7 @@ const composedGrants = async (dialog: Locator): Promise<unknown[]> =>
  * Chooses a permission from the open category, by the permission itself.
  *
  * Addressed by `data-value` rather than by label: labels are trimmed of the segments their group
- * shares, so `pages:read` and `components:prebuilt:read` both read as "read" in the content
+ * shares, so `pages:read` and `components:read` both read as "read" in the content
  * category. The permission string is what the grant will actually carry.
  *
  * The list is portalled out of the dialog rather than nested in it, so it is addressed by its own

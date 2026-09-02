@@ -27,10 +27,6 @@
       "import": "./src/index.js",
       "types": "./src/index.d.ts"
     },
-    "./authorization": {
-      "import": "./src/authorization/permissions.js",
-      "types": "./src/authorization/permissions.d.ts"
-    },
     "./authentication": {
       "import": "./src/services/authentication/index.js",
       "types": "./src/services/authentication/index.d.ts"
@@ -72,6 +68,9 @@
     "eslint-plugin-n": "^16.2.0",
     "eslint-plugin-promise": "^6.1.1",
     "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "@genoacms/internal": "workspace:^"
   },
   "peerDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",

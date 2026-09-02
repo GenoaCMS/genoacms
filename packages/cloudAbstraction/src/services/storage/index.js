@@ -1,5 +1,5 @@
 /**
- * Shared storage-service behaviour that is not adapter-specific.
+ * Shared storage-service behavior that is not adapter-specific.
  *
  * Object storage offers no cross-object atomicity, so GenoaCMS does not pretend to transactions.
  * What every platform does provide is a **conditional write** on a single object, and that is
@@ -29,7 +29,7 @@ class PreconditionFailedError extends Error {
 }
 
 /**
- * Matches on the name rather than with `instanceof`, so a caller still recognises the error when
+ * Matches on the name rather than with `instanceof`, so a caller still recognizes the error when
  * an adapter has resolved its own copy of this module.
  *
  * @param {unknown} error

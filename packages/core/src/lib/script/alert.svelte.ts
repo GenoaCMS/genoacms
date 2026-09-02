@@ -36,6 +36,16 @@ function toastError (message: string) {
   toaster.error({ title: message })
 }
 
+/**
+ * Neither a success nor a failure: something happened that the reader has to decide about.
+ *
+ * Reported as a warning rather than an error because the action succeeded — showing it in red would
+ * tell an author their publication failed when it did not.
+ */
+function toastWarning (message: string) {
+  toaster.warning({ title: message })
+}
+
 function confirmationModal (message: string): Promise<{ isConfirmed: boolean }> {
   return new Promise((resolve) => {
     confirmAlertState.isOpen = true
@@ -48,5 +58,6 @@ export {
   alertPending,
   toastSuccess,
   toastError,
+  toastWarning,
   confirmationModal
 }

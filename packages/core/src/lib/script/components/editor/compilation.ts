@@ -1,0 +1,145 @@
+import type {
+  ComponentShape,
+  CompilationResult,
+  ExecutablePlatform,
+  SignaturePreview
+} from '@genoacms/internal/languageAdapter'
+import type { GuardCeilings } from '@genoacms/internal/guards'
+import { budgetsFrom } from '@genoacms/internal/guards'
+import { getLanguageAdapter } from '$lib/script/components/language.server'
+import { ComponentCodeError } from './errors'
+import { raiseFatal } from './diagnostics'
+import type { Diagnostic } from '@genoacms/internal/languageAdapter'
+
+/**
+ * Compiling a component into the bundle a consumer runs.
+ *
+ * The adapter is given the author's **body** and the component's shape, and wraps the one in the
+ * other itself. Nothing here assembles anything: the entry function's syntax, the type each
+ * attribute becomes, and how many lines the wrapper occupies are all facts about the target
+ * language, and a CMS that knew them would be a TypeScript compiler with a CMS attached.
+ *
+ * The adapter is resolved from the language the component records, and a fatal diagnostic becomes
+ * the refusal the publish path acts on.
+ *
+ * **The ceilings arrive as an argument, like everything else.** They come from the signed security
+ * policy, and reading that here would make compiling depend on storage — the thing that keeps an
+ * artifact a function of its inputs. The publish path resolves them, which is also where they are
+ * about to be signed.
+ */
+
+/**
+ * The platform to build for.
+ *
+ * Taken from the adapter rather than named here, because which targets exist is a property of the
+ * language: a compiler emitting bytecode has nothing to say about `web-esmodule`. An adapter that
+ * declares none is misconfigured, and saying so is better than emitting an artifact labeled with a
+ * platform nothing asked for.
+ */
+const soleTargetOf = (
+  language: string,
+  platforms: readonly ExecutablePlatform[]
+): ExecutablePlatform => {
+  const [platform] = platforms
+  if (platform === undefined) {
+    throw new ComponentCodeError(
+      'no-platform',
+      `The adapter for '${language}' declares no platform to compile for`
+    )
+  }
+  return platform
+}
+
+/**
+ * Compiles the source, or refuses the commit.
+ *
+ * A result with no code and no fatal diagnostic would be a silent failure — the pipeline would sign
+ * `undefined` and publish an artifact with nothing in it — so the absence is treated as fatal in its
+ * own right rather than trusted to have been explained.
+ */
+const compiledCode = (language: string, result: CompilationResult): string => {
+  raiseFatal(result.diagnostics)
+  if (result.executableCode === undefined) {
+    throw new ComponentCodeError(
+      'compilation-produced-nothing',
+      `The adapter for '${language}' returned no code and gave no reason`
+    )
+  }
+  return result.executableCode
+}
+
+interface CompiledComponent {
+  platform: ExecutablePlatform
+  executableCode: string
+  /** What the bundle was built against, handed back so the publication records what it compiled in. */
+  ceilings: GuardCeilings
+}
+
+const compileComponentBody = async (
+  language: string,
+  body: string,
+  shape: ComponentShape,
+  ceilings: GuardCeilings,
+  fetchOrigins: readonly string[]
+): Promise<CompiledComponent> => {
+  const adapter = await getLanguageAdapter(language)
+  const platform = soleTargetOf(language, adapter.platforms)
+  // The one place a ceiling becomes a budget. Returned alongside the code so that what is recorded
+  // in the publication is the same object that was compiled into it.
+  const result = await adapter.compileBundle({
+    body, shape, platform, ceilings: budgetsFrom(ceilings), fetchOrigins
+  })
+  return { platform, executableCode: compiledCode(language, result), ceilings }
+}
+
+/**
+ * Checks a body against the language's safety rules before anything is built from it.
+ *
+ * Separate from compiling because the two answer different questions: a component that compiles
+ * perfectly well is exactly the kind that needs checking.
+ *
+ * **Returns the warnings rather than dropping them.** A warning is the ruleset saying it found
+ * something it cannot decide — an allocation sized at run time, a bound coming from the consuming
+ * application — and which runtime guard will carry it. Discarding them would publish a component
+ * whose author was never told which line a guard is watching.
+ */
+const analyzeComponentBody = async (
+  language: string,
+  body: string,
+  shape: ComponentShape,
+  fetchOrigins: readonly string[]
+): Promise<Diagnostic[]> => {
+  const adapter = await getLanguageAdapter(language)
+  const { diagnostics } = await adapter.analyze({ body, shape, fetchOrigins })
+  raiseFatal(diagnostics)
+  return diagnostics.filter(one => one.severity === 'warning')
+}
+
+/**
+ * The signature the editor shows above a body.
+ *
+ * Asked of the adapter rather than composed here, for the same reason assembly is: a preview the CMS
+ * wrote would be a second emitter, free to drift from the one that compiles — and an author writing
+ * against a signature that is not the real one is the exact failure emitting it exists to prevent.
+ *
+ * A shape that cannot be emitted returns its diagnostics rather than raising. There is nothing to
+ * refuse yet — the author has not asked to publish — and the editor's job here is to explain why no
+ * signature is on screen, not to stop them opening the page.
+ */
+const signatureFor = async (
+  language: string,
+  shape: ComponentShape
+): Promise<SignaturePreview> => {
+  const adapter = await getLanguageAdapter(language)
+  return await adapter.emitSignature(shape)
+}
+
+export {
+  analyzeComponentBody,
+  compileComponentBody,
+  signatureFor
+}
+
+export type {
+  CompiledComponent
+}

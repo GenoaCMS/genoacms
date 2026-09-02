@@ -1,7 +1,12 @@
 <script lang="ts">
     import CardLink from '$lib/components/CardLink.svelte'
 
-    export let name: string
+    interface Props {
+      name: string
+    }
+    const { name }: Props = $props()
 </script>
 
-<CardLink href="pages/{name}" icon="window" text={name} />
+<!-- `noscale`: SelectableCard scales the card and its checkbox together, so scaling here too would
+     leave the checkbox behind. -->
+<CardLink href="pages/{name}" icon="window" text={name} noscale />

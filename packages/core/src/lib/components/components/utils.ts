@@ -1,4 +1,4 @@
-import type { AttributeType } from '$lib/script/components/componentEntry/component/types'
+import type { AttributeType } from '$lib/script/components/componentHeader/component/types'
 
 interface AttributeTypeIcon {
   icon: string,

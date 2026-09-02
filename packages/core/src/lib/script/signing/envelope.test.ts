@@ -185,7 +185,7 @@ describe('base64', () => {
   })
 
   it.each(['not base64!!', 'AQ', 'AQ=', '===', ' AQ==', 'AQ== ', 'AQ==\n'])('rejects %j rather than decoding it loosely', (value) => {
-    // Buffer.from ignores what it does not recognise, so a truncated signature would otherwise
+    // Buffer.from ignores what it does not recognize, so a truncated signature would otherwise
     // decode to some bytes and fail verification for the wrong reason.
     expect(fromBase64(value)).toBeUndefined()
   })
@@ -196,7 +196,7 @@ describe('base64', () => {
 })
 
 describe('document types', () => {
-  it('recognises the three documents that are signed', () => {
+  it('recognizes the three documents that are signed', () => {
     expect(isDocumentType('genoacms.roles.v1')).toBe(true)
     expect(isDocumentType('genoacms.users.v1')).toBe(true)
     expect(isDocumentType('genoacms.keyRegistry.v1')).toBe(true)

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { MarkdownAttributeType } from '$lib/script/components/componentEntry/component/types'
+  import type { MarkdownAttributeType } from '$lib/script/components/componentHeader/component/types'
   import { Button, Card, Modal } from '$lib/components/ui/index'
   import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
   import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'

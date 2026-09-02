@@ -3,7 +3,8 @@ import type { DatabaseInit, DatabaseProvider } from '../services/database/index.
 import type { BucketInit, StorageProvider } from '../services/storage/index.d'
 import type { DeploymentProvider } from '../services/deployment/index.js'
 import type { SecretProvider } from '../services/secrets/index.d'
-import type { Permission } from '../authorization/permissions.d'
+import type { Permission } from '@genoacms/internal/authorization'
+import type { LanguageProvider } from '@genoacms/internal/languageAdapter'
 
 type Config<Extension extends object = object> = Extension & {
   authentication: {
@@ -83,11 +84,40 @@ type Config<Extension extends object = object> = Extension & {
     /**
      * How long resolved grants are cached per subject, in seconds.
      *
-     * The window during which a revoked permission is still honoured.
+     * The window during which a revoked permission is still honored.
      */
     grantCacheSeconds?: number
     /** Refresh token lifetime in days. */
     refreshTokenDays?: number
+    /**
+     * Loop iterations and recursive branches a dynamic component may spend in one render.
+     *
+     * A ceiling rather than a budget: it is compiled into each artifact and covered by its
+     * signature, and a consumer may run below it but never above it.
+     */
+    maxFuel?: number
+    /** How deep a dynamic component's recursive calls may nest. */
+    maxDepth?: number
+    /** Cumulative elements and bytes a dynamic component may ask for across one render. */
+    maxAllocation?: number
+    /**
+     * The origins a dynamic component's data bridge may reach.
+     *
+     * Each an origin and nothing more — scheme, host and optional port. Empty by default, which
+     * permits nothing: a bridge reaching everywhere until somebody narrowed it would be
+     * indistinguishable from no bridge at all for as long as nobody noticed.
+     */
+    fetchOrigins?: string[]
+  }
+  /**
+   * The languages components may be authored in.
+   *
+   * Each provider supplies a parser, an analyzer and a compiler for one language. Unlike storage or
+   * database, this is not a cloud service and nothing here is platform-specific; it is listed with
+   * the other adapters because it is registered the same way.
+   */
+  languages: {
+    providers: LanguageProvider[]
   }
   storage: {
     defaultBucket: string
@@ -102,6 +132,7 @@ type Provider = AuthenticationProvider
 | DatabaseProvider
 | StorageProvider
 | DeploymentProvider
+| LanguageProvider
 
 export type {
   Config,

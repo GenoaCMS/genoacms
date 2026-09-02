@@ -49,7 +49,7 @@ import {
  * SuperAdmin — leaving the Tier-1 seed administrator as the only way to create one.
  *
  * The honest statement is therefore that `config:roles:manage` **is** SuperAdmin by another route,
- * and it should be granted as sparingly as `components:dynamic:commit`. A guard that looked like
+ * and it should be granted as sparingly as `components:code`. A guard that looked like
  * containment but was not would be worse than the documented truth.
  */
 
@@ -120,22 +120,22 @@ const listUserRolesAndAccounts = async (
  * The buckets and collections a resource-scoped grant can name.
  *
  * Names only — no endpoint, no credential, no content. A grant over a bucket is not a decision until
- * the bucket is named (§4.2.2), and an administrator composing one previously had to type the name
+ * the bucket is named, and an administrator composing one previously had to type the name
  * with nothing checking it, so a typo produced a grant that silently never matched.
  *
  * ## Why `config:roles:manage` and not a storage or database permission
  *
  * This is a **disclosure decision**, and it is the widest of the three considered. A role
- * administrator commonly holds no storage or database grant at all, so filtering the catalogue by the
+ * administrator commonly holds no storage or database grant at all, so filtering the catalog by the
  * caller's own access — as the storage and database services do for their own navigation — would show
  * them an empty picker and force them back to typing.
  *
  * What makes the wider rule defensible is stated plainly above: `config:roles:manage` **is**
  * SuperAdmin by another route. A holder can grant themselves every permission over every resource and
- * read the catalogue that way in one step, so withholding the names conceals nothing from them. It
+ * read the catalog that way in one step, so withholding the names conceals nothing from them. It
  * conceals the names only from principals who cannot obtain them anyway.
  *
- * A dedicated `config:resources:list` permission was rejected on the same grounds §4.2.2 rejects
+ * A dedicated `config:resources:list` permission was rejected on the same grounds as
  * `storage:bucket:list`: it would decide nothing that `config:roles:manage` does not already decide.
  *
  * The bucket list is Tier-1 configuration and therefore complete. The collection list is read once at
@@ -159,7 +159,7 @@ const listGrantableResources = async (ctx: AuthContext): Promise<GrantableResour
  * One collection and the fields it declares.
  *
  * A definition that cannot be read yields a collection with no fields rather than propagating the
- * failure: the collection is known to exist — it is in the catalogue — and taking the whole
+ * failure: the collection is known to exist — it is in the catalog — and taking the whole
  * administration screen down over one unreadable definition would be a worse answer than offering
  * the collection with nothing to refine it by.
  */

@@ -1,18 +1,18 @@
 import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
 import {
   defaultBucketId,
+  deleteInternalObject,
   fullyQualifiedNameToFilename,
   getInternalObjectFlatted,
   listOrCreateDirectory,
-  uploadInternalObjectFlatted,
-  uploadInternalObjectJSON
+  uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
+import { readablePageTreePath, uploadReadablePageTree } from '$lib/script/components/page/tree/io.server'
 import { deserializeComponentNode } from './entry'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
-const pageReadableTreePath = join('.genoacms', 'pages', 'readables')
 
 const listOrCreatePageList = async () => {
   const pageStructureList = await listOrCreateDirectory({
@@ -46,15 +46,46 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
   return serializedPageEntry
 }
 
+/**
+ * Builds a page's readable tree and publishes it, signed.
+ *
+ * Building pins each dynamic node to the revision current at this moment, and the signature covers
+ * those pins — so a published page names both which components it has and which revision of each,
+ * and neither can be changed by writing to the bucket.
+ */
 const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
   const readableTree = await pageEntryToReadableTree(page)
-  console.log('readableTree', readableTree)
-  return uploadInternalObjectJSON(join(pageReadableTreePath, page.name), readableTree)
+  await uploadReadablePageTree(page.name, readableTree)
+}
+
+/**
+ * Removes a page: its entry, and the readable tree built from it.
+ *
+ * **Both, and the tree second.** The tree is what a visitor is served, so deleting the entry alone
+ * would take the page out of the CMS while leaving it published — the one outcome an administrator
+ * pressing delete cannot have meant. Doing the tree last means a failure between the two leaves a
+ * published page with no entry, which is visible and repairable, rather than an entry with no page.
+ *
+ * A page that was never built has no tree. That is an ordinary state rather than an error, so a
+ * missing tree is tolerated while a failure to delete the entry is not.
+ */
+const deletePageEntry = async (name: string) => {
+  await deleteInternalObject(join(pageEntriesPath, name))
+
+  try {
+    await deleteInternalObject(readablePageTreePath(name))
+  } catch (error) {
+    console.warn(
+      `[genoacms:pages] deleted the entry for ${name} but not its readable tree: ` +
+      `${(error as Error).message}. If the page was ever built, the built copy is still being served.`
+    )
+  }
 }
 
 export {
   listOrCreatePageList,
   uploadPageEntry,
   getPageEntry,
-  generateReadablePageTree
+  generateReadablePageTree,
+  deletePageEntry
 }

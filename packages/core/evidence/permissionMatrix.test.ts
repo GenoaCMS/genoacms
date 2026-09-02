@@ -4,7 +4,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
 import type { Grant } from '$lib/script/authorization/grants'
 
 /**
- * **E6 — the exhaustive permission matrix.**
+ * **The exhaustive permission matrix.**
  *
  * Every (role × service-layer function) pair is invoked against the **real** gated service and
  * checked against an independently declared expectation. Two properties make this evidence rather
@@ -21,9 +21,9 @@ import type { Grant } from '$lib/script/authorization/grants'
  * Only the primary (unprivileged) layers are stubbed. Nothing between the call and the check is
  * mocked, so a missing check has nowhere to hide.
  *
- * **Not covered here:** the field-level assertions E6 also calls for — new-field default deny and
+ * **Not covered here:** the field-level assertions the matrix also calls for — new-field default deny and
  * write-merge integrity — because field masking is step 17 and is not built. They are absent rather
- * than approximated, and E6 must report them as such.
+ * than approximated, and the evidence must report them as such.
  */
 
 // ---------------------------------------------------------------------------------------------
@@ -76,24 +76,70 @@ vi.mock('$lib/script/components/editor', () => ({
   createComponent: async () => 'uid-1',
   listOrCreateComponentList: async () => [],
   getComponent: async () => ({ uid: 'uid-1', name: 'hero' }),
-  getComponentDefiniton: async () => ({ uid: 'uid-1', code: '', uncommitedCode: '' }),
+  // `language` is what resolves the adapter, and the signature preview needs one. Without it the
+  // operation fails for a reason that has nothing to do with the permission under test.
+  getComponentDefiniton: async () => ({
+    uid: 'uid-1', language: 'typescript', body: '', publishedBody: '', publishedSignature: ''
+  }),
   updateComponentDefinition: async () => {},
-  commitComponentDefinition: async () => {},
   deleteComponent: async () => {}
 }))
 
-vi.mock('$lib/script/components/componentEntry/io.server', () => ({
-  listOrCreateComponentEntryList: async () => [],
-  getComponentEntry: async () => null,
-  uploadComponentEntry: async () => {},
-  deleteComponentEntry: async () => {}
+vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+  listOrCreateComponentHeaderList: async () => [],
+  // A prebuilt entry, because the prebuilt service refuses a reference that names anything else —
+  // and this file is testing the permission gate, not that refusal.
+  getComponentHeader: async () => ({
+    uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: []
+  }),
+  uploadComponentHeader: async () => {},
+  deleteComponentHeader: async () => {},
+  getComponentHeaderHistory: async () => ({ history: [], future: [] }),
+  uploadComponentHeaderHistory: async () => {}
+}))
+
+// The definition's editing history, stubbed like the other primary layers: the matrix is about
+// which principal may call what, not about what reaches the bucket.
+vi.mock('$lib/script/components/editor/editing.server', () => ({
+  saveComponentBody: async () => ({ historyLength: 1, futureLength: 0 }),
+  undoComponentBody: async () => ({ uid: 'uid-1' }),
+  redoComponentBody: async () => ({ uid: 'uid-1' }),
+  getComponentDefinitionDepth: async () => ({ historyLength: 0, futureLength: 0 })
+}))
+
+// The primary layer behind Q4's warning. Stubbed like every other, so a denial means the operation
+// never ran rather than that a scan of the bucket failed somewhere inside it.
+vi.mock('$lib/script/components/page/tree/dependents.server', () => ({
+  listPagesPinning: async () => ({ pages: [], unreadable: [] }),
+  // Permits, so the matrix measures the *permission* rather than the dependants rule. What happens
+  // when a page does depend on the component is `dependents.server.test.ts`'s.
+  requireNoPublishedDependents: async () => {}
+}))
+
+// Storage-level, mocked because deleting a component header now removes its publications too.
+vi.mock('$lib/script/components/publication/io.server', () => ({
+  deleteComponentPublications: async () => {}
+}))
+
+vi.mock('$lib/script/components/publication', () => ({
+  publishComponent: async () => ({
+    uid: 'uid-1',
+    publicationId: 'pub-1',
+    publisherId: 'subject-1',
+    publishedAt: 0,
+    note: 'n',
+    headerDigest: 'd'
+  }),
+  getPublishedComponent: async () => null,
+  listComposableComponentHeaders: async () => []
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
   listOrCreatePageList: async () => [],
   getPageEntry: async () => ({ name: 'home' }),
   uploadPageEntry: async () => {},
-  generateReadablePageTree: async () => {}
+  generateReadablePageTree: async () => {},
+  deletePageEntry: async () => {}
 }))
 
 vi.mock('$lib/script/authorization/declared.server', () => ({
@@ -103,7 +149,7 @@ vi.mock('$lib/script/authorization/declared.server', () => ({
 /**
  * A registry with one superseded key beside the current one, so revocation has something legitimate
  * to name. Revoking the *current* key would take the rotate-first path, which is the primary
- * layer's behaviour rather than an authorization question.
+ * layer's behavior rather than an authorization question.
  */
 const registryFixture = {
   sequence: 3,
@@ -124,13 +170,21 @@ vi.mock('$lib/script/signing/rootKey.server', () => ({
   getRootPublicKey: async () => ({ keyId: 'root-1', alg: 'SLH-DSA-SHA2-128s', publicKey: 'AA==' })
 }))
 
+const POLICY = {
+  subordinateKeyRotationDays: 90,
+  accessTokenMinutes: 15,
+  grantCacheSeconds: 30,
+  refreshTokenDays: 14,
+  maxFuel: 1_000_000,
+  maxDepth: 100,
+  maxAllocation: 10_000_000,
+  fetchOrigins: []
+}
+
 vi.mock('$lib/script/securityPolicy/policy.server', () => ({
-  loadSecurityPolicy: async () => ({
-    subordinateKeyRotationDays: 90,
-    accessTokenMinutes: 15,
-    grantCacheSeconds: 30,
-    refreshTokenDays: 14
-  })
+  loadSecurityPolicy: async () => POLICY,
+  readStoredPolicy: async () => ({ policy: POLICY, version: 'v1' }),
+  writePolicy: async () => undefined
 }))
 
 vi.mock('$lib/script/authorization/administration.server', () => ({
@@ -153,11 +207,13 @@ const { PermissionDeniedError } = await import('$lib/script/authorization/enforc
 
 const storage = await import('$lib/script/storage/user.server')
 const database = await import('$lib/script/database/user.server')
-const components = await import('$lib/script/components/componentEntry/user.server')
+const components = await import('$lib/script/components/componentHeader/user.server')
 const editor = await import('$lib/script/components/editor/user.server')
+const publication = await import('$lib/script/components/publication/user.server')
 const pagesService = await import('$lib/script/components/page/user.server')
 const configuration = await import('$lib/script/configuration/user.server')
 const signing = await import('$lib/script/signing/user.server')
+const securityPolicy = await import('$lib/script/securityPolicy/user.server')
 
 // ---------------------------------------------------------------------------------------------
 // The operation table: every gated service function, invoked for real.
@@ -168,7 +224,10 @@ const directoryRef = { bucket: BUCKET, name: 'folder/' }
 const collectionRef = { name: COLLECTION, schema: {} } as never
 const documentRef = { collection: { name: COLLECTION }, id: 'doc-1' } as never
 const pageEntry = { name: 'home' } as never
-const componentEntry = { uid: 'hero' } as never
+// `attributes` is present because saving a header checks that no two of them share a name before it
+// reaches storage. Empty rather than populated: this file answers which permission each operation
+// demands, and a header that failed that check would never reach the permission at all.
+const componentHeader = { uid: 'hero', attributes: {} } as never
 const accountRecord = { subject: 's-1', email: 's-1@example.com', roles: [] }
 const roleRecord = { name: 'Editor', grants: [] }
 
@@ -206,18 +265,28 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   listUserComponents: ctx => editor.listUserComponents(ctx),
   getUserComponent: ctx => editor.getUserComponent(ctx, 'uid-1'),
   getUserComponentDefinition: ctx => editor.getUserComponentDefinition(ctx, 'uid-1'),
+  getUserComponentSignature: ctx => editor.getUserComponentSignature(ctx, 'uid-1'),
   createUserComponent: ctx => editor.createUserComponent(ctx, 'hero'),
-  updateUserComponentDefinition: ctx =>
-    editor.updateUserComponentDefinition(ctx, 'uid-1', definition => definition),
-  commitUserComponentDefinition: ctx =>
-    editor.commitUserComponentDefinition(ctx, { componentId: 'uid-1', message: 'm' } as never),
+  saveUserComponentBody: ctx => editor.saveUserComponentBody(ctx, 'uid-1', 'return 1'),
+  undoUserComponentBody: ctx => editor.undoUserComponentBody(ctx, 'uid-1'),
+  redoUserComponentBody: ctx => editor.redoUserComponentBody(ctx, 'uid-1'),
+  getUserComponentDefinitionDepth: ctx => editor.getUserComponentDefinitionDepth(ctx, 'uid-1'),
+  publishUserComponent: ctx =>
+    publication.publishUserComponent(ctx, { componentId: 'uid-1', note: 'n' }),
+  getUserPublishedComponent: ctx => publication.getUserPublishedComponent(ctx, 'uid-1'),
+  listUserComposableComponents: ctx => publication.listUserComposableComponents(ctx),
   deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
-  listUserComponentEntries: ctx => components.listUserComponentEntries(ctx),
-  getUserComponentEntry: ctx => components.getUserComponentEntry(ctx, 'hero'),
-  updateUserComponentEntry: ctx => components.updateUserComponentEntry(ctx, componentEntry),
-  deleteUserComponentEntry: ctx => components.deleteUserComponentEntry(ctx, 'hero'),
+  registerUserComponentHeader: ctx => components.registerUserComponentHeader(ctx, { name: 'Hero', type: 'prebuilt' }),
+  listUserComponentHeaders: ctx => components.listUserComponentHeaders(ctx),
+  getUserComponentHeader: ctx => components.getUserComponentHeader(ctx, 'hero'),
+  updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader),
+  getUserComponentHeaderDepth: ctx => components.getUserComponentHeaderDepth(ctx, 'hero'),
+  undoUserComponentHeader: ctx => components.undoUserComponentHeader(ctx, 'hero'),
+  redoUserComponentHeader: ctx => components.redoUserComponentHeader(ctx, 'hero'),
+  deleteUserComponentHeader: ctx => components.deleteUserComponentHeader(ctx, 'hero'),
+  listUserPagesPinningComponent: ctx => components.listUserPagesPinningComponent(ctx, 'uid-1'),
 
   // pages
   listUserPages: ctx => pagesService.listUserPages(ctx),
@@ -226,6 +295,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   saveUserPageStructure: ctx => pagesService.saveUserPageStructure(ctx, pageEntry),
   revertUserPageEntry: ctx => pagesService.revertUserPageEntry(ctx, pageEntry),
   generateUserReadablePageTree: ctx => pagesService.generateUserReadablePageTree(ctx, pageEntry),
+  deleteUserPage: ctx => pagesService.deleteUserPage(ctx, 'home'),
 
   // configuration
   listUserRolesAndAccounts: ctx => configuration.listUserRolesAndAccounts(ctx),
@@ -240,7 +310,11 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   // signing keys
   listUserSigningKeys: ctx => signing.listUserSigningKeys(ctx),
   rotateUserSubordinateKey: ctx => signing.rotateUserSubordinateKey(ctx),
-  revokeUserSubordinateKey: ctx => signing.revokeUserSubordinateKey(ctx, 'key-old')
+  revokeUserSubordinateKey: ctx => signing.revokeUserSubordinateKey(ctx, 'key-old'),
+
+  // security policy
+  readUserSecurityPolicy: ctx => securityPolicy.readUserSecurityPolicy(ctx),
+  updateUserSecurityPolicy: ctx => securityPolicy.updateUserSecurityPolicy(ctx, POLICY, 'v1')
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -279,14 +353,20 @@ describe('the matrix is complete over the service surface', () => {
     database,
     components,
     editor,
+    publication,
     pages: pagesService,
     configuration,
     signing
   }
 
   it.each(Object.keys(services))('covers every export of the %s service', (name) => {
+    // Classes are excluded: a service module may export an error type, and an error is not an
+    // operation with a permission to check. Everything callable that is not a constructor is.
+    const isClass = (value: unknown): boolean =>
+      typeof value === 'function' && /^class[\s{]/.test(Function.prototype.toString.call(value))
+
     const exported = Object.keys(services[name])
-      .filter(key => typeof services[name][key] === 'function')
+      .filter(key => typeof services[name][key] === 'function' && !isClass(services[name][key]))
 
     expect(operationNames).toEqual(expect.arrayContaining(exported))
   })
@@ -322,7 +402,7 @@ describe('the permission matrix', () => {
 
 describe('default deny', () => {
   it('refuses a principal with no grants at every service function', async () => {
-    // E6's first additional assertion, stated directly rather than inferred from the matrix.
+    // The first additional assertion, stated directly rather than inferred from the matrix.
     for (const operation of operationNames) {
       expect(await isAllowed('Nobody', operation)).toBe(false)
     }
@@ -349,7 +429,7 @@ describe('default deny', () => {
 })
 
 /**
- * **Field-level masking**, the part of E6 §4.4.6 that was reported as absent until step 17 landed.
+ * **Field-level masking**, the part of this evidence that was reported as absent until it landed.
  *
  * Driven through the same gated service the matrix uses, so these are assertions about the product
  * rather than about the masking helpers, which are unit-tested separately.

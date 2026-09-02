@@ -149,7 +149,7 @@ describe('reading the assignment', () => {
   })
 })
 
-describe('the grantable resource catalogue', () => {
+describe('the grantable resource catalog', () => {
   it('is refused without config:roles:manage', async () => {
     // The disclosure decision, stated as a check rather than left to the route that calls it.
     await expect(configuration.listGrantableResources(nobody()))
@@ -160,27 +160,27 @@ describe('the grantable resource catalogue', () => {
 
   it('is not narrowed by what the administrator may themselves access', async () => {
     // A role administrator commonly holds no storage or database grant at all. Filtering the
-    // catalogue by their own access would show them an empty picker and force them back to typing a
+    // catalog by their own access would show them an empty picker and force them back to typing a
     // name nothing checks.
-    const catalogue = await configuration.listGrantableResources(roleAdmin())
+    const catalog = await configuration.listGrantableResources(roleAdmin())
 
-    expect(catalogue.buckets).toEqual(['media', 'invoices'])
-    expect(catalogue.collections.map(collection => collection.name))
+    expect(catalog.buckets).toEqual(['media', 'invoices'])
+    expect(catalog.collections.map(collection => collection.name))
       .toEqual(['articles', 'products', 'unreadable'])
   })
 
   it('carries the fields of each collection, for the field pickers', async () => {
-    const catalogue = await configuration.listGrantableResources(roleAdmin())
+    const catalog = await configuration.listGrantableResources(roleAdmin())
 
-    expect(catalogue.collections[0]).toEqual({ name: 'articles', fields: ['title', 'body'] })
+    expect(catalog.collections[0]).toEqual({ name: 'articles', fields: ['title', 'body'] })
   })
 
   it('still lists a collection whose definition cannot be read', async () => {
     // One unreadable definition must not take the administration screen down with it. The
     // collection is known to exist; there is simply nothing to refine the grant by.
-    const catalogue = await configuration.listGrantableResources(roleAdmin())
+    const catalog = await configuration.listGrantableResources(roleAdmin())
 
-    expect(catalogue.collections.at(-1)).toEqual({ name: 'unreadable', fields: [] })
+    expect(catalog.collections.at(-1)).toEqual({ name: 'unreadable', fields: [] })
   })
 })
 

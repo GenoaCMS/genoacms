@@ -53,6 +53,21 @@ const config = {
       }
     ]
   },
+  languages: {
+    // What components may be authored in. Each adapter parses, analyzes and compiles one language;
+    // a component records which one it uses, so an instance can hold several at once.
+    providers: [
+      {
+        adapterPath: '@genoacms/language-adapter-ts',
+        adapter: import('@genoacms/language-adapter-ts'),
+        // What compiled components are lowered to. Defaults to es2020, which every browser with ES
+        // module support understands. Raise it for smaller, more modern output at the cost of the
+        // browsers below it. Applies to revisions compiled from here on; published ones are never
+        // rebuilt, so they keep verifying against the target they were compiled for.
+        target: 'es2020'
+      }
+    ]
+  },
   authorization: {
     // Authority: immutable at runtime, merged when authorization is read rather than written into
     // the manifests, and deleting one revokes what it granted.
@@ -65,7 +80,12 @@ const config = {
   },
   security: {
     // Seeds the signed security policy document at first start; the live value lives there.
-    subordinateKeyRotationDays: 90
+    subordinateKeyRotationDays: 90,
+    // Runtime guard ceilings for dynamic components. Sized so that no reasonable presentational
+    // component reaches one: a guard firing on correct code teaches operators to raise it.
+    maxFuel: 1_000_000,
+    maxDepth: 100,
+    maxAllocation: 10_000_000
   },
   database: {
     defaultDatabase: 'firestore',

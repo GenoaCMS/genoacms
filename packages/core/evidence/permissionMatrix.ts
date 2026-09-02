@@ -2,7 +2,7 @@ import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
 import type { Permission } from '$lib/script/authorization/permissions'
 
 /**
- * The E6 permission matrix: the roles under test and what each is expected to be allowed.
+ * The permission matrix: the roles under test and what each is expected to be allowed.
  *
  * **Data only, and deliberately separate from the test that runs it.** The expectations are written
  * by hand from the permission taxonomy — never derived from the `requirePermission` calls they check —
@@ -52,15 +52,27 @@ const matrixOperations = [
   'listUserComponents',
   'getUserComponent',
   'getUserComponentDefinition',
+  'getUserComponentSignature',
   'createUserComponent',
-  'updateUserComponentDefinition',
-  'commitUserComponentDefinition',
+  'saveUserComponentBody',
+  'undoUserComponentBody',
+  'redoUserComponentBody',
+  'getUserComponentDefinitionDepth',
   'deleteUserComponent',
+  // publication
+  'publishUserComponent',
+  'getUserPublishedComponent',
+  'listUserComposableComponents',
   // prebuilt components
-  'listUserComponentEntries',
-  'getUserComponentEntry',
-  'updateUserComponentEntry',
-  'deleteUserComponentEntry',
+  'registerUserComponentHeader',
+  'listUserComponentHeaders',
+  'getUserComponentHeader',
+  'updateUserComponentHeader',
+  'getUserComponentHeaderDepth',
+  'undoUserComponentHeader',
+  'redoUserComponentHeader',
+  'deleteUserComponentHeader',
+  'listUserPagesPinningComponent',
   // pages
   'listUserPages',
   'getUserPageEntry',
@@ -68,6 +80,7 @@ const matrixOperations = [
   'saveUserPageStructure',
   'revertUserPageEntry',
   'generateUserReadablePageTree',
+  'deleteUserPage',
   // configuration
   'listUserRolesAndAccounts',
   'listGrantableResources',
@@ -80,7 +93,10 @@ const matrixOperations = [
   // signing keys
   'listUserSigningKeys',
   'rotateUserSubordinateKey',
-  'revokeUserSubordinateKey'
+  'revokeUserSubordinateKey',
+  // security policy
+  'readUserSecurityPolicy',
+  'updateUserSecurityPolicy'
 ] as const
 
 const bucketGrant = (permission: Permission): Grant =>
@@ -105,8 +121,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: ['getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents']
   },
   /**
-   * Write without read. Present because the catalogue is filtered on *any* bucket-scoped grant
-   * rather than on `read` (§4.2.2): this role must still see the bucket it may upload to, and no
+   * Write without read. Present because the catalog is filtered on *any* bucket-scoped grant
+   * rather than on `read`: this role must still see the bucket it may upload to, and no
    * other role in this table would catch the filter narrowing back to `read`.
    */
   StorageUploader: {
@@ -142,7 +158,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'getUserCollection', 'getUserDocument'
     ]
   },
-  /** The collection counterpart of `StorageUploader`, guarding the same catalogue property. */
+  /** The collection counterpart of `StorageUploader`, guarding the same catalog property. */
   DataWriter: {
     grants: [collectionGrant('db:collection:write')],
     allowed: [
@@ -184,6 +200,11 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'saveUserPageContent', 'saveUserPageStructure', 'revertUserPageEntry'
     ]
   },
+  /** Removes pages without being able to write one, which is what pages:delete exists to express. */
+  PageRemover: {
+    grants: [instanceGrant('pages:delete')],
+    allowed: ['deleteUserPage']
+  },
   Publisher: {
     grants: [
       instanceGrant('pages:read'),
@@ -194,62 +215,67 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserPages', 'getUserPageEntry', 'saveUserPageContent', 'generateUserReadablePageTree'
     ]
   },
-  /** Reads source but cannot change it, which is what `view_code` exists to express. */
-  ComponentReviewer: {
-    grants: [instanceGrant('components:prebuilt:read'), instanceGrant('components:dynamic:view_code')],
-    allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry',
-      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition'
-    ]
-  },
-  /** Authors code without being able to publish it, or to create and destroy components. */
-  ComponentAuthor: {
-    grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:dynamic:view_code'),
-      instanceGrant('components:dynamic:edit')
-    ],
-    allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry',
-      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
-      'updateUserComponentDefinition'
-    ]
-  },
   /**
-   * Publishes what others authored, without being able to alter it first.
+   * Everything a component's source can be: reading it and writing it.
    *
-   * The arrangement `commit` exists to allow, and the reason committing is not additionally gated
-   * on `edit`.
+   * **One role where there were two.** `view_code` and `edit` used to separate reading source from
+   * writing it, and the matrix carried a role for each — a reviewer who could read and not write.
+   * `components:code` covers both, so that arrangement is no longer expressible and the role that
+   * demonstrated it is gone rather than left asserting a separation the permissions do not make.
+   *
+   * **It cannot publish**, and that is the interesting line. Publishing is an act on the whole
+   * component: it signs the description as well as the code, so it demands `components:modify`,
+   * which this role does not hold. Authoring a component's source is not authority to release it
+   * under a description one may not edit.
    */
-  ComponentPublisher: {
-    grants: [instanceGrant('components:dynamic:commit')],
-    allowed: ['commitUserComponentDefinition']
-  },
-  /** Creates and destroys coded components without being able to read or write their source. */
-  ComponentManager: {
-    grants: [instanceGrant('components:dynamic:manage')],
-    allowed: ['createUserComponent', 'deleteUserComponent']
+  ComponentDeveloper: {
+    grants: [instanceGrant('components:read'), instanceGrant('components:code')],
+    allowed: [
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
+      'getUserComponentSignature', 'saveUserComponentBody', 'undoUserComponentBody',
+      'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent',
+      'listUserComposableComponents'
+    ]
   },
   ComponentCurator: {
     grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:prebuilt:modify')
+      instanceGrant('components:read'),
+      instanceGrant('components:modify')
     ],
-    // The catalogue permission covers coded components too: their names are catalogue information,
-    // and what distinguishes them — their source — is `components:dynamic:view_code`.
+    /*
+     * The catalog permission covers coded components too: their names are catalog information, and
+     * what distinguishes them — their source — is `components:code`.
+     *
+     * **This role publishes**, and the component under test is prebuilt. A prebuilt component has
+     * no code, so releasing one is releasing a description, which is exactly what `modify` governs.
+     * A *dynamic* component would additionally demand `components:code` and be refused here — a
+     * distinction the matrix cannot express, because it exercises one component and that check
+     * depends on which. `publication/user.server.test.ts` is where it is asserted.
+     */
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'updateUserComponentEntry',
-      'listUserComponents', 'getUserComponent'
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
+      'listUserComponents', 'getUserComponent',
+      'publishUserComponent', 'getUserPublishedComponent', 'listUserComposableComponents'
     ]
   },
   ComponentRegistrar: {
     grants: [
-      instanceGrant('components:prebuilt:read'),
-      instanceGrant('components:prebuilt:register')
+      instanceGrant('components:read'),
+      instanceGrant('components:register')
     ],
+    // Registering covers a component's **existence**, of either kind: the same permission creates a
+    // prebuilt component's description and brings a coded component into being with its source.
     allowed: [
-      'listUserComponentEntries', 'getUserComponentEntry', 'deleteUserComponentEntry',
-      'listUserComponents', 'getUserComponent'
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'registerUserComponentHeader', 'deleteUserComponentHeader',
+      'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
+      'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent',
+      // Q4's warning rides on the permission that deletes, not on `pages:read`. Gating it on the
+      // page domain would hide it from exactly this role — the one that deletes components — and an
+      // empty list meaning "you may not see this" reads as "nothing depends on it".
+      'listUserPagesPinningComponent'
     ]
   },
   RoleAdministrator: {
@@ -276,11 +302,27 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
    *
    * Present to make the absence of a `config:keys:read` visible: reading the registry sits in the
    * same allow-list as rotating it, because the registry is published for consumers to fetch and a
-   * read permission would withhold nothing (§4.1.15).
+   * read permission would withhold nothing.
    */
   KeyAdministrator: {
     grants: [instanceGrant('config:keys:manage')],
     allowed: ['listUserSigningKeys', 'rotateUserSubordinateKey', 'revokeUserSubordinateKey']
+  },
+  /**
+   * Administers the security policy and nothing else.
+   *
+   * Reading and writing sit in one allow-list, as they do for the keys, but for the opposite reason:
+   * the registry is published so a read permission would withhold nothing, while this document is
+   * private and a principal who could read the ceilings without changing them has no use for the
+   * screen the permission exists to serve.
+   *
+   * **It holds nothing over the keys**, which is the point of the row: the policy says when
+   * subordinate keys rotate, and a security administrator changing that interval still cannot rotate
+   * or revoke one.
+   */
+  SecurityAdministrator: {
+    grants: [instanceGrant('config:security:manage')],
+    allowed: ['readUserSecurityPolicy', 'updateUserSecurityPolicy']
   },
   SuperAdmin: {
     grants: [{ permission: WILDCARD, resource: WILDCARD }],

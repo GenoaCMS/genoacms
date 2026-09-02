@@ -9,7 +9,7 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
  *
  * Secret Manager is versioned; this contract is not. Writes add a version and reads always take
  * `latest`, so version history exists but is never consulted. That is deliberate — building the
- * contract on a provider-specific behaviour would leave the abstraction unimplementable elsewhere.
+ * contract on a provider-specific behavior would leave the abstraction unimplementable elsewhere.
  * The practical consequence is that **superseded versions accumulate**: they are invisible to
  * GenoaCMS but still billed and still readable by anyone with project access, so a rotation policy
  * at the project level is worth having.

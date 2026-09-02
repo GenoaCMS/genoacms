@@ -8,13 +8,13 @@ const { PORT = 3000 } = process.env;
 const DEFAULT_SERVER_OPTS = { render: () => {} };
 
 async function startServer(opts = DEFAULT_SERVER_OPTS) {
-	return new Promise((fulfil, reject) => {
+	return new Promise((fulfill, reject) => {
 		const server = polka().use(create_kit_middleware(opts));
 		server.listen(PORT, (err) => {
 			if (err) {
 				reject(err);
 			}
-			fulfil(server);
+			fulfill(server);
 		});
 	});
 }

@@ -1,0 +1,15 @@
+<script lang="ts">
+  import type { ComponentHeaderActivityRecord } from '$lib/script/activity/types'
+  import CardLink from '$lib/components/CardLink.svelte'
+
+  interface Props {
+    record: ComponentHeaderActivityRecord
+  }
+  const { record }: Props = $props()
+</script>
+
+<CardLink
+  text="Component {record.componentName}"
+  icon="boxes"
+  href="/components/registrar/{record.componentId}"
+/>

@@ -88,7 +88,7 @@ describe('file encodings that silently break naive parsing', () => {
         expect(parseEntries('A=1').get('A')).toBe('1')
     })
 
-    it('normalises a CRLF file to LF when rewriting it', () => {
+    it('normalizes a CRLF file to LF when rewriting it', () => {
         expect(upsertEntry('A=1\r\n', 'B', '2')).toBe('A=1\nB=2\n')
     })
 
@@ -164,7 +164,7 @@ describe('key validation', () => {
     })
 
     it.each(['', '1a', 'a-b', 'a.b', 'a b', 'a:b', 'küche', 'a/b'])('rejects %j', (key) => {
-        // Rejected rather than normalised: folding 'a-b' and 'a_b' together would merge two secrets.
+        // Rejected rather than normalized: folding 'a-b' and 'a_b' together would merge two secrets.
         expect(() => assertValidSecretKey(key)).toThrow(/invalid-secret-key/)
     })
 

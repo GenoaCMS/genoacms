@@ -5,7 +5,7 @@ import type { Permission } from '$lib/script/authorization/permissions'
 /**
  * The gated signing service.
  *
- * The permission mapping itself is E6's business; what is asserted here is the behaviour the matrix
+ * The permission mapping itself belongs to the permission matrix; what is asserted here is the behavior it
  * cannot see — that a refusal comes back as a reason rather than an exception, that revoking twice
  * is refused before anything is published, and that an unreadable registry is reported rather than
  * replaced.
@@ -28,7 +28,11 @@ const loadSecurityPolicy = vi.fn(async () => ({
   subordinateKeyRotationDays: 90,
   accessTokenMinutes: 15,
   grantCacheSeconds: 30,
-  refreshTokenDays: 14
+  refreshTokenDays: 14,
+  maxFuel: 1_000_000,
+  maxDepth: 100,
+  maxAllocation: 10_000_000,
+  fetchOrigins: []
 }))
 
 vi.mock('$lib/script/signing/keyResolution.server', () => ({
@@ -65,7 +69,7 @@ beforeEach(() => {
 describe('permission', () => {
   it('refuses every operation to a principal without config:keys:manage', async () => {
     // Including reading. The registry is published, but this screen is the administrative view of
-    // it, and the check is what the E6 matrix asserts against every role.
+    // it, and the check is what the permission matrix asserts against every role.
     const outsider = holding('config:roles:manage')
 
     await expect(listUserSigningKeys(outsider)).rejects.toThrow(PermissionDeniedError)

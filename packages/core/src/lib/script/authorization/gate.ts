@@ -9,7 +9,7 @@ import type { AuthContext } from './context'
  * one place that decides what a gate shows is shared by every screen.
  *
  * **Cosmetic, and only cosmetic.** Every element a gate hides is independently refused by the
- * service the element would reach (§4.2.6). This exists to keep the interface honest about what it
+ * service the element would reach. This exists to keep the interface honest about what it
  * offers, never to secure it — a user who forces a hidden control through gets a denial, not an
  * action.
  */
@@ -52,7 +52,7 @@ const demandedPermissions = (demand: PermissionDemand): Permission[] =>
  *
  * **`anyOf` is for an index, not for an operation.** A navigation entry leading to several
  * independently gated destinations is useful when any one of them is, and no service call
- * corresponds to it — the destinations behind it are each gated in turn (§4.2.6). Using it on a
+ * corresponds to it — the destinations behind it are each gated in turn. Using it on a
  * control that performs something would show a button the service is certain to refuse.
  *
  * An empty `anyOf` permits nothing, which is the direction to fail in: a demand naming no

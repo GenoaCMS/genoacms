@@ -14,6 +14,21 @@ const config: PlaywrightTestConfig = {
   testMatch: /(.+\.)?(test|spec)\.[jt]s/,
 
   /**
+   * The demo scenarios are excluded from an ordinary run, and are the *only* thing a demo run does.
+   *
+   * `demoFixtures.spec.ts` publishes the content the consumer demos render and removes none of it;
+   * `demoCleanup.spec.ts` removes it. Neither asserts a product behaviour, and running them with the
+   * suite would leave a bucket full of content after every run — or, worse, delete a demo somebody
+   * was looking at.
+   *
+   * **Selected by tag rather than by filename**, so a scenario cannot rejoin the default run by being
+   * renamed, and switched by an environment variable rather than by a command-line grep: Playwright
+   * applies `grep` and `grepInvert` together, so a config that excluded the tag would cancel any
+   * `--grep` trying to ask for it. `pnpm run test:demo` sets it.
+   */
+  ...(process.env.GENOACMS_DEMO === '1' ? { grep: /@demo/ } : { grepInvert: /@demo/ }),
+
+  /**
    * One retry, because these tests drive real cloud storage.
    *
    * Object listing and read-after-write are eventually consistent, so a write can succeed and the

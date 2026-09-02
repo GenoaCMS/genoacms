@@ -1,5 +1,5 @@
 import { select, text, confirm, isCancel, note, intro, outro, log } from '@clack/prompts'
-import { isResourceScoped, getPermissionScope } from '@genoacms/cloudabstraction/authorization'
+import { isResourceScoped, getPermissionScope } from '@genoacms/internal/authorization'
 import { permissionOptions, render } from './declaration.js'
 
 /**
@@ -20,7 +20,7 @@ import { permissionOptions, render } from './declaration.js'
  */
 
 /** Resource names offered for a scope, read from the project's own configuration. */
-async function loadCatalogue () {
+async function loadCatalog () {
   try {
     const { config } = await import('@genoacms/cloudabstraction')
     return {
@@ -37,7 +37,7 @@ async function loadCatalogue () {
   }
 }
 
-const cancelled = (value) => {
+const canceled = (value) => {
   if (isCancel(value)) {
     outro('Nothing composed.')
     return true
@@ -49,20 +49,20 @@ const cancelled = (value) => {
  * Names a resource for a resource-scoped permission.
  *
  * Offers what the configuration declares, plus the wildcard. Free text is available only when the
- * catalogue could not be read — otherwise a name that does not exist is not offered, which is the
+ * catalog could not be read — otherwise a name that does not exist is not offered, which is the
  * point.
  */
-async function chooseResource (permission, catalogue) {
+async function chooseResource (permission, catalog) {
   const scope = getPermissionScope(permission)
-  const names = catalogue[scope] ?? []
+  const names = catalog[scope] ?? []
 
-  if (!catalogue.available || names.length === 0) {
+  if (!catalog.available || names.length === 0) {
     const typed = await text({
       message: `Which ${scope}? (its name, or * for every ${scope})`,
       placeholder: '*',
       initialValue: '*'
     })
-    if (cancelled(typed)) return undefined
+    if (canceled(typed)) return undefined
     return typed === '*' ? '*' : { scope, id: typed }
   }
 
@@ -73,7 +73,7 @@ async function chooseResource (permission, catalogue) {
       { value: '*', label: `Every ${scope}`, hint: 'including ones added later' }
     ]
   })
-  if (cancelled(chosen)) return undefined
+  if (canceled(chosen)) return undefined
   return chosen === '*' ? '*' : { scope, id: chosen }
 }
 
@@ -85,30 +85,30 @@ async function chooseFields (permission) {
     message: 'Restrict this grant to particular fields?',
     initialValue: false
   })
-  if (cancelled(narrow) || narrow !== true) return undefined
+  if (canceled(narrow) || narrow !== true) return undefined
 
   const typed = await text({
     message: 'Which fields? (comma separated)',
     placeholder: 'title, body',
     validate: (value) => value.trim().length === 0 ? 'Name at least one field, or decline the restriction.' : undefined
   })
-  if (cancelled(typed)) return undefined
+  if (canceled(typed)) return undefined
 
   return typed.split(',').map(field => field.trim()).filter(field => field.length > 0)
 }
 
-async function composeGrant (catalogue) {
+async function composeGrant (catalog) {
   const permission = await select({
     message: 'Which permission?',
     options: permissionOptions(),
     maxItems: 12
   })
-  if (cancelled(permission)) return undefined
+  if (canceled(permission)) return undefined
 
   const grant = { permission, resource: '*' }
 
   if (isResourceScoped(permission)) {
-    const resource = await chooseResource(permission, catalogue)
+    const resource = await chooseResource(permission, catalog)
     if (resource === undefined) return undefined
     grant.resource = resource
 
@@ -119,22 +119,22 @@ async function composeGrant (catalogue) {
   return grant
 }
 
-async function composeRole (catalogue) {
+async function composeRole (catalog) {
   const name = await text({
     message: 'Role name',
     placeholder: 'Copywriter',
     validate: (value) => value.trim().length === 0 ? 'A role needs a name.' : undefined
   })
-  if (cancelled(name)) return
+  if (canceled(name)) return
 
   const grants = []
   for (;;) {
-    const grant = await composeGrant(catalogue)
+    const grant = await composeGrant(catalog)
     if (grant === undefined) return
     grants.push(grant)
 
     const more = await confirm({ message: 'Add another grant?', initialValue: false })
-    if (cancelled(more)) return
+    if (canceled(more)) return
     if (more !== true) break
   }
 
@@ -146,15 +146,15 @@ async function composeRole (catalogue) {
   outro('Composed.')
 }
 
-async function composeAssignment (catalogue) {
+async function composeAssignment (catalog) {
   const subject = await text({
     message: 'Subject (as issued by your authentication provider, never an email address)',
     placeholder: 'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01',
     validate: (value) => value.trim().length === 0 ? 'An assignment needs a subject.' : undefined
   })
-  if (cancelled(subject)) return
+  if (canceled(subject)) return
 
-  const declared = catalogue.available ? Object.keys(catalogue.roles ?? {}) : []
+  const declared = catalog.available ? Object.keys(catalog.roles ?? {}) : []
   const roles = await text({
     message: declared.length > 0
       ? `Which roles? (comma separated; declared today: ${declared.join(', ')})`
@@ -162,7 +162,7 @@ async function composeAssignment (catalogue) {
     placeholder: 'Administrator',
     validate: (value) => value.trim().length === 0 ? 'Name at least one role.' : undefined
   })
-  if (cancelled(roles)) return
+  if (canceled(roles)) return
 
   const names = roles.split(',').map(role => role.trim()).filter(role => role.length > 0)
 
@@ -176,9 +176,9 @@ async function composeAssignment (catalogue) {
 async function roles () {
   intro('Compose a role declaration')
 
-  const catalogue = await loadCatalogue()
-  if (!catalogue.available) {
-    log.warn(`Could not read genoa.config, so bucket and collection names are not offered: ${catalogue.reason}`)
+  const catalog = await loadCatalog()
+  if (!catalog.available) {
+    log.warn(`Could not read genoa.config, so bucket and collection names are not offered: ${catalog.reason}`)
   }
 
   const what = await select({
@@ -188,10 +188,10 @@ async function roles () {
       { value: 'assignment', label: 'An assignment', hint: 'which roles a subject holds' }
     ]
   })
-  if (cancelled(what)) return
+  if (canceled(what)) return
 
-  if (what === 'role') await composeRole(catalogue)
-  else await composeAssignment(catalogue)
+  if (what === 'role') await composeRole(catalog)
+  else await composeAssignment(catalog)
 }
 
 export default roles

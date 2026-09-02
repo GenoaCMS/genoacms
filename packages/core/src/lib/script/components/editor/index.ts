@@ -1,53 +1,49 @@
-import type { Component, ComponentCommit, ComponentCommitOrder, ComponentDefinition, ComponentReference } from './types'
-import type { ComponentEntry, ComponentType } from '../componentEntry/component/types'
+import type { Component, ComponentDefinition, ComponentReference } from './types'
+import type { ComponentHeader, ComponentType } from '../componentHeader/component/types'
 
-import { deleteComponentEntry, getComponentEntry, uploadComponentEntry } from '../componentEntry/io.server'
+import { deleteComponentHeader, uploadComponentHeader } from '../componentHeader/io.server'
 import {
-  uploadComponent,
   uploadComponentDefinition,
-  uploadComponentCommit,
   getComponent,
   getComponentDefiniton,
   listOrCreateComponentList,
   deleteComponentDefinition,
-  deleteComponentFile
 } from './io'
-import diff from 'deep-diff'
-import { ComponentDiffError } from './errors'
-import { componentCodeToEntry } from './analyzer'
+import { deleteComponentPublications } from '../publication/io.server'
+
+/**
+ * A dynamic component's source: creating it, editing the draft, and destroying it.
+ *
+ * **Publishing is not here.** It used to be, because only a dynamic component could be published;
+ * it is an act on the whole component and a prebuilt one performs it too, so it lives in
+ * `publication/`. What is left is authoring, which is what this surface is for.
+ */
 
 async function createComponentDefinition (uid: string) {
   const emptyComponentDefinition: ComponentDefinition = {
     uid,
-    language: 'javascript',
-    uncommitedCode: '',
-    code: '',
-    history: [],
-    future: []
+    language: 'typescript',
+    body: '',
+    publishedBody: '',
+    publishedSignature: ''
   }
   await uploadComponentDefinition(emptyComponentDefinition)
 }
-async function createComponentEntry (uid: string, type: ComponentType, name: string) {
-  const emptyComponentEntry: ComponentEntry = {
+async function createComponentHeader (uid: string, type: ComponentType, name: string) {
+  const emptyComponentHeader: ComponentHeader = {
     uid,
     type,
     name,
     attributes: {},
-    history: [],
-    future: []
+    attributeOrder: []
   }
-  await uploadComponentEntry(emptyComponentEntry)
+  await uploadComponentHeader(emptyComponentHeader)
 }
 async function createComponent (name: string) {
   const uid = crypto.randomUUID()
-  const component = {
-    uid,
-    name
-  }
 
-  await createComponentEntry(uid, 'coded', name)
+  await createComponentHeader(uid, 'dynamic', name)
   await createComponentDefinition(uid)
-  await uploadComponent(component)
 
   return uid
 }
@@ -58,49 +54,23 @@ async function updateComponentDefinition (reference: ComponentReference, updater
   await uploadComponentDefinition(updatedDefinition)
 }
 
-async function createComponentCommit (order: ComponentCommitOrder, definition: ComponentDefinition): Promise<ComponentCommit> {
-  const codeDiff = diff.diff(definition.code, definition.uncommitedCode)
-  if (!codeDiff) throw new ComponentDiffError('no-change', 'No changes between versions')
-  const commit: ComponentCommit = {
-    uid: crypto.randomUUID(),
-    timestamp: Date.now(),
-    componentId: order.componentId,
-    message: order.message,
-    change: codeDiff
-  }
-  return commit
-}
-
-async function commitComponentDefinition (order: ComponentCommitOrder) {
-  // TODO: fix
-  const [definition, component, entry] = await Promise.all([
-    getComponentDefiniton(order.componentId),
-    getComponent(order.componentId),
-    getComponentEntry(order.componentId)
-  ])
-  const commit = await createComponentCommit(order, definition)
-  console.log('entry', entry, order.componentId)
-  const newEntry = componentCodeToEntry(component.name, definition.uncommitedCode, entry)
-
-  await Promise.all([
-    updateComponentDefinition(order.componentId, d => {
-      d.code = d.uncommitedCode
-      d.history.push(commit.uid)
-      return d
-    }, definition),
-    uploadComponentCommit(commit),
-    uploadComponentEntry(newEntry)
-  ])
-}
-
+/**
+ * Removes a component and everything it produced.
+ *
+ * Three things. The definition directory holds the source. The header is the component's place in
+ * the catalog, and is what the editor lists. The third is everything it published: one directory per
+ * publication, each written once and never rewritten, each signed and independently verifiable. Left
+ * behind they would keep verifying, for a component that no longer exists.
+ *
+ * Removed together rather than in sequence, and the whole thing fails if any part does — a partial
+ * deletion reported as success is what this replaces.
+ */
 async function deleteComponent (component: Component): Promise<void> {
-  // TODO: fix
-  const deletionTasks = [
+  await Promise.all([
     deleteComponentDefinition(component.uid),
-    deleteComponentEntry(component.uid),
-    deleteComponentFile(component.uid)
-  ]
-  await Promise.all(deletionTasks)
+    deleteComponentHeader(component.uid),
+    deleteComponentPublications(component.uid)
+  ])
 }
 
 export {
@@ -109,6 +79,5 @@ export {
   getComponent,
   getComponentDefiniton,
   updateComponentDefinition,
-  commitComponentDefinition,
   deleteComponent
 }

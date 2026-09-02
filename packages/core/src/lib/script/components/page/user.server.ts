@@ -5,7 +5,8 @@ import {
   listOrCreatePageList,
   getPageEntry,
   uploadPageEntry,
-  generateReadablePageTree
+  generateReadablePageTree,
+  deletePageEntry
 } from './page.server'
 
 /**
@@ -63,12 +64,30 @@ const revertUserPageEntry = async (ctx: AuthContext, page: PageEntry<IsSerializa
  * Generates the readable tree, which is what makes an edit visible.
  *
  * Demands the edit that produced it **and** `pages:publish`: publishing someone else's saved draft
- * is still publishing, and the tree is the artefact a visitor sees.
+ * is still publishing, and the tree is the artifact a visitor sees.
  */
 const generateUserReadablePageTree = async (ctx: AuthContext, page: PageEntry<IsSerializable>) => {
   requirePermission(ctx, 'pages:content_edit')
   requirePermission(ctx, 'pages:publish')
   return await generateReadablePageTree(page)
+}
+
+/**
+ * Deleting a page.
+ *
+ * `pages:delete` and nothing else. It is deliberately **not** additionally gated on the edit
+ * permissions: deletion is a distinct authority in the taxonomy, and demanding an edit permission
+ * alongside it would make the narrow role — someone who may remove a page but not rewrite one —
+ * inexpressible.
+ *
+ * Nor is it gated on `pages:publish`, though deleting removes the built tree and so unpublishes the
+ * page. Publishing puts something in front of visitors; this takes the whole page away, which is
+ * what `pages:delete` names. Requiring both would mean nobody could delete a page they were not also
+ * trusted to publish, which is the wrong way round.
+ */
+const deleteUserPage = async (ctx: AuthContext, name: string) => {
+  requirePermission(ctx, 'pages:delete')
+  return await deletePageEntry(name)
 }
 
 export {
@@ -77,5 +96,6 @@ export {
   saveUserPageContent,
   saveUserPageStructure,
   revertUserPageEntry,
-  generateUserReadablePageTree
+  generateUserReadablePageTree,
+  deleteUserPage
 }

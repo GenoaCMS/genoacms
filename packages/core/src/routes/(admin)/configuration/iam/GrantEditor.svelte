@@ -19,11 +19,11 @@
    * concern. The value is derived from the rows rather than maintained alongside them, so the two
    * cannot drift apart.
    */
-  const serialised = $derived(JSON.stringify(rowsToGrants(rows)))
+  const serialized = $derived(JSON.stringify(rowsToGrants(rows)))
   const dropped = $derived(rows.length - rowsToGrants(rows).length)
 </script>
 
-<input type="hidden" name="grants" value={serialised} />
+<input type="hidden" name="grants" value={serialized} />
 
 <div class="space-y-2">
   {#each rows as _row, index (index)}

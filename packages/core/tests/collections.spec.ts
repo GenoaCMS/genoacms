@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { confirm, fixtureName, signIn } from './support/session'
+import { SLOW, reported, openCollection, row, createDocument } from './support/collections'
 
 /**
  * The database screens: listing a collection, and the document round trip.
@@ -10,41 +11,9 @@ import { confirm, fixtureName, signIn } from './support/session'
  *
  * The editor builds its inputs from the collection's schema, so the field names below come from the
  * `test` collection in `genoa.config/collections.js`.
- */
-
-const COLLECTION = 'test'
-const SLOW = 20_000
-
-/** Firestore writes are slower than Playwright's default patience. */
-const reported = async (page: Page, message: string): Promise<void> => {
-  await expect(page.getByText(message, { exact: true }).first()).toBeVisible({ timeout: SLOW })
-}
-
-const openCollection = async (page: Page): Promise<void> => {
-  await page.goto(`/collections/${COLLECTION}`)
-  await expect(page.getByRole('heading', { name: `Collection: ${COLLECTION}` })).toBeVisible()
-}
-
-/** The row for a document, found by a value it displays. */
-const row = (page: Page, name: string): Locator =>
-  page.getByRole('link').filter({ hasText: name })
-
-/**
- * Creates a document and lands on its page.
  *
- * Creation navigates to the new document, so the assertion that it worked is the URL changing —
- * the collection listing is paginated and a new row is not necessarily visible on it.
+ * Selecting several documents and deleting them in one action is covered in `selection.spec.ts`.
  */
-const createDocument = async (page: Page, name: string): Promise<void> => {
-  await page.getByRole('button', { name: 'New document' }).click()
-
-  // The primary key is not an editable field, so the only value the test sets is `name`.
-  const dialog = page.getByRole('dialog', { name: 'New document' })
-  await dialog.getByLabel('name:', { exact: true }).fill(name)
-  await dialog.getByRole('button', { name: 'Create', exact: true }).click()
-
-  await expect(page).toHaveURL(new RegExp(`/collections/${COLLECTION}/[^/]+$`), { timeout: SLOW })
-}
 
 const deleteDocument = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Delete' }).click()

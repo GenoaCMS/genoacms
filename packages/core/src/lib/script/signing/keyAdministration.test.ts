@@ -5,8 +5,8 @@ import type { KeyRegistry, SubordinateKeyEntry } from './registry'
 /**
  * What the registry's two optional timestamps mean to an administrator.
  *
- * The distinction under test is the one §4.1.15 turns on and the one an interface is most likely to
- * blur: a superseded key still verifies, a revoked key verifies nothing.
+ * The distinction under test is the one an interface is most likely to blur: a superseded key
+ * still verifies, a revoked key verifies nothing.
  */
 
 const entry = (

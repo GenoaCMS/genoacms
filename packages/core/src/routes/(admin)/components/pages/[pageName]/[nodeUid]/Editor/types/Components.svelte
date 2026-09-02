@@ -2,8 +2,8 @@
   import type { AttributeData } from '$lib/script/components/page/entry/types'
   import type {
     ComponentsAttributeType,
-    ComponentEntry,
-  } from '$lib/script/components/componentEntry/component/types'
+    ComponentHeader,
+  } from '$lib/script/components/componentHeader/component/types'
   import type { Schema } from '@exodus/schemasafe'
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
@@ -13,6 +13,7 @@
   import Subcomponent from './Subcomponent.svelte'
   import { Card, Modal } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import NothingToCompose from '$lib/components/components/NothingToCompose.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
 
   interface Props {
@@ -26,14 +27,20 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
+  /**
+   * The components this slot will accept.
+   *
+   * An **absent** `items.enum` means "any component", the same as an empty one. Unset constraints are
+   * omitted rather than written as an empty value, so a slot declared without a component list has no
+   * `enum` key at all — and reading `.length` off it threw, taking the editor down.
+   */
   const getPossibleSubcomponents = (
-    components: Array<ComponentEntry>,
+    components: Array<ComponentHeader>,
     dataSchema: Schema
   ) => {
-    if ((dataSchema as any).items.enum.length === 0) return components
-    return components.filter((component) =>
-      (dataSchema as any).items.enum.includes(component.name)
-    )
+    const allowed = (dataSchema as any).items?.enum
+    if (!Array.isArray(allowed) || allowed.length === 0) return components
+    return components.filter((component) => allowed.includes(component.name))
   }
   const addComponent = () => {
     isModalOpen = false
@@ -50,8 +57,14 @@
     data.value.splice(index, 1)
     onvalue(data.value)
   }
+  /*
+   * Drawn from the **composable** catalog, not the whole one: a slot may only be filled
+   * with a component that has been published. The slot's own `enum` narrows it further, and the two
+   * are different refusals — one says the component cannot be used anywhere yet, the other that this
+   * slot does not accept it.
+   */
   const possibleSubcomponents = $derived(
-    getPossibleSubcomponents(page.data.componentSchemas, data.schema)
+    getPossibleSubcomponents(page.data.composableComponents, data.schema)
   )
 </script>
 
@@ -85,6 +98,14 @@
 </Card>
 
 <Modal title="Add a new component" bind:open={isModalOpen}>
+  {#if page.data.composableComponents.length === 0}
+    <!-- Nothing is published at all. Distinguished from the slot accepting none of what is, below. -->
+    <NothingToCompose />
+  {:else if possibleSubcomponents.length === 0}
+    <p class="text-center p-5 opacity-70">
+      None of the published components is accepted by this slot.
+    </p>
+  {/if}
   <div class="w-full grid grid-cols-4 gap-5 p-5">
     {#each possibleSubcomponents as componentSchema (componentSchema.uid)}
       <form

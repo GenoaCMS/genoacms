@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AttributeType } from '$lib/script/components/componentEntry/component/types'
+  import type { AttributeType } from '$lib/script/components/componentHeader/component/types'
   import { getAttributeTypeIcon } from './utils'
 
   interface Props {

@@ -1,30 +1,30 @@
 <script lang="ts">
-    import type { SelectActionRune } from '$lib/script/database/SelectActionRune.svelte'
+    import type { Snippet } from 'svelte'
     import selection from '$lib/script/database/SelectionRune.svelte'
-    import { getContext, type Snippet } from 'svelte'
+    import SelectionCheckbox from '$lib/components/selection/SelectionCheckbox.svelte'
 
     type Props = {
       id: string | number,
       children: Snippet
     }
     export const { id, children }: Props = $props()
-    const selectAction: SelectActionRune = getContext('select')
-    const canSelect = $derived(selectAction.isActive && selection.canSelect)
-    const isSelected = $derived(selection.isSelected(id))
-
-    function select () {
-      selection.select(id)
-    }
+    // Selectable on an ordinary visit as well as inside a picker, matching the storage browser: the
+    // listing has a bulk deletion of its own, so a selection made here leads somewhere.
+    //
+    // Only the cap hides a checkbox, and only while a picker imposes one — outside a picker
+    // `maxItems` is zero, which is no limit. A selected item keeps its checkbox regardless, or a
+    // full selection could not be undone.
+    const canSelect = $derived(selection.canSelectMore)
 </script>
 
-<div class="w-auto h-auto relative z-[1]">
+<!-- Inline, not overlaid: a document is a row whose first field starts at the left edge, so a box
+     pinned over the corner would sit on top of the text. -->
+<SelectionCheckbox
+  isSelected={selection.isSelected(id)}
+  onselect={() => selection.toggle(id)}
+  label="Select {id}"
+  layout="inline"
+  {canSelect}
+>
   {@render children?.()}
-  {#if canSelect || isSelected}
-    <button onclick={select} aria-label="Select {id}" class="absolute top-0 start-0 p-2">
-      <i
-        class="bi text-2xl transition-all"
-        class:bi-square={!isSelected}
-        class:bi-check-square={isSelected}></i>
-    </button>
-  {/if}
-</div>
+</SelectionCheckbox>

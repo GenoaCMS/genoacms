@@ -13,7 +13,7 @@
    */
   interface Props {
     collection: string
-    /** The collection's fields, from the catalogue. */
+    /** The collection's fields, from the catalog. */
     available: string[]
     selection: FieldSelector
     onchange: (selection: FieldSelector) => void

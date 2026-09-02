@@ -6,7 +6,7 @@ import { SOON_MS, stateBadge, rotationStanding, rotationExplanation } from './ke
  *
  * Not styling assertions — what is checked is that the screen tells an administrator the
  * *consequence* of a state, since the distinction between superseded and revoked is the one thing
- * about this screen that is easy to get wrong and expensive to get wrong (§4.1.15).
+ * about this screen that is easy to get wrong and expensive to get wrong.
  */
 
 describe('state badges', () => {

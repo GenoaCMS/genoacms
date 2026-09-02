@@ -10,7 +10,7 @@ import { permissions, type Permission } from '$lib/script/authorization/permissi
  * **Not the same as the permission domains.** The vocabulary puts pages and components in one
  * `content` domain, which is right for the taxonomy and wrong for this control: they are separate
  * jobs, and a role is rarely about both. The split lives here because it is a presentation
- * judgement, not a change to what the domains mean.
+ * judgment, not a change to what the domains mean.
  */
 interface GrantCategory {
   id: string
@@ -66,7 +66,7 @@ interface OptionGroup {
  * permissions differ in their middle segment and all end in `manage`, so trimming to the last
  * segment would render five identical options.
  */
-function labelled (group: Permission[]): Option[] {
+function labeled (group: Permission[]): Option[] {
   if (group.length === 0) return []
 
   const segments = group.map(permission => permission.split(':'))
@@ -84,23 +84,24 @@ function labelled (group: Permission[]): Option[] {
 /**
  * The select options for a category, grouped where the group is meaningful.
  *
- * Content contains both pages and components (prebuilt and dynamic), which are grouped separately.
+ * Content covers two lifecycles — building pages, and the components pages are built from — so those
+ * are grouped apart. Components are **not** subdivided further: prebuilt and dynamic components are
+ * described and governed identically, and the one permission that only a dynamic component can use,
+ * `components:code`, is a capability rather than a kind.
  */
 function optionGroups (id: string): OptionGroup[] {
   const available = permissionsIn(id)
   if (id === 'content') {
-    const pages = available.filter(permission => permission.startsWith('pages:'))
-    const ofKind = (kind: string): Permission[] =>
-      available.filter(permission => permission.startsWith(`components:${kind}:`))
+    const startingWith = (prefix: string): Permission[] =>
+      available.filter(permission => permission.startsWith(prefix))
 
     return [
-      { label: 'Pages', options: labelled(pages) },
-      { label: 'Prebuilt components', options: labelled(ofKind('prebuilt')) },
-      { label: 'Dynamic components', options: labelled(ofKind('dynamic')) }
+      { label: 'Pages', options: labeled(startingWith('pages:')) },
+      { label: 'Components', options: labeled(startingWith('components:')) }
     ].filter(group => group.options.length > 0)
   }
 
-  return [{ options: labelled(available) }]
+  return [{ options: labeled(available) }]
 }
 
 export {

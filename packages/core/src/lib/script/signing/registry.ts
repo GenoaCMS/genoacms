@@ -157,8 +157,8 @@ function isRevoked (entry: SubordinateKeyEntry): boolean {
  *
  * A revoked key resolves to nothing, so every signature under it fails — including ones made before
  * the revocation. That is deliberate and unavoidable: nothing dates a signature, and a timestamp
- * inside the payload is attested by the very key under suspicion, so honouring "earlier" signatures
- * would honour the adversary's forgeries while appearing to have revoked.
+ * inside the payload is attested by the very key under suspicion, so honoring "earlier" signatures
+ * would honor the adversary's forgeries while appearing to have revoked.
  */
 function findPublicKey (registry: KeyRegistry, keyId: string): Uint8Array | undefined {
   const entry = findKey(registry, keyId)

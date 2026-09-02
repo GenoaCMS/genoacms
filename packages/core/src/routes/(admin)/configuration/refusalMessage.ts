@@ -2,7 +2,7 @@
  * A refusal reason, in words an administrator can act on.
  *
  * The service reports identifiers so a caller can branch on them; a person needs to be told what to
- * do instead. Anything unrecognised is passed through verbatim rather than flattened to "something
+ * do instead. Anything unrecognized is passed through verbatim rather than flattened to "something
  * went wrong" — a reason nobody has translated yet is still more use than none.
  */
 const explanations: Record<string, string> = {

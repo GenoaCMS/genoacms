@@ -1,4 +1,6 @@
-import { getAlgorithm, isAlgorithmName, type AlgorithmName } from './algorithms'
+import {
+  getAlgorithm, isAlgorithmName, type AlgorithmName, type SigningOptions
+} from './algorithms'
 import { digest, type JsonValue } from './canonical'
 
 /**
@@ -17,7 +19,9 @@ const DOCUMENT_TYPES = [
   'genoacms.users.v1',
   'genoacms.keyRegistry.v1',
   'genoacms.securityPolicy.v1',
-  'genoacms.session.v1'
+  'genoacms.session.v1',
+  'genoacms.componentPublication.v1',
+  'genoacms.pageTree.v1'
 ] as const
 
 type DocumentType = typeof DOCUMENT_TYPES[number]
@@ -60,7 +64,7 @@ function toBase64 (bytes: Uint8Array): string {
 /**
  * Decodes base64 strictly.
  *
- * `Buffer.from(s, 'base64')` ignores anything it does not recognise, so a corrupted or truncated
+ * `Buffer.from(s, 'base64')` ignores anything it does not recognize, so a corrupted or truncated
  * signature would decode to *some* bytes and fail verification for the wrong reason. Re-encoding
  * and comparing is the cheapest way to reject input that was never valid base64 in the first place.
  */
@@ -77,14 +81,22 @@ interface SigningKey {
   secretKey: Uint8Array
 }
 
+/**
+ * Signs a payload as a document of the given type.
+ *
+ * `options` reaches the algorithm untouched and exists for one caller: the conformance generator,
+ * which needs the same bytes every run so that regenerating the corpus and finding it unchanged is a
+ * check anyone can perform. See `SigningOptions` — nothing that signs a real document passes it.
+ */
 function sign<T extends JsonValue> (
   type: DocumentType,
   payload: T,
-  key: SigningKey
+  key: SigningKey,
+  options?: SigningOptions
 ): SignedEnvelope<T> {
   const algorithm = getAlgorithm(key.alg)
   const signed = canonicalSignedObject(key.alg, key.keyId, type, payload)
-  const signature = algorithm.sign(digest(signed), key.secretKey)
+  const signature = algorithm.sign(digest(signed), key.secretKey, options)
   return {
     alg: key.alg,
     keyId: key.keyId,

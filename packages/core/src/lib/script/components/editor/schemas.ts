@@ -1,9 +1,17 @@
 import type { Schema } from '@exodus/schemasafe'
 
+/**
+ * Creating a component.
+ *
+ * The name is **not** constrained to an identifier. It used to be, because it was the function the
+ * component's source had to declare, so a name a source file could not name was a component nobody
+ * could ever publish. The CMS emits that function under a fixed name of its own now, and a
+ * component's name is a label a person reads.
+ */
 const componentCreationSchema: Schema = {
   type: 'object',
   properties: {
-    name: { type: 'string' }
+    name: { type: 'string', minLength: 1 }
   },
   required: ['name']
 }
@@ -26,55 +34,25 @@ const componentSchema: Schema = {
   required: ['uid', 'name']
 }
 
-const codeChangeSchema: Schema = {}
-
 const componentDefinitionSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
-    language: { const: 'javascript' },
-    uncommitedCode: { type: 'string' },
-    code: { type: 'string' },
-    history: {
-      type: 'array',
-      items: { type: 'string' }
-    },
-    future: {
-      type: 'array',
-      items: { type: 'string' }
-    }
+    language: { type: 'string' },
+    body: { type: 'string' },
+    publishedBody: { type: 'string' },
+    publishedSignature: { type: 'string' }
   },
-  required: ['uid', 'language', 'uncommitedCode', 'code', 'history', 'future']
+  required: ['uid', 'language', 'body', 'publishedBody', 'publishedSignature']
 }
 
 const componentCodeChangeSchema: Schema = {
   type: 'object',
   properties: {
     uid: { type: 'string', format: 'uuid' },
-    uncommitedCode: { type: 'string' }
+    body: { type: 'string' }
   },
-  required: ['uid', 'uncommitedCode']
-}
-
-const componentCommitOrderSchema: Schema = {
-  type: 'object',
-  properties: {
-    componentId: { type: 'string', format: 'uuid' },
-    message: { type: 'string' }
-  },
-  required: ['componentId', 'message']
-}
-
-const componentCommitSchema: Schema = {
-  type: 'object',
-  properties: {
-    uid: { type: 'string', format: 'uuid' },
-    timestamp: { type: 'number' },
-    componentId: { type: 'string', format: 'uuid' },
-    message: { type: 'string' },
-    change: codeChangeSchema
-  },
-  required: ['uid', 'timestamp', 'componentId', 'message', 'change']
+  required: ['uid', 'body']
 }
 
 export {
@@ -82,7 +60,5 @@ export {
   componentDeletionSchema,
   componentSchema,
   componentDefinitionSchema,
-  componentCodeChangeSchema,
-  componentCommitOrderSchema,
-  componentCommitSchema
+  componentCodeChangeSchema
 }

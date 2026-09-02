@@ -4,7 +4,7 @@
   /**
    * A searchable single-select.
    *
-   * The presentation layer only: it knows how to filter, group and render a list of labelled
+   * The presentation layer only: it knows how to filter, group and render a list of labeled
    * values, and nothing about what the values mean. Both grant editors — choosing a permission and
    * choosing the bucket or collection it applies to — are the same control over different lists, so
    * the list is a prop rather than two near-identical components.

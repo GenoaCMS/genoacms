@@ -8,7 +8,7 @@ import { findPublicKey, type KeyRegistry } from './registry'
  * a tuning choice: a key rotated on another node has to verify immediately, or artifacts that are
  * perfectly good get rejected in a way that looks exactly like tampering.
  *
- * So: cache, and **refresh when a `keyId` is not recognised**. A signature naming an unknown key is
+ * So: cache, and **refresh when a `keyId` is not recognized**. A signature naming an unknown key is
  * itself the signal that a rotation happened elsewhere, which makes it the right moment to re-read.
  *
  * The loader is a constructor parameter so this policy can be exercised without a bucket.

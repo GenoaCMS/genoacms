@@ -75,7 +75,7 @@ async function login (email: string, password: string, cookies: Cookies) {
 
   // Identity only. Grants are resolved per request and cached, so the cookie stays a few hundred
   // bytes however many permissions the principal holds — and a revoked permission stops being
-  // honoured at the cache window rather than at token expiry.
+  // honored at the cache window rather than at token expiry.
   const session = await startSession(identity.subject, identity.email)
   writeSessionCookie(cookies, {
     accessToken: await issueAccessToken(identity.subject, identity.email),

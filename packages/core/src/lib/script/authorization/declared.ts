@@ -10,9 +10,9 @@ import type { Role } from './roles'
  *
  * **Declarations are merged when the state is read, never written into the manifests.** That is what
  * makes deleting a line from `genoa.config` revoke the access it granted: nothing was persisted, so
- * there is nothing left behind to keep honouring. Writing them into `roles.json` would instead
+ * there is nothing left behind to keep honoring. Writing them into `roles.json` would instead
  * require a reconciliation pass at startup to delete entries whose declaration had disappeared —
- * the reconcile-at-boot behaviour that rule 5 exists to avoid.
+ * the reconcile-at-boot behavior that rule 5 exists to avoid.
  *
  * Provenance therefore needs no flag on the records themselves: an entry is declared if Tier 1 names
  * it, and stored otherwise. `declaredRoleNames` and `declaredSubjects` carry that, so the pure

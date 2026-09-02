@@ -48,7 +48,7 @@ consumer accepts. Rotating away from a leaked key achieves nothing at all.
 
 :::caution[Revocation reaches backwards]
 A revoked key verifies **nothing**, including signatures it made before you revoked it. There is no
-"honour the earlier ones" — nothing dates a signature, and a timestamp inside the document is
+"honor the earlier ones" — nothing dates a signature, and a timestamp inside the document is
 attested by the very key under suspicion, so an adversary would simply date their forgery to last
 year.
 :::

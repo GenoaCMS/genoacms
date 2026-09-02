@@ -10,8 +10,8 @@ runtime.
 
 | File | Experiment | Role |
 | :--- | :--- | :--- |
-| `permissionMatrix.ts` | **E6** | The roles under test and their expected allow-lists, written by hand from the permission taxonomy |
-| `permissionMatrix.test.ts` | **E6** | Invokes every (role × service function) pair against the real gated services |
+| `permissionMatrix.ts` | Roles | The roles under test and their expected allow-lists, written by hand from the permission taxonomy |
+| `permissionMatrix.test.ts` | Matrix | Invokes every (role × service function) pair against the real gated services |
 
 Expectations are **never derived from the code they check**, so the matrix is able to disagree with
 the implementation — the only way a test finds a wrong mapping rather than confirming one.

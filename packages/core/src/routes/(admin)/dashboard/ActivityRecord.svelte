@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ActivityRecord } from '$lib/script/activity/types'
   import CollectionsActivity from './CollectionsActivity.svelte'
-  import ComponentEntryActivity from './ComponentEntryActivity.svelte'
+  import ComponentHeaderActivity from './ComponentHeaderActivity.svelte'
   import ComponentCodeActivity from './ComponentCodeActivity.svelte'
   import StorageActivity from './StorageActivity.svelte'
 
@@ -13,8 +13,8 @@
 
 {#if record.type === 'collections'}
   <CollectionsActivity {record} />
-{:else if record.type === 'componentEntry'}
-  <ComponentEntryActivity {record} />
+{:else if record.type === 'componentHeader'}
+  <ComponentHeaderActivity {record} />
 {:else if record.type === 'componentCode'}
   <ComponentCodeActivity {record} />
 {:else if record.type === 'storage'}

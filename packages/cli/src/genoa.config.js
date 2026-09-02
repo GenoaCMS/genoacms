@@ -42,7 +42,12 @@ const config = {
   },
   security: {
     // Seeds the signed security policy document at first start.
-    subordinateKeyRotationDays: 90
+    subordinateKeyRotationDays: 90,
+    // Runtime guard ceilings for dynamic components. Sized so that no reasonable presentational
+    // component reaches one: a guard firing on correct code teaches operators to raise it.
+    maxFuel: 1_000_000,
+    maxDepth: 100,
+    maxAllocation: 10_000_000
   },
   // TODO: configure collections
 }

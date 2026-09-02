@@ -1,66 +1,21 @@
 <script lang="ts">
-    import type { SubmitFunction } from '@sveltejs/kit'
-    import type { AttributeValue } from '$lib/script/components/componentEntry/attribute/types'
-    import ComponentNode from './Editor/ComponentNode.svelte'
-    import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
-    import { enhance } from '$app/forms'
-    import { invalidateAll } from '$app/navigation'
+  import NodeEditor from './NodeEditor.svelte'
 
-    const { data } = $props()
-    let currentNode = $state(data.node)
-    const enhanceUpdate: SubmitFunction = () => {
-      alertPending('Saving')
-      return async ({ result }) => {
-        if (result.type !== 'success') {
-          toastError('Error saving')
-          return
-        }
-        toastSuccess('Saved')
-      }
-    }
-    const enhanceUndo: SubmitFunction = async () => {
-      alertPending('Undoing')
-      return async ({ result }) => {
-        if (result.type !== 'success') {
-          toastError('Undo failed')
-          return
-        }
-        await invalidateAll()
-        toastSuccess('Undid')
-      }
-    }
-    const enhanceRedo: SubmitFunction = () => {
-      alertPending('Redoing')
-      return async ({ result }) => {
-        if (result.type !== 'success') {
-          toastError('Redo failed')
-          return
-        }
-        await invalidateAll()
-        toastSuccess('Redid')
-      }
-    }
-    function updateAttribute (uid: string, value: AttributeValue) {
-      currentNode.data[uid].value = value
-    }
-    $effect(() => {
-      currentNode = data.node
-    })
+  const { data } = $props()
 </script>
 
-<div class="h-full flex flex-col p-4">
-  <div class="flex-grow">
-    <ComponentNode node={currentNode} onupdate={updateAttribute}/>
-  </div>
-</div>
+<!--
+  Keyed on the loaded node so that undo and redo are visible.
 
-<form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>
-    <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
-</form>
-<form id="build-form" action="?/updateAndGenerateTree" method="post" use:enhance={enhanceUpdate} hidden>
-    <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
-</form>
-<form id="undo-form" action="?/undo" method="post" use:enhance={enhanceUndo} hidden>
-</form>
-<form id="redo-form" action="?/redo" method="post" use:enhance={enhanceRedo} hidden>
-</form>
+  Both are form actions that revalidate, so `load` re-runs and returns a different node object. The
+  editor holds a working copy in `$state`, which is initialized once and would otherwise keep
+  displaying the tree from before the undo — the storage would be correct and the screen would not.
+  That is exactly what it did: an undo persisted, and only a reload showed it.
+
+  The component editor's route is keyed the same way, for the same reason, and its note said so
+  before this one was written. The two surfaces had the same defect and only one of them had been
+  fixed.
+-->
+{#key data.node}
+  <NodeEditor node={data.node} />
+{/key}

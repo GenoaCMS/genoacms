@@ -142,7 +142,7 @@ describe('getUserCollectionReferences', () => {
   })
 
   it('shows a collection the principal may write but not read', () => {
-    // Matches the bucket catalogue: a principal who may write a collection must still see where
+    // Matches the bucket catalog: a principal who may write a collection must still see where
     // their writes go. Every operation on it is demanded separately when it is attempted.
     expect(database.getUserCollectionReferences(writer())).toEqual(['articles'])
   })

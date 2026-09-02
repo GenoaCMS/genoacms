@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { LinkAttributeType } from '$lib/script/components/componentEntry/component/types'
-  import type { LinkAttributeValue } from '$lib/script/components/componentEntry/attribute/types'
+  import type { LinkAttributeType } from '$lib/script/components/componentHeader/component/types'
+  import type { LinkAttributeValue } from '$lib/script/components/componentHeader/attribute/types'
   import Link from './Link.svelte'
   import { Card } from '$lib/components/ui/index'
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
@@ -15,7 +15,9 @@
   const showAddLink = $derived(!data.schema.maxItems || links.length < data.schema.maxItems)
 
   function addLink () {
-    const linkValue: LinkAttributeValue = { isExternal: false, pageName: '', url: '' }
+    // No `url` member. The shared vocabulary omits whichever member the other kind uses, and an
+    // empty string is a second way to say "unset" that canonicalizes to different bytes.
+    const linkValue: LinkAttributeValue = { isExternal: false, pageName: '' }
     links.push(linkValue)
     onvalue(links)
   }

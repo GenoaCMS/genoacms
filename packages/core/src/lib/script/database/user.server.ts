@@ -34,7 +34,7 @@ import {
  * - `db:collection:delete` — deleting documents
  *
  * A `read` or `write` grant may additionally name **which fields** of the collection it covers, and
- * that restriction is applied here (§4.2.2.2):
+ * that restriction is applied here:
  *
  * - **Reads project after fetching.** Not every adapter supports server-side field selection, so
  *   unreadable fields are stripped in this layer, uniformly, before a document leaves it.
@@ -62,7 +62,7 @@ const requireDelete = (ctx: AuthContext, collection: string): void =>
  *
  * Filters rather than denies, for the same reason the bucket list does: navigation should offer
  * only what the user could actually act on, rather than names that lead to a denial. Filtered on
- * **any** collection-scoped grant, matching the bucket catalogue — a principal who may write a
+ * **any** collection-scoped grant, matching the bucket catalog — a principal who may write a
  * collection but not read it must still see where their writes go.
  */
 const getUserCollectionReferences = (ctx: AuthContext): string[] =>

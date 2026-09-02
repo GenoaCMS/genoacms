@@ -10,8 +10,7 @@
    * find it in the log line printed once, on the boot that generated it.
    *
    * There is no control here. Replacing the root strands every deployed consumer until it is
-   * rebuilt, so it is `genoacms rotate-root` and belongs with whoever can also redeploy them
-   * (§4.1.15).
+   * rebuilt, so it is `genoacms rotate-root` and belongs with whoever can also redeploy them.
    */
   interface Props {
     root: RootAnchor

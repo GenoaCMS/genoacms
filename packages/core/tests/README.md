@@ -18,20 +18,20 @@ What is covered today:
 | file | covers |
 | --- | --- |
 | `src/lib/script/schema.test.ts` | `asSchemaObject` / `isNullable`, including that OpenAPI's `nullable` is *not* treated as nullable |
-| `src/lib/script/components/componentEntry/component/attributeInits.test.ts` | every new-attribute init validates against its runtime JSON Schema **after a JSON round-trip** |
+| `src/lib/script/components/componentHeader/component/attributeInits.test.ts` | every new-attribute init validates against its runtime JSON Schema **after a JSON round-trip** |
 | `src/lib/script/components/editor/analyzer.test.ts` | deriving attributes from component source, and uid preservation across re-analysis |
 
 ### Why the round-trip matters
 
 `attributeInits.test.ts` exists because of a real regression. Unset numeric
 constraints must be `null`, never `undefined`: attributes are `JSON.stringify`d
-before being validated against `componentEntrySchema` and stored, and
+before being validated against `componentHeaderSchema` and stored, and
 `JSON.stringify` **drops undefined keys**. Several of those keys are `required`
 in the meta-schemas, so an attribute built with `undefined` silently fails
 validation and the editor reports only "Invalid data".
 
 The suite asserts both that each init validates *and* that no key disappears
-through serialisation, plus one test proving the `undefined` form really does
+through serialization, plus one test proving the `undefined` form really does
 fail — so the guard cannot rot into a no-op.
 
 ### Writing new unit tests
@@ -70,7 +70,7 @@ the fixture naming live in `tests/support/session.ts`.
 | `grantEditor.spec.ts` | the role editor: permission combobox, resource and field switches, re-opening a saved editor |
 | `storage.spec.ts` | directories, uploads, renaming, selection and deletion |
 | `collections.spec.ts` | the document round trip: create, edit, persist, delete |
-| `components.spec.ts` | the prebuilt catalogue, and the dynamic editor through commit |
+| `components.spec.ts` | the prebuilt catalog, and the dynamic editor through commit |
 | `pages.spec.ts` | creating a page, its preview URL, saving content, and publishing |
 | `keys.spec.ts` | the signing key registry: the root anchor, rotation, revocation |
 

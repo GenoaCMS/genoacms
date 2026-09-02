@@ -1,0 +1,51 @@
+{
+  "name": "@genoacms/language-adapter-ts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "TypeScript language adapter for GenoaCMS: derives a component's attributes from its source, and compiles it for a consumer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/language-adapter-ts"
+  },
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GenoaCMS/genoacms/issues"
+  },
+  "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/language-adapter-ts#readme",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "generate-e3-report": "vite-node scripts/generate-e3-report.ts",
+    "generate-e4-e5-report": "vite-node scripts/generate-e4-e5-report.ts"
+  },
+  "dependencies": {
+    "@genoacms/cloudabstraction": "workspace:^",
+    "@genoacms/internal": "workspace:^",
+    "esbuild": "^0.28.2",
+    "ts-morph": "^25.0.1"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "vite-node": "^6.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.7"
+  }
+}

@@ -74,9 +74,34 @@ const config = defineConfig({
                   title: 'CLI',
                   to: '/guide/cli/',
                 }]
+            },
+            {
+              title: 'Consumers',
+              items: [
+                {
+                  title: 'Rendering pages in your app',
+                  to: '/guide/consumer/',
+                },
+                {
+                  title: 'Adding a language',
+                  to: '/guide/language-adapters/',
+                }]
             }
           ],
           '/reference/': [
+            {
+              title: 'Client SDK',
+              items: [
+                {
+                  title: 'Documents a consumer receives',
+                  to: '/reference/sdk/documents/',
+                },
+                {
+                  title: 'The attribute vocabulary',
+                  to: '/reference/sdk/attributes/',
+                }
+              ]
+            },
             {
               title: 'Cloud Abstraction',
               items: [

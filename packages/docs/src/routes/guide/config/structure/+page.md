@@ -57,7 +57,7 @@ GenoaCMS delegates cloud concerns to adapters: authentication, database, deploym
 storage. **Authorization is not among them.** It is a core module, its data lives in your own bucket,
 and there is no provider to register or adapter to choose.
 
-Only *"who are you?"* is delegated, because it is a standardised question with interchangeable
+Only *"who are you?"* is delegated, because it is a standardized question with interchangeable
 answers. *"What may you do here?"* is not: permissions are defined over GenoaCMS's own resources —
 buckets, collections, components, pages — which no external system can enumerate or evaluate. See
 [roles and permissions](/guide/authorization).

@@ -8,7 +8,7 @@ import type { Resolution } from './resolution'
  * of every page, so the result is held per subject for a short window.
  *
  * **The window is a security parameter.** It is exactly how long a permission removed from a role
- * is still honoured, which is why it belongs in the signed security policy rather than being tuned
+ * is still honored, which is why it belongs in the signed security policy rather than being tuned
  * by feel. It can be short, because a miss costs one resolution rather than a re-authentication.
  *
  * The resolver is a constructor parameter so this policy is testable without a bucket — the

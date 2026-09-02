@@ -1,0 +1,145 @@
+import type {
+  AnalysisRequest,
+  AnalysisResult,
+  CompilationRequest,
+  CompilationResult,
+  ComponentShape,
+  Diagnostic,
+  SignaturePreview
+} from '@genoacms/internal/languageAdapter'
+import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
+import { assemble, signatureOf } from './emit.js'
+import { compileToWebEsModule } from './compile.js'
+import { scanBody, scanAssembled } from './sast/scan.js'
+import { injectGuards } from './guards/inject.js'
+
+/**
+ * The TypeScript language adapter.
+ *
+ * The reference implementation of `LanguageAdapter`, and currently the only one. Registered in
+ * `genoa.config`, and selected by the language a component records rather than by a global setting.
+ *
+ * This module is where configuration meets the things that do the work. `emit.ts` and `compile.ts`
+ * take everything they need as arguments and read no configuration of their own, so both can be
+ * exercised without an instance existing.
+ *
+ * ## Assembly happens here, twice, and never leaves
+ *
+ * Both entry points are given the author's **body** and the component's shape, and each assembles
+ * the entry function itself. Assembling is pure and cheap, so doing it twice costs nothing worth
+ * saving — and the alternative, handing assembled source back to the CMS to pass along, would put
+ * TypeScript the CMS cannot read into the CMS, and positions in it that only this package can
+ * interpret.
+ *
+ * ## What each entry point does with the assembly
+ *
+ *     analyze        assemble ──▶ scan ──────────────────────▶ diagnostics
+ *     compileBundle  assemble ──▶ scan ──▶ inject ──▶ compile ─▶ artifact
+ *
+ * The guard helper is injected only where an artifact is produced. Analysis reports on what the
+ * author wrote, and a rule firing on code this package emitted would be a fault nobody can fix.
+ *
+ * ## Configuration is read only where it is used
+ *
+ * The compilation target comes from `genoa.config`, which exists inside a configured instance and
+ * nowhere else. It is imported **where it is needed** rather than at the top of this file, so that
+ * `analyze` — which has no use for it — can run without one: the evidence harness measures the
+ * ruleset against a corpus, and requiring an instance to do that would tie a measurement of the
+ * rules to the configuration of a deployment.
+ */
+
+/**
+ * Moves a diagnostic from the assembled source into the author's body.
+ *
+ * The author is looking at a body; the compiler saw a body with a signature above it. Reporting the
+ * compiler's line number would point at a line the author never wrote, and for a short body at one
+ * that does not exist at all.
+ *
+ * A diagnostic **inside the prologue is dropped**, not clamped to line 1. The prologue is emitted
+ * code: a fault in it is this adapter's to fix, and showing it to an author as though they had
+ * written it would be asking them to correct something they cannot see. Dropping it is a deliberate
+ * silence rather than an oversight — if the emitter can produce an invalid signature, that is a bug
+ * here and belongs in this package's own tests.
+ */
+const intoBodyCoordinates = (diagnostic: Diagnostic, prologueLines: number): Diagnostic | undefined => {
+  if (diagnostic.line === undefined) return diagnostic
+  if (diagnostic.line <= prologueLines) return undefined
+  return { ...diagnostic, line: diagnostic.line - prologueLines }
+}
+
+const reported = (diagnostics: Diagnostic[], prologueLines: number): Diagnostic[] =>
+  diagnostics
+    .map(diagnostic => intoBodyCoordinates(diagnostic, prologueLines))
+    .filter((diagnostic): diagnostic is Diagnostic => diagnostic !== undefined)
+
+/**
+ * Checks what the author wrote against the language's safety rules.
+ *
+ * Two kinds of answer, and the order between them matters. **Emitting the signature comes first**:
+ * a shape that cannot become a parameter list has no assembled source worth scanning, and scanning
+ * it anyway would report security rules about a signature the author never wrote.
+ *
+ * With a signature that emits, the security ruleset runs over the assembled source and its findings
+ * are mapped back into the author's coordinates — the author is looking at a body, and a line number
+ * counted from the top of the assembly would point at a line they cannot see.
+ *
+ * It does not report what a component *accepts*. That used to be its purpose, and it is gone: a
+ * component's shape is authored in the registrar, so an adapter reporting attributes would be
+ * handing back what it was just given.
+ */
+const analyze = (request: AnalysisRequest): AnalysisResult => {
+  const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
+  if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
+
+  return {
+    diagnostics: [
+      ...diagnostics,
+      // Already the author's coordinates: the body was not assembled, so nothing to subtract.
+      ...scanBody(request.body, request.shape, request.fetchOrigins),
+      ...reported(scanAssembled(source, request.shape, request.fetchOrigins), prologueLines)
+    ]
+  }
+}
+
+/**
+ * The signature, for the editor to show above the body.
+ *
+ * The same function `assemble` builds from, so the preview cannot drift from what compiles.
+ */
+const emitSignature = (shape: ComponentShape): SignaturePreview => signatureOf(shape)
+
+const compileBundle = async (request: CompilationRequest): Promise<CompilationResult> => {
+  const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
+  // A shape that cannot be emitted has no source worth compiling, and compiling it would report
+  // syntax errors about a signature the author did not write.
+  if (diagnostics.some(diagnostic => diagnostic.severity === 'fatal')) return { diagnostics }
+
+  // Body coordinates, so this is *not* passed through `reported` — subtracting the prologue would
+  // move a first-line diagnostic to line zero, where it is dropped as belonging to emitted code.
+  // Repeated from `analyze` because the contract says compilation follows a clean analysis without
+  // enforcing it, and compiling an import emits an artifact no consumer can resolve.
+  const refused = scanBody(request.body, request.shape)
+  if (refused.length > 0) return { diagnostics: [...diagnostics, ...refused] }
+
+  // The guards cost one line inside the body, so the prologue to subtract is the one injection
+  // reports rather than the one assembly did.
+  const guarded = injectGuards(source, request.ceilings, prologueLines, request.fetchOrigins)
+  const { target } = await import('./config.js')
+  const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
+  return {
+    ...compiled,
+    diagnostics: [...diagnostics, ...reported(compiled.diagnostics, guarded.prologueLines)]
+  }
+}
+
+const adapter: LanguageAdapter = {
+  language: 'typescript',
+  platforms: ['web-esmodule'],
+  analyze,
+  emitSignature,
+  compileBundle
+}
+
+export default adapter
+export { adapter, analyze, emitSignature, compileBundle }
+export { DEFAULT_TARGET } from './target.js'
