@@ -14,6 +14,7 @@
   import NumberInput from './NumberInput.svelte'
   import BooleanInput from './BooleanInput.svelte'
   import TextInput from './TextInput.svelte'
+  import EnumInput from './EnumInput.svelte'
 
   interface Props {
     schema: SchemaObject
@@ -43,6 +44,8 @@
   <TextInput {schema} {value} {onvalue} />
 {:else if schema.type === 'string' && schema.format === 'markdown'}
   <MarkdownInput {value} {onvalue} />
+{:else if schema.enum && Array.isArray(schema.enum)}
+  <EnumInput {schema} {value} {onvalue} />
 {:else if schema.type === 'string'}
   <StringInput {schema} {value} {onvalue} />
 {:else if schema.type === 'number'}

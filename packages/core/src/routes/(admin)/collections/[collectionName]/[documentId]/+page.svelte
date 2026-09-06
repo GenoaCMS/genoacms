@@ -68,7 +68,7 @@
   {/snippet}
 </TopPanel>
 
-<div class="px-4">
+<div class="p-4 pb-12">
   <Editor
     collectionReference={document.reference.collection}
     value={documentData}

@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { ButtonGroup, Input, InputAddon } from '$lib/components/ui/index'
-
   interface Props {
     value: string
     onvalue: (e: string) => void
@@ -13,14 +11,22 @@
   }
 </script>
 
-<ButtonGroup class="w-full">
-  <InputAddon>
-    <button type="button" onclick={generateUUID} aria-label="Generate UUID">
-      <i class="bi bi-dice-5-fill"></i>
+<div class="field-group grid-cols-[auto_1fr] w-full">
+  <label class="label label-text preset-tonal cursor-pointer">
+    <button
+      type="button"
+      onclick={generateUUID}
+      title="Generate UUID"
+      aria-label="Generate UUID"
+      class="flex items-center justify-center cursor-pointer hover:opacity-80"
+    >
+      <i class="bi bi-dice-5-fill text-lg"></i>
     </button>
-  </InputAddon>
-  <Input
+  </label>
+  <input
+    type="text"
+    class="input"
     {value}
     oninput={(e) => onvalue((e.target as HTMLInputElement).value)}
   />
-</ButtonGroup>
+</div>

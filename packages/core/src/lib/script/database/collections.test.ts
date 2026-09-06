@@ -133,6 +133,14 @@ describe('complex nested collections schema validation', () => {
     expect(validateArticle(article)).toBe(false)
   })
 
+  it('defines enum options on the button style schema', () => {
+    const hero = (articles.schema as any).properties.sections.items.oneOf.find(
+      (v: any) => v.properties?.type?.const === 'hero'
+    )
+    expect(hero).toBeDefined()
+    expect(hero.properties.cta.properties.style.enum).toEqual(['primary', 'secondary', 'outline'])
+  })
+
   it('rejects an unknown polymorphic discriminator type in sections', () => {
     const article = createValidArticle()
     article.sections.push({
