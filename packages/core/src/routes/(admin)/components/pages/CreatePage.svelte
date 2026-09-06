@@ -13,7 +13,7 @@
      * Empty is an ordinary state rather than a fault, and it is stated instead of shown as a blank
      * select — an author cannot tell a select with no options from one that failed to load.
      */
-    components: Array<ComponentHeader>
+    components: Promise<Array<ComponentHeader>> | Array<ComponentHeader>
   }
   const { components }: Props = $props()
   let isModalOpen = $state(false)
@@ -41,25 +41,33 @@
 </button>
 
 <Modal title="Create a new page" bind:open={isModalOpen}>
-    {#if components.length === 0}
+    {#await components}
+        <div class="flex justify-center items-center p-6 text-sm opacity-70">
+            Loading components...
+        </div>
+    {:then resolvedComponents}
+        {#if resolvedComponents.length === 0}
+            <NothingToCompose />
+        {:else}
+            <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-full space-y-3">
+                <Label>
+                    Name:
+                    <Input type="text" name="name" class="w-full" required/>
+                </Label>
+                <Label>
+                    Component:
+                    <Select name="componentUID" class="w-full">
+                        {#each resolvedComponents as component (component.uid)}
+                            <option value={component.uid}>{component.name}</option>
+                        {/each}
+                    </Select>
+                </Label>
+                <Button preset="filled" class="w-full mt-4" type="submit">
+                    Create
+                </Button>
+            </form>
+        {/if}
+    {:catch}
         <NothingToCompose />
-    {:else}
-        <form method="post" action="?/createPage" use:enhance={enhanceCreation} class="w-full space-y-3">
-            <Label>
-                Name:
-                <Input type="text" name="name" class="w-full" required/>
-            </Label>
-            <Label>
-                Component:
-                <Select name="componentUID" class="w-full">
-                    {#each components as component (component.uid)}
-                        <option value={component.uid}>{component.name}</option>
-                    {/each}
-                </Select>
-            </Label>
-            <Button preset="filled" class="w-full mt-4" type="submit">
-                Create
-            </Button>
-        </form>
-    {/if}
+    {/await}
 </Modal>

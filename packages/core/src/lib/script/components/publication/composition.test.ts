@@ -26,6 +26,7 @@ let publishedUids = new Set<string>()
 
 vi.mock('../componentHeader/io.server', () => ({
   getComponentHeader: async (uid: string) => catalog.find(header => header.uid === uid) ?? null,
+  listComponentHeaderReferences: async () => catalog.map(header => header.uid),
   listOrCreateComponentHeaderList: async () => catalog
 }))
 

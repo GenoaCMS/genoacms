@@ -4,7 +4,7 @@ import type { ComponentShape } from '@genoacms/internal/languageAdapter'
 import type { PublishedExecutable, SignedComponentPublication } from './payload'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
 
-import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
+import { getComponentHeader, listComponentHeaderReferences } from '../componentHeader/io.server'
 import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
@@ -295,11 +295,15 @@ const publishComponent = async (
  * editor — what is gated here is whether the component may be *introduced* to a page at all.
  */
 const listComposableComponentHeaders = async (): Promise<ComponentHeader[]> => {
-  const [headers, published] = await Promise.all([
-    listOrCreateComponentHeaderList(),
-    listPublishedComponentUids()
+  const [published, references] = await Promise.all([
+    listPublishedComponentUids(),
+    listComponentHeaderReferences()
   ])
-  return headers.filter(header => published.has(header.uid))
+  if (published.size === 0) return []
+
+  const composableReferences = references.filter(ref => published.has(ref))
+  const headers = await Promise.all(composableReferences.map(getComponentHeader))
+  return headers.filter((header): header is ComponentHeader => header !== null)
 }
 
 export { publishComponent, getPublishedComponent, listComposableComponentHeaders }

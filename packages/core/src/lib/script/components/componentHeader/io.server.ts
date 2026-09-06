@@ -98,11 +98,15 @@ const referenceOf = (filename: string): ComponentHeaderReference | undefined => 
   return filename.endsWith('.json') ? filename.slice(0, -'.json'.length) : filename
 }
 
-const listOrCreateComponentHeaderList = async (): Promise<Array<ComponentHeader>> => {
+const listComponentHeaderReferences = async (): Promise<Array<ComponentHeaderReference>> => {
   const listing = await listOrCreateDirectory({ bucket: defaultBucketId, name: headerDirectory })
-  const references = listing.files
+  return listing.files
     .map(component => referenceOf(fullyQualifiedNameToFilename(component.name)))
     .filter((reference): reference is ComponentHeaderReference => reference !== undefined)
+}
+
+const listOrCreateComponentHeaderList = async (): Promise<Array<ComponentHeader>> => {
+  const references = await listComponentHeaderReferences()
   const componentSchemas = await Promise.all(references.map(getComponentHeader))
   return componentSchemas.filter(schema => schema !== null) as Array<ComponentHeader>
 }
@@ -174,6 +178,7 @@ const deleteComponentHeader = async (reference: ComponentHeaderReference) => {
 }
 
 export {
+  listComponentHeaderReferences,
   listOrCreateComponentHeaderList,
   getComponentHeader,
   getComponentHeaderHistory,
