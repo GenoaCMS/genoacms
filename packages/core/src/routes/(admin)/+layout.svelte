@@ -10,7 +10,7 @@
 </script>
 
 <div class="w-full h-full flex min-h-screen bg-surface-50-950 text-surface-950-50">
-    <aside class="hidden md:flex flex-col h-screen shrink-0 bg-surface-100-900/30 border-r border-surface-200-800">
+    <aside class="hidden md:flex flex-col h-screen shrink-0 border-r border-surface-200-800">
       <Navbar/>
     </aside>
     <main class="flex-grow overflow-y-auto min-w-0">
