@@ -248,16 +248,18 @@ done
 
 **Expected:** three lines, `npm <v> true true imports ok`.
 
-**Refusal of an unbuilt package.** `dist/` is build output and gitignored:
+**Refusal of an incompletely built package.** Removing the whole `dist/` does not reach vendoring:
+the loader refuses first with `config/invalid`, because the descriptors are in `dist/` too. So remove
+only a runtime module, which nothing loads during the build. `dist/` is build output and gitignored:
 
 ```bash
-mv ../adapter-gcp/dist ../adapter-gcp/dist.off
+mv ../adapter-gcp/dist/secrets/runtime.js ../adapter-gcp/runtime.js.off
 node ../cli/src/index.js build gcp --config genoa.config/production.ts 2>&1 | grep -o 'build/vendor-incomplete: @genoacms/adapter-gcp lacks [^;]*'
-mv ../adapter-gcp/dist.off ../adapter-gcp/dist
+mv ../adapter-gcp/runtime.js.off ../adapter-gcp/dist/secrets/runtime.js
 ```
 
-**Expected:** one line, `build/vendor-incomplete: @genoacms/adapter-gcp lacks dist/…`, and the
-directory restored.
+**Expected:** one line, `build/vendor-incomplete: @genoacms/adapter-gcp lacks dist/secrets/runtime.js`,
+and the file restored.
 
 The live GCP deploy is not part of this RFC. The author runs it after the merge (U10).
 
