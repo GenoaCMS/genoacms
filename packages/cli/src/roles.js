@@ -1,5 +1,6 @@
 import { select, text, confirm, isCancel, note, intro, outro, log } from '@clack/prompts'
 import { isResourceScoped, getPermissionScope } from '@genoacms/internal/authorization'
+import { loadConfig } from '@genoacms/config/load'
 import { permissionOptions, render } from './declaration.js'
 
 /**
@@ -7,7 +8,7 @@ import { permissionOptions, render } from './declaration.js'
  *
  * ## Why it prints rather than writes
  *
- * `genoa.config/index.js` is hand-written JavaScript: `import()` expressions, credentials, comments
+ * `genoa.config/development.ts` is hand-written TypeScript: imports, credential references, comments
  * an operator put there on purpose. Rewriting it programmatically would buy some convenience at the
  * price of a tool that can corrupt the file holding an instance's adapters. Printing keeps the whole
  * value of the tool — knowing that what you paste is *valid* — and none of that risk.
@@ -20,14 +21,14 @@ import { permissionOptions, render } from './declaration.js'
  */
 
 /** Resource names offered for a scope, read from the project's own configuration. */
-async function loadCatalog () {
+async function loadCatalog ({ root, file, mode }) {
   try {
-    const { config } = await import('@genoacms/cloudabstraction')
+    const manifest = await loadConfig({ root, file, mode })
     return {
       available: true,
-      bucket: (config.storage?.buckets ?? []).map(bucket => bucket.name),
-      collection: (config.database?.databases ?? [])
-        .flatMap(database => database.collections ?? [])
+      bucket: Object.keys(manifest.config.storage.buckets),
+      collection: Object.values(manifest.config.database.databases)
+        .flatMap(database => database.collections)
         .map(collection => collection.name)
     }
   } catch (error) {
@@ -173,10 +174,10 @@ async function composeAssignment (catalog) {
   outro('Composed.')
 }
 
-async function roles () {
+async function roles (ctx) {
   intro('Compose a role declaration')
 
-  const catalog = await loadCatalog()
+  const catalog = await loadCatalog(ctx)
   if (!catalog.available) {
     log.warn(`Could not read genoa.config, so bucket and collection names are not offered: ${catalog.reason}`)
   }

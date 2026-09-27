@@ -222,9 +222,9 @@ importers:
       '@clack/prompts':
         specifier: ^0.7.0
         version: 0.7.0
-      '@genoacms/cloudabstraction':
+      '@genoacms/config':
         specifier: workspace:^
-        version: link:../cloudAbstraction
+        version: link:../config
       '@genoacms/internal':
         specifier: workspace:^
         version: link:../internal

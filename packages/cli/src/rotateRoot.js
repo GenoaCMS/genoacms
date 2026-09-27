@@ -1,5 +1,6 @@
-import { exec } from 'node:child_process'
 import { confirm, isCancel, log, outro } from '@clack/prompts'
+import { runCoreScript } from './vite.js'
+import { genoaEnvironment } from './environment.js'
 
 /**
  * Rotating the root trust anchor strands every deployed consumer until it is rebuilt with the new
@@ -7,7 +8,7 @@ import { confirm, isCancel, log, outro } from '@clack/prompts'
  * operation whose blast radius is every consumer should not sit behind a session that can be
  * hijacked.
  */
-async function rotateRoot () {
+async function rotateRoot ({ root, file, coreDir, mode }) {
   log.warn('Rotating the root trust anchor will:')
   log.message('  - invalidate the key every deployed consumer SDK has embedded')
   log.message('  - discard the existing subordinate keys, since a compromised root could have signed them')
@@ -20,14 +21,9 @@ async function rotateRoot () {
     return
   }
 
-  // Passed as an environment variable rather than a flag: the command reaches the script through
-  // `npm explore` and then `npm run`, and argument forwarding across both is fragile enough that a
-  // dropped flag would look like the script simply refusing.
-  const child = exec('npm explore @genoacms/core -- npm run rotate-root', {
-    env: { ...process.env, GENOA_BUILD: 'true', GENOACMS_CONFIRM_ROOT_ROTATION: '1' }
-  })
-  child.stdout.pipe(process.stdout)
-  child.stderr.pipe(process.stderr)
+  // Confirmed through the environment rather than `--yes`: the script reads either, and the script
+  // runs in this process, where the environment reaches it without forwarding any argument.
+  await runCoreScript(coreDir, 'scripts/rotate-root.ts', { ...genoaEnvironment({ root, file, mode }), GENOACMS_CONFIRM_ROOT_ROTATION: '1' })
 }
 
 export default rotateRoot
