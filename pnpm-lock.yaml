@@ -173,6 +173,9 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@genoacms/contracts':
+        specifier: workspace:^
+        version: link:../contracts
       knex:
         specifier: ^3.1.0
         version: 3.3.0(pg@8.23.0)
@@ -180,6 +183,9 @@ importers:
         specifier: ^8.14.1
         version: 8.23.0
     devDependencies:
+      '@genoacms/conformance':
+        specifier: workspace:^
+        version: link:../conformance
       eslint:
         specifier: ^9.22.0
         version: 9.39.5(jiti@2.7.0)

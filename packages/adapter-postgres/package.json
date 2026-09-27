@@ -3,9 +3,10 @@
   "version": "0.8.10",
   "description": "GenoaCMS database adapter for postgres",
   "type": "module",
-  "main": "index.js",
+  "main": "src/runtime.js",
   "scripts": {
-    "test": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js"
+    "test": "vitest run src",
+    "test:conformance": "vitest run test"
   },
   "author": {
     "name": "Filip Holčík",
@@ -21,12 +22,14 @@
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",
     "knex": "^3.1.0",
-    "pg": "^8.14.1"
+    "pg": "^8.14.1",
+    "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {
     "eslint": "^9.22.0",
     "neostandard": "^0.12.1",
-    "vitest": "^3.0.9"
+    "vitest": "^3.0.9",
+    "@genoacms/conformance": "workspace:^"
   },
   "exports": {
     ".": {

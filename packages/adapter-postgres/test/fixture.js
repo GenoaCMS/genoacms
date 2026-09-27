@@ -103,3 +103,17 @@ const references = {
 }
 
 export const collections = [references]
+
+export const testDocuments = [{
+  id: crypto.randomUUID(),
+  name: 'Test documnet 1',
+  description: 'desc but changed',
+  sections: []
+}, {
+  id: crypto.randomUUID(),
+  name: 'Test documnet 2',
+  description: 'Another description',
+  sections: [{
+
+  }]
+}]
