@@ -1,0 +1,37 @@
+{
+  "name": "@genoacms/conformance",
+  "version": "0.0.1",
+  "description": "Conformance suites every GenoaCMS storage and database adapter must pass",
+  "type": "module",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/conformance"
+  },
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genoacms/contracts": "workspace:^"
+  },
+  "peerDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  }
+}
