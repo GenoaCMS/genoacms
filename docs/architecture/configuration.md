@@ -96,6 +96,7 @@ another and the process would exit with code 13 (unsettled top-level await).
 | F16 | Nothing calls `SecretReference` or `isSecretReference`. They are declared, and no resolution mechanism exists. | `cloudAbstraction/src/services/secrets/index.d.ts` |
 | F17 | `@genoacms/sveltekit-adapter-cloud-run-functions` needs its `files/` directory built (`rollup -c`) before use. That directory is gitignored and absent in a fresh checkout, so the GCP target cannot build from the monorepo without that step. Published packages include it through `prepublishOnly`. | `sveltekit-adapter-cloud-run-functions/index.js:8`, `.gitignore` |
 | F18 | **Every build runs the instance's startup I/O.** SvelteKit runs the built server to analyse it, which evaluates `hooks.server.ts` and every route's server modules. Two of core's modules do provider I/O at module scope. The first is the instance bootstrap (`await ensureInstanceInitialized()`): signing keys, manifests, the security policy. The second is the dynamic-collection listing, which also creates `.genoacms/collections` when it is missing. So every `vite build` resolves secrets and reads and writes the configured storage. With inline credentials this succeeds without anyone noticing, and the old Cloud Build flow bootstrapped the production instance from inside the build. Without credentials, as in a production config that relies on ADC, the build crashes. Found while verifying RFC-0015. | `hooks.server.ts:11`, `database/database.server.ts:13` |
+| F19 | **The runtime `package.json` names versions the registry does not have, or has with different code.** It pins each package to its installed version (§7.1), and the platform installs from npm. From the monorepo, `@genoacms/language-adapter-ts@0.1.0` and `@genoacms/contracts` are unpublished, so the install fails. `@genoacms/adapter-gcp@0.8.2-1` is published, but from before the descriptor/runtime split: it has no `./secrets` or `./*/runtime` exports, so the install succeeds and the runtime cannot load. Nothing detects the second case. A user's own adapter, kept in their repository and never published, fails the same way. Found preparing the first production deploy. | `config/src/artifact/index.ts`, `versions.ts` |
 
 ### 2.3 Constraints the design must respect
 
@@ -212,6 +213,23 @@ code that runs at import time runs during the build. The guard reads a flag that
 exactly this purpose, rather than inferring build time from the environment.
 *Cost:* two call sites must remember the flag. The loader check turns forgetting it into a build
 failure, not a silent write.
+
+**D9. Local packages travel inside the artifact (F19).** `createRuntimePackage` packs some packages
+with `npm pack` into `<buildDir>/vendor/`. The runtime `package.json` points each of them at its
+tarball, in `dependencies` and in `overrides`. Two rules decide what is vendored:
+- **Every runtime adapter package named in the manifest**, however it was installed. Adapters are the packages users write themselves, and the one install layout that hides where a package came from (yarn v1 copies `file:` dependencies into `node_modules`) cannot be detected (S-8).
+- **Every other package, transitively from a vendored one, that is local:** its installed directory's real path has no `node_modules` segment. That covers pnpm, npm and yarn workspaces, and `file:`/`link:` directory dependencies under npm and pnpm.
+
+Everything else installs from the registry as before. Packing uses npm, which ships with Node, so it
+works in npm, pnpm and yarn (node-modules linker) projects. The artifact is always installed with npm
+9 or later: Cloud Run buildpacks and the AWS procedure already do so, and the Node target documents it.
+
+*Why:* the artifact then installs exactly the adapter code that was loaded and tested on the
+developer's machine, published or not, and a version collision with the registry (F19) cannot occur.
+A user can deploy an adapter that exists only in their repository.
+*Cost:* the build needs `npm` on `PATH` and runs it once per vendored package. Vendored packages lose
+registry provenance, and their own dependencies still resolve by range, as all transitive
+dependencies already do.
 
 ---
 
@@ -697,7 +715,8 @@ reload endpoint, no admin socket.
 ```
 <project>/.genoacms/
   build/                    SvelteKit adapter output (adapter `out`, set by svelte.config.js)
-    package.json            generated: { type: "module", dependencies: core deps ∪ adapter packages }
+    package.json            generated: { type: "module", dependencies: core deps ∪ adapter packages, overrides: vendored }
+    vendor/                 generated: one npm-pack tarball per vendored package (D9)
     …                       server bundle with the runtime manifest embedded; client assets
   deploy/<target>/          workDir of a deploy procedure
 ```
@@ -706,8 +725,12 @@ reload endpoint, no admin socket.
 - **the bundle's imports:** every bare specifier in a static or string-literal dynamic `import` in the server output, reduced to its package name. `node:` builtins are ignored. Anything bare left in the output is external by definition (R2), so it must be installed, and nothing else needs to be. Core's build tooling (`vite`, `vitest`, `tailwindcss`) never appears there.
 - **the adapter packages:** the package of every runtime specifier in `manifest.adapters`. The host imports these with a non-literal specifier (D4), so no scan can see them.
 - **versions** read from each package's installed `package.json`, resolved from `coreDir`.
+- **vendored packages** (D9): each one's entry becomes `file:vendor/<tarball>`, and `overrides` maps every vendored name to its tarball, so a vendored package's own dependency on another vendored one resolves to the tarball as well. `overrides` is required: without it a nested `@genoacms/contracts@^0.0.1` goes to the registry (S-8).
 
-It contains no workspace protocols and no dev dependencies. Core's own `package.json` is not changed.
+It contains no workspace protocols and no dev dependencies. A tarball may still declare
+`workspace:` dependencies, because `npm pack` does not rewrite them. `overrides` replaces those
+specs before npm parses them (S-8). A dependency with a protocol npm cannot parse whose name is
+**not** vendored fails the build. Core's own `package.json` is not changed.
 
 **Measured on real core** (S-6, adapter-node build of `9592593`): the server imports 12 of core's 45
 `dependencies`. They are `@exodus/schemasafe`, `@noble/hashes`, `@noble/post-quantum`, `@sveltejs/kit`,
@@ -721,9 +744,9 @@ Two properties of the output the RFCs must not trip over:
 - **The scan is per build.** In the monorepo, Vite inlines symlinked workspace packages such as `@genoacms/internal`. In a user install the same packages are external. The scan reads whichever output exists, so it is correct in both cases, but the two lists differ.
 - **Rollup tree-shakes manifest properties the server never reads.** The embedded manifest is not a complete copy and must not be treated as one, for example when auditing an artifact for `inline()` values. Audit the manifest the loader produced instead.
 
-**Constraint:** every listed package must be installable from the registry where the target installs
-dependencies. Deploying from the monorepo therefore requires published versions. GCP's remote install
-already has this constraint today.
+**Constraint:** every listed package that is **not vendored** must be installable from the registry
+where the target installs dependencies. Vendored packages (D9) need no registry. Deploying from the
+monorepo therefore needs no published `@genoacms/*` version.
 
 SvelteKit's intermediate `.svelte-kit/` stays inside the installed core package. Moving it would
 break core's `tsconfig.json`, which extends `./.svelte-kit/tsconfig.json`. The build only creates new
@@ -930,6 +953,26 @@ S-6 used a real build of `packages/core` at `9592593`. No repository file was ch
 | S-6 | A bare-specifier scan of the server output finds every external. | **Pass** on real core: 12 externals, no `require`/`createRequire`, and only known non-literal imports (S7.1). The generated `package.json` installs cleanly (126 packages, 67 MB). **Partial:** real core was not booted from the installed artifact, because today's core reads its config from `cwd` at runtime, which this design replaces. The boot-and-exercise check moves into the deploy RFC's verification. |
 | S-7 | Descriptors and deploy-time modules load **from the project root** even when the loading code lives in another package, as `@genoacms/config` and the CLI do in the monorepo. | **Pass with `import-meta-resolve`**, under strict pnpm, from an unrelated directory: descriptor, the SvelteKit adapter through the descriptor's loader, and the adapter runtime. **`runnerImport` was rejected for this:** it resolves from `root` correctly but closes its module runner afterwards, so a descriptor's lazy `import()` then fails with "Vite module runner has been closed". |
 
+**S-8, run on 2026-09-27 for D9 (F19).** Artifact: the real production build of `packages/core`
+(`genoa build gcp --config genoa.config/production.ts` at `15bcbd5`). The six `@genoacms/*` runtime
+packages (`adapter-gcp`, `authentication-adapter-array`, `language-adapter-ts`, `contracts`,
+`internal`, `sveltekit-adapter-cloud-run-functions`) were packed and each artifact was installed with
+`npm install --omit=dev` into an empty directory. "Pass" means: every `@genoacms/*` entry in
+`package-lock.json` resolves to `file:vendor/…`, each package is installed once, and all five runtime
+specifiers import.
+
+| Case | Result |
+| :-- | :-- |
+| A: `pnpm pack` (rewrites `workspace:^` to ranges), `file:` in `dependencies` plus `overrides` | **Pass**, npm 11.19. `adapter-gcp@0.8.2-1` is the local build, with `./secrets/runtime`, although the registry has a different package under that version. |
+| A′: as A, without `overrides` | **Fail:** `E404 @genoacms/contracts@^0.0.1`. Nested dependencies ignore the root's `file:` entries. |
+| B: `npm pack --ignore-scripts` (keeps `workspace:^` in the tarball), plus `overrides` | **Pass** with npm 11.19, 10.9.2 and 9.9.4. `overrides` replaces `workspace:^` before npm parses it. |
+| B′: as B, without `overrides` | **Fail:** `EUNSUPPORTEDPROTOCOL workspace:^`. |
+| Locality by real path | pnpm workspace package: outside `node_modules` (local). npm `file:` directory: symlink, local. **yarn v1 `file:` directory: copied into `node_modules`, indistinguishable from a registry install.** Registry packages under pnpm and npm: inside `node_modules`. |
+| `esbuild` native binary after install | Works on the same platform, although npm 11 reports its `postinstall` as not covered by `allowScripts`. The binary comes from the optional platform package. |
+
+B is the design, because npm is the one packer every user has. The yarn v1 row is why adapters are
+vendored unconditionally (D9).
+
 **S-4 live deploy: skipped by decision (U10).** It is verified once `genoa.config/production.ts` exists, as a
 verification step of the GCP deployment RFC.
 
@@ -943,6 +986,7 @@ order, each with exact files, contracts, non-goals and verification commands.
 - Adapters are ported next to their old modules (RFC-0006 to RFC-0013).
 - RFC-0014 flips every package's `exports` and switches core in one commit, so every intermediate commit stays green.
 - RFC-0018 applies U12 to the loader and to core. It was written after RFC-0014 was implemented, and is implemented before RFC-0015.
+- RFC-0020 implements D9 (vendoring). It was written after RFC-0015 was implemented, when the first production deploy hit F19.
 
 Findings made while writing the RFCs were folded back into this document:
 - `LanguageAdapter` stays in `internal` (§5.1);
@@ -1038,3 +1082,28 @@ Findings made while writing the RFCs were folded back into this document:
 - **Module-scope I/O outside these two sites.** The loader check catches provider construction, but not direct `fetch` or file I/O at import time. A module that reads a remote resource without the host would still run during the build.
 - **Runtime failures that bypass promises.** The build crash surfaced as an uncaught exception thrown by the GCP auth library outside the promise chain. K1's "never rejects" guarantee therefore does not cover every provider failure. On a real instance, missing ADC could crash the process instead of degrading. That is not addressed here.
 - **Prerendering.** `building` is also true while prerendering. If a page is ever prerendered, it cannot reach a provider, by design. That is correct for this CMS, but it has to be known.
+
+---
+
+## Critique & architectural sanity check: D9 (local packages travel inside the artifact)
+
+**Pros**
+- The deployed adapter code is byte-for-byte what the developer's machine loaded. F19's silent case, a registry package with the same version and different code, cannot happen.
+- Users can deploy adapters that exist only in their repository, from npm, pnpm or yarn projects, with no registry and no publish step.
+- The monorepo deploys without a release, so a deploy no longer has to follow a publish.
+- No deploy procedure changes. GCP, AWS and Node all copy `buildDir`, and both procedures that rewrite `package.json` spread the existing object, so `overrides` survives.
+- Only npm is required, and it ships with Node.
+
+**Cons & trade-offs**
+- Adapters are repacked even when they came from the registry. The packed files are the installed ones, which the project's lockfile integrity already covered, but registry provenance is not carried into the artifact.
+- The build now runs a child process per vendored package. A cold `npm pack` takes about a second, which is small next to `vite build`.
+- The artifact is installed with npm only. A target whose operator insists on pnpm or yarn inside the artifact would need `pnpm.overrides` or `resolutions` as well. That is not specified.
+- A vendored package's own dependencies still resolve by range at install time, as every transitive dependency does today. D9 pins nothing new.
+
+**Blindspots & missed edge cases**
+- **yarn v1 `file:` packages that are not adapters.** A local helper library that an adapter depends on, installed by yarn v1's copy, looks like a registry package. It is not vendored, and the artifact install fails with `E404` for it. Adapters themselves are covered by the unconditional rule.
+- **Protocols other than `workspace:`.** pnpm `catalog:`, yarn `patch:` and `portal:` in a vendored package's dependencies, on a name that is not vendored, fail the build by rule. The build does not rewrite them.
+- **Unbuilt packages.** `npm pack --ignore-scripts` packs whatever is on disk. A package whose `exports` target a `dist/` that was never built is refused by name. A stale `dist/` from an older source is not detected.
+- **Secrets in a package directory.** `npm pack` includes whatever `files` or `.npmignore` let through. A deny-list of the repository's known secret filenames refuses the obvious cases. A credential under any other name ships.
+- **Yarn Plug'n'Play.** There is no `node_modules`, so version lookup already fails with `build/not-installed`. D9 does not change that.
+- **Native binaries in vendored packages** are packed as they are on the build machine. None of the packages vendored today has one. The AWS procedure's `--os`/`--cpu` question applies to registry dependencies and is separate.
