@@ -837,7 +837,7 @@ without `npm explore` and without `GENOA_BUILD`.
 | K4 | Bucket and collection catalogs for the grant editor | `host.buckets`, `host.collections` |
 | K5 | Unit tests mock the config package | Tests mock `$lib/script/host.server` with a host over in-memory runtimes |
 | K6 | Root rotation with explicit confirmation | `genoa rotate-root`, same confirmation |
-| P1 | `init` scaffolds a project | Writes `genoa.config/development.ts` and `genoa.config/production.ts` templates; installs secrets-env |
+| P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts` and `security.ts` both import; installs secrets-env |
 | P2 | `run` (dev server) | `genoa dev`; `run` kept as an alias |
 | P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --development` |
 | P4 | `database`: list and delete dynamic collections | Over `host.storageForBucket(host.defaultBucket)`; fixes F8's `config.storage.adapter` |
@@ -988,3 +988,22 @@ Findings made while writing the RFCs were folded back into this document:
 - **A `development.ts` that is not a config.** Anything named `genoa.config/development.ts` is now evaluated as the config. A project that already keeps an unrelated module under that name is misread. That is unlikely for a directory named `genoa.config`.
 - **Production configs without `developmentOnly` providers.** The guard in U9 only works when the development config contains a `developmentOnly` adapter. A development config built from cloud providers only would be built for production without complaint, and naming it `development.ts` does not change that.
 - **`.npmignore` in core.** `/genoa.config` now covers every config file. Anything moved out of that directory later has to be listed again, or core's configs and credential imports get published.
+
+---
+
+## Critique & architectural sanity check: P1 (`init` scaffolds the whole directory)
+
+**Pros**
+- Roles, security seeds and collections have one definition from a project's first commit. The failure this prevents is two authorization stanzas that differ, which is silent and security-relevant.
+- `collections.ts` is part of the scaffold, because describing data that already exists is the reason to add GenoaCMS to a project.
+- The production config exists from the start, so deploying means filling in `TODO`s, not writing a file from scratch.
+
+**Cons & trade-offs**
+- Five files instead of one. A small project sees more structure than it needs.
+- `buckets` and `databases` stay per environment, so they are duplicated when both environments use the same ones.
+- For the AWS suite, `production.ts` names a secrets adapter that does not exist yet.
+
+**Blindspots & missed edge cases**
+- **Re-running `init`.** It refuses when any target file exists, so it cannot be used to add a missing file later. The user copies from the template instead.
+- **A `TODO` specifier in `production.ts`** is invisible to `genoa dev`, because the default lookup never loads that file. It surfaces at the first `genoa build --config genoa.config/production.ts`, which is the intended point, but possibly long after `init`.
+- **The collection example** uses schema helpers from `@genoacms/contracts/schemas`, so `init` must install `@genoacms/contracts` directly. Under strict pnpm, the helper import fails without it.

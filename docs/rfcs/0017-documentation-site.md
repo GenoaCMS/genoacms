@@ -88,7 +88,7 @@ and `packages/cli/src/templates/development.ts`.
    - a complete minimal third-party storage adapter (descriptor, runtime and `exports` map);
    - the deployment descriptor with `svelteKitAdapter`, `procedure` and `DeployContext`;
    - running `@genoacms/conformance`.
-6. **getting-started:** `genoa init` → fill options → `genoa dev`, then the production config and `genoa deploy --config genoa.config/production.ts`.
+6. **getting-started:** `genoa init` → fill options → describe existing data in `genoa.config/collections.ts` → `genoa dev`, then the production config and `genoa deploy --config genoa.config/production.ts`. The collections step links to the introduction's "The name" section: GenoaCMS is set on infrastructure and data that already exist.
 7. **cli:**
    - every command, `--config`, `--mode` with the per-command defaults, `--no-inline`;
    - what `build` writes (`.genoacms/build`, its `package.json`);
