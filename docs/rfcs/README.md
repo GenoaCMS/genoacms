@@ -27,6 +27,7 @@ own before starting the next.
 | [0013](0013-adapter-aws.md) | Port `adapter-aws` | `packages/adapter-aws` |
 | [0014](0014-cutover-core.md) | Cutover: flip adapter exports, integrate core | all adapters, `packages/core`, root `.gitignore` |
 | [0018](0018-config-directory.md) | One config directory (U12). Written after 0014, implemented before 0015. | `packages/config`, `packages/core` |
+| [0019](0019-no-provider-io-while-building.md) | No provider I/O while SvelteKit analyses the build (D8). Found verifying 0015, implemented before it. | `packages/core` |
 | [0015](0015-cli.md) | CLI | `packages/cli` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |

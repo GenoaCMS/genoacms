@@ -95,6 +95,7 @@ another and the process would exit with code 13 (unsettled top-level await).
 | F15 | **GCP deploy is broken today.** It injects `deployment/snippets/build.js`, which does not exist. The model it assumes is a remote build: upload the project source, and the entry snippet imports `./node_modules/@genoacms/core/build/index.js` after GCP has installed and built. | `deploy.ts:107`, `adapter-gcp/deployment/snippets/` |
 | F16 | Nothing calls `SecretReference` or `isSecretReference`. They are declared, and no resolution mechanism exists. | `cloudAbstraction/src/services/secrets/index.d.ts` |
 | F17 | `@genoacms/sveltekit-adapter-cloud-run-functions` needs its `files/` directory built (`rollup -c`) before use. That directory is gitignored and absent in a fresh checkout, so the GCP target cannot build from the monorepo without that step. Published packages include it through `prepublishOnly`. | `sveltekit-adapter-cloud-run-functions/index.js:8`, `.gitignore` |
+| F18 | **Every build runs the instance's startup I/O.** SvelteKit runs the built server to analyse it, which evaluates `hooks.server.ts` and every route's server modules. Two of core's modules do provider I/O at module scope. The first is the instance bootstrap (`await ensureInstanceInitialized()`): signing keys, manifests, the security policy. The second is the dynamic-collection listing, which also creates `.genoacms/collections` when it is missing. So every `vite build` resolves secrets and reads and writes the configured storage. With inline credentials this succeeds without anyone noticing, and the old Cloud Build flow bootstrapped the production instance from inside the build. Without credentials, as in a production config that relies on ADC, the build crashes. Found while verifying RFC-0015. | `hooks.server.ts:11`, `database/database.server.ts:13` |
 
 ### 2.3 Constraints the design must respect
 
@@ -122,7 +123,7 @@ These are facts about the tools, not choices. A design that ignores one fails in
 3. The full service set: `authentication`, `database`, `storage`, `deployment`, `secrets`, `languages`. Plus `authorization`, `security` and collection definitions.
 4. Deployment targets that choose a SvelteKit adapter at build time and run a deploy procedure.
 5. Credentials can live in a secret manager. A reference is resolved at runtime and is never baked into the build.
-6. `vite build` constructs no client and resolves no secret. A config that uses only `secret()` and `env()` builds with no credential present. Core's own dev config imports credential files by choice (U7), so it still needs them to load.
+6. `vite build` constructs no client and resolves no secret, including while SvelteKit runs the app to analyse it (D8, F18). A config that uses only `secret()` and `env()` builds with no credential present. Core's own dev config imports credential files by choice (U7), so it still needs them to load.
 7. All current functionality preserved (S10).
 
 ### Non-goals
@@ -199,6 +200,18 @@ calls reported `production` (S-2 result, S13). SvelteKit runs extra internal Vit
 the Vite config while loading its own config. When `GENOA_MODE` is unset (monorepo `pnpm dev` or
 `pnpm build`), the plugin falls back to `development` for `vite dev` and `production` for `vite build`.
 That fallback depends only on `command`, which was consistent across every call.
+
+**D8. No provider is constructed while SvelteKit analyses the build (F18).** Core reads `building`
+from `$app/environment`, which SvelteKit sets exactly while it runs the app during `vite build`. It
+is enforced twice:
+- **At each module-scope call:** the bootstrap and the collection listing skip their I/O while `building`. The listing reads as empty.
+- **In core's host loader:** `host.server.ts` refuses to load any adapter runtime while `building` (`host/building`). A future module-scope call therefore fails the build loudly instead of quietly reaching a live instance.
+
+*Why:* goal 6 was an assumption about Vite, and SvelteKit's analysis step broke it. Any server-side
+code that runs at import time runs during the build. The guard reads a flag that SvelteKit defines for
+exactly this purpose, rather than inferring build time from the environment.
+*Cost:* two call sites must remember the flag. The loader check turns forgetting it into a build
+failure, not a silent write.
 
 ---
 
@@ -831,7 +844,7 @@ without `npm explore` and without `GENOA_BUILD`.
 | A8 | Unused adapters cost nothing | Stronger: construction is lazy per provider, not only loading |
 | A9 | Adapter conformance tests | `@genoacms/conformance`, run against a factory, no config file |
 | A10 | Every shipped adapter | All ported; AWS goes from non-functional to functional |
-| K1 | Bootstrap at module scope, never rejects | Unchanged; `createHost` does no I/O |
+| K1 | Bootstrap at module scope, never rejects | Unchanged at runtime; `createHost` does no I/O; skipped while SvelteKit analyses the build (D8) |
 | K2 | Secrets on the bootstrap and signing paths | `host.secrets()` directly, outside the resolver cache |
 | K3 | `resolveSecretReference` (unused) | Deleted; behavior moves to the resolver, which is actually called |
 | K4 | Bucket and collection catalogs for the grant editor | `host.buckets`, `host.collections` |
@@ -1007,3 +1020,21 @@ Findings made while writing the RFCs were folded back into this document:
 - **Re-running `init`.** It refuses when any target file exists, so it cannot be used to add a missing file later. The user copies from the template instead.
 - **A `TODO` specifier in `production.ts`** is invisible to `genoa dev`, because the default lookup never loads that file. It surfaces at the first `genoa build --config genoa.config/production.ts`, which is the intended point, but possibly long after `init`.
 - **The collection example** uses schema helpers from `@genoacms/contracts/schemas`, so `init` must install `@genoacms/contracts` directly. Under strict pnpm, the helper import fails without it.
+
+---
+
+## Critique & architectural sanity check: D8 (nothing constructed while building)
+
+**Pros**
+- A build no longer reads or writes the instance it is built for. Before, every build bootstrapped the configured instance, and the old Cloud Build flow did so for production.
+- The production config builds with no credential present, which goal 6 always claimed and never delivered.
+- The loader check makes the invariant enforced rather than remembered: new module-scope I/O fails the build by name.
+
+**Cons & trade-offs**
+- Core now depends on `$app/environment` in two service modules and in `host.server.ts`. Those modules are only ever evaluated by SvelteKit, but unit tests have to provide the flag (Vitest resolves it to `false` through SvelteKit's plugin).
+- The collection listing reads as empty during analysis. Nothing prerenders, so nothing observes it. A prerendered page that listed collections would be built empty.
+
+**Blindspots & missed edge cases**
+- **Module-scope I/O outside these two sites.** The loader check catches provider construction, but not direct `fetch` or file I/O at import time. A module that reads a remote resource without the host would still run during the build.
+- **Runtime failures that bypass promises.** The build crash surfaced as an uncaught exception thrown by the GCP auth library outside the promise chain. K1's "never rejects" guarantee therefore does not cover every provider failure. On a real instance, missing ADC could crash the process instead of degrading. That is not addressed here.
+- **Prerendering.** `building` is also true while prerendering. If a page is ever prerendered, it cannot reach a provider, by design. That is correct for this CMS, but it has to be known.
