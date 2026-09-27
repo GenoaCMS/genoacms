@@ -47,7 +47,7 @@ pnpm --filter @genoacms/core run test:integration
 ```
 
 ⚠️ **These need provider credentials.** `playwright.config.ts` boots the app with
-`pnpm run build && pnpm run preview`, and `genoa.config.ts` imports the
+`pnpm run build && pnpm run preview`, and `genoa.config/development.ts` imports the
 gitignored `genoa.config/gcp/serviceAccount.json` and `authCredentials.js` —
 so without them the config does not load, the web server never starts, and every
 test fails on timeout. The development secret store is `.genoacms/secrets.env`.

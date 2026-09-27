@@ -1,6 +1,3 @@
 /genoa.config
-/genoa.config.ts
-/genoa.config.production.ts
-/genoa/
 /secrets.env.example
 /.genoacms

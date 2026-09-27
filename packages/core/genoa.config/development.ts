@@ -8,12 +8,12 @@ import type {} from '@genoacms/adapter-secrets-env'
 import type {} from '@genoacms/authentication-adapter-array'
 import type {} from '@genoacms/adapter-node'
 // Gitignored and kept where they have always been, so this file needs them to load.
-import serviceAccount from './genoa.config/gcp/serviceAccount.json' with { type: 'json' }
-import authCredentials from './genoa.config/gcp/authCredentials.js'
-import { collections } from './genoa/collections.js'
-import { authorization } from './genoa/authorization.js'
-import { security } from './genoa/security.js'
-import { languages } from './genoa/languages.js'
+import serviceAccount from './gcp/serviceAccount.json' with { type: 'json' }
+import authCredentials from './gcp/authCredentials.js'
+import { collections } from './collections.js'
+import { authorization } from './authorization.js'
+import { security } from './security.js'
+import { languages } from './languages.js'
 
 /** Development: the local secret store, today's GCP project and credentials, a local Node target. */
 export default defineConfig({
@@ -24,7 +24,7 @@ export default defineConfig({
     }
   },
   secrets: {
-    // Development only: a production build refuses it. genoa.config.production.ts uses Secret Manager.
+    // Development only: a production build refuses it. production.ts uses Secret Manager.
     // Only one provider may be configured, so that is a replacement rather than an addition.
     providers: { local: secretsProvider('@genoacms/adapter-secrets-env', {}) }
   },

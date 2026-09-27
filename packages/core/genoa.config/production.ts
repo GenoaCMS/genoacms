@@ -9,11 +9,11 @@ import type {} from '@genoacms/adapter-gcp/deployment'
 import type {} from '@genoacms/authentication-adapter-array'
 // Gitignored. Used only by the gcp target, on the operator's machine: deployment options never
 // enter the build.
-import serviceAccount from './genoa.config/gcp/serviceAccount.json' with { type: 'json' }
-import { collections } from './genoa/collections.js'
-import { authorization } from './genoa/authorization.js'
-import { security } from './genoa/security.js'
-import { languages } from './genoa/languages.js'
+import serviceAccount from './gcp/serviceAccount.json' with { type: 'json' }
+import { collections } from './collections.js'
+import { authorization } from './authorization.js'
+import { security } from './security.js'
+import { languages } from './languages.js'
 
 /**
  * Production on GCP. Storage, Firestore and Secret Manager authenticate as the function's own

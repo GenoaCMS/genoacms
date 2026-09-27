@@ -57,8 +57,8 @@ vi.mock('$lib/script/utils.server', () => ({
 const declaredRoles: { value: unknown } = { value: undefined }
 
 vi.mock('$lib/script/host.server', async () => {
-  const { authorization } = await import('../../../genoa/authorization')
-  const { security } = await import('../../../genoa/security')
+  const { authorization } = await import('../../../genoa.config/authorization')
+  const { security } = await import('../../../genoa.config/security')
   return {
     host: {
       get authorization () { return { ...authorization, roles: declaredRoles.value } },
