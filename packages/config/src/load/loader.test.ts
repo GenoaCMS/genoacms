@@ -44,12 +44,20 @@ describe('loading a valid config', () => {
     expect(manifest.config.storage.providers.gcs.options).toEqual({ projectId: 'p', credentials: { $secret: 'GCS_SA' } })
   })
 
-  it('finds genoa.config/index.ts when genoa.config.ts is absent, and prefers genoa.config.ts', async () => {
-    const nested = project({ config: configSource(baseConfig()), configName: 'genoa.config/index.ts' })
+  it('finds genoa.config/development.ts when genoa.config.ts is absent, and prefers genoa.config.ts', async () => {
+    const nested = project({ config: configSource(baseConfig()), configName: 'genoa.config/development.ts' })
     expect((await loadConfig({ root: nested.root, mode: 'production', onWarning: silent })).mode).toBe('production')
 
-    const both = project({ config: configSource(baseConfig()), files: { 'genoa.config/index.ts': 'throw new Error("the directory form must lose")' } })
+    const both = project({ config: configSource(baseConfig()), files: { 'genoa.config/development.ts': 'throw new Error("the directory form must lose")' } })
     await expect(loadConfig({ root: both.root, mode: 'development' })).resolves.toBeDefined()
+  })
+
+  it('does not take index.ts or production.ts in genoa.config/ as the default', async () => {
+    // A production config is always named explicitly, so the lookup must never land on one.
+    for (const configName of ['genoa.config/index.ts', 'genoa.config/production.ts']) {
+      const { root } = project({ config: configSource(baseConfig()), configName })
+      await expect(loadConfig({ root, mode: 'development' })).rejects.toMatchObject({ code: 'config/not-found' })
+    }
   })
 
   it('records the config file and everything it imports, in development only', async () => {

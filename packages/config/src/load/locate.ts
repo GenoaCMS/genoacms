@@ -7,10 +7,10 @@ const CANDIDATES = [
   'genoa.config.mts',
   'genoa.config.js',
   'genoa.config.mjs',
-  'genoa.config/index.ts',
-  'genoa.config/index.mts',
-  'genoa.config/index.js',
-  'genoa.config/index.mjs'
+  'genoa.config/development.ts',
+  'genoa.config/development.mts',
+  'genoa.config/development.js',
+  'genoa.config/development.mjs'
 ]
 
 /** The first existing config file under `root`, in the order above. */
