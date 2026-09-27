@@ -1,0 +1,47 @@
+{
+  "name": "@genoacms/config",
+  "version": "0.0.1",
+  "description": "GenoaCMS configuration: authoring helpers, loader, host and build integration",
+  "type": "module",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/config"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./load": {
+      "types": "./dist/load/index.d.ts",
+      "import": "./dist/load/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepare": "pnpm run build",
+    "test": "pnpm run build && vitest run",
+    "check": "tsc --noEmit -p test/types/tsconfig.json"
+  },
+  "dependencies": {
+    "@genoacms/contracts": "workspace:^",
+    "@genoacms/internal": "workspace:^",
+    "import-meta-resolve": "^4.1.0",
+    "vite": "^7.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.7"
+  }
+}
