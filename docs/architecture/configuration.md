@@ -27,10 +27,11 @@ Nothing is released, so there is no migration: every shape below replaces its pr
 | U5 | `database.defaultDatabase` is history. | Dropped (S10). |
 | U6 | Core's `dependencies` stay as they are: `vite` and the build tooling are genuinely needed where core is installed as a package and built by the user. | The runtime `package.json` is derived from what the server bundle imports, not from core's `dependencies` (S7.1). |
 | U7 | Core's development config keeps today's providers and today's credential files, imported and wrapped in `inline()`. | Core's own CI still cannot load core's dev config (S8). A config that uses `secret()` or `env()` builds with no credential present. |
-| U8 | GCP deployment of core moves to a separate production config. | `packages/core/genoa.config.production.ts` (S8). |
+| U8 | GCP deployment of core moves to a separate production config. | `packages/core/genoa.config/production.ts` (S8, U12). |
 | U9 | `--config` is optional on every command, `genoa deploy` included. | Without it, the default lookup applies (S5.5). A development config chosen by mistake for a production build fails the `developmentOnly` check (S8). |
 | U10 | The live GCP spike (S-4) is skipped until the production config exists. That config uses `@genoacms/adapter-gcp/secrets`. | The first real GCP deploy is part of the GCP deployment RFC's verification (S13). |
 | U11 | `packages/core/.env` holds the dev instance's signing seeds (root, registry sequence, subordinates). The author moves it once, by hand, to `packages/core/.genoacms/secrets.env` when core switches stores. | No path override and no fallback in code. `envDir: false` and `viteConfig.test.ts` are deleted. The core RFC stops for this step, and agents never read or move secret files. |
+| U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (S5.5). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (S8). |
 
 ---
 
@@ -245,7 +246,7 @@ writing the RFCs. An earlier draft moved it, which would have made `contracts` r
 ### 5.2 Module graph after
 
 ```
-genoa.config.ts ──imports──▶ collections.ts, @genoacms/config (helpers), adapter types (type-only)
+genoa.config/development.ts ──imports──▶ ./collections.ts, @genoacms/config (helpers), adapter types (type-only)
       │  runnerImport (dev machine / CI only)
       v
   Manifest (JSON) ────────────────────────────────────────────────┐
@@ -513,7 +514,9 @@ interface LoadOptions {
 declare function loadConfig (options: LoadOptions): Promise<Manifest>   // rejects with every reason listed
 ```
 
-**Default lookup** under `root`: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/index.{ts,mts,js,mjs}`.
+**Default lookup** under `root` (U12): `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}`.
+The root file wins when both forms exist. The lookup never finds a production config:
+`genoa.config/production.ts` is always named with `--config` or `GENOA_CONFIG`.
 
 **Loader rules**, all enforced before a manifest exists:
 
@@ -725,14 +728,18 @@ files there and never modifies installed ones.
 
 ## 8. Config files per environment (U1)
 
-A project holds one config file per environment. Shared parts are ordinary TypeScript modules:
+A project holds one config file per environment, all in one directory, `genoa.config/` (U12). Shared
+parts are ordinary TypeScript modules beside them:
 
 ```
-genoa.config.ts                 development: secrets-env, local storage/database, target `local`
-genoa.config.production.ts      production: Secret Manager (ADC), cloud providers, target `gcp`
-genoa/collections.ts            shared
-genoa/authorization.ts          shared roles and assignments
+genoa.config/
+  development.ts                development: secrets-env, local storage/database, target `local`
+  production.ts                 production: Secret Manager (ADC), cloud providers, target `gcp`
+  collections.ts                shared
+  authorization.ts              shared roles and assignments
 ```
+
+A project with a single config may use one root file, `genoa.config.ts`, instead.
 
 Every CLI command accepts `--config <file>`, which defaults to the lookup in S5.5. Choosing the wrong
 file for a production build is caught at build time, because the dev config's secrets store is
@@ -743,10 +750,11 @@ file for a production build is caught at build time, because the dev config's se
 
 | File | Providers | Credentials |
 | :-- | :-- | :-- |
-| `packages/core/genoa.config.ts` (development) | Today's set: GCS (`FIM-gcs`), Firestore, `secrets-env`, `authentication-adapter-array`, `language-adapter-ts`; target `local` (`adapter-node`) | Today's gitignored files, imported and wrapped: `inline(serviceAccount)` and `inline(authCredentials)`, imported from where they are now (`genoa.config/gcp/serviceAccount.json`, `genoa.config/gcp/authCredentials.js`). `genoa.config/index.js` and `genoa.config/gcp/index.js` are removed, so the default lookup finds `genoa.config.ts`. Development mode does not warn. |
-| `packages/core/genoa.config.production.ts` | The same storage, database, authentication and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; target `gcp` | Storage, Firestore and Secret Manager omit `credentials` (Application Default Credentials: the function's service account). Admin credentials are `secret('GENOACMS_ADMIN_CREDENTIALS')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
+| `packages/core/genoa.config/development.ts` | Today's set: GCS (`FIM-gcs`), Firestore, `secrets-env`, `authentication-adapter-array`, `language-adapter-ts`; target `local` (`adapter-node`) | Today's gitignored files, imported and wrapped: `inline(serviceAccount)` and `inline(authCredentials)`, imported from where they are now, beside the config (`genoa.config/gcp/serviceAccount.json`, `genoa.config/gcp/authCredentials.js`). `genoa.config/index.js` and `genoa.config/gcp/index.js` are removed, so the default lookup finds `genoa.config/development.ts`. Development mode does not warn. |
+| `packages/core/genoa.config/production.ts` | The same storage, database, authentication and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; target `gcp` | Storage, Firestore and Secret Manager omit `credentials` (Application Default Credentials: the function's service account). Admin credentials are `secret('GENOACMS_ADMIN_CREDENTIALS')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
 
-Shared parts (collections, authorization, security, languages) live in modules both files import.
+Shared parts (collections, authorization, security, languages) live in modules beside them in
+`genoa.config/`, which both files import.
 
 The Vite plugin is active in `vitest` and `vite build`, so both evaluate the dev config. Core's CI
 therefore still cannot run either without the credential files, exactly as today. That is the accepted
@@ -804,7 +812,7 @@ without `npm explore` and without `GENOA_BUILD`.
 
 | Id | Capability today | After |
 | :-- | :-- | :-- |
-| C1 | Config as a module at the project root, split into files | `genoa.config.ts` or `genoa.config/index.ts`; may import anything that evaluates to data |
+| C1 | Config as a module at the project root, split into files | `genoa.config.ts`, or the `genoa.config/` directory with `development.ts` as its default entry (U12); may import anything that evaluates to data |
 | C2 | `GENOA_CONFIG_PATH` override | `--config`, `GENOA_CONFIG` (absolute) |
 | C3 | Authentication providers tried in order; `cookieName` | Record in key order; `host.authenticationProviders()`, `host.cookieName` |
 | C4 | Databases → provider; collection lookup across databases | `database.databases`; `host.databaseForCollection`, `host.collections` |
@@ -829,7 +837,7 @@ without `npm explore` and without `GENOA_BUILD`.
 | K4 | Bucket and collection catalogs for the grant editor | `host.buckets`, `host.collections` |
 | K5 | Unit tests mock the config package | Tests mock `$lib/script/host.server` with a host over in-memory runtimes |
 | K6 | Root rotation with explicit confirmation | `genoa rotate-root`, same confirmation |
-| P1 | `init` scaffolds a project | Writes `genoa.config.ts` (dev) and `genoa.config.production.ts` templates; installs secrets-env |
+| P1 | `init` scaffolds a project | Writes `genoa.config/development.ts` and `genoa.config/production.ts` templates; installs secrets-env |
 | P2 | `run` (dev server) | `genoa dev`; `run` kept as an alias |
 | P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --development` |
 | P4 | `database`: list and delete dynamic collections | Over `host.storageForBucket(host.defaultBucket)`; fixes F8's `config.storage.adapter` |
@@ -909,7 +917,7 @@ S-6 used a real build of `packages/core` at `9592593`. No repository file was ch
 | S-6 | A bare-specifier scan of the server output finds every external. | **Pass** on real core: 12 externals, no `require`/`createRequire`, and only known non-literal imports (S7.1). The generated `package.json` installs cleanly (126 packages, 67 MB). **Partial:** real core was not booted from the installed artifact, because today's core reads its config from `cwd` at runtime, which this design replaces. The boot-and-exercise check moves into the deploy RFC's verification. |
 | S-7 | Descriptors and deploy-time modules load **from the project root** even when the loading code lives in another package, as `@genoacms/config` and the CLI do in the monorepo. | **Pass with `import-meta-resolve`**, under strict pnpm, from an unrelated directory: descriptor, the SvelteKit adapter through the descriptor's loader, and the adapter runtime. **`runnerImport` was rejected for this:** it resolves from `root` correctly but closes its module runner afterwards, so a descriptor's lazy `import()` then fails with "Vite module runner has been closed". |
 
-**S-4 live deploy: skipped by decision (U10).** It is verified once `genoa.config.production.ts` exists, as a
+**S-4 live deploy: skipped by decision (U10).** It is verified once `genoa.config/production.ts` exists, as a
 verification step of the GCP deployment RFC.
 
 ---
@@ -921,6 +929,7 @@ order, each with exact files, contracts, non-goals and verification commands.
 
 - Adapters are ported next to their old modules (RFC-0006 to RFC-0013).
 - RFC-0014 flips every package's `exports` and switches core in one commit, so every intermediate commit stays green.
+- RFC-0018 applies U12 to the loader and to core. It was written after RFC-0014 was implemented, and is implemented before RFC-0015.
 
 Findings made while writing the RFCs were folded back into this document:
 - `LanguageAdapter` stays in `internal` (§5.1);
@@ -958,3 +967,24 @@ Findings made while writing the RFCs were folded back into this document:
 - **Integer-like provider keys** silently reorder authentication trials. Loader rule 9 catches this, but only if that rule is implemented.
 - **Secrets used by several providers** are fetched once, thanks to the per-key cache, but a timeout fails every provider waiting on that key at the same moment. That is acceptable, but it looks like correlated failures in logs.
 - **`authentication-adapter-array` credentials** become a JSON secret with plain-text passwords. Moving them out of the config is an improvement, but they remain plain text in the store (S3 non-goal).
+
+---
+
+## Critique & architectural sanity check: U12 (one config directory)
+
+**Pros**
+- A project's configuration has one location. Everything a reviewer or a `.npmignore` needs to know about is under `genoa.config/`, and the project root holds no `genoa/` sibling.
+- Environment names are the file names, so `--config genoa.config/production.ts` reads as what it does.
+- Core's credential files were already in `genoa.config/gcp/`. The configs now import them as `./gcp/…`, beside themselves, instead of reaching into a sibling directory.
+- The loader change is one line of candidates. Everything that resolves the project root (the CLI, `GENOA_PROJECT`, the host) is unaffected, because the root never depended on where the config file sits.
+
+**Cons & trade-offs**
+- `genoa.config/index.ts` is no longer a config. Tooling habits (an editor jumping to `index.ts`, a reader expecting the directory's entry point there) do not apply.
+- Two layouts remain supported: the root file and the directory. Documentation has to teach the directory and mention the file.
+- The names suggest a mode-based default (`production.ts` for a production build) that does not exist. `genoa build` without `--config` still finds `development.ts` and then fails the `developmentOnly` check (U9). That failure is the intended guard, but the symmetric names make it more surprising.
+
+**Blindspots & missed edge cases**
+- **Both forms present.** The root file wins silently. A project that moves to the directory and forgets the old root file keeps loading the old one. A `config/ambiguous` error would catch it, but it is not specified.
+- **A `development.ts` that is not a config.** Anything named `genoa.config/development.ts` is now evaluated as the config. A project that already keeps an unrelated module under that name is misread. That is unlikely for a directory named `genoa.config`.
+- **Production configs without `developmentOnly` providers.** The guard in U9 only works when the development config contains a `developmentOnly` adapter. A development config built from cloud providers only would be built for production without complaint, and naming it `development.ts` does not change that.
+- **`.npmignore` in core.** `/genoa.config` now covers every config file. Anything moved out of that directory later has to be listed again, or core's configs and credential imports get published.

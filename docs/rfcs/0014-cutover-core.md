@@ -6,6 +6,7 @@
 | Depends on | RFC-0001 to RFC-0013 |
 | Architecture | §4 (all); §5.2; §8; §9; U6, U7, U8, U11 |
 | Commit | `refactor: switch core and adapters to the manifest and host` |
+| Amended by | RFC-0018 (U12): core's configs and shared modules move into `genoa.config/` (§2.2, §4.1, §4.2) |
 
 ## 1. Summary
 

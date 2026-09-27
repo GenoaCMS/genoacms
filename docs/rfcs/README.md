@@ -26,6 +26,7 @@ own before starting the next.
 | [0012](0012-adapter-node.md) | Port `adapter-node` | `packages/adapter-node` |
 | [0013](0013-adapter-aws.md) | Port `adapter-aws` | `packages/adapter-aws` |
 | [0014](0014-cutover-core.md) | Cutover: flip adapter exports, integrate core | all adapters, `packages/core`, root `.gitignore` |
+| [0018](0018-config-directory.md) | One config directory (U12). Written after 0014, implemented before 0015. | `packages/config`, `packages/core` |
 | [0015](0015-cli.md) | CLI | `packages/cli` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
@@ -62,4 +63,4 @@ deleted in RFC-0014.
 | runtime | Module exporting `{ create(options, ctx) }`. Its bare specifier is `descriptor.runtime`. |
 | manifest | JSON produced by `loadConfig`. The *runtime manifest* is the subset embedded in the server bundle. |
 | host | The per-process object that constructs providers (`@genoacms/config/host`). |
-| project root | Absolute directory holding the config file. In the monorepo: `packages/core`. |
+| project root | Absolute directory holding `genoa.config.ts` or the `genoa.config/` directory. In the monorepo: `packages/core`. |

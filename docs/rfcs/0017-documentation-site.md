@@ -57,14 +57,15 @@ storage layout and the consumer SDK.
 ## 4. Content requirements
 
 Each rewritten page must satisfy every item that applies to it. Code examples must be complete, and
-copied from, or consistent with, `packages/core/genoa.config.ts`, `packages/core/genoa.config.production.ts`
-and `packages/cli/src/templates/genoa.config.ts`.
+copied from, or consistent with, `packages/core/genoa.config/development.ts`, `packages/core/genoa.config/production.ts`
+and `packages/cli/src/templates/development.ts`.
 
 1. **config/structure:**
    - the file names and the lookup order (RFC-0003 §4.9.1);
    - one file per environment and `--config` (U1, U9);
    - config as data: what may be imported, and that adapters are named, never imported;
-   - a full minimal `genoa.config.ts`;
+   - the `genoa.config/` layout (U12): `development.ts`, `production.ts` and shared modules beside them, plus one sentence that a project with a single config may use a root `genoa.config.ts` instead;
+   - a full minimal `genoa.config/development.ts`;
    - the "two tiers" section, verbatim.
 2. **config/providers:**
    - `*Provider()` helpers;
@@ -87,7 +88,7 @@ and `packages/cli/src/templates/genoa.config.ts`.
    - a complete minimal third-party storage adapter (descriptor, runtime and `exports` map);
    - the deployment descriptor with `svelteKitAdapter`, `procedure` and `DeployContext`;
    - running `@genoacms/conformance`.
-6. **getting-started:** `genoa init` → fill options → `genoa dev`, then the production config and `genoa deploy --config genoa.config.production.ts`.
+6. **getting-started:** `genoa init` → fill options → `genoa dev`, then the production config and `genoa deploy --config genoa.config/production.ts`.
 7. **cli:**
    - every command, `--config`, `--mode` with the per-command defaults, `--no-inline`;
    - what `build` writes (`.genoacms/build`, its `package.json`);

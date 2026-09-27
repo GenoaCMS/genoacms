@@ -6,6 +6,7 @@
 | Depends on | RFC-0001 |
 | Architecture | §4 D1, D2, D5; §5.5; §6.2; §8; spikes S-2, S-7 |
 | Commit | `feat(config): load a config file into a validated manifest` |
+| Amended by | RFC-0018 (U12): the directory candidates are `genoa.config/development.*`, not `genoa.config/index.*` (§4.9.1, §5.2 case 2) |
 
 ## 1. Summary
 
