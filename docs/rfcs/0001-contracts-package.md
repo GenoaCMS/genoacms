@@ -46,6 +46,7 @@ Nothing consumes the package yet. `@genoacms/cloudabstraction` stays untouched u
 | `test/storage.test.js` | §5.2 |
 | `test/secrets.test.js` | §5.3 |
 | `test/types/contracts.test.ts`, `test/types/tsconfig.json` | §5.4 |
+| `vitest.config.js` | `export default defineConfig({ test: { include: ['test/*.test.js'] } })`. Vitest's default pattern would otherwise run the type-test file, which only `tsc` can check. |
 
 **Modify:** `pnpm-lock.yaml` (via `pnpm install` only).
 

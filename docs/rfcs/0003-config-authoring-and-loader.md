@@ -40,6 +40,7 @@ The host, the Vite plugin and the build helpers are added to this package by RFC
 | `src/testing/fixtures.ts` | temp-project builder, test-only (excluded from build); §5.1 |
 | `src/*.test.ts`, `src/load/*.test.ts` | §5 |
 | `test/types/config.test.ts`, `test/types/tsconfig.json` | §5.4 |
+| `vitest.config.ts` | `export default defineConfig({ test: { include: ['src/**/*.test.ts'] } })`, so the type-test file is left to `tsc` |
 
 **Modify:** `pnpm-lock.yaml` (via `pnpm install`).
 
