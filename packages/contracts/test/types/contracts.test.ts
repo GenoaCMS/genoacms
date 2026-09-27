@@ -9,7 +9,8 @@ import {
   type BootstrapSecret,
   type Resolved,
   type StorageAdapters,
-  type OptionsOf
+  type OptionsOf,
+  type SvelteKitAdapterFactory
 } from '@genoacms/contracts'
 import type { Adapter as AuthenticationAdapter } from '@genoacms/contracts/authentication'
 
@@ -49,3 +50,6 @@ export const unregistered: OptionsOf<StorageAdapters, 'y'> = { anything: true }
 // 8. The authentication instance interface merges with its namespace of method types.
 export const authentication: AuthenticationAdapter = { authenticate: async () => null }
 export const authenticate: AuthenticationAdapter.authenticate = authentication.authenticate
+
+// 9. A real SvelteKit adapter, whose adapt takes SvelteKit's Builder, satisfies the factory type.
+export const factory: SvelteKitAdapterFactory = () => ({ name: 'x', adapt: (builder: { log: () => void }) => { builder.log() } })

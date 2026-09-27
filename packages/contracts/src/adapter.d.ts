@@ -27,8 +27,12 @@ interface AdapterRuntime<O extends object, Instance> {
   readonly create: (options: Resolved<O>, ctx: AdapterContext) => Instance | Promise<Instance>
 }
 
-/** A SvelteKit adapter factory, typed structurally so this package needs no dependency on @sveltejs/kit. */
-type SvelteKitAdapterFactory = (options?: Record<string, unknown>) => { name: string, adapt: (builder: unknown) => unknown }
+/**
+ * A SvelteKit adapter factory, typed structurally so this package needs no dependency on @sveltejs/kit.
+ * `adapt` takes `never`: a real adapter's `adapt(builder: Builder)` is assignable to it, where it would
+ * not be to `(builder: unknown) => unknown`.
+ */
+type SvelteKitAdapterFactory = (options?: Record<string, unknown>) => { name: string, adapt: (builder: never) => unknown }
 
 /**
  * Both loaders are functions written inside the descriptor module, so each specifier resolves from
