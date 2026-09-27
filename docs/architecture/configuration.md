@@ -837,7 +837,7 @@ without `npm explore` and without `GENOA_BUILD`.
 | K4 | Bucket and collection catalogs for the grant editor | `host.buckets`, `host.collections` |
 | K5 | Unit tests mock the config package | Tests mock `$lib/script/host.server` with a host over in-memory runtimes |
 | K6 | Root rotation with explicit confirmation | `genoa rotate-root`, same confirmation |
-| P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts` and `security.ts` both import; installs secrets-env |
+| P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts`, `security.ts` and `languages.ts` both import; installs secrets-env and language-adapter-ts |
 | P2 | `run` (dev server) | `genoa dev`; `run` kept as an alias |
 | P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --development` |
 | P4 | `database`: list and delete dynamic collections | Over `host.storageForBucket(host.defaultBucket)`; fixes F8's `config.storage.adapter` |
@@ -994,12 +994,12 @@ Findings made while writing the RFCs were folded back into this document:
 ## Critique & architectural sanity check: P1 (`init` scaffolds the whole directory)
 
 **Pros**
-- Roles, security seeds and collections have one definition from a project's first commit. The failure this prevents is two authorization stanzas that differ, which is silent and security-relevant.
+- Roles, security seeds, collections and languages have one definition from a project's first commit. The failure this prevents is two authorization stanzas that differ, which is silent and security-relevant.
 - `collections.ts` is part of the scaffold, because describing data that already exists is the reason to add GenoaCMS to a project.
 - The production config exists from the start, so deploying means filling in `TODO`s, not writing a file from scratch.
 
 **Cons & trade-offs**
-- Five files instead of one. A small project sees more structure than it needs.
+- Six files instead of one. A small project sees more structure than it needs.
 - `buckets` and `databases` stay per environment, so they are duplicated when both environments use the same ones.
 - For the AWS suite, `production.ts` names a secrets adapter that does not exist yet.
 
