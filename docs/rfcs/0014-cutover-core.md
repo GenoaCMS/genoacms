@@ -345,10 +345,11 @@ The remaining lines, including the entry names, are unchanged.
 pnpm install
 pnpm --filter @genoacms/core run adapters
 grep -rn "@genoacms/cloudabstraction" packages --include=*.ts --include=*.js --include=*.svelte --include=package.json \
-  | grep -v node_modules | grep -v "^packages/cloudAbstraction/" | grep -v "^packages/cli/" | grep -v "/dist/"
+  | grep -v node_modules | grep -v "^packages/cloudAbstraction/" | grep -v "^packages/cli/" | grep -v "^packages/internal/" | grep -v "/dist/"
 ```
 
-The grep must print nothing: only the CLI and the package itself may still reference it.
+The grep must print nothing: only the CLI, the package itself and four comments in `@genoacms/internal`
+may still reference it. Those comments name no import; RFC-0016 §2 rewrites them with the package's deletion.
 
 ```bash
 pnpm --filter @genoacms/core exec svelte-kit sync
