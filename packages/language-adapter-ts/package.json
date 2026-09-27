@@ -40,7 +40,8 @@
     "@genoacms/cloudabstraction": "workspace:^",
     "@genoacms/internal": "workspace:^",
     "esbuild": "^0.28.2",
-    "ts-morph": "^25.0.1"
+    "ts-morph": "^25.0.1",
+    "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {
     "rimraf": "^6.0.1",

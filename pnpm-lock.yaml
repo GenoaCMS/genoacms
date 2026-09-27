@@ -714,6 +714,9 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@genoacms/contracts':
+        specifier: workspace:^
+        version: link:../contracts
       '@genoacms/internal':
         specifier: workspace:^
         version: link:../internal

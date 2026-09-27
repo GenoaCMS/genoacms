@@ -12,6 +12,7 @@ import { assemble, signatureOf } from './emit.js'
 import { compileToWebEsModule } from './compile.js'
 import { scanBody, scanAssembled } from './sast/scan.js'
 import { injectGuards } from './guards/inject.js'
+import { DEFAULT_TARGET } from './target.js'
 
 /**
  * The TypeScript language adapter.
@@ -39,13 +40,11 @@ import { injectGuards } from './guards/inject.js'
  * The guard helper is injected only where an artifact is produced. Analysis reports on what the
  * author wrote, and a rule firing on code this package emitted would be a fault nobody can fix.
  *
- * ## Configuration is read only where it is used
+ * ## The compilation target is a constructor argument
  *
- * The compilation target comes from `genoa.config`, which exists inside a configured instance and
- * nowhere else. It is imported **where it is needed** rather than at the top of this file, so that
- * `analyze` — which has no use for it — can run without one: the evidence harness measures the
- * ruleset against a corpus, and requiring an instance to do that would tie a measurement of the
- * rules to the configuration of a deployment.
+ * `createLanguageAdapter(target)` closes over it. The default export uses `DEFAULT_TARGET`, which is
+ * what an instance gets when it configures no target. Nothing here reads a configuration, so
+ * `analyze` and the evidence harness run without an instance existing.
  */
 
 /**
@@ -108,7 +107,7 @@ const analyze = (request: AnalysisRequest): AnalysisResult => {
  */
 const emitSignature = (shape: ComponentShape): SignaturePreview => signatureOf(shape)
 
-const compileBundle = async (request: CompilationRequest): Promise<CompilationResult> => {
+const createCompileBundle = (target: string) => async (request: CompilationRequest): Promise<CompilationResult> => {
   const { source, prologueLines, diagnostics } = assemble(request.body, request.shape)
   // A shape that cannot be emitted has no source worth compiling, and compiling it would report
   // syntax errors about a signature the author did not write.
@@ -124,7 +123,6 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   // The guards cost one line inside the body, so the prologue to subtract is the one injection
   // reports rather than the one assembly did.
   const guarded = injectGuards(source, request.ceilings, prologueLines, request.fetchOrigins)
-  const { target } = await import('./config.js')
   const compiled = await compileToWebEsModule(guarded.source, request.platform, target)
   return {
     ...compiled,
@@ -132,14 +130,18 @@ const compileBundle = async (request: CompilationRequest): Promise<CompilationRe
   }
 }
 
-const adapter: LanguageAdapter = {
+/** A language adapter compiling to `target`. Each call returns an independent adapter. */
+const createLanguageAdapter = (target: string = DEFAULT_TARGET): LanguageAdapter => ({
   language: 'typescript',
   platforms: ['web-esmodule'],
   analyze,
   emitSignature,
-  compileBundle
-}
+  compileBundle: createCompileBundle(target)
+})
+
+const adapter = createLanguageAdapter()
+const { compileBundle } = adapter
 
 export default adapter
-export { adapter, analyze, emitSignature, compileBundle }
+export { adapter, analyze, emitSignature, compileBundle, createLanguageAdapter }
 export { DEFAULT_TARGET } from './target.js'
