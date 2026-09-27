@@ -1,0 +1,57 @@
+{
+  "name": "@genoacms/contracts",
+  "version": "0.0.1",
+  "description": "Service contracts, adapter descriptors and secret reference types for GenoaCMS adapters",
+  "type": "module",
+  "author": {
+    "name": "Filip Holčík",
+    "email": "filip.holcik.official@gmail.com"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenoaCMS/genoacms.git",
+    "directory": "packages/contracts"
+  },
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./storage": {
+      "types": "./src/storage/index.d.ts",
+      "import": "./src/storage/index.js"
+    },
+    "./database": {
+      "types": "./src/database/index.d.ts",
+      "import": "./src/database/index.js"
+    },
+    "./authentication": {
+      "types": "./src/authentication/index.d.ts",
+      "import": "./src/authentication/index.js"
+    },
+    "./secrets": {
+      "types": "./src/secrets/index.d.ts",
+      "import": "./src/secrets/index.js"
+    },
+    "./schemas": {
+      "types": "./src/schemas.d.ts",
+      "import": "./src/schemas.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "check": "tsc -p test/types/tsconfig.json"
+  },
+  "dependencies": {
+    "@genoacms/internal": "workspace:^"
+  },
+  "devDependencies": {
+    "ajv": "^8.12.0",
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.7"
+  }
+}
