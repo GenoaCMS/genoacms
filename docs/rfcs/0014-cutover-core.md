@@ -61,6 +61,8 @@ Also modify `packages/sdk/src/execute/attacks.test.ts`: import `analyze` and `co
 
 **Modify:** `svelte.config.js`, `vite.config.ts`, `package.json`, `.npmignore`, `playwright.config.ts`
 (comment only), `tests/README.md`, and every file in §4.5 and §4.6.
+`src/lib/script/database/collections.test.ts` imports the moved collections file: its import becomes
+`'../../../../genoa/collections'`.
 
 **Delete:**
 - `genoa.config/index.js`, `genoa.config/gcp/index.js`, `genoa.config/aws/index.js`, `genoa.config/collections.js`;
