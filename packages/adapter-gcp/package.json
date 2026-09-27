@@ -23,9 +23,8 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "prepublishOnly": "pnpm run build",
-    "test:all": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/all.test.js",
-    "test:database": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/database.test.js",
-    "test:storage": "pnpm run build && vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
+    "test": "vitest run",
+    "test:conformance": "vitest run test/conformance.test.ts"
   },
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",
@@ -33,7 +32,9 @@
     "@google-cloud/functions": "^3.4.0",
     "@google-cloud/secret-manager": "^7.0.0",
     "@google-cloud/storage": "^7.7.0",
-    "archiver": "^7.0.0"
+    "archiver": "^7.0.0",
+    "@genoacms/contracts": "workspace:^",
+    "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.2",
@@ -45,10 +46,8 @@
     "eslint-plugin-promise": "^6.1.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.2.2",
-    "vitest": "^1.0.4"
-  },
-  "peerDependencies": {
-    "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
+    "vitest": "^3.2.7",
+    "@genoacms/conformance": "workspace:^"
   },
   "files": [
     "src",
