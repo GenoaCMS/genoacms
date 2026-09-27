@@ -139,10 +139,16 @@ importers:
       '@genoacms/cloudabstraction':
         specifier: workspace:^
         version: link:../cloudAbstraction
+      '@genoacms/contracts':
+        specifier: workspace:^
+        version: link:../contracts
       minio:
         specifier: ^8.0.5
         version: 8.0.7
     devDependencies:
+      '@genoacms/conformance':
+        specifier: workspace:^
+        version: link:../conformance
       eslint:
         specifier: ^9.22.0
         version: 9.39.5(jiti@2.7.0)

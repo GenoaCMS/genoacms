@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "vitest --silent=false --config node_modules/@genoacms/cloudabstraction/test/vitest.config.js --run node_modules/@genoacms/cloudabstraction/test/storage.test.js"
+    "test": "vitest run src",
+    "test:conformance": "vitest run test"
   },
   "author": {
     "name": "Filip Holčík",
@@ -20,12 +21,14 @@
   "license": "ISC",
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",
-    "minio": "^8.0.5"
+    "minio": "^8.0.5",
+    "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {
     "eslint": "^9.22.0",
     "neostandard": "^0.12.1",
-    "vitest": "^3.0.9"
+    "vitest": "^3.0.9",
+    "@genoacms/conformance": "workspace:^"
   },
   "exports": {
     ".": {
