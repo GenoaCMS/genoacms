@@ -24,6 +24,10 @@
     "./load": {
       "types": "./dist/load/index.d.ts",
       "import": "./dist/load/index.js"
+    },
+    "./host": {
+      "types": "./dist/host/index.d.ts",
+      "import": "./dist/host/index.js"
     }
   },
   "scripts": {
