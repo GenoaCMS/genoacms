@@ -37,6 +37,7 @@ delete `genoa.config/credentials.json` if it exists locally; it is gitignored an
 ## 3. Non-goals
 
 - Do not modify `src/index.js`.
+- Do not add `getPublicURL`. Today's module never implemented it, so the storage contract is not fully met; that gap is carried over, not fixed here.
 - **Carry the unawaited `checkBucket(bucket)` calls verbatim.** Today `getObject`, `getSignedURL` and the other methods call it without `await`, so an unregistered bucket becomes an unhandled rejection rather than a thrown error. Fixing that changes behavior and is a separate task (§8).
 
 ## 4. Specification
@@ -88,7 +89,8 @@ export default defineRuntime({
     const registered = new Set(ctx.resources)
     // isBucketRegistered and checkBucket as in src/index.js, reading `registered` instead of config.storage.buckets
     // the method bodies of src/index.js, verbatim (including the unawaited checkBucket calls; §3)
-    return { getObject, getSignedURL, getPublicURL, uploadObject, moveObject, deleteObject, listDirectory, createDirectory, deleteDirectory, moveDirectory }
+    // exactly the nine functions src/index.js exports today; it has never implemented getPublicURL
+    return { getObject, getSignedURL, uploadObject, moveObject, deleteObject, listDirectory, createDirectory, deleteDirectory, moveDirectory }
   }
 })
 ```
