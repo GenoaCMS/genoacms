@@ -29,7 +29,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^"
+    "@genoacms/cloudabstraction": "workspace:^",
+    "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {
     "vitest": "^3.2.7"

@@ -1,6 +1,6 @@
 # `@genoacms/adapter-secrets-env`
 
-The GenoaCMS `secrets` service, backed by a `.env` file.
+The GenoaCMS `secrets` service, backed by a file in `.env` syntax.
 
 > ## ⚠ Development only
 >
@@ -15,37 +15,36 @@ The GenoaCMS `secrets` service, backed by a `.env` file.
 
 ## Configuration
 
-```js
+```ts
 secrets: {
-  providers: [
-    {
-      name: 'local',
-      adapterPath: '@genoacms/adapter-secrets-env',
-      adapter: import('@genoacms/adapter-secrets-env'),
-      path: '.env'          // optional, relative to the working directory
-    }
-  ]
+  providers: {
+    local: secretsProvider('@genoacms/adapter-secrets-env', {})   // path defaults to .genoacms/secrets.env
+  }
 }
 ```
+
+`path` is optional and relative to the project root. The default keeps the store out of the files
+Vite watches, so a write does not restart the dev server under the request that made it.
 
 Only one secrets provider may be configured — see the service reference for why.
 
 ## Behavior
 
-- **Reads** take `process.env` first, falling back to the file. On load the adapter parses the file
-  into `process.env` **without overriding variables that are already set**, so a real environment
-  variable beats the file — the precedence dotenv uses, and what lets a deployment override a
-  checked-out `.env`. The fallback matters because `process.env` is a snapshot taken at load: a key
-  another process has written since would otherwise read as absent forever.
-- **Writes** rewrite the file in place, preserving comments, ordering and unrelated entries. They are
-  serialized internally, because each write is a read-modify-write of the whole file and two
-  concurrent writes would otherwise drop one of the secrets.
-- **Claims** (`setSecretIfAbsent`) are atomic across processes, guarded by an exclusive `.env.lock`
-  file. The in-process write queue is not sufficient: two `genoacms` processes share the file but
-  not the queue. If a process is killed mid-claim the lock file survives — delete it.
+- **Reads** consult, in order: this instance's own writes, then `process.env`, then the file, read
+  fresh on every call. A real environment variable therefore beats the file, as with dotenv, but never
+  hides a value this instance has written itself — which is what makes a key rotation take effect.
+- **Writes** never touch `process.env`. They rewrite the file in place, preserving comments, ordering
+  and unrelated entries, and are serialized internally: each write is a read-modify-write of the whole
+  file, and two concurrent writes would otherwise drop one of the secrets.
+- **Claims** (`setSecretIfAbsent`) are atomic across processes, guarded by an exclusive
+  `<path>.lock` file. The in-process write queue is not sufficient: two `genoacms` processes share the
+  file but not the queue. If a process is killed mid-claim the lock file survives — delete it.
 - **Keys** must match `[A-Za-z_][A-Za-z0-9_]*` — the portable subset every secret manager accepts.
   An invalid key throws rather than being normalized, since folding `a-b` and `a_b` into one name
   would silently merge two distinct secrets.
+- **Development only, enforced.** A production build refuses the adapter (`config/development-only`),
+  and it throws when constructed without a project root, which is how it would meet a deployed
+  artifact.
 
 ### Supported `.env` syntax
 
@@ -57,5 +56,5 @@ base64 — and supporting them would make the line-oriented rewriting unsound.
 
 ## Keep the file out of version control
 
-The repository's `.gitignore` already covers `.env` and `.env.*`. If you use a `path` outside those
-patterns, add it yourself.
+Add `.genoacms/` to your `.gitignore`; `genoa init` does it for you. If you set a `path` outside that
+directory, ignore it yourself.

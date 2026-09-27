@@ -12,7 +12,7 @@
  * secrets are base64 — and supporting them would make line-oriented rewriting unsound.
  */
 
-import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+import { assertValidSecretKey } from '@genoacms/contracts/secrets'
 
 const ENTRY_PATTERN = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/
 

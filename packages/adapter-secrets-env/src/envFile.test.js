@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+import { assertValidSecretKey } from '@genoacms/contracts/secrets'
 import {
     parseEntries,
     parseValue,
