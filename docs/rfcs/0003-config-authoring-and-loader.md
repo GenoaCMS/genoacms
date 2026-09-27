@@ -420,6 +420,7 @@ rules in the order below, then config paths in document order.
 | # | Code | Rule | Path of the issue |
 | :-- | :-- | :-- | :-- |
 | 1 | `config/missing-stanza` | `authentication`, `database`, `storage`, `secrets`, `languages`, `authorization` and `security` are present objects. | the stanza name |
+| 1b | `config/invalid-provider-entry` | Every value under `*.providers` and `deployment.targets` is a plain object with a non-empty string `adapter` and a plain-object `options`. A malformed entry is skipped by every later rule and by descriptor loading. | the entry's path |
 | 2 | `config/not-serializable` | Every value is `null`, a boolean, a finite number, a string, an array, or a plain object. Refused: functions, `undefined` anywhere (including as an object property value), class instances (incl. `Date`, `RegExp`, `Map`), `NaN`, `±Infinity`, `bigint` and symbols. | the offending value |
 | 3 | `config/kind-mismatch` | The descriptor's `kind` equals the service it is configured under (`deployment.targets` → `'deployment'`). | `<service>.providers.<key>.adapter` |
 | 4 | `config/invalid-options` | Each `validate(options)` string becomes one issue. A `validate` that throws becomes one issue with the thrown message. | `<…>.options` |
@@ -488,7 +489,7 @@ Each case builds a project with `makeProject`, runs `loadConfig`, and removes th
 6. In production mode `source` is absent.
 7. `import type {} from '<fake adapter>/storage'` in the config does not import that module. Use a descriptor file that throws to prove it.
 8. The config imports `secret`, `env` and `inline` from `@genoacms/config` (`linkConfigPackage: true`), and the manifest holds `{ $secret }`, `{ $env }` and `{ $inline }`.
-9. One test per rule in §4.11 (14 tests). Each asserts that `issues` contains the expected `code` and `path`. Rule 14 asserts that `onWarning` receives the issue in production, that nothing arrives in development, and that `forbidInline` turns it into a `ConfigError`.
+9. One test per rule in §4.11 (15 tests, including 1b). Each asserts that `issues` contains the expected `code` and `path`. Rule 14 asserts that `onWarning` receives the issue in production, that nothing arrives in development, and that `forbidInline` turns it into a `ConfigError`.
 10. Several invalid rules in one config are all reported in one `ConfigError`.
 11. Two calls with the same file and mode return the same promise. After `clearLoadCache()` a new one is returned.
 12. A descriptor missing from `node_modules` gives `config/descriptor-not-found` naming the specifier.
