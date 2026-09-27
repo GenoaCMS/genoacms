@@ -15,6 +15,13 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^"
+    "@genoacms/cloudabstraction": "workspace:^",
+    "@genoacms/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }
