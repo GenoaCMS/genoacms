@@ -254,8 +254,12 @@ interface AdapterRuntime<O extends object, Instance> {
   readonly create: (options: Resolved<O>, ctx: AdapterContext) => Instance | Promise<Instance>
 }
 
-/** A SvelteKit adapter factory, typed structurally so this package needs no dependency on @sveltejs/kit. */
-type SvelteKitAdapterFactory = (options?: Record<string, unknown>) => { name: string, adapt: (builder: unknown) => unknown }
+/**
+ * A SvelteKit adapter factory, typed structurally so this package needs no dependency on @sveltejs/kit.
+ * `adapt` takes `never`: a real adapter's `adapt(builder: Builder)` is assignable to it, where it would
+ * not be to `(builder: unknown) => unknown`.
+ */
+type SvelteKitAdapterFactory = (options?: Record<string, unknown>) => { name: string, adapt: (builder: never) => unknown }
 
 /**
  * Both loaders are functions written inside the descriptor module, so each specifier resolves from
@@ -465,6 +469,7 @@ is a line preceded by `// @ts-expect-error`, so `tsc` fails if that line compile
 6. **Negative:** the same call with `secretOptions: { credential: 'json' }` (unknown key).
 7. After `declare module '@genoacms/contracts' { interface StorageAdapters { 'x/storage': { a: number } } }` inside the test file, `OptionsOf<StorageAdapters, 'x/storage'>` is `{ a: number }`, and `OptionsOf<StorageAdapters, 'y'>` is `Record<string, unknown>`.
 8. `const s: Adapter = …` imported from `'@genoacms/contracts/authentication'` accepts `{ authenticate: async () => null }`, and `Adapter.authenticate` is usable as a type (namespace merge).
+9. A factory returning `{ name: 'x', adapt: (builder: { log: () => void }) => {} }` is assignable to `SvelteKitAdapterFactory`, as a real adapter taking SvelteKit's `Builder` must be.
 
 ## 6. Steps
 
