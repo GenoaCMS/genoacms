@@ -248,8 +248,7 @@ and `/.genoacms`, so core's own configs are never published.
 | `src/lib/script/auth/auth.server.ts` | `const { cookieName } = config.authentication` → `const { cookieName } = host`. `authentication.Identity` → `Identity`. |
 | `src/lib/script/authorization/declared.server.ts` | `config.authorization?.roles` → `host.authorization.roles`, the same for `assignments` and `lockRoles`. Delete the "Read defensively…" comment, because the loader guarantees the stanza. |
 | `src/lib/script/securityPolicy/policy.server.ts` | `config.security.<x>` → `host.security.<x>`. |
-| `src/lib/script/storage/storage.server.ts` | Delete `getBucketReferences`. `defaultBucketId = host.defaultBucket`. |
-| `src/lib/script/configuration/user.server.ts` | `getBucketReferences().map(bucket => bucket.name)` → `[...host.buckets]`, and import `host` instead. |
+| `src/lib/script/storage/storage.server.ts` | `getBucketReferences()` returns `host.buckets.map(name => ({ name }))`: callers (`configuration/user.server.ts`, `storage/user.server.ts`) and the tests that mock it read only `name`. `defaultBucketId = host.defaultBucket`. |
 | `src/routes/(admin)/storage/[bucketId]/[...path]/contents/+page.server.ts` | `const delimiter = host.pathDelimiter`. |
 
 Every rewritten file imports `{ host }` from `'$lib/script/host.server'`.
