@@ -1,10 +1,8 @@
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
-import { config as genoaConfig, getDeploymentProvider } from '@genoacms/cloudabstraction'
+import { readGenoaEnvironment, resolveKitAdapter } from '@genoacms/config/load'
 
-const DEPLOYMENT_PROVIDER = process.env['DEPLOYMENT_PROVIDER'] || genoaConfig.deployment.providers[0].name
-const provider = getDeploymentProvider(DEPLOYMENT_PROVIDER)
-const { svelteKitAdapter } = await provider.adapter
-const adapter = (await import(svelteKitAdapter)).default
+// svelte.config.js cannot know Vite's command; GENOA_MODE is set by the CLI and by `pnpm build`.
+const { root, file, target, mode } = readGenoaEnvironment('development')
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -13,10 +11,8 @@ const config = {
   preprocess: vitePreprocess(),
 
   kit: {
-    // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
-    // If your environment is not supported or you settled on a specific environment, switch out the adapter.
-    // See https://kit.svelte.dev/docs/adapters for more information about adapters.
-    adapter: adapter(),
+    // The deployment target's descriptor chooses the SvelteKit adapter; the dev server needs none.
+    adapter: await resolveKitAdapter({ root, file, target, mode }),
     experimental: {
       remoteFunctions: true
     }

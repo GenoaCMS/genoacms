@@ -8,7 +8,7 @@ import {
   USERS_DOCUMENT
 } from './manifests.server'
 import { parseRolesManifest, parseUsersManifest, type ManifestParseResult, type UserRecord } from './manifests'
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { peekUnverifiedHeader, verify, type DocumentType } from '$lib/script/signing/envelope'
 import { resolveVerificationKey } from '$lib/script/signing/keyResolution.server'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'

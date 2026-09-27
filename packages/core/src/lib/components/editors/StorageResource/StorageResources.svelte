@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ResourcesValue, Errors } from '../types'
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import type { ObjectReference } from '@genoacms/contracts/storage'
   import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
   import { ITC } from '$lib/script/utils'

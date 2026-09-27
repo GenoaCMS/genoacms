@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CollectionReference, DocumentReference } from '@genoacms/cloudabstraction/database'
+  import type { CollectionReference, DocumentReference } from '@genoacms/contracts/database'
   import { extractDocumentProperties } from './utils'
   import Selectable from './Selectable.svelte'
 

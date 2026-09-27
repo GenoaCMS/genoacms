@@ -1,12 +1,11 @@
-import { config } from '@genoacms/cloudabstraction'
-import type { authentication } from '@genoacms/cloudabstraction'
-import { callProvidersFunction, getProviders, firstNonNull } from '../providers.server'
+import { host } from '$lib/script/host.server'
+import type { Identity } from '@genoacms/contracts/authentication'
+import { callProvidersFunction, firstNonNull } from '../providers.server'
 
-const authenticationProviders = await getProviders(config.authentication.providers)
-
-async function authenticate (email: string, password: string): Promise<authentication.Identity | null> {
+async function authenticate (email: string, password: string): Promise<Identity | null> {
+  const authenticationProviders = await host.authenticationProviders()
   const results = await callProvidersFunction(authenticationProviders, 'authenticate', [email, password])
-  return firstNonNull<authentication.Identity>(results)
+  return firstNonNull<Identity>(results)
 }
 
 export {

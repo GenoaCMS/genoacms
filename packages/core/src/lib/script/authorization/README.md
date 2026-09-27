@@ -4,7 +4,7 @@ Access control for GenoaCMS. **This is a core module, not a cloud abstraction se
 is a deliberate architectural position rather than an accident of where the files landed.
 
 Authentication asks *"who are you?"* — a standardized question that identity platforms answer
-better than an application can, so it remains a `@genoacms/cloudabstraction` service with adapters.
+better than an application can, so it remains a `@genoacms/contracts` service with adapters.
 Authorization asks *"what may you do in this application?"*. Cloud IAM can grant "read bucket X";
 it cannot express which collections or which fields a principal may reach, it would require a cloud
 identity for every copywriter and translator, and a permission such as `pages:publish` has no

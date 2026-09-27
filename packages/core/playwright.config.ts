@@ -3,8 +3,8 @@ import type { PlaywrightTestConfig } from '@playwright/test'
 const config: PlaywrightTestConfig = {
   webServer: {
     // pnpm, not npm — this is a workspace package.
-    // Note `build` authenticates against the configured provider, so these
-    // tests need genoa.config credentials present. See tests/README.md.
+    // Note `build` loads genoa.config.ts, which imports gitignored credential
+    // files, so these tests need them present. See tests/README.md.
     command: 'pnpm run build && pnpm run preview',
     port: 4173,
     reuseExistingServer: !process.env.CI,

@@ -6,6 +6,7 @@ dist/
 build/
 .svelte-kit/
 .sveltepress/
+.genoacms/
 coverage/
 packages/core/package/
 packages/sveltekit-adapter-cloud-run-functions/files/

@@ -3,7 +3,7 @@
   "version": "0.8.10",
   "type": "module",
   "description": "Deployment adapter for nodejs",
-  "main": "src/index.js",
+  "main": "src/descriptor.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GenoaCMS/genoacms.git",
@@ -15,7 +15,6 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^",
     "@sveltejs/adapter-node": "^5.2.12",
     "@genoacms/contracts": "workspace:^"
   },
@@ -24,5 +23,11 @@
   },
   "scripts": {
     "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/descriptor.d.ts",
+      "import": "./src/descriptor.js"
+    }
   }
 }

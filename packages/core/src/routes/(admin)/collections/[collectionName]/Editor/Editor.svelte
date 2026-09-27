@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends object">
-  import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+  import type { CollectionReference } from '@genoacms/contracts/database'
   import { extractDocumentProperties } from '../utils'
   import Prop from './Prop.svelte'
 

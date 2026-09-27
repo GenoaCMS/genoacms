@@ -1,4 +1,4 @@
-import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+import type { CollectionReference } from '@genoacms/contracts/database'
 
 /**
  * The field names a collection declares.

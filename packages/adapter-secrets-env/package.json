@@ -2,7 +2,7 @@
   "name": "@genoacms/adapter-secrets-env",
   "version": "0.1.0",
   "description": "Development secrets adapter for GenoaCMS, backed by a .env file",
-  "main": "src/index.js",
+  "main": "src/descriptor.js",
   "type": "module",
   "author": {
     "name": "Filip Holčík",
@@ -19,17 +19,18 @@
   ],
   "exports": {
     ".": {
-      "import": "./src/index.js"
+      "types": "./src/descriptor.d.ts",
+      "import": "./src/descriptor.js"
     },
-    "./secrets": {
-      "import": "./src/index.js"
+    "./runtime": {
+      "types": "./src/runtime.d.ts",
+      "import": "./src/runtime.js"
     }
   },
   "scripts": {
     "test": "vitest run"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^",
     "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import type {
   PageEntry
 } from '$lib/script/components/page/entry/types'
 import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/components/page/tree/types'
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import type { ObjectReference } from '@genoacms/contracts/storage'
 import type {
   ComponentNodeReference,
   LinkAttributeValue,

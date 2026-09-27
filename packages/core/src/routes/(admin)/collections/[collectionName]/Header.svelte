@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+  import type { CollectionReference } from '@genoacms/contracts/database'
   import { extractDocumentProperties } from './utils'
   import { SELECTION_GUTTER } from '$lib/script/selection/gutter'
 

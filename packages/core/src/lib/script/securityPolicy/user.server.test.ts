@@ -33,7 +33,7 @@ vi.mock('$lib/script/securityPolicy/policy.server', () => ({
   writePolicy: async (policy: unknown, expected?: string) => await writePolicy(policy, expected)
 }))
 
-vi.mock('@genoacms/cloudabstraction/storage', () => ({
+vi.mock('@genoacms/contracts/storage', () => ({
   isPreconditionFailed: (error: unknown) => error instanceof PreconditionFailed
 }))
 

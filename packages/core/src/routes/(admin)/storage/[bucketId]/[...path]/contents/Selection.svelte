@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import type { ObjectReference } from '@genoacms/contracts/storage'
   import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
   import selection from '$lib/script/storage/SelectionRune.svelte'
   import { getContext } from 'svelte'

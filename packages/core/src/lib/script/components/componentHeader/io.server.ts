@@ -75,7 +75,7 @@ const historyPath = (reference: ComponentHeaderReference): string =>
  *
  * The weakness is stated rather than hidden: a network fault is indistinguishable from an absent
  * object here, so it reads as absent. The clean fix is an `ObjectNotFoundError` in
- * `@genoacms/cloudabstraction` with an `isObjectNotFound` predicate, matching the
+ * `@genoacms/contracts/storage` with an `isObjectNotFound` predicate, matching the
  * `PreconditionFailedError` already there — which means every adapter has to raise it, so it is a
  * change to the adapter contract rather than to this file.
  */

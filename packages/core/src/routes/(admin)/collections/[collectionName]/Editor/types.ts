@@ -1,4 +1,4 @@
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import type { ObjectReference } from '@genoacms/contracts/storage'
 
 type BooleanValue = boolean
 type NumberValue = number

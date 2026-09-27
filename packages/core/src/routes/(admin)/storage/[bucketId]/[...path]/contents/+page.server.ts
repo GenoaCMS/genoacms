@@ -14,10 +14,10 @@ import { join } from 'path'
 import { isString } from '$lib/script/utils'
 import { readableStreamToReadable } from '$lib/script/utils.server'
 import { fail, type Actions } from '@sveltejs/kit'
-import { config } from '@genoacms/cloudabstraction'
-import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+import { host } from '$lib/script/host.server'
+import type { ObjectReference } from '@genoacms/contracts/storage'
 
-const delimiter = config.storage?.pathDelimiter || '|->'
+const delimiter = host.pathDelimiter
 
 const removePathDelimiter = (path: string) => path.replaceAll(delimiter, '')
 

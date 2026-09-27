@@ -2,7 +2,7 @@ import {
   storageResource,
   nullableStorageResource,
   reference
-} from '@genoacms/cloudabstraction/schemas'
+} from '@genoacms/contracts/schemas'
 
 const testCollection = {
   name: 'test',

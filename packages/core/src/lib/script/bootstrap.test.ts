@@ -56,14 +56,14 @@ vi.mock('$lib/script/utils.server', () => ({
 
 const declaredRoles: { value: unknown } = { value: undefined }
 
-vi.mock('@genoacms/cloudabstraction', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>()
-  const real = actual.config as { authorization: Record<string, unknown> }
+vi.mock('$lib/script/host.server', async () => {
+  const { authorization } = await import('../../../genoa/authorization')
+  const { security } = await import('../../../genoa/security')
   return {
-    ...actual,
-    config: {
-      ...real,
-      authorization: { ...real.authorization, get roles () { return declaredRoles.value } }
+    host: {
+      get authorization () { return { ...authorization, roles: declaredRoles.value } },
+      security,
+      defaultBucket: 'test-bucket'
     }
   }
 })

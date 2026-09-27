@@ -3,7 +3,7 @@ import type {
   ObjectReference,
   ObjectPayload,
   UploadOptions
-} from '@genoacms/cloudabstraction/storage'
+} from '@genoacms/contracts/storage'
 import { hasAnyPermissionOn, requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import {

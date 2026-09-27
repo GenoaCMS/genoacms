@@ -36,9 +36,9 @@ fail — so the guard cannot rot into a no-op.
 
 ### Writing new unit tests
 
-Keep them clear of anything that reaches `genoa.config`. Importing it pulls in
-the provider SDKs and requires real credentials, which is what stops most of
-core from being unit-testable today.
+Do not import `$lib/script/host.server` unmocked: the host constructs real
+providers on first use, with real credentials. Mock it with the members the
+module under test reads, as `bootstrap.test.ts` and `auth.server.test.ts` do.
 
 ## End-to-end tests — Playwright
 
@@ -47,13 +47,14 @@ pnpm --filter @genoacms/core run test:integration
 ```
 
 ⚠️ **These need provider credentials.** `playwright.config.ts` boots the app with
-`pnpm run build && pnpm run preview`, and core's `vite build` authenticates
-against the configured provider — so without a valid
-`genoa.config/gcp/serviceAccount.json` the web server never starts and every
-test fails on timeout.
+`pnpm run build && pnpm run preview`, and `genoa.config.ts` imports the
+gitignored `genoa.config/gcp/serviceAccount.json` and `authCredentials.js` —
+so without them the config does not load, the web server never starts, and every
+test fails on timeout. The development secret store is `.genoacms/secrets.env`.
 
-That is also why CI does not run them. Decoupling the build from provider
-credentials would make this suite runnable on a runner.
+That is also why CI does not run them. The build itself constructs no provider;
+a config using `secret()` or `env()` instead of the credential files would
+make this suite runnable on a runner.
 
 `tests/smoke.spec.ts` covers only unauthenticated surface: the landing page, the
 link to login, the login form, and that `/dashboard` redirects away without a

@@ -1,6 +1,6 @@
 import { requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { parseSecurityPolicy, policyBounds, type SecurityPolicy } from './policy'
 import { readStoredPolicy, writePolicy } from './policy.server'
 

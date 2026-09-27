@@ -1,4 +1,4 @@
-import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+import type { CollectionReference } from '@genoacms/contracts/database'
 import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listOrCreateDirectory } from '../storage/storage.server'
 import {
   getCollections,

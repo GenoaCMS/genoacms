@@ -1,6 +1,5 @@
-import { config } from '@genoacms/cloudabstraction'
-import type { Adapter } from '@genoacms/cloudabstraction/secrets'
-import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+import { host } from '$lib/script/host.server'
+import { assertValidSecretKey } from '@genoacms/contracts/secrets'
 
 /**
  * The secrets service as the rest of GenoaCMS sees it.
@@ -8,43 +7,27 @@ import { assertValidSecretKey } from '@genoacms/cloudabstraction/secrets'
  * Unlike storage and database, this resolves to **exactly one** adapter. A secret store is a single
  * authority: with two configured, a write has no defensible target, and a key present in one but
  * not the other would make behavior depend on lookup order — which is a difference that would show
- * up as an intermittent authentication failure rather than as a configuration error.
+ * up as an intermittent authentication failure rather than as a configuration error. The loader
+ * refuses any other number of providers (`config/secrets-provider-count`).
  */
-
-function getSoleProvider () {
-  const providers = config.secrets?.providers ?? []
-  if (providers.length === 0) {
-    throw new Error('secrets/no-provider: configure exactly one provider under `secrets` in genoa.config')
-  }
-  if (providers.length > 1) {
-    const names = providers.map(provider => provider.name).join(', ')
-    throw new Error(`secrets/multiple-providers: exactly one is allowed, found ${providers.length} (${names})`)
-  }
-  return providers[0]
-}
-
-const provider = getSoleProvider()
-const adapter = await provider.adapter as unknown as {
-  getSecret: Adapter.getSecret
-  setSecret: Adapter.setSecret
-  deleteSecret: Adapter.deleteSecret
-  setSecretIfAbsent: Adapter.setSecretIfAbsent
-}
 
 /** Resolves to `undefined` when the key does not exist. */
 async function getSecret (key: string): Promise<string | undefined> {
   assertValidSecretKey(key)
+  const adapter = await host.secrets()
   return await adapter.getSecret(key)
 }
 
 async function setSecret (key: string, value: string): Promise<boolean> {
   assertValidSecretKey(key)
+  const adapter = await host.secrets()
   return await adapter.setSecret(key, value)
 }
 
 /** Resolves `false` when the key was already absent, so deletion is idempotent. */
 async function deleteSecret (key: string): Promise<boolean> {
   assertValidSecretKey(key)
+  const adapter = await host.secrets()
   return await adapter.deleteSecret(key)
 }
 
@@ -56,6 +39,7 @@ async function deleteSecret (key: string): Promise<boolean> {
  */
 async function setSecretIfAbsent (key: string, value: string): Promise<boolean> {
   assertValidSecretKey(key)
+  const adapter = await host.secrets()
   return await adapter.setSecretIfAbsent(key, value)
 }
 
@@ -80,6 +64,7 @@ async function getOrClaimSecret (
   generate: () => string
 ): Promise<{ value: string, claimed: boolean }> {
   assertValidSecretKey(key)
+  const adapter = await host.secrets()
 
   const existing = await adapter.getSecret(key)
   if (existing !== undefined) return { value: existing, claimed: false }

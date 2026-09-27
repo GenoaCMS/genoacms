@@ -1,5 +1,5 @@
 /**
- * The permission vocabulary, re-exported from `@genoacms/cloudabstraction`.
+ * The permission vocabulary, re-exported from `@genoacms/internal/authorization`.
  *
  * The table itself lives there rather than here, and the reason is not that authorization is a cloud
  * service — it is not: there is no adapter, no provider, and nothing about deciding permissions is
@@ -8,9 +8,9 @@
  *
  * What moved is the **vocabulary**, because it is part of the configuration contract. `genoa.config`
  * declares roles as grants carrying permission strings, so the definition of a valid permission
- * belongs beside the `Config` type that declares them — which is also what lets `authorization.roles` be
- * typed, making a mistyped permission a type error in configuration rather than a grant that
- * silently never matches.
+ * belongs where `@genoacms/config`'s `AuthorizationConfig` type can import it — which is also what lets
+ * `authorization.roles` be typed, making a mistyped permission a type error in configuration rather
+ * than a grant that silently never matches.
  *
  * It had to be reachable from outside the core for a practical reason too: the core is a SvelteKit
  * application and exports nothing, so the CLI that helps compose role declarations could not

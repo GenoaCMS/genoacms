@@ -27,7 +27,6 @@
     "test:conformance": "vitest run test/conformance.test.ts"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^",
     "@google-cloud/firestore": "^7.1.0",
     "@google-cloud/functions": "^3.4.0",
     "@google-cloud/secret-manager": "^7.0.0",
@@ -50,26 +49,36 @@
     "@genoacms/conformance": "workspace:^"
   },
   "files": [
-    "src",
-    "deployment",
     "dist"
   ],
   "exports": {
+    "./storage": {
+      "types": "./dist/storage/descriptor.d.ts",
+      "import": "./dist/storage/descriptor.js"
+    },
+    "./storage/runtime": {
+      "types": "./dist/storage/runtime.d.ts",
+      "import": "./dist/storage/runtime.js"
+    },
     "./database": {
-      "import": "./dist/services/database/index.js",
-      "types": "./dist/services/database/index.d.ts"
+      "types": "./dist/database/descriptor.d.ts",
+      "import": "./dist/database/descriptor.js"
+    },
+    "./database/runtime": {
+      "types": "./dist/database/runtime.d.ts",
+      "import": "./dist/database/runtime.js"
     },
     "./secrets": {
-      "import": "./dist/services/secrets/index.js",
-      "types": "./dist/services/secrets/index.d.ts"
+      "types": "./dist/secrets/descriptor.d.ts",
+      "import": "./dist/secrets/descriptor.js"
+    },
+    "./secrets/runtime": {
+      "types": "./dist/secrets/runtime.d.ts",
+      "import": "./dist/secrets/runtime.js"
     },
     "./deployment": {
-      "import": "./dist/services/deployment/index.js",
-      "types": "./dist/services/deployment/index.d.ts"
-    },
-    "./storage": {
-      "import": "./dist/services/storage/index.js",
-      "types": "./dist/services/storage/index.d.ts"
+      "types": "./dist/deployment/descriptor.d.ts",
+      "import": "./dist/deployment/descriptor.js"
     }
   }
 }

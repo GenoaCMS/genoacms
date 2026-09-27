@@ -20,14 +20,7 @@ import type { Cookies } from '@sveltejs/kit'
 const COOKIE_NAME = 'session'
 const SESSION_KEY = new Uint8Array(32).fill(7)
 
-vi.mock('@genoacms/cloudabstraction', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>()
-  const real = actual.config as Record<string, unknown>
-  return {
-    ...actual,
-    config: { ...real, authentication: { providers: [], cookieName: COOKIE_NAME } }
-  }
-})
+vi.mock('$lib/script/host.server', () => ({ host: { get cookieName () { return COOKIE_NAME } } }))
 
 vi.mock('$lib/script/signing/rootKey.server', () => ({
   getSessionKey: async () => SESSION_KEY

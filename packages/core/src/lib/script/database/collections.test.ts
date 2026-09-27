@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { validator } from '@exodus/schemasafe'
 import { formats } from './validators'
-import { collections } from '../../../../genoa.config/collections'
+import { collections } from '../../../../genoa/collections'
 
 const getCollection = (name: string) => {
   const collection = collections.find((c: { name: string }) => c.name === name)

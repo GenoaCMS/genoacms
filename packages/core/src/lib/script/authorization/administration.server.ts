@@ -1,4 +1,4 @@
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
 import {
   readRawManifest,

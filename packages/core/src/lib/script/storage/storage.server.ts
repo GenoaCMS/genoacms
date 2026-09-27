@@ -1,10 +1,10 @@
-import { config } from '@genoacms/cloudabstraction'
+import { host } from '$lib/script/host.server'
 import type {
   DirectoryContents,
   ObjectReference,
   StorageObject,
   UploadOptions
-} from '@genoacms/cloudabstraction/storage'
+} from '@genoacms/contracts/storage'
 import { streamToString } from '$lib/script/utils.server'
 import {
   fullyQualifiedNameToPath,
@@ -25,11 +25,10 @@ import {
   deleteDirectory
 } from './providers.server'
 
-const getBucketReferences = () => {
-  return config.storage.buckets
-}
+/** The buckets this instance declares. Callers read only `name`. */
+const getBucketReferences = (): Array<{ name: string }> => host.buckets.map(name => ({ name }))
 
-const defaultBucketId = config.storage.defaultBucket
+const defaultBucketId = host.defaultBucket
 
 const listOrCreateDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
   const componentList = await listDirectory(reference)

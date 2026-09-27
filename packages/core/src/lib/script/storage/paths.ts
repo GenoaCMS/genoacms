@@ -1,4 +1,4 @@
-import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
+import type { DirectoryContents } from '@genoacms/contracts/storage'
 
 /**
  * Pure helpers over storage names and listings.

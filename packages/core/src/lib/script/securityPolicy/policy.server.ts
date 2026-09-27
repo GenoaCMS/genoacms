@@ -1,6 +1,6 @@
 import { join } from 'path'
-import { config } from '@genoacms/cloudabstraction'
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { host } from '$lib/script/host.server'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import {
   getInternalObjectStringVersioned,
   uploadInternalObjectJSON
@@ -44,16 +44,16 @@ const POLICY_DOCUMENT: DocumentType = 'genoacms.securityPolicy.v1'
  */
 function defaultPolicy (): SecurityPolicy {
   const parsed = parseSecurityPolicy({
-    subordinateKeyRotationDays: config.security.subordinateKeyRotationDays ?? 90,
-    accessTokenMinutes: config.security.accessTokenMinutes ?? 15,
-    grantCacheSeconds: config.security.grantCacheSeconds ?? 30,
-    refreshTokenDays: config.security.refreshTokenDays ?? 14,
-    maxFuel: config.security.maxFuel ?? 1_000_000,
-    maxDepth: config.security.maxDepth ?? 100,
-    maxAllocation: config.security.maxAllocation ?? 10_000_000,
+    subordinateKeyRotationDays: host.security.subordinateKeyRotationDays ?? 90,
+    accessTokenMinutes: host.security.accessTokenMinutes ?? 15,
+    grantCacheSeconds: host.security.grantCacheSeconds ?? 30,
+    refreshTokenDays: host.security.refreshTokenDays ?? 14,
+    maxFuel: host.security.maxFuel ?? 1_000_000,
+    maxDepth: host.security.maxDepth ?? 100,
+    maxAllocation: host.security.maxAllocation ?? 10_000_000,
     // Empty unless an operator says otherwise: the bridge grants nothing until somebody decides it
     // should, which is the only default that is safe to ship.
-    fetchOrigins: config.security.fetchOrigins ?? []
+    fetchOrigins: host.security.fetchOrigins ?? []
   })
   if (!parsed.ok) {
     throw new Error(

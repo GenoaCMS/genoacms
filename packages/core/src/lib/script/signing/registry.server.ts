@@ -3,7 +3,7 @@ import {
   getInternalObjectStringVersioned,
   uploadInternalObjectJSON
 } from '$lib/script/storage/storage.server'
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { loadRootKey, getRootSigningKey } from './rootKey.server'
 import { createSubordinateKey, forgetSubordinateKey } from './subordinateKey.server'
 import { sign, verify } from './envelope'

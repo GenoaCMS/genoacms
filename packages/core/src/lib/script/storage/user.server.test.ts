@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { DirectoryContents } from '@genoacms/cloudabstraction/storage'
+import type { DirectoryContents } from '@genoacms/contracts/storage'
 import type { Grant } from '$lib/script/authorization/grants'
 import type { Permission } from '$lib/script/authorization/permissions'
 import type { AuthContext } from '$lib/script/authorization/context'

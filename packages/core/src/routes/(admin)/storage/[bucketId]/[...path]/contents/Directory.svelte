@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import type { ObjectReference } from '@genoacms/contracts/storage'
   import { page } from '$app/state'
   import CardLink from '$lib/components/CardLink.svelte'
   import ContextMenu from '$lib/components/ContextMenu.svelte'

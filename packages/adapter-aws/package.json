@@ -12,7 +12,6 @@
     "directory": "packages/adapter-aws"
   },
   "license": "ISC",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "vitest run src",
@@ -25,7 +24,6 @@
     "@aws-sdk/client-s3": "^3.436.0",
     "@aws-sdk/lib-storage": "^3.540.0",
     "@aws-sdk/s3-request-presigner": "^3.509.0",
-    "@genoacms/cloudabstraction": "workspace:^",
     "archiver": "^7.0.1",
     "uuid": "^9.0.1",
     "@genoacms/contracts": "workspace:^",
@@ -44,14 +42,23 @@
     "@genoacms/conformance": "workspace:^"
   },
   "exports": {
+    "./storage": {
+      "types": "./src/storage/descriptor.d.ts",
+      "import": "./src/storage/descriptor.js"
+    },
+    "./storage/runtime": {
+      "import": "./src/storage/runtime.js"
+    },
     "./database": {
-      "import": "./src/services/database/index.js"
+      "types": "./src/database/descriptor.d.ts",
+      "import": "./src/database/descriptor.js"
+    },
+    "./database/runtime": {
+      "import": "./src/database/runtime.js"
     },
     "./deployment": {
-      "import": "./src/services/deployment/index.js"
-    },
-    "./storage": {
-      "import": "./src/services/storage/index.js"
+      "types": "./src/deployment/descriptor.d.ts",
+      "import": "./src/deployment/descriptor.js"
     }
   }
 }

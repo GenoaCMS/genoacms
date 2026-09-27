@@ -2,7 +2,7 @@
   "name": "@genoacms/authentication-adapter-array",
   "version": "0.8.2-fix.1",
   "description": "Adapter for authentication using array of credential for genoacms",
-  "main": "src/index.js",
+  "main": "src/descriptor.js",
   "type": "module",
   "author": {
     "name": "Filip Holčík",
@@ -15,7 +15,6 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^",
     "@genoacms/contracts": "workspace:^"
   },
   "devDependencies": {
@@ -23,5 +22,15 @@
   },
   "scripts": {
     "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/descriptor.d.ts",
+      "import": "./src/descriptor.js"
+    },
+    "./runtime": {
+      "types": "./src/runtime.d.ts",
+      "import": "./src/runtime.js"
+    }
   }
 }

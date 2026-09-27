@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { JSDOM } from 'jsdom'
-import { analyze, compileBundle } from '@genoacms/language-adapter-ts'
+import { analyze, compileBundle } from '@genoacms/language-adapter-ts/runtime'
 import type { ComponentShape } from '@genoacms/internal/languageAdapter'
 import { renderPage } from './render.js'
 import type { Verifier } from '../verify/client.js'

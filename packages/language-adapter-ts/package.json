@@ -20,12 +20,16 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/descriptor.js",
+  "types": "./dist/descriptor.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/descriptor.d.ts",
+      "import": "./dist/descriptor.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
     }
   },
   "scripts": {
@@ -37,7 +41,6 @@
     "generate-e4-e5-report": "vite-node scripts/generate-e4-e5-report.ts"
   },
   "dependencies": {
-    "@genoacms/cloudabstraction": "workspace:^",
     "@genoacms/internal": "workspace:^",
     "esbuild": "^0.28.2",
     "ts-morph": "^25.0.1",

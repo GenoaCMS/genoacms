@@ -11,7 +11,7 @@ import {
   getInternalObjectFlatted,
   uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { validator } from '@exodus/schemasafe'
 import { publishedComponentSchema } from './schemas'
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ObjectReference } from '@genoacms/cloudabstraction/storage'
+  import type { ObjectReference } from '@genoacms/contracts/storage'
   import { Button, Card } from '$lib/components/ui/index'
 
   type Props = {

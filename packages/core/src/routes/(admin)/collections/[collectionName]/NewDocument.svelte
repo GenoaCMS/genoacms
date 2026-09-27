@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+  import type { CollectionReference } from '@genoacms/contracts/database'
   import { Button, Modal } from '$lib/components/ui/index'
   import Editor from './Editor/Editor.svelte'
   import { createDoc } from './create.remote'

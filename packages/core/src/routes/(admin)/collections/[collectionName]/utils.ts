@@ -1,4 +1,4 @@
-import type { CollectionReference } from '@genoacms/cloudabstraction/database'
+import type { CollectionReference } from '@genoacms/contracts/database'
 
 const extractDocumentProperties = (reference: CollectionReference, { preview }: { preview?: boolean } = {}) => {
   const array = []

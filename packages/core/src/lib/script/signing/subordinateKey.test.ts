@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { SUBORDINATE_SEED_PREFIX, subordinateSeedSecret } from './secretNames'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from './algorithms'
 import { deriveKeyId } from './keyId'
-import { isValidSecretKey } from '@genoacms/cloudabstraction/secrets'
+import { isValidSecretKey } from '@genoacms/contracts/secrets'
 import { sign, verify, toBase64, type SigningKey } from './envelope'
 
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)

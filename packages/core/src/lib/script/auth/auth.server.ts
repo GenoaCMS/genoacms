@@ -1,5 +1,5 @@
-import { config } from '@genoacms/cloudabstraction'
-import type { authentication } from '@genoacms/cloudabstraction'
+import { host } from '$lib/script/host.server'
+import type { Identity } from '@genoacms/contracts/authentication'
 import { type Cookies } from '@sveltejs/kit'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 import { randomUUID } from 'node:crypto'
@@ -10,7 +10,7 @@ import { getSessionKey } from '$lib/script/signing/rootKey.server'
 import { startSession, refreshSession, revokeSession } from './session.server'
 import { packSessionCookie, unpackSessionCookie, type SessionCookie } from './sessionCookie'
 
-const { cookieName } = config.authentication
+const { cookieName } = host
 
 /**
  * One cookie carries the whole session.
@@ -53,7 +53,7 @@ async function issueAccessToken (subject: string, email: string): Promise<string
     .sign(await getSessionKey())
 }
 
-async function authenticateAndAuthorize (email: string, password: string): Promise<authentication.Identity | null> {
+async function authenticateAndAuthorize (email: string, password: string): Promise<Identity | null> {
   let identity = null
   try {
     identity = await authenticate(email, password)
