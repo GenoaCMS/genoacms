@@ -16,6 +16,13 @@
   "license": "ISC",
   "dependencies": {
     "@genoacms/cloudabstraction": "workspace:^",
-    "@sveltejs/adapter-node": "^5.2.12"
+    "@sveltejs/adapter-node": "^5.2.12",
+    "@genoacms/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }
