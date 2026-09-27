@@ -1,4 +1,6 @@
+import { building } from '$app/environment'
 import type { CollectionReference } from '@genoacms/contracts/database'
+import type { DirectoryContents } from '@genoacms/contracts/storage'
 import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listOrCreateDirectory } from '../storage/storage.server'
 import {
   getCollections,
@@ -10,7 +12,11 @@ import {
 } from './providers.server'
 
 const collectionsDirectory = '.genoacms/collections'
-const collectionsDirectoryContents = await listOrCreateDirectory({ name: collectionsDirectory, bucket: defaultBucketId })
+/** Nothing is listed, and nothing created, while SvelteKit analyses the build (architecture D8). */
+const noContents: DirectoryContents = { files: [], directories: [] }
+const collectionsDirectoryContents = building
+  ? noContents
+  : await listOrCreateDirectory({ name: collectionsDirectory, bucket: defaultBucketId })
 const predefinedCollections = getCollections() || []
 
 function getCollectionReferences () {

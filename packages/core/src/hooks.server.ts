@@ -1,3 +1,4 @@
+import { building } from '$app/environment'
 import { authenticateRequest } from '$lib/script/auth/auth.server'
 import { ensureInstanceInitialized } from '$lib/script/bootstrap.server'
 import { getAuthContext } from '$lib/script/authorization/grants.server'
@@ -7,8 +8,9 @@ import type { JWTPayload } from 'jose'
 // Once per process, before anything is served. Awaited at module scope rather than per request so
 // that a fresh instance has its signing keys and manifests in place before the first login, not
 // after whichever request first happens to need them — which, for an instance whose only user is
-// the seed administrator, is never.
-await ensureInstanceInitialized()
+// the seed administrator, is never. Skipped while SvelteKit runs the app to analyse the build
+// (architecture D8): a build must not bootstrap the instance it is built for.
+if (!building) await ensureInstanceInitialized()
 
 /**
  * Attaches identity and grants to the request.
