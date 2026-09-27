@@ -14,7 +14,8 @@
     "directory": "packages/config"
   },
   "files": [
-    "dist"
+    "dist",
+    "client.d.ts"
   ],
   "exports": {
     ".": {
@@ -28,6 +29,17 @@
     "./host": {
       "types": "./dist/host/index.d.ts",
       "import": "./dist/host/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/index.d.ts",
+      "import": "./dist/vite/index.js"
+    },
+    "./build": {
+      "types": "./dist/artifact/index.d.ts",
+      "import": "./dist/artifact/index.js"
+    },
+    "./client": {
+      "types": "./client.d.ts"
     }
   },
   "scripts": {
