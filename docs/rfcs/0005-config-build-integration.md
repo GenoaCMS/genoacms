@@ -26,14 +26,15 @@ It also fixes the environment contract between the CLI and Vite (§4.1).
 | `src/environment.ts` | `readGenoaEnvironment`; §4.1 |
 | `src/vite/index.ts` | `genoa()` plugin; §4.2 |
 | `src/load/kit.ts` | `resolveKitAdapter`; §4.3 |
-| `src/build/index.ts` | `createRuntimePackage`; §4.4 |
-| `src/build/scan.ts` | `scanServerOutput`; §4.4.1 |
-| `src/build/versions.ts` | `installedVersion`; §4.4.2 |
+| `src/artifact/index.ts` | `createRuntimePackage`; §4.4 |
+| `src/artifact/scan.ts` | `scanServerOutput`; §4.4.1 |
+| `src/artifact/versions.ts` | `installedVersion`; §4.4.2 |
 | `client.d.ts` | the virtual module declaration; §4.5 |
-| `src/vite/*.test.ts`, `src/load/kit.test.ts`, `src/build/*.test.ts` | §5 |
+| | The directory is `artifact`, not `build`: the root `.gitignore` ignores every directory named `build/`. The public export keeps the name `./build`. |
+| `src/vite/*.test.ts`, `src/load/kit.test.ts`, `src/artifact/*.test.ts` | §5 |
 
 **Modify:**
-- `packages/config/package.json`: add the exports `"./vite"`, `"./build"` (both `dist/…/index.js` with types) and `"./client": { "types": "./client.d.ts" }`. Add `"client.d.ts"` to `files`.
+- `packages/config/package.json`: add the exports `"./vite"` (`dist/vite/index.js`) and `"./build"` (`dist/artifact/index.js`), both with types and `"./client": { "types": "./client.d.ts" }`. Add `"client.d.ts"` to `files`.
 - `packages/config/src/load/index.ts`: also export `resolveKitAdapter` and `readGenoaEnvironment` (for `svelte.config.js`).
 
 **Delete:** none.
@@ -136,7 +137,7 @@ return factory(descriptor.svelteKitOptions?.(entry.options, { outDir }) ?? {})
 
 `svelteKitOptions` receives **unresolved** options. `resolveKitAdapter` never resolves references.
 
-### 4.4 `src/build/index.ts`
+### 4.4 `src/artifact/index.ts`
 
 ```ts
 interface RuntimePackageRequest {
@@ -240,7 +241,7 @@ Core references it with `/// <reference types="@genoacms/config/client" />` in R
 
 ## 6. Steps
 
-1. Implement environment, then build/versions, build/scan, build/index, load/kit, vite/index, then client.d.ts.
+1. Implement environment, then artifact/versions, artifact/scan, artifact/index, load/kit, vite/index, then client.d.ts.
 2. Add the exports.
 3. Write the tests, then run §7.
 
@@ -249,7 +250,7 @@ Core references it with `/// <reference types="@genoacms/config/client" />` in R
 ```bash
 pnpm --filter @genoacms/config run test
 pnpm --filter @genoacms/config run check
-grep -rn "@genoacms/config/host\|/host/" packages/config/src/vite packages/config/src/build packages/config/src/load || echo "no host imports: ok"
+grep -rn "@genoacms/config/host\|/host/" packages/config/src/vite packages/config/src/artifact packages/config/src/load || echo "no host imports: ok"
 git status --short
 ```
 
