@@ -33,14 +33,14 @@ deletes `src/index.js`.
 
 **Modify:**
 - `packages/adapter-secrets-env/package.json`: add the dependency `"@genoacms/contracts": "workspace:^"`. Keep `@genoacms/cloudabstraction` until RFC-0014.
-- `packages/adapter-secrets-env/src/envFile.test.js`: import `assertValidSecretKey` from `@genoacms/contracts/secrets`.
+- `packages/adapter-secrets-env/src/envFile.js` and `src/envFile.test.js`: import `assertValidSecretKey` from `@genoacms/contracts/secrets` instead of `@genoacms/cloudabstraction/secrets`. It is the same function. Nothing else in `envFile.js` changes. Without this, `envFile.js` would break when RFC-0014 removes the old dependency.
 - `packages/adapter-secrets-env/README.md`: rewrite the "Configuration" and "Behavior" sections (§4.4). Keep the development-only warning and the `.env` syntax section verbatim.
 
 **Delete:** none.
 
 ## 3. Non-goals
 
-- Do not modify `src/index.js` or `src/envFile.js`.
+- Do not modify `src/index.js`. Change only the import line of `src/envFile.js` (§2).
 - Do not touch any `.env` file anywhere. Moving core's store is the author's manual step in RFC-0014 (U11).
 - No multi-line value support.
 
