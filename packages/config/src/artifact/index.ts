@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { Manifest } from '../manifest.js'
 import { scanServerOutput } from './scan.js'
 import { installedVersion } from './versions.js'
+import { vendorPackages } from './vendor.js'
 
 interface RuntimePackageRequest {
   /** Absolute SvelteKit adapter output directory (the artifact). */
@@ -19,6 +20,8 @@ interface RuntimePackage {
   private: true
   type: 'module'
   dependencies: Record<string, string>
+  /** Every vendored package → its tarball; present only when something was vendored (architecture D9). */
+  overrides?: Record<string, string>
 }
 
 interface RuntimePackageResult {
@@ -26,6 +29,8 @@ interface RuntimePackageResult {
   pkg: RuntimePackage
   /** Non-literal import()/require()/createRequire() sites, as "<relative file>: <construct>". Informational. */
   blind: string[]
+  /** Names of the packages packed into `vendor/`, sorted. */
+  vendored: string[]
 }
 
 /**
@@ -49,21 +54,34 @@ function mergeDependencies (scanned: string[], adapters: Map<string, string>, co
   return Object.fromEntries([...dependencies].sort(([a], [b]) => a.localeCompare(b)))
 }
 
+/** Points each vendored direct dependency at its tarball. Adds no keys, so the order stays sorted. */
+function applyVendored (dependencies: Record<string, string>, specs: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(dependencies).map(([name, version]) => [name, specs[name] ?? version]))
+}
+
 /**
  * Writes the artifact's package.json: exactly what the server bundle imports, plus the adapters it
  * loads at runtime, pinned to the installed versions. Core's build tooling never appears in it,
- * because nothing in the server output imports it.
+ * because nothing in the server output imports it. Adapters, and local packages reachable from them
+ * or from the bundle, are packed into `vendor/` and installed from there (architecture D9).
  */
 async function createRuntimePackage (request: RuntimePackageRequest): Promise<RuntimePackageResult> {
   const scanned = scanServerOutput(request.buildDir)
+  const adapters = adapterPackages(request.manifest)
+  const dependencies = mergeDependencies(scanned.packages, adapters, request.coreDir)
+  const vendored = await vendorPackages({
+    buildDir: request.buildDir, root: request.root, coreDir: request.coreDir, adapters: [...adapters.keys()], scanned: scanned.packages
+  })
+  const specs = Object.fromEntries(vendored.map(entry => [entry.name, entry.spec]))
   const pkg: RuntimePackage = {
     name: 'genoacms-runtime',
     private: true,
     type: 'module',
-    dependencies: mergeDependencies(scanned.packages, adapterPackages(request.manifest), request.coreDir)
+    dependencies: applyVendored(dependencies, specs),
+    ...(vendored.length > 0 ? { overrides: specs } : {})
   }
   writeFileSync(join(request.buildDir, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`)
-  return { pkg, blind: scanned.blind }
+  return { pkg, blind: scanned.blind, vendored: vendored.map(entry => entry.name) }
 }
 
 export { createRuntimePackage }

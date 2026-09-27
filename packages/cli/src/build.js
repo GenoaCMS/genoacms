@@ -25,6 +25,12 @@ function reportBlindImports (blind) {
   for (const entry of blind) log.warn(entry)
 }
 
+/** Packed packages install from the artifact, not the registry (architecture D9). */
+function reportVendored (vendored) {
+  if (vendored.length === 0) return
+  log.info(`Packed into the artifact: ${vendored.join(', ')}`)
+}
+
 /**
  * @returns {Promise<{ manifest: import('@genoacms/config').Manifest, target: string, buildDir: string }>}
  */
@@ -33,8 +39,9 @@ async function build ({ root, file, coreDir, target, mode, noInline }) {
   const chosen = chooseTarget(manifest, target)
   await spawnVite(coreDir, ['build'], genoaEnvironment({ root, file, target: chosen, mode }))
   const buildDir = join(root, '.genoacms', 'build')
-  const { blind } = await createRuntimePackage({ buildDir, coreDir, root, manifest })
+  const { blind, vendored } = await createRuntimePackage({ buildDir, coreDir, root, manifest })
   reportBlindImports(blind)
+  reportVendored(vendored)
   return { manifest, target: chosen, buildDir }
 }
 

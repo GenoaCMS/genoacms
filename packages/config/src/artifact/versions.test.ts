@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { installedVersion } from './versions.js'
+import { installedPackageDir, installedVersion } from './versions.js'
 
 const roots: string[] = []
 afterEach(() => { while (roots.length > 0) rmSync(roots.pop() as string, { recursive: true, force: true }) })
@@ -36,5 +36,17 @@ describe('installedVersion', () => {
 
   it('throws for a package that is not installed', () => {
     expect(() => installedVersion('not-there', temp())).toThrow(/^build\/not-installed: not-there/)
+  })
+})
+
+describe('installedPackageDir', () => {
+  it('returns the symlink, not its target, for a linked package', () => {
+    const root = temp()
+    const target = join(root, 'packages', 'local')
+    mkdirSync(target, { recursive: true })
+    writeFileSync(join(target, 'package.json'), JSON.stringify({ name: 'local', version: '1.0.0' }))
+    mkdirSync(join(root, 'node_modules'))
+    symlinkSync(target, join(root, 'node_modules', 'local'), 'dir')
+    expect(installedPackageDir('local', root)).toBe(join(root, 'node_modules', 'local'))
   })
 })

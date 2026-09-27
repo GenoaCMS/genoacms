@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createRuntimePackage } from './index.js'
@@ -29,12 +29,21 @@ function fixture (adapterVersion = '0.9.0') {
   return { root, coreDir, buildDir, manifest }
 }
 
-describe('createRuntimePackage', () => {
-  it('writes the scanned externals plus the runtime adapters, pinned, and nothing else', async () => {
+describe('createRuntimePackage', { timeout: 30_000 }, () => {
+  it('writes the scanned externals pinned, plus the runtime adapters vendored, and nothing else', async () => {
     const { root, coreDir, buildDir, manifest } = fixture()
-    const { pkg, blind } = await createRuntimePackage({ buildDir, coreDir, root, manifest })
-    expect(pkg).toEqual({ name: 'genoacms-runtime', private: true, type: 'module', dependencies: { '@genoacms/adapter-x': '0.9.0', jose: '5.10.0' } })
+    const { pkg, blind, vendored } = await createRuntimePackage({ buildDir, coreDir, root, manifest })
+    const tarball = 'file:vendor/genoacms-adapter-x-0.9.0.tgz'
+    expect(pkg).toEqual({
+      name: 'genoacms-runtime',
+      private: true,
+      type: 'module',
+      dependencies: { '@genoacms/adapter-x': tarball, jose: '5.10.0' },
+      overrides: { '@genoacms/adapter-x': tarball }
+    })
     expect(JSON.parse(readFileSync(join(buildDir, 'package.json'), 'utf-8'))).toEqual(pkg)
+    expect(vendored).toEqual(['@genoacms/adapter-x'])
+    expect(existsSync(join(buildDir, 'vendor', 'genoacms-adapter-x-0.9.0.tgz'))).toBe(true)
     expect(blind).toEqual(['server/index.js: import(<Identifier>)'])
   })
 
