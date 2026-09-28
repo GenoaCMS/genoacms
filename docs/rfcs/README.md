@@ -4,6 +4,9 @@ Implementation specifications derived from [`docs/architecture/configuration.md`
 (Tier 1), and from the GCP adapter architecture in [`docs/architecture/adapter-gcp/`](../architecture/adapter-gcp/README.md)
 (RFC-0021 onwards, for GCP). The architecture documents are authoritative. If an RFC contradicts one, the RFC is wrong.
 
+An RFC specifies a change. Once implemented it is history: the architecture documents carry the current
+state, including every behavior-relevant detail an RFC introduced ([`docs/README.md`](../README.md) §1.2).
+
 Branch: `refactor/configuration-architecture`. The branch merges to `main` only after RFC-0017.
 
 ## Order

@@ -10,15 +10,9 @@
 
 ## 0. How to read these documents
 
-**What they describe.** The GCP side of GenoaCMS as it is (**current**), what is decided and not yet
-built (**new**), and in brief how it got here (**history**). Each statement carries one of those
-markers, so they never blur:
-
-| Marker | Meaning |
-| :-- | :-- |
-| *(current)* | Implemented and verified at the commit in the header. Unmarked text is current. |
-| **New** | Decided, not yet implemented. Names the RFC that implements it, or says that none exists yet. When the RFC lands, the marker is removed and the text becomes current. |
-| *History* | A previous state, kept short: what it was, why it changed, and where it changed. |
+Markers (*(current)*, **New**, *History*), ID categories and the reproducibility goal follow the
+project-wide conventions in [`docs/README.md`](../../README.md) §1. This directory's ID prefix is
+`G`: `GU`, `GD`, `GF`, `GS`, `GQ`.
 
 **Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
 this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
@@ -26,10 +20,6 @@ secret references (D5), the artifact (D6, D9) and deployment targets (§7). It s
 all of that. These documents cover only what is specific to GCP. If they disagree on the adapter
 model, `configuration.md` wins. If they disagree on a GCP detail, these documents win, and
 `configuration.md` is corrected to point here.
-
-**IDs** are prefixed `G`: `GU` (author decision), `GD` (design decision), `GF` (finding), `GS`
-(verification), `GQ` (open question). They never collide with `configuration.md`'s IDs, and an ID
-keeps its number when its text moves between these files.
 
 | Document | Covers |
 | :-- | :-- |
@@ -168,7 +158,7 @@ Every `G` ID, where it lives, and its state.
 
 **Pros**
 - Each service can be read and changed on its own, and each file stays short enough to review.
-- The three markers keep "what runs today" and "what we decided" apart in the same text. The RFC for a **New** item removes the marker, so the documents converge on the code instead of drifting from it.
+- The project-wide markers (`docs/README.md` §1.3) keep "what runs today" and "what we decided" apart in the same text. The RFC for a **New** item removes the marker, so the documents converge on the code instead of drifting from it.
 - The register makes a finding's life visible: open, decided, fixed.
 
 **Cons & trade-offs**
@@ -177,4 +167,4 @@ Every `G` ID, where it lives, and its state.
 
 **Blindspots & missed edge cases**
 - `configuration.md` was written as a proposal and has no markers. Its GCP rows now point here, but the two documents follow different conventions until it is restructured the same way.
-- There is no template for other adapters yet. AWS, which has recorded findings from the AWS discussion only in conversation, is the next candidate.
+- This directory is the first to follow the project-wide conventions and acts as their template. AWS, whose findings from the AWS discussion are recorded only in conversation, is the next candidate.
