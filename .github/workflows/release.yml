@@ -1,8 +1,10 @@
 name: Release
 
+# WORKFLOW §11.4
 on:
-  push:
-    branches: [main]
+  workflow_call:
+
+permissions: {}
 
 concurrency: release-${{ github.ref }}
 
@@ -12,34 +14,45 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      id-token: write # required for npm provenance
+      id-token: write
     steps:
+      - name: Download verification record
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verification
+
+      - name: Require a releasable record of this commit
+        run: |
+          node -e '
+            const record = JSON.parse(require("node:fs").readFileSync("verification.json", "utf-8"))
+            if (record.commit !== process.env.GITHUB_SHA) throw new Error(`verification.json is of ${record.commit}, not ${process.env.GITHUB_SHA}`)
+            if (record.releasable !== true) throw new Error("verification.json is not releasable")
+          '
+          mkdir -p "$RUNNER_TEMP/verification"
+          mv verification.json "$RUNNER_TEMP/verification/"
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
           registry-url: https://registry.npmjs.org/
 
-      # changesets shells out to `npm publish`, and OIDC trusted publishing needs
-      # npm >= 11.5.1. Node 22 bundles npm 10.9.x, which has no OIDC support at
-      # all — it goes straight to token auth and fails with ENEEDAUTH.
-      - name: Upgrade npm for trusted publishing
+      - name: Upgrade npm to 11.5.1 or later, the first with OIDC trusted publishing
         run: npm install -g npm@^11.5.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Opens (or updates) a "Version Packages" PR while changesets are pending.
-      # Merging that PR runs this workflow again, this time publishing.
       - name: Version or publish
-        uses: changesets/action@v1
+        id: changesets
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: pnpm run version-packages
           publish: pnpm run release
@@ -47,9 +60,16 @@ jobs:
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No NODE_AUTH_TOKEN: publishing goes through OIDC trusted publishing,
-          # configured per package on npmjs.com. setup-node writes an .npmrc line
-          # of `_authToken=${NODE_AUTH_TOKEN}`, so passing an unset secret leaves
-          # an empty token there for npm to trip over. To go back to token auth,
-          # add the secret and restore this line.
           NPM_CONFIG_PROVENANCE: true
+
+      - name: Attach the verification record to each release
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          node -e '
+            for (const { name, version } of JSON.parse(process.env.PUBLISHED)) console.log(`${name}@${version}`)
+          ' | while read -r tag; do
+            gh release upload "$tag" "$RUNNER_TEMP/verification/verification.json"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}

@@ -139,3 +139,11 @@ jobs:
           steps.conformance.outcome == 'failure' || steps.contract.outcome == 'failure'
         run: exit 1
 
+  release:
+    needs: verify
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
