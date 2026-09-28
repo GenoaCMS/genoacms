@@ -6,8 +6,7 @@ import { buildConfig, serviceConfig, type FunctionSettings } from './settings.js
 type IStorageSource = google.cloud.functions.v2.IStorageSource
 type ICloudFunction = google.cloud.functions.v2.IFunction
 
-/** gRPC status of a lookup for a function that does not exist. */
-const NOT_FOUND = 5
+const GRPC_NOT_FOUND = 5
 type FunctionServiceClient = InstanceType<typeof v2.FunctionServiceClient>
 
 interface FunctionTarget {
@@ -16,7 +15,7 @@ interface FunctionTarget {
   functionName: string
 }
 
-/** Omitted credentials: Application Default Credentials of the operator's machine. */
+// DEP-13
 function createFunctionsClient (credentials?: ServiceAccount): FunctionServiceClient {
   return new v2.FunctionServiceClient(credentials === undefined ? {} : { credentials })
 }
@@ -41,18 +40,18 @@ async function uploadArchive (client: FunctionServiceClient, projectId: string, 
   return storageSource
 }
 
-/** Only NOT_FOUND means absent: a permission or network error must not turn into a create. */
+// DEP-9
 async function functionExists (client: FunctionServiceClient, name: string): Promise<boolean> {
   try {
     await client.getFunction({ name })
     return true
   } catch (error) {
-    if ((error as { code?: number }).code === NOT_FOUND) return false
+    if ((error as { code?: number }).code === GRPC_NOT_FOUND) return false
     throw error
   }
 }
 
-/** Waits for the platform, so a failed build fails the deploy instead of passing unseen (architecture GD1). */
+// DEP-11, GD1
 async function completeOperation (operation: { promise: () => Promise<unknown[]> }): Promise<ICloudFunction> {
   try {
     const [result] = await operation.promise()
@@ -62,10 +61,7 @@ async function completeOperation (operation: { promise: () => Promise<unknown[]>
   }
 }
 
-/**
- * Creates or updates the function and waits for it. The whole configuration is written each time, so
- * the config stays the source of truth (architecture GD3). Resolves the function's URL.
- */
+// DEP-10, DEP-12, GD1
 async function deployFunction (client: FunctionServiceClient, { projectId, region, functionName }: FunctionTarget, storageSource: IStorageSource, settings: FunctionSettings): Promise<string | undefined> {
   const name = client.functionPath(projectId, region, functionName)
   const request = {

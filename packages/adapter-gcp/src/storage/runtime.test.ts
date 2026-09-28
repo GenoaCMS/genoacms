@@ -13,8 +13,7 @@ interface MockFile {
   delete: ReturnType<typeof vi.fn>
 }
 
-/** One mocked object; every method resolves unless a test says otherwise. */
-function mockFile (name: string, metadata: Record<string, unknown> = {}): MockFile {
+function mockFileResolvingEveryCall (name: string, metadata: Record<string, unknown> = {}): MockFile {
   return {
     name,
     metadata,
@@ -28,7 +27,7 @@ function mockFile (name: string, metadata: Record<string, unknown> = {}): MockFi
 
 const files = new Map<string, MockFile>()
 const fileNamed = (name: string): MockFile => {
-  if (!files.has(name)) files.set(name, mockFile(name))
+  if (!files.has(name)) files.set(name, mockFileResolvingEveryCall(name))
   return files.get(name) as MockFile
 }
 const bucket = { file: vi.fn(fileNamed), getFiles: vi.fn() }
@@ -124,10 +123,10 @@ describe('the GCP storage runtime', () => {
   it('STO-9: lists one level, hiding placeholders and the directory itself', async () => {
     const storage = await create()
     bucket.getFiles.mockResolvedValueOnce([[
-      mockFile('d/', { size: '0' }),
-      mockFile('d/.folderPlaceholder', { size: '0' }),
-      mockFile('d/x', { size: '12', updated: '2026-01-01T00:00:00Z' }),
-      mockFile('d/y', { updated: '2026-01-02T00:00:00Z' })
+      mockFileResolvingEveryCall('d/', { size: '0' }),
+      mockFileResolvingEveryCall('d/.folderPlaceholder', { size: '0' }),
+      mockFileResolvingEveryCall('d/x', { size: '12', updated: '2026-01-01T00:00:00Z' }),
+      mockFileResolvingEveryCall('d/y', { updated: '2026-01-02T00:00:00Z' })
     ], {}, { prefixes: ['d/', 'd/sub/'] }])
     const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' }, { limit: 10, startAfter: 'd/a' })
     expect(bucket.getFiles).toHaveBeenCalledWith({ autoPaginate: false, prefix: 'd/', maxResults: 10, startOffset: 'd/a', delimiter: '/' })
@@ -148,7 +147,7 @@ describe('the GCP storage runtime', () => {
 
   it('STO-11: deletes every object under a directory', async () => {
     const storage = await create()
-    const listed = [mockFile('d/x'), mockFile('d/e/y')]
+    const listed = [mockFileResolvingEveryCall('d/x'), mockFileResolvingEveryCall('d/e/y')]
     bucket.getFiles.mockResolvedValueOnce([listed])
     await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
     expect(bucket.getFiles).toHaveBeenCalledWith({ prefix: 'd/' })
@@ -157,7 +156,7 @@ describe('the GCP storage runtime', () => {
 
   it('STO-12: moves every object under a directory, replacing the first occurrence', async () => {
     const storage = await create()
-    const listed = [mockFile('d/x'), mockFile('d/e/d/y')]
+    const listed = [mockFileResolvingEveryCall('d/x'), mockFileResolvingEveryCall('d/e/d/y')]
     bucket.getFiles.mockResolvedValueOnce([listed])
     await storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'n/')
     expect(listed[0].move).toHaveBeenCalledWith('n/x')

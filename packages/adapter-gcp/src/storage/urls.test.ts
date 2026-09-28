@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { generateKeyPairSync } from 'node:crypto'
 import runtime from './runtime.js'
 
-/**
- * The real client library, not a mock: both URLs are formed locally, so the tests check the library's
- * actual encoding and signing without touching the network.
- */
+// GD6
 function credentials () {
   const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
   return {

@@ -19,13 +19,16 @@ const client = {
 const clientOptions: unknown[] = []
 vi.mock('@google-cloud/functions', () => ({ v2: { FunctionServiceClient: vi.fn(function (options: unknown) { clientOptions.push(options); return client }) } }))
 
+async function consumeUploadBody (body: AsyncIterable<unknown>): Promise<void> {
+  for await (const _chunk of body) continue
+}
+
 const roots: string[] = []
 beforeEach(() => {
   calls.length = 0
   vi.spyOn(console, 'info').mockImplementation(() => {})
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: { method: string, body: AsyncIterable<unknown> }) => {
-    // Read the upload as a real request would, so the archive is opened while it still exists.
-    for await (const _chunk of init.body) { /* drain */ }
+    await consumeUploadBody(init.body)
     calls.push(`${init.method} ${url}`)
     return new Response(null)
   }))
@@ -67,7 +70,7 @@ describe('the GCP deploy procedure', () => {
 
   it('DEP-8: stops when the upload is refused, before touching the function', async () => {
     vi.stubGlobal('fetch', vi.fn(async (_url: string, init: { body: AsyncIterable<unknown> }) => {
-      for await (const _chunk of init.body) { /* drain, as a real request would */ }
+      await consumeUploadBody(init.body)
       return new Response(null, { status: 403, statusText: 'Forbidden' })
     }))
     await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toThrow(/^deploy\/upload-failed: 403 Forbidden/)

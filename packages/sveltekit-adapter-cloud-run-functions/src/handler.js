@@ -15,7 +15,7 @@ import { requestUrl, clientAddress, parseXffDepth } from './request.js';
 
 const server = new Server(manifest);
 
-// Read at startup, so a bad XFF_DEPTH stops the function rather than misattributing requests.
+// ADP-7
 const origin = env('ORIGIN', undefined);
 const xff_depth = parseXffDepth(env('XFF_DEPTH', undefined));
 
@@ -42,7 +42,6 @@ function serve(path, client = false) {
 			setHeaders:
 				client &&
 				((res, pathname) => {
-					// only apply to build directory, not e.g. version.json
 					if (pathname.startsWith(`/${manifest.appPath}/immutable/`) && res.statusCode === 200) {
 						res.setHeader('cache-control', 'public,max-age=31536000,immutable');
 					}
@@ -51,7 +50,7 @@ function serve(path, client = false) {
 	);
 }
 
-// required because the static file server ignores trailing slashes
+// ADP-5
 /** @returns {import('polka').Middleware} */
 function serve_prerendered() {
 	const handler = serve(path.join(dir, 'prerendered'));
@@ -62,14 +61,13 @@ function serve_prerendered() {
 		try {
 			pathname = decodeURIComponent(pathname);
 		} catch {
-			// ignore invalid URI
+			// ADP-5
 		}
 
 		if (prerendered.has(pathname)) {
 			return handler(req, res, next);
 		}
 
-		// remove or add trailing slash as appropriate
 		let location = pathname.at(-1) === '/' ? pathname.slice(0, -1) : pathname + '/';
 		if (prerendered.has(location)) {
 			if (query) location += search;
@@ -80,16 +78,12 @@ function serve_prerendered() {
 	};
 }
 
+// ADP-5
 /**
- * Cloud Run Functions augments the incoming request with the unparsed body,
- * which `http.IncomingMessage` does not declare.
- *
  * @param {import('http').IncomingMessage & { rawBody?: Uint8Array<ArrayBuffer> }} cloudRunRequest
  * @returns {Request}
  */
 function parseRequest(cloudRunRequest) {
-	// href already carries protocol, host, path and query, so they do not need
-	// repeating in the init — RequestInit has no such fields and ignored them.
 	const href = requestUrl(cloudRunRequest, origin);
 	const request = new Request(href, {
 		method: cloudRunRequest.method,

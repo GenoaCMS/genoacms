@@ -22,28 +22,27 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
       ...(credentials === undefined ? {} : { credentials })
     })
 
-    /** gRPC status codes. */
-    const NOT_FOUND = 5
-    const ALREADY_EXISTS = 6
+    const GRPC_NOT_FOUND = 5
+    const GRPC_ALREADY_EXISTS = 6
 
     const parent = `projects/${projectId}`
     const secretName = (key: string): string => `${parent}/secrets/${key}`
     const latestVersionName = (key: string): string => `${secretName(key)}/versions/latest`
 
-    /** A destroyed version stays disabled this long before Secret Manager destroys it (architecture GD4). */
+    // SEC-7, GD4
     const VERSION_DESTROY_TTL = { seconds: 7 * 24 * 60 * 60 }
 
-    /** The secret resource every create path uses. */
+    // SEC-7
     const newSecret = () => ({ replication: { automatic: {} }, versionDestroyTtl: VERSION_DESTROY_TTL })
 
-    /** The number at the end of a version resource name. */
+    // SEC-8, SEC-9
     function versionNumber (name: string): number {
       const number = Number(name.split('/').at(-1))
       if (!Number.isInteger(number) || number < 1) throw new Error(`secrets/unexpected-version-name: ${name}`)
       return number
     }
 
-    /** Destroys every enabled version of `key` numbered below `added`, so a concurrent newer write survives. */
+    // SEC-8
     async function destroySuperseded (key: string, added: string): Promise<void> {
       const addedNumber = versionNumber(added)
       const [versions] = await client.listSecretVersions({ parent: secretName(key), filter: 'state:ENABLED' })
@@ -54,10 +53,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
       }
     }
 
-    /**
-     * Reports instead of failing: the new value is already written and is `latest`. The next overwrite
-     * retries, because it destroys every lower enabled version, not only the previous one.
-     */
+    // SEC-9, GD4
     async function cleanUp (key: string, added: string): Promise<void> {
       try {
         await destroySuperseded(key, added)
@@ -70,15 +66,12 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
       return typeof error === 'object' && error !== null && (error as { code?: number }).code === code
     }
 
-    /**
-     * Creating on demand keeps `setSecret` a single call for the caller. A concurrent create losing the
-     * race is not a failure — the secret it wanted now exists.
-     */
+    // SEC-5
     async function ensureSecretExists (key: string): Promise<void> {
       try {
         await client.getSecret({ name: secretName(key) })
       } catch (error) {
-        if (!hasStatusCode(error, NOT_FOUND)) throw error
+        if (!hasStatusCode(error, GRPC_NOT_FOUND)) throw error
         try {
           await client.createSecret({
             parent,
@@ -86,19 +79,12 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
             secret: newSecret()
           })
         } catch (createError) {
-          if (!hasStatusCode(createError, ALREADY_EXISTS)) throw createError
+          if (!hasStatusCode(createError, GRPC_ALREADY_EXISTS)) throw createError
         }
       }
     }
 
-    /**
-     * Resolves to `undefined` only when the secret does not exist.
-     *
-     * Every other failure propagates, including a `latest` version that has been disabled or destroyed.
-     * Reporting that as absence would be worse than failing: a caller reads absence as "not configured
-     * yet" and generates a replacement, so a disabled key would quietly become a *new* key rather than
-     * an error.
-     */
+    // SEC-3, SEC-4
     const getSecret: Adapter.getSecret = async (key: string) => {
       assertValidSecretKey(key)
       try {
@@ -107,7 +93,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
         if (data === null || data === undefined) return undefined
         return typeof data === 'string' ? data : Buffer.from(data).toString('utf-8')
       } catch (error) {
-        if (hasStatusCode(error, NOT_FOUND)) return undefined
+        if (hasStatusCode(error, GRPC_NOT_FOUND)) return undefined
         throw error
       }
     }
@@ -123,14 +109,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
       return true
     }
 
-    /**
-     * Claims a key, atomically.
-     *
-     * `createSecret` is the primitive: the name is unique within the project, so exactly one concurrent
-     * caller creates it and the rest receive `ALREADY_EXISTS`. Creating the name and writing its value
-     * are two calls, so a crash between them leaves a name holding nothing — the caller is responsible
-     * for polling and failing rather than reading that as absence.
-     */
+    // SEC-6, SEC-10
     const setSecretIfAbsent: Adapter.setSecretIfAbsent = async (key: string, value: string) => {
       assertValidSecretKey(key)
       try {
@@ -140,7 +119,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
           secret: newSecret()
         })
       } catch (error) {
-        if (hasStatusCode(error, ALREADY_EXISTS)) return false
+        if (hasStatusCode(error, GRPC_ALREADY_EXISTS)) return false
         throw error
       }
       await client.addSecretVersion({
@@ -150,14 +129,14 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
       return true
     }
 
-    /** Removes the secret and every version of it. Resolves `false` when it was already absent. */
+    // SEC-11
     const deleteSecret: Adapter.deleteSecret = async (key: string) => {
       assertValidSecretKey(key)
       try {
         await client.deleteSecret({ name: secretName(key) })
         return true
       } catch (error) {
-        if (hasStatusCode(error, NOT_FOUND)) return false
+        if (hasStatusCode(error, GRPC_NOT_FOUND)) return false
         throw error
       }
     }

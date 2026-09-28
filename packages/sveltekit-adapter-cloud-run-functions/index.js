@@ -48,18 +48,13 @@ export default function (opts = {}) {
 
 			const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
-			// we bundle the Vite output so that deployments only need
-			// their production dependencies. Anything in devDependencies
-			// will get included in the bundled code
+			// ADP-3
 			const bundle = await rollup({
 				input: {
 					index: `${tmp}/index.js`,
 					manifest: `${tmp}/manifest.js`
 				},
-				external: [
-					// dependencies could have deep exports, so we need a regex
-					...Object.keys(pkg.dependencies || {}).map((d) => new RegExp(`^${d}(\\/.*)?$`))
-				],
+				external: [...Object.keys(pkg.dependencies || {}).map((d) => new RegExp(`^${d}(\\/.*)?$`))],
 				plugins: [
 					nodeResolve({
 						preferBuiltins: true,

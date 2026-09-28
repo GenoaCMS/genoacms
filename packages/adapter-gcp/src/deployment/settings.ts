@@ -18,25 +18,22 @@ export interface FunctionSettings {
 const SETTING_KEYS: readonly string[] = ['runtime', 'memory', 'timeoutSeconds', 'minInstances', 'maxInstances', 'ingress', 'serviceAccount', 'origin', 'xffDepth']
 const DEFAULT_RUNTIME = 'nodejs22'
 
-/**
- * Cloud Functions v2 `IngressSettings` (ALLOW_ALL, ALLOW_INTERNAL_ONLY, ALLOW_INTERNAL_AND_GCLB), as
- * numbers so that this module, which the descriptor imports, loads no SDK.
- */
-const INGRESS: Record<Ingress, number> = { all: 1, internal: 2, 'internal-and-gclb': 3 }
+// DEP-1, DEP-3
+const INGRESS_SETTING_BY_OPTION: Record<Ingress, number> = { all: 1, internal: 2, 'internal-and-gclb': 3 }
 
 const isInteger = (value: unknown, min: number, max = Number.MAX_SAFE_INTEGER): boolean =>
   Number.isInteger(value) && (value as number) >= min && (value as number) <= max
 
 const matches = (value: unknown, pattern: RegExp): boolean => typeof value === 'string' && pattern.test(value)
 
-/** One rule per setting: whether a present value is valid, and the reason when it is not. */
+// DEP-4, DEP-14
 const RULES: Record<string, [(value: unknown) => boolean, string]> = {
   runtime: [value => matches(value, /^nodejs\d+$/), "runtime must be a Node.js runtime such as 'nodejs22'"],
   memory: [value => matches(value, /^\d+(M|Mi|G|Gi)$/), "memory must be a size such as '512Mi' or '1Gi'"],
   timeoutSeconds: [value => isInteger(value, 1, 3600), 'timeoutSeconds must be an integer from 1 to 3600'],
   minInstances: [value => isInteger(value, 0), 'minInstances must be an integer of at least 0'],
   maxInstances: [value => isInteger(value, 1), 'maxInstances must be an integer of at least 1'],
-  ingress: [value => typeof value === 'string' && Object.hasOwn(INGRESS, value), "ingress must be 'all', 'internal' or 'internal-and-gclb'"],
+  ingress: [value => typeof value === 'string' && Object.hasOwn(INGRESS_SETTING_BY_OPTION, value), "ingress must be 'all', 'internal' or 'internal-and-gclb'"],
   serviceAccount: [value => matches(value, /^[^@\s]+@[^@\s]+$/), 'serviceAccount must be a service account email'],
   origin: [value => matches(value, /^https?:\/\/[^/\s]+$/), "origin must be an absolute http(s) origin such as 'https://cms.example.com'"],
   xffDepth: [value => isInteger(value, 1), 'xffDepth must be an integer of at least 1']
@@ -48,7 +45,7 @@ function instanceOrder (options: Record<string, unknown>): string[] {
   return (min as number) > (max as number) ? ['minInstances must not exceed maxInstances'] : []
 }
 
-/** Reasons the settings in `options` are invalid, else []. Ignores keys that are not settings. */
+// DEP-4, DEP-14
 function validateSettings (options: unknown): string[] {
   const record = typeof options === 'object' && options !== null ? options as Record<string, unknown> : {}
   const reasons = SETTING_KEYS
@@ -57,12 +54,12 @@ function validateSettings (options: unknown): string[] {
   return [...reasons, ...instanceOrder(record)]
 }
 
-/** The Cloud Functions v2 buildConfig for an uploaded source. */
+// DEP-3, DEP-10
 function buildConfig (settings: FunctionSettings, storageSource: object): object {
   return { entryPoint: 'genoacms', runtime: settings.runtime ?? DEFAULT_RUNTIME, source: { storageSource } }
 }
 
-/** The function's environment: only named, non-secret settings ever become variables (architecture GQ1). */
+// DEP-10, DEP-14, GQ1
 function environmentVariables (settings: FunctionSettings): Record<string, string> {
   return {
     NODE_ENV: 'production',
@@ -71,12 +68,12 @@ function environmentVariables (settings: FunctionSettings): Record<string, strin
   }
 }
 
-/** The Cloud Functions v2 serviceConfig. Unset settings keep the behavior the adapter always had. */
+// DEP-3, DEP-10, GD3
 function serviceConfig (settings: FunctionSettings): object {
   return {
     minInstanceCount: settings.minInstances ?? 0,
     maxInstanceCount: settings.maxInstances ?? 1,
-    ingressSettings: INGRESS[settings.ingress ?? 'all'],
+    ingressSettings: INGRESS_SETTING_BY_OPTION[settings.ingress ?? 'all'],
     environmentVariables: environmentVariables(settings),
     ...(settings.memory === undefined ? {} : { availableMemory: settings.memory }),
     ...(settings.timeoutSeconds === undefined ? {} : { timeoutSeconds: settings.timeoutSeconds }),

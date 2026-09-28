@@ -3,10 +3,7 @@ import { runStorageConformance, runDatabaseConformance } from '@genoacms/conform
 import storageRuntime from '../src/storage/runtime.js'
 import databaseRuntime from '../src/database/runtime.js'
 
-/**
- * Against real GCP: opt-in with GENOACMS_TEST_GCP=1. Credentials come only from Application Default
- * Credentials in the operator's shell (GOOGLE_APPLICATION_CREDENTIALS); this test reads no key file.
- */
+// GU2, GD6
 if (process.env.GENOACMS_TEST_GCP === '1') {
   const bucket = process.env.GENOACMS_TEST_GCP_BUCKET as string
   const projectId = process.env.GENOACMS_TEST_GCP_PROJECT as string

@@ -1,12 +1,7 @@
-/**
- * Request URL and client address, kept free of the build-time placeholders (SERVER, MANIFEST) so they
- * can be tested without a build.
- */
+// GD5
 
+// ADP-7
 /**
- * Parses XFF_DEPTH. A bad value throws, so a misconfigured function fails at startup rather than
- * trusting the wrong address.
- *
  * @param {string | undefined} value
  * @returns {number}
  */
@@ -16,10 +11,8 @@ export function parseXffDepth(value) {
 	throw new Error(`XFF_DEPTH must be a positive integer, not '${value}'`);
 }
 
+// ADP-5
 /**
- * The request URL. A configured origin wins over forwarded headers, which a proxy such as Firebase
- * Hosting may set to something other than what the browser used.
- *
  * @param {import('http').IncomingMessage} req
  * @param {string | undefined} origin
  * @returns {string}
@@ -31,10 +24,8 @@ export function requestUrl(req, origin) {
 	return new URL(req.url || '', `${protocol}://${hostname}`).href;
 }
 
+// ADP-6
 /**
- * The client address: the X-Forwarded-For entry `depth` positions from the right. Entries further left
- * were sent by the client and can be forged.
- *
  * @param {import('http').IncomingMessage} req
  * @param {number} depth
  * @returns {string | undefined}

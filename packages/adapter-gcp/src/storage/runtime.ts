@@ -8,8 +8,7 @@ import { PreconditionFailedError } from '@genoacms/contracts/storage'
 import { type Bucket, type File, Storage } from '@google-cloud/storage'
 import type { GcpStorageOptions } from './descriptor.js'
 
-/** GCS reports a failed precondition as HTTP 412. */
-const PRECONDITION_FAILED = 412
+const HTTP_PRECONDITION_FAILED = 412
 
 /**
  * One GCS provider. Each construction owns its client and its credential, so two providers on this
@@ -25,14 +24,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       return storage.bucket(name)
     }
 
-    /**
-     * Reads the object together with its generation, so a later write can assert it.
-     *
-     * The generation costs one metadata call, because `createReadStream` hands back a stream before the
-     * response has been seen and cannot report it. The call is skipped rather than failed when metadata
-     * is unavailable: a missing version only removes the ability to write conditionally, and a download
-     * should not fail for the sake of a token the caller may not want.
-     */
+    // STO-4
     const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
       const bucketInstance = getBucket(bucket)
       const file = bucketInstance.file(name)
@@ -72,8 +64,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       const file = bucketInstance.file(name)
 
       const { ifVersion, ifAbsent, ...saveOptions } = options ?? {}
-      // `ifGenerationMatch: 0` matches only an object that does not exist yet, which is how GCS spells
-      // an atomic create.
+      // STO-6
       const generation = ifAbsent === true ? 0 : ifVersion === undefined ? undefined : Number(ifVersion)
 
       try {
@@ -81,7 +72,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
           ? saveOptions
           : { ...saveOptions, preconditionOpts: { ifGenerationMatch: generation } })
       } catch (error) {
-        if ((error as { code?: number }).code === PRECONDITION_FAILED) {
+        if ((error as { code?: number }).code === HTTP_PRECONDITION_FAILED) {
           throw new PreconditionFailedError({ bucket, name }, ifAbsent === true
             ? 'object already exists'
             : 'object changed since it was read')

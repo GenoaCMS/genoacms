@@ -22,8 +22,7 @@ function artifact (withPackage = true): string {
   return buildDir
 }
 
-/** Entry names from a zip's central directory, so the test needs no zip tool. */
-function zipEntries (file: string): string[] {
+function entryNamesFromCentralDirectory (file: string): string[] {
   const zip = readFileSync(file)
   const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
   const count = zip.readUInt16LE(end + 10)
@@ -54,6 +53,6 @@ describe('staging the artifact', () => {
     const work = temp()
     const app = await stageArtifact(artifact(), join(work, 'app'))
     const archive = await zipDirectory(app, join(work, 'build.zip'))
-    expect(zipEntries(archive)).toEqual(['function.js', 'index.js', 'package.json', 'server/chunk.js'])
+    expect(entryNamesFromCentralDirectory(archive)).toEqual(['function.js', 'index.js', 'package.json', 'server/chunk.js'])
   })
 })
