@@ -26,7 +26,8 @@
     "docs:dev": "pnpm --filter @genoacms/docs dev",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "docs:check": "node docs/tools/check-docs.mjs docs"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
