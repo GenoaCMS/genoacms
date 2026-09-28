@@ -1,16 +1,54 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Readable } from 'node:stream'
+import { PreconditionFailedError } from '@genoacms/contracts/storage'
 import runtime from './runtime.js'
 
+interface MockFile {
+  name: string
+  metadata: Record<string, unknown>
+  getMetadata: ReturnType<typeof vi.fn>
+  createReadStream: ReturnType<typeof vi.fn>
+  save: ReturnType<typeof vi.fn>
+  move: ReturnType<typeof vi.fn>
+  delete: ReturnType<typeof vi.fn>
+}
+
+/** One mocked object; every method resolves unless a test says otherwise. */
+function mockFile (name: string, metadata: Record<string, unknown> = {}): MockFile {
+  return {
+    name,
+    metadata,
+    getMetadata: vi.fn(async () => [{ generation: 7 }]),
+    createReadStream: vi.fn(() => 'stream'),
+    save: vi.fn(async () => {}),
+    move: vi.fn(async () => {}),
+    delete: vi.fn(async () => {})
+  }
+}
+
+const files = new Map<string, MockFile>()
+const fileNamed = (name: string): MockFile => {
+  if (!files.has(name)) files.set(name, mockFile(name))
+  return files.get(name) as MockFile
+}
+const bucket = { file: vi.fn(fileNamed), getFiles: vi.fn() }
 const instances: Array<{ options: unknown, bucket: ReturnType<typeof vi.fn> }> = []
 vi.mock('@google-cloud/storage', () => ({
   Storage: vi.fn(function (this: any, options: unknown) {
     this.options = options
-    this.bucket = vi.fn(() => ({ file: () => ({ getMetadata: async () => [{ generation: 7 }], createReadStream: () => 'stream' }) }))
+    this.bucket = vi.fn(() => bucket)
     instances.push(this)
   })
 }))
 
-beforeEach(() => { instances.length = 0 })
+beforeEach(() => {
+  instances.length = 0
+  files.clear()
+  bucket.getFiles.mockReset()
+})
+
+const create = async () => await runtime.create({ projectId: 'p' }, { name: 'a', resources: ['b'] })
+const stream = () => Readable.from(['x'])
 
 describe('the GCP storage runtime', () => {
   it('passes the project, and the credentials only when given', async () => {
@@ -30,5 +68,99 @@ describe('the GCP storage runtime', () => {
     const storage = await runtime.create({ projectId: 'p' }, { name: 'a', resources: ['registered'] })
     await expect(storage.getObject({ bucket: 'other', name: 'n' })).rejects.toThrow('bucket-unregistered')
     expect(await storage.getObject({ bucket: 'registered', name: 'n' })).toEqual({ data: 'stream', version: '7' })
+  })
+
+  it('reads without a version when the metadata call fails', async () => {
+    const storage = await create()
+    fileNamed('n').getMetadata.mockRejectedValueOnce(new Error('forbidden'))
+    expect(await storage.getObject({ bucket: 'b', name: 'n' })).toEqual({ data: 'stream', version: undefined })
+  })
+
+  it('creates atomically with ifAbsent', async () => {
+    const storage = await create()
+    const data = stream()
+    await storage.uploadObject({ bucket: 'b', name: 'n' }, data, { ifAbsent: true })
+    expect(fileNamed('n').save).toHaveBeenCalledWith(data, { preconditionOpts: { ifGenerationMatch: 0 } })
+  })
+
+  it('writes conditionally on ifVersion, passing other options through', async () => {
+    const storage = await create()
+    const data = stream()
+    await storage.uploadObject({ bucket: 'b', name: 'n' }, data, { ifVersion: '5', contentType: 'text/plain' } as any)
+    expect(fileNamed('n').save).toHaveBeenCalledWith(data, { contentType: 'text/plain', preconditionOpts: { ifGenerationMatch: 5 } })
+  })
+
+  it('writes unconditionally without a condition', async () => {
+    const storage = await create()
+    const data = stream()
+    await storage.uploadObject({ bucket: 'b', name: 'n' }, data)
+    expect(fileNamed('n').save).toHaveBeenCalledWith(data, {})
+  })
+
+  it('maps a failed precondition to PreconditionFailedError', async () => {
+    const storage = await create()
+    const failWith = (code: number) => fileNamed('n').save.mockRejectedValueOnce(Object.assign(new Error(`http ${code}`), { code }))
+    failWith(412)
+    const absent = storage.uploadObject({ bucket: 'b', name: 'n' }, stream(), { ifAbsent: true })
+    await expect(absent).rejects.toBeInstanceOf(PreconditionFailedError)
+    failWith(412)
+    await expect(storage.uploadObject({ bucket: 'b', name: 'n' }, stream(), { ifAbsent: true }))
+      .rejects.toThrow('storage/precondition-failed: b/n: object already exists')
+    failWith(412)
+    await expect(storage.uploadObject({ bucket: 'b', name: 'n' }, stream(), { ifVersion: '5' }))
+      .rejects.toThrow('storage/precondition-failed: b/n: object changed since it was read')
+    failWith(500)
+    await expect(storage.uploadObject({ bucket: 'b', name: 'n' }, stream())).rejects.toThrow('http 500')
+  })
+
+  it('moves and deletes a single object', async () => {
+    const storage = await create()
+    await storage.moveObject({ bucket: 'b', name: 'n' }, 'new')
+    await storage.deleteObject({ bucket: 'b', name: 'n' })
+    expect(fileNamed('n').move).toHaveBeenCalledWith('new')
+    expect(fileNamed('n').delete).toHaveBeenCalled()
+  })
+
+  it('lists one level, hiding placeholders and the directory itself', async () => {
+    const storage = await create()
+    bucket.getFiles.mockResolvedValueOnce([[
+      mockFile('d/', { size: '0' }),
+      mockFile('d/.folderPlaceholder', { size: '0' }),
+      mockFile('d/x', { size: '12', updated: '2026-01-01T00:00:00Z' }),
+      mockFile('d/y', { updated: '2026-01-02T00:00:00Z' })
+    ], {}, { prefixes: ['d/', 'd/sub/'] }])
+    const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' }, { limit: 10, startAfter: 'd/a' })
+    expect(bucket.getFiles).toHaveBeenCalledWith({ autoPaginate: false, prefix: 'd/', maxResults: 10, startOffset: 'd/a', delimiter: '/' })
+    expect(listing).toEqual({
+      files: [
+        { name: 'd/x', size: 12, lastModified: new Date('2026-01-01T00:00:00Z') },
+        { name: 'd/y', size: 0, lastModified: new Date('2026-01-02T00:00:00Z') }
+      ],
+      directories: [{ bucket: 'b', name: 'd/sub/' }]
+    })
+  })
+
+  it('creates a directory as a placeholder object', async () => {
+    const storage = await create()
+    await storage.createDirectory({ bucket: 'b', name: 'd' })
+    expect(fileNamed('d/.folderPlaceholder').save).toHaveBeenCalledWith('')
+  })
+
+  it('deletes every object under a directory', async () => {
+    const storage = await create()
+    const listed = [mockFile('d/x'), mockFile('d/e/y')]
+    bucket.getFiles.mockResolvedValueOnce([listed])
+    await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
+    expect(bucket.getFiles).toHaveBeenCalledWith({ prefix: 'd/' })
+    for (const file of listed) expect(file.delete).toHaveBeenCalled()
+  })
+
+  it('moves every object under a directory, replacing the first occurrence', async () => {
+    const storage = await create()
+    const listed = [mockFile('d/x'), mockFile('d/e/d/y')]
+    bucket.getFiles.mockResolvedValueOnce([listed])
+    await storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'n/')
+    expect(listed[0].move).toHaveBeenCalledWith('n/x')
+    expect(listed[1].move).toHaveBeenCalledWith('n/e/d/y')
   })
 })

@@ -16,7 +16,8 @@ const client = {
   createFunction: vi.fn(async () => { calls.push('createFunction'); return [operation()] }),
   updateFunction: vi.fn(async () => { calls.push('updateFunction'); return [operation()] })
 }
-vi.mock('@google-cloud/functions', () => ({ v2: { FunctionServiceClient: vi.fn(function () { return client }) } }))
+const clientOptions: unknown[] = []
+vi.mock('@google-cloud/functions', () => ({ v2: { FunctionServiceClient: vi.fn(function (options: unknown) { clientOptions.push(options); return client }) } }))
 
 const roots: string[] = []
 beforeEach(() => {
@@ -102,5 +103,13 @@ describe('the GCP deploy procedure', () => {
         serviceConfig: expect.objectContaining({ serviceAccountEmail: 'cms@p.iam.gserviceaccount.com' })
       })
     }))
+  })
+
+  it("uses the target's credentials for the Functions client, and ADC without them", async () => {
+    functionExists.value = true
+    clientOptions.length = 0
+    await procedure({ projectId: 'p', region: 'r', credentials: { client_email: 'op' } as any }, context())
+    await procedure({ projectId: 'p', region: 'r' }, context())
+    expect(clientOptions).toEqual([{ credentials: { client_email: 'op' } }, {}])
   })
 })

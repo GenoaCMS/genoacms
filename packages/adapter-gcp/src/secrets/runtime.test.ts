@@ -80,4 +80,52 @@ describe('the Secret Manager runtime', () => {
     expect(console.warn).toHaveBeenCalledOnce()
     expect(client.destroySecretVersion).not.toHaveBeenCalled()
   })
+
+  it('decodes the payload as UTF-8, and reads a missing payload as undefined', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    const answer = (payload: unknown) => client.accessSecretVersion.mockResolvedValueOnce([{ payload }])
+    answer({ data: Buffer.from('é', 'utf-8') })
+    expect(await secrets.getSecret('KEY')).toBe('é')
+    answer({ data: new Uint8Array(Buffer.from('é', 'utf-8')) })
+    expect(await secrets.getSecret('KEY')).toBe('é')
+    answer({ data: 's' })
+    expect(await secrets.getSecret('KEY')).toBe('s')
+    answer(undefined)
+    expect(await secrets.getSecret('KEY')).toBeUndefined()
+  })
+
+  it('overwrites an existing secret without creating it', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    client.getSecret.mockResolvedValueOnce([{}])
+    expect(await secrets.setSecret('KEY', 'v')).toBe(true)
+    expect(client.getSecret).toHaveBeenCalledWith({ name: 'projects/p/secrets/KEY' })
+    expect(client.createSecret).not.toHaveBeenCalled()
+    expect(client.addSecretVersion).toHaveBeenCalledWith({ parent: 'projects/p/secrets/KEY', payload: { data: Buffer.from('v', 'utf-8') } })
+  })
+
+  it('tolerates a concurrent creator when overwriting', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    client.getSecret.mockRejectedValueOnce(grpcError(5))
+    client.createSecret.mockRejectedValueOnce(grpcError(6))
+    expect(await secrets.setSecret('KEY', 'v')).toBe(true)
+    expect(client.addSecretVersion).toHaveBeenCalled()
+  })
+
+  it('claims without cleaning up', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    client.createSecret.mockResolvedValueOnce([{}])
+    expect(await secrets.setSecretIfAbsent('KEY', 'v')).toBe(true)
+    expect(client.listSecretVersions).not.toHaveBeenCalled()
+  })
+
+  it('deletes a secret, reporting whether it existed', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    client.deleteSecret.mockResolvedValueOnce([{}])
+    expect(await secrets.deleteSecret('KEY')).toBe(true)
+    expect(client.deleteSecret).toHaveBeenLastCalledWith({ name: 'projects/p/secrets/KEY' })
+    client.deleteSecret.mockRejectedValueOnce(grpcError(5))
+    expect(await secrets.deleteSecret('KEY')).toBe(false)
+    client.deleteSecret.mockRejectedValueOnce(grpcError(7))
+    await expect(secrets.deleteSecret('KEY')).rejects.toThrow('grpc 7')
+  })
 })
