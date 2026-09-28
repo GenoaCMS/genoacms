@@ -82,6 +82,8 @@ leave the machine (`configuration.md` F9, F15).
 | GF7 | *History.* **`getClientAddress` returned the whole `X-Forwarded-For` header** (ADP-6). Behind Google's front end it is a comma-separated list whose first entries the client can set. Anything that trusts it as "the client's address", which sign-in throttling would (`configuration.md` Q5), must take the entry Google appended, the last one. Q5 decides who reads it. | fixed, RFC-0023 |
 | GF11 | *History.* **The SvelteKit adapter's tests were disabled and stale.** Its `test` script only echoes `tests temporarily disabled`, and `tests/smoke.spec.js` imports `create_kit_middleware`, which the handler no longer exports. Every `ADP` statement is unverified by tests. The live deploy exercises them together, not one by one. | fixed for ADP-5 to ADP-7, RFC-0023; ADP-1 to ADP-4 remain untested |
 | GF14 | *History.* **`env.js` was dead code.** The adapter copies `env.js`, adapter-node's reader for `ORIGIN`, `XFF_DEPTH`, `ADDRESS_HEADER`, `BODY_SIZE_LIMIT` and similar variables, but the handler never imports it. The `envPrefix` option and all those variables have no effect. The origin comes only from forwarded headers (ADP-5). | fixed, RFC-0023 |
+| GF17 | **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
+| GF18 | **The SvelteKit adapter has no end-to-end test** (ADP-1 to ADP-7): no test builds an app with it and serves a request through the result. ADP-5 to ADP-7 are unit-tested only, and GS5 checks the depth by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
 
 ### History
 
@@ -115,12 +117,14 @@ leave the machine (`configuration.md` F9, F15).
 Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@genoacms/sveltekit-adapter-cloud-run-functions` lazily, and `svelteKitOptions` maps the build's `outDir` to the adapter's `{ out: outDir }`. `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
 
 - Test: `packages/adapter-gcp/src/deployment/descriptor.test.ts`
+- Level: unit
 
 #### DEP-2 · Options
 
 Options: `projectId: string` and `region: string`, both required non-empty (COM-3); `functionName?: string`, default `genoacms`; `credentials?: Secret<ServiceAccount>`, the operator identity, resolved on the operator's machine and never embedded in the build; and the seven settings of DEP-3. Any other key is refused (COM-2).
 
 - Test: `packages/adapter-gcp/src/deployment/descriptor.test.ts`
+- Level: unit
 
 #### DEP-3 · Function settings
 
@@ -134,12 +138,14 @@ Settings, all optional, with defaults and API mapping:
 - `serviceAccount`: `/^[^@\s]+@[^@\s]+$/`, default the project's compute account → `serviceConfig.serviceAccountEmail`
 
 - Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
+- Level: unit
 
 #### DEP-4 · Setting validation
 
 An invalid present setting yields exactly one reason, in DEP-3's key order: `runtime must be a Node.js runtime such as 'nodejs22'`, `memory must be a size such as '512Mi' or '1Gi'`, `timeoutSeconds must be an integer from 1 to 3600`, `minInstances must be an integer of at least 0`, `maxInstances must be an integer of at least 1`, `ingress must be 'all', 'internal' or 'internal-and-gclb'`, `serviceAccount must be a service account email`. After those, when both instance counts are valid and `minInstances > maxInstances`: `minInstances must not exceed maxInstances`.
 
 - Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
+- Level: unit
 
 ### Deploy procedure
 
@@ -148,60 +154,70 @@ An invalid present setting yields exactly one reason, in DEP-3's key order: `run
 The procedure never reads `process.cwd()`. It works only from the build directory and the work directory it is given.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit
 
 #### DEP-6 · Staging
 
 **Staging.** Copy the build directory to `<workDir>/app`. Without `<buildDir>/package.json`, throw `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`. Set `"main": "function.js"` in the copied `package.json`, keeping every other field, and write `function.js` with exactly the entry module below.
 
 - Test: `packages/adapter-gcp/src/deployment/archive.test.ts`
+- Level: integration
 
 #### DEP-7 · Archive
 
 **Archive.** A zip (level 9) of exactly the staged directory, at its root: no globbing, no ignore list, no symlink following.
 
 - Test: `packages/adapter-gcp/src/deployment/archive.test.ts`
+- Level: integration
 
 #### DEP-8 · Upload
 
 **Upload.** `generateUploadUrl` in `projects/<projectId>/locations/<region>`, then `PUT` the zip to the returned URL with `Content-Type: application/zip`. A response that is not `ok` throws `deploy/upload-failed: <status> <statusText>` and nothing else is called. A response with no URL or no storage source throws `Upload URL not found`.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit, contract
 
 #### DEP-9 · Lookup
 
 **Lookup.** `getFunction(projects/<p>/locations/<r>/functions/<functionName>)`. It exists when the call resolves, and is absent only on gRPC `NOT_FOUND` (5). Any other error propagates, and neither create nor update is called.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit, contract
 
 #### DEP-10 · Create or update
 
 **Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables: { NODE_ENV: 'production' }`, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`
+- Level: unit, contract
 
 #### DEP-11 · Completion
 
 **Completion.** The procedure awaits the operation. A failed operation throws `deploy/function-failed: <operation error message>`, with the original error as `cause`.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit, contract
 
 #### DEP-12 · Function URL
 
 On success it prints `Function URL: <url>`, taking the function's `url`, else `serviceConfig.uri`, and prints nothing when neither is present.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit, contract
 
 #### DEP-13 · Operator credentials
 
 The Functions client uses `credentials` when given, else the operator's ADC.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Level: unit, contract
 
 #### DEP-14 · Origin and client-address settings
 
 Two more optional settings (GD5). `origin`: an absolute `http` or `https` origin with no path, matching `/^https?:\/\/[^/\s]+$/`, set as the function's `ORIGIN` environment variable. Otherwise `origin must be an absolute http(s) origin such as 'https://cms.example.com'`. `xffDepth`: an integer ≥ 1, set as `XFF_DEPTH` (decimal). Otherwise `xffDepth must be an integer of at least 1`. Unset options set no variable. Their reasons follow DEP-4's, before the instance-order rule.
 
 - Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
+- Level: unit
 
 The entry module of DEP-6, byte for byte. The export name is the function's entry point (DEP-10):
 
@@ -225,39 +241,46 @@ production build, which bundles them, and the live deploy exercise them.
 Options: `out` (default `build`), `precompress` (default `true`), `envPrefix` (default `''`), which prefixes the names ADP-7 reads.
 
 - Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Level: e2e
 
 #### ADP-2 · Assets
 
 `adapt()` empties `out`, writes the client assets to `<out>/client<base>` and prerendered pages to `<out>/prerendered<base>`, and gzip- and brotli-compresses both when `precompress` is set. It copies `env.js`, `handler.js`, `index.js` and `shims.js` into `out`.
 
 - Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Level: e2e
 
 #### ADP-3 · Server bundle
 
 The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks under `chunks/`), with node resolution under the `node` condition, CommonJS and JSON support. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports. `<out>/server/manifest.js` exports `manifest`, `prerendered` (the set of prerendered paths) and `base`.
 
 - Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Level: e2e
 
 #### ADP-4 · Entry and initialization
 
 `<out>/index.js` re-exports `handler` from `<out>/handler.js`. The handler installs SvelteKit's Node polyfills and initializes the server with `env: process.env`, reading assets from `<out>/client<base>`.
 
 - Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Level: e2e
 
 #### ADP-5 · Middleware chain and request URL
 
 The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving precompressed `.gz`/`.br` variants; static files from `static/` when present; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: the middleware chain and the body)
+- Level: unit, e2e
 
 #### ADP-6 · Client address
 
 `getClientAddress()` splits `X-Forwarded-For` (arrays joined with `,`) on `,`, trims each entry, drops empty ones, and returns the entry `XFF_DEPTH` positions from the right: depth 1 is the last. With fewer entries than the depth it throws `XFF_DEPTH is <depth>, but X-Forwarded-For has <n> entries`. Without the header it returns the socket's remote address. `platform` is `{ req }`, the Node request.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`
+- Level: unit, e2e
 
 #### ADP-7 · Startup environment
 
 At startup the handler reads `<envPrefix>ORIGIN` and `<envPrefix>XFF_DEPTH`. `ORIGIN` is used as given, and unset means none. `XFF_DEPTH` defaults to `1`. A value that is not a positive integer (`/^[1-9]\d*$/`) throws `XFF_DEPTH must be a positive integer, not '<value>'`, so the function fails at start. With a non-empty prefix, any other variable carrying the prefix throws at startup.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: reading the variables and the prefix check)
+- Level: unit, e2e

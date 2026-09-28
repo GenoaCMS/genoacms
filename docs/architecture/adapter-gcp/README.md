@@ -130,6 +130,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF4 | *History.* **The runtime's IAM needs were documented nowhere.** On first start core creates secrets, so the runtime identity needs to create secrets and add versions, not only read them. The default compute service account's broad roles hid this until someone narrowed it. | fixed: the IAM section, and the `serviceAccount` option (GD3) |
+| GF19 | **COM-3 is only partly tested.** The descriptor tests assert that a missing or empty `projectId` yields one reason, not its text. | open |
 
 ### History
 
@@ -174,6 +175,11 @@ Every `G` ID, where it lives, and its state.
 | GF12 | Most of the storage runtime was untested | fixed, RFC-0024 | [`storage.md`](storage.md) |
 | GF13 | The Firestore runtime's methods had no unit tests | fixed, RFC-0024 | [`database.md`](database.md) |
 | GF14 | The SvelteKit adapter's `env.js` was dead code; `envPrefix` had no effect | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF15 | Most storage statements have no contract test | open | [`storage.md`](storage.md) |
+| GF16 | The Secret Manager statements have no contract test | open | [`secrets.md`](secrets.md) |
+| GF17 | The deploy procedure has no contract test | open | [`deployment.md`](deployment.md) |
+| GF18 | The SvelteKit adapter has no end-to-end test | open | [`deployment.md`](deployment.md) |
+| GF19 | COM-3 is only partly tested | open | README |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
@@ -193,21 +199,25 @@ Every `G` ID, where it lives, and its state.
 `ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged.
 
 - Test: unverified (a type only)
+- Level: unit
 
 #### COM-2 · Unknown options are refused
 
 Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`.
 
 - Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts`
+- Level: unit
 
 #### COM-3 · Required string options
 
 A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor.
 
 - Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts` (unverified: the reason text)
+- Level: unit
 
 #### COM-4 · One client per provider, ADC by default
 
 Each provider construction creates its own client with its own credential. Two providers on one GCP service share neither, so two GCP projects can be served at once. `credentials` is optional on every descriptor, decoded as JSON, and passed to the client only when given. Otherwise the client uses ADC (GU2).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit

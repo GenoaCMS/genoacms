@@ -50,6 +50,7 @@ leaves a name with no value, and the caller polls instead of reading that as abs
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF5 | *History.* Superseded versions accumulated: every retired root seed stayed readable and billed, and the registry sequence gained one version per key issuance, indefinitely. | fixed by GD4, RFC-0022 |
+| GF16 | **The Secret Manager statements have no contract test** (SEC-3 to SEC-11). Their level includes `contract`; GS4 checks SEC-7 to SEC-9 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
 
 ### Operations
 
@@ -80,6 +81,7 @@ the runtime. RFC-0022 (2026-09-28) added the destroy TTL and the cleanup.
 Specifier `@genoacms/adapter-gcp/secrets`, kind `secrets`. Runtime specifier `@genoacms/adapter-gcp/secrets/runtime`. Options `projectId: string` (required) and `credentials?: BootstrapSecret<ServiceAccount>`, decoded as JSON (`secretOptions: { credentials: 'json' }`). Validation follows COM-2 and COM-3.
 
 - Test: `packages/adapter-gcp/src/secrets/descriptor.test.ts`
+- Level: unit
 
 ### Runtime
 
@@ -92,57 +94,67 @@ the contract's `assertValidSecretKey` before any call.
 Without `credentials`, the client is constructed with `{ projectId }` only (ADC).
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit
 
 #### SEC-3 · Reading the latest version
 
 `getSecret(key)` reads `projects/<p>/secrets/<key>/versions/latest` and returns its payload as a UTF-8 string. A payload of `null` or `undefined` returns `undefined`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-4 · Absence is only NOT_FOUND
 
 `getSecret` returns `undefined` when, and only when, the call fails with gRPC `NOT_FOUND` (5). Every other failure propagates unchanged, including a disabled or destroyed `latest`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-5 · Overwriting
 
 `setSecret(key, value)` ensures the secret exists: `getSecret` on the secret resource; on `NOT_FOUND`, `createSecret` with the resource of SEC-7, where `ALREADY_EXISTS` (6) from a concurrent creator is not an error. It then adds a version with `value` as UTF-8, runs SEC-8 when the added version has a name, and resolves `true`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-6 · Atomic claim
 
 `setSecretIfAbsent(key, value)` calls `createSecret` (resource of SEC-7). `ALREADY_EXISTS` resolves `false` without adding a version. Any other error propagates. On success it adds the version and resolves `true`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-7 · Recovery window on create
 
 **Every secret the adapter creates** has automatic replication and `versionDestroyTtl` of 604800 seconds (7 days).
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-8 · Destroying superseded versions
 
 After adding a version, `setSecret` lists the secret's versions with filter `state:ENABLED` and destroys, sequentially and in list order, every one whose version number (the last path segment, a positive integer) is lower than the version just added. Higher-numbered versions are kept.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-9 · Cleanup is best effort
 
 SEC-8 is best effort. Any error in it, including a version name that is not numbered (`secrets/unexpected-version-name: <name>`), is reported as a warning, `secrets/cleanup-failed: <key>: <message>`, and `setSecret` still resolves `true`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-10 · Claims do not clean up
 
 `setSecretIfAbsent` does no cleanup.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract
 
 #### SEC-11 · Deleting a secret
 
 `deleteSecret(key)` deletes the secret with all its versions and resolves `true`. `NOT_FOUND` resolves `false`. Other errors propagate.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
+- Level: unit, contract

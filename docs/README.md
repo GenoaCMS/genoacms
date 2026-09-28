@@ -1,6 +1,8 @@
 ---
 type: docs-index
 workflow: 3.0.0
+levels: [unit, integration, e2e, contract, conformance]
+sources: [packages]
 ---
 
 # GenoaCMS documentation
@@ -39,7 +41,28 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
 
+## Test levels
+
+| Level | Meaning here | Runs in CI |
+| :-- | :-- | :-- |
+| `unit` | a package's vitest tests, through its public interface, with external SDKs mocked | always |
+| `integration` | tests with real collaborators: the file system, a local database or object store | always |
+| `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI | on `main`; deferred on pull requests |
+| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`; deferred on pull requests |
+| `conformance` | `@genoacms/conformance` run against a local implementation: MinIO, Postgres, the file system | always |
+
+Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:
+
+- **Core is not built or tested in CI.** Its `vite build` and its vitest setup load `genoa.config/development.ts`, which imports gitignored credential files, so neither runs in a clean checkout. Its Playwright tests need a real GCP project.
+- **`@genoacms/sdk`** passes every test but exits non-zero on vitest's `Timeout calling "onTaskUpdate"`.
+- **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
+- **`@genoacms/cli`** has no tests: its `test` script starts the CLI.
+- The GCP gaps are GF15 to GF19 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
+
 ## History
 
 *History.* Until 2026-09-28 this file held the project's documentation conventions. They became the
 Spec Workflow, a separate repository shared across projects, vendored here as `WORKFLOW.md` 1.0.0.
+
+*History.* On 2026-09-28 the project moved from workflow 1.0.0 to 3.0.0: statements declare their test
+levels, tests carry statement IDs in their titles, and a verification record gates each release.

@@ -85,6 +85,7 @@ it or authorizes it. The GD2 RFC is written only after it passes.
 Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime specifier `@genoacms/adapter-gcp/authentication/runtime`. Options: `projectId: string` (required, COM-3); `tenantId?: string`, an Identity Platform tenant, omitted for the project's own user pool; `apiKey?: Secret<string>`, decoded as a string; `credentials?: Secret<ServiceAccount>`, decoded as JSON, only for running outside GCP. Other keys are refused (COM-2). Whether `apiKey` stays optional is decided by GS1a.
 
 - Test: none yet
+- Level: unit
 - State: new (no RFC yet)
 
 ### Runtime
@@ -94,6 +95,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 `authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-3 · Success
@@ -101,6 +103,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 `200` without `mfaPendingCredential` returns `{ subject: localId, email }` from the response.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-4 · Second factor required
@@ -108,6 +111,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 `200` with `mfaPendingCredential` returns `null`. The contract has no second step.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-5 · Rejected credentials
@@ -115,6 +119,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 `400` whose error message is `INVALID_LOGIN_CREDENTIALS`, `EMAIL_NOT_FOUND`, `INVALID_PASSWORD`, `USER_DISABLED`, `INVALID_EMAIL` or `MISSING_PASSWORD` returns `null`: a rejected credential.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-6 · Throttled
@@ -122,6 +127,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 `400` with `TOO_MANY_ATTEMPTS_TRY_LATER` throws `authentication/throttled`.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-7 · Provider failure
@@ -129,6 +135,7 @@ Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime
 Any other outcome (network error, `403`, `5xx`, an invalid key, reCAPTCHA required) throws `authentication/provider-failed: <status> <message>`, so an outage is not reported as a wrong password.
 
 - Test: none yet
+- Level: unit, contract
 - State: new (no RFC yet)
 
 #### AUTH-8 · Tokens are discarded
@@ -136,4 +143,5 @@ Any other outcome (network error, `403`, `5xx`, an invalid key, reCAPTCHA requir
 The response's `idToken` and `refreshToken` are discarded: never stored, never logged, never returned.
 
 - Test: none yet
+- Level: unit
 - State: new (no RFC yet)

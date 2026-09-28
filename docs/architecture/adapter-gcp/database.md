@@ -56,6 +56,7 @@ The opt-in conformance suite (`test/conformance.test.ts`, `GENOACMS_TEST_GCP=1`)
 Specifier `@genoacms/adapter-gcp/database`, kind `database`. Runtime specifier `@genoacms/adapter-gcp/database/runtime`. Options `projectId: string` (required), `databaseId?: string`, `credentials?: Secret<ServiceAccount>` decoded as JSON. Validation follows COM-2 and COM-3.
 
 - Test: `packages/adapter-gcp/src/database/descriptor.test.ts`
+- Level: unit
 
 ### Runtime
 
@@ -64,33 +65,39 @@ Specifier `@genoacms/adapter-gcp/database`, kind `database`. Runtime specifier `
 One `Firestore({ projectId, databaseId, credentials? })` client per provider (COM-4). `databaseId` defaults to `(default)`. Without `credentials`, none is passed.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`
+- Level: unit
 
 #### DB-3 · Collections by name
 
 A collection reference `{ name }` addresses the Firestore collection `name` in that database. No prefix, no mapping.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract
 
 #### DB-4 · Creating a document
 
 `createDocument(ref, data)` adds a document with a Firestore-generated ID and returns `{ reference: { collection: ref, id }, data }`, where `data` is the input, not re-read.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract
 
 #### DB-5 · Reading a collection
 
 `getCollection(ref)` reads every document of the collection in one query and returns them as `{ reference, data }` snapshots, ordered by document ID, Firestore's default.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract
 
 #### DB-6 · Reading a document
 
 `getDocument({ collection, id })` returns `{ reference, data }`, or `undefined` when the document does not exist.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract
 
 #### DB-7 · Updating and deleting
 
 `updateDocument(ref, data)` is Firestore's `update`: a merge of the given fields that fails when the document does not exist. It returns `{ reference: ref, data }` with the input `data`. `deleteDocument(ref)` deletes, and deleting a missing document is not an error. Errors propagate.
 
 - Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract

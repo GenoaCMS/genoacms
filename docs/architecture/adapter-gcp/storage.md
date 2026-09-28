@@ -41,6 +41,7 @@ filter out.
 | GF8 | **Signed URLs under ADC need `signBlob`** (STO-8). Without a key, the client library signs through the IAM Credentials API as the runtime identity, which needs `iam.serviceAccounts.signBlob` on itself (README, IAM). Core's storage browser uses signed URLs, so without the grant file previews and downloads fail while everything else works. Whether the default compute account holds it depends on the project's grants. | documented; GS3 not run |
 | GF10 | **Directory operations are unbounded and not atomic** (STO-11, STO-12). They list the whole prefix and act on every object at once, in parallel. A large directory issues that many requests simultaneously, and a failure part-way leaves it half moved or half deleted. | open |
 | GF12 | *History.* **Most of the runtime was untested.** STO-5 to STO-12 had no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling were verified by nothing. | fixed, RFC-0024 |
+| GF15 | **Most storage statements have no contract test** (STO-6 to STO-12). Their level includes `contract`, but the GCP conformance run carries only STO-4, and `@genoacms/conformance` covers only upload, read, list and delete. Preconditions, moves, directories and signed URLs (GS3) are checked only against a mocked SDK. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
 
 ### History
 
@@ -63,6 +64,7 @@ except the bucket check, which now uses the host's resource list instead of read
 Specifier `@genoacms/adapter-gcp/storage`, kind `storage`. Runtime specifier `@genoacms/adapter-gcp/storage/runtime`. Options `projectId: string` (required) and `credentials?: Secret<ServiceAccount>`, decoded as JSON. Validation follows COM-2 and COM-3.
 
 - Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`
+- Level: unit
 
 ### Runtime
 
@@ -74,63 +76,74 @@ bucket names in `ctx.resources`.
 Without `credentials`, the client is constructed with `{ projectId }` only.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit
 
 #### STO-3 · Only registered buckets
 
 Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit
 
 #### STO-4 · Reads return the generation
 
 `getObject({ bucket, name })` returns `{ data, version }`: `data` is the object's read stream, and `version` is its generation as a decimal string. When the metadata call fails, `version` is `undefined` and the read still proceeds.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Level: unit, contract
 
 #### STO-5 · Public URL
 
 `getPublicURL(ref)` returns `https://storage.googleapis.com/<bucket>/<encodeURIComponent(name)>`, so a `/` in the name appears as `%2F`. It does not check that the object is public: that is the bucket's configuration.
 
 - Test: `packages/adapter-gcp/src/storage/urls.test.ts`
+- Level: unit
 
 #### STO-6 · Conditional writes
 
 `uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. The remaining options pass to the client's `save`. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
 
 #### STO-7 · Moving and deleting an object
 
 `moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes. Errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
 
 #### STO-8 · Signed URL
 
 `getSignedURL(ref, expires)` returns a **V2**-signed read URL, the client library's default version: `https://storage.googleapis.com/<bucket>/<name>?GoogleAccessId=<account>&Expires=<floor(expires / 1000)>&Signature=<base64>`, with `/` in the name kept. It is signed as the client's identity: locally with a key, through IAM `signBlob` under ADC (GF8).
 
 - Test: `packages/adapter-gcp/src/storage/urls.test.ts` (unverified: the `signBlob` path under ADC, GS3)
+- Level: unit, contract
 
 #### STO-9 · Listing one level
 
 `listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, starting after `startAfter`. `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
 
 #### STO-10 · Creating a directory
 
 `createDirectory({ bucket, name })` writes an empty object `<name>/.folderPlaceholder`.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
 
 #### STO-11 · Deleting a directory
 
 `deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth, in parallel.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
 
 #### STO-12 · Moving a directory
 
 `moveDirectory({ bucket, name }, newName)` moves every object whose name starts with `name`, at every depth, in parallel, to the name with the first occurrence of `name` replaced by `newName`.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
+- Level: unit, contract
