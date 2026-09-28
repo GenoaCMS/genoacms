@@ -6,7 +6,7 @@
 | Status | Draft for review |
 | Date | 2026-09-28 |
 | Scope | Everything GenoaCMS runs on Google Cloud: storage, database, secrets, deployment, authentication, the runtime and operator identities, IAM |
-| Verified against | `refactor/configuration-architecture` at `3062d8f` |
+| Verified against | `refactor/configuration-architecture` at `7fd6744` |
 
 ## 0. How to read these documents
 
@@ -84,7 +84,7 @@ S-5), and is described in [`deployment.md`](deployment.md).
 
 Two identities act for an instance. GenoaCMS creates neither.
 
-- **The runtime identity** is the service account the function runs as. Every runtime client omits `credentials` in production and uses ADC, so no credential ships with the build (`configuration.md` goal 5). *(current)* It is the project's default compute service account, because the deploy sets none (GF3). **New** (GD3, RFC-0021): the `gcp` target's `serviceAccount` option names it.
+- **The runtime identity** is the service account the function runs as. Every runtime client omits `credentials` in production and uses ADC, so no credential ships with the build (`configuration.md` goal 5). The `gcp` target's `serviceAccount` option names it (GD3). Without it, the function runs as the project's default compute service account.
 - **The operator identity** is whoever runs `genoa deploy`: the `gcp` target's `credentials` (a key, resolved on the operator's machine and never embedded in the build) or the operator's own ADC.
 
 `credentials` on runtime descriptors exists for running outside GCP, for example core's development
@@ -103,7 +103,7 @@ nowhere, and the broad default compute service account hid them.
 | Runtime | `iam.serviceAccounts.signBlob` on **itself** | the runtime service account | signed URLs under ADC (GF8, verify with GS3) |
 | Runtime | read and write documents | the configured Firestore database | [`database.md`](database.md) |
 | Runtime | get and create secrets, add and access versions | the project's Secret Manager | core creates its signing seeds on first start ([`secrets.md`](secrets.md)) |
-| Runtime | **New** (GD4, RFC-0022): list and destroy secret versions | the project's Secret Manager | superseded versions are destroyed (GF5) |
+| Runtime | list and destroy secret versions | the project's Secret Manager | superseded versions are destroyed (GD4). Without it, overwrites warn and versions accumulate. |
 | Runtime | **New** (GD2): sign users in, as an IAM grant or an API key (GS1a) | Identity Platform | [`authentication.md`](authentication.md) |
 | Operator | create, get and update functions; generate upload URLs; wait on operations | the project and region | [`deployment.md`](deployment.md) |
 | Operator | act as the runtime service account (`iam.serviceAccounts.actAs`) | the runtime service account | a function can only be deployed to run as an account its deployer may use |
@@ -128,7 +128,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 - **2024-11**: `@genoacms/sveltekit-adapter-cloud-run-functions` was written, adapting SvelteKit to Cloud Run functions (2nd gen) instead of Firebase's adapter.
 - **2026-08**: moved into the monorepo; the authorization service was removed from the abstraction (core owns authorization); a Secret Manager secrets service with atomic claims and generation preconditions on storage were added.
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
-- **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded.
+- **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
 
 ---
 
@@ -141,24 +141,24 @@ Every `G` ID, where it lives, and its state.
 | GU1 | Identity Platform authenticates on GCP | decided | [`authentication.md`](authentication.md) |
 | GU2 | ADC at runtime; keys only for deploy | current | §3 |
 | GU3 | Deployment and secrets fixes approved | decided | §1 |
-| GD1 | The deploy waits for the platform and fails when it fails | new, RFC-0021 | [`deployment.md`](deployment.md) |
+| GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
-| GD3 | Function settings are target options | new, RFC-0021 | [`deployment.md`](deployment.md) |
-| GD4 | Superseded secret versions are destroyed, with a recovery window | new, RFC-0022 | [`secrets.md`](secrets.md) |
-| GF1 | The deploy reports success before the function is built | fixed by GD1 | [`deployment.md`](deployment.md) |
-| GF2 | The upload ignores the HTTP status | fixed by RFC-0021 | [`deployment.md`](deployment.md) |
-| GF3 | Function settings are hardcoded | fixed by GD3 | [`deployment.md`](deployment.md) |
-| GF4 | The runtime's IAM needs were documented nowhere | fixed by §4 and GD3 | §4 |
-| GF5 | Superseded secret versions accumulate | fixed by GD4 | [`secrets.md`](secrets.md) |
-| GF6 | Any error looking up the function counts as "does not exist" | fixed by RFC-0021 | [`deployment.md`](deployment.md) |
+| GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
+| GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
+| GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
+| GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
+| GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
+| GF4 | The runtime's IAM needs were documented nowhere | fixed, §4 and GD3 | §4 |
+| GF5 | Superseded secret versions accumulated | fixed, RFC-0022 | [`secrets.md`](secrets.md) |
+| GF6 | Any error looking up the function counted as "does not exist" | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF7 | `getClientAddress` returns the raw `X-Forwarded-For` list | open | [`deployment.md`](deployment.md) |
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (§4) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
-| GS2 | A failing build fails the deploy | with RFC-0021 | [`deployment.md`](deployment.md) |
+| GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
-| GS4 | Version destruction and its recovery window | with RFC-0022 | [`secrets.md`](secrets.md) |
+| GS4 | Version destruction and its recovery window (live) | unit tests pass; live not run (author) | [`secrets.md`](secrets.md) |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

@@ -22,7 +22,7 @@ genoa build gcp                          genoa deploy gcp
 `@genoacms/adapter-gcp/deployment` imports no SDK. The build loads it to choose the SvelteKit adapter,
 and the CLI loads the procedure only on `genoa deploy` (`configuration.md` §5.4).
 
-*(current)* Options:
+Options:
 
 | Option | Type | Default | Meaning |
 | :-- | :-- | :-- | :-- |
@@ -31,7 +31,7 @@ and the CLI loads the procedure only on `genoa deploy` (`configuration.md` §5.4
 | `functionName` | string | `genoacms` | function ID |
 | `credentials` | `Secret<ServiceAccount>` | operator's ADC | the operator identity (README §3). Resolved on the operator's machine and never embedded in the build. |
 
-**New** (GD3, RFC-0021): the function's settings, which today are hardcoded (GF3):
+The function's settings (GD3, RFC-0021), all optional:
 
 | Option | Type | Default | Maps to |
 | :-- | :-- | :-- | :-- |
@@ -59,59 +59,50 @@ Google appended, the last one, rather than the header. Not fixed here: Q5 decide
 
 ## 4. The deploy procedure
 
-### 4.1 Current
+### 4.1 Steps
 
 `genoa deploy gcp` (`src/deployment/procedure.ts`):
 
 1. **Stage**: copy the artifact to `<workDir>/app`, add `function.js`, which exports `genoacms(req, res)` calling the adapter's `handler`, and set `"main": "function.js"`. Without the artifact's `package.json` it stops with `deploy/no-runtime-package`.
 2. **Zip** exactly that directory: no globbing, no ignore list.
-3. **Upload** to a signed URL from `generateUploadUrl`.
-4. **Create or update** the function. `getFunction` decides which. Settings: `entryPoint: 'genoacms'`, `runtime: 'nodejs20'`, instances `0` to `1`, ingress `ALLOW_ALL`, and `NODE_ENV=production`.
-5. Cloud Build then runs buildpacks, which run `npm install` on the uploaded `package.json` (`configuration.md` R4). With vendoring (`configuration.md` D9), `@genoacms/*` packages come from the zip's `vendor/`, and everything else from npm.
+3. **Upload** to a signed URL from `generateUploadUrl`. A response that is not `ok` stops the deploy with `deploy/upload-failed: <status> <statusText>`.
+4. **Create or update** the function. Only gRPC `NOT_FOUND` from `getFunction` means create, and any other lookup error propagates. The request carries the whole configuration: `entryPoint: 'genoacms'`, the settings from §2 mapped by `settings.ts`, and `NODE_ENV=production`. There is no field mask, so the config is the source of truth and a setting changed in the console is reverted by the next deploy.
+5. **Wait** for the operation, which includes Cloud Build: buildpacks run `npm install` on the uploaded `package.json` (`configuration.md` R4), with `@genoacms/*` from the zip's `vendor/` (`configuration.md` D9). A failed operation throws `deploy/function-failed: <message>`, and the previous revision keeps serving. On success the procedure prints `Function URL: <url>`.
 
-Findings in this flow:
+### 4.2 Decisions
 
-| # | Finding | Where |
-| :-- | :-- | :-- |
-| GF1 | **The deploy reports success before the function is built.** `createFunction` and `updateFunction` return a long-running operation. The procedure logs it and returns, and never awaits `operation.promise()`. A buildpack failure, such as an `npm install` error, is invisible to `genoa deploy`, which prints `Code deployed`. The previous revision keeps serving. | `functions.ts`, `deployFunction` |
-| GF2 | **The upload ignores the HTTP status.** `fetch(uploadUrl, { method: 'PUT' })` is awaited, but `response.ok` is never checked. A rejected upload continues to `createFunction` with a source that is not there. | `functions.ts`, `uploadArchive` |
-| GF3 | **Function settings are hardcoded.** `nodejs20` (Node 20 went end-of-life in April 2026), `maxInstanceCount: 1`, ingress `ALLOW_ALL`, and no memory, timeout or service account. The function runs as the default compute service account with the platform's default memory. | `functions.ts`, `deployFunction` |
-| GF6 | **Any lookup error means "absent".** `getFunction` failing for any reason, such as a permission error or a network error, leads to `createFunction`, which then fails with a misleading `ALREADY_EXISTS` or reports the wrong cause. Only `NOT_FOUND` means absent. | `functions.ts`, `deployFunction` |
-
-### 4.2 New (RFC-0021)
-
-**GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).**
-- The upload's response must be `ok`. Otherwise `deploy/upload-failed: <status> <statusText>`.
-- Only gRPC `NOT_FOUND` from `getFunction` means create. Any other error propagates.
-- The procedure awaits the create or update operation. A failed operation throws `deploy/function-failed: <operation error message>`, which includes the Cloud Build failure. On success it prints the function's URL.
-
+**GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).** Steps 3 to 5 above.
 *Why:* a deploy that reports success when the platform rejected it is worse than no report, and a
 buildpack install failure (`configuration.md` D9 critique) is exactly the case that must surface.
 *Cost:* `genoa deploy` takes as long as Cloud Build, a few minutes, instead of returning after the upload.
 
-**GD3. Function settings are target options (GF3, GQ1).** The options in §2's second table replace
-the hardcoded values. The runtime default moves to `nodejs22`, the oldest Node runtime still in
-support at the time of writing. Every other default keeps today's behavior, so an existing config
-deploys the same function apart from the runtime.
-
-Each deploy writes the **whole** function configuration, as today (`updateFunction` without a field
-mask). The config is therefore the source of truth: a setting changed in the console is reverted by
-the next deploy.
-
+**GD3. Function settings are target options (GF3, GQ1).** §2's second table. The runtime default is
+`nodejs22`, the oldest Node runtime still in support at the time of writing. Every other default
+keeps the adapter's earlier behavior.
 *Why:* instance limits, memory and the runtime identity are per-instance operational decisions, not
 the adapter's. The service account is the practical fix for GF4, because it lets an operator run the
 function as a dedicated, narrowly-granted account (README §4).
-*Cost:* seven more options to validate and document. A wrong `memory` or `runtime` string is refused
-by the platform at deploy time, not by the descriptor at build time.
+*Cost:* seven more options to validate and document. A well-formed but unsupported `memory` or
+`runtime` string is refused by the platform during the operation, which GD1 reports, not by the
+descriptor at build time.
 
-### 4.3 History
+### 4.3 Fixed findings
+
+| # | Finding | Fixed by |
+| :-- | :-- | :-- |
+| GF1 | *History.* The deploy returned without awaiting the long-running operation. A buildpack failure was invisible, and `genoa deploy` printed `Code deployed`. | GD1, RFC-0021 |
+| GF2 | *History.* The upload's HTTP status was never checked, so a rejected upload continued to `createFunction`. | GD1, RFC-0021 |
+| GF3 | *History.* `nodejs20` (end of life April 2026), one instance, ingress `ALLOW_ALL`, and no memory, timeout or service account, all hardcoded. The function ran as the default compute account. | GD3, RFC-0021 |
+| GF6 | *History.* Any error from `getFunction` counted as "does not exist" and led to a misleading `createFunction`. | GD1, RFC-0021 |
+
+### 4.4 History
 
 *History.* Until RFC-0007 (2026-09-27), the deploy archived the **project source** from the project
 root, ignoring only `node_modules`, `.git`, `.github`, `.gitignore`, `.genoacms` and `build`, and
 injected entry snippets so that GCP would install and build core remotely (`configuration.md` F9,
 F15). The service-account key inside `genoa.config/` was uploaded with it, and the injected build
 snippet no longer existed, so the deploy was broken. RFC-0007 replaced that with the artifact upload
-in §4.1, and kept the function settings unchanged (RFC-0007 non-goal), which is why GF3 exists.
+in §4.1, and kept the function settings unchanged (RFC-0007 non-goal), which is why GF3 existed until RFC-0021.
 
 ## 5. Open questions
 
@@ -122,12 +113,12 @@ in §4.1, and kept the function settings unchanged (RFC-0007 non-goal), which is
 
 ## 6. Verification
 
-**GS2, for GD1: runs with RFC-0021, by the author.** Deploy an artifact whose `package.json` names a
+**GS2, for GD1: not run yet (author, live).** Deploy an artifact whose `package.json` names a
 dependency that does not exist. Expected: `genoa deploy` exits non-zero with
 `deploy/function-failed` and the build error, and the previous revision still serves. Then deploy the
 real artifact. Expected: it exits zero and prints the URL.
 
-Unit tests (RFC-0021) cover the upload status, `NOT_FOUND` against other errors, a failed operation,
+Unit tests (RFC-0021, passing) cover the upload status, `NOT_FOUND` against other errors, a failed operation,
 and the mapping of every GD3 option, all with the SDK mocked.
 
 ## Critique & architectural sanity check: GD1, GD3

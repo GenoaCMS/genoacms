@@ -12,7 +12,7 @@ through it directly: the root seed, the registry sequence and the subordinate se
 Options: `projectId`, and `credentials?`, a **bootstrap** secret (`env()` or `inline()` only),
 because it cannot come from the store it configures. Production omits it (README GU2).
 
-## 2. Behavior (current)
+## 2. Behavior
 
 GenoaCMS keys map one to one onto secret IDs in `projects/<projectId>/secrets/<key>`. Keys are
 validated by the contract (`assertValidSecretKey`).
@@ -20,11 +20,11 @@ validated by the contract (`assertValidSecretKey`).
 | Contract method | Secret Manager calls | Semantics |
 | :-- | :-- | :-- |
 | `getSecret(key)` | `accessSecretVersion(latest)` | The value, or `undefined` **only** when the secret does not exist. Any other failure propagates, including a disabled or destroyed `latest`. Reading absence into it would make core generate a replacement key. |
-| `setSecret(key, value)` | `getSecret`, then `createSecret` if missing (a lost race is fine), then `addSecretVersion` | Overwrite: a new version becomes `latest`. |
+| `setSecret(key, value)` | `getSecret`, then `createSecret` if missing (a lost race is fine), then `addSecretVersion`, then best-effort cleanup (§3) | Overwrite: a new version becomes `latest`, and older enabled versions are destroyed. |
 | `setSecretIfAbsent(key, value)` | `createSecret`, then `addSecretVersion` | An atomic claim: exactly one concurrent caller creates the name. Others get `false` on `ALREADY_EXISTS`. A crash between the two calls leaves a name with no version, and the caller polls rather than reading that as absence. |
 | `deleteSecret(key)` | `deleteSecret` | Removes every version. `false` when already absent. |
 
-Secrets are created with automatic replication.
+Secrets are created with automatic replication and a 7-day `versionDestroyTtl` (§3).
 
 **Who overwrites.** `setSecret` is called by root rotation (`rootRotation.server.ts`: once per
 rotation) and by the registry sequence (`registrySequence.server.ts`: on every change to the key
@@ -32,9 +32,9 @@ registry). The registry sequence therefore gains a version every time a subordin
 
 | # | Finding | Where |
 | :-- | :-- | :-- |
-| GF5 | **Superseded versions accumulate.** Reads take `latest`, and nothing removes older versions. Every one of them stays readable to anyone with access to the project's secrets, and is billed as an active version. For the registry sequence that is one more version per key issuance, indefinitely. For the root seed, every retired root stays readable. | `src/secrets/runtime.ts`, `setSecret` |
+| GF5 | *History, fixed by GD4 (RFC-0022).* **Superseded versions accumulated.** Reads take `latest`, and nothing removes older versions. Every one of them stays readable to anyone with access to the project's secrets, and is billed as an active version. For the registry sequence that is one more version per key issuance, indefinitely. For the root seed, every retired root stays readable. | `src/secrets/runtime.ts`, `setSecret` |
 
-## 3. New (RFC-0022)
+## 3. Destroying superseded versions (RFC-0022)
 
 **GD4. `setSecret` destroys the versions it supersedes, with a recovery window (GF5).**
 
@@ -52,7 +52,7 @@ undoing a bad rotation by hand, without GenoaCMS depending on it.
 
 **Secrets created before GD4** have no `versionDestroyTtl`, so the versions GD4 destroys there are
 destroyed **immediately**, without a window. Operators of an existing instance set it once per secret
-before deploying RFC-0022. The RFC lists the command. GenoaCMS does not change an existing secret's
+before deploying a build that contains RFC-0022. The RFC lists the command. GenoaCMS does not change an existing secret's
 configuration itself.
 
 ## 4. History
@@ -63,9 +63,9 @@ bodies into the runtime unchanged.
 
 ## 5. Verification
 
-**GS4, for GD4: runs with RFC-0022.**
-- Unit tests, with the SDK mocked: the TTL on both create paths; only lower-numbered enabled versions are destroyed; a cleanup failure does not fail `setSecret`.
-- Opt-in against real GCP (`GENOACMS_TEST_GCP=1`), in a scratch project: `setSecret` three times; expect one enabled version, two disabled ones scheduled for destruction, and `getSecret` returning the third value.
+**GS4, for GD4.**
+- Unit tests, with the SDK mocked (RFC-0022, passing): the TTL on both create paths; only lower-numbered enabled versions are destroyed; a cleanup failure does not fail `setSecret`.
+- Live, by the author, not run yet: in a scratch project, `setSecret` three times; expect one enabled version, two disabled ones scheduled for destruction, and `getSecret` returning the third value.
 
 ## Critique & architectural sanity check: GD4
 
