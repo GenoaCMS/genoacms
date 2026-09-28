@@ -1,7 +1,9 @@
 import { defineDeploymentTarget, type Secret } from '@genoacms/contracts'
 import { unknownOptions, requireString, type ServiceAccount } from '../shared/serviceAccount.js'
+import { SETTING_KEYS, validateSettings, type FunctionSettings } from './settings.js'
 
-export interface GcpDeploymentOptions {
+/** The function's settings; each defaults to today's behavior except `runtime` (architecture GD3). */
+export interface GcpDeploymentOptions extends FunctionSettings {
   projectId: string
   region: string
   /** Default 'genoacms'. */
@@ -25,8 +27,9 @@ export default defineDeploymentTarget<GcpDeploymentOptions>({
   procedure: async () => await import('./procedure.js'),
   secretOptions: { credentials: 'json' },
   validate: options => [
-    ...unknownOptions(options, ['projectId', 'region', 'functionName', 'credentials']),
+    ...unknownOptions(options, ['projectId', 'region', 'functionName', 'credentials', ...SETTING_KEYS]),
     ...requireString(options, 'projectId'),
-    ...requireString(options, 'region')
+    ...requireString(options, 'region'),
+    ...validateSettings(options)
   ]
 })

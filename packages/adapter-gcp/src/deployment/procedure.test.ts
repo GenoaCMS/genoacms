@@ -6,20 +6,22 @@ import procedure from './procedure.js'
 
 const calls: string[] = []
 const functionExists = { value: false }
+const operation = (result: () => Promise<unknown[]> = async () => [{ url: 'https://fn.example' }]) => ({ promise: result })
+const notFound = Object.assign(new Error('not found'), { code: 5 })
 const client = {
   locationPath: (project: string, region: string) => `projects/${project}/locations/${region}`,
   functionPath: (project: string, region: string, name: string) => `projects/${project}/locations/${region}/functions/${name}`,
   generateUploadUrl: vi.fn(async () => { calls.push('generateUploadUrl'); return [{ uploadUrl: 'https://upload.example', storageSource: { bucket: 'b', object: 'o' } }] }),
-  getFunction: vi.fn(async () => { calls.push('getFunction'); if (!functionExists.value) throw new Error('not found') }),
-  createFunction: vi.fn(async () => { calls.push('createFunction'); return [{}] }),
-  updateFunction: vi.fn(async () => { calls.push('updateFunction'); return [{}] })
+  getFunction: vi.fn(async () => { calls.push('getFunction'); if (!functionExists.value) throw notFound }),
+  createFunction: vi.fn(async () => { calls.push('createFunction'); return [operation()] }),
+  updateFunction: vi.fn(async () => { calls.push('updateFunction'); return [operation()] })
 }
 vi.mock('@google-cloud/functions', () => ({ v2: { FunctionServiceClient: vi.fn(function () { return client }) } }))
 
 const roots: string[] = []
 beforeEach(() => {
   calls.length = 0
-  vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'info').mockImplementation(() => {})
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: { method: string, body: AsyncIterable<unknown> }) => {
     // Read the upload as a real request would, so the archive is opened while it still exists.
     for await (const _chunk of init.body) { /* drain */ }
@@ -60,5 +62,45 @@ describe('the GCP deploy procedure', () => {
     await procedure({ projectId: 'p', region: 'r', functionName: 'cms' }, context())
     expect(calls.at(-1)).toBe('updateFunction')
     expect(client.updateFunction).toHaveBeenLastCalledWith(expect.objectContaining({ functionId: 'cms' }))
+  })
+
+  it('stops when the upload is refused, before touching the function', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: { body: AsyncIterable<unknown> }) => {
+      for await (const _chunk of init.body) { /* drain, as a real request would */ }
+      return new Response(null, { status: 403, statusText: 'Forbidden' })
+    }))
+    await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toThrow(/^deploy\/upload-failed: 403 Forbidden/)
+    expect(client.createFunction).not.toHaveBeenCalled()
+  })
+
+  it('propagates a lookup error other than NOT_FOUND instead of creating', async () => {
+    const denied = Object.assign(new Error('permission denied'), { code: 7 })
+    client.getFunction.mockRejectedValueOnce(denied)
+    await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toBe(denied)
+    expect(client.createFunction).not.toHaveBeenCalled()
+    expect(client.updateFunction).not.toHaveBeenCalled()
+  })
+
+  it('fails when the platform fails to build the function', async () => {
+    functionExists.value = false
+    client.createFunction.mockResolvedValueOnce([operation(async () => { throw new Error('Build failed: npm ERR! 404') })])
+    await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toThrow(/^deploy\/function-failed: Build failed: npm ERR! 404/)
+  })
+
+  it('prints the function URL once the platform is done', async () => {
+    functionExists.value = false
+    await procedure({ projectId: 'p', region: 'r' }, context())
+    expect(console.info).toHaveBeenCalledWith('Function URL: https://fn.example')
+  })
+
+  it('builds on nodejs22 and runs as the configured service account', async () => {
+    functionExists.value = false
+    await procedure({ projectId: 'p', region: 'r', serviceAccount: 'cms@p.iam.gserviceaccount.com' }, context())
+    expect(client.createFunction).toHaveBeenLastCalledWith(expect.objectContaining({
+      function: expect.objectContaining({
+        buildConfig: expect.objectContaining({ runtime: 'nodejs22' }),
+        serviceConfig: expect.objectContaining({ serviceAccountEmail: 'cms@p.iam.gserviceaccount.com' })
+      })
+    }))
   })
 })

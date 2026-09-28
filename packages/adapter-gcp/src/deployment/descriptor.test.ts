@@ -19,10 +19,17 @@ describe('the GCP deployment descriptor', () => {
     expect(typeof (await descriptor.procedure()).default).toBe('function')
   })
 
+  it('accepts every function setting and reports an invalid one', () => {
+    const validate = descriptor.validate as (options: unknown) => string[]
+    const settings = { runtime: 'nodejs24', memory: '1Gi', timeoutSeconds: 60, minInstances: 0, maxInstances: 2, ingress: 'all', serviceAccount: 'cms@p.iam.gserviceaccount.com' }
+    expect(validate({ projectId: 'p', region: 'r', ...settings })).toEqual([])
+    expect(validate({ projectId: 'p', region: 'r', memory: '512MB' })).toEqual(["memory must be a size such as '512Mi' or '1Gi'"])
+  })
+
   it('requires a project id and a region, and refuses unknown keys', () => {
     const validate = descriptor.validate as (options: unknown) => string[]
     expect(validate({ projectId: 'p', region: 'europe-west3', functionName: 'f' })).toEqual([])
-    expect(validate({ projectId: 'p', region: 'r', runtime: 'nodejs20' })).toEqual(["unknown option 'runtime'"])
+    expect(validate({ projectId: 'p', region: 'r', concurrency: 80 })).toEqual(["unknown option 'concurrency'"])
     expect(validate({ projectId: 'p' })).toHaveLength(1)
     expect(validate({ region: 'r', projectId: '' })).toHaveLength(1)
   })

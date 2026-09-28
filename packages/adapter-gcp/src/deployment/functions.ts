@@ -2,7 +2,12 @@ import type { google } from '@google-cloud/functions/build/protos/protos.js'
 import { createReadStream } from 'node:fs'
 import { v2 } from '@google-cloud/functions'
 import type { ServiceAccount } from '../shared/serviceAccount.js'
+import { buildConfig, serviceConfig, type FunctionSettings } from './settings.js'
 type IStorageSource = google.cloud.functions.v2.IStorageSource
+type ICloudFunction = google.cloud.functions.v2.IFunction
+
+/** gRPC status of a lookup for a function that does not exist. */
+const NOT_FOUND = 5
 type FunctionServiceClient = InstanceType<typeof v2.FunctionServiceClient>
 
 interface FunctionTarget {
@@ -23,7 +28,7 @@ async function uploadArchive (client: FunctionServiceClient, projectId: string, 
   const storageSource = urlResponse.storageSource
   if (!uploadUrl || !storageSource) throw new Error('Upload URL not found')
   const sourceArchiveStream = createReadStream(archivePath)
-  await fetch(uploadUrl, {
+  const response = await fetch(uploadUrl, {
     method: 'PUT',
     // @ts-expect-error: invalid typings
     body: sourceArchiveStream,
@@ -32,48 +37,47 @@ async function uploadArchive (client: FunctionServiceClient, projectId: string, 
       'Content-Type': 'application/zip'
     }
   })
+  if (!response.ok) throw new Error(`deploy/upload-failed: ${response.status} ${response.statusText}`)
   return storageSource
 }
 
-async function deployFunction (client: FunctionServiceClient, { projectId, region, functionName }: FunctionTarget, storageSource: IStorageSource): Promise<void> {
-  const location = client.locationPath(projectId, region)
-  const name = client.functionPath(projectId, region, functionName)
-  let isFunctionExisting: boolean
+/** Only NOT_FOUND means absent: a permission or network error must not turn into a create. */
+async function functionExists (client: FunctionServiceClient, name: string): Promise<boolean> {
   try {
     await client.getFunction({ name })
-    isFunctionExisting = true
+    return true
   } catch (error) {
-    isFunctionExisting = false
+    if ((error as { code?: number }).code === NOT_FOUND) return false
+    throw error
   }
-  const operationParams = {
+}
+
+/** Waits for the platform, so a failed build fails the deploy instead of passing unseen (architecture GD1). */
+async function completeOperation (operation: { promise: () => Promise<unknown[]> }): Promise<ICloudFunction> {
+  try {
+    const [result] = await operation.promise()
+    return result as ICloudFunction
+  } catch (error) {
+    throw new Error(`deploy/function-failed: ${(error as Error).message}`, { cause: error })
+  }
+}
+
+/**
+ * Creates or updates the function and waits for it. The whole configuration is written each time, so
+ * the config stays the source of truth (architecture GD3). Resolves the function's URL.
+ */
+async function deployFunction (client: FunctionServiceClient, { projectId, region, functionName }: FunctionTarget, storageSource: IStorageSource, settings: FunctionSettings): Promise<string | undefined> {
+  const name = client.functionPath(projectId, region, functionName)
+  const request = {
     functionId: functionName,
-    parent: location,
-    function: {
-      name,
-      buildConfig: {
-        entryPoint: 'genoacms',
-        runtime: 'nodejs20',
-        source: {
-          storageSource
-        }
-      },
-      serviceConfig: {
-        minInstanceCount: 0,
-        maxInstanceCount: 1,
-        ingressSettings: 1, // ALLOW_ALL
-        environmentVariables: {
-          NODE_ENV: 'production'
-        }
-      }
-    }
+    parent: client.locationPath(projectId, region),
+    function: { name, buildConfig: buildConfig(settings, storageSource), serviceConfig: serviceConfig(settings) }
   }
-  let response
-  if (isFunctionExisting) {
-    [response] = await client.updateFunction(operationParams)
-  } else {
-    [response] = await client.createFunction(operationParams)
-  }
-  console.log(response)
+  const [operation] = await functionExists(client, name)
+    ? await client.updateFunction(request)
+    : await client.createFunction(request)
+  const result = await completeOperation(operation)
+  return result.url ?? result.serviceConfig?.uri ?? undefined
 }
 
 export { createFunctionsClient, uploadArchive, deployFunction }
