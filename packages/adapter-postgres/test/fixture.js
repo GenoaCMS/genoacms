@@ -1,3 +1,5 @@
+import knex from 'knex'
+
 const storageResource = {
   type: 'object',
   title: 'storageResource',
@@ -103,6 +105,21 @@ const references = {
 }
 
 export const collections = [references]
+
+export async function recreateReferencesTable (connection) {
+  const sql = knex({ client: 'pg', connection })
+  try {
+    await sql.schema.dropTableIfExists(references.name)
+    await sql.schema.createTable(references.name, table => {
+      table.uuid('id').primary()
+      table.text('name')
+      table.text('description')
+      table.specificType('sections', 'jsonb[]')
+    })
+  } finally {
+    await sql.destroy()
+  }
+}
 
 export const testDocuments = [{
   id: crypto.randomUUID(),
