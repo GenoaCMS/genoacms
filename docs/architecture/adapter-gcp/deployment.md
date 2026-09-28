@@ -35,6 +35,9 @@ server of its own to start: the Functions Framework calls an exported handler.
 *Why:* a deploy that reports success when the platform rejected it is worse than no report, and a
 buildpack install failure (`configuration.md` D9 critique) is exactly the case that must surface.
 *Cost:* `genoa deploy` takes as long as Cloud Build, a few minutes, instead of returning after the upload.
+An interrupted CLI leaves the operation running on Google's side, and a deploy started meanwhile may
+fail with a conflict until it ends. The client library's polling timeout bounds how long a build may
+take before the CLI reports a failure, while the deploy may still succeed on Google's side.
 
 **GD3. Function settings are target options (GF3, GQ1).** DEP-2 to DEP-4. The runtime default is
 `nodejs22`, the oldest Node runtime still in support at the time of writing. Every other default
@@ -44,7 +47,12 @@ the adapter's. The service account is the practical fix for GF4, because it lets
 function as a dedicated, narrowly-granted account (README, IAM).
 *Cost:* seven more options to validate and document. A well-formed but unsupported `memory` or
 `runtime` value is refused by the platform during the operation, which GD1 reports, not by the
-descriptor at build time.
+descriptor at build time. The `nodejs22` default changes the next deploy of every existing instance,
+and goes stale in turn: the platform refuses a decommissioned runtime at deploy time, loudly but late.
+Changing `serviceAccount` moves every runtime grant to the new account; the deploy succeeds and the
+instance fails at runtime until the grants follow (GQ2). `minInstances > 0` bills idle instances, and
+ingress `internal` makes the CMS unreachable from a browser without a load balancer or VPC path; the
+descriptor cannot know either.
 
 **GD5. The adapter honors `ORIGIN` and `XFF_DEPTH`, and the target sets them (GU4; GF7, GF11, GF14).**
 RFC-0023. DEP-14, ADP-5, ADP-6, ADP-7.
@@ -55,7 +63,7 @@ RFC-0023. DEP-14, ADP-5, ADP-6, ADP-7.
 - The address and origin logic moves into a module with no build-time placeholders, so it can be unit-tested, and the adapter's test script runs again (GF11).
 
 *Why:* the client address is what sign-in throttling will key on (`configuration.md` Q5), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
-*Cost:* two more target options. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry.
+*Cost:* two more target options. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
 
 **The whole configuration is written on every deploy (DEP-10).** No field mask. The config is
 therefore the source of truth, and a setting changed in the console is reverted by the next deploy.
@@ -106,13 +114,13 @@ leave the machine (`configuration.md` F9, F15).
 
 Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@genoacms/sveltekit-adapter-cloud-run-functions` lazily, and `svelteKitOptions` maps the build's `outDir` to the adapter's `{ out: outDir }`. `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
 
-- Test: `deployment/descriptor.test.ts` › is a deployment target…; loads the cloud-run SvelteKit adapter…; loads its procedure lazily
+- Test: `packages/adapter-gcp/src/deployment/descriptor.test.ts`
 
 #### DEP-2 · Options
 
 Options: `projectId: string` and `region: string`, both required non-empty (COM-3); `functionName?: string`, default `genoacms`; `credentials?: Secret<ServiceAccount>`, the operator identity, resolved on the operator's machine and never embedded in the build; and the seven settings of DEP-3. Any other key is refused (COM-2).
 
-- Test: `deployment/descriptor.test.ts` › requires a project id and a region, and refuses unknown keys; accepts every function setting…
+- Test: `packages/adapter-gcp/src/deployment/descriptor.test.ts`
 
 #### DEP-3 · Function settings
 
@@ -125,13 +133,13 @@ Settings, all optional, with defaults and API mapping:
 - `ingress`: `all` | `internal` | `internal-and-gclb`, default `all` → `serviceConfig.ingressSettings` 1 | 2 | 3
 - `serviceAccount`: `/^[^@\s]+@[^@\s]+$/`, default the project's compute account → `serviceConfig.serviceAccountEmail`
 
-- Test: `deployment/settings.test.ts` › builds on nodejs22…; keeps the service settings…; maps every setting…
+- Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
 
 #### DEP-4 · Setting validation
 
 An invalid present setting yields exactly one reason, in DEP-3's key order: `runtime must be a Node.js runtime such as 'nodejs22'`, `memory must be a size such as '512Mi' or '1Gi'`, `timeoutSeconds must be an integer from 1 to 3600`, `minInstances must be an integer of at least 0`, `maxInstances must be an integer of at least 1`, `ingress must be 'all', 'internal' or 'internal-and-gclb'`, `serviceAccount must be a service account email`. After those, when both instance counts are valid and `minInstances > maxInstances`: `minInstances must not exceed maxInstances`.
 
-- Test: `deployment/settings.test.ts` › names each invalid setting…; refuses more minimum than maximum instances
+- Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
 
 ### Deploy procedure
 
@@ -139,61 +147,61 @@ An invalid present setting yields exactly one reason, in DEP-3's key order: `run
 
 The procedure never reads `process.cwd()`. It works only from the build directory and the work directory it is given.
 
-- Test: `deployment/procedure.test.ts` › uploads the archive, then creates…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-6 · Staging
 
 **Staging.** Copy the build directory to `<workDir>/app`. Without `<buildDir>/package.json`, throw `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`. Set `"main": "function.js"` in the copied `package.json`, keeping every other field, and write `function.js` with exactly the entry module below.
 
-- Test: `deployment/archive.test.ts` › adds the function entry…; refuses an artifact without its runtime package.json
+- Test: `packages/adapter-gcp/src/deployment/archive.test.ts`
 
 #### DEP-7 · Archive
 
 **Archive.** A zip (level 9) of exactly the staged directory, at its root: no globbing, no ignore list, no symlink following.
 
-- Test: `deployment/archive.test.ts` › zips exactly the staged files
+- Test: `packages/adapter-gcp/src/deployment/archive.test.ts`
 
 #### DEP-8 · Upload
 
 **Upload.** `generateUploadUrl` in `projects/<projectId>/locations/<region>`, then `PUT` the zip to the returned URL with `Content-Type: application/zip`. A response that is not `ok` throws `deploy/upload-failed: <status> <statusText>` and nothing else is called. A response with no URL or no storage source throws `Upload URL not found`.
 
-- Test: `deployment/procedure.test.ts` › uploads the archive…; stops when the upload is refused…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-9 · Lookup
 
 **Lookup.** `getFunction(projects/<p>/locations/<r>/functions/<functionName>)`. It exists when the call resolves, and is absent only on gRPC `NOT_FOUND` (5). Any other error propagates, and neither create nor update is called.
 
-- Test: `deployment/procedure.test.ts` › creates a function that does not exist yet…; updates a function that exists; propagates a lookup error…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-10 · Create or update
 
 **Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables: { NODE_ENV: 'production' }`, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
-- Test: `deployment/procedure.test.ts` › builds on nodejs22 and runs as the configured service account; `deployment/settings.test.ts` › keeps the service settings…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`
 
 #### DEP-11 · Completion
 
 **Completion.** The procedure awaits the operation. A failed operation throws `deploy/function-failed: <operation error message>`, with the original error as `cause`.
 
-- Test: `deployment/procedure.test.ts` › fails when the platform fails to build the function
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-12 · Function URL
 
 On success it prints `Function URL: <url>`, taking the function's `url`, else `serviceConfig.uri`, and prints nothing when neither is present.
 
-- Test: `deployment/procedure.test.ts` › prints the function URL…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-13 · Operator credentials
 
 The Functions client uses `credentials` when given, else the operator's ADC.
 
-- Test: `deployment/procedure.test.ts` › uses the target's credentials for the Functions client…
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
 
 #### DEP-14 · Origin and client-address settings
 
 Two more optional settings (GD5). `origin`: an absolute `http` or `https` origin with no path, matching `/^https?:\/\/[^/\s]+$/`, set as the function's `ORIGIN` environment variable. Otherwise `origin must be an absolute http(s) origin such as 'https://cms.example.com'`. `xffDepth`: an integer ≥ 1, set as `XFF_DEPTH` (decimal). Otherwise `xffDepth must be an integer of at least 1`. Unset options set no variable. Their reasons follow DEP-4's, before the instance-order rule.
 
-- Test: `deployment/settings.test.ts` › sets ORIGIN and XFF_DEPTH…; refuses an origin with a path…; sets no variable beyond NODE_ENV by default
+- Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
 
 The entry module of DEP-6, byte for byte. The export name is the function's entry point (DEP-10):
 
@@ -216,76 +224,40 @@ production build, which bundles them, and the live deploy exercise them.
 
 Options: `out` (default `build`), `precompress` (default `true`), `envPrefix` (default `''`), which prefixes the names ADP-7 reads.
 
-- Test: unverified
+- Test: unverified (build step; `handler.js` imports build-time placeholders)
 
 #### ADP-2 · Assets
 
 `adapt()` empties `out`, writes the client assets to `<out>/client<base>` and prerendered pages to `<out>/prerendered<base>`, and gzip- and brotli-compresses both when `precompress` is set. It copies `env.js`, `handler.js`, `index.js` and `shims.js` into `out`.
 
-- Test: unverified
+- Test: unverified (build step; `handler.js` imports build-time placeholders)
 
 #### ADP-3 · Server bundle
 
 The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks under `chunks/`), with node resolution under the `node` condition, CommonJS and JSON support. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports. `<out>/server/manifest.js` exports `manifest`, `prerendered` (the set of prerendered paths) and `base`.
 
-- Test: unverified
+- Test: unverified (build step; `handler.js` imports build-time placeholders)
 
 #### ADP-4 · Entry and initialization
 
 `<out>/index.js` re-exports `handler` from `<out>/handler.js`. The handler installs SvelteKit's Node polyfills and initializes the server with `env: process.env`, reading assets from `<out>/client<base>`.
 
-- Test: unverified
+- Test: unverified (build step; `handler.js` imports build-time placeholders)
 
 #### ADP-5 · Middleware chain and request URL
 
 The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving precompressed `.gz`/`.br` variants; static files from `static/` when present; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
-- Test: URL: `tests/request.test.js` › builds the URL from forwarded headers…; builds the URL from ORIGIN when set…; the chain and body unverified
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: the middleware chain and the body)
 
 #### ADP-6 · Client address
 
 `getClientAddress()` splits `X-Forwarded-For` (arrays joined with `,`) on `,`, trims each entry, drops empty ones, and returns the entry `XFF_DEPTH` positions from the right: depth 1 is the last. With fewer entries than the depth it throws `XFF_DEPTH is <depth>, but X-Forwarded-For has <n> entries`. Without the header it returns the socket's remote address. `platform` is `{ req }`, the Node request.
 
-- Test: `tests/request.test.js` › takes the X-Forwarded-For entry…; refuses a depth beyond the entries present; falls back to the socket address…
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`
 
 #### ADP-7 · Startup environment
 
 At startup the handler reads `<envPrefix>ORIGIN` and `<envPrefix>XFF_DEPTH`. `ORIGIN` is used as given, and unset means none. `XFF_DEPTH` defaults to `1`. A value that is not a positive integer (`/^[1-9]\d*$/`) throws `XFF_DEPTH must be a positive integer, not '<value>'`, so the function fails at start. With a non-empty prefix, any other variable carrying the prefix throws at startup.
 
-- Test: parsing: `tests/request.test.js` › parses XFF_DEPTH…; reading and the prefix check unverified
-
-## Critique
-
-### GD1, GD3
-
-**Pros**
-- A deploy's exit code now tells the truth, which is the precondition for running `genoa deploy` in CI.
-- Operators can size the function and give it its own identity without forking the adapter.
-- Every default except the runtime is unchanged, so the change is safe to roll out.
-
-**Cons & trade-offs**
-- Deploys block for the whole build. An interrupted CLI leaves the operation running on Google's side, and a deploy started meanwhile may fail with a conflict until it ends.
-- Moving the default runtime to `nodejs22` changes the next deploy of every existing instance. That is intended, but it is a behavior change nobody asked for in their config.
-- Whole-config updates revert console changes, which surprises an operator who tuned the function by hand.
-
-**Blindspots & missed edge cases**
-- **Runtime drift.** `nodejs22` also reaches end of life, and the default will be stale again. The platform refuses a decommissioned runtime at deploy time, which is loud but late.
-- **Changing `serviceAccount`** moves every runtime grant to the new account. The first deploy with a new account succeeds, and the instance then fails at runtime until the grants follow. Nothing checks them (GQ2).
-- **`minInstances > 0`** bills idle instances. **Ingress `internal`** makes the CMS unreachable from a browser without a load balancer or VPC path. The descriptor cannot know either.
-- The client library's default polling timeout bounds how long a build may take before the CLI reports a failure, while the deploy may still succeed on Google's side.
-
-### GD5
-
-**Pros**
-- The client address becomes trustworthy under a stated assumption, the depth, instead of forgeable by default. That is the precondition for sign-in throttling (`configuration.md` Q5).
-- `ORIGIN` makes CSRF protection correct behind Firebase Hosting and custom domains, where the forwarded host is not what the browser used.
-- Dead code goes, and the adapter's behavior is tested again.
-
-**Cons & trade-offs**
-- Two more target options, and a proxy topology the operator must understand. The default fits a function reached directly and nothing else.
-- A wrong `XFF_DEPTH` fails in one of two silent ways: too high trusts a forged entry, too low attributes every request to a proxy. Only a too-high depth relative to the entries present throws.
-
-**Blindspots & missed edge cases**
-- **Google's front end behavior is assumed**, not verified (GS5). If it appends more than one entry, or none, depth 1 is wrong for every direct deployment.
-- **IPv6 and ports.** Entries are returned as written, trimmed. Nothing normalizes IPv6 forms or strips ports, so one client can appear under two spellings to anything that counts by address.
-- **Mixed traffic.** A function reached both directly and through a proxy has no single correct depth.
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: reading the variables and the prefix check)

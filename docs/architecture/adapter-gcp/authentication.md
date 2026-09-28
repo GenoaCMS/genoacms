@@ -30,7 +30,17 @@ and email-enumeration protection. GenoaCMS does not own any of it, and the contr
 *Cost:* users are managed outside the CMS, which is one more console for operators. A user
 disabled in Identity Platform cannot sign in again, but a session that is already open continues
 until its family expires, because a refresh does not ask the provider. The immediate revocation is
-therefore removing the user's role assignments, which authorization resolves per request.
+therefore removing the user's role assignments, which authorization resolves per request. One more
+GCP service to enable and pay for above its free tier. Each sign-in is a network call to Google: when
+Identity Platform is unavailable nobody can sign in, although open sessions continue. It serves GCP
+only; the other stacks keep the array adapter until the identity store exists (`configuration.md`
+U13). Further costs, to settle in the GD2 RFC:
+- every sign-in comes from the function's address, so the provider's abuse protection may refuse correct sign-ins for everybody, or never trip on a slow attack spread over many accounts (GS1c; `configuration.md` F20, Q5);
+- an email changed in Identity Platform stays stale in the CMS and its access token until the next sign-in; authorization is unaffected, because `localId` stays;
+- a user who enrols a second factor in another client of the project can no longer sign in, and the failure reads as a rejected credential (AUTH-4);
+- switching reCAPTCHA password protection to enforce mode, for another app of the project, breaks every CMS sign-in at once (AUTH-7);
+- without `tenantId`, users of the project's pool from other applications can sign in if their UID has role assignments; authorization bounds the exposure;
+- the seed administrator's subject becomes an Identity Platform UID, so switching core's production config without updating `authorization.ts` leaves nobody able to sign in.
 
 What the operator sets up, once per project (not automated):
 - enable Identity Platform, or Firebase Authentication, with the email/password provider;
@@ -127,27 +137,3 @@ The response's `idToken` and `refreshToken` are discarded: never stored, never l
 
 - Test: none yet
 - State: new (no RFC yet)
-
-## Critique
-
-### GU1, GD2
-
-**Pros**
-- GenoaCMS stores no password material on GCP. Hashing, storage, disabling, password reset, email-enumeration protection and MFA enrolment are the provider's responsibility, and each is a feature GenoaCMS would otherwise have to build and keep secure.
-- The contract does not change. `authenticate` maps one to one onto `signInWithPassword`, and the provider's `localId` is exactly the stable, reassignment-proof subject that `Identity` and the account screen are designed around.
-- If GS1a passes, no credential is configured at all, and sign-in authenticates like every other GCP client (GU2).
-
-**Cons & trade-offs**
-- Users are managed in a second console. Creating an account is two steps in two places: the user in Identity Platform, then the UID and roles in the CMS.
-- One more GCP service to enable and pay for. It is free below a monthly-active-user threshold and priced per user above it.
-- Each sign-in is a network call to Google, adding latency and a dependency. When Identity Platform is unavailable, nobody can sign in, although open sessions continue.
-- GCP-only. The AWS and self-hosted stacks still have only the array adapter until the deferred identity store exists (`configuration.md` U13).
-
-**Blindspots & missed edge cases**
-- **Shared client address (`configuration.md` F20).** Identity Platform's abuse protection sees every sign-in coming from the function. Many wrong passwords against one account could make it refuse correct sign-ins for everybody, and a slow attack spread over many accounts may never trip it. GS1c measures this. `configuration.md` Q5 (throttling in core) is the fix and is not decided yet. Core's own throttling would also have to read the client address correctly (deployment GF7).
-- **Revocation latency.** Disabling a user in Identity Platform stops new sign-ins only. An open session lasts until its family expires, because refresh does not consult the provider. Operators must know that removing role assignments is the immediate lever.
-- **Email changes.** A user whose email changes in Identity Platform keeps their `localId`, so authorization is unaffected. But the email shown in the CMS, and carried in the access token, stays stale until the next sign-in.
-- **MFA enrolment locks the user out.** A user who enrols a second factor in another client of the same project can no longer sign in to the CMS, and the failure reads as a rejected credential (`null`). The log does not say why.
-- **reCAPTCHA enforce mode**, switched on later for a web app in the same project, breaks every CMS sign-in at once. GD2 makes it a `provider-failed` error, not a wrong password, but nothing prevents the switch.
-- **Tenants.** With `tenantId`, a user of another tenant in the same project is rejected, which is intended. Without it, users of the project-level pool from other applications of the project can sign in to the CMS if their UID has role assignments. Without assignments they are known to nobody and refused (`resolvePrincipal`), so the exposure is bounded by authorization, not by authentication.
-- **The seed administrator's subject** changes from a hand-written UUID to an Identity Platform UID. Switching core's production config without updating `authorization.ts` leaves nobody able to sign in.

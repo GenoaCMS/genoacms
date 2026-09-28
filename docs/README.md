@@ -29,7 +29,7 @@ What the Specifications cover, measured against the reproducibility principle
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not restructured |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; remaining test gap: ADP-1 to ADP-4 |
-| Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only |
+| Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. The AWS findings of the AWS discussion are recorded nowhere yet. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |

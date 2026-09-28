@@ -17,11 +17,9 @@ runtime and operator identities, and IAM. RFCs for `@genoacms/adapter-gcp` and
 `@genoacms/sveltekit-adapter-cloud-run-functions` are derived from these documents. They follow the
 Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID prefix is `G`.
 
-**Test references** name a file relative to `packages/adapter-gcp/src/` (for `ADP`, relative to
-`packages/sveltekit-adapter-cloud-run-functions/`) and the test's title, as
-`secrets/runtime.test.ts › reads a missing secret…`. "conformance" means the opt-in suite in
-`packages/adapter-gcp/test/conformance.test.ts`, which runs `@genoacms/conformance` against real GCP
-only with `GENOACMS_TEST_GCP=1`.
+**Test references** name test files by path from the repository root, and each test carries the IDs of
+the statements it checks in its title (`WORKFLOW.md` §6.2). `packages/adapter-gcp/test/conformance.test.ts`
+runs `@genoacms/conformance` against real GCP, only with `GENOACMS_TEST_GCP=1`.
 
 **Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
 this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
@@ -58,7 +56,9 @@ as the check against the real services.
 *Why:* the author reviews Specifications, not code (`WORKFLOW.md` §1). A statement without a test
 is a claim nobody checks, and the untested ones include core's optimistic concurrency (STO-6).
 *Cost:* mocks encode the SDK's call shapes. An SDK upgrade that changes them breaks tests that do not
-touch real behavior, while the conformance suite, which does, runs only on request.
+touch real behavior, while the conformance suite, which does, runs only on request. Concurrency in
+STO-11 and STO-12 cannot be observed with mocks: the tests show which calls were made, not what a
+partial failure leaves behind (GF10).
 
 ### The package
 
@@ -188,71 +188,26 @@ Every `G` ID, where it lives, and its state.
 
 ### Shared (`src/shared/serviceAccount.ts`)
 
-| :-- | :-- | :-- |
 #### COM-1 · Service-account shape
 
 `ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged.
 
-- Test: unverified (type only)
+- Test: unverified (a type only)
 
 #### COM-2 · Unknown options are refused
 
 Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`.
 
-- Test: `storage/descriptor.test.ts`, `database/descriptor.test.ts`, `secrets/descriptor.test.ts`, `deployment/descriptor.test.ts` › the unknown-key cases
+- Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts`
 
 #### COM-3 · Required string options
 
 A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor.
 
-- Test: the same four files › the missing- and empty-project cases
+- Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts` (unverified: the reason text)
 
 #### COM-4 · One client per provider, ADC by default
 
 Each provider construction creates its own client with its own credential. Two providers on one GCP service share neither, so two GCP projects can be served at once. `credentials` is optional on every descriptor, decoded as JSON, and passed to the client only when given. Otherwise the client uses ADC (GU2).
 
-- Test: `storage/runtime.test.ts` › builds one client per provider…; passes the project, and the credentials only when given; `database/runtime.test.ts`; `secrets/runtime.test.ts` › uses Application Default Credentials…
-
-## Critique
-
-### Design/Specification split
-
-**Pros**
-- Each Specification row is small enough to review on its own, and its Test column shows at a glance what is proven and what is only claimed.
-- The split exposed what the old prose hid: GF11 to GF14 were found by asking of each statement which test checks it.
-
-**Cons & trade-offs**
-- Specifications restate the code in prose. When code changes without its statement, the Specification lies. Drift audits (`WORKFLOW.md` §1) are the only guard.
-- Test references by title break when a test is renamed. They are readable, but not checked by any tool.
-
-**Blindspots & missed edge cases**
-- A test reference proves that a test exists, not that it checks the whole statement. Several rows cite a test for part of a statement and say which part is unverified. Nothing enforces that honesty.
-- The Specification is as complete as the author of the rows was careful. The only real completeness check is the reproducibility trial (`docs/README.md`, Coverage).
-
-### The document set
-
-**Pros**
-- Each service can be read and changed on its own, and each file stays short enough to review.
-- The project-wide markers (`WORKFLOW.md` §5.2) keep "what runs today" and "what we decided" apart in the same text. The RFC for a **New** item removes the marker, so the documents converge on the code instead of drifting from it.
-- The register makes a finding's life visible: open, decided, fixed.
-
-**Cons & trade-offs**
-- Six files instead of one. A cross-cutting change touches several, and the register has to be kept in step by hand.
-- *(current)* text is only as true as its last verification. The header's commit says when that was.
-
-**Blindspots & missed edge cases**
-- `configuration.md` was written as a proposal and has no markers. Its GCP rows now point here, but the two documents follow different conventions until it is restructured the same way.
-- This directory is the first to follow the project-wide conventions and acts as their template. AWS, whose findings from the AWS discussion are recorded only in conversation, is the next candidate.
-
-### GD6
-
-**Pros**
-- Every current statement becomes checkable on each commit without GCP credentials, which is what makes "review the Specification, not the code" hold for this package.
-- Writing a test per statement exposes statements that are too vague to test, which is itself a Specification defect.
-
-**Cons & trade-offs**
-- Mock-based tests prove the calls, not the service's reaction to them. A precondition GCS interprets differently than assumed passes the unit test and fails in production. The opt-in conformance suite is the only guard, and it runs only on request.
-- More test code to maintain across SDK upgrades.
-
-**Blindspots & missed edge cases**
-- Concurrency in STO-11 and STO-12 (parallel operations) cannot be observed meaningfully with mocks. The tests can assert which calls were made, not what a partial failure leaves behind (GF10).
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/src/secrets/runtime.test.ts`

@@ -29,8 +29,13 @@ SEC-10.
 *Why:* the contract never consults history, so old versions serve nobody and only cost money and
 exposure. The recovery window keeps the one real use of history, undoing a bad rotation by hand,
 without GenoaCMS depending on it.
-*Cost:* two more permissions for the runtime identity (README, IAM), and one extra list call per
-overwrite.
+*Cost:* two more permissions for the runtime identity (README, IAM), one of them destructive
+(`versions.destroy`), and one extra list call per overwrite. Destruction is irreversible after the
+window, so a bad rotation unnoticed for more than 7 days cannot be rolled back from the store, and 7
+days is a guess, not an option. A persistent permission gap shows only as warnings while versions keep
+accumulating. Secrets created outside GenoaCMS keep whatever destroy TTL the operator gave them. The
+cleanup depends on Secret Manager's version resource names and its `state:ENABLED` filter syntax; a
+change in either breaks SEC-8, which SEC-9 then reports as warnings.
 
 **Why absence is narrow (SEC-4).** `getSecret` reports `undefined` only for a secret that does not
 exist. A caller reads absence as "not configured yet" and generates a replacement, so a disabled key
@@ -74,7 +79,7 @@ the runtime. RFC-0022 (2026-09-28) added the destroy TTL and the cleanup.
 
 Specifier `@genoacms/adapter-gcp/secrets`, kind `secrets`. Runtime specifier `@genoacms/adapter-gcp/secrets/runtime`. Options `projectId: string` (required) and `credentials?: BootstrapSecret<ServiceAccount>`, decoded as JSON (`secretOptions: { credentials: 'json' }`). Validation follows COM-2 and COM-3.
 
-- Test: `secrets/descriptor.test.ts` › names its runtime…; accepts a project id and refuses unknown keys…
+- Test: `packages/adapter-gcp/src/secrets/descriptor.test.ts`
 
 ### Runtime
 
@@ -86,77 +91,58 @@ the contract's `assertValidSecretKey` before any call.
 
 Without `credentials`, the client is constructed with `{ projectId }` only (ADC).
 
-- Test: `secrets/runtime.test.ts` › uses Application Default Credentials…
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-3 · Reading the latest version
 
 `getSecret(key)` reads `projects/<p>/secrets/<key>/versions/latest` and returns its payload as a UTF-8 string. A payload of `null` or `undefined` returns `undefined`.
 
-- Test: `secrets/runtime.test.ts` › reads a missing secret as undefined… (the path); decodes the payload as UTF-8…
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-4 · Absence is only NOT_FOUND
 
 `getSecret` returns `undefined` when, and only when, the call fails with gRPC `NOT_FOUND` (5). Every other failure propagates unchanged, including a disabled or destroyed `latest`.
 
-- Test: `secrets/runtime.test.ts` › reads a missing secret as undefined, and propagates every other failure
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-5 · Overwriting
 
 `setSecret(key, value)` ensures the secret exists: `getSecret` on the secret resource; on `NOT_FOUND`, `createSecret` with the resource of SEC-7, where `ALREADY_EXISTS` (6) from a concurrent creator is not an error. It then adds a version with `value` as UTF-8, runs SEC-8 when the added version has a name, and resolves `true`.
 
-- Test: `secrets/runtime.test.ts` › overwrites an existing secret without creating it; tolerates a concurrent creator when overwriting; creates secrets with a seven-day recovery window…
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-6 · Atomic claim
 
 `setSecretIfAbsent(key, value)` calls `createSecret` (resource of SEC-7). `ALREADY_EXISTS` resolves `false` without adding a version. Any other error propagates. On success it adds the version and resolves `true`.
 
-- Test: `secrets/runtime.test.ts` › loses a claim when the secret already exists; creates secrets with a seven-day recovery window…
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-7 · Recovery window on create
 
 **Every secret the adapter creates** has automatic replication and `versionDestroyTtl` of 604800 seconds (7 days).
 
-- Test: `secrets/runtime.test.ts` › creates secrets with a seven-day recovery window on both create paths
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-8 · Destroying superseded versions
 
 After adding a version, `setSecret` lists the secret's versions with filter `state:ENABLED` and destroys, sequentially and in list order, every one whose version number (the last path segment, a positive integer) is lower than the version just added. Higher-numbered versions are kept.
 
-- Test: `secrets/runtime.test.ts` › destroys only the enabled versions below the one it added
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-9 · Cleanup is best effort
 
 SEC-8 is best effort. Any error in it, including a version name that is not numbered (`secrets/unexpected-version-name: <name>`), is reported as a warning, `secrets/cleanup-failed: <key>: <message>`, and `setSecret` still resolves `true`.
 
-- Test: `secrets/runtime.test.ts` › keeps the written value when cleanup fails…; destroys nothing when a version name is not numbered
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-10 · Claims do not clean up
 
 `setSecretIfAbsent` does no cleanup.
 
-- Test: `secrets/runtime.test.ts` › claims without cleaning up
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
 
 #### SEC-11 · Deleting a secret
 
 `deleteSecret(key)` deletes the secret with all its versions and resolves `true`. `NOT_FOUND` resolves `false`. Other errors propagate.
 
-- Test: `secrets/runtime.test.ts` › deletes a secret, reporting whether it existed
-
-## Critique
-
-### GD4
-
-**Pros**
-- Exposure and cost stop growing with use. A retired root seed becomes unreadable after the window, which is what retiring it meant.
-- No contract change and no new call path in core. The cleanup lives entirely inside `setSecret`.
-- The recovery window turns an irreversible operation into a reversible one for a week.
-
-**Cons & trade-offs**
-- Destruction is irreversible after the window. A rotation that went wrong unnoticed for more than 7 days cannot be rolled back from the store.
-- The runtime identity gains `versions.destroy`, a destructive permission. It could already overwrite and delete secrets, so the new power is small.
-- Best-effort cleanup means a persistent permission gap only shows as warnings, while versions keep accumulating as before.
-
-**Blindspots & missed edge cases**
-- **Secrets created outside GenoaCMS** have whatever TTL the operator gave them. GenoaCMS overwrites only its own signing secrets, but the window is not guaranteed for secrets it did not create.
-- **Version numbers are parsed** from Secret Manager's resource names, and the `state:ENABLED` filter depends on its filter syntax. A change in either breaks SEC-8, which SEC-9 then reports as warnings.
-- **A 7-day window is a guess**, and not an option.
+- Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`

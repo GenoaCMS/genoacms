@@ -22,14 +22,17 @@ and publication all go through it.
 **Versions are GCS generations (STO-4, STO-6).** Core's optimistic concurrency needs a token that
 changes on every write and a conditional write on it. GCS generations are exactly that, and
 `ifGenerationMatch: 0` is GCS's atomic create, so no extra metadata is stored.
+*Cost:* a version costs a metadata call on every read (STO-4).
 
 **A missing generation does not fail a download (STO-4).** The generation costs a metadata call,
 because the read stream is returned before the response is seen. If that call fails, the download
 still proceeds without a version. Only a later conditional write becomes impossible.
+*Cost:* a caller that then writes unconditionally loses the protection it expected, without an error.
 
 **Directories are prefixes with a placeholder object (STO-9, STO-10).** GCS has no directories. An
 empty directory would not exist, so `createDirectory` writes a hidden placeholder that listings
 filter out.
+*Cost:* an object whose name ends in `.folderPlaceholder` is hidden from listings (STO-9).
 
 ### Findings
 
@@ -59,7 +62,7 @@ except the bucket check, which now uses the host's resource list instead of read
 
 Specifier `@genoacms/adapter-gcp/storage`, kind `storage`. Runtime specifier `@genoacms/adapter-gcp/storage/runtime`. Options `projectId: string` (required) and `credentials?: Secret<ServiceAccount>`, decoded as JSON. Validation follows COM-2 and COM-3.
 
-- Test: `storage/descriptor.test.ts` › both cases
+- Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`
 
 ### Runtime
 
@@ -70,82 +73,64 @@ bucket names in `ctx.resources`.
 
 Without `credentials`, the client is constructed with `{ projectId }` only.
 
-- Test: `storage/runtime.test.ts` › passes the project, and the credentials only when given
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-3 · Only registered buckets
 
 Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request.
 
-- Test: `storage/runtime.test.ts` › refuses a bucket outside its resources…
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-4 · Reads return the generation
 
 `getObject({ bucket, name })` returns `{ data, version }`: `data` is the object's read stream, and `version` is its generation as a decimal string. When the metadata call fails, `version` is `undefined` and the read still proceeds.
 
-- Test: `storage/runtime.test.ts` › …reads a registered one with its generation; reads without a version when the metadata call fails; conformance: getting uploaded object
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
 
 #### STO-5 · Public URL
 
 `getPublicURL(ref)` returns `https://storage.googleapis.com/<bucket>/<encodeURIComponent(name)>`, so a `/` in the name appears as `%2F`. It does not check that the object is public: that is the bucket's configuration.
 
-- Test: `storage/urls.test.ts` › forms the public URL with the name fully encoded
+- Test: `packages/adapter-gcp/src/storage/urls.test.ts`
 
 #### STO-6 · Conditional writes
 
 `uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. The remaining options pass to the client's `save`. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
 
-- Test: `storage/runtime.test.ts` › creates atomically with ifAbsent; writes conditionally on ifVersion…; writes unconditionally…; maps a failed precondition to PreconditionFailedError
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-7 · Moving and deleting an object
 
 `moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes. Errors propagate.
 
-- Test: `storage/runtime.test.ts` › moves and deletes a single object
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-8 · Signed URL
 
 `getSignedURL(ref, expires)` returns a **V2**-signed read URL, the client library's default version: `https://storage.googleapis.com/<bucket>/<name>?GoogleAccessId=<account>&Expires=<floor(expires / 1000)>&Signature=<base64>`, with `/` in the name kept. It is signed as the client's identity: locally with a key, through IAM `signBlob` under ADC (GF8).
 
-- Test: `storage/urls.test.ts` › signs a V2 read URL locally with a key (the `signBlob` path under ADC: GS3)
+- Test: `packages/adapter-gcp/src/storage/urls.test.ts` (unverified: the `signBlob` path under ADC, GS3)
 
 #### STO-9 · Listing one level
 
 `listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, starting after `startAfter`. `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
 
-- Test: `storage/runtime.test.ts` › lists one level, hiding placeholders and the directory itself
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-10 · Creating a directory
 
 `createDirectory({ bucket, name })` writes an empty object `<name>/.folderPlaceholder`.
 
-- Test: `storage/runtime.test.ts` › creates a directory as a placeholder object
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-11 · Deleting a directory
 
 `deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth, in parallel.
 
-- Test: `storage/runtime.test.ts` › deletes every object under a directory
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 
 #### STO-12 · Moving a directory
 
 `moveDirectory({ bucket, name }, newName)` moves every object whose name starts with `name`, at every depth, in parallel, to the name with the first occurrence of `name` replaced by `newName`.
 
-- Test: `storage/runtime.test.ts` › moves every object under a directory, replacing the first occurrence
-
-## Critique
-
-### Generations as versions; prefix directories
-
-**Pros**
-- Optimistic concurrency uses GCS's own primitive (STO-6), so no extra metadata is written and no lock exists to leak.
-- Directories need no index: a prefix listing is the directory, and the placeholder only keeps empty ones visible.
-
-**Cons & trade-offs**
-- A version costs a metadata call on every read (STO-4).
-- Directory moves and deletes are object-by-object and unbounded (GF10).
-
-**Blindspots & missed edge cases**
-- A download can proceed without a version when the metadata call fails. A caller that then writes unconditionally loses the protection it expected, without an error.
-- An object named exactly like a directory prefix plus `.folderPlaceholder` is hidden from listings (STO-9).
-- A `/` in an object name is encoded as `%2F` in public URLs (STO-5), which some CDNs or proxies normalize differently.
-
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
