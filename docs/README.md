@@ -14,9 +14,10 @@ author's general documentation conventions, kept here so that this repository is
 
 ### 1.1 Goal: reproducibility
 
-The architecture documents and RFCs together must be enough for a competent agent or human, **with
-no access to the code**, to reproduce GenoaCMS functionally. Everything observable from outside a
-component belongs in them:
+The architecture documents' Specification parts (§1.2) must be enough for a competent agent or
+human, **with no access to the code**, to reproduce GenoaCMS functionally. RFCs explain how the system
+got there and are not needed for it. Everything observable from outside a component belongs in the
+Specifications:
 - contracts and the types that cross them;
 - data formats and persisted layouts (storage paths, document shapes, secret names);
 - protocols and the external APIs used, with the calls and error handling;
