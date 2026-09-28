@@ -18,7 +18,7 @@ const pages = { name: 'pages' } as any
 const create = async () => await runtime.create({ projectId: 'p' }, { name: 'db', resources: [] })
 
 describe('the Firestore runtime', () => {
-  it("defaults the database id to '(default)' and adds credentials only when given", async () => {
+  it("COM-4, DB-2: defaults the database id to '(default)' and adds credentials only when given", async () => {
     constructed.length = 0
     await runtime.create({ projectId: 'p' }, { name: 'db', resources: [] })
     await runtime.create({ projectId: 'p', databaseId: 'other', credentials: { client_email: 'e' } as any }, { name: 'db', resources: [] })
@@ -28,7 +28,7 @@ describe('the Firestore runtime', () => {
     ])
   })
 
-  it('addresses the collection by its name, unchanged', async () => {
+  it('DB-3: addresses the collection by its name, unchanged', async () => {
     const database = await create()
     collection.add.mockResolvedValueOnce({ id: 'g1' })
     collection.get.mockResolvedValueOnce({ forEach: () => {} })
@@ -41,7 +41,7 @@ describe('the Firestore runtime', () => {
     expect(collectionCalls).toEqual(['pages', 'pages', 'pages', 'pages', 'pages'])
   })
 
-  it('creates with a generated id and returns the input data', async () => {
+  it('DB-4: creates with a generated id and returns the input data', async () => {
     const database = await create()
     const data = { title: 't' } as any
     collection.add.mockResolvedValueOnce({ id: 'g1' })
@@ -51,7 +51,7 @@ describe('the Firestore runtime', () => {
     expect(snapshot.data).toBe(data)
   })
 
-  it('reads a whole collection as snapshots', async () => {
+  it('DB-5: reads a whole collection as snapshots', async () => {
     const database = await create()
     const documents = [{ id: 'a', data: () => ({ n: 1 }) }, { id: 'b', data: () => ({ n: 2 }) }]
     collection.get.mockResolvedValueOnce({ forEach: (visit: (d: unknown) => void) => { documents.forEach(visit) } })
@@ -61,7 +61,7 @@ describe('the Firestore runtime', () => {
     ])
   })
 
-  it('reads a document, or undefined when it does not exist', async () => {
+  it('DB-6: reads a document, or undefined when it does not exist', async () => {
     const database = await create()
     doc.get.mockResolvedValueOnce({ exists: true, data: () => ({ n: 1 }) })
     expect(await database.getDocument({ collection: pages, id: 'a' })).toEqual({ reference: { collection: pages, id: 'a' }, data: { n: 1 } })
@@ -70,7 +70,7 @@ describe('the Firestore runtime', () => {
     expect(await database.getDocument({ collection: pages, id: 'z' })).toBeUndefined()
   })
 
-  it('updates with update and deletes with delete', async () => {
+  it('DB-7: updates with update and deletes with delete', async () => {
     const database = await create()
     const reference = { collection: pages, id: 'a' }
     const data = { n: 2 } as any

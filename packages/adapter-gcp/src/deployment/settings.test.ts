@@ -18,7 +18,7 @@ describe('function settings', () => {
     expect(validateSettings(full)).toEqual([])
   })
 
-  it('names each invalid setting with its own reason', () => {
+  it('DEP-4: names each invalid setting with its own reason', () => {
     const cases: Array<[Record<string, unknown>, string]> = [
       [{ runtime: 'node22' }, "runtime must be a Node.js runtime such as 'nodejs22'"],
       [{ memory: '512MB' }, "memory must be a size such as '512Mi' or '1Gi'"],
@@ -31,20 +31,20 @@ describe('function settings', () => {
     for (const [settings, reason] of cases) expect(validateSettings(settings)).toEqual([reason])
   })
 
-  it('refuses more minimum than maximum instances', () => {
+  it('DEP-4: refuses more minimum than maximum instances', () => {
     expect(validateSettings({ minInstances: 2, maxInstances: 1 })).toEqual(['minInstances must not exceed maxInstances'])
   })
 
-  it('builds on nodejs22 unless a runtime is named', () => {
+  it('DEP-3: builds on nodejs22 unless a runtime is named', () => {
     expect(buildConfig({}, source)).toEqual({ entryPoint: 'genoacms', runtime: 'nodejs22', source: { storageSource: source } })
     expect(buildConfig({ runtime: 'nodejs24' }, source)).toMatchObject({ runtime: 'nodejs24' })
   })
 
-  it('keeps the service settings the adapter always had when none are set', () => {
+  it('DEP-3, DEP-10: keeps the service settings the adapter always had when none are set', () => {
     expect(serviceConfig({})).toEqual({ minInstanceCount: 0, maxInstanceCount: 1, ingressSettings: 1, environmentVariables: { NODE_ENV: 'production' } })
   })
 
-  it('maps every setting onto the service configuration', () => {
+  it('DEP-3: maps every setting onto the service configuration', () => {
     expect(serviceConfig(full)).toEqual({
       minInstanceCount: 0,
       maxInstanceCount: 3,
@@ -57,7 +57,7 @@ describe('function settings', () => {
     expect(serviceConfig({ ingress: 'internal' })).toMatchObject({ ingressSettings: 2 })
   })
 
-  it('sets ORIGIN and XFF_DEPTH from origin and xffDepth', () => {
+  it('DEP-14: sets ORIGIN and XFF_DEPTH from origin and xffDepth', () => {
     const settings = { origin: 'https://cms.example.com', xffDepth: 2 }
     expect(validateSettings(settings)).toEqual([])
     expect(serviceConfig(settings)).toMatchObject({
@@ -65,14 +65,14 @@ describe('function settings', () => {
     })
   })
 
-  it('refuses an origin with a path or without a scheme, and a depth below 1', () => {
+  it('DEP-14: refuses an origin with a path or without a scheme, and a depth below 1', () => {
     const reason = "origin must be an absolute http(s) origin such as 'https://cms.example.com'"
     expect(validateSettings({ origin: 'https://cms.example.com/' })).toEqual([reason])
     expect(validateSettings({ origin: 'cms.example.com' })).toEqual([reason])
     expect(validateSettings({ xffDepth: 0 })).toEqual(['xffDepth must be an integer of at least 1'])
   })
 
-  it('sets no variable beyond NODE_ENV by default', () => {
+  it('DEP-14: sets no variable beyond NODE_ENV by default', () => {
     expect(serviceConfig({})).toMatchObject({ environmentVariables: { NODE_ENV: 'production' } })
     expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV'])
   })

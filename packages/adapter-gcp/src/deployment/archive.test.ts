@@ -38,7 +38,7 @@ function zipEntries (file: string): string[] {
 }
 
 describe('staging the artifact', () => {
-  it('adds the function entry and points main at it, keeping the dependencies', async () => {
+  it('DEP-6: adds the function entry and points main at it, keeping the dependencies', async () => {
     const app = await stageArtifact(artifact(), join(temp(), 'app'))
     expect(readFileSync(join(app, 'function.js'), 'utf-8')).toBe(FUNCTION_ENTRY)
     expect(JSON.parse(readFileSync(join(app, 'package.json'), 'utf-8'))).toEqual({
@@ -46,11 +46,11 @@ describe('staging the artifact', () => {
     })
   })
 
-  it('refuses an artifact without its runtime package.json', async () => {
+  it('DEP-6: refuses an artifact without its runtime package.json', async () => {
     await expect(stageArtifact(artifact(false), join(temp(), 'app'))).rejects.toThrow(/^deploy\/no-runtime-package/)
   })
 
-  it('zips exactly the staged files', async () => {
+  it('DEP-7: zips exactly the staged files', async () => {
     const work = temp()
     const app = await stageArtifact(artifact(), join(work, 'app'))
     const archive = await zipDirectory(app, join(work, 'build.zip'))

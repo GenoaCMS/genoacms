@@ -51,53 +51,53 @@ const create = async () => await runtime.create({ projectId: 'p' }, { name: 'a',
 const stream = () => Readable.from(['x'])
 
 describe('the GCP storage runtime', () => {
-  it('passes the project, and the credentials only when given', async () => {
+  it('COM-4, STO-2: passes the project, and the credentials only when given', async () => {
     await runtime.create({ projectId: 'p' }, { name: 'a', resources: [] })
     await runtime.create({ projectId: 'p', credentials: { client_email: 'e' } as any }, { name: 'b', resources: [] })
     expect(instances.map(i => i.options)).toEqual([{ projectId: 'p' }, { projectId: 'p', credentials: { client_email: 'e' } }])
   })
 
-  it('builds one client per provider: two providers on this adapter share nothing', async () => {
+  it('COM-4: builds one client per provider: two providers on this adapter share nothing', async () => {
     const a = await runtime.create({ projectId: 'one' }, { name: 'a', resources: ['x'] })
     const b = await runtime.create({ projectId: 'two' }, { name: 'b', resources: ['y'] })
     expect(instances).toHaveLength(2)
     expect(a).not.toBe(b)
   })
 
-  it('refuses a bucket outside its resources, and reads a registered one with its generation', async () => {
+  it('STO-3, STO-4: refuses a bucket outside its resources, and reads a registered one with its generation', async () => {
     const storage = await runtime.create({ projectId: 'p' }, { name: 'a', resources: ['registered'] })
     await expect(storage.getObject({ bucket: 'other', name: 'n' })).rejects.toThrow('bucket-unregistered')
     expect(await storage.getObject({ bucket: 'registered', name: 'n' })).toEqual({ data: 'stream', version: '7' })
   })
 
-  it('reads without a version when the metadata call fails', async () => {
+  it('STO-4: reads without a version when the metadata call fails', async () => {
     const storage = await create()
     fileNamed('n').getMetadata.mockRejectedValueOnce(new Error('forbidden'))
     expect(await storage.getObject({ bucket: 'b', name: 'n' })).toEqual({ data: 'stream', version: undefined })
   })
 
-  it('creates atomically with ifAbsent', async () => {
+  it('STO-6: creates atomically with ifAbsent', async () => {
     const storage = await create()
     const data = stream()
     await storage.uploadObject({ bucket: 'b', name: 'n' }, data, { ifAbsent: true })
     expect(fileNamed('n').save).toHaveBeenCalledWith(data, { preconditionOpts: { ifGenerationMatch: 0 } })
   })
 
-  it('writes conditionally on ifVersion, passing other options through', async () => {
+  it('STO-6: writes conditionally on ifVersion, passing other options through', async () => {
     const storage = await create()
     const data = stream()
     await storage.uploadObject({ bucket: 'b', name: 'n' }, data, { ifVersion: '5', contentType: 'text/plain' } as any)
     expect(fileNamed('n').save).toHaveBeenCalledWith(data, { contentType: 'text/plain', preconditionOpts: { ifGenerationMatch: 5 } })
   })
 
-  it('writes unconditionally without a condition', async () => {
+  it('STO-6: writes unconditionally without a condition', async () => {
     const storage = await create()
     const data = stream()
     await storage.uploadObject({ bucket: 'b', name: 'n' }, data)
     expect(fileNamed('n').save).toHaveBeenCalledWith(data, {})
   })
 
-  it('maps a failed precondition to PreconditionFailedError', async () => {
+  it('STO-6: maps a failed precondition to PreconditionFailedError', async () => {
     const storage = await create()
     const failWith = (code: number) => fileNamed('n').save.mockRejectedValueOnce(Object.assign(new Error(`http ${code}`), { code }))
     failWith(412)
@@ -113,7 +113,7 @@ describe('the GCP storage runtime', () => {
     await expect(storage.uploadObject({ bucket: 'b', name: 'n' }, stream())).rejects.toThrow('http 500')
   })
 
-  it('moves and deletes a single object', async () => {
+  it('STO-7: moves and deletes a single object', async () => {
     const storage = await create()
     await storage.moveObject({ bucket: 'b', name: 'n' }, 'new')
     await storage.deleteObject({ bucket: 'b', name: 'n' })
@@ -121,7 +121,7 @@ describe('the GCP storage runtime', () => {
     expect(fileNamed('n').delete).toHaveBeenCalled()
   })
 
-  it('lists one level, hiding placeholders and the directory itself', async () => {
+  it('STO-9: lists one level, hiding placeholders and the directory itself', async () => {
     const storage = await create()
     bucket.getFiles.mockResolvedValueOnce([[
       mockFile('d/', { size: '0' }),
@@ -140,13 +140,13 @@ describe('the GCP storage runtime', () => {
     })
   })
 
-  it('creates a directory as a placeholder object', async () => {
+  it('STO-10: creates a directory as a placeholder object', async () => {
     const storage = await create()
     await storage.createDirectory({ bucket: 'b', name: 'd' })
     expect(fileNamed('d/.folderPlaceholder').save).toHaveBeenCalledWith('')
   })
 
-  it('deletes every object under a directory', async () => {
+  it('STO-11: deletes every object under a directory', async () => {
     const storage = await create()
     const listed = [mockFile('d/x'), mockFile('d/e/y')]
     bucket.getFiles.mockResolvedValueOnce([listed])
@@ -155,7 +155,7 @@ describe('the GCP storage runtime', () => {
     for (const file of listed) expect(file.delete).toHaveBeenCalled()
   })
 
-  it('moves every object under a directory, replacing the first occurrence', async () => {
+  it('STO-12: moves every object under a directory, replacing the first occurrence', async () => {
     const storage = await create()
     const listed = [mockFile('d/x'), mockFile('d/e/d/y')]
     bucket.getFiles.mockResolvedValueOnce([listed])

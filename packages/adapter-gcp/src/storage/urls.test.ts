@@ -17,12 +17,12 @@ function credentials () {
 const create = async () => await runtime.create({ projectId: 'p', credentials: credentials() as any }, { name: 's', resources: ['b'] })
 
 describe('storage URLs', () => {
-  it('forms the public URL with the name fully encoded', async () => {
+  it('STO-5: forms the public URL with the name fully encoded', async () => {
     const storage = await create()
     expect(await storage.getPublicURL({ bucket: 'b', name: 'a/b c.txt' })).toBe('https://storage.googleapis.com/b/a%2Fb%20c.txt')
   })
 
-  it('signs a V2 read URL locally with a key', async () => {
+  it('STO-8: signs a V2 read URL locally with a key', async () => {
     const storage = await create()
     const expires = Date.now() + 60_000
     const url = new URL(await storage.getSignedURL({ bucket: 'b', name: 'a/b c.txt' }, expires))

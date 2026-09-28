@@ -27,12 +27,12 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllMocks(); vi.restoreAllMocks() })
 
 describe('the Secret Manager runtime', () => {
-  it('uses Application Default Credentials when no credentials are configured', async () => {
+  it('COM-4, SEC-2: uses Application Default Credentials when no credentials are configured', async () => {
     await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     expect(constructed.at(-1)).toEqual({ projectId: 'p' })
   })
 
-  it('reads a missing secret as undefined, and propagates every other failure', async () => {
+  it('SEC-3, SEC-4: reads a missing secret as undefined, and propagates every other failure', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.accessSecretVersion.mockRejectedValueOnce(grpcError(5))
     expect(await secrets.getSecret('KEY')).toBeUndefined()
@@ -41,14 +41,14 @@ describe('the Secret Manager runtime', () => {
     expect(client.accessSecretVersion).toHaveBeenLastCalledWith({ name: 'projects/p/secrets/KEY/versions/latest' })
   })
 
-  it('loses a claim when the secret already exists', async () => {
+  it('SEC-6: loses a claim when the secret already exists', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.createSecret.mockRejectedValueOnce(grpcError(6))
     expect(await secrets.setSecretIfAbsent('KEY', 'v')).toBe(false)
     expect(client.addSecretVersion).not.toHaveBeenCalled()
   })
 
-  it('creates secrets with a seven-day recovery window on both create paths', async () => {
+  it('SEC-5, SEC-6, SEC-7: creates secrets with a seven-day recovery window on both create paths', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.getSecret.mockRejectedValueOnce(grpcError(5))
     await secrets.setSecret('KEY', 'v')
@@ -57,7 +57,7 @@ describe('the Secret Manager runtime', () => {
     expect(client.createSecret).toHaveBeenLastCalledWith({ parent: 'projects/p', secretId: 'OTHER', secret: withDestroyWindow })
   })
 
-  it('destroys only the enabled versions below the one it added', async () => {
+  it('SEC-8: destroys only the enabled versions below the one it added', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.listSecretVersions.mockResolvedValueOnce([[version(1), version(2), version(3), version(4)]])
     expect(await secrets.setSecret('KEY', 'v')).toBe(true)
@@ -65,7 +65,7 @@ describe('the Secret Manager runtime', () => {
     expect(client.destroySecretVersion.mock.calls).toEqual([[version(1)], [version(2)]])
   })
 
-  it('keeps the written value when cleanup fails, and warns', async () => {
+  it('SEC-9: keeps the written value when cleanup fails, and warns', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.listSecretVersions.mockRejectedValueOnce(grpcError(7))
     expect(await secrets.setSecret('KEY', 'v')).toBe(true)
@@ -73,7 +73,7 @@ describe('the Secret Manager runtime', () => {
     expect(vi.mocked(console.warn).mock.calls[0][0]).toMatch(/^secrets\/cleanup-failed: KEY:/)
   })
 
-  it('destroys nothing when a version name is not numbered', async () => {
+  it('SEC-9: destroys nothing when a version name is not numbered', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.addSecretVersion.mockResolvedValueOnce([version('latest')])
     expect(await secrets.setSecret('KEY', 'v')).toBe(true)
@@ -81,7 +81,7 @@ describe('the Secret Manager runtime', () => {
     expect(client.destroySecretVersion).not.toHaveBeenCalled()
   })
 
-  it('decodes the payload as UTF-8, and reads a missing payload as undefined', async () => {
+  it('SEC-3: decodes the payload as UTF-8, and reads a missing payload as undefined', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     const answer = (payload: unknown) => client.accessSecretVersion.mockResolvedValueOnce([{ payload }])
     answer({ data: Buffer.from('é', 'utf-8') })
@@ -94,7 +94,7 @@ describe('the Secret Manager runtime', () => {
     expect(await secrets.getSecret('KEY')).toBeUndefined()
   })
 
-  it('overwrites an existing secret without creating it', async () => {
+  it('SEC-5: overwrites an existing secret without creating it', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.getSecret.mockResolvedValueOnce([{}])
     expect(await secrets.setSecret('KEY', 'v')).toBe(true)
@@ -103,7 +103,7 @@ describe('the Secret Manager runtime', () => {
     expect(client.addSecretVersion).toHaveBeenCalledWith({ parent: 'projects/p/secrets/KEY', payload: { data: Buffer.from('v', 'utf-8') } })
   })
 
-  it('tolerates a concurrent creator when overwriting', async () => {
+  it('SEC-5: tolerates a concurrent creator when overwriting', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.getSecret.mockRejectedValueOnce(grpcError(5))
     client.createSecret.mockRejectedValueOnce(grpcError(6))
@@ -111,14 +111,14 @@ describe('the Secret Manager runtime', () => {
     expect(client.addSecretVersion).toHaveBeenCalled()
   })
 
-  it('claims without cleaning up', async () => {
+  it('SEC-10: claims without cleaning up', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.createSecret.mockResolvedValueOnce([{}])
     expect(await secrets.setSecretIfAbsent('KEY', 'v')).toBe(true)
     expect(client.listSecretVersions).not.toHaveBeenCalled()
   })
 
-  it('deletes a secret, reporting whether it existed', async () => {
+  it('SEC-11: deletes a secret, reporting whether it existed', async () => {
     const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
     client.deleteSecret.mockResolvedValueOnce([{}])
     expect(await secrets.deleteSecret('KEY')).toBe(true)

@@ -49,7 +49,7 @@ function context () {
 }
 
 describe('the GCP deploy procedure', () => {
-  it('uploads the archive, then creates a function that does not exist yet, named genoacms by default', async () => {
+  it('DEP-5, DEP-8, DEP-9: uploads the archive, then creates a function that does not exist yet, named genoacms by default', async () => {
     functionExists.value = false
     const cwd = vi.spyOn(process, 'cwd')
     await procedure({ projectId: 'p', region: 'europe-west3' }, context())
@@ -58,14 +58,14 @@ describe('the GCP deploy procedure', () => {
     expect(cwd).not.toHaveBeenCalled()
   })
 
-  it('updates a function that exists', async () => {
+  it('DEP-9: updates a function that exists', async () => {
     functionExists.value = true
     await procedure({ projectId: 'p', region: 'r', functionName: 'cms' }, context())
     expect(calls.at(-1)).toBe('updateFunction')
     expect(client.updateFunction).toHaveBeenLastCalledWith(expect.objectContaining({ functionId: 'cms' }))
   })
 
-  it('stops when the upload is refused, before touching the function', async () => {
+  it('DEP-8: stops when the upload is refused, before touching the function', async () => {
     vi.stubGlobal('fetch', vi.fn(async (_url: string, init: { body: AsyncIterable<unknown> }) => {
       for await (const _chunk of init.body) { /* drain, as a real request would */ }
       return new Response(null, { status: 403, statusText: 'Forbidden' })
@@ -74,7 +74,7 @@ describe('the GCP deploy procedure', () => {
     expect(client.createFunction).not.toHaveBeenCalled()
   })
 
-  it('propagates a lookup error other than NOT_FOUND instead of creating', async () => {
+  it('DEP-9: propagates a lookup error other than NOT_FOUND instead of creating', async () => {
     const denied = Object.assign(new Error('permission denied'), { code: 7 })
     client.getFunction.mockRejectedValueOnce(denied)
     await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toBe(denied)
@@ -82,19 +82,19 @@ describe('the GCP deploy procedure', () => {
     expect(client.updateFunction).not.toHaveBeenCalled()
   })
 
-  it('fails when the platform fails to build the function', async () => {
+  it('DEP-11: fails when the platform fails to build the function', async () => {
     functionExists.value = false
     client.createFunction.mockResolvedValueOnce([operation(async () => { throw new Error('Build failed: npm ERR! 404') })])
     await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toThrow(/^deploy\/function-failed: Build failed: npm ERR! 404/)
   })
 
-  it('prints the function URL once the platform is done', async () => {
+  it('DEP-12: prints the function URL once the platform is done', async () => {
     functionExists.value = false
     await procedure({ projectId: 'p', region: 'r' }, context())
     expect(console.info).toHaveBeenCalledWith('Function URL: https://fn.example')
   })
 
-  it('builds on nodejs22 and runs as the configured service account', async () => {
+  it('DEP-10: builds on nodejs22 and runs as the configured service account', async () => {
     functionExists.value = false
     await procedure({ projectId: 'p', region: 'r', serviceAccount: 'cms@p.iam.gserviceaccount.com' }, context())
     expect(client.createFunction).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -105,7 +105,7 @@ describe('the GCP deploy procedure', () => {
     }))
   })
 
-  it("uses the target's credentials for the Functions client, and ADC without them", async () => {
+  it("DEP-13: uses the target's credentials for the Functions client, and ADC without them", async () => {
     functionExists.value = true
     clientOptions.length = 0
     await procedure({ projectId: 'p', region: 'r', credentials: { client_email: 'op' } as any }, context())
