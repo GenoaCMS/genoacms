@@ -1,6 +1,7 @@
 ---
 type: docs-index
-workflow: 1.0.0
+workflow: <version>
+levels: [unit, integration, e2e]
 ---
 
 # <Project> documentation

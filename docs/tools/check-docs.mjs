@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Spec Workflow documentation checker (WORKFLOW.md §9). No dependencies: Node ≥ 20.
+ * `analyze` also returns the statements, for check-results.mjs.
  *
  *   node docs/tools/check-docs.mjs [docsDir]
  *
@@ -14,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 const SKIPPED_DIRS = new Set(['templates', 'tools'])
 const CATEGORIES = 'UDFSQ'
 const RFC_SECTIONS = ['Summary', 'Files', 'Specification', 'Non-goals', 'Tests', 'Steps', 'Verification', 'Critique']
-const PARTS = ['Design', 'Specification', 'Critique']
+const PARTS = ['Design', 'Specification']
 const DESIGN_SECTIONS = {
   architecture: ['Role', 'Decisions', 'Findings', 'History', 'Verification'],
   'architecture-index': ['Overview', 'Documents', 'Decisions', 'History', 'Register']
@@ -22,15 +23,21 @@ const DESIGN_SECTIONS = {
 const CRITIQUE_PARAGRAPHS = ['**Pros**', '**Cons & trade-offs**', '**Blindspots & missed edge cases**']
 const KEYS = {
   workflow: { required: ['version'], optional: [] },
-  'docs-index': { required: ['workflow'], optional: [] },
+  'docs-index': { required: ['workflow', 'levels'], optional: ['sources'] },
   architecture: { required: ['title', 'codes', 'verified'], optional: ['prefix', 'conforms'] },
   'architecture-index': { required: ['title', 'prefix', 'codes', 'verified'], optional: ['conforms'] },
   'rfc-index': { required: [], optional: [] },
-  rfc: { required: ['number', 'title', 'status', 'commit-subject'], optional: ['commits', 'depends', 'architecture', 'sections'] }
+  rfc: { required: ['number', 'title', 'status', 'commit-subject'], optional: ['commits', 'depends', 'architecture', 'sections', 'changes'] }
 }
 const RFC_STATUSES = ['draft', 'implemented', 'withdrawn']
 const STATEMENT_HEADING = /^(~~)?([A-Z]+)-(\d+) · (.+?)(~~)?$/
 const STATE_VALUE = /^(new \((RFC-\d{4}|no RFC yet)\)|removed \(RFC-\d{4}\))$/
+const TEST_FILES = /^`[^`]+`(, `[^`]+`)*$/
+const TEST_UNVERIFIED = /^unverified( \(.+\))?$/
+const TEST_PARTIAL = / \(unverified: .+\)$/
+const CHANGE_KINDS = ['breaking', 'added', 'compatible', 'editorial']
+const CHANGE = /^([A-Z]+-\d+) (\S+)$/
+const LEVEL_NAME = /^[a-z][a-z0-9-]*$/
 
 // ─── Reporting ──────────────────────────────────────────────────────────────
 
@@ -58,11 +65,24 @@ function listMarkdown (dir, top = dir) {
   }).sort()
 }
 
+/** Splits `a, "b, c", d` at the commas outside quotes. */
+function splitList (inner) {
+  const items = ['']
+  let quote = null
+  for (const char of inner) {
+    if (quote === null && char === ',') { items.push(''); continue }
+    if (quote === null && (char === '"' || char === "'")) quote = char
+    else if (char === quote) quote = null
+    items[items.length - 1] += char
+  }
+  return items
+}
+
 function parseValue (raw) {
   const value = raw.trim()
   if (value.startsWith('[') && value.endsWith(']')) {
     const inner = value.slice(1, -1).trim()
-    return inner === '' ? [] : inner.split(',').map(item => parseValue(item))
+    return inner === '' ? [] : splitList(inner).map(item => parseValue(item))
   }
   if (value === 'true' || value === 'false') return value === 'true'
   if (/^-?\d+$/.test(value)) return Number(value)
@@ -84,12 +104,17 @@ function parseFrontMatter (lines) {
 
 /** Lines with fenced code blocks blanked, so nothing inside them counts as structure. */
 function withoutFences (lines) {
-  let inFence = false
+  let open = null
   return lines.map(line => {
-    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; return '' }
-    return inFence ? '' : line
+    const fence = /^\s*(`{3,}|~{3,})(.*)$/.exec(line)
+    if (open === null && fence !== null) { open = fence[1]; return '' }
+    if (open !== null && fence !== null && closes(open, fence)) { open = null; return '' }
+    return open === null ? line : ''
   })
 }
+
+/** CommonMark: a fence closes with the same character, at least as long, and nothing after it. */
+const closes = (open, [, marker, rest]) => marker[0] === open[0] && marker.length >= open.length && rest.trim() === ''
 
 function parseHeadings (lines) {
   return lines.flatMap((line, index) => {
@@ -154,6 +179,18 @@ function checkUniqueDeclarations (docs, report) {
   }
 }
 
+/** The `levels` of docs/README.md (WORKFLOW §6.2); `null` when there is none to check against. */
+function declaredLevels (docs, report) {
+  const index = docs.find(d => d.front?.type === 'docs-index')
+  const levels = index?.front?.levels
+  if (levels === undefined) return null
+  if (!Array.isArray(levels) || levels.length === 0 || levels.some(l => !LEVEL_NAME.test(String(l)))) {
+    report.error(index.path, 1, 'front-matter', 'levels must be a non-empty list of lowercase level names')
+    return null
+  }
+  return levels.map(String)
+}
+
 function checkWorkflowVersion (docs, report) {
   const workflow = docs.find(d => d.front?.type === 'workflow')
   const index = docs.find(d => d.front?.type === 'docs-index')
@@ -189,30 +226,28 @@ function checkParts (doc, report) {
   const titles = doc.headings.filter(h => h.level === 1)
   if (titles.length !== 1) report.error(doc.path, (titles[1]?.line ?? 0) + 1, 'structure', `exactly one # title expected, found ${titles.length}`)
   const parts = doc.headings.filter(h => h.level === 2)
-  if (parts.map(p => p.text).join('|') !== PARTS.join('|')) report.error(doc.path, (parts[0]?.line ?? 0) + 1, 'structure', `## parts must be exactly ${PARTS.join(', ')}, found ${parts.map(p => p.text).join(', ') || 'none'}`)
+  const critique = parts.find(p => p.text === 'Critique')
+  if (critique !== undefined) report.error(doc.path, critique.line + 1, 'structure', 'an architecture document holds no ## Critique: critiques live in RFCs (WORKFLOW §5.1)')
+  else if (parts.map(p => p.text).join('|') !== PARTS.join('|')) report.error(doc.path, (parts[0]?.line ?? 0) + 1, 'structure', `## parts must be exactly ${PARTS.join(', ')}, found ${parts.map(p => p.text).join(', ') || 'none'}`)
   return Object.fromEntries(parts.map(p => [p.text, p]))
-}
-
-function checkCritique (doc, critique, report) {
-  const subjects = childrenOf(doc, critique, 3)
-  if (subjects.length === 0) report.error(doc.path, critique.line + 1, 'critique', 'at least one ### critique section is required')
-  for (const subject of subjects) {
-    const { lines } = sectionLines(doc, subject)
-    for (const paragraph of CRITIQUE_PARAGRAPHS) if (!lines.some(l => l.trim() === paragraph)) report.error(doc.path, subject.line + 1, 'critique', `'${subject.text}' lacks ${paragraph}`)
-  }
 }
 
 function checkStructure (doc, report) {
   const parts = checkParts(doc, report)
   if (parts.Design !== undefined) checkInOrder(doc, childrenOf(doc, parts.Design, 3), DESIGN_SECTIONS[doc.front.type], 'Design', report)
-  if (parts.Critique !== undefined) checkCritique(doc, parts.Critique, report)
   return parts
 }
 
 function checkRfcSections (doc, report) {
-  if (doc.front.sections === 'legacy') return
   const found = doc.headings.filter(h => h.level === 2)
   if (found.map(h => h.text).join('|') !== RFC_SECTIONS.join('|')) report.error(doc.path, (found[0]?.line ?? 0) + 1, 'structure', `## sections must be exactly ${RFC_SECTIONS.join(', ')}`)
+}
+
+function checkRfcCritique (doc, report) {
+  const critique = doc.headings.find(h => h.level === 2 && h.text === 'Critique')
+  if (critique === undefined) return
+  const { lines } = sectionLines(doc, critique)
+  for (const paragraph of CRITIQUE_PARAGRAPHS) if (!lines.some(l => l.trim() === paragraph)) report.error(doc.path, critique.line + 1, 'critique', `the Critique lacks ${paragraph}`)
 }
 
 // ─── Statements ─────────────────────────────────────────────────────────────
@@ -223,27 +258,79 @@ function statementFields (doc, heading) {
     const at = lines.findIndex(l => l.startsWith(`- ${name}:`))
     return at < 0 ? undefined : { value: lines[at].slice(name.length + 3).trim(), line: start + at }
   }
-  return { test: field('Test'), state: field('State') }
+  return { test: field('Test'), state: field('State'), level: field('Level') }
 }
 
-function checkStatement (doc, heading, codes, report) {
+/** The `- Test:` value (WORKFLOW §6.1) as `{ kind, files }`, or `null` when it has none of the forms. */
+function parseTest (value) {
+  if (value === 'none yet') return { kind: 'none yet', files: [] }
+  if (TEST_UNVERIFIED.test(value)) return { kind: 'unverified', files: [] }
+  const list = value.replace(TEST_PARTIAL, '')
+  if (!TEST_FILES.test(list)) return null
+  return { kind: 'files', files: [...list.matchAll(/`([^`]+)`/g)].map(m => m[1]) }
+}
+
+const stateOf = (state) => state?.value.startsWith('removed') ? 'removed' : state?.value.startsWith('new') ? 'new' : 'current'
+
+/** A statement ID as a whole token: `SEC-1` matches in `SEC-1:` but not in `SEC-12`. */
+const idToken = (id) => new RegExp(`(?<![A-Za-z0-9-])${id}(?![0-9])`)
+
+const isFile = (path) => existsSync(path) && statSync(path).isFile()
+
+/** The statement's normative text: its body without the `Test:`, `State:` and `Level:` lines, whitespace collapsed. */
+function statementText (doc, heading) {
+  const { start, end } = sectionLines(doc, heading)
+  return doc.raw.slice(start, end).filter(line => !/^- (Test|State|Level):/.test(line)).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+function checkTestLine (doc, heading, id, test, state, report) {
+  if (test === undefined || test.value === '') return report.error(doc.path, heading.line + 1, 'statement', `${id} has no '- Test:' line`)
+  const parsed = parseTest(test.value)
+  if (parsed === null) report.error(doc.path, test.line + 1, 'statement', `${id}: '- Test: ${test.value}' is none of the forms in WORKFLOW §6.1`)
+  if (parsed?.kind === 'none yet' && stateOf(state) !== 'new') report.error(doc.path, test.line + 1, 'statement', "'none yet' is only for a statement with State new")
+  return parsed
+}
+
+/** Each named test file exists and carries the statement's ID (WORKFLOW §6.2). */
+function checkTestFiles (doc, statement, testLine, root, report) {
+  for (const file of statement.test.files) {
+    const path = join(root, file)
+    if (!isFile(path)) report.error(doc.path, testLine + 1, 'test', `${file} does not exist`)
+    else if (!idToken(statement.id).test(readFileSync(path, 'utf-8'))) report.error(doc.path, testLine + 1, 'test', `${file} has no test carrying ${statement.id}`)
+  }
+}
+
+/** The levels of a `- Level:` line (WORKFLOW §6.1), each one declared in docs/README.md. */
+function checkLevelLine (doc, heading, id, level, declared, report) {
+  if (level === undefined || level.value === '') { report.error(doc.path, heading.line + 1, 'statement', `${id} has no '- Level:' line`); return [] }
+  const levels = level.value.split(',').map(name => name.trim())
+  for (const name of levels) {
+    if (!LEVEL_NAME.test(name)) report.error(doc.path, level.line + 1, 'statement', `${id}: '${name}' is not a level name`)
+    else if (declared !== null && !declared.includes(name)) report.error(doc.path, level.line + 1, 'statement', `${id}: level ${name} is not declared in docs/README.md levels`)
+  }
+  return levels
+}
+
+function checkStatement (doc, heading, context, report) {
   const match = STATEMENT_HEADING.exec(heading.text)
   if (match === null) return report.error(doc.path, heading.line + 1, 'statement', `'${heading.text}' is not '<CODE>-<n> · <title>'`)
   const [, struckOpen, code, number] = match
-  if (!codes.includes(code)) report.error(doc.path, heading.line + 1, 'statement', `code ${code} is not declared in codes`)
-  const { test, state } = statementFields(doc, heading)
-  if (test === undefined || test.value === '') report.error(doc.path, heading.line + 1, 'statement', `${code}-${number} has no '- Test:' line`)
+  const id = `${code}-${number}`
+  if (!(doc.front.codes ?? []).includes(code)) report.error(doc.path, heading.line + 1, 'statement', `code ${code} is not declared in codes`)
+  const { test, state, level } = statementFields(doc, heading)
   if (state !== undefined && !STATE_VALUE.test(state.value)) report.error(doc.path, state.line + 1, 'statement', `invalid State '${state.value}'`)
-  if (test?.value === 'none yet' && !state?.value.startsWith('new')) report.error(doc.path, test.line + 1, 'statement', "'none yet' is only for a statement with State new")
-  if ((struckOpen !== undefined) !== (state?.value.startsWith('removed') ?? false)) report.error(doc.path, heading.line + 1, 'statement', 'a removed statement is struck through, and only a removed one')
-  return `${code}-${number}`
+  if ((struckOpen !== undefined) !== (stateOf(state) === 'removed')) report.error(doc.path, heading.line + 1, 'statement', 'a removed statement is struck through, and only a removed one')
+  const statement = { id, doc, line: heading.line, state: stateOf(state), text: statementText(doc, heading), test: checkTestLine(doc, heading, id, test, state, report), levels: [] }
+  if (statement.state !== 'removed') statement.levels = checkLevelLine(doc, heading, id, level, context.levels, report)
+  if (statement.test?.kind === 'files' && statement.state !== 'removed') checkTestFiles(doc, statement, test.line, context.root, report)
+  return statement
 }
 
-function checkSpecification (doc, specification, codes, report) {
+function checkSpecification (doc, specification, context, report) {
   const statements = doc.headings.filter(h => h.level === 4 && h.line > specification.line && h.line < sectionLines(doc, specification).end)
   const { lines } = sectionLines(doc, specification)
   if (statements.length === 0 && !lines.some(l => l.trim() === 'None.')) report.error(doc.path, specification.line + 1, 'statement', "a Specification without statements says 'None.'")
-  return statements.map(h => ({ id: checkStatement(doc, h, codes, report), line: h.line })).filter(s => s.id !== undefined)
+  return statements.map(h => checkStatement(doc, h, context, report)).filter(s => s !== undefined)
 }
 
 // ─── IDs ────────────────────────────────────────────────────────────────────
@@ -273,11 +360,19 @@ function collectDefinitions (doc, prefixes, report, definitions) {
 
 /** Register rows are checked by checkRegister, so the mention scan skips them. */
 function checkMentions (doc, pattern, known, rule, report) {
-  const regex = new RegExp(`(?<![A-Za-z0-9-])(${pattern})(?![A-Za-z0-9])`, 'g')
   const register = registerRange(doc)
-  doc.lines.forEach((line, i) => {
-    if (register !== null && i >= register.start && i < register.end) return
-    for (const [, id] of line.matchAll(regex)) if (!known(id)) report.error(doc.path, i + 1, rule, `${id} is not defined`)
+  const lines = doc.lines.map((line, i) => (register !== null && i >= register.start && i < register.end ? '' : line))
+  scanReferences(doc.path, lines, pattern, id => (known(id) ? null : 'is not defined'), rule, report)
+}
+
+/** Reports each token of `pattern` in `lines` for which `problemOf` returns a problem. */
+function scanReferences (path, lines, pattern, problemOf, rule, report) {
+  const regex = new RegExp(`(?<![A-Za-z0-9-])(${pattern})(?![A-Za-z0-9])`, 'g')
+  lines.forEach((line, i) => {
+    for (const [, id] of line.matchAll(regex)) {
+      const problem = problemOf(id)
+      if (problem !== null) report.error(path, i + 1, rule, `${id} ${problem}`)
+    }
   })
 }
 
@@ -329,16 +424,24 @@ function checkLinks (doc, cache, report) {
 
 // ─── Git ────────────────────────────────────────────────────────────────────
 
-function commitExists (hash, cwd) {
+function gitSucceeds (args, cwd) {
   try {
-    execFileSync('git', ['cat-file', '-e', `${hash}^{commit}`], { cwd, stdio: 'ignore' })
+    execFileSync('git', args, { cwd, stdio: 'ignore' })
     return true
   } catch { return false }
 }
 
+/** 'unknown', 'outside' the history of HEAD, or 'ancestor' of it. */
+function commitPlace (hash, cwd) {
+  if (!gitSucceeds(['cat-file', '-e', `${hash}^{commit}`], cwd)) return 'unknown'
+  return gitSucceeds(['merge-base', '--is-ancestor', hash, 'HEAD'], cwd) ? 'ancestor' : 'outside'
+}
+
 function checkCommits (doc, report) {
   for (const hash of Array.isArray(doc.front.commits) ? doc.front.commits : []) {
-    if (!commitExists(String(hash), dirname(doc.path))) report.error(doc.path, 1, 'rfc', `commit ${hash} is not known to git`)
+    const place = commitPlace(String(hash), dirname(doc.path))
+    if (place === 'unknown') report.error(doc.path, 1, 'rfc', `commit ${hash} is not known to git`)
+    if (place === 'outside') report.error(doc.path, 1, 'rfc', `commit ${hash} is not in the history of HEAD: squashed or rebased? (WORKFLOW §8.3)`)
   }
 }
 
@@ -367,14 +470,15 @@ const prefixOf = (doc) => doc.front?.prefix ?? doc.index?.front?.prefix
 const isArchitecture = (doc) => doc.front?.type === 'architecture' || doc.front?.type === 'architecture-index'
 const conforms = (doc) => isArchitecture(doc) && doc.front.conforms !== false
 
-function checkArchitecture (docs, report) {
+/** Statements of the conforming documents, by ID: `{ id, doc, line, state, test }`. */
+function checkArchitecture (docs, context, report) {
   const statements = new Map()
   for (const doc of docs.filter(conforms)) {
     const parts = checkStructure(doc, report)
     if (parts.Specification === undefined) continue
-    for (const s of checkSpecification(doc, parts.Specification, doc.front.codes ?? [], report)) {
-      if (statements.has(s.id)) report.error(doc.path, s.line + 1, 'statement', `${s.id} is already defined in ${statements.get(s.id)}`)
-      else statements.set(s.id, relative(dirname(doc.path), doc.path))
+    for (const s of checkSpecification(doc, parts.Specification, context, report)) {
+      if (statements.has(s.id)) report.error(doc.path, s.line + 1, 'statement', `${s.id} is already defined in ${relative(dirname(doc.path), statements.get(s.id).doc.path)}`)
+      else statements.set(s.id, s)
     }
   }
   for (const doc of docs.filter(d => isArchitecture(d) && !conforms(d))) report.warning(doc.path, 1, 'conforms', 'not yet restructured (conforms: false)')
@@ -391,26 +495,112 @@ function checkIds (docs, statements, report) {
   const codes = [...new Set([...statements.keys()].map(id => id.split('-')[0]))]
   const scanned = docs.filter(d => d.front?.type !== 'workflow')
   for (const doc of scanned) {
-    if (prefixes.size > 0) checkMentions(doc, idPattern(prefixes), id => definitions.has(id) || definitions.has(baseId(id)), 'id', report)
+    if (prefixes.size > 0) checkMentions(doc, idPattern(prefixes), id => isDefined(definitions, id), 'id', report)
     if (codes.length > 0) checkMentions(doc, `(?:${codes.join('|')})-\\d+`, id => statements.has(id), 'statement', report)
+  }
+  return { prefixes, definitions }
+}
+
+const isDefined = (definitions, id) => definitions.has(id) || definitions.has(baseId(id))
+
+// ─── References from code ───────────────────────────────────────────────────
+
+const isDirectory = (path) => existsSync(path) && statSync(path).isDirectory()
+
+/** The `sources` of docs/README.md (WORKFLOW §6.4) that exist; reports the rest. */
+function sourcesOf (docs, root, report) {
+  const index = docs.find(d => d.front?.type === 'docs-index')
+  const sources = index?.front?.sources
+  if (sources === undefined) return []
+  if (!Array.isArray(sources) || sources.some(s => typeof s !== 'string')) {
+    report.error(index.path, 1, 'front-matter', 'sources must be a list of directories')
+    return []
+  }
+  for (const source of sources.filter(s => !isDirectory(join(root, s)))) report.error(index.path, 1, 'front-matter', `source directory ${source} does not exist`)
+  return sources.filter(s => isDirectory(join(root, s)))
+}
+
+/** Files git tracks under `sources`, outside `docs/`; `null` outside a git repository. */
+function trackedFiles (root, sources, docsDir) {
+  try {
+    const listed = execFileSync('git', ['ls-files', '-z', '--', ...sources], { cwd: root, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 28 })
+    const docs = `${relative(root, docsDir)}/`
+    return listed.split('\0').filter(file => file !== '' && !file.startsWith(docs))
+  } catch { return null }
+}
+
+/** The text of a file, or `null` for a binary one. */
+function readText (path) {
+  const content = readFileSync(path)
+  return content.includes(0) ? null : content.toString('utf-8')
+}
+
+function statementProblem (statements, id) {
+  if (!statements.has(id)) return 'is not defined'
+  return statements.get(id).state === 'removed' ? 'is removed' : null
+}
+
+/** Every ID and statement a tracked source file refers to resolves, and no statement is removed. */
+function checkSourceReferences (root, docsDir, sources, ids, report) {
+  if (sources.length === 0) return
+  const files = trackedFiles(root, sources, docsDir)
+  if (files === null) return report.error(docsDir, 1, 'reference', `sources are read with git, and ${root} is not a git repository`)
+  const patterns = [
+    ids.prefixes.size > 0 && [idPattern(ids.prefixes), id => (isDefined(ids.definitions, id) ? null : 'is not defined')],
+    ids.codes.size > 0 && [`(?:${[...ids.codes].join('|')})-\\d+`, id => statementProblem(ids.statements, id)]
+  ].filter(Boolean)
+  for (const file of files) {
+    const path = join(root, file)
+    const text = isFile(path) ? readText(path) : null
+    if (text !== null) for (const [pattern, problemOf] of patterns) scanReferences(path, text.split('\n'), pattern, problemOf, 'reference', report)
   }
 }
 
-function check (docsDir) {
+/** Each item of `changes` is `<statement> <kind>`, naming a defined statement (WORKFLOW §11.3). */
+function checkChanges (doc, statements, report) {
+  if (doc.front.changes === undefined) return
+  if (!Array.isArray(doc.front.changes)) return report.error(doc.path, 1, 'rfc', 'changes must be a list')
+  for (const item of doc.front.changes) {
+    const match = CHANGE.exec(String(item))
+    if (match === null || !CHANGE_KINDS.includes(match[2])) report.error(doc.path, 1, 'rfc', `change '${item}' is not '<statement> <${CHANGE_KINDS.join('|')}>'`)
+    else if (!statements.has(match[1])) report.error(doc.path, 1, 'rfc', `change ${match[1]} names no defined statement`)
+  }
+}
+
+function checkRfc (doc, statements, report) {
+  if (doc.front.sections !== 'legacy') { checkRfcSections(doc, report); checkRfcCritique(doc, report) }
+  checkChanges(doc, statements, report)
+  checkCommits(doc, report)
+}
+
+/** Statement codes declared by conforming documents, and by those not restructured yet. */
+function declaredCodes (docs) {
+  const codesOf = (list) => new Set(list.flatMap(d => Array.isArray(d.front.codes) ? d.front.codes : []))
+  return { conforming: codesOf(docs.filter(conforms)), other: codesOf(docs.filter(d => isArchitecture(d) && !conforms(d))) }
+}
+
+/** Checks `docsDir`, whose parent is the repository root; returns the report, statements and codes. */
+function analyze (docsDir) {
   const report = createReport()
   const docs = listMarkdown(docsDir).map(readDocument)
   linkIndexes(docs)
   for (const doc of docs) checkFrontMatter(doc, report)
   checkUniqueDeclarations(docs, report)
   checkWorkflowVersion(docs, report)
-  const statements = checkArchitecture(docs, report)
-  checkIds(docs, statements, report)
-  for (const doc of docs.filter(d => d.front?.type === 'rfc')) { checkRfcSections(doc, report); checkCommits(doc, report) }
+  const root = dirname(resolve(docsDir))
+  const levels = declaredLevels(docs, report)
+  const statements = checkArchitecture(docs, { root, levels }, report)
+  const { prefixes, definitions } = checkIds(docs, statements, report)
+  const codes = declaredCodes(docs)
+  checkSourceReferences(root, resolve(docsDir), sourcesOf(docs, root, report), { prefixes, definitions, statements, codes: codes.conforming }, report)
+  for (const doc of docs.filter(d => d.front?.type === 'rfc')) checkRfc(doc, statements, report)
   checkRfcIndex(docs, report)
   const cache = new Map()
   for (const doc of docs.filter(d => d.front?.type !== 'workflow')) checkLinks(doc, cache, report)
-  return report
+  return { report, docs, statements, codes, levels: levels ?? [] }
 }
+
+const check = (docsDir) => analyze(docsDir).report
 
 function main () {
   const docsDir = resolve(process.argv[2] ?? 'docs')
@@ -419,6 +609,6 @@ function main () {
   process.exit(errors > 0 ? 1 : 0)
 }
 
-export { check, slug, parseFrontMatter }
+export { analyze, check, createReport, printReport, sectionLines, slug, parseFrontMatter, CHANGE }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main()
