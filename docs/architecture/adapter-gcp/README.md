@@ -1,26 +1,27 @@
+---
+type: architecture-index
+title: GCP adapter architecture
+prefix: G
+codes: [COM]
+verified: b050b3b
+---
+
 # GCP adapter architecture
 
-| | |
-| :-- | :-- |
-| Tier | 1 (architecture). RFCs for `@genoacms/adapter-gcp` and `@genoacms/sveltekit-adapter-cloud-run-functions` are derived from these documents. |
-| Status | Draft for review |
-| Date | 2026-09-28 |
-| Scope | Everything GenoaCMS runs on Google Cloud: storage, database, secrets, deployment, authentication, the runtime and operator identities, IAM |
-| Verified against | `refactor/configuration-architecture` at `b050b3b` |
+## Design
 
-## 0. How to read these documents
+### Overview
 
-Markers (*(current)*, **New**, *History*), ID categories and the reproducibility goal follow the
-project-wide conventions in [`docs/README.md`](../../README.md) §1. This directory's ID prefix is
-`G`: `GU`, `GD`, `GF`, `GS`, `GQ`.
+Everything GenoaCMS runs on Google Cloud: storage, database, secrets, deployment, authentication, the
+runtime and operator identities, and IAM. RFCs for `@genoacms/adapter-gcp` and
+`@genoacms/sveltekit-adapter-cloud-run-functions` are derived from these documents. They follow the
+Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID prefix is `G`.
 
-Every file has a **Design** part and a **Specification** part. Specification statements are numbered
-per component: `COM` (shared, this README), `STO`, `DB`, `SEC`, `DEP`, `ADP` and `AUTH`. Test
-references name a file relative to `packages/adapter-gcp/src/` (for `ADP`, relative to
+**Test references** name a file relative to `packages/adapter-gcp/src/` (for `ADP`, relative to
 `packages/sveltekit-adapter-cloud-run-functions/`) and the test's title, as
 `secrets/runtime.test.ts › reads a missing secret…`. "conformance" means the opt-in suite in
 `packages/adapter-gcp/test/conformance.test.ts`, which runs `@genoacms/conformance` against real GCP
-only with `GENOACMS_TEST_GCP=1`. "unverified" means that no test checks the statement.
+only with `GENOACMS_TEST_GCP=1`.
 
 **Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
 this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
@@ -29,43 +30,37 @@ all of that. These documents cover only what is specific to GCP. If they disagre
 model, `configuration.md` wins. If they disagree on a GCP detail, these documents win, and
 `configuration.md` is corrected to point here.
 
-| Document | Covers |
-| :-- | :-- |
-| this README | the package, the runtime identity, IAM, history, the register of every `G` ID |
-| [`storage.md`](storage.md) | Cloud Storage |
-| [`database.md`](database.md) | Firestore |
-| [`secrets.md`](secrets.md) | Secret Manager |
-| [`deployment.md`](deployment.md) | Cloud Run functions, the deploy procedure, the SvelteKit adapter |
-| [`authentication.md`](authentication.md) | Identity Platform |
+### Documents
 
----
+| Document | Codes | Covers |
+| :-- | :-- | :-- |
+| this README | COM | the package, the identities, IAM, history, the register of every `G` ID |
+| [`storage.md`](storage.md) | STO | Cloud Storage |
+| [`database.md`](database.md) | DB | Firestore |
+| [`secrets.md`](secrets.md) | SEC | Secret Manager |
+| [`deployment.md`](deployment.md) | DEP, ADP | Cloud Run functions, the deploy procedure, the SvelteKit adapter |
+| [`authentication.md`](authentication.md) | AUTH | Identity Platform |
 
-# Design
-
-## 1. Decisions made by the author
+### Decisions
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
 | GU1 | Production authentication on GCP uses **Identity Platform**. GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication.md`](authentication.md) GD2 |
-| GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | §3 |
-| GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), §4, [`secrets.md`](secrets.md) |
+| GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | Identities |
+| GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), IAM, [`secrets.md`](secrets.md) |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
-
----
-
-## 1a. Cross-cutting decisions
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
 RFC-0024. STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11 and DEP-13 get unit
 tests with the SDK mocked, as the existing runtime tests do. STO-5 and STO-8 use the real client library, because both URLs are formed locally. The mocks assert the calls the
 Specification names: arguments, preconditions and error mapping. The opt-in conformance suite stays,
 as the check against the real services.
-*Why:* the author reviews Specifications, not code (`docs/README.md` §1.4). A statement without a test
+*Why:* the author reviews Specifications, not code (`WORKFLOW.md` §1). A statement without a test
 is a claim nobody checks, and the untested ones include core's optimistic concurrency (STO-6).
 *Cost:* mocks encode the SDK's call shapes. An SDK upgrade that changes them breaks tests that do not
 touch real behavior, while the conformance suite, which does, runs only on request.
 
-## 2. The package
+### The package
 
 `@genoacms/adapter-gcp` implements four GenoaCMS services on Google Cloud, plus one planned. Each is a
 descriptor, which the build loads and which imports no SDK, and a runtime, which the host constructs
@@ -90,7 +85,7 @@ S-5), and is described in [`deployment.md`](deployment.md).
 
 ---
 
-## 3. Identities (GU2)
+### Identities (GU2)
 
 Two identities act for an instance. GenoaCMS creates neither.
 
@@ -102,7 +97,7 @@ config, which uses an inline key file (`configuration.md` U7).
 
 ---
 
-## 4. IAM
+### IAM
 
 What each identity needs. **This section is the fix for GF4:** until now these needs were written
 nowhere, and the broad default compute service account hid them.
@@ -130,7 +125,13 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 
 ---
 
-## 5. History
+### Findings
+
+| # | Finding | State |
+| :-- | :-- | :-- |
+| GF4 | *History.* **The runtime's IAM needs were documented nowhere.** On first start core creates secrets, so the runtime identity needs to create secrets and add versions, not only read them. The default compute service account's broad roles hid this until someone narrowed it. | fixed: the IAM section, and the `serviceAccount` option (GD3) |
+
+### History
 
 *History.* In brief, oldest first:
 
@@ -143,30 +144,30 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 
 ---
 
-## 6. Register
+### Register
 
 Every `G` ID, where it lives, and its state.
 
 | ID | Summary | State | Document |
 | :-- | :-- | :-- | :-- |
 | GU1 | Identity Platform authenticates on GCP | decided | [`authentication.md`](authentication.md) |
-| GU2 | ADC at runtime; keys only for deploy | current | §3 |
-| GU3 | Deployment and secrets fixes approved | decided | §1 |
-| GU4 | `ORIGIN` and `XFF_DEPTH` over the alternatives | decided | §1 |
+| GU2 | ADC at runtime; keys only for deploy | current | README |
+| GU3 | Deployment and secrets fixes approved | decided | README |
+| GU4 | `ORIGIN` and `XFF_DEPTH` over the alternatives | decided | README |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
-| GD6 | Every current runtime statement has a unit test | current, RFC-0024 | §1a |
+| GD6 | Every current runtime statement has a unit test | current, RFC-0024 | README |
 | GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
-| GF4 | The runtime's IAM needs were documented nowhere | fixed, §4 and GD3 | §4 |
+| GF4 | The runtime's IAM needs were documented nowhere | fixed, IAM and GD3 | README |
 | GF5 | Superseded secret versions accumulated | fixed, RFC-0022 | [`secrets.md`](secrets.md) |
 | GF6 | Any error looking up the function counted as "does not exist" | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF7 | `getClientAddress` returned the raw `X-Forwarded-For` list | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
-| GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (§4) | [`storage.md`](storage.md) |
+| GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (IAM) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
 | GF11 | The SvelteKit adapter's tests were disabled and stale | fixed for ADP-5 to ADP-7, RFC-0023 | [`deployment.md`](deployment.md) |
@@ -183,36 +184,56 @@ Every `G` ID, where it lives, and its state.
 
 ---
 
-# Specification
+## Specification
 
-## S1. Shared (`src/shared/serviceAccount.ts`)
+### Shared (`src/shared/serviceAccount.ts`)
 
-| # | Statement | Test |
 | :-- | :-- | :-- |
-| COM-1 | `ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged. | unverified (type only) |
-| COM-2 | Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`. | `storage/descriptor.test.ts`, `database/descriptor.test.ts`, `secrets/descriptor.test.ts`, `deployment/descriptor.test.ts` › the unknown-key cases |
-| COM-3 | A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor. | the same four files › the missing- and empty-project cases |
-| COM-4 | Each provider construction creates its own client with its own credential. Two providers on one GCP service share neither, so two GCP projects can be served at once. `credentials` is optional on every descriptor, decoded as JSON, and passed to the client only when given. Otherwise the client uses ADC (GU2). | `storage/runtime.test.ts` › builds one client per provider…; passes the project, and the credentials only when given; `database/runtime.test.ts`; `secrets/runtime.test.ts` › uses Application Default Credentials… |
+#### COM-1 · Service-account shape
 
-## Critique & architectural sanity check: Design/Specification split
+`ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged.
+
+- Test: unverified (type only)
+
+#### COM-2 · Unknown options are refused
+
+Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`.
+
+- Test: `storage/descriptor.test.ts`, `database/descriptor.test.ts`, `secrets/descriptor.test.ts`, `deployment/descriptor.test.ts` › the unknown-key cases
+
+#### COM-3 · Required string options
+
+A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor.
+
+- Test: the same four files › the missing- and empty-project cases
+
+#### COM-4 · One client per provider, ADC by default
+
+Each provider construction creates its own client with its own credential. Two providers on one GCP service share neither, so two GCP projects can be served at once. `credentials` is optional on every descriptor, decoded as JSON, and passed to the client only when given. Otherwise the client uses ADC (GU2).
+
+- Test: `storage/runtime.test.ts` › builds one client per provider…; passes the project, and the credentials only when given; `database/runtime.test.ts`; `secrets/runtime.test.ts` › uses Application Default Credentials…
+
+## Critique
+
+### Design/Specification split
 
 **Pros**
 - Each Specification row is small enough to review on its own, and its Test column shows at a glance what is proven and what is only claimed.
 - The split exposed what the old prose hid: GF11 to GF14 were found by asking of each statement which test checks it.
 
 **Cons & trade-offs**
-- Specification tables restate the code in prose. When code changes without its row, the table lies. Drift audits (`docs/README.md` §1.4) are the only guard.
+- Specifications restate the code in prose. When code changes without its statement, the Specification lies. Drift audits (`WORKFLOW.md` §1) are the only guard.
 - Test references by title break when a test is renamed. They are readable, but not checked by any tool.
 
 **Blindspots & missed edge cases**
 - A test reference proves that a test exists, not that it checks the whole statement. Several rows cite a test for part of a statement and say which part is unverified. Nothing enforces that honesty.
-- The Specification is as complete as the author of the rows was careful. The only real completeness check is the reproducibility trial (`docs/README.md` §3).
+- The Specification is as complete as the author of the rows was careful. The only real completeness check is the reproducibility trial (`docs/README.md`, Coverage).
 
-## Critique & architectural sanity check: the document set
+### The document set
 
 **Pros**
 - Each service can be read and changed on its own, and each file stays short enough to review.
-- The project-wide markers (`docs/README.md` §1.3) keep "what runs today" and "what we decided" apart in the same text. The RFC for a **New** item removes the marker, so the documents converge on the code instead of drifting from it.
+- The project-wide markers (`WORKFLOW.md` §5.2) keep "what runs today" and "what we decided" apart in the same text. The RFC for a **New** item removes the marker, so the documents converge on the code instead of drifting from it.
 - The register makes a finding's life visible: open, decided, fixed.
 
 **Cons & trade-offs**
@@ -223,7 +244,7 @@ Every `G` ID, where it lives, and its state.
 - `configuration.md` was written as a proposal and has no markers. Its GCP rows now point here, but the two documents follow different conventions until it is restructured the same way.
 - This directory is the first to follow the project-wide conventions and acts as their template. AWS, whose findings from the AWS discussion are recorded only in conversation, is the next candidate.
 
-## Critique & architectural sanity check: GD6
+### GD6
 
 **Pros**
 - Every current statement becomes checkable on each commit without GCP credentials, which is what makes "review the Specification, not the code" hold for this package.
