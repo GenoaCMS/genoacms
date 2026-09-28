@@ -1,60 +1,141 @@
 name: CI
 
+# WORKFLOW §11.1
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
+permissions: {}
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  docs:
+  verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    services:
+      postgres:
+        image: postgres@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54 # 16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
-      # Full history: the checker verifies that every implemented RFC's commits exist.
+      # WORKFLOW §8.3
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      # Spec Workflow checker (docs/WORKFLOW.md §9): no dependencies to install.
-      - name: Check documentation
-        run: node docs/tools/check-docs.mjs docs
-
-  install:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
 
-      # Equivalent of the `npm ci` that every per-repo workflow ran before the
-      # monorepo: proves the lockfile is complete and consistent with every
-      # package.json. That is deliberately all this does.
-      #
-      # Workspace-wide lint / type-check / build are NOT run here. None of them
-      # ever ran in CI as separate repos, and they cannot pass today:
-      #   - core's eslint reports 188 pre-existing errors, svelte-check 251
-      #   - sveltekit-adapter's tsc reports 2 pre-existing errors
-      #   - core's `vite build` authenticates against GCP at build time and so
-      #     requires a real genoa.config/gcp/serviceAccount.json, which is
-      #     gitignored and cannot exist in CI
-      # Reintroduce them per package once that debt is paid, e.g.
-      #   pnpm --filter @genoacms/adapter-gcp run build
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check documentation
+        run: node docs/tools/check-docs.mjs docs
+
+      # docs/README.md, Test levels
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: pnpm -r --no-bail --filter '!@genoacms/core' run build
+
+      - name: Unit tests
+        id: unit
+        continue-on-error: true
+        run: node scripts/test-level.mjs unit
+
+      - name: Integration tests
+        id: integration
+        continue-on-error: true
+        run: node scripts/test-level.mjs integration
+
+      - name: Conformance tests
+        id: conformance
+        continue-on-error: true
+        run: node scripts/test-level.mjs conformance
+        env:
+          GENOACMS_TEST_POSTGRES: '1'
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: postgres
+
+      # WORKFLOW §6.2, §11.1
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_TEST_SERVICE_ACCOUNT }}
+
+      - name: Authenticate to AWS
+        if: github.event_name == 'push' && vars.AWS_TEST_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_TEST_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_TEST_REGION }}
+
+      - name: Contract tests
+        id: contract
+        if: github.event_name == 'push'
+        continue-on-error: true
+        run: node scripts/test-level.mjs contract
+        env:
+          GENOACMS_TEST_GCP: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && '1' || '' }}
+          GENOACMS_TEST_GCP_PROJECT: ${{ vars.GCP_TEST_PROJECT }}
+          GENOACMS_TEST_GCP_BUCKET: ${{ vars.GCP_TEST_BUCKET }}
+          GENOACMS_TEST_AWS: ${{ vars.AWS_TEST_ROLE_ARN != '' && '1' || '' }}
+          GENOACMS_TEST_AWS_REGION: ${{ vars.AWS_TEST_REGION }}
+          GENOACMS_TEST_AWS_BUCKET: ${{ vars.AWS_TEST_BUCKET }}
+          GENOACMS_TEST_AWS_TABLE: ${{ vars.AWS_TEST_TABLE }}
+
+      - name: Record verification
+        if: always() && steps.build.outcome != 'skipped'
+        run: |
+          args=()
+          for report in reports/*/*.xml; do
+            args+=(--junit "$(basename "$(dirname "$report")")=$report")
+          done
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            args+=(--defer contract --defer e2e)
+          fi
+          node docs/tools/record.mjs docs "${args[@]}" --build "$BUILD"
+        env:
+          BUILD: ${{ steps.build.outcome == 'success' && 'passed' || 'failed' }}
+
+      - name: Upload verification record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification
+          path: |
+            verification.json
+            reports/
+          if-no-files-found: warn
+
+      - name: Fail when a test run failed, also outside its JUnit report
+        if: >-
+          steps.unit.outcome == 'failure' || steps.integration.outcome == 'failure' ||
+          steps.conformance.outcome == 'failure' || steps.contract.outcome == 'failure'
+        run: exit 1
+

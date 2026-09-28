@@ -41,3 +41,5 @@ packages/demo-deploy/functions/package-lock.json
 # Firebase's own upload cache: one entry per Hosting site, holding path, mtime and hash so a
 # redeploy can skip unchanged files. Rewritten by every `firebase deploy`.
 .firebase/
+reports/
+verification.json
