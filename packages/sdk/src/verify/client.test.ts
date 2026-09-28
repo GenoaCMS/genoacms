@@ -61,8 +61,15 @@ const registryPayload = (overrides: Record<string, unknown> = {}): JsonValue => 
   ...overrides
 } as JsonValue)
 
-const signedRegistry = (payload: JsonValue = registryPayload()) =>
-  sign('SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v1', payload, root.secretKey, rootScheme)
+const signedRegistries = new Map<string, ReturnType<typeof sign>>()
+
+const signedRegistry = (payload: JsonValue = registryPayload()) => {
+  const key = JSON.stringify(payload)
+  if (!signedRegistries.has(key)) {
+    signedRegistries.set(key, sign('SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v1', payload, root.secretKey, rootScheme))
+  }
+  return structuredClone(signedRegistries.get(key)!)
+}
 
 let served: Record<string, unknown>
 
