@@ -7,6 +7,7 @@
 | Date | 2026-09-26 |
 | Scope | `genoa.config`, `@genoacms/cloudabstraction`, the adapter contract, secrets, `svelte.config.js`, the Vite build, the CLI, the deploy pipeline |
 | Verified against | `main` at `9592593` |
+| Related | [`adapter-gcp/`](adapter-gcp/README.md): what is specific to GCP (services, IAM, deployment, Identity Platform) |
 
 This document replaces the external proposal `genoacms-config-architecture.md` (2026-09-10). It keeps
 that proposal's core decisions and corrects the parts that did not match the repository or did not
@@ -32,6 +33,8 @@ Nothing is released, so there is no migration: every shape below replaces its pr
 | U10 | The live GCP spike (S-4) is skipped until the production config exists. That config uses `@genoacms/adapter-gcp/secrets`. | The first real GCP deploy is part of the GCP deployment RFC's verification (S13). |
 | U11 | `packages/core/.env` holds the dev instance's signing seeds (root, registry sequence, subordinates). The author moves it once, by hand, to `packages/core/.genoacms/secrets.env` when core switches stores. | No path override and no fallback in code. `envDir: false` and `viteConfig.test.ts` are deleted. The core RFC stops for this step, and agents never read or move secret files. |
 | U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (S5.5). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (S8). |
+| U13 | Production authentication on GCP uses **Identity Platform**, through a new `@genoacms/adapter-gcp/authentication`. GenoaCMS stores no password and no password hash on GCP. An identity store GenoaCMS owns itself (Firestore, later Postgres) is deferred. | Designed in [`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). The authentication contract stays `authenticate` only, so users are managed in Identity Platform (console, `gcloud`, Admin SDK), not in the CMS. `packages/core/genoa.config/production.ts` switches to it (S8). |
+| U14 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. | Replaces `GENOACMS_ADMIN_CREDENTIALS` and the key `admins` in the CLI templates, the config README and core's configs. Already-implemented RFCs keep the old name as history. |
 
 ---
 
@@ -97,6 +100,7 @@ another and the process would exit with code 13 (unsettled top-level await).
 | F17 | `@genoacms/sveltekit-adapter-cloud-run-functions` needs its `files/` directory built (`rollup -c`) before use. That directory is gitignored and absent in a fresh checkout, so the GCP target cannot build from the monorepo without that step. Published packages include it through `prepublishOnly`. | `sveltekit-adapter-cloud-run-functions/index.js:8`, `.gitignore` |
 | F18 | **Every build runs the instance's startup I/O.** SvelteKit runs the built server to analyse it, which evaluates `hooks.server.ts` and every route's server modules. Two of core's modules do provider I/O at module scope. The first is the instance bootstrap (`await ensureInstanceInitialized()`): signing keys, manifests, the security policy. The second is the dynamic-collection listing, which also creates `.genoacms/collections` when it is missing. So every `vite build` resolves secrets and reads and writes the configured storage. With inline credentials this succeeds without anyone noticing, and the old Cloud Build flow bootstrapped the production instance from inside the build. Without credentials, as in a production config that relies on ADC, the build crashes. Found while verifying RFC-0015. | `hooks.server.ts:11`, `database/database.server.ts:13` |
 | F19 | **The runtime `package.json` names versions the registry does not have, or has with different code.** It pins each package to its installed version (§7.1), and the platform installs from npm. From the monorepo, `@genoacms/language-adapter-ts@0.1.0` and `@genoacms/contracts` are unpublished, so the install fails. `@genoacms/adapter-gcp@0.8.2-1` is published, but from before the descriptor/runtime split: it has no `./secrets` or `./*/runtime` exports, so the install succeeds and the runtime cannot load. Nothing detects the second case. A user's own adapter, kept in their repository and never published, fails the same way. Found preparing the first production deploy. | `config/src/artifact/index.ts`, `versions.ts` |
+| F20 | **Nothing limits failed sign-ins.** `login` calls every authentication provider for every attempt, with no count per email or per client. The array adapter compares plain text, not in constant time (§3 non-goal). Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication.md` GS1c). | `core/src/lib/script/auth/auth.server.ts`, `authentication-adapter-array/src/runtime.js` |
 
 ### 2.3 Constraints the design must respect
 
@@ -119,7 +123,7 @@ These are facts about the tools, not choices. A design that ignores one fails in
 
 ### Goals (not negotiable)
 
-1. Any platform through an adapter: first-party (GCP, AWS, MinIO, Postgres, Node, env secrets, array auth, TypeScript language) and third-party.
+1. Any platform through an adapter: first-party (GCP including Identity Platform authentication, AWS, MinIO, Postgres, Node, env secrets, array auth, TypeScript language) and third-party.
 2. Several providers serving one service at once, **including two instances of the same adapter**.
 3. The full service set: `authentication`, `database`, `storage`, `deployment`, `secrets`, `languages`. Plus `authorization`, `security` and collection definitions.
 4. Deployment targets that choose a SvelteKit adapter at build time and run a deploy procedure.
@@ -135,6 +139,9 @@ These are facts about the tools, not choices. A design that ignores one fails in
 - Linking `@genoacms/core` from outside the project (`link:` or `file:` pointing elsewhere). Adapter resolution relies on standard walk-up from the installed core (S5.4).
 - Mapping secret-store outages to HTTP 503. Errors stay 500, as today.
 - Fixing plain-text password comparison in `authentication-adapter-array`. A separate task.
+- Managing users from the CMS: creating accounts, setting passwords, disabling. The contract stays `authenticate` only (U13).
+- An identity store owned by GenoaCMS (Firestore, Postgres). Deferred (U13).
+- Multi-factor sign-in. An account that requires a second factor cannot sign in (`adapter-gcp/authentication.md` GD2).
 - Changing core's `dependencies` (U6).
 - A credential-free CI build of core itself (U7).
 
@@ -757,7 +764,7 @@ files there and never modifies installed ones.
 | Target | SvelteKit adapter | Procedure |
 | :-- | :-- | :-- |
 | `@genoacms/adapter-node` | `@sveltejs/adapter-node` | Copies `buildDir` to `options.outDir` (default `<project>/build`). The operator runs `npm install --omit=dev` there, as with any adapter-node output. |
-| `@genoacms/adapter-gcp/deployment` | `@genoacms/sveltekit-adapter-cloud-run-functions` | Archives `buildDir`. Adds a generated `function.js` that exports `genoacms` from the build's handler, and sets `"main": "function.js"` in the archived `package.json`. Uploads, then creates or updates the function. Buildpacks install the dependencies (R4). **No project source and no config leave the machine** (fixes F9, F15). |
+| `@genoacms/adapter-gcp/deployment` | `@genoacms/sveltekit-adapter-cloud-run-functions` | Archives `buildDir`. Adds a generated `function.js` that exports `genoacms` from the build's handler, and sets `"main": "function.js"` in the archived `package.json`. Uploads, then creates or updates the function. Buildpacks install the dependencies (R4). **No project source and no config leave the machine** (fixes F9, F15). GCP specifics, findings and IAM: [`adapter-gcp/deployment.md`](adapter-gcp/deployment.md). |
 | `@genoacms/adapter-aws/deployment` | `@sveltejs/adapter-node` + the Lambda wrapper | Ported (F14). Lambda does not install dependencies, so the procedure runs `npm install --omit=dev` in its `workDir` before zipping. |
 
 ---
@@ -787,7 +794,7 @@ file for a production build is caught at build time, because the dev config's se
 | File | Providers | Credentials |
 | :-- | :-- | :-- |
 | `packages/core/genoa.config/development.ts` | Today's set: GCS (`FIM-gcs`), Firestore, `secrets-env`, `authentication-adapter-array`, `language-adapter-ts`; target `local` (`adapter-node`) | Today's gitignored files, imported and wrapped: `inline(serviceAccount)` and `inline(authCredentials)`, imported from where they are now, beside the config (`genoa.config/gcp/serviceAccount.json`, `genoa.config/gcp/authCredentials.js`). `genoa.config/index.js` and `genoa.config/gcp/index.js` are removed, so the default lookup finds `genoa.config/development.ts`. Development mode does not warn. |
-| `packages/core/genoa.config/production.ts` | The same storage, database, authentication and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; target `gcp` | Storage, Firestore and Secret Manager omit `credentials` (Application Default Credentials: the function's service account). Admin credentials are `secret('GENOACMS_ADMIN_CREDENTIALS')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
+| `packages/core/genoa.config/production.ts` | The same storage, database and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; `@genoacms/adapter-gcp/authentication` (Identity Platform, U13, `adapter-gcp/authentication.md` GD2) instead of the array adapter, once GD2 is implemented; until then the array adapter with a JSON secret; target `gcp` | Storage, Firestore, Secret Manager and Identity Platform omit `credentials` (Application Default Credentials: the function's service account). No user credential is configured: users live in Identity Platform. If `adapter-gcp/authentication.md` GS1a requires an API key, it is `secret('GENOACMS_IDENTITY_API_KEY')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
 
 Shared parts (collections, authorization, security, languages) live in modules beside them in
 `genoa.config/`, which both files import.
@@ -925,9 +932,12 @@ read by nothing.
 
 ## 12. Open questions
 
+Q1 to Q3 are recorded as U5 to U8, and Q4 as U9.
+
 | # | Question | Recommendation |
 | :-- | :-- | :-- |
-None. Q1 to Q3 are recorded as U5 to U8, and Q4 as U9.
+| Q5 | Where are failed sign-ins limited (F20)? | In core, before any provider is called, per normalized email and per client address, with the counters in the database service. It then covers every adapter, and a managed provider's per-IP protection stops seeing the server as one abusive client. Needs its own decision: the client address depends on the hosting layer's forwarding header. |
+| Q6 | When a self-owned identity store comes (U13), how are users created? | An optional management capability on the authentication contract (`createIdentity`, `setPassword`, `disable`), shown in the CMS only for providers that offer it, plus a CLI command for the first user, who cannot sign in to create themselves. |
 
 ---
 
@@ -973,8 +983,8 @@ specifiers import.
 B is the design, because npm is the one packer every user has. The yarn v1 row is why adapters are
 vendored unconditionally (D9).
 
-**S-4 live deploy: skipped by decision (U10).** It is verified once `genoa.config/production.ts` exists, as a
-verification step of the GCP deployment RFC.
+**S-4 live deploy: skipped by decision (U10)** until `genoa.config/production.ts` existed. Since run:
+the author deployed core to GCP on 2026-09-28 and it serves (`adapter-gcp/README.md` §5).
 
 ---
 
@@ -1107,3 +1117,23 @@ Findings made while writing the RFCs were folded back into this document:
 - **Secrets in a package directory.** `npm pack` includes whatever `files` or `.npmignore` let through. A deny-list of the repository's known secret filenames refuses the obvious cases. A credential under any other name ships.
 - **Yarn Plug'n'Play.** There is no `node_modules`, so version lookup already fails with `build/not-installed`. D9 does not change that.
 - **Native binaries in vendored packages** are packed as they are on the build machine. None of the packages vendored today has one. The AWS procedure's `--os`/`--cpu` question applies to registry dependencies and is separate.
+
+---
+
+## Critique & architectural sanity check: U13, U14, F20 (authentication scope)
+
+The GCP side of U13, Identity Platform, is decided and critiqued in
+[`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). This section covers what stays here.
+
+**Pros**
+- The authentication contract stays one method. Managed providers map onto it directly, and nothing in core or the host changes for U13.
+- U14 removes a name that misled: the array adapter's list was never only administrators.
+- F20 records the missing sign-in throttling as a core concern, so no adapter is expected to solve it alone.
+
+**Cons & trade-offs**
+- Without a management capability (Q6), every provider's users are managed outside the CMS. For the array adapter that means editing a JSON secret, and a new user takes effect only after the next cold start (§6.5).
+- U14 is a rename across templates, the config README and core's configs. Existing development stores holding `GENOACMS_ADMIN_CREDENTIALS` stop authenticating until the key is renamed in them.
+
+**Blindspots & missed edge cases**
+- Until Q5 is decided, every deployed instance, on any stack, accepts unlimited password guesses.
+- Deferring the self-owned identity store leaves AWS and self-hosted stacks with only the plain-text array adapter for production (§3 non-goal).
