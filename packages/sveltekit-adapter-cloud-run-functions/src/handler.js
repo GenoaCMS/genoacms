@@ -8,10 +8,16 @@ import { parse as polka_url_parser } from '@polka/url';
 import { setResponse, createReadableStream } from '@sveltejs/kit/node';
 import { Server } from 'SERVER';
 import { manifest, prerendered, base } from 'MANIFEST';
+import { env } from 'ENV';
+import { requestUrl, clientAddress, parseXffDepth } from './request.js';
 
 /* global ENV_PREFIX */
 
 const server = new Server(manifest);
+
+// Read at startup, so a bad XFF_DEPTH stops the function rather than misattributing requests.
+const origin = env('ORIGIN', undefined);
+const xff_depth = parseXffDepth(env('XFF_DEPTH', undefined));
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -82,12 +88,9 @@ function serve_prerendered() {
  * @returns {Request}
  */
 function parseRequest(cloudRunRequest) {
-	const protocol = cloudRunRequest.headers['x-forwarded-proto'] || 'http';
-	const hostname = cloudRunRequest.headers['x-forwarded-host'] || cloudRunRequest.headers['host'];
-	const host = `${protocol}://${hostname}`;
 	// href already carries protocol, host, path and query, so they do not need
 	// repeating in the init — RequestInit has no such fields and ignored them.
-	const { href } = new URL(cloudRunRequest.url || '', host);
+	const href = requestUrl(cloudRunRequest, origin);
 	const request = new Request(href, {
 		method: cloudRunRequest.method,
 		headers: parseHeaders(cloudRunRequest.headers),
@@ -127,9 +130,7 @@ const ssr = async (req, res) => {
 		res,
 		await server.respond(request, {
 			platform: { req },
-			getClientAddress: () => {
-				return request.headers.get('x-forwarded-for');
-			}
+			getClientAddress: () => clientAddress(req, xff_depth)
 		})
 	);
 };

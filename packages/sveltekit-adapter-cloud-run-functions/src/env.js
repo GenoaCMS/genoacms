@@ -1,22 +1,10 @@
 /* global ENV_PREFIX */
 import process from 'node:process';
 
-const expected = new Set([
-	'SOCKET_PATH',
-	'HOST',
-	'PORT',
-	'ORIGIN',
-	'XFF_DEPTH',
-	'ADDRESS_HEADER',
-	'PROTOCOL_HEADER',
-	'HOST_HEADER',
-	'PORT_HEADER',
-	'BODY_SIZE_LIMIT',
-	'SHUTDOWN_TIMEOUT',
-	'IDLE_TIMEOUT'
-]);
+const expected = new Set(['ORIGIN', 'XFF_DEPTH']);
 
-const expected_unprefixed = new Set(['LISTEN_PID', 'LISTEN_FDS']);
+/** @type {Set<string>} */
+const expected_unprefixed = new Set();
 
 if (ENV_PREFIX) {
 	for (const name in process.env) {

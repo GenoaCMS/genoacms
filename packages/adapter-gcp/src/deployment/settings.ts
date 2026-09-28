@@ -9,9 +9,13 @@ export interface FunctionSettings {
   maxInstances?: number
   ingress?: Ingress
   serviceAccount?: string
+  /** Set as ORIGIN: the origin browsers use, when a proxy rewrites the forwarded host (architecture GD5). */
+  origin?: string
+  /** Set as XFF_DEPTH: which X-Forwarded-For entry, from the right, is the client (architecture GD5). */
+  xffDepth?: number
 }
 
-const SETTING_KEYS: readonly string[] = ['runtime', 'memory', 'timeoutSeconds', 'minInstances', 'maxInstances', 'ingress', 'serviceAccount']
+const SETTING_KEYS: readonly string[] = ['runtime', 'memory', 'timeoutSeconds', 'minInstances', 'maxInstances', 'ingress', 'serviceAccount', 'origin', 'xffDepth']
 const DEFAULT_RUNTIME = 'nodejs22'
 
 /**
@@ -33,7 +37,9 @@ const RULES: Record<string, [(value: unknown) => boolean, string]> = {
   minInstances: [value => isInteger(value, 0), 'minInstances must be an integer of at least 0'],
   maxInstances: [value => isInteger(value, 1), 'maxInstances must be an integer of at least 1'],
   ingress: [value => typeof value === 'string' && Object.hasOwn(INGRESS, value), "ingress must be 'all', 'internal' or 'internal-and-gclb'"],
-  serviceAccount: [value => matches(value, /^[^@\s]+@[^@\s]+$/), 'serviceAccount must be a service account email']
+  serviceAccount: [value => matches(value, /^[^@\s]+@[^@\s]+$/), 'serviceAccount must be a service account email'],
+  origin: [value => matches(value, /^https?:\/\/[^/\s]+$/), "origin must be an absolute http(s) origin such as 'https://cms.example.com'"],
+  xffDepth: [value => isInteger(value, 1), 'xffDepth must be an integer of at least 1']
 }
 
 function instanceOrder (options: Record<string, unknown>): string[] {
@@ -56,13 +62,22 @@ function buildConfig (settings: FunctionSettings, storageSource: object): object
   return { entryPoint: 'genoacms', runtime: settings.runtime ?? DEFAULT_RUNTIME, source: { storageSource } }
 }
 
+/** The function's environment: only named, non-secret settings ever become variables (architecture GQ1). */
+function environmentVariables (settings: FunctionSettings): Record<string, string> {
+  return {
+    NODE_ENV: 'production',
+    ...(settings.origin === undefined ? {} : { ORIGIN: settings.origin }),
+    ...(settings.xffDepth === undefined ? {} : { XFF_DEPTH: String(settings.xffDepth) })
+  }
+}
+
 /** The Cloud Functions v2 serviceConfig. Unset settings keep the behavior the adapter always had. */
 function serviceConfig (settings: FunctionSettings): object {
   return {
     minInstanceCount: settings.minInstances ?? 0,
     maxInstanceCount: settings.maxInstances ?? 1,
     ingressSettings: INGRESS[settings.ingress ?? 'all'],
-    environmentVariables: { NODE_ENV: 'production' },
+    environmentVariables: environmentVariables(settings),
     ...(settings.memory === undefined ? {} : { availableMemory: settings.memory }),
     ...(settings.timeoutSeconds === undefined ? {} : { timeoutSeconds: settings.timeoutSeconds }),
     ...(settings.serviceAccount === undefined ? {} : { serviceAccountEmail: settings.serviceAccount })

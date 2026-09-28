@@ -56,4 +56,24 @@ describe('function settings', () => {
     })
     expect(serviceConfig({ ingress: 'internal' })).toMatchObject({ ingressSettings: 2 })
   })
+
+  it('sets ORIGIN and XFF_DEPTH from origin and xffDepth', () => {
+    const settings = { origin: 'https://cms.example.com', xffDepth: 2 }
+    expect(validateSettings(settings)).toEqual([])
+    expect(serviceConfig(settings)).toMatchObject({
+      environmentVariables: { NODE_ENV: 'production', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' }
+    })
+  })
+
+  it('refuses an origin with a path or without a scheme, and a depth below 1', () => {
+    const reason = "origin must be an absolute http(s) origin such as 'https://cms.example.com'"
+    expect(validateSettings({ origin: 'https://cms.example.com/' })).toEqual([reason])
+    expect(validateSettings({ origin: 'cms.example.com' })).toEqual([reason])
+    expect(validateSettings({ xffDepth: 0 })).toEqual(['xffDepth must be an integer of at least 1'])
+  })
+
+  it('sets no variable beyond NODE_ENV by default', () => {
+    expect(serviceConfig({})).toMatchObject({ environmentVariables: { NODE_ENV: 'production' } })
+    expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV'])
+  })
 })
