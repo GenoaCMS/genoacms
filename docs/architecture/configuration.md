@@ -1,3 +1,9 @@
+---
+type: architecture
+title: Configuration architecture
+conforms: false
+---
+
 # Configuration architecture
 
 | | |
