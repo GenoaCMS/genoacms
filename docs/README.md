@@ -43,19 +43,22 @@ What the Specifications cover, measured against the reproducibility principle
 
 ## Test levels
 
+`node scripts/test-level.mjs <level>` runs one level and writes its JUnit reports to `reports/<level>/`.
+
 | Level | Meaning here | Runs in CI |
 | :-- | :-- | :-- |
 | `unit` | a package's vitest tests, through its public interface, with external SDKs mocked | always |
 | `integration` | tests with real collaborators: the file system, a local database or object store | always |
-| `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI | on `main`; deferred on pull requests |
-| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`; deferred on pull requests |
-| `conformance` | `@genoacms/conformance` run against a local implementation: MinIO, Postgres, the file system | always |
+| `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI | none exists yet; deferred on pull requests, so every push to `main` fails for the statements that declare it |
+| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_TABLE`; without them the tests are skipped. Deferred on pull requests. |
+| `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always, except MinIO |
 
 Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:
 
 - **Core is not built or tested in CI.** Its `vite build` and its vitest setup load `genoa.config/development.ts`, which imports gitignored credential files, so neither runs in a clean checkout. Its Playwright tests need a real GCP project.
 - **`@genoacms/sdk`** passes every test but exits non-zero on vitest's `Timeout calling "onTaskUpdate"`.
 - **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
+- **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
 - **`@genoacms/cli`** has no tests: its `test` script starts the CLI.
 - **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
 - The GCP gaps are GF15 to GF19 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
