@@ -10,9 +10,9 @@ import type { GcpSecretsOptions } from './descriptor.js'
  * Secret Manager is versioned; this contract is not. Writes add a version and reads always take
  * `latest`, so version history exists but is never consulted. That is deliberate — building the
  * contract on a provider-specific behavior would leave the abstraction unimplementable elsewhere.
- * The practical consequence is that **superseded versions accumulate**: they are invisible to
- * GenoaCMS but still billed and still readable by anyone with project access, so a rotation policy
- * at the project level is worth having.
+ * `setSecret` therefore destroys the versions it supersedes (architecture GD4). Secrets created here
+ * keep a destroyed version disabled for seven days before it is gone, so a bad overwrite can be undone
+ * by hand.
  */
 
 export default defineRuntime<GcpSecretsOptions, Adapter>({
@@ -29,6 +29,42 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
     const parent = `projects/${projectId}`
     const secretName = (key: string): string => `${parent}/secrets/${key}`
     const latestVersionName = (key: string): string => `${secretName(key)}/versions/latest`
+
+    /** A destroyed version stays disabled this long before Secret Manager destroys it (architecture GD4). */
+    const VERSION_DESTROY_TTL = { seconds: 7 * 24 * 60 * 60 }
+
+    /** The secret resource every create path uses. */
+    const newSecret = () => ({ replication: { automatic: {} }, versionDestroyTtl: VERSION_DESTROY_TTL })
+
+    /** The number at the end of a version resource name. */
+    function versionNumber (name: string): number {
+      const number = Number(name.split('/').at(-1))
+      if (!Number.isInteger(number) || number < 1) throw new Error(`secrets/unexpected-version-name: ${name}`)
+      return number
+    }
+
+    /** Destroys every enabled version of `key` numbered below `added`, so a concurrent newer write survives. */
+    async function destroySuperseded (key: string, added: string): Promise<void> {
+      const addedNumber = versionNumber(added)
+      const [versions] = await client.listSecretVersions({ parent: secretName(key), filter: 'state:ENABLED' })
+      for (const version of versions) {
+        if (typeof version.name === 'string' && versionNumber(version.name) < addedNumber) {
+          await client.destroySecretVersion({ name: version.name })
+        }
+      }
+    }
+
+    /**
+     * Reports instead of failing: the new value is already written and is `latest`. The next overwrite
+     * retries, because it destroys every lower enabled version, not only the previous one.
+     */
+    async function cleanUp (key: string, added: string): Promise<void> {
+      try {
+        await destroySuperseded(key, added)
+      } catch (error) {
+        console.warn(`secrets/cleanup-failed: ${key}: ${(error as Error).message}`)
+      }
+    }
 
     function hasStatusCode (error: unknown, code: number): boolean {
       return typeof error === 'object' && error !== null && (error as { code?: number }).code === code
@@ -47,7 +83,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
           await client.createSecret({
             parent,
             secretId: key,
-            secret: { replication: { automatic: {} } }
+            secret: newSecret()
           })
         } catch (createError) {
           if (!hasStatusCode(createError, ALREADY_EXISTS)) throw createError
@@ -79,10 +115,11 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
     const setSecret: Adapter.setSecret = async (key: string, value: string) => {
       assertValidSecretKey(key)
       await ensureSecretExists(key)
-      await client.addSecretVersion({
+      const [version] = await client.addSecretVersion({
         parent: secretName(key),
         payload: { data: Buffer.from(value, 'utf-8') }
       })
+      if (typeof version.name === 'string') await cleanUp(key, version.name)
       return true
     }
 
@@ -100,7 +137,7 @@ export default defineRuntime<GcpSecretsOptions, Adapter>({
         await client.createSecret({
           parent,
           secretId: key,
-          secret: { replication: { automatic: {} } }
+          secret: newSecret()
         })
       } catch (error) {
         if (hasStatusCode(error, ALREADY_EXISTS)) return false
