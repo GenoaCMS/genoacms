@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`d4bd4b0`) |
 | Depends on | RFC-0001, RFC-0002 |
 | Architecture | §4 D2; F5 |
 | Commit | `feat(adapter-minio): add descriptor and runtime factory` |

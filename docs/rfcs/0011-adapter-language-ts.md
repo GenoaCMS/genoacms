@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`43d2186`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D2; §5.1 (`LanguageAdapter` stays in `@genoacms/internal`); §8 (`GENOA_CONFIG_PATH` removed) |
 | Commit | `feat(language-adapter-ts): take the compilation target as a constructor argument` |

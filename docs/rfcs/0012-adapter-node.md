@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`f47e6b7`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D6; §7.2 (Node row); F6; S-3, S-5 |
 | Commit | `feat(adapter-node): add deployment descriptor and artifact copy procedure` |

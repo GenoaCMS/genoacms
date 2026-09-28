@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`3062d8f`) |
 | Depends on | RFC-0005, RFC-0015 |
 | Architecture | D9, F19; §7.1; §13 S-8 |
 | Commit | `feat(config): vendor local packages into the runtime artifact` |

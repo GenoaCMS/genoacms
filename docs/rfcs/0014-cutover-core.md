@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`f9a432c`) |
 | Depends on | RFC-0001 to RFC-0013 |
 | Architecture | §4 (all); §5.2; §8; §9; U6, U7, U8, U11 |
 | Commit | `refactor: switch core and adapters to the manifest and host` |

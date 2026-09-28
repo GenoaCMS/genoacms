@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`716c6de`, `05152e8`) |
 | Depends on | RFC-0014 |
 | Architecture | U12; §5.5 (default lookup); §8; §10 C1 |
 | Commits | Part A: `feat(config): look up genoa.config/development in the config directory`; Part B: `refactor(core): keep the whole config in genoa.config/` |

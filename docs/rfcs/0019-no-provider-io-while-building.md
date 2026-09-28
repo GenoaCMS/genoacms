@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`8bec7a0`) |
 | Depends on | RFC-0018 |
 | Architecture | D8, F18; goal 6; §10 K1 |
 | Commit | `fix(core): construct no provider while SvelteKit analyses the build` |

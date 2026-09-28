@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`1b52359`) |
 | Depends on | RFC-0001, RFC-0002 |
 | Architecture | §4 D2; F3, F5 |
 | Commit | `feat(adapter-postgres): add descriptor and runtime factory` |

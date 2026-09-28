@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`c8ce612`) |
 | Depends on | RFC-0001, RFC-0003 |
 | Architecture | §4 D3, D5; §5.6; §6 |
 | Commit | `feat(config): construct providers through a host` |

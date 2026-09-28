@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`b42ac17`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D2, D5; §8 (core's credentials via `inline()`) |
 | Commit | `feat(authentication-adapter-array): add descriptor and runtime factory` |

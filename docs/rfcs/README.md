@@ -11,6 +11,9 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 
 ## Order
 
+Every RFC's header states its status: `Draft`, or `Implemented (<commit>)`, after which it is frozen
+([`docs/README.md`](../README.md) §1.3). RFC-0016 and RFC-0017 are the only drafts.
+
 Each RFC depends only on RFCs above it. Implement strictly in this order, and commit each RFC on its
 own before starting the next.
 

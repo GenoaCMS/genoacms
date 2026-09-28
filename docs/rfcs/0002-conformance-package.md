@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`962ac51`) |
 | Depends on | RFC-0001 |
 | Architecture | §5.1; §10 rows A9, C14 |
 | Commit | `feat(conformance): run adapter conformance suites against a constructed instance` |

@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`b050b3b`) |
 | Depends on | RFC-0022 |
 | Architecture | [`adapter-gcp/README.md`](../architecture/adapter-gcp/README.md) GD6; GF12, GF13; STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11, DEP-13 |
 | Commit | `test(adapter-gcp): cover every storage, Firestore and secrets statement` |

@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`33f34bd`) |
 | Depends on | — |
 | Architecture | §4 D2, D5; §5.1; §5.3; §5.4 |
 | Commit | `feat(contracts): add the adapter contract package` |

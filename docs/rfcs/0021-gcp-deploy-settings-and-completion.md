@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`017a8ce`) |
 | Depends on | RFC-0007, RFC-0020 |
 | Architecture | [`adapter-gcp/deployment.md`](../architecture/adapter-gcp/deployment.md) GD1, GD3; GF1, GF2, GF3, GF6; README GU3 |
 | Commit | `feat(adapter-gcp): wait for the deploy and make function settings options` |

@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`fb6f805`) |
 | Depends on | RFC-0021 |
 | Architecture | [`adapter-gcp/deployment.md`](../architecture/adapter-gcp/deployment.md) GD5 (GU4); ADP-1, ADP-5, ADP-6, ADP-7, DEP-14; GF7, GF11, GF14 |
 | Commit | `feat(sveltekit-adapter-cloud-run-functions): honor ORIGIN and XFF_DEPTH, set by the gcp target` |

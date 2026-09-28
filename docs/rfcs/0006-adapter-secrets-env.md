@@ -2,7 +2,7 @@
 
 | | |
 | :-- | :-- |
-| Status | Draft |
+| Status | Implemented (`0b9ddcc`) |
 | Depends on | RFC-0001 |
 | Architecture | §6.6; U11; R6 |
 | Commit | `feat(adapter-secrets-env): add descriptor and instance-scoped runtime` |
