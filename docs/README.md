@@ -32,11 +32,35 @@ Internal structure that does not change behavior does not belong.
 An architecture document describes its whole subject, not only a change to it: the **current
 state**, verified at a named commit; what is decided and not yet built; and a brief history.
 
-RFCs are change specifications, and once implemented they are history. Any behavior-relevant detail
-an RFC introduces, such as an error code, a default or a file layout, is also recorded in the
-architecture document. Reproducing the system therefore never requires replaying RFCs in order.
+Each component document has two parts:
+- **Design:** decisions, rationale, findings, history. Owned by the author.
+- **Specification:** the exact, binding behavior: contracts, types, options and defaults, formats, error codes, external calls, invariants. Maintained by agents under the author's review. It is the living source of truth that the code must match, and the only thing reproduction (§1.1) reads.
 
-### 1.3 Markers
+The boundary test: *would a different but correct implementation have to match this?* If yes, it is
+Specification. If not, like file paths or internal helper names, it belongs only in an RFC.
+
+### 1.3 RFCs are frozen change plans
+
+An RFC is a delta against a Specification, from state X to state Y, plus a change plan: files,
+steps, baselines, verification. The architecture document marks the target state **New** and names
+the RFC.
+
+Once implemented, an RFC's status becomes `Implemented (<commit>)` and it is never edited again.
+Corrections found during implementation go in before its code is committed. A later change is a new
+RFC that references the old one. RFCs are history: never the place to learn current behavior. Any
+behavior-relevant detail an RFC introduces lands in the Specification when the RFC is implemented.
+
+### 1.4 Review the specification, verify by tests
+
+The author does not review code. Every Specification statement is written to be testable and names
+the test that checks it. Reviewing an agent's work means reviewing the Specification diff and
+confirming the named tests pass. A statement without a test is marked unverified.
+
+**Drift audits** go in the reality → documents direction. Periodically, and before a component is
+changed, an agent compares its code against its Specification and records every mismatch as a
+finding (`F`). Neither side is silently corrected toward the other: each mismatch is a decision.
+
+### 1.5 Markers
 
 | Marker | Meaning |
 | :-- | :-- |
@@ -47,7 +71,7 @@ architecture document. Reproducing the system therefore never requires replaying
 Facts are also labeled by how they are known: established by experiment (a spike, with its date and
 setup), taken from external documentation (named), or not yet verified.
 
-### 1.4 IDs
+### 1.6 IDs
 
 Every architecture document, or directory of documents, has a unique **prefix** (§2). IDs combine the
 prefix with a fixed category and a number:
@@ -63,7 +87,7 @@ prefix with a fixed category and a number:
 An ID keeps its number for life, including when its text moves between files. A directory of
 documents keeps a register of its IDs and their states in its README.
 
-### 1.5 Structure
+### 1.7 Structure
 
 A subject too large for one file becomes a directory with a `README.md` (overview, how its documents
 relate, register) and one file per component. Every change to an architecture document or RFC ends
@@ -74,7 +98,7 @@ with a *Critique & architectural sanity check*: pros, cons and trade-offs, blind
 | Document | Prefix | Subject | Conforms to §1 |
 | :-- | :-- | :-- | :-- |
 | [`architecture/configuration.md`](architecture/configuration.md) | none (predates the convention: `U`, `D`, `F`, `S`, `Q` and the preserved-functionality IDs `C`, `A`, `P`, `K`, `R`) | the configuration architecture: config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no**: written as a proposal, no markers. Restructuring pending. |
-| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | yes |
+| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | partly: current, new and history are marked; the Design/Specification split (§1.2) and test references (§1.4) are not done yet |
 | [`rfcs/`](rfcs/README.md) | `RFC-NNNN` | implementation specifications, in implementation order | — |
 
 ## 3. Coverage
@@ -95,6 +119,29 @@ would need its code.
 | Core: storage browser, collections, database UI | `core` (`storage/`, `database/`, routes) | none | none |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
+
+---
+
+## Critique & architectural sanity check: Design/Specification split, frozen RFCs, verification by tests
+
+The same split as mature projects: frozen proposals (Rust RFCs, Python PEPs, IETF RFCs, ADRs) next to
+living reference documents (the Rust Reference, the Python language reference, WHATWG living
+standards). Spec-driven agent tooling (GitHub Spec Kit, AWS Kiro) uses the same shape. This document
+takes the pattern from general knowledge, not from a survey done for it.
+
+**Pros**
+- One living place states what the system does, and RFCs stay short and true to their moment.
+- The author's review moves from code to specification diffs, which are smaller and in the author's own terms.
+- Test references turn "the code mirrors the spec most of the time" into a checked property.
+
+**Cons & trade-offs**
+- Each change touches the Specification, an RFC and tests. The RFC partly restates the new Specification as its target.
+- Specifications grow long. The Design part keeps the strategic view readable, but only if the split is kept.
+
+**Blindspots & missed edge cases**
+- The Specification/implementation boundary is a judgment call per statement, and the boundary test can be applied inconsistently.
+- Tests prove only what they check. A Specification statement whose named test is weak passes review while the behavior is wrong. Drift audits are the backstop, and they are only as good as their frequency.
+- UI behavior is the hardest to state testably. Without a convention for it (for example, end-to-end scenarios as the Specification), core's screens stay unverifiable.
 
 ---
 
