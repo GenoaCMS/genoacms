@@ -14,6 +14,13 @@ Markers (*(current)*, **New**, *History*), ID categories and the reproducibility
 project-wide conventions in [`docs/README.md`](../../README.md) §1. This directory's ID prefix is
 `G`: `GU`, `GD`, `GF`, `GS`, `GQ`.
 
+Every file has a **Design** part and a **Specification** part. Specification statements are numbered
+per component: `COM` (shared, this README), `STO`, `DB`, `SEC`, `DEP`, `ADP` and `AUTH`. Test
+references name a file relative to `packages/adapter-gcp/src/` and the test's title, as
+`secrets/runtime.test.ts › reads a missing secret…`. "conformance" means the opt-in suite in
+`packages/adapter-gcp/test/conformance.test.ts`, which runs `@genoacms/conformance` against real GCP
+only with `GENOACMS_TEST_GCP=1`. "unverified" means that no test checks the statement.
+
 **Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
 this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
 secret references (D5), the artifact (D6, D9) and deployment targets (§7). It stays authoritative for
@@ -31,6 +38,8 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 | [`authentication.md`](authentication.md) | Identity Platform |
 
 ---
+
+# Design
 
 ## 1. Decisions made by the author
 
@@ -56,10 +65,7 @@ per provider (`configuration.md` D2, D3).
 | `./deployment` (descriptor and procedure; no runtime) | Cloud Run functions (2nd gen) | [`deployment.md`](deployment.md) |
 | **New** `./authentication`, `./authentication/runtime` | Identity Platform | [`authentication.md`](authentication.md) |
 
-Shared by all of them (`src/shared/serviceAccount.ts`):
-- `ServiceAccount`: the fields of a key file the client libraries read.
-- Every descriptor rejects unknown option keys, so a typo fails the build, and requires `projectId` as a non-empty string.
-- `credentials` is optional everywhere and always a `Secret<ServiceAccount>` decoded as JSON. The secrets descriptor narrows it to a bootstrap secret (`env()` or `inline()`), because it cannot come from the store it configures.
+What every service shares is specified once, in COM-1 to COM-4 at the end of this README.
 
 Each construction owns its client and credential, so two providers on this adapter (for example two
 GCP projects) never share either.
@@ -145,6 +151,10 @@ Every `G` ID, where it lives, and its state.
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (§4) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
+| GF11 | The SvelteKit adapter's tests are disabled and stale | open | [`deployment.md`](deployment.md) |
+| GF12 | Most of the storage runtime is untested | open | [`storage.md`](storage.md) |
+| GF13 | The Firestore runtime's methods have no unit tests | open | [`database.md`](database.md) |
+| GF14 | The SvelteKit adapter's `env.js` is dead code; `envPrefix` has no effect | open | [`deployment.md`](deployment.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
@@ -153,6 +163,31 @@ Every `G` ID, where it lives, and its state.
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 
 ---
+
+# Specification
+
+## S1. Shared (`src/shared/serviceAccount.ts`)
+
+| # | Statement | Test |
+| :-- | :-- | :-- |
+| COM-1 | `ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged. | unverified (type only) |
+| COM-2 | Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`. | `storage/descriptor.test.ts`, `database/descriptor.test.ts`, `secrets/descriptor.test.ts`, `deployment/descriptor.test.ts` › the unknown-key cases |
+| COM-3 | A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor. | the same four files › the missing- and empty-project cases |
+| COM-4 | Each provider construction creates its own client with its own credential. Two providers on one GCP service share neither, so two GCP projects can be served at once. `credentials` is optional on every descriptor, decoded as JSON, and passed to the client only when given. Otherwise the client uses ADC (GU2). | `storage/runtime.test.ts` › builds one client per provider…; passes the project, and the credentials only when given; `database/runtime.test.ts`; `secrets/runtime.test.ts` › uses Application Default Credentials… |
+
+## Critique & architectural sanity check: Design/Specification split
+
+**Pros**
+- Each Specification row is small enough to review on its own, and its Test column shows at a glance what is proven and what is only claimed.
+- The split exposed what the old prose hid: GF11 to GF14 were found by asking of each statement which test checks it.
+
+**Cons & trade-offs**
+- Specification tables restate the code in prose. When code changes without its row, the table lies. Drift audits (`docs/README.md` §1.4) are the only guard.
+- Test references by title break when a test is renamed. They are readable, but not checked by any tool.
+
+**Blindspots & missed edge cases**
+- A test reference proves that a test exists, not that it checks the whole statement. Several rows cite a test for part of a statement and say which part is unverified. Nothing enforces that honesty.
+- The Specification is as complete as the author of the rows was careful. The only real completeness check is the reproducibility trial (`docs/README.md` §3).
 
 ## Critique & architectural sanity check: the document set
 

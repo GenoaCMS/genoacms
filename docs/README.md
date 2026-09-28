@@ -40,6 +40,10 @@ Each component document has two parts:
 The boundary test: *would a different but correct implementation have to match this?* If yes, it is
 Specification. If not, like file paths or internal helper names, it belongs only in an RFC.
 
+Specification statements are numbered with a short component code, for example `SEC-3`, so that
+tests, RFCs and findings can cite them. A number is never reused. A removed statement keeps its
+number, struck through, with the RFC that removed it.
+
 ### 1.3 RFCs are frozen change plans
 
 An RFC is a delta against a Specification, from state X to state Y, plus a change plan: files,
@@ -99,7 +103,7 @@ with a *Critique & architectural sanity check*: pros, cons and trade-offs, blind
 | Document | Prefix | Subject | Conforms to §1 |
 | :-- | :-- | :-- | :-- |
 | [`architecture/configuration.md`](architecture/configuration.md) | none (predates the convention: `U`, `D`, `F`, `S`, `Q` and the preserved-functionality IDs `C`, `A`, `P`, `K`, `R`) | the configuration architecture: config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no**: written as a proposal, no markers. Restructuring pending. |
-| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | partly: current, new and history are marked; the Design/Specification split (§1.2) and test references (§1.4) are not done yet |
+| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | yes. 53 current Specification statements: 32 name a test (6 of them only the opt-in GCP conformance suite), 6 are partly verified, 15 are unverified; 8 more are **New** (authentication) |
 | [`rfcs/`](rfcs/README.md) | `RFC-NNNN` | implementation specifications, in implementation order | — |
 
 ## 3. Coverage
@@ -110,7 +114,7 @@ would need its code.
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not in the §1 form |
-| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered |
+| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered, in the §1 form; test gaps are findings GF11 to GF13 |
 | Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |

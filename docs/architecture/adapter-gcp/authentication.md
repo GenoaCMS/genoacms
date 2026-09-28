@@ -1,56 +1,17 @@
 # GCP authentication: Identity Platform
 
-Part of the [GCP adapter architecture](README.md). Markers and IDs as defined there.
+Part of the [GCP adapter architecture](README.md). Markers, IDs and test references as defined there.
+Statement code: `AUTH`.
 
 **Everything in this document is New.** No GCP authentication adapter exists. *(current)* core's
 production config authenticates with `@genoacms/authentication-adapter-array` and a JSON secret.
 GD2 replaces that on GCP once GS1 has passed. No RFC exists yet: it is written after GS1.
 
+# Design
+
 ## 1. Decision
 
-**GD2. Identity Platform authenticates (GU1, `configuration.md` U13).**
-`@genoacms/adapter-gcp/authentication` is an authentication descriptor. Its runtime,
-`@genoacms/adapter-gcp/authentication/runtime`, implements `authenticate(email, password)` with one
-call to Identity Toolkit:
-`POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword`, body
-`{ email, password, returnSecureToken: true, tenantId? }`.
-
-```ts
-interface GcpAuthenticationOptions {
-  projectId: string
-  /** An Identity Platform tenant. Omitted: the project's own user pool. */
-  tenantId?: string
-  /**
-   * Omitted: the call authenticates as ADC (README GU2) with the `identitytoolkit` scope.
-   * Provided: sent as `key`. Which of the two is required is GS1a.
-   */
-  apiKey?: Secret<string>
-  /** Only for running outside GCP, as on every other GCP descriptor. */
-  credentials?: Secret<ServiceAccount>
-}
-```
-
-The response maps to the contract as follows:
-
-| Identity Toolkit answer | `authenticate` returns |
-| :-- | :-- |
-| `200` without `mfaPendingCredential` | `{ subject: localId, email }`. `localId` is the provider-issued subject the CMS's account screen already asks for. |
-| `200` with `mfaPendingCredential` | `null`. The contract has no second step. |
-| `400` with `INVALID_LOGIN_CREDENTIALS`, `EMAIL_NOT_FOUND`, `INVALID_PASSWORD`, `USER_DISABLED`, `INVALID_EMAIL` or `MISSING_PASSWORD` | `null`: a rejected credential. |
-| `400` with `TOO_MANY_ATTEMPTS_TRY_LATER` | throws `authentication/throttled`. |
-| anything else (network, `403`, `5xx`, an invalid key, reCAPTCHA required) | throws `authentication/provider-failed: <status> <message>`. |
-
-Core already turns a throwing provider into a failed sign-in (`authenticateAndAuthorize`). The two
-throws exist so that an outage or a misconfiguration is not reported as a wrong password, and so
-logs can tell them apart. The ID token and refresh token in the response are discarded, never
-stored and never logged. Core issues its own session, as for every provider.
-
-What the operator sets up, once per project (not automated):
-- enable Identity Platform, or Firebase Authentication, with the email/password provider;
-- a first user, created in the console. Its UID goes into `authorization.ts` `assignments`, and that is the seed administrator;
-- reCAPTCHA password protection off or in audit mode. In enforce mode, a server call without `captchaResponse` is refused;
-- per GS1a, either an IAM grant on the runtime identity that permits `signInWithPassword` (README §4), or an API key restricted to the Identity Toolkit API and stored with `secret()`, for example `secret('GENOACMS_IDENTITY_API_KEY')`.
-
+**GD2. Identity Platform authenticates (GU1, `configuration.md` U13).** AUTH-1 to AUTH-8.
 *Why:* on GCP the provider already offers hashing, breach-safe storage, disabling, password reset
 and email-enumeration protection. GenoaCMS does not own any of it, and the contract needs no change:
 `authenticate` maps one to one onto `signInWithPassword`.
@@ -58,6 +19,12 @@ and email-enumeration protection. GenoaCMS does not own any of it, and the contr
 disabled in Identity Platform cannot sign in again, but a session that is already open continues
 until its family expires, because a refresh does not ask the provider. The immediate revocation is
 therefore removing the user's role assignments, which authorization resolves per request.
+
+What the operator sets up, once per project (not automated):
+- enable Identity Platform, or Firebase Authentication, with the email/password provider;
+- a first user, created in the console. Its UID goes into `authorization.ts` `assignments`, and that is the seed administrator;
+- reCAPTCHA password protection off or in audit mode. In enforce mode, a server call without `captchaResponse` is refused;
+- per GS1a, either an IAM grant on the runtime identity that permits `signInWithPassword` (README §4), or an API key restricted to the Identity Toolkit API and stored with `secret()`, for example `secret('GENOACMS_IDENTITY_API_KEY')`.
 
 ## 2. Verification
 
@@ -72,10 +39,32 @@ it or authorizes it. The GD2 RFC is written only after it passes.
 | Case | Assumption to verify |
 | :-- | :-- |
 | GS1a | A call with the runtime identity (ADC, `identitytoolkit` scope) and **no** API key signs a user in, and which IAM permission it needs. Decides whether `apiKey` stays optional. |
-| GS1b | The error codes in GD2's table, for: a wrong password, an unknown email, a disabled user, a user with MFA enrolled. |
+| GS1b | The outcomes of AUTH-3 to AUTH-7, for: a wrong password, an unknown email, a disabled user, a user with MFA enrolled. |
 | GS1c | Repeated wrong passwords from one server address: after how many does `TOO_MANY_ATTEMPTS_TRY_LATER` appear, and does it then block **other** users' correct sign-ins from the same address? That measures the shared-client risk (`configuration.md` F20). |
 | GS1d | `localId` format and length, so the account screen's subject field and `authorization.ts` accept it. |
 | GS1e | reCAPTCHA password protection in audit mode accepts a server call without `captchaResponse`, and enforce mode refuses it with a distinguishable error. |
+
+# Specification
+
+**New**, all of it: no RFC yet, written after GS1.
+
+## S1. Descriptor
+
+| # | Statement | Test |
+| :-- | :-- | :-- |
+| AUTH-1 | Specifier `@genoacms/adapter-gcp/authentication`, kind `authentication`. Runtime specifier `@genoacms/adapter-gcp/authentication/runtime`. Options: `projectId: string` (required, COM-3); `tenantId?: string`, an Identity Platform tenant, omitted for the project's own user pool; `apiKey?: Secret<string>`, decoded as a string; `credentials?: Secret<ServiceAccount>`, decoded as JSON, only for running outside GCP. Other keys are refused (COM-2). Whether `apiKey` stays optional is decided by GS1a. | none yet |
+
+## S2. Runtime
+
+| # | Statement | Test |
+| :-- | :-- | :-- |
+| AUTH-2 | `authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. | none yet |
+| AUTH-3 | `200` without `mfaPendingCredential` returns `{ subject: localId, email }` from the response. | none yet |
+| AUTH-4 | `200` with `mfaPendingCredential` returns `null`. The contract has no second step. | none yet |
+| AUTH-5 | `400` whose error message is `INVALID_LOGIN_CREDENTIALS`, `EMAIL_NOT_FOUND`, `INVALID_PASSWORD`, `USER_DISABLED`, `INVALID_EMAIL` or `MISSING_PASSWORD` returns `null`: a rejected credential. | none yet |
+| AUTH-6 | `400` with `TOO_MANY_ATTEMPTS_TRY_LATER` throws `authentication/throttled`. | none yet |
+| AUTH-7 | Any other outcome (network error, `403`, `5xx`, an invalid key, reCAPTCHA required) throws `authentication/provider-failed: <status> <message>`, so an outage is not reported as a wrong password. | none yet |
+| AUTH-8 | The response's `idToken` and `refreshToken` are discarded: never stored, never logged, never returned. | none yet |
 
 ## Critique & architectural sanity check: GU1, GD2
 
