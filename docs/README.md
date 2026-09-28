@@ -103,7 +103,7 @@ with a *Critique & architectural sanity check*: pros, cons and trade-offs, blind
 | Document | Prefix | Subject | Conforms to §1 |
 | :-- | :-- | :-- | :-- |
 | [`architecture/configuration.md`](architecture/configuration.md) | none (predates the convention: `U`, `D`, `F`, `S`, `Q` and the preserved-functionality IDs `C`, `A`, `P`, `K`, `R`) | the configuration architecture: config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no**: written as a proposal, no markers. Restructuring pending. |
-| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | yes. 53 current Specification statements: 32 name a test (6 of them only the opt-in GCP conformance suite), 6 are partly verified, 15 are unverified; 8 more are **New** (authentication) |
+| [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | everything GenoaCMS runs on Google Cloud | yes. 55 current Specification statements: 48 name a test, 2 are partly verified, 5 are unverified (a type, and the SvelteKit adapter's build steps ADP-1 to ADP-4); 8 more are **New** (authentication) |
 | [`rfcs/`](rfcs/README.md) | `RFC-NNNN` | implementation specifications, in implementation order | — |
 
 ## 3. Coverage
@@ -114,7 +114,7 @@ would need its code.
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not in the §1 form |
-| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered, in the §1 form; test gaps are findings GF11 to GF13 |
+| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered, in the §1 form; remaining test gap: ADP-1 to ADP-4 |
 | Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |

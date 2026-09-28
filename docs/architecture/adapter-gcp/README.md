@@ -6,7 +6,7 @@
 | Status | Draft for review |
 | Date | 2026-09-28 |
 | Scope | Everything GenoaCMS runs on Google Cloud: storage, database, secrets, deployment, authentication, the runtime and operator identities, IAM |
-| Verified against | `refactor/configuration-architecture` at `7fd6744` |
+| Verified against | `refactor/configuration-architecture` at `b050b3b` |
 
 ## 0. How to read these documents
 
@@ -16,7 +16,8 @@ project-wide conventions in [`docs/README.md`](../../README.md) §1. This direct
 
 Every file has a **Design** part and a **Specification** part. Specification statements are numbered
 per component: `COM` (shared, this README), `STO`, `DB`, `SEC`, `DEP`, `ADP` and `AUTH`. Test
-references name a file relative to `packages/adapter-gcp/src/` and the test's title, as
+references name a file relative to `packages/adapter-gcp/src/` (for `ADP`, relative to
+`packages/sveltekit-adapter-cloud-run-functions/`) and the test's title, as
 `secrets/runtime.test.ts › reads a missing secret…`. "conformance" means the opt-in suite in
 `packages/adapter-gcp/test/conformance.test.ts`, which runs `@genoacms/conformance` against real GCP
 only with `GENOACMS_TEST_GCP=1`. "unverified" means that no test checks the statement.
@@ -55,8 +56,8 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 ## 1a. Cross-cutting decisions
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
-**New** (RFC-0024). STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11 and DEP-13 get unit
-tests with the SDK mocked, as the existing runtime tests do. The mocks assert the calls the
+RFC-0024. STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11 and DEP-13 get unit
+tests with the SDK mocked, as the existing runtime tests do. STO-5 and STO-8 use the real client library, because both URLs are formed locally. The mocks assert the calls the
 Specification names: arguments, preconditions and error mapping. The opt-in conformance suite stays,
 as the check against the real services.
 *Why:* the author reviews Specifications, not code (`docs/README.md` §1.4). A statement without a test
@@ -137,6 +138,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 - **2024-11**: `@genoacms/sveltekit-adapter-cloud-run-functions` was written, adapting SvelteKit to Cloud Run functions (2nd gen) instead of Firebase's adapter.
 - **2026-08**: moved into the monorepo; the authorization service was removed from the abstraction (core owns authorization); a Secret Manager secrets service with atomic claims and generation preconditions on storage were added.
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
+- **2026-09-28, later**: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` (RFC-0023), and every current runtime statement got a unit test (RFC-0024).
 - **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
 
 ---
@@ -155,22 +157,22 @@ Every `G` ID, where it lives, and its state.
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
-| GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | new, RFC-0023 | [`deployment.md`](deployment.md) |
-| GD6 | Every current runtime statement has a unit test | new, RFC-0024 | §1a |
+| GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
+| GD6 | Every current runtime statement has a unit test | current, RFC-0024 | §1a |
 | GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF4 | The runtime's IAM needs were documented nowhere | fixed, §4 and GD3 | §4 |
 | GF5 | Superseded secret versions accumulated | fixed, RFC-0022 | [`secrets.md`](secrets.md) |
 | GF6 | Any error looking up the function counted as "does not exist" | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
-| GF7 | `getClientAddress` returns the raw `X-Forwarded-For` list | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF7 | `getClientAddress` returned the raw `X-Forwarded-For` list | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (§4) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
-| GF11 | The SvelteKit adapter's tests are disabled and stale | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
-| GF12 | Most of the storage runtime is untested | decided: GD6, RFC-0024 | [`storage.md`](storage.md) |
-| GF13 | The Firestore runtime's methods have no unit tests | decided: GD6, RFC-0024 | [`database.md`](database.md) |
-| GF14 | The SvelteKit adapter's `env.js` is dead code; `envPrefix` has no effect | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF11 | The SvelteKit adapter's tests were disabled and stale | fixed for ADP-5 to ADP-7, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF12 | Most of the storage runtime was untested | fixed, RFC-0024 | [`storage.md`](storage.md) |
+| GF13 | The Firestore runtime's methods had no unit tests | fixed, RFC-0024 | [`database.md`](database.md) |
+| GF14 | The SvelteKit adapter's `env.js` was dead code; `envPrefix` had no effect | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
