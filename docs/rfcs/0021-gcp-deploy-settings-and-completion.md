@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 21
+title: GCP deploy waits for the platform; function settings are options
+status: implemented
+commits: [017a8ce]
+depends: [7, 20]
+architecture: [adapter-gcp/deployment.md]
+commit-subject: feat(adapter-gcp): wait for the deploy and make function settings options
+sections: legacy
+---
+
 # RFC-0021: GCP deploy waits for the platform; function settings are options
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`017a8ce`) |
 | Depends on | RFC-0007, RFC-0020 |
 | Architecture | [`adapter-gcp/deployment.md`](../architecture/adapter-gcp/deployment.md) GD1, GD3; GF1, GF2, GF3, GF6; README GU3 |
 | Commit | `feat(adapter-gcp): wait for the deploy and make function settings options` |

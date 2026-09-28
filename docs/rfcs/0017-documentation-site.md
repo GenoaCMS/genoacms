@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 17
+title: Documentation site
+status: draft
+commits: []
+depends: [16]
+architecture: [configuration.md]
+commit-subject: docs(site): document the manifest, descriptors, secrets and the new CLI
+sections: legacy
+---
+
 # RFC-0017: Documentation site
 
 | | |
 | :-- | :-- |
-| Status | Draft |
 | Depends on | RFC-0016 |
 | Architecture | whole document; F8 (docs drift) |
 | Commit | `docs(site): document the manifest, descriptors, secrets and the new CLI` |

@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 3
+title: `@genoacms/config`: authoring API, loader, manifest
+status: implemented
+commits: [3e1a6b3]
+depends: [1]
+architecture: [configuration.md]
+commit-subject: feat(config): load a config file into a validated manifest
+sections: legacy
+---
+
 # RFC-0003: `@genoacms/config`: authoring API, loader, manifest
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`3e1a6b3`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D1, D2, D5; §5.5; §6.2; §8; spikes S-2, S-7 |
 | Commit | `feat(config): load a config file into a validated manifest` |

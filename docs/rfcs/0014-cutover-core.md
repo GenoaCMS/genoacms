@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 14
+title: Cutover: flip adapter exports and integrate core
+status: implemented
+commits: [f9a432c]
+depends: [1, 13]
+architecture: [configuration.md]
+commit-subject: refactor: switch core and adapters to the manifest and host
+sections: legacy
+---
+
 # RFC-0014: Cutover: flip adapter exports and integrate core
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`f9a432c`) |
 | Depends on | RFC-0001 to RFC-0013 |
 | Architecture | §4 (all); §5.2; §8; §9; U6, U7, U8, U11 |
 | Commit | `refactor: switch core and adapters to the manifest and host` |

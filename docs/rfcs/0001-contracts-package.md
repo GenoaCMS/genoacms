@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 1
+title: `@genoacms/contracts` package
+status: implemented
+commits: [33f34bd]
+depends: []
+architecture: [configuration.md]
+commit-subject: feat(contracts): add the adapter contract package
+sections: legacy
+---
+
 # RFC-0001: `@genoacms/contracts` package
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`33f34bd`) |
 | Depends on | — |
 | Architecture | §4 D2, D5; §5.1; §5.3; §5.4 |
 | Commit | `feat(contracts): add the adapter contract package` |

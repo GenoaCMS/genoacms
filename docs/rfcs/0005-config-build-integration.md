@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 5
+title: Vite plugin, SvelteKit adapter resolution, runtime `package.json`
+status: implemented
+commits: [99e7da0]
+depends: [3, 4]
+architecture: [configuration.md]
+commit-subject: feat(config): integrate the manifest with Vite, SvelteKit and the build artifact
+sections: legacy
+---
+
 # RFC-0005: Vite plugin, SvelteKit adapter resolution, runtime `package.json`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`99e7da0`) |
 | Depends on | RFC-0003, RFC-0004 |
 | Architecture | §4 D4, D6, D7; §5.2; §7.1; §9; spikes S-1, S-2, S-3, S-5, S-6, S-7 |
 | Commit | `feat(config): integrate the manifest with Vite, SvelteKit and the build artifact` |

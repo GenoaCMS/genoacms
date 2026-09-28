@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 19
+title: No provider I/O while SvelteKit analyses the build
+status: implemented
+commits: [8bec7a0]
+depends: [18]
+architecture: [configuration.md]
+commit-subject: fix(core): construct no provider while SvelteKit analyses the build
+sections: legacy
+---
+
 # RFC-0019: No provider I/O while SvelteKit analyses the build
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`8bec7a0`) |
 | Depends on | RFC-0018 |
 | Architecture | D8, F18; goal 6; §10 K1 |
 | Commit | `fix(core): construct no provider while SvelteKit analyses the build` |

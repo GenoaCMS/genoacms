@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 7
+title: Port `@genoacms/adapter-gcp`
+status: implemented
+commits: [3753f96]
+depends: [1, 2]
+architecture: [configuration.md]
+commit-subject: feat(adapter-gcp): add descriptors, runtime factories and a build-artifact deploy procedure
+sections: legacy
+---
+
 # RFC-0007: Port `@genoacms/adapter-gcp`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`3753f96`) |
 | Depends on | RFC-0001, RFC-0002 |
 | Architecture | §4 D2, D6; §5.4 (example); §7.2 (GCP row); F9, F15, F17; U2, U10 |
 | Commit | `feat(adapter-gcp): add descriptors, runtime factories and a build-artifact deploy procedure` |

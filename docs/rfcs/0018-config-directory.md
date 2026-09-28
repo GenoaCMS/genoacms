@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 18
+title: One config directory
+status: implemented
+commits: [716c6de, 05152e8]
+depends: [14]
+architecture: [configuration.md]
+commit-subject: Part A: feat(config): look up genoa.config/development in the config directory; Part B: refactor(core): keep the whole config in genoa.config/
+sections: legacy
+---
+
 # RFC-0018: One config directory
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`716c6de`, `05152e8`) |
 | Depends on | RFC-0014 |
 | Architecture | U12; §5.5 (default lookup); §8; §10 C1 |
 | Commits | Part A: `feat(config): look up genoa.config/development in the config directory`; Part B: `refactor(core): keep the whole config in genoa.config/` |

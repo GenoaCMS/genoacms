@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 6
+title: Port `@genoacms/adapter-secrets-env`
+status: implemented
+commits: [0b9ddcc]
+depends: [1]
+architecture: [configuration.md]
+commit-subject: feat(adapter-secrets-env): add descriptor and instance-scoped runtime
+sections: legacy
+---
+
 # RFC-0006: Port `@genoacms/adapter-secrets-env`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`0b9ddcc`) |
 | Depends on | RFC-0001 |
 | Architecture | §6.6; U11; R6 |
 | Commit | `feat(adapter-secrets-env): add descriptor and instance-scoped runtime` |

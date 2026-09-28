@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 9
+title: Port `@genoacms/adapter-postgres`
+status: implemented
+commits: [1b52359]
+depends: [1, 2]
+architecture: [configuration.md]
+commit-subject: feat(adapter-postgres): add descriptor and runtime factory
+sections: legacy
+---
+
 # RFC-0009: Port `@genoacms/adapter-postgres`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`1b52359`) |
 | Depends on | RFC-0001, RFC-0002 |
 | Architecture | §4 D2; F3, F5 |
 | Commit | `feat(adapter-postgres): add descriptor and runtime factory` |

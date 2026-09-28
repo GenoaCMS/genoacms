@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 11
+title: Port `@genoacms/language-adapter-ts`
+status: implemented
+commits: [43d2186]
+depends: [1]
+architecture: [configuration.md]
+commit-subject: feat(language-adapter-ts): take the compilation target as a constructor argument
+sections: legacy
+---
+
 # RFC-0011: Port `@genoacms/language-adapter-ts`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`43d2186`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D2; §5.1 (`LanguageAdapter` stays in `@genoacms/internal`); §8 (`GENOA_CONFIG_PATH` removed) |
 | Commit | `feat(language-adapter-ts): take the compilation target as a constructor argument` |

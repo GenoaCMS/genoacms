@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 2
+title: `@genoacms/conformance` package
+status: implemented
+commits: [962ac51]
+depends: [1]
+architecture: [configuration.md]
+commit-subject: feat(conformance): run adapter conformance suites against a constructed instance
+sections: legacy
+---
+
 # RFC-0002: `@genoacms/conformance` package
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`962ac51`) |
 | Depends on | RFC-0001 |
 | Architecture | §5.1; §10 rows A9, C14 |
 | Commit | `feat(conformance): run adapter conformance suites against a constructed instance` |

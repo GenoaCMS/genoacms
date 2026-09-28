@@ -1,3 +1,7 @@
+---
+type: rfc-index
+---
+
 # RFCs: configuration architecture
 
 Implementation specifications derived from [`docs/architecture/configuration.md`](../architecture/configuration.md)
@@ -5,14 +9,15 @@ Implementation specifications derived from [`docs/architecture/configuration.md`
 (RFC-0021 onwards, for GCP). The architecture documents are authoritative. If an RFC contradicts one, the RFC is wrong.
 
 An RFC specifies a change. Once implemented it is history: the architecture documents carry the current
-state, including every behavior-relevant detail an RFC introduced ([`docs/README.md`](../README.md) §1.2).
+state, including every behavior-relevant detail an RFC introduced ([`WORKFLOW.md`](../WORKFLOW.md) §8).
 
 Branch: `refactor/configuration-architecture`. The branch merges to `main` only after RFC-0017.
 
 ## Order
 
-Every RFC's header states its status: `Draft`, or `Implemented (<commit>)`, after which it is frozen
-([`docs/README.md`](../README.md) §1.3). RFC-0016 and RFC-0017 are the only drafts.
+Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
+frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0016 and RFC-0017 are the only drafts. RFC-0001 to RFC-0024
+predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 
 Each RFC depends only on RFCs above it. Implement strictly in this order, and commit each RFC on its
 own before starting the next.
@@ -64,7 +69,7 @@ deleted in RFC-0014.
 4. **Package manager.** `pnpm` only. Run commands from the repository root unless a step says otherwise.
 5. **Style.** Match the package's existing lint configuration and idiom. JavaScript packages use JSDoc and hand-written `.d.ts`; TypeScript packages compile with `tsc`. Doc comments explain *why*, as in the surrounding code.
 6. **Functions.** One abstraction level per function; small single-purpose units.
-7. **Verification.** Every command in the RFC's *Verification* section must pass before committing. A pre-existing failure is recorded as a baseline *before* starting and must not get worse.
+7. **Verification.** Every command in the RFC's *Verification* section must pass before committing, and so must `pnpm run docs:check`. A pre-existing failure is recorded as a baseline *before* starting and must not get worse.
 8. **Commits.** Conventional commits, one per RFC, using the subject given in the RFC. No AI attribution. Documentation changes to `docs/` are committed separately from code.
 9. **Secrets in tests.** Tests that need real cloud credentials are opt-in behind an environment variable named in the RFC, and they skip cleanly without it. CI never has credentials.
 

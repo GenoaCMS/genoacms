@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 22
+title: Destroy superseded Secret Manager versions
+status: implemented
+commits: [7fd6744]
+depends: [7]
+architecture: [adapter-gcp/secrets.md]
+commit-subject: feat(adapter-gcp): destroy superseded secret versions after a recovery window
+sections: legacy
+---
+
 # RFC-0022: Destroy superseded Secret Manager versions
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`7fd6744`) |
 | Depends on | RFC-0007 |
 | Architecture | [`adapter-gcp/secrets.md`](../architecture/adapter-gcp/secrets.md) GD4; GF5; README §4, GU3 |
 | Commit | `feat(adapter-gcp): destroy superseded secret versions after a recovery window` |

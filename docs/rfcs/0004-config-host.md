@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 4
+title: `@genoacms/config/host`: resolution, bootstrap, construction
+status: implemented
+commits: [c8ce612]
+depends: [1, 3]
+architecture: [configuration.md]
+commit-subject: feat(config): construct providers through a host
+sections: legacy
+---
+
 # RFC-0004: `@genoacms/config/host`: resolution, bootstrap, construction
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`c8ce612`) |
 | Depends on | RFC-0001, RFC-0003 |
 | Architecture | §4 D3, D5; §5.6; §6 |
 | Commit | `feat(config): construct providers through a host` |

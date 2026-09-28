@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 20
+title: Vendor local packages into the artifact
+status: implemented
+commits: [3062d8f]
+depends: [5, 15]
+architecture: [configuration.md]
+commit-subject: feat(config): vendor local packages into the runtime artifact
+sections: legacy
+---
+
 # RFC-0020: Vendor local packages into the artifact
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`3062d8f`) |
 | Depends on | RFC-0005, RFC-0015 |
 | Architecture | D9, F19; §7.1; §13 S-8 |
 | Commit | `feat(config): vendor local packages into the runtime artifact` |

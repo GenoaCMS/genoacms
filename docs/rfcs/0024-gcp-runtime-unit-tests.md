@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 24
+title: Unit tests for every current GCP runtime statement
+status: implemented
+commits: [b050b3b]
+depends: [22]
+architecture: [configuration.md]
+commit-subject: test(adapter-gcp): cover every storage, Firestore and secrets statement
+sections: legacy
+---
+
 # RFC-0024: Unit tests for every current GCP runtime statement
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`b050b3b`) |
 | Depends on | RFC-0022 |
 | Architecture | [`adapter-gcp/README.md`](../architecture/adapter-gcp/README.md) GD6; GF12, GF13; STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11, DEP-13 |
 | Commit | `test(adapter-gcp): cover every storage, Firestore and secrets statement` |

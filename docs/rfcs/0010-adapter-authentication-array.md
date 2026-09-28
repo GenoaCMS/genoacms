@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 10
+title: Port `@genoacms/authentication-adapter-array`
+status: implemented
+commits: [b42ac17]
+depends: [1]
+architecture: [configuration.md]
+commit-subject: feat(authentication-adapter-array): add descriptor and runtime factory
+sections: legacy
+---
+
 # RFC-0010: Port `@genoacms/authentication-adapter-array`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`b42ac17`) |
 | Depends on | RFC-0001 |
 | Architecture | §4 D2, D5; §8 (core's credentials via `inline()`) |
 | Commit | `feat(authentication-adapter-array): add descriptor and runtime factory` |

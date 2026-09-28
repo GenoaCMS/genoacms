@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 13
+title: Port `@genoacms/adapter-aws`
+status: implemented
+commits: [03aaf71]
+depends: [1, 2]
+architecture: [configuration.md]
+commit-subject: feat(adapter-aws): port storage, database and deployment to descriptors and factories
+sections: legacy
+---
+
 # RFC-0013: Port `@genoacms/adapter-aws`
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`03aaf71`) |
 | Depends on | RFC-0001, RFC-0002 |
 | Architecture | §4 D2, D6; §7.2 (AWS row); F14; §10 rows A10, P9 |
 | Commit | `feat(adapter-aws): port storage, database and deployment to descriptors and factories` |

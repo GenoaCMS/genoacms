@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 16
+title: Delete `@genoacms/cloudabstraction`
+status: draft
+commits: []
+depends: [15]
+architecture: [configuration.md]
+commit-subject: refactor!: remove @genoacms/cloudabstraction
+sections: legacy
+---
+
 # RFC-0016: Delete `@genoacms/cloudabstraction`
 
 | | |
 | :-- | :-- |
-| Status | Draft |
 | Depends on | RFC-0015 |
 | Architecture | §5.1; §10 (every row now points away from the package) |
 | Commit | `refactor!: remove @genoacms/cloudabstraction` |

@@ -1,8 +1,19 @@
+---
+type: rfc
+number: 23
+title: Cloud Run functions honor ORIGIN and XFF_DEPTH
+status: implemented
+commits: [fb6f805]
+depends: [21]
+architecture: [adapter-gcp/deployment.md]
+commit-subject: feat(sveltekit-adapter-cloud-run-functions): honor ORIGIN and XFF_DEPTH, set by the gcp target
+sections: legacy
+---
+
 # RFC-0023: Cloud Run functions honor ORIGIN and XFF_DEPTH
 
 | | |
 | :-- | :-- |
-| Status | Implemented (`fb6f805`) |
 | Depends on | RFC-0021 |
 | Architecture | [`adapter-gcp/deployment.md`](../architecture/adapter-gcp/deployment.md) GD5 (GU4); ADP-1, ADP-5, ADP-6, ADP-7, DEP-14; GF7, GF11, GF14 |
 | Commit | `feat(sveltekit-adapter-cloud-run-functions): honor ORIGIN and XFF_DEPTH, set by the gcp target` |
