@@ -1,7 +1,8 @@
 # RFCs: configuration architecture
 
 Implementation specifications derived from [`docs/architecture/configuration.md`](../architecture/configuration.md)
-(Tier 1). The architecture document is authoritative. If an RFC contradicts it, the RFC is wrong.
+(Tier 1), and from the GCP adapter architecture in [`docs/architecture/adapter-gcp/`](../architecture/adapter-gcp/README.md)
+(RFC-0021 onwards, for GCP). The architecture documents are authoritative. If an RFC contradicts one, the RFC is wrong.
 
 Branch: `refactor/configuration-architecture`. The branch merges to `main` only after RFC-0017.
 
@@ -30,6 +31,8 @@ own before starting the next.
 | [0019](0019-no-provider-io-while-building.md) | No provider I/O while SvelteKit analyses the build (D8). Found verifying 0015, implemented before it. | `packages/core` |
 | [0015](0015-cli.md) | CLI | `packages/cli` |
 | [0020](0020-vendor-local-packages.md) | Vendor local packages into the artifact (D9, F19). Found preparing the first production deploy, implemented before 0016. | `packages/config`, `packages/cli` |
+| [0021](0021-gcp-deploy-settings-and-completion.md) | GCP deploy waits for the platform; function settings are options (`adapter-gcp/deployment.md` GD1, GD3) | `packages/adapter-gcp` |
+| [0022](0022-gcp-secret-version-cleanup.md) | Destroy superseded Secret Manager versions (`adapter-gcp/secrets.md` GD4) | `packages/adapter-gcp` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
 
