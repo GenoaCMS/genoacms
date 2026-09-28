@@ -57,6 +57,7 @@ Known gaps in the test runs, recorded 2026-09-28 when the project adopted workfl
 - **`@genoacms/sdk`** passes every test but exits non-zero on vitest's `Timeout calling "onTaskUpdate"`.
 - **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
 - **`@genoacms/cli`** has no tests: its `test` script starts the CLI.
+- **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
 - The GCP gaps are GF15 to GF19 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
 
 ## History

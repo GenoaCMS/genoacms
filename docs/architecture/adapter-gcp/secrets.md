@@ -28,7 +28,8 @@ registry). Subordinate seeds are claimed with `setSecretIfAbsent` and never over
 SEC-10.
 *Why:* the contract never consults history, so old versions serve nobody and only cost money and
 exposure. The recovery window keeps the one real use of history, undoing a bad rotation by hand,
-without GenoaCMS depending on it.
+without GenoaCMS depending on it. A failed cleanup is retried by the next overwrite, because SEC-8
+destroys every lower enabled version, not only the previous one.
 *Cost:* two more permissions for the runtime identity (README, IAM), one of them destructive
 (`versions.destroy`), and one extra list call per overwrite. Destruction is irreversible after the
 window, so a bad rotation unnoticed for more than 7 days cannot be rolled back from the store, and 7
