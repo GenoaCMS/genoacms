@@ -148,7 +148,9 @@ Nothing else changes.
 6. `serviceConfig` with all seven set maps each one, with ingress `internal` → `2` and `internal-and-gclb` → `3`.
 
 **`descriptor.test.ts`:** add one case: every setting key is accepted, and an invalid `memory` is
-reported through `validate`. Existing cases are unchanged.
+reported through `validate`. The existing unknown-key case used `runtime: 'nodejs20'` as its example
+of an unknown option, which this RFC makes a real option. It uses `concurrency: 80` instead, a key
+that stays unknown (architecture GQ1). The other existing cases are unchanged.
 
 **`procedure.test.ts`**: the mocked `createFunction` and `updateFunction` return
 `[{ promise: async () => [{ url: 'https://fn.example' }] }]`, and `getFunction` rejects with
