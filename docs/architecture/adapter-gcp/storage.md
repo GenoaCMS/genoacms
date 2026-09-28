@@ -31,7 +31,7 @@ filter out.
 | :-- | :-- | :-- |
 | GF8 | **Signed URLs under ADC need `signBlob`** (STO-8). Without a key, the client library signs through the IAM Credentials API as the runtime identity, which needs `iam.serviceAccounts.signBlob` on itself (README §4). Core's storage browser uses signed URLs, so without the grant file previews and downloads fail while everything else works. Whether the default compute account holds it depends on the project's grants. | documented; GS3 not run |
 | GF10 | **Directory operations are unbounded and not atomic** (STO-11, STO-12). They list the whole prefix and act on every object at once, in parallel. A large directory issues that many requests simultaneously, and a failure part-way leaves it half moved or half deleted. | open |
-| GF12 | **Most of the runtime is untested.** STO-5 to STO-12 have no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling are verified by nothing. | open |
+| GF12 | **Most of the runtime is untested.** STO-5 to STO-12 have no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling are verified by nothing. | decided: README GD6, RFC-0024 |
 
 ## 4. History
 

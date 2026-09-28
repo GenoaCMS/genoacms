@@ -27,7 +27,7 @@ collections could name one after it.
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF9 | **`getCollection` reads a whole collection** (DB-5): every document in one call, with no paging and no limit. Cost and latency grow with the collection, and a large one can exceed the function's memory. The contract offers no paging, so the fix belongs to the contract first. | open |
-| GF13 | **The runtime's methods are untested by unit tests.** Only construction (DB-2) is. DB-3 to DB-7 rely on the opt-in conformance suite. | open |
+| GF13 | **The runtime's methods are untested by unit tests.** Only construction (DB-2) is. DB-3 to DB-7 rely on the opt-in conformance suite. | decided: README GD6, RFC-0024 |
 
 ## 4. History
 

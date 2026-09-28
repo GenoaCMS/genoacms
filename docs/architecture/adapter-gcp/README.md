@@ -48,8 +48,21 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 | GU1 | Production authentication on GCP uses **Identity Platform**. GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication.md`](authentication.md) GD2 |
 | GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | §3 |
 | GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), §4, [`secrets.md`](secrets.md) |
+| GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
 
 ---
+
+## 1a. Cross-cutting decisions
+
+**GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
+**New** (RFC-0024). STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11 and DEP-13 get unit
+tests with the SDK mocked, as the existing runtime tests do. The mocks assert the calls the
+Specification names: arguments, preconditions and error mapping. The opt-in conformance suite stays,
+as the check against the real services.
+*Why:* the author reviews Specifications, not code (`docs/README.md` §1.4). A statement without a test
+is a claim nobody checks, and the untested ones include core's optimistic concurrency (STO-6).
+*Cost:* mocks encode the SDK's call shapes. An SDK upgrade that changes them breaks tests that do not
+touch real behavior, while the conformance suite, which does, runs only on request.
 
 ## 2. The package
 
@@ -137,28 +150,32 @@ Every `G` ID, where it lives, and its state.
 | GU1 | Identity Platform authenticates on GCP | decided | [`authentication.md`](authentication.md) |
 | GU2 | ADC at runtime; keys only for deploy | current | §3 |
 | GU3 | Deployment and secrets fixes approved | decided | §1 |
+| GU4 | `ORIGIN` and `XFF_DEPTH` over the alternatives | decided | §1 |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
+| GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | new, RFC-0023 | [`deployment.md`](deployment.md) |
+| GD6 | Every current runtime statement has a unit test | new, RFC-0024 | §1a |
 | GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF4 | The runtime's IAM needs were documented nowhere | fixed, §4 and GD3 | §4 |
 | GF5 | Superseded secret versions accumulated | fixed, RFC-0022 | [`secrets.md`](secrets.md) |
 | GF6 | Any error looking up the function counted as "does not exist" | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
-| GF7 | `getClientAddress` returns the raw `X-Forwarded-For` list | open | [`deployment.md`](deployment.md) |
+| GF7 | `getClientAddress` returns the raw `X-Forwarded-For` list | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (§4) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
-| GF11 | The SvelteKit adapter's tests are disabled and stale | open | [`deployment.md`](deployment.md) |
-| GF12 | Most of the storage runtime is untested | open | [`storage.md`](storage.md) |
-| GF13 | The Firestore runtime's methods have no unit tests | open | [`database.md`](database.md) |
-| GF14 | The SvelteKit adapter's `env.js` is dead code; `envPrefix` has no effect | open | [`deployment.md`](deployment.md) |
+| GF11 | The SvelteKit adapter's tests are disabled and stale | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF12 | Most of the storage runtime is untested | decided: GD6, RFC-0024 | [`storage.md`](storage.md) |
+| GF13 | The Firestore runtime's methods have no unit tests | decided: GD6, RFC-0024 | [`database.md`](database.md) |
+| GF14 | The SvelteKit adapter's `env.js` is dead code; `envPrefix` has no effect | decided: GD5, RFC-0023 | [`deployment.md`](deployment.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
 | GS4 | Version destruction and its recovery window (live) | unit tests pass; live not run (author) | [`secrets.md`](secrets.md) |
+| GS5 | `XFF_DEPTH` 1 yields the real client behind Google's front end (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 
@@ -203,3 +220,16 @@ Every `G` ID, where it lives, and its state.
 **Blindspots & missed edge cases**
 - `configuration.md` was written as a proposal and has no markers. Its GCP rows now point here, but the two documents follow different conventions until it is restructured the same way.
 - This directory is the first to follow the project-wide conventions and acts as their template. AWS, whose findings from the AWS discussion are recorded only in conversation, is the next candidate.
+
+## Critique & architectural sanity check: GD6
+
+**Pros**
+- Every current statement becomes checkable on each commit without GCP credentials, which is what makes "review the Specification, not the code" hold for this package.
+- Writing a test per statement exposes statements that are too vague to test, which is itself a Specification defect.
+
+**Cons & trade-offs**
+- Mock-based tests prove the calls, not the service's reaction to them. A precondition GCS interprets differently than assumed passes the unit test and fails in production. The opt-in conformance suite is the only guard, and it runs only on request.
+- More test code to maintain across SDK upgrades.
+
+**Blindspots & missed edge cases**
+- Concurrency in STO-11 and STO-12 (parallel operations) cannot be observed meaningfully with mocks. The tests can assert which calls were made, not what a partial failure leaves behind (GF10).
