@@ -46,6 +46,7 @@ own before starting the next.
 | [0022](0022-gcp-secret-version-cleanup.md) | Destroy superseded Secret Manager versions (`adapter-gcp/secrets.md` GD4) | `packages/adapter-gcp` |
 | [0023](0023-cloud-run-origin-and-client-address.md) | Cloud Run functions honor `ORIGIN` and `XFF_DEPTH` (`adapter-gcp/deployment.md` GD5) | `packages/sveltekit-adapter-cloud-run-functions`, `packages/adapter-gcp` |
 | [0024](0024-gcp-runtime-unit-tests.md) | Unit tests for every current GCP runtime statement (`adapter-gcp/README.md` GD6) | `packages/adapter-gcp` (tests only) |
+| [0025](0025-gcp-contract-and-e2e-tests.md) | Contract and end-to-end tests for the GCP statements (`adapter-gcp/` GF15 to GF19) | `packages/adapter-gcp`, `packages/sveltekit-adapter-cloud-run-functions` (tests only), `scripts/`, CI |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
 
