@@ -144,14 +144,14 @@ After adding a version, `setSecret` lists the secret's versions with filter `sta
 SEC-8 is best effort. Any error in it, including a version name that is not numbered (`secrets/unexpected-version-name: <name>`), is reported as a warning, `secrets/cleanup-failed: <key>: <message>`, and `setSecret` still resolves `true`.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
-- Level: unit, contract
+- Level: unit
 
 #### SEC-10 · Claims do not clean up
 
 `setSecretIfAbsent` does no cleanup.
 
 - Test: `packages/adapter-gcp/src/secrets/runtime.test.ts`
-- Level: unit, contract
+- Level: unit
 
 #### SEC-11 · Deleting a secret
 

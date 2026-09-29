@@ -46,6 +46,9 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 | GU1 | Production authentication on GCP uses **Identity Platform**. GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication.md`](authentication.md) GD2 |
 | GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | Identities |
 | GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), IAM, [`secrets.md`](secrets.md) |
+| GU5 | 2026-09-29: SEC-9 and SEC-10 are verified at `unit` only. They describe the adapter's own handling, which the real service cannot provoke or show (RFC-0025). | [`secrets.md`](secrets.md) |
+| GU6 | 2026-09-29: the contract tests run in production's project `genoacms`, confined to names unique to each run and removed after it, rather than in a separate project. | Verification |
+| GU7 | 2026-09-29: the deploy contract tests create, update and delete a function on every push to `main`, as the only real check of GD1. | [`deployment.md`](deployment.md) |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
@@ -155,6 +158,9 @@ Every `G` ID, where it lives, and its state.
 | GU2 | ADC at runtime; keys only for deploy | current | README |
 | GU3 | Deployment and secrets fixes approved | decided | README |
 | GU4 | `ORIGIN` and `XFF_DEPTH` over the alternatives | decided | README |
+| GU5 | SEC-9 and SEC-10 at `unit` only | decided | [`secrets.md`](secrets.md) |
+| GU6 | Contract tests in production's project, confined per run | decided | README |
+| GU7 | A real deploy on every push to `main` | decided | [`deployment.md`](deployment.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
