@@ -46,7 +46,6 @@ run; and the deploy tests run on every push to `main`.
 | `packages/adapter-gcp/test/contract/deployment.test.ts` | create: DEP contract tests |
 | `packages/adapter-gcp/test/contract/artifact/` | create: `package.json` and `index.js` of a minimal build artifact |
 | `packages/adapter-gcp/src/{storage,database,secrets,deployment}/descriptor.test.ts` | modify: assert the COM-3 reason text (GF19); no other assertion changes |
-| `packages/adapter-gcp/vitest.config.ts` | modify: `testTimeout` for `test/contract/deployment.test.ts` only |
 | `packages/adapter-gcp/package.json` | modify: script `test:contract` |
 | `packages/sveltekit-adapter-cloud-run-functions/e2e/fixture/` | create: the SvelteKit app built by the tests |
 | `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js` | create: ADP end-to-end tests |
@@ -99,7 +98,7 @@ to the adapter from `FIXTURE_OUT`, `FIXTURE_PRECOMPRESS` and `FIXTURE_ENV_PREFIX
 | `/about` | a prerendered page, `trailingSlash: 'never'` |
 | `/echo` | `POST`: `{ href, body }` of the request, as JSON |
 | `/address` | `GET`: `getClientAddress()` as text |
-| `static/robots.txt` | a static file |
+| `static/genoacms.txt` | a static file |
 
 The tests build it twice with `vite build`: **A** with defaults, **B** with `precompress: false` and
 `envPrefix: 'APP_'`. They serve a build with `functions-framework --target=app --source=<out>/function.js`
@@ -114,6 +113,7 @@ named `app`, and the environment of each case.
   credentials exist.
 - No test of the IAM grants in the README (GQ2).
 - No deployment of core, and no request through Google's front end: GS5 stays a manual check.
+- The Functions Framework's own 404 for `/favicon.ico` and `/robots.txt` (GF20), and `startAfter` being inclusive (GF21): each fix is its own RFC.
 - A Playwright suite shared by every deployment target, run with the `gcp` target and later `aws`:
   its own RFC, after `configuration.md` §7 is restructured into statements and core builds in CI.
 - Not creating GCP resources: the bucket, the Workload Identity pool and the service account are the
@@ -134,7 +134,7 @@ tests are `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`, 
 - `STO-7: moves an object within its bucket, and deletes it`: given an object, when moved to a new name, then the old name has no object and the new one has the content; when deleted, then neither exists.
 - `STO-8: serves the object through a URL signed as the test identity`: given an object, when `getSignedURL` is called with an expiry 10 minutes ahead, then the URL has the form of STO-8 with `Expires` equal to the expiry in seconds, and an unauthenticated `GET` of it returns 200 with the object's content.
 - `STO-9: lists one level without placeholders or the directory itself`: given `d/a.txt`, `d/.folderPlaceholder`, `d/sub/b.txt` and an object named exactly `d/`, when `d/` is listed, then `files` is exactly `d/a.txt` with its size and a `lastModified` date, and `directories` is exactly `d/sub/`.
-- `STO-9: pages a listing with limit and startAfter`: given `p/1`, `p/2`, `p/3`, when `p/` is listed with `limit: 2`, then `files` is `p/1`, `p/2`; with `startAfter: 'p/2'`, then it is `p/3`.
+- `STO-9: pages a listing with limit and startAfter` (an expected failure, `it.fails`, until GF21 is fixed; STO-9's `Test:` line names `startAfter` as unverified): given `p/1`, `p/2`, `p/3`, when `p/` is listed with `limit: 2`, then `files` is `p/1`, `p/2`; with `startAfter: 'p/2'`, then it is `p/3`.
 - `STO-10: creates a directory that its parent's listing shows`: when `createDirectory` creates `e`, then `e/.folderPlaceholder` exists and the listing of the run's prefix names `e/` among `directories`.
 - `STO-11: deletes every object under a directory, at every depth, and nothing beside it`: given `f/1`, `f/g/2`, `f/g/h/3` and `fx/4`, when `f/` is deleted, then none of the first three exists and `fx/4` does.
 - `STO-12: moves every object under a directory, at every depth`: given `m/1` and `m/n/2`, when `m/` is moved to `moved/`, then `moved/1` and `moved/n/2` hold the contents and no object under `m/` remains.
@@ -152,7 +152,7 @@ tests are `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`, 
 
 ### Deployment (`deployment.test.ts`, sequential, one function)
 
-- `DEP-8, DEP-9, DEP-10, DEP-12, DEP-13: creates a function that does not exist, with the operator's ADC, and prints its URL`: given no function by the run's name and no `credentials` option, when the procedure deploys the minimal artifact, then it resolves, prints `Function URL: <url>` with an `https` URL, and the SDK reports the function `ACTIVE` with entry point `genoacms`, runtime `nodejs22`, `NODE_ENV=production` as its only variable, one maximum instance and ingress `ALLOW_ALL`.
+- `DEP-8, DEP-9, DEP-10, DEP-12, DEP-13: creates a function that does not exist, with the operator's ADC, and prints its URL`: given no function by the run's name and no `credentials` option, when the procedure deploys the minimal artifact, then it resolves, prints `Function URL: <url>` with an `https` URL, and the SDK reports the function `ACTIVE` with entry point `genoacms`, runtime `nodejs22`, `NODE_ENV=production` and neither `ORIGIN` nor `XFF_DEPTH` among its variables, one maximum instance and ingress `ALLOW_ALL`. The platform adds `LOG_EXECUTION_ID` itself (`deployment.md`, Verification).
 - `DEP-9, DEP-10: updates the function that exists`: given that function, when deployed again with `maxInstances: 2`, then it resolves and the SDK reports two maximum instances.
 - `DEP-11: fails with deploy/function-failed when the platform cannot build the artifact, and keeps the previous revision`: given an artifact whose `package.json` depends on a package that does not exist, when deployed, then it rejects with a message starting `deploy/function-failed: `, and the SDK still reports the function `ACTIVE` with two maximum instances (GS2).
 
@@ -167,7 +167,7 @@ tests are `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`, 
 - `ADP-3: bundles the server, keeping the app's dependencies external`: given build A, then `server/manifest.js` exports `manifest`, `prerendered` containing `/about`, and `base`, and the server bundle imports `@polka/url` rather than containing it.
 - `ADP-4: serves a server-rendered page through the exported handler`: given build A served, when `/` is requested, then it answers 200 with the page's HTML.
 - `ADP-5: serves immutable client assets with a one-year cache, precompressed on request`: when an immutable asset is requested with `Accept-Encoding: br`, then it answers 200 with `cache-control: public,max-age=31536000,immutable` and `content-encoding: br`.
-- `ADP-5: serves static files and prerendered pages, and redirects the other trailing-slash form with 308`: when `/robots.txt` and `/about` are requested, then both answer 200 with their content; when `/about/` is requested, then it answers 308 with `location: /about`.
+- `ADP-5: serves static files and prerendered pages, and redirects the other trailing-slash form with 308`: when `/genoacms.txt` and `/about` are requested, then both answer 200 with their content; when `/about/` is requested, then it answers 308 with `location: /about`.
 - `ADP-5: builds the request URL from forwarded headers and passes the body`: when `/echo` receives a JSON `POST` with `X-Forwarded-Proto: https` and `X-Forwarded-Host: cms.example`, then `href` is `https://cms.example/echo` and `body` is the sent body.
 - `ADP-5, ADP-7: takes the request URL from ORIGIN over forwarded headers`: given `ORIGIN=https://origin.example`, when the same request is sent, then `href` is `https://origin.example/echo`.
 - `ADP-6: returns the X-Forwarded-For entry XFF_DEPTH positions from the right`: given the default depth, when `/address` receives `X-Forwarded-For: 203.0.113.9, 198.51.100.7`, then it answers `198.51.100.7`; given `XFF_DEPTH=2`, then `203.0.113.9`; given `XFF_DEPTH=3`, then it answers 500.
