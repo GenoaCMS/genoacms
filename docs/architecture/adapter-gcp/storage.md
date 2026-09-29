@@ -42,6 +42,7 @@ filter out.
 | GF10 | **Directory operations are unbounded and not atomic** (STO-11, STO-12). They list the whole prefix and act on every object at once, in parallel. A large directory issues that many requests simultaneously, and a failure part-way leaves it half moved or half deleted. | open |
 | GF12 | *History.* **Most of the runtime was untested.** STO-5 to STO-12 had no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling were verified by nothing. | fixed, RFC-0024 |
 | GF15 | **Most storage statements have no contract test** (STO-6 to STO-12). Their level includes `contract`, but the GCP conformance run carries only STO-4, and `@genoacms/conformance` covers only upload, read, list and delete. Preconditions, moves, directories and signed URLs (GS3) are checked only against a mocked SDK. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
+| GF21 | **`startAfter` is inclusive** (STO-9). The runtime passes it to GCS as `startOffset`, which lists from the named object on, so the next page repeats the object named `startAfter`, while STO-9 starts after it. Found by RFC-0025's contract test (2026-09-30). Core passes no `startAfter`, so no user meets it today. The fix, skipping the object named `startAfter`, is its own RFC. | open |
 
 ### History
 

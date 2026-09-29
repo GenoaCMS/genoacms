@@ -84,6 +84,7 @@ leave the machine (`configuration.md` F9, F15).
 | GF14 | *History.* **`env.js` was dead code.** The adapter copies `env.js`, adapter-node's reader for `ORIGIN`, `XFF_DEPTH`, `ADDRESS_HEADER`, `BODY_SIZE_LIMIT` and similar variables, but the handler never imports it. The `envPrefix` option and all those variables have no effect. The origin comes only from forwarded headers (ADP-5). | fixed, RFC-0023 |
 | GF17 | **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
 | GF18 | **The SvelteKit adapter has no end-to-end test** (ADP-1 to ADP-7): no test builds an app with it and serves a request through the result. ADP-5 to ADP-7 are unit-tested only, and GS5 checks the depth by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
+| GF20 | **The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt`** before the handler runs, so an instance on the `gcp` target serves neither, although ADP-5's handler would. Found by RFC-0025's end-to-end tests against `@google-cloud/functions-framework` 5 (2026-09-29). Setting `IGNORED_ROUTES` to an empty string disables the filter, per the framework's source; whether the deployed runtime honors it is unverified. The fix is its own RFC: DEP-10 and DEP-14 would set it. | open |
 
 ### History
 
@@ -105,6 +106,7 @@ leave the machine (`configuration.md` F9, F15).
 - **GS5, for GD5: not run yet (author, live).** Send a request with a forged `X-Forwarded-For: 203.0.113.9` to the deployed function and log `getClientAddress()`. Expected: the real client address, not `203.0.113.9`. It confirms that depth 1 is right for a function reached directly. It is unverified that Google's front end appends exactly one entry, and behind Firebase Hosting the right depth is expected to be 2.
 
 - Unit tests, with the SDK mocked, cover the `DEP` statements marked below.
+- **Established by experiment (RFC-0025, 2026-09-30):** Cloud Run functions adds `LOG_EXECUTION_ID` to every function's environment variables on its own, beside those DEP-10 sends.
 - **GS2, for GD1: not run yet (author, live).** Deploy an artifact whose `package.json` names a dependency that does not exist. Expected: `genoa deploy` exits non-zero with `deploy/function-failed` and the build error, and the previous revision still serves. Then deploy the real artifact. Expected: it exits zero and prints the URL.
 - The first live deploy of core (2026-09-28, author) exercised DEP-5 to DEP-10 and ADP-1 to ADP-5 together, before GD1.
 

@@ -186,6 +186,8 @@ Every `G` ID, where it lives, and its state.
 | GF17 | The deploy procedure has no contract test | open | [`deployment.md`](deployment.md) |
 | GF18 | The SvelteKit adapter has no end-to-end test | open | [`deployment.md`](deployment.md) |
 | GF19 | COM-3 is only partly tested | open | README |
+| GF20 | The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt` | open | [`deployment.md`](deployment.md) |
+| GF21 | `startAfter` is inclusive | open | [`storage.md`](storage.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
