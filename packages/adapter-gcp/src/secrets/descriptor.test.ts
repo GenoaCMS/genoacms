@@ -14,6 +14,7 @@ describe('the GCP secrets descriptor', () => {
     expect(validate({ projectId: 'p' })).toEqual([])
     expect(validate({ projectId: 'p', extra: 1 })).toEqual(["unknown option 'extra'"])
     expect(validate({})).toHaveLength(1)
+    expect(validate({})).toEqual(['projectId is required and must be a non-empty string'])
     expect(validate({ projectId: '' })).toHaveLength(1)
   })
 })

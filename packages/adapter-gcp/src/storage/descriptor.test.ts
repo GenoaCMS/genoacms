@@ -13,6 +13,7 @@ describe('the GCP storage descriptor', () => {
     expect(validate({ projectId: 'p' })).toEqual([])
     expect(validate({ projectId: 'p', region: 'x' })).toEqual(["unknown option 'region'"])
     expect(validate({})).toHaveLength(1)
+    expect(validate({})).toEqual(['projectId is required and must be a non-empty string'])
     expect(validate({ projectId: '' })).toHaveLength(1)
   })
 })

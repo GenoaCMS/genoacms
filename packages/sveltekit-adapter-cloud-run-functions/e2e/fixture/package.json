@@ -1,0 +1,8 @@
+{
+	"name": "genoacms-adapter-e2e-fixture",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@polka/url": "*"
+	}
+}

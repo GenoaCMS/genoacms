@@ -24,7 +24,8 @@
     "build": "rimraf dist && tsc",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
-    "test:conformance": "vitest run test/conformance.test.ts"
+    "test:conformance": "vitest run test/conformance.test.ts",
+    "test:contract": "vitest run test/contract test/conformance.test.ts"
   },
   "dependencies": {
     "@google-cloud/firestore": "^7.1.0",

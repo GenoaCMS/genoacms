@@ -32,5 +32,6 @@ describe('the GCP deployment descriptor', () => {
     expect(validate({ projectId: 'p', region: 'r', concurrency: 80 })).toEqual(["unknown option 'concurrency'"])
     expect(validate({ projectId: 'p' })).toHaveLength(1)
     expect(validate({ region: 'r', projectId: '' })).toHaveLength(1)
+    expect(validate({})).toContain('projectId is required and must be a non-empty string')
   })
 })
