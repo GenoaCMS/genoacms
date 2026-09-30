@@ -13,6 +13,7 @@ describe('the GCP database descriptor', () => {
     expect(validate({ projectId: 'p', databaseId: '(default)' })).toEqual([])
     expect(validate({ projectId: 'p', region: 'eu-west3' })).toEqual(["unknown option 'region'"])
     expect(validate({})).toHaveLength(1)
+    expect(validate({})).toEqual(['projectId is required and must be a non-empty string'])
     expect(validate({ projectId: '' })).toHaveLength(1)
   })
 })

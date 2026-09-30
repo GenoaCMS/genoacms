@@ -2,7 +2,7 @@
 /**
  * Runs the tests of one level and writes a JUnit report per package to reports/<level>/.
  *
- *   node scripts/test-level.mjs unit|integration|conformance|contract
+ *   node scripts/test-level.mjs unit|integration|conformance|contract|e2e
  *
  * docs/README.md, "Test levels", says which tests belong to which level.
  */
@@ -10,7 +10,8 @@ import { readdirSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-const OPT_IN_CONFORMANCE = 'test/conformance.test.*'
+const REAL_SERVICE_TESTS = 'test/**'
+const END_TO_END_TESTS = 'e2e/**'
 const GCP_ARCHIVE_TESTS = 'src/deployment/archive.test.ts'
 const EXCLUDED_FROM_UNIT = new Set(['@genoacms/core', '@genoacms/conformance'])
 
@@ -28,8 +29,14 @@ function unitRuns () {
     .filter(({ manifest }) => runsVitest(manifest) && !EXCLUDED_FROM_UNIT.has(manifest.name))
     .map(({ dir, manifest }) => ({
       dir,
-      args: ['--exclude', OPT_IN_CONFORMANCE, ...(manifest.name === '@genoacms/adapter-gcp' ? ['--exclude', GCP_ARCHIVE_TESTS] : [])]
+      args: ['--exclude', REAL_SERVICE_TESTS, '--exclude', END_TO_END_TESTS, ...(manifest.name === '@genoacms/adapter-gcp' ? ['--exclude', GCP_ARCHIVE_TESTS] : [])]
     }))
+}
+
+function endToEndRuns () {
+  return workspacePackages()
+    .filter(({ dir, manifest }) => runsVitest(manifest) && existsSync(join(dir, 'e2e')))
+    .map(({ dir }) => ({ dir, args: ['--mode', 'e2e', 'e2e'] }))
 }
 
 const RUNS = {
@@ -40,9 +47,10 @@ const RUNS = {
     { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] }
   ],
   contract: () => [
-    { dir: 'packages/adapter-gcp', args: ['test/conformance.test.ts'] },
+    { dir: 'packages/adapter-gcp', args: ['test/conformance.test.ts', 'test/contract'] },
     { dir: 'packages/adapter-aws', args: ['test/conformance.test.js'] }
-  ]
+  ],
+  e2e: endToEndRuns
 }
 
 function reportPath (level, dir) {

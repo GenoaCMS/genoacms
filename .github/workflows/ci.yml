@@ -80,6 +80,11 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
 
+      - name: End-to-end tests
+        id: e2e
+        continue-on-error: true
+        run: node scripts/test-level.mjs e2e
+
       # WORKFLOW §6.2, §11.1
       - name: Authenticate to Google Cloud
         if: github.event_name == 'push' && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
@@ -104,6 +109,7 @@ jobs:
           GENOACMS_TEST_GCP: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && '1' || '' }}
           GENOACMS_TEST_GCP_PROJECT: ${{ vars.GCP_TEST_PROJECT }}
           GENOACMS_TEST_GCP_BUCKET: ${{ vars.GCP_TEST_BUCKET }}
+          GENOACMS_TEST_GCP_REGION: ${{ vars.GCP_TEST_REGION }}
           GENOACMS_TEST_AWS: ${{ vars.AWS_TEST_ROLE_ARN != '' && '1' || '' }}
           GENOACMS_TEST_AWS_REGION: ${{ vars.AWS_TEST_REGION }}
           GENOACMS_TEST_AWS_BUCKET: ${{ vars.AWS_TEST_BUCKET }}
@@ -117,7 +123,7 @@ jobs:
             args+=(--junit "$(basename "$(dirname "$report")")=$report")
           done
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            args+=(--defer contract --defer e2e)
+            args+=(--defer contract)
           fi
           node docs/tools/record.mjs docs "${args[@]}" --build "$BUILD"
         env:
@@ -136,7 +142,8 @@ jobs:
       - name: Fail when a test run failed, also outside its JUnit report
         if: >-
           steps.unit.outcome == 'failure' || steps.integration.outcome == 'failure' ||
-          steps.conformance.outcome == 'failure' || steps.contract.outcome == 'failure'
+          steps.conformance.outcome == 'failure' || steps.e2e.outcome == 'failure' ||
+          steps.contract.outcome == 'failure'
         run: exit 1
 
   release:
