@@ -18,7 +18,8 @@
   "homepage": "https://github.com/GenoaCMS/genoacms/tree/main/packages/internal#readme",
   "type": "module",
   "files": [
-    "src"
+    "src",
+    "!src/**/*.test.js"
   ],
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
