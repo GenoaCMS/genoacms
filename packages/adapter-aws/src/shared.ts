@@ -25,3 +25,8 @@ export function requireString (options: unknown, key: string): string[] {
 export function clientConfig (region: string, credentials?: AwsCredentials): { region: string, credentials?: AwsCredentials } {
   return credentials === undefined ? { region } : { region, credentials }
 }
+
+/** True when `error` is an AWS SDK error named `name`. */
+export function isAwsError (error: unknown, name: string): boolean {
+  return (error as { name?: unknown } | undefined)?.name === name
+}
