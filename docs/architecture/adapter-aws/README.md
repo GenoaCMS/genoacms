@@ -120,10 +120,12 @@ not check grants, as on GCP (`adapter-gcp/deployment.md` GQ2).
 | :-- | :-- | :-- |
 | WF3 | **SDK errors are replaced by messages of the adapter's own** (WD2): `upload-failed`, `delete-failed`, `listing-failed`, `directory-creation-failed`, `document-creation-failed`, `collection-fetching-failed`, `document-fetching-failed`, `document-updating-failed`, `document-deletion-failed`, `unsupported-type`. The cause, its code and its request ID are lost, and a missing table reads the same as a denied permission. | open |
 | WF19 | **No test carries a statement ID, and the package publishes its tests.** The unit tests exist (descriptors, storage basics, one DynamoDB round trip, staging, the deploy procedure) but name no statement, so every statement here is unverified. The package has no `files` field and no build, so `src/**/*.test.js` is published. | open |
+| WF23 | **The RFC-0026 tests miss parts of their statements** (WS5). Tests pass when, among others: a directory move skips placeholders or the object named exactly `name` (OBJ-11); `setSecret` goes on after an error other than the ones ASM-4 names, or swallows the last put's error (ASM-4); a failed claim writes anyway (ASM-5); `deleteSecret` or `deleteDocument` swallows errors (ASM-6, DDB-7); the URL and permission steps swallow errors other than `ResourceConflictException` (LMB-9); `memory`, `timeoutSeconds`, `functionName` or `artifactBucket` are ignored (LMB-2); the role, name and origin patterns are loosened (LMB-3); the zip drops dotfiles or uses another level (LMB-6); the database and secrets clients ignore region or credentials (AWS-4); a listing normalizes `name` (OBJ-8); a directory is read before its placeholder is written (OBJ-9). WS5 lists every surviving mutation. | open |
 
 ### Verification
 
 - **The contract tests (WU4)** will run against the author's account, confined to names unique to each run and removed after it, as the GCP ones are (`adapter-gcp/README.md` GU6): objects under `genoacms-contract/<runId>/` in a test bucket, a table and secrets named for the run, and a function `genoacms-contract-<runId>`.
+- **WS5, falsification audit of RFC-0026's statements (WORKFLOW §6.3), at `34ef76f`, 2026-09-30.** An agent that wrote neither the code nor the tests (Sonnet 5) made about 270 mutations of the code while the unit and integration tests ran; it reasoned about the contract tests without running them. AWS-3, OBJ-1, OBJ-4, DDB-1, DDB-5, DDB-6, ASM-1, LMB-4, LMB-5 and LMB-10 held. The counterexamples are WF20 to WF22 (defects) and WF23 (tests that miss parts of their statements). Clauses nothing can observe: DDB-5's order, and OBJ-5's expiry with the role's session.
 - The opt-in conformance suite (`GENOACMS_TEST_AWS=1`, with `GENOACMS_TEST_AWS_REGION`, `GENOACMS_TEST_AWS_BUCKET`, `GENOACMS_TEST_AWS_TABLE`) runs `@genoacms/conformance`'s storage and database cases against real AWS. It has never run in CI.
 
 ### History
@@ -170,10 +172,15 @@ Every `W` ID, where it lives, and its state.
 | WF17 | Retired runtime and wrapper; no URL printed; one archive key | open | [`deployment.md`](deployment.md) |
 | WF18 | Dependencies are installed for the operator's platform | open | [`deployment.md`](deployment.md) |
 | WF19 | No test carries a statement ID; tests are published | open | README |
+| WF20 | Empty and non-string deploy options passed validation | open | [`deployment.md`](deployment.md) |
+| WF21 | An empty update succeeded on a missing document | open | [`database.md`](database.md) |
+| WF22 | A key field with an unsupported value failed a create | open | [`database.md`](database.md) |
+| WF23 | The RFC-0026 tests miss parts of their statements | open | README |
 | WS1 | The Lambda Web Adapter layer's ARN and version | documented; automated by RFC-0026 | [`deployment.md`](deployment.md) |
 | WS2 | What reaches adapter-node through a function URL | not run | [`deployment.md`](deployment.md) |
 | WS3 | The permissions a public function URL needs | documented | [`deployment.md`](deployment.md) |
 | WS4 | Secrets Manager's version limit under frequent overwrites | not run | [`secrets.md`](secrets.md) |
+| WS5 | Falsification audit of RFC-0026's statements | run at `34ef76f`; findings WF20 to WF23 | README |
 
 ---
 

@@ -56,6 +56,8 @@ more precision than a JavaScript number is rounded when read. An item holds at m
 | WF11 | **`createDocument` can overwrite a document** (DDB-4). The data is spread after the generated ID, so data carrying the key field replaces the ID, and `PutItem` has no condition, so it overwrites an existing document of that ID. | open |
 | WF12 | **Snapshots disagree on the key attribute** (DDB-5, DDB-6). `getCollection` returns it inside `data`, `getDocument` removes it. | open |
 | WF13 | **Numeric keys and non-JSON numbers fail late** (DDB-3, WD3). A number-key collection gets a UUID in its `N` key, which DynamoDB rejects, and `NaN` or `Infinity` become the string `"NaN"` or `"Infinity"` in an `N` value, which DynamoDB rejects. An `undefined` field throws `unsupported-type` instead of being omitted. | open |
+| WF21 | **An update with no field to set succeeded on a missing document** (DDB-7, WS5). With empty data, or only `undefined` fields, no `UpdateItem` was sent, so the missing document went unreported. | open |
+| WF22 | **A key field with an unsupported value failed a create** (DDB-4, WS5). The data was converted before the key was overridden, so `{ id: NaN }` threw `database/unsupported-value` although DDB-4 overrides the key field. | open |
 
 ### History
 

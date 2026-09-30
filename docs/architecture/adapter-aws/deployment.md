@@ -64,6 +64,7 @@ be set.
 | WF16 | **The deploy neither waits nor updates the configuration.** `CreateFunction` is not awaited until the function is active before the next steps, and an update sends only `UpdateFunctionCode`, so role, runtime and settings never change after the first deploy, and a failed update is reported as success. | open |
 | WF17 | **Retired runtime and wrapper; no URL printed; one archive key.** `nodejs20.x` reached end of support in April 2026. `aws-serverless-express` is deprecated. The deploy prints no URL. Every function's archive goes to `.genoacms/deployment/build.zip`, so two functions deployed from one bucket overwrite each other's archive. | open |
 | WF18 | **Dependencies are installed for the operator's platform.** `npm install --omit=dev` runs on the operator's machine, so a native binary is the host's, which Lambda (Linux x64) cannot load. | open |
+| WF20 | **Empty and non-string options passed LMB-3** (WS5). `functionName`, `memory`, `timeoutSeconds` and `origin` set to `""` were accepted: an empty `functionName` named the archive `.genoacms/deployment/.zip`, and an empty `origin` set `ORIGIN=""` without the forwarded headers. A `role` that was not a string got two reasons, where LMB-3 allows one. | open |
 
 ### History
 
@@ -126,7 +127,7 @@ The copied files, `package.json` included, are not changed.
 
 #### LMB-5 · Installing dependencies
 
-Run `npm install --omit=dev --no-audit --no-fund --os=linux --cpu=x64` in `<workDir>/app`, as a process without a shell. A non-zero exit throws `deploy/install-failed: <stderr>`.
+Run `npm install --omit=dev --no-audit --no-fund --os=linux --cpu=x64 --libc=glibc` in `<workDir>/app`, as a process without a shell. A non-zero exit throws `deploy/install-failed: <stderr>`.
 
 - Test: none yet
 - Level: integration
