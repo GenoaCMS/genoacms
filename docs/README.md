@@ -52,7 +52,7 @@ What the Specifications cover, measured against the reproducibility principle
 | `unit` | a package's vitest tests in `src/`, through its public interface, with external SDKs mocked | always |
 | `integration` | tests with real collaborators: the file system, a local database or object store | always |
 | `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI; today the SvelteKit adapter's build served by the Functions Framework, in the package's `e2e/` directory | always |
-| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_TABLE`; without them the tests are skipped. Deferred on pull requests. |
+| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_LAMBDA_ROLE`; without them the tests are skipped. Deferred on pull requests. |
 | `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always, except MinIO |
 
 Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:

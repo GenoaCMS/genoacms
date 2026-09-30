@@ -13,6 +13,8 @@ import { spawnSync } from 'node:child_process'
 const REAL_SERVICE_TESTS = 'test/**'
 const END_TO_END_TESTS = 'e2e/**'
 const GCP_ARCHIVE_TESTS = 'src/deployment/archive.test.ts'
+const AWS_STAGE_TESTS = 'src/deployment/stage.test.ts'
+const INTEGRATION_TESTS = { '@genoacms/adapter-gcp': GCP_ARCHIVE_TESTS, '@genoacms/adapter-aws': AWS_STAGE_TESTS }
 const EXCLUDED_FROM_UNIT = new Set(['@genoacms/core', '@genoacms/conformance'])
 
 const runsVitest = (manifest) => /\bvitest\b/.test(manifest.scripts?.test ?? '')
@@ -29,7 +31,7 @@ function unitRuns () {
     .filter(({ manifest }) => runsVitest(manifest) && !EXCLUDED_FROM_UNIT.has(manifest.name))
     .map(({ dir, manifest }) => ({
       dir,
-      args: ['--exclude', REAL_SERVICE_TESTS, '--exclude', END_TO_END_TESTS, ...(manifest.name === '@genoacms/adapter-gcp' ? ['--exclude', GCP_ARCHIVE_TESTS] : [])]
+      args: ['--exclude', REAL_SERVICE_TESTS, '--exclude', END_TO_END_TESTS, ...(manifest.name in INTEGRATION_TESTS ? ['--exclude', INTEGRATION_TESTS[manifest.name]] : [])]
     }))
 }
 
@@ -41,14 +43,17 @@ function endToEndRuns () {
 
 const RUNS = {
   unit: unitRuns,
-  integration: () => [{ dir: 'packages/adapter-gcp', args: [GCP_ARCHIVE_TESTS] }],
+  integration: () => [
+    { dir: 'packages/adapter-gcp', args: [GCP_ARCHIVE_TESTS] },
+    { dir: 'packages/adapter-aws', args: [AWS_STAGE_TESTS] }
+  ],
   conformance: () => [
     { dir: 'packages/conformance', args: [] },
     { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] }
   ],
   contract: () => [
     { dir: 'packages/adapter-gcp', args: ['test/conformance.test.ts', 'test/contract'] },
-    { dir: 'packages/adapter-aws', args: ['test/conformance.test.js'] }
+    { dir: 'packages/adapter-aws', args: ['test/conformance.test.ts', 'test/contract'] }
   ],
   e2e: endToEndRuns
 }
