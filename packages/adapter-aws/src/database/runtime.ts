@@ -1,129 +1,110 @@
-import type { Adapter, CollectionReference } from '@genoacms/contracts/database'
+import type { Adapter, CollectionReference, DocumentReference } from '@genoacms/contracts/database'
 import {
-  GetItemCommand,
-  DynamoDBClient,
-  PutItemCommand,
   DeleteItemCommand,
+  DynamoDBClient,
+  GetItemCommand,
+  PutItemCommand,
   ScanCommand,
+  UpdateItemCommand,
   type AttributeValue
 } from '@aws-sdk/client-dynamodb'
 import { randomUUID } from 'node:crypto'
 import { defineRuntime } from '@genoacms/contracts'
-import { clientConfig } from '../shared.js'
+import { clientConfig, type AwsCredentials } from '../shared.js'
 import type { AwsDatabaseOptions } from './descriptor.js'
+import { fromItem, toAttribute, toItem, type Item } from './values.js'
 
-type Item = Record<string, AttributeValue>
-
-function documentToDynamoItem (document: Record<string, unknown>): Item {
-  const item: Item = {}
-  for (const [key, value] of Object.entries(document)) item[key] = convertToDynamoAttribute(value)
-  return item
+// DDB-2
+function requireStringKey (collection: CollectionReference): void {
+  if (collection.primaryKey.schema?.type !== 'string') throw new Error(`database/unsupported-key-type: ${collection.name}`)
 }
 
-function convertToDynamoAttribute (value: unknown): AttributeValue {
-  switch (typeof value) {
-    case 'string':
-      return { S: value }
-    case 'number':
-      return { N: value.toString() }
-    case 'boolean':
-      return { BOOL: value }
-    case 'object':
-      if (Array.isArray(value)) return { L: value.map(convertToDynamoAttribute) }
-      if (value === null) return { NULL: true }
-      return { M: documentToDynamoItem(value as Record<string, unknown>) }
-    default:
-      throw new Error('unsupported-type')
-  }
+const keyNames = (collection: CollectionReference): Record<string, string> => ({ '#key': collection.primaryKey.key })
+
+const keyOf = (collection: CollectionReference, id: string): Item => ({ [collection.primaryKey.key]: { S: id } })
+
+function withoutKey (collection: CollectionReference, item: Item): { id: string, data: Record<string, unknown> } {
+  const { [collection.primaryKey.key]: key, ...rest } = item
+  return { id: key?.S as string, data: fromItem(rest) }
 }
 
-function dynamoItemToObject (item: Item): Record<string, unknown> {
-  const document: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(item)) document[key] = dynamoAttributeToObject(value)
-  return document
-}
-
-function dynamoAttributeToObject (value: AttributeValue): unknown {
-  const typeKey = Object.keys(value)[0]
-  switch (typeKey) {
-    case 'S':
-      return value.S
-    case 'N':
-      return Number(value.N)
-    case 'BOOL':
-      return value.BOOL
-    case 'L':
-      return value.L?.map(dynamoAttributeToObject)
-    case 'M':
-      return dynamoItemToObject(value.M as Item)
-    case 'NULL':
-      return null
-    default:
-      throw new Error('unsupported-type')
-  }
+function updateExpression (data: Record<string, unknown>): { UpdateExpression: string, ExpressionAttributeNames: Record<string, string>, ExpressionAttributeValues: Record<string, AttributeValue> } | undefined {
+  const fields = Object.entries(data).filter(([, value]) => value !== undefined)
+  if (fields.length === 0) return undefined
+  const ExpressionAttributeNames: Record<string, string> = {}
+  const ExpressionAttributeValues: Record<string, AttributeValue> = {}
+  const assignments = fields.map(([field, value], index) => {
+    ExpressionAttributeNames[`#f${index}`] = field
+    ExpressionAttributeValues[`:v${index}`] = toAttribute(value, field)
+    return `#f${index} = :v${index}`
+  })
+  return { UpdateExpression: `SET ${assignments.join(', ')}`, ExpressionAttributeNames, ExpressionAttributeValues }
 }
 
 export default defineRuntime<AwsDatabaseOptions, Adapter>({
   create ({ region, credentials }): Adapter {
-    const client = new DynamoDBClient(clientConfig(region, credentials as never))
+    const client = new DynamoDBClient(clientConfig(region, credentials as AwsCredentials | undefined))
 
-    const generateID = ({ primaryKey }: CollectionReference): Record<string, string> => ({ [primaryKey.key]: randomUUID() })
-
-    const createDocument = async (collection: CollectionReference, document: Record<string, unknown>): Promise<any> => {
-      const documentToCreate = { ...generateID(collection), ...document }
-      const command = new PutItemCommand({ TableName: collection.name, Item: documentToDynamoItem(documentToCreate) })
-      try {
-        await client.send(command)
-        return { reference: { collection, id: documentToCreate[collection.primaryKey.key] }, data: document }
-      } catch {
-        throw new Error('document-creation-failed')
-      }
+    // DDB-4
+    const createDocument = async (collection: CollectionReference, data: Record<string, unknown>): Promise<unknown> => {
+      requireStringKey(collection)
+      const id = randomUUID()
+      await client.send(new PutItemCommand({
+        TableName: collection.name,
+        Item: { ...toItem(data), ...keyOf(collection, id) },
+        ConditionExpression: 'attribute_not_exists(#key)',
+        ExpressionAttributeNames: keyNames(collection)
+      }))
+      return { reference: { collection, id }, data }
     }
 
-    const getCollection = async (reference: CollectionReference): Promise<any> => {
-      const command = new ScanCommand({ TableName: reference.name })
-      try {
-        const response = await client.send(command)
-        return (response.Items ?? []).map(document => {
-          const key = document[reference.primaryKey.key]
-          const id = reference.primaryKey.schema.type === 'string' ? key.S : key.N
-          return { reference: { collection: reference, id }, data: dynamoItemToObject(document) }
-        })
-      } catch {
-        throw new Error('collection-fetching-failed')
-      }
+    // DDB-5
+    const getCollection = async (collection: CollectionReference): Promise<unknown> => {
+      requireStringKey(collection)
+      const snapshots = []
+      let ExclusiveStartKey: Item | undefined
+      do {
+        const page = await client.send(new ScanCommand({ TableName: collection.name, ConsistentRead: true, ExclusiveStartKey }))
+        for (const item of page.Items ?? []) {
+          const { id, data } = withoutKey(collection, item)
+          snapshots.push({ reference: { collection, id }, data })
+        }
+        ExclusiveStartKey = page.LastEvaluatedKey
+      } while (ExclusiveStartKey !== undefined)
+      return snapshots
     }
 
-    const getDocument = async ({ collection, id }: { collection: CollectionReference, id: string }): Promise<any> => {
-      const command = new GetItemCommand({ TableName: collection.name, Key: documentToDynamoItem({ [collection.primaryKey.key]: id }) })
-      try {
-        const response = await client.send(command)
-        const object = dynamoItemToObject(response.Item as Item)
-        delete object[collection.primaryKey.key]
-        return { reference: { collection, id }, data: object }
-      } catch {
-        throw new Error('document-fetching-failed')
-      }
+    // DDB-6
+    const getDocument = async ({ collection, id }: DocumentReference<CollectionReference>): Promise<unknown> => {
+      requireStringKey(collection)
+      const response = await client.send(new GetItemCommand({ TableName: collection.name, Key: keyOf(collection, id), ConsistentRead: true }))
+      if (response.Item === undefined) return undefined
+      return { reference: { collection, id }, data: withoutKey(collection, response.Item).data }
     }
 
-    const updateDocument = async (reference: { collection: CollectionReference, id: string }, document: Record<string, unknown>): Promise<any> => {
-      const Key = documentToDynamoItem({ [reference.collection.primaryKey.key]: reference.id })
-      const command = new PutItemCommand({ TableName: reference.collection.name, Item: { ...documentToDynamoItem(document), ...Key } })
-      try {
-        await client.send(command)
-        return { reference, data: document }
-      } catch {
-        throw new Error('document-updating-failed')
-      }
+    // DDB-7
+    const updateDocument = async (reference: DocumentReference<CollectionReference>, data: Record<string, unknown>): Promise<unknown> => {
+      const { collection, id } = reference
+      requireStringKey(collection)
+      const key = collection.primaryKey.key
+      if (key in data) throw new Error(`database/key-immutable: ${key}`)
+      const expression = updateExpression(data)
+      if (expression === undefined) return { reference, data }
+      await client.send(new UpdateItemCommand({
+        TableName: collection.name,
+        Key: keyOf(collection, id),
+        UpdateExpression: expression.UpdateExpression,
+        ConditionExpression: 'attribute_exists(#key)',
+        ExpressionAttributeNames: { ...expression.ExpressionAttributeNames, ...keyNames(collection) },
+        ExpressionAttributeValues: expression.ExpressionAttributeValues
+      }))
+      return { reference, data }
     }
 
-    const deleteDocument = async ({ collection, id }: { collection: CollectionReference, id: string }): Promise<void> => {
-      const command = new DeleteItemCommand({ TableName: collection.name, Key: documentToDynamoItem({ [collection.primaryKey.key]: id }) })
-      try {
-        await client.send(command)
-      } catch {
-        throw new Error('document-deletion-failed')
-      }
+    // DDB-7
+    const deleteDocument = async ({ collection, id }: DocumentReference<CollectionReference>): Promise<void> => {
+      requireStringKey(collection)
+      await client.send(new DeleteItemCommand({ TableName: collection.name, Key: keyOf(collection, id) }))
     }
 
     return { createDocument, getCollection, getDocument, updateDocument, deleteDocument } as unknown as Adapter

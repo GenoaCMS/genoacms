@@ -6,7 +6,7 @@ class Point {
 }
 
 describe('DynamoDB values', () => {
-  it.fails('DDB-3: writes and reads back every JSON value', () => {
+  it('DDB-3: writes and reads back every JSON value', () => {
     const document = {
       text: 'a',
       integer: 42,
@@ -28,11 +28,11 @@ describe('DynamoDB values', () => {
     expect(fromItem(toItem(document))).toEqual(document)
   })
 
-  it.fails('DDB-3: omits undefined fields', () => {
+  it('DDB-3: omits undefined fields', () => {
     expect(toItem({ a: 1, b: undefined })).toStrictEqual({ a: { N: '1' } })
   })
 
-  it.fails('DDB-3: refuses every other value with its path', () => {
+  it('DDB-3: refuses every other value with its path', () => {
     const refused: Array<[Record<string, unknown>, string]> = [
       [{ a: NaN }, 'a'],
       [{ b: { c: Infinity } }, 'b.c'],

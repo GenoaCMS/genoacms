@@ -27,7 +27,7 @@ async function provider () {
 beforeEach(() => { dynamo.reset() })
 
 describe('the DynamoDB runtime', () => {
-  it.fails('DDB-2: refuses a collection without a string key before any request, in every method', async () => {
+  it('DDB-2: refuses a collection without a string key before any request, in every method', async () => {
     const numbered = { ...collection, primaryKey: { key: 'id', schema: { type: 'number' } } }
     const reference = { collection: numbered, id: 'x' }
     const database = await provider()
@@ -44,7 +44,7 @@ describe('the DynamoDB runtime', () => {
     expect(dynamo.calls()).toHaveLength(0)
   })
 
-  it.fails('DDB-4: puts the document under a new UUID that overrides a key field, only if absent', async () => {
+  it('DDB-4: puts the document under a new UUID that overrides a key field, only if absent', async () => {
     dynamo.on(PutItemCommand).resolves({})
     const database = await provider()
     const data = { id: 'x', t: 'a' }
@@ -63,7 +63,7 @@ describe('the DynamoDB runtime', () => {
     expect(created).toEqual({ reference: { collection, id }, data })
   })
 
-  it.fails('DDB-5: scans every page consistently and strips the key', async () => {
+  it('DDB-5: scans every page consistently and strips the key', async () => {
     dynamo.on(ScanCommand)
       .resolvesOnce({ Items: [{ id: { S: '1' }, t: { S: 'a' } }], LastEvaluatedKey: { id: { S: '1' } } })
       .resolvesOnce({ Items: [{ id: { S: '2' }, t: { S: 'b' } }] })
@@ -80,7 +80,7 @@ describe('the DynamoDB runtime', () => {
     ])
   })
 
-  it.fails('DDB-6: reads consistently and strips the key', async () => {
+  it('DDB-6: reads consistently and strips the key', async () => {
     dynamo.on(GetItemCommand).resolves({ Item: { id: { S: 'x' }, t: { S: 'a' } } })
     const database = await provider()
     const snapshot = await database.getDocument(document)
@@ -88,13 +88,13 @@ describe('the DynamoDB runtime', () => {
     expect(snapshot).toEqual({ reference: document, data: { t: 'a' } })
   })
 
-  it.fails('DDB-6: resolves undefined for a missing item', async () => {
+  it('DDB-6: resolves undefined for a missing item', async () => {
     dynamo.on(GetItemCommand).resolves({})
     const database = await provider()
     expect(await database.getDocument(document)).toBeUndefined()
   })
 
-  it.fails('DDB-7: updates only the given fields, only if the document exists', async () => {
+  it('DDB-7: updates only the given fields, only if the document exists', async () => {
     dynamo.on(UpdateItemCommand).resolves({})
     const database = await provider()
     const data = { a: 1, b: undefined, c: 'x' }
@@ -112,7 +112,7 @@ describe('the DynamoDB runtime', () => {
     expect(updated).toEqual({ reference: document, data })
   })
 
-  it.fails('DDB-7: refuses to change the key', async () => {
+  it('DDB-7: refuses to change the key', async () => {
     const database = await provider()
     await expect(database.updateDocument(document, { id: 'y', a: 1 })).rejects.toThrow(/^database\/key-immutable: id$/)
     expect(dynamo.calls()).toHaveLength(0)
@@ -125,7 +125,7 @@ describe('the DynamoDB runtime', () => {
     expect(inputs(DeleteItemCommand)).toEqual([{ TableName: 'articles', Key: { id: { S: 'x' } } }])
   })
 
-  it.fails('DDB-3, DDB-7: propagates SDK errors unchanged', async () => {
+  it('DDB-3, DDB-7: propagates SDK errors unchanged', async () => {
     const missingTable = new ResourceNotFoundException({ message: 'no table', $metadata: {} })
     const missingDocument = new ConditionalCheckFailedException({ message: 'no document', $metadata: {} })
     dynamo.on(GetItemCommand).rejects(missingTable)
