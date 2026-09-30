@@ -112,6 +112,24 @@ describe('the DynamoDB runtime', () => {
     expect(updated).toEqual({ reference: document, data })
   })
 
+  it('DDB-7: fails on a missing document even with no field to set', async () => {
+    const missingDocument = new ConditionalCheckFailedException({ message: 'no document', $metadata: {} })
+    dynamo.on(UpdateItemCommand).rejects(missingDocument)
+    const database = await provider()
+    await expect(database.updateDocument(document, { a: undefined })).rejects.toBe(missingDocument)
+    const updates = inputs(UpdateItemCommand)
+    expect(updates).toHaveLength(1)
+    expect(updates[0]).toMatchObject({ Key: { id: { S: 'x' } }, ConditionExpression: 'attribute_exists(#key)', ExpressionAttributeNames: { '#key': 'id' } })
+    expect(updates[0].UpdateExpression).toBeUndefined()
+  })
+
+  it('DDB-4: overrides a key field whatever its value', async () => {
+    dynamo.on(PutItemCommand).resolves({})
+    const database = await provider()
+    await database.createDocument(collection, { id: Number.NaN, t: 'a' })
+    expect(inputs(PutItemCommand)[0].Item.id.S).toMatch(UUID)
+  })
+
   it('DDB-7: refuses to change the key', async () => {
     const database = await provider()
     await expect(database.updateDocument(document, { id: 'y', a: 1 })).rejects.toThrow(/^database\/key-immutable: id$/)

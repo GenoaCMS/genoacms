@@ -23,6 +23,11 @@ const keyNames = (collection: CollectionReference): Record<string, string> => ({
 
 const keyOf = (collection: CollectionReference, id: string): Item => ({ [collection.primaryKey.key]: { S: id } })
 
+function withoutKeyField (collection: CollectionReference, data: Record<string, unknown>): Record<string, unknown> {
+  const { [collection.primaryKey.key]: _key, ...rest } = data
+  return rest
+}
+
 function withoutKey (collection: CollectionReference, item: Item): { id: string, data: Record<string, unknown> } {
   const { [collection.primaryKey.key]: key, ...rest } = item
   return { id: key?.S as string, data: fromItem(rest) }
@@ -51,7 +56,7 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
       const id = randomUUID()
       await client.send(new PutItemCommand({
         TableName: collection.name,
-        Item: { ...toItem(data), ...keyOf(collection, id) },
+        Item: { ...toItem(withoutKeyField(collection, data)), ...keyOf(collection, id) },
         ConditionExpression: 'attribute_not_exists(#key)',
         ExpressionAttributeNames: keyNames(collection)
       }))
@@ -87,16 +92,14 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
       const { collection, id } = reference
       requireStringKey(collection)
       const key = collection.primaryKey.key
-      if (key in data) throw new Error(`database/key-immutable: ${key}`)
+      if (Object.hasOwn(data, key)) throw new Error(`database/key-immutable: ${key}`)
       const expression = updateExpression(data)
-      if (expression === undefined) return { reference, data }
       await client.send(new UpdateItemCommand({
         TableName: collection.name,
         Key: keyOf(collection, id),
-        UpdateExpression: expression.UpdateExpression,
+        ...expression,
         ConditionExpression: 'attribute_exists(#key)',
-        ExpressionAttributeNames: { ...expression.ExpressionAttributeNames, ...keyNames(collection) },
-        ExpressionAttributeValues: expression.ExpressionAttributeValues
+        ExpressionAttributeNames: { ...expression?.ExpressionAttributeNames, ...keyNames(collection) }
       }))
       return { reference, data }
     }

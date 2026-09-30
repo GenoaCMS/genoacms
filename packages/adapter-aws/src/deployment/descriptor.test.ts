@@ -45,6 +45,19 @@ describe('the Lambda deployment descriptor', () => {
     expect(validate(allInvalid)).toEqual([ROLE, FUNCTION_NAME, MEMORY, TIMEOUT, ORIGIN])
   })
 
+  it('LMB-3: refuses an empty functionName, memory, timeoutSeconds or origin', () => {
+    expect(validate({ ...base, functionName: '' })).toEqual([FUNCTION_NAME])
+    expect(validate({ ...base, memory: '' })).toEqual([MEMORY])
+    expect(validate({ ...base, timeoutSeconds: '' })).toEqual([TIMEOUT])
+    expect(validate({ ...base, origin: '' })).toEqual([ORIGIN])
+  })
+
+  it('AWS-3, LMB-3: gives one reason for a role that is missing, empty or not a string', () => {
+    for (const role of [undefined, '', 5]) {
+      expect(validate({ ...base, role })).toEqual(['role is required and must be a non-empty string'])
+    }
+  })
+
   it('LMB-3: accepts the boundaries', () => {
     const boundaries = [
       { memory: 128 },
