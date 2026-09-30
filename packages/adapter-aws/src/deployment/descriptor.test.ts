@@ -18,7 +18,7 @@ describe('the Lambda deployment descriptor', () => {
     expect((await descriptor.procedure()).default).toBe((await import('./procedure.js')).default)
   })
 
-  it.fails('AWS-2, AWS-3, LMB-2: requires region, role and artifactBucket, and refuses accountId', () => {
+  it('AWS-2, AWS-3, LMB-2: requires region, role and artifactBucket, and refuses accountId', () => {
     const reasons = validate({ accountId: '1' })
     expect(reasons).toContain("unknown option 'accountId'")
     expect(reasons).toContain('region is required and must be a non-empty string')
@@ -26,7 +26,7 @@ describe('the Lambda deployment descriptor', () => {
     expect(reasons).toContain('artifactBucket is required and must be a non-empty string')
   })
 
-  it.fails('LMB-3: refuses each invalid setting with its reason, in order', () => {
+  it('LMB-3: refuses each invalid setting with its reason, in order', () => {
     const cases: Array<[Record<string, unknown>, string]> = [
       [{ role: 'x' }, ROLE],
       [{ functionName: 'a b' }, FUNCTION_NAME],
@@ -45,7 +45,7 @@ describe('the Lambda deployment descriptor', () => {
     expect(validate(allInvalid)).toEqual([ROLE, FUNCTION_NAME, MEMORY, TIMEOUT, ORIGIN])
   })
 
-  it.fails('LMB-3: accepts the boundaries', () => {
+  it('LMB-3: accepts the boundaries', () => {
     const boundaries = [
       { memory: 128 },
       { memory: 10240 },

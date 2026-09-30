@@ -16,11 +16,10 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "prepublishOnly": "pnpm run build",
-    "test": "vitest run src",
-    "test:conformance": "vitest run test"
+    "test": "vitest run",
+    "test:contract": "vitest run test"
   },
   "dependencies": {
-    "@aws-sdk/client-api-gateway": "^3.1144.0",
     "@aws-sdk/client-dynamodb": "^3.1144.0",
     "@aws-sdk/client-lambda": "^3.1144.0",
     "@aws-sdk/client-s3": "^3.1144.0",
@@ -62,6 +61,14 @@
       "types": "./dist/database/runtime.d.ts",
       "import": "./dist/database/runtime.js"
     },
+    "./secrets": {
+      "types": "./dist/secrets/descriptor.d.ts",
+      "import": "./dist/secrets/descriptor.js"
+    },
+    "./secrets/runtime": {
+      "types": "./dist/secrets/runtime.d.ts",
+      "import": "./dist/secrets/runtime.js"
+    },
     "./deployment": {
       "types": "./dist/deployment/descriptor.d.ts",
       "import": "./dist/deployment/descriptor.js"
@@ -71,7 +78,6 @@
     "provenance": true
   },
   "files": [
-    "dist",
-    "deployment"
+    "dist"
   ]
 }

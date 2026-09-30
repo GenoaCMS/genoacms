@@ -179,7 +179,7 @@ afterAll(async () => {
 })
 
 describe('the AWS deploy procedure', () => {
-  it.fails('LMB-5: runs npm install with the Linux x64 arguments', async () => {
+  it('LMB-5: runs npm install with the Linux x64 arguments', async () => {
     const { workDir } = await deploy()
     const npm = execFile.mock.calls.filter(call => call[0] === 'npm')
     expect(npm).toHaveLength(1)
@@ -188,7 +188,7 @@ describe('the AWS deploy procedure', () => {
     expect((npm[0][2] as { shell?: unknown }).shell).toBeFalsy()
   })
 
-  it.fails("LMB-7: uploads the archive under the function's key, and stops on failure", async () => {
+  it("LMB-7: uploads the archive under the function's key, and stops on failure", async () => {
     await deploy()
     expect(s3.commandCalls(PutObjectCommand).map(call => call.args[0].input)).toEqual([
       expect.objectContaining({ Bucket: 'artifacts', Key: ARTIFACT_KEY })
@@ -203,7 +203,7 @@ describe('the AWS deploy procedure', () => {
     expect(lambda.calls()).toHaveLength(0)
   })
 
-  it.fails('LMB-8: treats only ResourceNotFoundException as absent', async () => {
+  it('LMB-8: treats only ResourceNotFoundException as absent', async () => {
     const denied = awsError('AccessDeniedException')
     answers.GetFunction = () => { throw denied }
     expect(await failure()).toBe(denied)
@@ -211,7 +211,7 @@ describe('the AWS deploy procedure', () => {
     expect(log).not.toContain('UpdateFunctionCode')
   })
 
-  it.fails('LMB-9, LMB-10: creates the function with the adapter layer, waits, then opens its URL', async () => {
+  it('LMB-9, LMB-10: creates the function with the adapter layer, waits, then opens its URL', async () => {
     await deploy()
     expect(inputsOf(CreateFunctionCommand)).toEqual([{
       FunctionName: 'genoacms',
@@ -251,19 +251,19 @@ describe('the AWS deploy procedure', () => {
     expect(at('AddPermission')).toBeGreaterThan(at('wait:active'))
   })
 
-  it.fails('LMB-9: tolerates an existing URL and existing statements', async () => {
+  it('LMB-9: tolerates an existing URL and existing statements', async () => {
     answers.CreateFunctionUrlConfig = () => { throw conflict() }
     answers.AddPermission = () => { throw conflict() }
     await expect(deploy()).resolves.toBeDefined()
     expect(log.filter(entry => entry === 'AddPermission')).toHaveLength(2)
   })
 
-  it.fails('LMB-10: sets ORIGIN instead of the forwarded headers when origin is given', async () => {
+  it('LMB-10: sets ORIGIN instead of the forwarded headers when origin is given', async () => {
     await deploy({ origin: 'https://cms.example' })
     expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: { ...BASE_ENVIRONMENT, ORIGIN: 'https://cms.example' } })
   })
 
-  it.fails('LMB-11: updates code, then the whole configuration, waiting after each', async () => {
+  it('LMB-11: updates code, then the whole configuration, waiting after each', async () => {
     functionExists()
     await deploy()
     expect(log).not.toContain('CreateFunction')
@@ -292,7 +292,7 @@ describe('the AWS deploy procedure', () => {
     expect(log.slice(secondWait).filter(entry => entry === 'AddPermission')).toHaveLength(2)
   })
 
-  it.fails('LMB-12: reports a failed update with its reason', async () => {
+  it('LMB-12: reports a failed update with its reason', async () => {
     functionExists()
     const updateWait = new Error('waiter failed')
     vi.mocked(waitUntilFunctionUpdatedV2).mockRejectedValueOnce(updateWait)
@@ -310,12 +310,12 @@ describe('the AWS deploy procedure', () => {
     expect(createError.cause).toBe(createWait)
   })
 
-  it.fails('LMB-13: prints the function URL', async () => {
+  it('LMB-13: prints the function URL', async () => {
     await deploy()
     expect(console.info).toHaveBeenCalledWith(`Function URL: ${FUNCTION_URL}`)
   })
 
-  it.fails('LMB-14: uses the given credentials for S3 and Lambda', async () => {
+  it('LMB-14: uses the given credentials for S3 and Lambda', async () => {
     const credentials = { accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'secret' }
     await deploy({ credentials })
     expect(constructed.map(client => client.service).sort()).toEqual(['lambda', 's3'])
@@ -327,7 +327,7 @@ describe('the AWS deploy procedure', () => {
     for (const client of constructed) expect(client.config.credentials).toBeUndefined()
   })
 
-  it.fails('LMB-2: defaults functionName, memory and timeout', async () => {
+  it('LMB-2: defaults functionName, memory and timeout', async () => {
     await deploy()
     expect(inputsOf(CreateFunctionCommand)[0]).toMatchObject({ FunctionName: 'genoacms', MemorySize: 1024, Timeout: 30 })
   })

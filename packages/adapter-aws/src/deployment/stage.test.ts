@@ -58,7 +58,7 @@ function zipEntries (archive: Buffer): ZipEntry[] {
 }
 
 describe('staging the Lambda app', () => {
-  it.fails('LMB-4: copies the build, adds run.sh, and changes nothing else', async () => {
+  it('LMB-4: copies the build, adds run.sh, and changes nothing else', async () => {
     const { buildDir, app } = buildDirectory()
     await stageLambdaApp(buildDir, app)
     expect(filesUnder(app)).toEqual([...Object.keys(BUILD_FILES), 'run.sh'].sort())
@@ -76,7 +76,7 @@ describe('staging the Lambda app', () => {
     )
   })
 
-  it.fails("LMB-5: installs for Linux x64 without a shell, and fails with npm's output", async () => {
+  it("LMB-5: installs for Linux x64 without a shell, and fails with npm's output", async () => {
     const dir = temporaryRoot()
     writeFileSync(join(dir, 'package.json'), '{ this is not json')
     const install = installProductionDependencies(dir)
@@ -84,7 +84,7 @@ describe('staging the Lambda app', () => {
     await expect(install).rejects.toThrow(/EJSONPARSE/)
   }, 120_000)
 
-  it.fails('LMB-6: zips exactly the staged directory, keeping run.sh executable', async () => {
+  it('LMB-6: zips exactly the staged directory, keeping run.sh executable', async () => {
     const { buildDir, app, root } = buildDirectory()
     await stageLambdaApp(buildDir, app)
     const archive = join(root, 'app.zip')
