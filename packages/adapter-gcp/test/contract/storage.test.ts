@@ -38,14 +38,14 @@ async function versionOf (name: string): Promise<string | undefined> {
   return version
 }
 
-describe.runIf(enabled)('Cloud Storage, against the real service', () => {
+describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60_000 }, () => {
   beforeAll(async () => {
     storage = await runtime.create({ projectId }, { name: 'contract', resources: [bucket] })
-  })
+  }, 60_000)
 
   afterAll(async () => {
     await sdkBucket().deleteFiles({ prefix: objectPrefix })
-  })
+  }, 120_000)
 
   it('STO-4: reads an object with its current generation as the version', async () => {
     await upload('read.txt', 'first')
