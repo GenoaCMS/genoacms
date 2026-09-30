@@ -73,9 +73,9 @@ settings target options, keeping every step (`configuration.md` P9).
 
 ### Verification
 
-- **WS1, for LMB-9: not run.** Establish the Lambda Web Adapter layer's current ARN and version for `x86_64`, and that it is published in the regions the author uses. The RFC pins that version.
-- **WS2, for LMB-10: not run.** Deploy an app that logs `url.origin` and `getClientAddress()`, and request it through the function URL with a forged `X-Forwarded-For: 203.0.113.9`. Expected: the function URL's own origin, and the real client address, not `203.0.113.9`.
-- **WS3, for LMB-9: not run.** Establish which resource-policy statements a function URL with `AuthType: NONE` needs to answer an anonymous request, created today: `lambda:InvokeFunctionUrl` alone, or also `lambda:InvokeFunction` restricted to function-URL invocations. The RFC names them.
+- **WS1, for LMB-9: established from the Lambda Web Adapter's README (2026-09-30), not yet by experiment.** The layer is `arn:aws:lambda:<region>:753240598075:layer:LambdaAdapterLayerX86:30` for `x86_64`; it listens on `PORT` (default 8080), is enabled by `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, and treats the app as ready when `/` answers a status from 100 to 499. RFC-0026's contract test deploys with it in `eu-central-1`.
+- **WS2, for LMB-10: not run.** Request a deployed function through its URL with a forged `X-Forwarded-For: 203.0.113.9`, and observe the headers the server receives. Expected: `host` is the URL's host, `x-forwarded-proto` is `https`, and the rightmost `x-forwarded-for` entry is not `203.0.113.9`. RFC-0026's contract test automates it.
+- **WS3, for LMB-9: established from AWS's documentation (2026-09-30).** Since October 2025 a new function URL with `AuthType: NONE` answers anonymous requests only when the resource policy allows both `lambda:InvokeFunctionUrl` (condition `lambda:FunctionUrlAuthType` `NONE`) and `lambda:InvokeFunction` (condition `lambda:InvokedViaFunctionUrl` `true`), each added by its own `AddPermission` call; without them it answers 403. RFC-0026's contract test requests the deployed URL anonymously.
 
 ## Specification
 
@@ -94,7 +94,7 @@ Options: `region: string`, `role: string` (the execution role's ARN) and `artifa
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-3 · Option validation
 
@@ -102,7 +102,7 @@ An invalid present option yields exactly one reason, in this order: `role must b
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 ### Deploy procedure
 
@@ -122,7 +122,7 @@ The copied files, `package.json` included, are not changed.
 
 - Test: none yet
 - Level: integration
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-5 · Installing dependencies
 
@@ -130,7 +130,7 @@ Run `npm install --omit=dev --no-audit --no-fund --os=linux --cpu=x64` in `<work
 
 - Test: none yet
 - Level: integration
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-6 · Archive
 
@@ -138,7 +138,7 @@ A zip (level 9) of exactly the staged directory, at its root: no globbing, no ig
 
 - Test: none yet
 - Level: integration
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-7 · Upload
 
@@ -146,7 +146,7 @@ A zip (level 9) of exactly the staged directory, at its root: no globbing, no ig
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-8 · Lookup
 
@@ -154,15 +154,15 @@ A zip (level 9) of exactly the staged directory, at its root: no globbing, no ig
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-9 · Creating
 
-`CreateFunction` with `FunctionName`, `Role: role`, `Runtime: 'nodejs22.x'`, `Architectures: ['x86_64']`, `Handler: 'run.sh'`, `MemorySize: memory`, `Timeout: timeoutSeconds`, `Code: { S3Bucket: artifactBucket, S3Key }` of LMB-7, `Layers` with the Lambda Web Adapter layer of WS1, and `Environment` of LMB-10. The procedure waits until the function is `Active`. It then sends `CreateFunctionUrlConfig` with `AuthType: 'NONE'` and `InvokeMode: 'BUFFERED'`, and `AddPermission` with the statements of WS3 and the principal `*`. `ResourceConflictException` from either, because the URL or the statement already exists, is not an error.
+`CreateFunction` with `FunctionName`, `Role: role`, `Runtime: 'nodejs22.x'`, `Architectures: ['x86_64']`, `Handler: 'run.sh'`, `MemorySize: memory`, `Timeout: timeoutSeconds`, `Code: { S3Bucket: artifactBucket, S3Key }` of LMB-7, `Layers: ['arn:aws:lambda:<region>:753240598075:layer:LambdaAdapterLayerX86:30']`, the Lambda Web Adapter (WS1), and `Environment` of LMB-10. The procedure waits until the function is `Active`. It then sends `CreateFunctionUrlConfig` with `AuthType: 'NONE'` and `InvokeMode: 'BUFFERED'`, and two `AddPermission` calls with the principal `*` (WS3): `StatementId: 'FunctionURLAllowPublicAccess'`, `Action: 'lambda:InvokeFunctionUrl'`, `FunctionUrlAuthType: 'NONE'`; and `StatementId: 'FunctionURLInvokeAllowPublicAccess'`, `Action: 'lambda:InvokeFunction'`, `InvokedViaFunctionUrl: true`. `ResourceConflictException` from any of the three, because the URL or the statement already exists, is not an error.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-10 · Environment
 
@@ -170,7 +170,7 @@ The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LA
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-11 · Updating
 
@@ -178,15 +178,15 @@ The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LA
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-12 · Completion
 
 A wait that ends with the function `Failed`, or an update `Failed`, throws `deploy/function-failed: <StateReason or LastUpdateStatusReason>`, with the original error as `cause`. The previous code keeps serving after a failed update.
 
 - Test: none yet
-- Level: unit, contract
-- State: new (no RFC yet)
+- Level: unit
+- State: new (RFC-0026)
 
 #### LMB-13 · Function URL
 
@@ -194,7 +194,7 @@ On success the procedure prints `Function URL: <FunctionUrl>`, from the function
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### LMB-14 · Operator credentials
 
@@ -202,4 +202,4 @@ The S3 and Lambda clients use `credentials` when given, else the operator's defa
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)

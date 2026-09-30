@@ -87,7 +87,7 @@ A collection reference `{ name, primaryKey: { key, schema } }` addresses the tab
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### DDB-3 · Values
 
@@ -95,7 +95,7 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### DDB-4 · Creating a document
 
@@ -103,7 +103,7 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### DDB-5 · Reading a collection
 
@@ -111,7 +111,7 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### DDB-6 · Reading a document
 
@@ -119,7 +119,7 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### DDB-7 · Updating and deleting
 
@@ -127,4 +127,4 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)

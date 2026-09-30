@@ -69,7 +69,7 @@ Specifier `@genoacms/adapter-aws/secrets`, kind `secrets`. Runtime specifier `@g
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 ### Runtime
 
@@ -82,7 +82,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### ASM-3 · Reading
 
@@ -90,7 +90,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### ASM-4 · Overwriting
 
@@ -98,7 +98,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### ASM-5 · Atomic claim
 
@@ -106,7 +106,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### ASM-6 · Deleting
 
@@ -114,4 +114,4 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)

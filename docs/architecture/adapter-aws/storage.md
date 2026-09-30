@@ -78,7 +78,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-3 · Reading an object
 
@@ -86,7 +86,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-4 · Public URL
 
@@ -94,7 +94,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-5 · Signed URL
 
@@ -102,7 +102,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-6 · Conditional writes
 
@@ -110,7 +110,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-7 · Moving and deleting an object
 
@@ -118,7 +118,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-8 · Listing one level
 
@@ -126,7 +126,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-9 · Creating a directory
 
@@ -134,7 +134,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-10 · Deleting a directory
 
@@ -142,7 +142,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)
 
 #### OBJ-11 · Moving a directory
 
@@ -150,4 +150,4 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0026)

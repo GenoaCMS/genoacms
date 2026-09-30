@@ -146,11 +146,11 @@ Every `W` ID, where it lives, and its state.
 | WU2 | One table per collection, prepared by the operator | decided | [`database.md`](database.md) |
 | WU3 | Secrets on Secrets Manager | decided | [`secrets.md`](secrets.md) |
 | WU4 | `unit` and `contract` levels; scoped IAM user locally, OIDC role in CI | decided | README |
-| WD1 | Match the GCP adapter where the contract is silent | new (no RFC yet) | README |
-| WD2 | SDK errors propagate unchanged | new (no RFC yet) | README |
-| WD3 | Only string keys | new (no RFC yet) | [`database.md`](database.md) |
-| WD4 | Lambda behind the Lambda Web Adapter and a function URL | new (no RFC yet) | [`deployment.md`](deployment.md) |
-| WD5 | Secrets are deleted without a recovery window | new (no RFC yet) | [`secrets.md`](secrets.md) |
+| WD1 | Match the GCP adapter where the contract is silent | new, RFC-0026 | README |
+| WD2 | SDK errors propagate unchanged | new, RFC-0026 | README |
+| WD3 | Only string keys | new, RFC-0026 | [`database.md`](database.md) |
+| WD4 | Lambda behind the Lambda Web Adapter and a function URL | new, RFC-0026 | [`deployment.md`](deployment.md) |
+| WD5 | Secrets are deleted without a recovery window | new, RFC-0026 | [`secrets.md`](secrets.md) |
 | WF1 | Three storage methods of the contract are missing | open | [`storage.md`](storage.md) |
 | WF2 | `getObject` swallows every error | open | [`storage.md`](storage.md) |
 | WF3 | SDK errors are replaced by the adapter's own messages | open | README |
@@ -170,9 +170,9 @@ Every `W` ID, where it lives, and its state.
 | WF17 | Retired runtime and wrapper; no URL printed; one archive key | open | [`deployment.md`](deployment.md) |
 | WF18 | Dependencies are installed for the operator's platform | open | [`deployment.md`](deployment.md) |
 | WF19 | No test carries a statement ID; tests are published | open | README |
-| WS1 | The Lambda Web Adapter layer's ARN and version | not run | [`deployment.md`](deployment.md) |
+| WS1 | The Lambda Web Adapter layer's ARN and version | documented; automated by RFC-0026 | [`deployment.md`](deployment.md) |
 | WS2 | What reaches adapter-node through a function URL | not run | [`deployment.md`](deployment.md) |
-| WS3 | The permissions a public function URL needs | not run | [`deployment.md`](deployment.md) |
+| WS3 | The permissions a public function URL needs | documented | [`deployment.md`](deployment.md) |
 | WS4 | Secrets Manager's version limit under frequent overwrites | not run | [`secrets.md`](secrets.md) |
 
 ---
