@@ -6,6 +6,8 @@ import { enabled, projectId, secretKey, GRPC_NOT_FOUND } from './gcp.js'
 
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
+// GF27
+const PROPAGATION_MS = 30_000
 
 const createdKeys: string[] = []
 let client: SecretManagerServiceClient
@@ -16,6 +18,8 @@ function key (name: string): string {
   createdKeys.push(created)
   return created
 }
+
+const outcome = async (read: Promise<unknown>): Promise<'resolved' | 'rejected'> => await read.then(() => 'resolved', () => 'rejected')
 
 const secretName = (created: string): string => `projects/${projectId}/secrets/${created}`
 
@@ -63,7 +67,7 @@ describe.runIf(enabled)('Secret Manager, against the real service', { timeout: 6
     await secrets.setSecret(disabled, 'value')
     const [only] = await versions(disabled)
     await client.disableSecretVersion({ name: only.name })
-    await expect(secrets.getSecret(disabled)).rejects.toBeDefined()
+    await expect.poll(() => outcome(secrets.getSecret(disabled)), { timeout: PROPAGATION_MS, interval: 1000 }).toBe('rejected')
   })
 
   it('SEC-5, SEC-7: creates a missing secret when overwriting, with automatic replication and a seven-day destroy TTL', async () => {
