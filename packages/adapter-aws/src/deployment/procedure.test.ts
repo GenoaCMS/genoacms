@@ -44,7 +44,7 @@ vi.mock('./stage.js', () => ({
   zipDirectory: vi.fn(async (_dir, out) => out),
   installProductionDependencies: vi.fn()
 }))
-vi.mock('fs', async (importOriginal) => ({ ...(await importOriginal()), createReadStream: vi.fn(() => 'archive-stream') }))
+vi.mock('node:fs', async (importOriginal) => ({ ...(await importOriginal()), createReadStream: vi.fn(() => 'archive-stream') }))
 
 const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 const { CreateFunctionCommand } = await import('@aws-sdk/client-lambda')

@@ -14,6 +14,8 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepublishOnly": "pnpm run build",
     "test": "vitest run src",
     "test:conformance": "vitest run test"
   },
@@ -25,40 +27,49 @@
     "@aws-sdk/lib-storage": "^3.540.0",
     "@aws-sdk/s3-request-presigner": "^3.509.0",
     "archiver": "^7.0.1",
-    "uuid": "^9.0.1",
     "@genoacms/contracts": "workspace:^",
     "@sveltejs/adapter-node": "^5.2.12"
   },
   "devDependencies": {
-    "dotenv": "^16.3.1",
     "eslint": "^8.52.0",
-    "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-n": "^16.2.0",
     "eslint-plugin-promise": "^6.1.1",
-    "jsdoc": "^4.0.2",
     "typescript": "^5.3.3",
     "vitest": "^3.2.7",
-    "@genoacms/conformance": "workspace:^"
+    "@genoacms/conformance": "workspace:^",
+    "@types/archiver": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "eslint-config-standard-with-typescript": "^39.1.1",
+    "rimraf": "^5.0.5"
   },
   "exports": {
     "./storage": {
-      "types": "./src/storage/descriptor.d.ts",
-      "import": "./src/storage/descriptor.js"
+      "types": "./dist/storage/descriptor.d.ts",
+      "import": "./dist/storage/descriptor.js"
     },
     "./storage/runtime": {
-      "import": "./src/storage/runtime.js"
+      "types": "./dist/storage/runtime.d.ts",
+      "import": "./dist/storage/runtime.js"
     },
     "./database": {
-      "types": "./src/database/descriptor.d.ts",
-      "import": "./src/database/descriptor.js"
+      "types": "./dist/database/descriptor.d.ts",
+      "import": "./dist/database/descriptor.js"
     },
     "./database/runtime": {
-      "import": "./src/database/runtime.js"
+      "types": "./dist/database/runtime.d.ts",
+      "import": "./dist/database/runtime.js"
     },
     "./deployment": {
-      "types": "./src/deployment/descriptor.d.ts",
-      "import": "./src/deployment/descriptor.js"
+      "types": "./dist/deployment/descriptor.d.ts",
+      "import": "./dist/deployment/descriptor.js"
     }
-  }
+  },
+  "publishConfig": {
+    "provenance": true
+  },
+  "files": [
+    "dist",
+    "deployment"
+  ]
 }
