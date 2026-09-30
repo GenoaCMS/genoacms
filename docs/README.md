@@ -30,7 +30,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not restructured |
-| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26 |
+| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26, GF28 |
 | Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. The AWS findings of the AWS discussion are recorded nowhere yet. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |
@@ -61,7 +61,7 @@ Known gaps in the test runs, recorded 2026-09-28 when the project adopted workfl
 - **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
 - **`@genoacms/cli`** has no tests: its `test` script starts the CLI.
 - **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
-- The GCP findings still open are GF10 and GF20 to GF26 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
+- The GCP findings still open are GF10, GF20 to GF26 and GF28 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
 
 ## History
 

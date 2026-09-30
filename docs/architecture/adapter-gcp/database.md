@@ -36,6 +36,7 @@ first write, with Firestore's error rather than a GenoaCMS one.
 | :-- | :-- | :-- |
 | GF9 | **`getCollection` reads a whole collection** (DB-5): every document in one call, with no paging and no limit. Cost and latency grow with the collection, and a large one can exceed the function's memory. The contract offers no paging, so the fix belongs to the contract first. | open |
 | GF13 | *History.* **The runtime's methods were untested by unit tests.** Only construction (DB-2) was. DB-3 to DB-7 relied on the opt-in conformance suite alone. | fixed, RFC-0024 |
+| GF28 | **The reason for DB-3's decision assumes that CMS users define collections.** They cannot: core only reads definitions from `.genoacms/collections`, which the operator writes (author, 2026-09-30). A reserved collection name is therefore at risk only from an operator's mistake. | open |
 
 ### History
 
