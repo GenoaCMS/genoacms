@@ -73,7 +73,7 @@ describe('the S3 runtime', () => {
     expect(constructed[1].config).toEqual({ region: 'us-east-1' })
   })
 
-  it.fails('OBJ-2: refuses an unregistered bucket before any request, in every method', async () => {
+  it('OBJ-2: refuses an unregistered bucket before any request, in every method', async () => {
     const storage = await provider(['a'])
     const other = { bucket: 'b', name: 'n/' }
     const calls: Array<() => unknown> = [
@@ -104,22 +104,21 @@ describe('the S3 runtime', () => {
     expect(inputs(GetObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'n' })])
   })
 
-  it.fails('OBJ-3: propagates NoSuchKey and other errors unchanged', async () => {
+  it('OBJ-3: propagates NoSuchKey and other errors unchanged', async () => {
     const storage = await provider()
     const missing = new NoSuchKey({ message: 'missing', $metadata: { httpStatusCode: 404 } })
-    s3.on(GetObjectCommand).rejectsOnce(missing)
-    await expect(storage.getObject(ref)).rejects.toBe(missing)
     const denied = awsError('AccessDenied', 403)
-    s3.on(GetObjectCommand).rejectsOnce(denied)
+    s3.on(GetObjectCommand).rejectsOnce(missing).rejectsOnce(denied)
+    await expect(storage.getObject(ref)).rejects.toBe(missing)
     await expect(storage.getObject(ref)).rejects.toBe(denied)
   })
 
-  it.fails("OBJ-4: builds the public URL from the provider's region, encoding the name", async () => {
+  it("OBJ-4: builds the public URL from the provider's region, encoding the name", async () => {
     const storage = await provider()
     expect(await storage.getPublicURL({ bucket: 'b', name: 'd/a b.txt' })).toBe('https://b.s3.eu-central-1.amazonaws.com/d%2Fa%20b.txt')
   })
 
-  it.fails('OBJ-5: presigns a GetObject for the whole seconds until expiry', async () => {
+  it('OBJ-5: presigns a GetObject for the whole seconds until expiry', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const now = Date.UTC(2026, 8, 30, 12, 0, 0)
     vi.setSystemTime(now)
@@ -130,7 +129,7 @@ describe('the S3 runtime', () => {
     expect(url.pathname).toBe('/d/a.txt')
   })
 
-  it.fails('OBJ-6: ifAbsent sends IfNoneMatch and wins over ifVersion', async () => {
+  it('OBJ-6: ifAbsent sends IfNoneMatch and wins over ifVersion', async () => {
     s3.on(PutObjectCommand).resolves({})
     const storage = await provider()
     await storage.uploadObject(ref, 'data', { ifAbsent: true, ifVersion: '"e"' })
@@ -150,13 +149,12 @@ describe('the S3 runtime', () => {
     expect(puts[0].IfNoneMatch).toBeUndefined()
   })
 
-  it.fails('OBJ-6: maps 412 and 409 to PreconditionFailedError with the reason', async () => {
+  it('OBJ-6: maps 412 and 409 to PreconditionFailedError with the reason', async () => {
     const storage = await provider()
-    s3.on(PutObjectCommand).rejectsOnce(awsError('PreconditionFailed', 412))
+    s3.on(PutObjectCommand).rejectsOnce(awsError('PreconditionFailed', 412)).rejectsOnce(awsError('ConditionalRequestConflict', 409))
     const stale = storage.uploadObject(ref, 'data', { ifVersion: '"e"' })
     await expect(stale).rejects.toBeInstanceOf(PreconditionFailedError)
     await expect(stale).rejects.toThrow(exactly('storage/precondition-failed: b/n: object changed since it was read'))
-    s3.on(PutObjectCommand).rejectsOnce(awsError('ConditionalRequestConflict', 409))
     const conflict = storage.uploadObject(ref, 'data', { ifAbsent: true })
     await expect(conflict).rejects.toBeInstanceOf(PreconditionFailedError)
     await expect(conflict).rejects.toThrow(exactly('storage/precondition-failed: b/n: object already exists'))
@@ -169,7 +167,7 @@ describe('the S3 runtime', () => {
     await expect(storage.uploadObject(ref, 'data', { ifVersion: '"e"' })).rejects.toBe(denied)
   })
 
-  it.fails('OBJ-6: writes unconditionally through the multipart uploader, propagating its errors', async () => {
+  it('OBJ-6: writes unconditionally through the multipart uploader, propagating its errors', async () => {
     const failure = new Error('upload failed')
     uploadSettles(async () => { throw failure })
     const storage = await provider()
@@ -180,7 +178,7 @@ describe('the S3 runtime', () => {
     expect(conditional).toEqual([])
   })
 
-  it.fails('OBJ-7: moves by copy then delete, and deletes nothing when the copy fails', async () => {
+  it('OBJ-7: moves by copy then delete, and deletes nothing when the copy fails', async () => {
     s3.on(CopyObjectCommand).resolves({})
     s3.on(DeleteObjectCommand).resolves({})
     const storage = await provider()
@@ -199,7 +197,7 @@ describe('the S3 runtime', () => {
     expect(s3.commandCalls(DeleteObjectCommand)).toHaveLength(0)
   })
 
-  it.fails('OBJ-7: propagates delete errors unchanged', async () => {
+  it('OBJ-7: propagates delete errors unchanged', async () => {
     const failure = awsError('AccessDenied', 403)
     s3.on(DeleteObjectCommand).rejects(failure)
     const storage = await provider()
@@ -218,7 +216,7 @@ describe('the S3 runtime', () => {
     expect(inputs(ListObjectsV2Command)).toEqual([{ Bucket: 'b', Prefix: 'd/', Delimiter: '/' }])
   })
 
-  it.fails('OBJ-8: hides placeholders and the directory itself, and returns directories as references', async () => {
+  it('OBJ-8: hides placeholders and the directory itself, and returns directories as references', async () => {
     const lastModified = new Date('2026-09-30T12:00:00Z')
     s3.on(ListObjectsV2Command).resolves({
       Contents: [
@@ -238,7 +236,7 @@ describe('the S3 runtime', () => {
     expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/s/' }])
   })
 
-  it.fails('OBJ-8: returns directories when there are no files', async () => {
+  it('OBJ-8: returns directories when there are no files', async () => {
     s3.on(ListObjectsV2Command).resolves({ CommonPrefixes: [{ Prefix: 'd/s/' }, { Prefix: 'd/t/' }] })
     const storage = await provider()
     const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' })
@@ -246,7 +244,7 @@ describe('the S3 runtime', () => {
     expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/s/' }, { bucket: 'b', name: 'd/t/' }])
   })
 
-  it.fails('OBJ-9: writes the placeholder without reading first', async () => {
+  it('OBJ-9: writes the placeholder without reading first', async () => {
     s3.on(PutObjectCommand).resolves({})
     const storage = await provider()
     await storage.createDirectory({ bucket: 'b', name: 'e' })
@@ -258,7 +256,7 @@ describe('the S3 runtime', () => {
     expect(s3.commandCalls(HeadObjectCommand)).toHaveLength(0)
   })
 
-  it.fails('OBJ-10: deletes every page of objects in batches of at most 1000', async () => {
+  it('OBJ-10: deletes every page of objects in batches of at most 1000', async () => {
     const keys = Array.from({ length: 2500 }, (_, index) => `f/${index}`)
     s3.on(ListObjectsV2Command)
       .resolvesOnce({ Contents: keys.slice(0, 1000).map(Key => ({ Key })), IsTruncated: true, NextContinuationToken: 't1' })
@@ -277,14 +275,14 @@ describe('the S3 runtime', () => {
     expect(deletes.flatMap(input => input.Delete.Objects)).toEqual(keys.map(Key => ({ Key })))
   })
 
-  it.fails('OBJ-10: throws storage/delete-failed for a key the response reports', async () => {
+  it('OBJ-10: throws storage/delete-failed for a key the response reports', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'f/1' }, { Key: 'f/2' }] })
     s3.on(DeleteObjectsCommand).resolves({ Errors: [{ Key: 'f/1', Code: 'AccessDenied' }] })
     const storage = await provider()
     await expect(storage.deleteDirectory({ bucket: 'b', name: 'f/' })).rejects.toThrow(exactly('storage/delete-failed: b/f/1: AccessDenied'))
   })
 
-  it.fails('OBJ-11: moves every object to the new prefix, keeping the rest of each name', async () => {
+  it('OBJ-11: moves every object to the new prefix, keeping the rest of each name', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/1' }, { Key: 'm/n/2' }, { Key: 'm/x$&y' }] })
     s3.on(CopyObjectCommand).resolves({})
     s3.on(DeleteObjectCommand).resolves({})
@@ -298,7 +296,7 @@ describe('the S3 runtime', () => {
     expect(inputs(DeleteObjectCommand).map(input => input.Key).sort()).toEqual(['m/1', 'm/n/2', 'm/x$&y'].sort())
   })
 
-  it.fails('OBJ-11: stops at the first failure', async () => {
+  it('OBJ-11: stops at the first failure', async () => {
     const failure = awsError('AccessDenied', 403)
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/1' }, { Key: 'm/2' }, { Key: 'm/3' }] })
     s3.on(CopyObjectCommand).resolvesOnce({}).rejectsOnce(failure).resolves({})
