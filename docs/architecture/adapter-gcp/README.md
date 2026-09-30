@@ -197,6 +197,7 @@ Every `G` ID, where it lives, and its state.
 | GF24 | The storage tests miss parts of their statements | open | [`storage.md`](storage.md) |
 | GF25 | The Secret Manager tests miss parts of their statements | open | [`secrets.md`](secrets.md) |
 | GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | open | [`deployment.md`](deployment.md) |
+| GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
