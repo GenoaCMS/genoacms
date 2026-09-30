@@ -17,4 +17,9 @@ describe('the S3 storage descriptor', () => {
       expect(validate(options)).toEqual([REGION_REQUIRED])
     }
   })
+
+  it('AWS-2: gives one reason per unknown key', () => {
+    const reasons = validate({ region: 'eu-central-1', zeta: 1, alpha: 2 })
+    expect([...reasons].sort()).toEqual(["unknown option 'alpha'", "unknown option 'zeta'"])
+  })
 })

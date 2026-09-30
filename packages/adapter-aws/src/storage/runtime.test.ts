@@ -89,7 +89,7 @@ describe('the S3 runtime', () => {
       () => storage.moveDirectory(other, 'm/')
     ]
     for (const call of calls) {
-      await expect((async () => await call())()).rejects.toThrow('bucket-unregistered')
+      await expect((async () => await call())()).rejects.toThrow(exactly('bucket-unregistered'))
     }
     expect(s3.calls()).toHaveLength(0)
   })
@@ -254,6 +254,7 @@ describe('the S3 runtime', () => {
     expect(Buffer.from(puts[0].Body ?? '')).toHaveLength(0)
     expect(s3.commandCalls(GetObjectCommand)).toHaveLength(0)
     expect(s3.commandCalls(HeadObjectCommand)).toHaveLength(0)
+    expect(s3.calls()).toHaveLength(1)
   })
 
   it('OBJ-10: deletes every page of objects in batches of at most 1000', async () => {
@@ -305,5 +306,116 @@ describe('the S3 runtime', () => {
     await expect(storage.moveDirectory({ bucket: 'b', name: 'm/' }, 'n/')).rejects.toBe(failure)
     expect(inputs(CopyObjectCommand)).toHaveLength(2)
     expect(inputs(DeleteObjectCommand).map(input => input.Key)).not.toContain('m/2')
+  })
+
+  it('OBJ-3: reads the object by its name exactly as given', async () => {
+    s3.on(GetObjectCommand).resolves({ Body: Readable.from(['x']) as never, ETag: '"e"' })
+    const storage = await provider()
+    await storage.getObject({ bucket: 'b', name: ' Mixed Case/ä B.TXT ' })
+    expect(inputs(GetObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: ' Mixed Case/ä B.TXT ' })])
+  })
+
+  it('OBJ-5: signs only a GetObject of the object, with no other query parameter', async () => {
+    const storage = await provider()
+    const url = new URL(await storage.getSignedURL({ bucket: 'b', name: 'd/a.txt' }, new Date(Date.now() + 60_000)))
+    expect(url.searchParams.get('x-id')).toBe('GetObject')
+    for (const key of url.searchParams.keys()) expect(key).toMatch(/^(x-amz-.+|x-id)$/i)
+  })
+
+  it("OBJ-5: propagates the presigner's refusal of a lifetime over 604800 seconds", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const now = Date.UTC(2026, 8, 30, 12, 0, 0)
+    vi.setSystemTime(now)
+    const storage = await provider()
+    await expect(storage.getSignedURL(ref, new Date(now + 604_801_000))).rejects.toThrow(/one week/)
+    const url = new URL(await storage.getSignedURL(ref, new Date(now + 604_800_000)))
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('604800')
+  })
+
+  it('OBJ-7: propagates the delete error of a move after a successful copy', async () => {
+    const failure = awsError('AccessDenied', 403)
+    s3.on(CopyObjectCommand).resolves({})
+    s3.on(DeleteObjectCommand).rejects(failure)
+    const storage = await provider()
+    await expect(storage.moveObject({ bucket: 'b', name: 'd/a.txt' }, 'e/b.txt')).rejects.toBe(failure)
+  })
+
+  it('OBJ-7: deletes an object with exactly one DeleteObject', async () => {
+    s3.on(DeleteObjectCommand).resolves({})
+    const storage = await provider()
+    await storage.deleteObject(ref)
+    expect(s3.calls()).toHaveLength(1)
+    expect(inputs(DeleteObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'n' })])
+  })
+
+  it('OBJ-8: uses a name without a trailing slash, or an empty name, as given', async () => {
+    s3.on(ListObjectsV2Command).resolves({})
+    const storage = await provider()
+    await storage.listDirectory({ bucket: 'b', name: 'd' })
+    await storage.listDirectory({ bucket: 'b', name: '' })
+    expect(inputs(ListObjectsV2Command)).toEqual([
+      { Bucket: 'b', Prefix: 'd', Delimiter: '/' },
+      { Bucket: 'b', Prefix: '', Delimiter: '/' }
+    ])
+  })
+
+  it('OBJ-8: excludes the object named exactly name and keeps common prefixes other than name', async () => {
+    const lastModified = new Date('2026-09-30T12:00:00Z')
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [{ Key: 'd', Size: 0, LastModified: lastModified }, { Key: 'd.txt', Size: 1, LastModified: lastModified }],
+      CommonPrefixes: [{ Prefix: 'd/' }]
+    })
+    const storage = await provider()
+    const listing = await storage.listDirectory({ bucket: 'b', name: 'd' })
+    expect(listing.files).toEqual([{ name: 'd.txt', size: 1, lastModified }])
+    expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/' }])
+  })
+
+  it('OBJ-8: hides only names that end in .folderPlaceholder', async () => {
+    const lastModified = new Date('2026-09-30T12:00:00Z')
+    s3.on(ListObjectsV2Command).resolves({
+      Contents: [
+        { Key: 'd/.folderPlaceholder', Size: 0, LastModified: lastModified },
+        { Key: 'd/.folderPlaceholder.txt', Size: 1, LastModified: lastModified },
+        { Key: 'd/a.folderPlaceholder-old', Size: 2, LastModified: lastModified }
+      ]
+    })
+    const storage = await provider()
+    const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' })
+    expect(listing.files).toEqual([
+      { name: 'd/.folderPlaceholder.txt', size: 1, lastModified },
+      { name: 'd/a.folderPlaceholder-old', size: 2, lastModified }
+    ])
+  })
+
+  it('OBJ-9: uses a name with a trailing slash as given', async () => {
+    s3.on(PutObjectCommand).resolves({})
+    const storage = await provider()
+    await storage.createDirectory({ bucket: 'b', name: 'e/' })
+    expect(s3.calls()).toHaveLength(1)
+    expect(inputs(PutObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'e//.folderPlaceholder' })])
+  })
+
+  it('OBJ-10: sends no DeleteObjects for an empty directory', async () => {
+    s3.on(ListObjectsV2Command).resolves({})
+    s3.on(DeleteObjectsCommand).resolves({})
+    const storage = await provider()
+    await storage.deleteDirectory({ bucket: 'b', name: 'f/' })
+    expect(s3.commandCalls(DeleteObjectsCommand)).toHaveLength(0)
+  })
+
+  it('OBJ-11: moves placeholders and the object named exactly name too', async () => {
+    s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/' }, { Key: 'm/.folderPlaceholder' }, { Key: 'm/s/.folderPlaceholder' }, { Key: 'm/1' }] })
+    s3.on(CopyObjectCommand).resolves({})
+    s3.on(DeleteObjectCommand).resolves({})
+    const storage = await provider()
+    await storage.moveDirectory({ bucket: 'b', name: 'm/' }, 'n/')
+    expect(inputs(CopyObjectCommand).map(input => [input.CopySource, input.Key])).toEqual([
+      [`b/${encodeURIComponent('m/')}`, 'n/'],
+      [`b/${encodeURIComponent('m/.folderPlaceholder')}`, 'n/.folderPlaceholder'],
+      [`b/${encodeURIComponent('m/s/.folderPlaceholder')}`, 'n/s/.folderPlaceholder'],
+      [`b/${encodeURIComponent('m/1')}`, 'n/1']
+    ])
+    expect(inputs(DeleteObjectCommand).map(input => input.Key)).toEqual(['m/', 'm/.folderPlaceholder', 'm/s/.folderPlaceholder', 'm/1'])
   })
 })

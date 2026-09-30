@@ -45,4 +45,9 @@ describe('DynamoDB values', () => {
       expect(() => toItem(document)).toThrow(new RegExp(`^database/unsupported-value: ${path.replace('.', '\\.')}$`))
     }
   })
+
+  it('DDB-3: writes an object without a prototype as a plain object', () => {
+    const bare = Object.assign(Object.create(null), { a: 1, nested: Object.assign(Object.create(null), { b: 'x' }) })
+    expect(toItem({ bare })).toEqual({ bare: { M: { a: { N: '1' }, nested: { M: { b: { S: 'x' } } } } } })
+  })
 })

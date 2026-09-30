@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockClient } from 'aws-sdk-client-mock'
 import {
   DynamoDBClient,
@@ -12,6 +12,19 @@ import {
 } from '@aws-sdk/client-dynamodb'
 import runtime from './runtime.js'
 
+const { constructed } = vi.hoisted(() => ({ constructed: [] as Array<{ client: unknown, config: unknown }> }))
+
+vi.mock('@aws-sdk/client-dynamodb', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@aws-sdk/client-dynamodb')>()
+  class RecordingDynamoDBClient extends original.DynamoDBClient {
+    constructor (...args: ConstructorParameters<typeof original.DynamoDBClient>) {
+      super(...args)
+      constructed.push({ client: this, config: args[0] })
+    }
+  }
+  return { ...original, DynamoDBClient: RecordingDynamoDBClient }
+})
+
 const dynamo = mockClient(DynamoDBClient)
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -24,7 +37,10 @@ async function provider () {
   return await runtime.create({ region: 'eu-central-1' }, { name: 'database', resources: [] })
 }
 
-beforeEach(() => { dynamo.reset() })
+beforeEach(() => {
+  dynamo.reset()
+  constructed.length = 0
+})
 
 describe('the DynamoDB runtime', () => {
   it('DDB-2: refuses a collection without a string key before any request, in every method', async () => {
@@ -61,6 +77,8 @@ describe('the DynamoDB runtime', () => {
       ExpressionAttributeNames: { '#key': 'id' }
     })
     expect(created).toEqual({ reference: { collection, id }, data })
+    expect((created as any).data).toBe(data)
+    expect((created as any).reference.collection).toBe(collection)
   })
 
   it('DDB-5: scans every page consistently and strips the key', async () => {
@@ -110,6 +128,8 @@ describe('the DynamoDB runtime', () => {
     expect(updates[0].ExpressionAttributeNames).toEqual({ '#key': 'id', '#f0': 'a', '#f1': 'c' })
     expect(updates[0].ExpressionAttributeValues).toEqual({ ':v0': { N: '1' }, ':v1': { S: 'x' } })
     expect(updated).toEqual({ reference: document, data })
+    expect((updated as any).data).toBe(data)
+    expect((updated as any).reference).toBe(document)
   })
 
   it('DDB-7: fails on a missing document even with no field to set', async () => {
@@ -151,5 +171,61 @@ describe('the DynamoDB runtime', () => {
     const database = await provider()
     await expect(database.getDocument(document)).rejects.toBe(missingTable)
     await expect(database.updateDocument(document, { a: 1 })).rejects.toBe(missingDocument)
+  })
+
+  it('AWS-4: passes the region, credentials only when given, and keeps providers apart', async () => {
+    const credentials = { accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'secret' }
+    await runtime.create({ region: 'eu-central-1', credentials }, { name: 'one', resources: [] })
+    await runtime.create({ region: 'us-east-1' }, { name: 'two', resources: [] })
+    expect(constructed).toHaveLength(2)
+    expect(constructed[0].client).not.toBe(constructed[1].client)
+    expect(constructed[0].config).toEqual({ region: 'eu-central-1', credentials })
+    expect(constructed[1].config).toEqual({ region: 'us-east-1' })
+  })
+
+  it('DDB-2: refuses every key type other than string, and a missing one, before any request', async () => {
+    const database = await provider()
+    const schemas = [{ type: 'boolean' }, { type: 'array' }, { type: 'integer' }, { type: 'object' }, {}, undefined]
+    for (const schema of schemas) {
+      const keyed = { ...collection, primaryKey: { key: 'id', schema } }
+      const reference = { collection: keyed, id: 'x' }
+      const calls: Array<() => Promise<unknown>> = [
+        async () => await database.createDocument(keyed, { t: 'a' }),
+        async () => await database.getCollection(keyed),
+        async () => await database.getDocument(reference),
+        async () => await database.updateDocument(reference, { t: 'b' }),
+        async () => await database.deleteDocument(reference)
+      ]
+      for (const call of calls) {
+        await expect(call()).rejects.toThrow(/^database\/unsupported-key-type: articles$/)
+      }
+    }
+    expect(dynamo.calls()).toHaveLength(0)
+  })
+
+  it('DDB-3, DDB-7: an unsupported value in an update reports its path before any request', async () => {
+    const database = await provider()
+    await expect(database.updateDocument(document, { a: 1, b: { c: Number.NaN } })).rejects.toThrow(/^database\/unsupported-value: b\.c$/)
+    await expect(database.updateDocument(document, { d: new Date(0) })).rejects.toThrow(/^database\/unsupported-value: d$/)
+    expect(dynamo.calls()).toHaveLength(0)
+  })
+
+  it('DDB-3, DDB-4: an unsupported value nested in a create reports its path before any request', async () => {
+    const database = await provider()
+    await expect(database.createDocument(collection, { a: [1, { b: new Date(0) }] })).rejects.toThrow(/^database\/unsupported-value: a\.1\.b$/)
+    expect(dynamo.calls()).toHaveLength(0)
+  })
+
+  it('DDB-7: refuses a key field present with the value undefined', async () => {
+    const database = await provider()
+    await expect(database.updateDocument(document, { id: undefined, a: 1 })).rejects.toThrow(/^database\/key-immutable: id$/)
+    expect(dynamo.calls()).toHaveLength(0)
+  })
+
+  it('DDB-7: propagates delete errors unchanged', async () => {
+    const missingTable = new ResourceNotFoundException({ message: 'no table', $metadata: {} })
+    dynamo.on(DeleteItemCommand).rejects(missingTable)
+    const database = await provider()
+    await expect(database.deleteDocument(document)).rejects.toBe(missingTable)
   })
 })

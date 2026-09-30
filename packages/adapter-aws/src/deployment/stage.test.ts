@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
+import { deflateRawSync } from 'node:zlib'
 import { stageLambdaApp, installProductionDependencies, zipDirectory } from './stage.js'
 
 const RUN_SH = '#!/bin/sh\nexec node index.js\n'
@@ -38,7 +39,7 @@ function filesUnder (dir: string): string[] {
     .sort()
 }
 
-interface ZipEntry { name: string, mode: number }
+interface ZipEntry { name: string, mode: number, method: number, data: Buffer }
 
 function zipEntries (archive: Buffer): ZipEntry[] {
   const end = archive.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
@@ -50,8 +51,12 @@ function zipEntries (archive: Buffer): ZipEntry[] {
     const extraLength = archive.readUInt16LE(offset + 30)
     const commentLength = archive.readUInt16LE(offset + 32)
     const externalAttributes = archive.readUInt32LE(offset + 38)
+    const method = archive.readUInt16LE(offset + 10)
+    const compressedSize = archive.readUInt32LE(offset + 20)
+    const localOffset = archive.readUInt32LE(offset + 42)
+    const dataStart = localOffset + 30 + archive.readUInt16LE(localOffset + 26) + archive.readUInt16LE(localOffset + 28)
     const name = archive.subarray(offset + 46, offset + 46 + nameLength).toString('utf-8')
-    entries.push({ name, mode: (externalAttributes >>> 16) & 0o777 })
+    entries.push({ name, mode: (externalAttributes >>> 16) & 0o777, method, data: archive.subarray(dataStart, dataStart + compressedSize) })
     offset += 46 + nameLength + extraLength + commentLength
   }
   return entries
@@ -92,5 +97,29 @@ describe('staging the Lambda app', () => {
     const files = zipEntries(readFileSync(archive)).filter(entry => !entry.name.endsWith('/'))
     expect(files.map(entry => entry.name).sort()).toEqual(filesUnder(app))
     expect(files.find(entry => entry.name === 'run.sh')?.mode).toBe(0o755)
+  })
+
+  it('LMB-6: zips dotfiles and files in dot-directories', async () => {
+    const { buildDir, app, root } = buildDirectory({ ...BUILD_FILES, '.npmrc': 'x=1\n', 'node_modules/.bin/x': '#!/bin/sh\n', '.hidden/a.js': 'a\n' })
+    await stageLambdaApp(buildDir, app)
+    const archive = join(root, 'app.zip')
+    await zipDirectory(app, archive)
+    const names = zipEntries(readFileSync(archive)).map(entry => entry.name)
+    for (const name of ['.npmrc', 'node_modules/.bin/x', '.hidden/a.js']) expect(names).toContain(name)
+  })
+
+  it('LMB-6: deflates at level 9', async () => {
+    let seed = 1
+    const content = Array.from({ length: 200_000 }, () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648
+      return 'abcdefgh'[seed % 8]
+    }).join('')
+    const { buildDir, app, root } = buildDirectory({ ...BUILD_FILES, 'data.txt': content })
+    await stageLambdaApp(buildDir, app)
+    const archive = join(root, 'app.zip')
+    await zipDirectory(app, archive)
+    const entry = zipEntries(readFileSync(archive)).find(candidate => candidate.name === 'data.txt')
+    expect(entry?.method).toBe(8)
+    expect(entry?.data).toEqual(deflateRawSync(Buffer.from(content), { level: 9 }))
   })
 })

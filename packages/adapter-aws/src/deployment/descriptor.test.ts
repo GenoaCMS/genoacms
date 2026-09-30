@@ -16,6 +16,7 @@ describe('the Lambda deployment descriptor', () => {
     expect(await descriptor.svelteKitAdapter()).toBe(await import('@sveltejs/adapter-node'))
     expect(descriptor.svelteKitOptions?.({} as never, { outDir: 'o' })).toEqual({ out: 'o' })
     expect((await descriptor.procedure()).default).toBe((await import('./procedure.js')).default)
+    expect(descriptor.secretOptions).toEqual({ credentials: 'json' })
   })
 
   it('AWS-2, AWS-3, LMB-2: requires region, role and artifactBucket, and refuses accountId', () => {
@@ -70,5 +71,50 @@ describe('the Lambda deployment descriptor', () => {
     for (const boundary of boundaries) {
       expect(validate({ ...base, ...boundary })).toEqual([])
     }
+  })
+
+  it('AWS-2: gives one reason per unknown key', () => {
+    const reasons = validate({ ...base, zeta: 1, alpha: 2 })
+    expect([...reasons].sort()).toEqual(["unknown option 'alpha'", "unknown option 'zeta'"])
+  })
+
+  it('LMB-3: refuses a role that does not match the IAM role ARN pattern', () => {
+    const roles = [
+      'arn:aws:iam::123456789012:genoacms',
+      'arn:aws:iam::123456789012:role/',
+      'xarn:aws:iam::123456789012:role/genoacms',
+      ' arn:aws:iam::123456789012:role/genoacms',
+      'arn:aws:iam::12345678901:role/genoacms',
+      'arn:aws:iam::1234567890123:role/genoacms',
+      'arn:aws:iam:eu-central-1:123456789012:role/genoacms',
+      'arn:aws:sts::123456789012:role/genoacms',
+      'arn:azure:iam::123456789012:role/genoacms'
+    ]
+    for (const role of roles) {
+      expect(validate({ ...base, role })).toEqual([ROLE])
+    }
+  })
+
+  it('LMB-3: accepts role ARNs of every partition', () => {
+    for (const role of ['arn:aws-cn:iam::123456789012:role/genoacms', 'arn:aws-us-gov:iam::123456789012:role/path/genoacms']) {
+      expect(validate({ ...base, role })).toEqual([])
+    }
+  })
+
+  it('LMB-3: refuses a functionName with other characters, and invalid origins', () => {
+    for (const functionName of ['a.b', 'a/b', 'ä']) {
+      expect(validate({ ...base, functionName })).toEqual([FUNCTION_NAME])
+    }
+    for (const origin of ['https://', 'http://', 'https://a .example', 'https://a.example ', ' https://a.example', 'ftp://a.example', 'https://a.example/', '//a.example']) {
+      expect(validate({ ...base, origin })).toEqual([ORIGIN])
+    }
+  })
+
+  it('LMB-3: refuses null settings, each with its one reason', () => {
+    expect(validate({ ...base, functionName: null })).toEqual([FUNCTION_NAME])
+    expect(validate({ ...base, memory: null })).toEqual([MEMORY])
+    expect(validate({ ...base, timeoutSeconds: null })).toEqual([TIMEOUT])
+    expect(validate({ ...base, origin: null })).toEqual([ORIGIN])
+    expect(validate({ ...base, role: null })).toEqual(['role is required and must be a non-empty string'])
   })
 })
