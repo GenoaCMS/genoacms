@@ -3,7 +3,7 @@ type: architecture-index
 title: GCP adapter architecture
 prefix: G
 codes: [COM]
-verified: b050b3b
+verified: 28107d2
 ---
 
 # GCP adapter architecture
@@ -133,7 +133,11 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF4 | *History.* **The runtime's IAM needs were documented nowhere.** On first start core creates secrets, so the runtime identity needs to create secrets and add versions, not only read them. The default compute service account's broad roles hid this until someone narrowed it. | fixed: the IAM section, and the `serviceAccount` option (GD3) |
-| GF19 | **COM-3 is only partly tested.** The descriptor tests assert that a missing or empty `projectId` yields one reason, not its text. | open |
+| GF19 | *History.* **COM-3 is only partly tested.** The descriptor tests assert that a missing or empty `projectId` yields one reason, not its text. | fixed, RFC-0025 |
+
+### Verification
+
+**GS6, falsification audit of RFC-0025's statements (WORKFLOW §6.3), at `28107d2`, 2026-09-30.** An agent that did not write the tests (a different model, Sonnet 5) tried to break COM-3, STO-4, STO-6 to STO-12, SEC-3 to SEC-8, SEC-11, DEP-8 to DEP-13 and ADP-1 to ADP-7 by changing the code while the unit, integration and end-to-end tests still passed; it reasoned about the contract tests without running them. STO-4, STO-10, SEC-7, SEC-11 and DEP-13 held. The counterexamples are GF22 (a defect), GF23 (a clause nothing implements) and GF24 to GF26 (tests that miss parts of their statements).
 
 ### History
 
@@ -177,22 +181,28 @@ Every `G` ID, where it lives, and its state.
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (IAM) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
-| GF11 | The SvelteKit adapter's tests were disabled and stale | fixed for ADP-5 to ADP-7, RFC-0023 | [`deployment.md`](deployment.md) |
+| GF11 | The SvelteKit adapter's tests were disabled and stale | fixed, RFC-0023 and RFC-0025 | [`deployment.md`](deployment.md) |
 | GF12 | Most of the storage runtime was untested | fixed, RFC-0024 | [`storage.md`](storage.md) |
 | GF13 | The Firestore runtime's methods had no unit tests | fixed, RFC-0024 | [`database.md`](database.md) |
 | GF14 | The SvelteKit adapter's `env.js` was dead code; `envPrefix` had no effect | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
-| GF15 | Most storage statements have no contract test | open | [`storage.md`](storage.md) |
-| GF16 | The Secret Manager statements have no contract test | open | [`secrets.md`](secrets.md) |
-| GF17 | The deploy procedure has no contract test | open | [`deployment.md`](deployment.md) |
-| GF18 | The SvelteKit adapter has no end-to-end test | open | [`deployment.md`](deployment.md) |
-| GF19 | COM-3 is only partly tested | open | README |
+| GF15 | Most storage statements have no contract test | fixed, RFC-0025 | [`storage.md`](storage.md) |
+| GF16 | The Secret Manager statements have no contract test | fixed, RFC-0025 | [`secrets.md`](secrets.md) |
+| GF17 | The deploy procedure has no contract test | fixed, RFC-0025 | [`deployment.md`](deployment.md) |
+| GF18 | The SvelteKit adapter has no end-to-end test | fixed, RFC-0025 | [`deployment.md`](deployment.md) |
+| GF19 | COM-3 is only partly tested | fixed, RFC-0025 | README |
 | GF20 | The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt` | open | [`deployment.md`](deployment.md) |
 | GF21 | `startAfter` is inclusive | open | [`storage.md`](storage.md) |
+| GF22 | A directory moved to a name with `$` patterns gets wrong names | open | [`storage.md`](storage.md) |
+| GF23 | ADP-5 and ADP-2 describe a `static/` directory nothing writes | open | [`deployment.md`](deployment.md) |
+| GF24 | The storage tests miss parts of their statements | open | [`storage.md`](storage.md) |
+| GF25 | The Secret Manager tests miss parts of their statements | open | [`secrets.md`](secrets.md) |
+| GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | open | [`deployment.md`](deployment.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
-| GS2 | A failing build fails the deploy (live) | not run (author) | [`deployment.md`](deployment.md) |
+| GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
-| GS4 | Version destruction and its recovery window (live) | unit tests pass; live not run (author) | [`secrets.md`](secrets.md) |
+| GS4 | Version destruction and its recovery window (live) | automated, RFC-0025 | [`secrets.md`](secrets.md) |
 | GS5 | `XFF_DEPTH` 1 yields the real client behind Google's front end (live) | not run (author) | [`deployment.md`](deployment.md) |
+| GS6 | Falsification audit of RFC-0025's statements | run at `28107d2`; findings GF22 to GF26 | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 
@@ -220,7 +230,7 @@ Every descriptor refuses option keys outside its list, one reason per key: `unkn
 
 A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `projectId` is required by every descriptor.
 
-- Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts` (unverified: the reason text)
+- Test: `packages/adapter-gcp/src/storage/descriptor.test.ts`, `packages/adapter-gcp/src/database/descriptor.test.ts`, `packages/adapter-gcp/src/secrets/descriptor.test.ts`, `packages/adapter-gcp/src/deployment/descriptor.test.ts`
 - Level: unit
 
 #### COM-4 · One client per provider, ADC by default

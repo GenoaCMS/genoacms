@@ -2,7 +2,7 @@
 type: architecture
 title: GCP deployment: Cloud Run functions
 codes: [DEP, ADP]
-verified: b050b3b
+verified: 28107d2
 ---
 
 # GCP deployment: Cloud Run functions
@@ -80,11 +80,13 @@ leave the machine (`configuration.md` F9, F15).
 | GF3 | *History.* `nodejs20` (end of life April 2026), one instance, ingress `ALLOW_ALL`, and no memory, timeout or service account, all hardcoded. The function ran as the default compute account. | fixed, RFC-0021 |
 | GF6 | *History.* Any error from `getFunction` counted as "does not exist" and led to a misleading `createFunction`. | fixed, RFC-0021 |
 | GF7 | *History.* **`getClientAddress` returned the whole `X-Forwarded-For` header** (ADP-6). Behind Google's front end it is a comma-separated list whose first entries the client can set. Anything that trusts it as "the client's address", which sign-in throttling would (`configuration.md` Q5), must take the entry Google appended, the last one. Q5 decides who reads it. | fixed, RFC-0023 |
-| GF11 | *History.* **The SvelteKit adapter's tests were disabled and stale.** Its `test` script only echoes `tests temporarily disabled`, and `tests/smoke.spec.js` imports `create_kit_middleware`, which the handler no longer exports. Every `ADP` statement is unverified by tests. The live deploy exercises them together, not one by one. | fixed for ADP-5 to ADP-7, RFC-0023; ADP-1 to ADP-4 remain untested |
+| GF11 | *History.* **The SvelteKit adapter's tests were disabled and stale.** Its `test` script only echoes `tests temporarily disabled`, and `tests/smoke.spec.js` imports `create_kit_middleware`, which the handler no longer exports. Every `ADP` statement is unverified by tests. The live deploy exercises them together, not one by one. | fixed: ADP-5 to ADP-7 by RFC-0023, ADP-1 to ADP-4 by RFC-0025 |
 | GF14 | *History.* **`env.js` was dead code.** The adapter copies `env.js`, adapter-node's reader for `ORIGIN`, `XFF_DEPTH`, `ADDRESS_HEADER`, `BODY_SIZE_LIMIT` and similar variables, but the handler never imports it. The `envPrefix` option and all those variables have no effect. The origin comes only from forwarded headers (ADP-5). | fixed, RFC-0023 |
-| GF17 | **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
-| GF18 | **The SvelteKit adapter has no end-to-end test** (ADP-1 to ADP-7): no test builds an app with it and serves a request through the result. ADP-5 to ADP-7 are unit-tested only, and GS5 checks the depth by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | open |
+| GF17 | *History.* **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
+| GF18 | *History.* **The SvelteKit adapter has no end-to-end test** (ADP-1 to ADP-7): no test builds an app with it and serves a request through the result. ADP-5 to ADP-7 are unit-tested only, and GS5 checks the depth by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
 | GF20 | **The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt`** before the handler runs, so an instance on the `gcp` target serves neither, although ADP-5's handler would. Found by RFC-0025's end-to-end tests against `@google-cloud/functions-framework` 5 (2026-09-29). Setting `IGNORED_ROUTES` to an empty string disables the filter, per the framework's source; whether the deployed runtime honors it is unverified. The fix is its own RFC: DEP-10 and DEP-14 would set it. | open |
+| GF23 | **ADP-5 and ADP-2 describe a `static/` directory nothing writes.** SvelteKit copies static files into `client/`, so the handler's middleware for `<out>/static` never serves anything. Found by GS6. | open |
+| GF26 | **The deploy and SvelteKit adapter tests miss parts of their statements** (GS6). Tests pass when: the upload uses a wrong parent or content type, or a missing `storageSource` does not throw (DEP-8); an update sends an `updateMask`, or unset settings are sent (DEP-10); the original error is dropped as `cause` (DEP-11); the URL fallback or its priority changes (DEP-12); the defaults of `out`, `precompress` and `envPrefix` change (ADP-1); `out` is not emptied, or `base` is dropped (ADP-2); deep imports are bundled, sourcemaps or `chunks/` are dropped (ADP-3); the shims or `env: process.env` are dropped (ADP-4); a 308 loses the query string, `cache-control: immutable` is set on every client file, array headers are joined differently, or an unparsable URL answers 500 (ADP-5); `platform` is empty, or empty `X-Forwarded-For` entries are kept (ADP-6); `<envPrefix>XFF_DEPTH` is not read (ADP-7). | open |
 
 ### History
 
@@ -107,7 +109,7 @@ leave the machine (`configuration.md` F9, F15).
 
 - Unit tests, with the SDK mocked, cover the `DEP` statements marked below.
 - **Established by experiment (RFC-0025, 2026-09-30):** Cloud Run functions adds `LOG_EXECUTION_ID` to every function's environment variables on its own, beside those DEP-10 sends.
-- **GS2, for GD1: not run yet (author, live).** Deploy an artifact whose `package.json` names a dependency that does not exist. Expected: `genoa deploy` exits non-zero with `deploy/function-failed` and the build error, and the previous revision still serves. Then deploy the real artifact. Expected: it exits zero and prints the URL.
+- **GS2, for GD1: automated by RFC-0025.** The contract test carrying DEP-11 deploys an artifact that cannot build, on every push to `main`, and checks `deploy/function-failed` and the previous revision; it first passed on 2026-09-30. The manual procedure it replaces: Deploy an artifact whose `package.json` names a dependency that does not exist. Expected: `genoa deploy` exits non-zero with `deploy/function-failed` and the build error, and the previous revision still serves. Then deploy the real artifact. Expected: it exits zero and prints the URL.
 - The first live deploy of core (2026-09-28, author) exercised DEP-5 to DEP-10 and ADP-1 to ADP-5 together, before GD1.
 
 ## Specification
@@ -176,42 +178,42 @@ The procedure never reads `process.cwd()`. It works only from the build director
 
 **Upload.** `generateUploadUrl` in `projects/<projectId>/locations/<region>`, then `PUT` the zip to the returned URL with `Content-Type: application/zip`. A response that is not `ok` throws `deploy/upload-failed: <status> <statusText>` and nothing else is called. A response with no URL or no storage source throws `Upload URL not found`.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-9 · Lookup
 
 **Lookup.** `getFunction(projects/<p>/locations/<r>/functions/<functionName>)`. It exists when the call resolves, and is absent only on gRPC `NOT_FOUND` (5). Any other error propagates, and neither create nor update is called.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-10 · Create or update
 
 **Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables: { NODE_ENV: 'production' }`, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-11 · Completion
 
 **Completion.** The procedure awaits the operation. A failed operation throws `deploy/function-failed: <operation error message>`, with the original error as `cause`.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-12 · Function URL
 
 On success it prints `Function URL: <url>`, taking the function's `url`, else `serviceConfig.uri`, and prints nothing when neither is present.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-13 · Operator credentials
 
 The Functions client uses `credentials` when given, else the operator's ADC.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract
 
 #### DEP-14 · Origin and client-address settings
@@ -242,47 +244,47 @@ production build, which bundles them, and the live deploy exercise them.
 
 Options: `out` (default `build`), `precompress` (default `true`), `envPrefix` (default `''`), which prefixes the names ADP-7 reads.
 
-- Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-2 · Assets
 
 `adapt()` empties `out`, writes the client assets to `<out>/client<base>` and prerendered pages to `<out>/prerendered<base>`, and gzip- and brotli-compresses both when `precompress` is set. It copies `env.js`, `handler.js`, `index.js` and `shims.js` into `out`.
 
-- Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-3 · Server bundle
 
 The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks under `chunks/`), with node resolution under the `node` condition, CommonJS and JSON support. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports. `<out>/server/manifest.js` exports `manifest`, `prerendered` (the set of prerendered paths) and `base`.
 
-- Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-4 · Entry and initialization
 
 `<out>/index.js` re-exports `handler` from `<out>/handler.js`. The handler installs SvelteKit's Node polyfills and initializes the server with `env: process.env`, reading assets from `<out>/client<base>`.
 
-- Test: unverified (build step; `handler.js` imports build-time placeholders)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-5 · Middleware chain and request URL
 
 The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving precompressed `.gz`/`.br` variants; static files from `static/` when present; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
-- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: the middleware chain and the body)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e
 
 #### ADP-6 · Client address
 
 `getClientAddress()` splits `X-Forwarded-For` (arrays joined with `,`) on `,`, trims each entry, drops empty ones, and returns the entry `XFF_DEPTH` positions from the right: depth 1 is the last. With fewer entries than the depth it throws `XFF_DEPTH is <depth>, but X-Forwarded-For has <n> entries`. Without the header it returns the socket's remote address. `platform` is `{ req }`, the Node request.
 
-- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e
 
 #### ADP-7 · Startup environment
 
 At startup the handler reads `<envPrefix>ORIGIN` and `<envPrefix>XFF_DEPTH`. `ORIGIN` is used as given, and unset means none. `XFF_DEPTH` defaults to `1`. A value that is not a positive integer (`/^[1-9]\d*$/`) throws `XFF_DEPTH must be a positive integer, not '<value>'`, so the function fails at start. With a non-empty prefix, any other variable carrying the prefix throws at startup.
 
-- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unverified: reading the variables and the prefix check)
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e

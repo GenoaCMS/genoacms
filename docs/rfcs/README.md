@@ -72,7 +72,7 @@ deleted in RFC-0014.
 6. **Functions.** One abstraction level per function; small single-purpose units.
 7. **Verification.** Every command in the RFC's *Verification* section must pass before committing, and so must `pnpm run docs:check`. A pre-existing failure is recorded as a baseline *before* starting and must not get worse.
 8. **Commits.** Conventional commits, one per RFC, using the subject given in the RFC. No AI attribution. Documentation changes to `docs/` are committed separately from code.
-9. **Secrets in tests.** Tests that need real cloud credentials are opt-in behind an environment variable named in the RFC, and they skip cleanly without it. CI never has credentials.
+9. **Secrets in tests.** Tests that need real cloud credentials are opt-in behind an environment variable named in the RFC, and they skip cleanly without it. CI has credentials only on pushes to `main`, through Workload Identity Federation, never as a key (RFC-0025).
 
 ## Shared vocabulary
 

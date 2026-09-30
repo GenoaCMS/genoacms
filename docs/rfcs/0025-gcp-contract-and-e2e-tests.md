@@ -2,8 +2,8 @@
 type: rfc
 number: 25
 title: Contract and end-to-end tests for the GCP statements
-status: draft
-commits: []
+status: implemented
+commits: [12420d3, 28107d2]
 depends: [24]
 architecture: [architecture/adapter-gcp/README.md, architecture/adapter-gcp/storage.md, architecture/adapter-gcp/secrets.md, architecture/adapter-gcp/deployment.md]
 changes: []
