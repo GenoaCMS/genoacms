@@ -20,6 +20,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | :-- | :-- | :-- | :-- | :-- |
 | [`architecture/configuration.md`](architecture/configuration.md) | none: it predates the workflow, and its IDs (`U`, `D`, `F`, `S`, `Q`, `C`, `A`, `P`, `K`, `R`) are unprefixed | — | config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no** (`conforms: false`): written as a proposal. Restructuring pending. |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements: 54 name a test, 2 of them partly verified (STO-8, STO-9), and 1 is unverified (COM-1, a type); 8 more are **New** (authentication). |
+| [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 7 current statements, all unverified: 1 a type (AWS-1), 6 whose tests name no statement (WF19); 35 more are **New**. |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
 ## Coverage
@@ -31,7 +32,8 @@ What the Specifications cover, measured against the reproducibility principle
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not restructured |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26, GF28 |
-| Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. The AWS findings of the AWS discussion are recorded nowhere yet. |
+| AWS | `adapter-aws` | `adapter-aws/` | the target is specified; the code diverges: open findings WF1 to WF19 |
+| Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
