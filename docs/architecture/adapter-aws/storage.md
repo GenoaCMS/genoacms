@@ -98,7 +98,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### OBJ-5 · Signed URL
 
-`getSignedURL(ref, expires)` returns a Signature Version 4 presigned URL for `GetObject` of the object, valid for `floor((expires − now) / 1000)` seconds. It is signed with the client's credentials, so under an execution role it stops working when the role's session expires, which can be before `expires`. A lifetime over 604800 seconds (7 days) or under 1 second is refused by the presigner, and its error propagates.
+`getSignedURL(ref, expires)` returns a Signature Version 4 presigned URL for `GetObject` of the object, valid for `floor((expires − now) / 1000)` seconds. It is signed with the client's credentials, so under an execution role it stops working when the role's session expires, which can be before `expires`. A lifetime over 604800 seconds (7 days) is refused by the presigner, and its error propagates; a shorter one, even 0 or negative, is signed as given, so the URL may already be expired.
 
 - Test: none yet
 - Level: unit, contract
@@ -138,7 +138,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### OBJ-10 · Deleting a directory
 
-`deleteDirectory({ bucket, name })` lists every object whose name starts with `name`, at every depth, following continuation tokens, and deletes them with `DeleteObjects`, at most 1000 keys per request. A key the response reports in `Errors` throws `storage/delete-failed: <bucket>/<key>: <code>` after the request; other errors propagate unchanged. A failure part-way leaves the directory partly deleted.
+`deleteDirectory({ bucket, name })` lists every object whose name starts with `name`, at every depth, following continuation tokens, and deletes them with `DeleteObjects`, at most 1000 keys per request. The first key the response reports in `Errors` throws `storage/delete-failed: <bucket>/<key>: <code>` after the request; other errors propagate unchanged. A failure part-way leaves the directory partly deleted.
 
 - Test: none yet
 - Level: unit, contract
