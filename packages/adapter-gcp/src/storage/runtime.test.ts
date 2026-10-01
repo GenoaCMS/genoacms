@@ -173,7 +173,7 @@ describe('the GCP storage runtime', () => {
     expect(fileNamed('n').delete).toHaveBeenCalled()
   })
 
-  it.fails('STO-9: lists one level, hiding placeholders and the directory itself', async () => {
+  it('STO-9: lists one level, hiding placeholders and the directory itself', async () => {
     const storage = await create()
     bucket.getFiles.mockResolvedValueOnce([[
       mockFileResolvingEveryCall('d/', { size: '0' }),
@@ -232,7 +232,7 @@ describe('the GCP storage runtime', () => {
     expect(listing.files.map(file => file.name)).toEqual(['d/a.folderPlaceholder.txt'])
   })
 
-  it.fails('STO-11: lists page by page and deletes at most 10 at a time', async () => {
+  it('STO-11: lists page by page and deletes at most 10 at a time', async () => {
     const storage = await create()
     const deletes = deletesThatWaitForRelease()
     const firstPage = Array.from({ length: 15 }, (_, index) => deletes.file(`d/one/${index}`))
@@ -257,7 +257,7 @@ describe('the GCP storage runtime', () => {
     for (const file of [...firstPage, ...secondPage]) expect(file.delete).toHaveBeenCalledOnce()
   })
 
-  it.fails('STO-11: starts no delete after the first failure, and rejects with it once the started ones end', async () => {
+  it('STO-11: starts no delete after the first failure, and rejects with it once the started ones end', async () => {
     const storage = await create()
     const deletes = deletesThatWaitForRelease()
     const page = Array.from({ length: 30 }, (_, index) => deletes.file(`d/${String(index).padStart(2, '0')}`))
@@ -285,7 +285,7 @@ describe('the GCP storage runtime', () => {
     expect(bucket.getFiles).toHaveBeenCalledOnce()
   })
 
-  it.fails('STO-11: rejects with a listing error', async () => {
+  it('STO-11: rejects with a listing error', async () => {
     const storage = await create()
     const failure = Object.assign(new Error('forbidden'), { code: 403 })
     bucket.getFiles.mockRejectedValueOnce(failure)
@@ -293,7 +293,7 @@ describe('the GCP storage runtime', () => {
     expect([...files.values()].every(file => file.delete.mock.calls.length === 0)).toBe(true)
   })
 
-  it.fails('STO-9: does not count startAfter toward limit', async () => {
+  it('STO-9: does not count startAfter toward limit', async () => {
     const storage = await create()
     const page = (names: string[]) => [names.map(name => mockFileResolvingEveryCall(name)), {}, { prefixes: [] }]
     const listedNames = async (options: { limit: number, startAfter?: string }) =>
