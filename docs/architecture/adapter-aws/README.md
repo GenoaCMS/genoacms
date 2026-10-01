@@ -3,7 +3,7 @@ type: architecture-index
 title: AWS adapter architecture
 prefix: W
 codes: [AWS]
-verified: bbb105f
+verified: 624ce2e
 ---
 
 # AWS adapter architecture
@@ -29,9 +29,8 @@ contract leaves behavior open, the AWS adapter behaves as the GCP adapter does, 
 here says otherwise (WD1).
 
 **Written from the code at `bbb105f`** (2026-09-30), the first architecture document of this
-package. The code predates the workflow and diverges from the contracts in many places. Each
-divergence is a finding, and the Specification states the target: a statement the code does not
-meet yet is **New**.
+package. The code predated the workflow and diverged from the contracts in many places; each
+divergence was a finding, and RFC-0026 brought the code to the Specification.
 
 ### Documents
 
@@ -80,7 +79,7 @@ loads and which imports no SDK, and a runtime, which the host constructs per pro
 | :-- | :-- | :-- |
 | `./storage`, `./storage/runtime` | S3 | [`storage.md`](storage.md) |
 | `./database`, `./database/runtime` | DynamoDB | [`database.md`](database.md) |
-| **New** `./secrets`, `./secrets/runtime` | Secrets Manager | [`secrets.md`](secrets.md) |
+| `./secrets`, `./secrets/runtime` | Secrets Manager | [`secrets.md`](secrets.md) |
 | `./deployment` (descriptor and procedure; no runtime) | Lambda | [`deployment.md`](deployment.md) |
 
 What every service shares is specified once, in AWS-1 to AWS-4 at the end of this README.
@@ -120,10 +119,10 @@ not check grants, as on GCP (`adapter-gcp/deployment.md` GQ2).
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| WF3 | **SDK errors are replaced by messages of the adapter's own** (WD2): `upload-failed`, `delete-failed`, `listing-failed`, `directory-creation-failed`, `document-creation-failed`, `collection-fetching-failed`, `document-fetching-failed`, `document-updating-failed`, `document-deletion-failed`, `unsupported-type`. The cause, its code and its request ID are lost, and a missing table reads the same as a denied permission. | open |
-| WF19 | **No test carries a statement ID, and the package publishes its tests.** The unit tests exist (descriptors, storage basics, one DynamoDB round trip, staging, the deploy procedure) but name no statement, so every statement here is unverified. The package has no `files` field and no build, so `src/**/*.test.js` is published. | open |
-| WF23 | **The RFC-0026 tests miss parts of their statements** (WS5). Tests pass when, among others: a directory move skips placeholders or the object named exactly `name` (OBJ-11); `setSecret` goes on after an error other than the ones ASM-4 names, or swallows the last put's error (ASM-4); a failed claim writes anyway (ASM-5); `deleteSecret` or `deleteDocument` swallows errors (ASM-6, DDB-7); the URL and permission steps swallow errors other than `ResourceConflictException` (LMB-9); `memory`, `timeoutSeconds`, `functionName` or `artifactBucket` are ignored (LMB-2); the role, name and origin patterns are loosened (LMB-3); the zip drops dotfiles or uses another level (LMB-6); the database and secrets clients ignore region or credentials (AWS-4); a listing normalizes `name` (OBJ-8); a directory is read before its placeholder is written (OBJ-9). WS5 lists every surviving mutation. | open |
-| WF26 | **The amendment's tests miss parts of LMB-15 and ASM-3** (WS7). They pass when the entry falls back to `X-Forwarded-For` without a usable context, takes the first copy of a repeated context, refuses an empty `sourceIp`, or reads the address from a property other than `http`; and when ASM-3 counts only a past `DeletedDate` as scheduled. | open |
+| WF3 | **SDK errors are replaced by messages of the adapter's own** (WD2): `upload-failed`, `delete-failed`, `listing-failed`, `directory-creation-failed`, `document-creation-failed`, `collection-fetching-failed`, `document-fetching-failed`, `document-updating-failed`, `document-deletion-failed`, `unsupported-type`. The cause, its code and its request ID are lost, and a missing table reads the same as a denied permission. | fixed, RFC-0026 |
+| WF19 | **No test carries a statement ID, and the package publishes its tests.** The unit tests exist (descriptors, storage basics, one DynamoDB round trip, staging, the deploy procedure) but name no statement, so every statement here is unverified. The package has no `files` field and no build, so `src/**/*.test.js` is published. | fixed, RFC-0026 |
+| WF23 | **The RFC-0026 tests miss parts of their statements** (WS5). Tests pass when, among others: a directory move skips placeholders or the object named exactly `name` (OBJ-11); `setSecret` goes on after an error other than the ones ASM-4 names, or swallows the last put's error (ASM-4); a failed claim writes anyway (ASM-5); `deleteSecret` or `deleteDocument` swallows errors (ASM-6, DDB-7); the URL and permission steps swallow errors other than `ResourceConflictException` (LMB-9); `memory`, `timeoutSeconds`, `functionName` or `artifactBucket` are ignored (LMB-2); the role, name and origin patterns are loosened (LMB-3); the zip drops dotfiles or uses another level (LMB-6); the database and secrets clients ignore region or credentials (AWS-4); a listing normalizes `name` (OBJ-8); a directory is read before its placeholder is written (OBJ-9). WS5 lists every surviving mutation. | fixed, RFC-0026 |
+| WF26 | **The amendment's tests miss parts of LMB-15 and ASM-3** (WS7). They pass when the entry falls back to `X-Forwarded-For` without a usable context, takes the first copy of a repeated context, refuses an empty `sourceIp`, or reads the address from a property other than `http`; and when ASM-3 counts only a past `DeletedDate` as scheduled. | fixed, RFC-0026 |
 
 ### Verification
 
@@ -139,6 +138,7 @@ not check grants, as on GCP (`adapter-gcp/deployment.md` GQ2).
 - **2023-10 to 2024-06** (`0.1` to `0.6.2`): the adapter implemented `@genoacms/cloudabstraction` services on S3 and DynamoDB, as module-level singletons that read the whole config (`configuration.md` F5). The deploy created a Lambda function behind an API Gateway REST API through `aws-serverless-express`.
 - **2026-08**: the config shape it read no longer existed, so it could not run (`configuration.md` F14).
 - **2026-09-27** (RFC-0007, RFC-0014): ported to descriptors and runtimes and to the artifact deploy, keeping every method body. The port made it load again. It has not been deployed since.
+- **2026-10-01** (RFC-0026): TypeScript, built to `dist/`; every service brought to the Specification, a Secrets Manager provider added, the deploy rebuilt on the Lambda Web Adapter and a function URL, and tests at `unit`, `integration` and `contract` against a real account (WF1 to WF26).
 
 ---
 
@@ -154,42 +154,42 @@ Every `W` ID, where it lives, and its state.
 | WU4 | `unit` and `contract` levels; scoped IAM user locally, OIDC role in CI | decided | README |
 | WU5 | A secret scheduled for deletion is absent | decided | [`secrets.md`](secrets.md) |
 | WU6 | The client address from the request context | decided | [`deployment.md`](deployment.md) |
-| WD1 | Match the GCP adapter where the contract is silent | new, RFC-0026 | README |
-| WD2 | SDK errors propagate unchanged | new, RFC-0026 | README |
-| WD3 | Only string keys | new, RFC-0026 | [`database.md`](database.md) |
-| WD4 | Lambda behind the Lambda Web Adapter and a function URL | new, RFC-0026 | [`deployment.md`](deployment.md) |
-| WD5 | Secrets are deleted without a recovery window | new, RFC-0026 | [`secrets.md`](secrets.md) |
-| WD6 | A secret scheduled for deletion is absent | new, RFC-0026 | [`secrets.md`](secrets.md) |
-| WD7 | The client address comes from the request context | new, RFC-0026 | [`deployment.md`](deployment.md) |
-| WF1 | Three storage methods of the contract are missing | open | [`storage.md`](storage.md) |
-| WF2 | `getObject` swallows every error | open | [`storage.md`](storage.md) |
-| WF3 | SDK errors are replaced by the adapter's own messages | open | README |
-| WF4 | Listings differ from the contract's shape | open | [`storage.md`](storage.md) |
-| WF5 | Directories are `name/` objects, created after a full read | open | [`storage.md`](storage.md) |
-| WF6 | Three storage methods skip the bucket check | open | [`storage.md`](storage.md) |
-| WF7 | `ifAbsent` and `ifVersion` together send both conditions | open | [`storage.md`](storage.md) |
-| WF8 | `getCollection` reads only the first page | open | [`database.md`](database.md) |
-| WF9 | `getDocument` of a missing document throws | open | [`database.md`](database.md) |
-| WF10 | `updateDocument` replaces the item, and creates missing ones | open | [`database.md`](database.md) |
-| WF11 | `createDocument` can overwrite a document | open | [`database.md`](database.md) |
-| WF12 | Snapshots disagree on the key attribute | open | [`database.md`](database.md) |
-| WF13 | Numeric keys and non-JSON numbers fail late | open | [`database.md`](database.md) |
-| WF14 | No secrets provider | open | [`secrets.md`](secrets.md) |
-| WF15 | The API Gateway wiring cannot serve the app | open | [`deployment.md`](deployment.md) |
-| WF16 | The deploy neither waits nor updates the configuration | open | [`deployment.md`](deployment.md) |
-| WF17 | Retired runtime and wrapper; no URL printed; one archive key | open | [`deployment.md`](deployment.md) |
-| WF18 | Dependencies are installed for the operator's platform | open | [`deployment.md`](deployment.md) |
-| WF19 | No test carries a statement ID; tests are published | open | README |
-| WF20 | Empty and non-string deploy options passed validation | open | [`deployment.md`](deployment.md) |
-| WF21 | An empty update succeeded on a missing document | open | [`database.md`](database.md) |
-| WF22 | A key field with an unsupported value failed a create | open | [`database.md`](database.md) |
-| WF23 | The RFC-0026 tests miss parts of their statements | open | README |
-| WF24 | A deleted secret is not gone at once; deleting a missing one succeeds | open | [`secrets.md`](secrets.md) |
-| WF25 | The client address can be forged behind a function URL | open | [`deployment.md`](deployment.md) |
-| WF26 | The amendment's tests miss parts of LMB-15 and ASM-3 | open | README |
-| WS1 | The Lambda Web Adapter layer's ARN and version | documented; automated by RFC-0026 | [`deployment.md`](deployment.md) |
-| WS2 | What reaches adapter-node through a function URL | run 2026-10-01; finding WF25 | [`deployment.md`](deployment.md) |
-| WS3 | The permissions a public function URL needs | documented | [`deployment.md`](deployment.md) |
+| WD1 | Match the GCP adapter where the contract is silent | current, RFC-0026 | README |
+| WD2 | SDK errors propagate unchanged | current, RFC-0026 | README |
+| WD3 | Only string keys | current, RFC-0026 | [`database.md`](database.md) |
+| WD4 | Lambda behind the Lambda Web Adapter and a function URL | current, RFC-0026 | [`deployment.md`](deployment.md) |
+| WD5 | Secrets are deleted without a recovery window | current, RFC-0026 | [`secrets.md`](secrets.md) |
+| WD6 | A secret scheduled for deletion is absent | current, RFC-0026 | [`secrets.md`](secrets.md) |
+| WD7 | The client address comes from the request context | current, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF1 | Three storage methods of the contract are missing | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF2 | `getObject` swallows every error | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF3 | SDK errors are replaced by the adapter's own messages | fixed, RFC-0026 | README |
+| WF4 | Listings differ from the contract's shape | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF5 | Directories are `name/` objects, created after a full read | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF6 | Three storage methods skip the bucket check | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF7 | `ifAbsent` and `ifVersion` together send both conditions | fixed, RFC-0026 | [`storage.md`](storage.md) |
+| WF8 | `getCollection` reads only the first page | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF9 | `getDocument` of a missing document throws | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF10 | `updateDocument` replaces the item, and creates missing ones | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF11 | `createDocument` can overwrite a document | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF12 | Snapshots disagree on the key attribute | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF13 | Numeric keys and non-JSON numbers fail late | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF14 | No secrets provider | fixed, RFC-0026 | [`secrets.md`](secrets.md) |
+| WF15 | The API Gateway wiring cannot serve the app | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF16 | The deploy neither waits nor updates the configuration | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF17 | Retired runtime and wrapper; no URL printed; one archive key | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF18 | Dependencies are installed for the operator's platform | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF19 | No test carries a statement ID; tests are published | fixed, RFC-0026 | README |
+| WF20 | Empty and non-string deploy options passed validation | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF21 | An empty update succeeded on a missing document | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF22 | A key field with an unsupported value failed a create | fixed, RFC-0026 | [`database.md`](database.md) |
+| WF23 | The RFC-0026 tests miss parts of their statements | fixed, RFC-0026 | README |
+| WF24 | A deleted secret is not gone at once; deleting a missing one succeeds | fixed, RFC-0026 | [`secrets.md`](secrets.md) |
+| WF25 | The client address can be forged behind a function URL | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
+| WF26 | The amendment's tests miss parts of LMB-15 and ASM-3 | fixed, RFC-0026 | README |
+| WS1 | The Lambda Web Adapter layer's ARN and version | automated, RFC-0026 | [`deployment.md`](deployment.md) |
+| WS2 | What reaches adapter-node through a function URL | automated, RFC-0026; finding WF25 | [`deployment.md`](deployment.md) |
+| WS3 | The permissions a public function URL needs | automated, RFC-0026 | [`deployment.md`](deployment.md) |
 | WS4 | Secrets Manager's version limit under frequent overwrites | not run | [`secrets.md`](secrets.md) |
 | WS5 | Falsification audit of RFC-0026's statements | run at `34ef76f`; findings WF20 to WF23 | README |
 | WS7 | Falsification audit of RFC-0026's amended statements | run at `e307fcc`; finding WF26 | README |
@@ -212,19 +212,19 @@ Every `W` ID, where it lives, and its state.
 
 Every descriptor refuses option keys outside its list, one reason per key: `unknown option '<key>'`.
 
-- Test: unverified (the tests name no statement, WF19)
+- Test: `packages/adapter-aws/src/database/descriptor.test.ts`, `packages/adapter-aws/src/deployment/descriptor.test.ts`, `packages/adapter-aws/src/secrets/descriptor.test.ts`, `packages/adapter-aws/src/storage/descriptor.test.ts`
 - Level: unit
 
 #### AWS-3 · Required string options
 
 A required string option that is missing, not a string or empty yields `<key> is required and must be a non-empty string`. `region` is required by every descriptor.
 
-- Test: unverified (the tests name no statement, WF19)
+- Test: `packages/adapter-aws/src/database/descriptor.test.ts`, `packages/adapter-aws/src/deployment/descriptor.test.ts`, `packages/adapter-aws/src/secrets/descriptor.test.ts`, `packages/adapter-aws/src/storage/descriptor.test.ts`
 - Level: unit
 
 #### AWS-4 · One client per provider, the default chain by default
 
 Each provider construction creates its own client with `{ region }`, plus `credentials` only when given. Otherwise the SDK's default credential provider chain applies. Two providers on one AWS service share neither client nor credential, so two regions or two accounts can be served at once.
 
-- Test: unverified (the tests name no statement, WF19)
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/src/storage/runtime.test.ts`
 - Level: unit

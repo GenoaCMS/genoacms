@@ -2,8 +2,8 @@
 type: rfc
 number: 26
 title: Bring the AWS adapter to its Specification
-status: draft
-commits: []
+status: implemented
+commits: [a222f35, 68bfc00, ef361d0, 5dd505c, 5bbf1e9, 82cfe0d, f9d72a5, 34ef76f, 5e3fbd3, 90186c0, 21f9cd6, e9a81b5, a99c75b, 83ea5ff, eb62982, 26847b0, e307fcc, 624ce2e]
 depends: [25]
 architecture: [architecture/adapter-aws/README.md, architecture/adapter-aws/storage.md, architecture/adapter-aws/database.md, architecture/adapter-aws/secrets.md, architecture/adapter-aws/deployment.md]
 changes: [OBJ-2 added, OBJ-3 added, OBJ-4 added, OBJ-5 added, OBJ-6 added, OBJ-7 added, OBJ-8 added, OBJ-9 added, OBJ-10 added, OBJ-11 added, DDB-2 added, DDB-3 added, DDB-4 added, DDB-5 added, DDB-6 added, DDB-7 added, ASM-1 added, ASM-2 added, ASM-3 added, ASM-4 added, ASM-5 added, ASM-6 added, LMB-2 added, LMB-3 added, LMB-4 added, LMB-5 added, LMB-6 added, LMB-7 added, LMB-8 added, LMB-9 added, LMB-10 added, LMB-11 added, LMB-12 added, LMB-13 added, LMB-14 added, LMB-15 added]

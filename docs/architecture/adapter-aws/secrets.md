@@ -2,14 +2,12 @@
 type: architecture
 title: AWS secrets: Secrets Manager
 codes: [ASM]
-verified: bbb105f
+verified: 624ce2e
 ---
 
 # AWS secrets: Secrets Manager
 
 Part of the [AWS adapter architecture](README.md). Markers, IDs and test references as defined there.
-
-**Everything in this document is New.** No AWS secrets provider exists (WF14).
 
 ## Design
 
@@ -59,12 +57,12 @@ window, also reads as absent.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| WF14 | **No secrets provider.** An AWS stack must take its secrets from another provider, such as the environment, which cannot claim atomically, so two instances starting together can each mint a root seed. `configuration.md` notes that the AWS suite's `production.ts` names a secrets adapter that does not exist. | open |
-| WF24 | **A deleted secret is not gone at once, and deleting a missing one succeeds** (ASM-3, ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. Once the delete had completed, a second forced delete resolved, so `deleteSecret` reported `true` where ASM-6 says `false`. | open |
+| WF14 | **No secrets provider.** An AWS stack must take its secrets from another provider, such as the environment, which cannot claim atomically, so two instances starting together can each mint a root seed. `configuration.md` notes that the AWS suite's `production.ts` names a secrets adapter that does not exist. | fixed, RFC-0026 |
+| WF24 | **A deleted secret is not gone at once, and deleting a missing one succeeds** (ASM-3, ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. Once the delete had completed, a second forced delete resolved, so `deleteSecret` reported `true` where ASM-6 says `false`. | fixed, RFC-0026 |
 
 ### History
 
-None: nothing is implemented yet.
+*History.* RFC-0026 (2026-10-01) added the provider (WF14), and its first contract run changed how a deleted secret reads (WD6, WF24).
 
 ### Verification
 
@@ -74,17 +72,14 @@ None: nothing is implemented yet.
 
 ## Specification
 
-**New**, all of it: no RFC yet.
-
 ### Descriptor
 
 #### ASM-1 · Descriptor
 
 Specifier `@genoacms/adapter-aws/secrets`, kind `secrets`. Runtime specifier `@genoacms/adapter-aws/secrets/runtime`. Options `region: string` (required) and `credentials?: BootstrapSecret<AwsCredentials>` (`env()` or `inline()` only, `configuration.md` D5), decoded as JSON. Validation follows AWS-2 and AWS-3.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/descriptor.test.ts`
 - Level: unit
-- State: new (RFC-0026)
 
 ### Runtime
 
@@ -95,38 +90,33 @@ One `SecretsManagerClient` per provider (AWS-4). Every error not named below pro
 
 A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Manager does not accept fails with its error.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract
-- State: new (RFC-0026)
 
 #### ASM-3 · Reading
 
 `getSecret(key)` sends `GetSecretValue` and returns its `SecretString`, the `AWSCURRENT` version's value. It returns `undefined` when, and only when, the call fails with `ResourceNotFoundException`, or fails with `InvalidRequestException` and a `DescribeSecret` of the key then shows a `DeletedDate` or fails with `ResourceNotFoundException` (WD6). Otherwise that `InvalidRequestException` propagates, and so does an error of the `DescribeSecret`. A secret holding only `SecretBinary` throws `secrets/not-a-string: <key>`.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract
-- State: new (RFC-0026)
 
 #### ASM-4 · Overwriting
 
 `setSecret(key, value)` sends `PutSecretValue` with `SecretString: value`. On `ResourceNotFoundException` it sends `CreateSecret` with `Name: key` and `SecretString: value`; if that fails with `ResourceExistsException`, because another caller created it meanwhile, it sends `PutSecretValue` once more. It resolves `true`.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract
-- State: new (RFC-0026)
 
 #### ASM-5 · Atomic claim
 
 `setSecretIfAbsent(key, value)` sends `CreateSecret` with `Name: key` and `SecretString: value`, and resolves `true`. `ResourceExistsException` resolves `false`.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract
-- State: new (RFC-0026)
 
 #### ASM-6 · Deleting
 
 `deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Any other error of the `DescribeSecret` propagates, and no `DeleteSecret` is sent. Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract
-- State: new (RFC-0026)
