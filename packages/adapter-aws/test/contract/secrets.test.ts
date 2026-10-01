@@ -60,13 +60,14 @@ describe.runIf(enabled)('Secrets Manager, against the real service', { timeout: 
     expect(await secrets.deleteSecret(deleted)).toBe(true)
     expect(await secrets.getSecret(deleted)).toBeUndefined()
     expect(await secrets.deleteSecret(deleted)).toBe(false)
+    expect(await secrets.deleteSecret(key('never-existed'))).toBe(false)
   })
 
-  it('ASM-3: propagates the failure to read a secret scheduled for deletion', async () => {
+  it('ASM-3: reads a secret scheduled for deletion as undefined', async () => {
     const scheduled = key('scheduled')
     await secrets.setSecret(scheduled, 'value')
     await client.send(new DeleteSecretCommand({ SecretId: scheduled, RecoveryWindowInDays: RECOVERY_WINDOW_DAYS }))
-    await expect(secrets.getSecret(scheduled)).rejects.toMatchObject({ name: 'InvalidRequestException' })
+    expect(await secrets.getSecret(scheduled)).toBeUndefined()
     await forceDelete(scheduled)
   })
 })
