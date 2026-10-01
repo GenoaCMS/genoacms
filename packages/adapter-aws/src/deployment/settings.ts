@@ -8,6 +8,7 @@ export interface FunctionSettings {
 export const SETTING_KEYS = ['functionName', 'memory', 'timeoutSeconds', 'origin'] as const
 
 export const DEFAULT_FUNCTION_NAME = 'genoacms'
+export const CLIENT_ADDRESS_HEADER = 'x-genoacms-client-address'
 export const DEFAULT_MEMORY = 1024
 export const DEFAULT_TIMEOUT_SECONDS = 30
 
@@ -46,7 +47,7 @@ export function validateSettings (options: unknown): string[] {
     .map(rule => rule.reason)
 }
 
-// LMB-10
+// LMB-10, WD7
 export function functionEnvironment (options: { origin?: string }): Record<string, string> {
   const origin: Record<string, string> = options.origin === undefined
     ? { PROTOCOL_HEADER: 'x-forwarded-proto', HOST_HEADER: 'host' }
@@ -55,8 +56,7 @@ export function functionEnvironment (options: { origin?: string }): Record<strin
     NODE_ENV: 'production',
     AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
     PORT: '8080',
-    ADDRESS_HEADER: 'x-forwarded-for',
-    XFF_DEPTH: '1',
+    ADDRESS_HEADER: CLIENT_ADDRESS_HEADER,
     ...origin
   }
 }

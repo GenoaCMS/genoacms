@@ -125,7 +125,7 @@ function zipEntries (archive: Buffer): ZipEntry[] {
 }
 
 describe('staging the Lambda app', () => {
-  it.fails('LMB-4: copies the build, adds run.sh and the entry, and changes nothing else', async () => {
+  it('LMB-4: copies the build, adds run.sh and the entry, and changes nothing else', async () => {
     const { buildDir, app } = buildDirectory()
     await stageLambdaApp(buildDir, app)
     expect(filesUnder(app)).toEqual([...Object.keys(BUILD_FILES), ENTRY, 'run.sh'].sort())
@@ -137,7 +137,7 @@ describe('staging the Lambda app', () => {
     expect(statSync(join(app, ENTRY)).isFile()).toBe(true)
   })
 
-  it.fails('LMB-4: replaces a genoacms-lambda.js of the build', async () => {
+  it('LMB-4: replaces a genoacms-lambda.js of the build', async () => {
     const plain = buildDirectory()
     await stageLambdaApp(plain.buildDir, plain.app)
     const entry = readFileSync(join(plain.app, ENTRY), 'utf-8')
@@ -150,7 +150,7 @@ describe('staging the Lambda app', () => {
     expect(staged).toBe(entry)
   })
 
-  it.fails("LMB-15: serves the handler with the request context's source address", async () => {
+  it("LMB-15: serves the handler with the request context's source address", async () => {
     const running = await startEntry(await stagedWithHandler(ECHO_HANDLER))
     try {
       const headers = await receivedHeaders(running.origin, {
@@ -163,7 +163,7 @@ describe('staging the Lambda app', () => {
     }
   }, 20_000)
 
-  it.fails("LMB-15: drops a client's address header when the context has none", async () => {
+  it("LMB-15: drops a client's address header when the context has none", async () => {
     const running = await startEntry(await stagedWithHandler(ECHO_HANDLER))
     try {
       const contexts: Array<Record<string, string>> = [
@@ -180,7 +180,7 @@ describe('staging the Lambda app', () => {
     }
   }, 20_000)
 
-  it.fails('LMB-15: answers 404 when the handler passes the request on', async () => {
+  it('LMB-15: answers 404 when the handler passes the request on', async () => {
     const running = await startEntry(await stagedWithHandler(PASSING_HANDLER))
     try {
       const response = await fetch(running.origin)
