@@ -48,6 +48,7 @@ own before starting the next.
 | [0024](0024-gcp-runtime-unit-tests.md) | Unit tests for every current GCP runtime statement (`adapter-gcp/README.md` GD6) | `packages/adapter-gcp` (tests only) |
 | [0025](0025-gcp-contract-and-e2e-tests.md) | Contract and end-to-end tests for the GCP statements (`adapter-gcp/` GF15 to GF19) | `packages/adapter-gcp`, `packages/sveltekit-adapter-cloud-run-functions` (tests only), `scripts/`, CI |
 | [0026](0026-aws-adapter-to-specification.md) | Bring the AWS adapter to its Specification (`adapter-aws/` WF1 to WF19) | `packages/adapter-aws`, `scripts/`, CI |
+| [0027](0027-gcp-open-findings.md) | Fix the open GCP findings (`adapter-gcp/` GF10, GF20 to GF26) | `packages/adapter-gcp`, `packages/sveltekit-adapter-cloud-run-functions` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
 

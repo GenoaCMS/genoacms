@@ -2,7 +2,7 @@
 type: architecture
 title: GCP deployment: Cloud Run functions
 codes: [DEP, ADP]
-verified: 28107d2
+verified: aa17eb9
 ---
 
 # GCP deployment: Cloud Run functions
@@ -65,6 +65,15 @@ RFC-0023. DEP-14, ADP-5, ADP-6, ADP-7.
 *Why:* the client address is what sign-in throttling will key on (`configuration.md` Q5), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
 *Cost:* two more target options. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
 
+**GD8. The deploy disables the Functions Framework's ignored routes (GU8; DEP-10; GF20).** The
+function's environment carries `IGNORED_ROUTES` set to the empty string.
+*Why:* without it, the framework answers `/favicon.ico` and `/robots.txt` with 404 before the
+handler runs, so a GenoaCMS instance serves neither, although its handler would. An empty value is
+the framework's documented way to filter no route.
+*Cost:* every request for those paths now reaches the handler and costs an invocation, as any other
+path does. The framework a deployed function runs is the one the buildpack installs, not the one the
+end-to-end tests run, since the artifact does not depend on it (GS7).
+
 **The whole configuration is written on every deploy (DEP-10).** No field mask. The config is
 therefore the source of truth, and a setting changed in the console is reverted by the next deploy.
 
@@ -84,9 +93,9 @@ leave the machine (`configuration.md` F9, F15).
 | GF14 | *History.* **`env.js` was dead code.** The adapter copies `env.js`, adapter-node's reader for `ORIGIN`, `XFF_DEPTH`, `ADDRESS_HEADER`, `BODY_SIZE_LIMIT` and similar variables, but the handler never imports it. The `envPrefix` option and all those variables have no effect. The origin comes only from forwarded headers (ADP-5). | fixed, RFC-0023 |
 | GF17 | *History.* **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
 | GF18 | *History.* **The SvelteKit adapter has no end-to-end test** (ADP-1 to ADP-7): no test builds an app with it and serves a request through the result. ADP-5 to ADP-7 are unit-tested only, and GS5 checks the depth by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
-| GF20 | **The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt`** before the handler runs, so an instance on the `gcp` target serves neither, although ADP-5's handler would. Found by RFC-0025's end-to-end tests against `@google-cloud/functions-framework` 5 (2026-09-29). Setting `IGNORED_ROUTES` to an empty string disables the filter, per the framework's source; whether the deployed runtime honors it is unverified. The fix is its own RFC: DEP-10 and DEP-14 would set it. | open |
-| GF23 | **ADP-5 and ADP-2 describe a `static/` directory nothing writes.** SvelteKit copies static files into `client/`, so the handler's middleware for `<out>/static` never serves anything. Found by GS6. | open |
-| GF26 | **The deploy and SvelteKit adapter tests miss parts of their statements** (GS6). Tests pass when: the upload uses a wrong parent or content type, or a missing `storageSource` does not throw (DEP-8); an update sends an `updateMask`, or unset settings are sent (DEP-10); the original error is dropped as `cause` (DEP-11); the URL fallback or its priority changes (DEP-12); the defaults of `out`, `precompress` and `envPrefix` change (ADP-1); `out` is not emptied, or `base` is dropped (ADP-2); deep imports are bundled, sourcemaps or `chunks/` are dropped (ADP-3); the shims or `env: process.env` are dropped (ADP-4); a 308 loses the query string, `cache-control: immutable` is set on every client file, array headers are joined differently, or an unparsable URL answers 500 (ADP-5); `platform` is empty, or empty `X-Forwarded-For` entries are kept (ADP-6); `<envPrefix>XFF_DEPTH` is not read (ADP-7). | open |
+| GF20 | **The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt`** before the handler runs, so an instance on the `gcp` target serves neither, although ADP-5's handler would. Found by RFC-0025's end-to-end tests against `@google-cloud/functions-framework` 5 (2026-09-29). Setting `IGNORED_ROUTES` to an empty string disables the filter, per the framework's source (`options.js` and `server.js` of 5.0.5: an empty value filters no route); GD8 sets it. | fixed, RFC-0027 |
+| GF23 | **ADP-5 and ADP-2 describe a `static/` directory nothing writes.** SvelteKit copies static files into `client/`, so the handler's middleware for `<out>/static` never serves anything. Found by GS6. The middleware and the clause go. | fixed, RFC-0027 |
+| GF26 | **The deploy and SvelteKit adapter tests miss parts of their statements** (GS6). Tests pass when: the upload uses a wrong parent or content type, or a missing `storageSource` does not throw (DEP-8); an update sends an `updateMask`, or unset settings are sent (DEP-10); the original error is dropped as `cause` (DEP-11); the URL fallback or its priority changes (DEP-12); the defaults of `out`, `precompress` and `envPrefix` change (ADP-1); `out` is not emptied, or `base` is dropped (ADP-2); deep imports are bundled, sourcemaps or `chunks/` are dropped (ADP-3); the shims or `env: process.env` are dropped (ADP-4); a 308 loses the query string, `cache-control: immutable` is set on every client file, array headers are joined differently, or an unparsable URL answers 500 (ADP-5); `platform` is empty, or empty `X-Forwarded-For` entries are kept (ADP-6); `<envPrefix>XFF_DEPTH` is not read (ADP-7). | fixed, RFC-0027 |
 
 ### History
 
@@ -94,6 +103,7 @@ leave the machine (`configuration.md` F9, F15).
 - **Until RFC-0007 (2026-09-27)**, the deploy archived the **project source** from the project root, ignoring only `node_modules`, `.git`, `.github`, `.gitignore`, `.genoacms` and `build`. It injected entry snippets so that GCP would install and build core remotely (`configuration.md` F9, F15). The service-account key inside `genoa.config/` was uploaded with it, and the injected build snippet no longer existed, so the deploy was broken.
 - **RFC-0007** replaced that with the artifact upload, and kept the function settings unchanged (its non-goal). That is why GF3 existed.
 - **RFC-0021 (2026-09-28)** added GD1 and GD3.
+- **RFC-0027 (2026-10-01)** added GD8, so the app serves `/favicon.ico` and `/robots.txt`, and dropped the unused `static/` middleware.
 - **The SvelteKit adapter** was written in 2024-11 to adapt SvelteKit to Cloud Run functions instead of using Firebase's adapter.
 
 ### Open questions
@@ -105,6 +115,7 @@ leave the machine (`configuration.md` F9, F15).
 
 ### Verification
 
+- **GS7, for GD8: not run (author, live).** Request `/favicon.ico` and `/robots.txt` from a deployed instance. Expected: the app's own responses, not the framework's empty 404. The end-to-end tests show that the framework honors the empty value, and the deploy contract test that the platform keeps it; only the framework version the buildpack installs is left to this check.
 - **GS5, for GD5: not run yet (author, live).** Send a request with a forged `X-Forwarded-For: 203.0.113.9` to the deployed function and log `getClientAddress()`. Expected: the real client address, not `203.0.113.9`. It confirms that depth 1 is right for a function reached directly. It is unverified that Google's front end appends exactly one entry, and behind Firebase Hosting the right depth is expected to be 2.
 
 - Unit tests, with the SDK mocked, cover the `DEP` statements marked below.
@@ -190,10 +201,10 @@ The procedure never reads `process.cwd()`. It works only from the build director
 
 #### DEP-10 · Create or update
 
-**Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables: { NODE_ENV: 'production' }`, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
+**Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables` holding `NODE_ENV: 'production'` and `IGNORED_ROUTES: ''` (GD8), plus DEP-14's variables when set, and nothing else, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
-- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
-- Level: unit, contract
+- Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
+- Level: unit, contract, e2e
 
 #### DEP-11 · Completion
 
@@ -270,7 +281,7 @@ The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks u
 
 #### ADP-5 · Middleware chain and request URL
 
-The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving precompressed `.gz`/`.br` variants; static files from `static/` when present; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
+The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving a precompressed `.br` or `.gz` variant when the request's `Accept-Encoding` allows it; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e

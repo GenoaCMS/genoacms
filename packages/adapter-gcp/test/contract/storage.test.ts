@@ -119,8 +119,7 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     expect(listing.directories).toEqual([{ bucket, name: objectName('d/sub/') }])
   })
 
-  // GF21
-  it.fails('STO-9: pages a listing with limit and startAfter', async () => {
+  it('STO-9: pages a listing with limit and startAfter', async () => {
     for (const name of ['p/1', 'p/2', 'p/3']) await upload(name, name)
     const firstPage = await storage.listDirectory(ref('p/'), { limit: 2 })
     expect(firstPage.files.map(file => file.name)).toEqual([objectName('p/1'), objectName('p/2')])
@@ -150,5 +149,25 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     expect(await content('moved/n/2')).toBe('two')
     const [remaining] = await sdkBucket().getFiles({ prefix: objectName('m/') })
     expect(remaining).toEqual([])
+  })
+
+  it('STO-11, STO-12: deletes and moves a directory of 25 objects', async () => {
+    const names = Array.from({ length: 25 }, (_, index) => `many/${String(index).padStart(2, '0')}`)
+    await Promise.all(names.map(async name => { await upload(name, name) }))
+    await storage.moveDirectory(ref('many/'), objectName('many-moved/'))
+    const [moved] = await sdkBucket().getFiles({ prefix: objectName('many-moved/') })
+    expect(moved.map(file => file.name).sort()).toEqual(names.map(name => objectName(`many-moved/${name.slice('many/'.length)}`)).sort())
+    const [left] = await sdkBucket().getFiles({ prefix: objectName('many/') })
+    expect(left).toEqual([])
+    await storage.deleteDirectory(ref('many-moved/'))
+    const [remaining] = await sdkBucket().getFiles({ prefix: objectName('many-moved/') })
+    expect(remaining).toEqual([])
+  })
+
+  it('STO-12: moves into a name with $ patterns literally', async () => {
+    await upload('dollar/x', 'x')
+    await storage.moveDirectory(ref('dollar/'), objectName('n$&/'))
+    expect(await content('n$&/x')).toBe('x')
+    expect(await exists('dollar/x')).toBe(false)
   })
 })

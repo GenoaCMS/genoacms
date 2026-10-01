@@ -3,7 +3,7 @@ type: architecture-index
 title: GCP adapter architecture
 prefix: G
 codes: [COM]
-verified: 28107d2
+verified: aa17eb9
 ---
 
 # GCP adapter architecture
@@ -49,6 +49,7 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 | GU5 | 2026-09-29: SEC-9 and SEC-10 are verified at `unit` only. They describe the adapter's own handling, which the real service cannot provoke or show (RFC-0025). | [`secrets.md`](secrets.md) |
 | GU6 | 2026-09-29: the contract tests run in production's project `genoacms`, confined to names unique to each run and removed after it, rather than in a separate project. | Verification |
 | GU7 | 2026-09-29: the deploy contract tests create, update and delete a function on every push to `main`, as the only real check of GD1. | [`deployment.md`](deployment.md) |
+| GU8 | 2026-10-01: RFC-0027 fixes GF10, GF20 to GF26 and GF28 together. Directory operations become bounded and stop at the first failure (GD7); the deploy disables the framework's ignored routes (GD8). | [`storage.md`](storage.md) GD7, [`deployment.md`](deployment.md) GD8 |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
@@ -133,11 +134,16 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF4 | *History.* **The runtime's IAM needs were documented nowhere.** On first start core creates secrets, so the runtime identity needs to create secrets and add versions, not only read them. The default compute service account's broad roles hid this until someone narrowed it. | fixed: the IAM section, and the `serviceAccount` option (GD3) |
+| GF30 | **RFC-0027's tests miss parts of their statements** (GS8). They pass when: a directory move lists only the first page, caps the listing, lists one level, or skips placeholders (STO-12); a listing hides any name containing `/.folderPlaceholder` (STO-9); the deploy request replaces the environment that `serviceConfig` builds (DEP-10, unit level); the handler serves no `.gz` variant, marks a non-200 immutable response immutable, does not decode a prerendered path, or joins header arrays differently (ADP-5); and, found by GS9, a delete that rejects with its last error, swallows a later page's listing error, overlaps a short page's deletes with the next page, or stops at an empty page (STO-11), and a listing that keeps the wrong entries over `limit`, compares names in UTF-16 order, or reads `limit: 0` as no limit (STO-9). | fixed, RFC-0027 |
 | GF19 | *History.* **COM-3 is only partly tested.** The descriptor tests assert that a missing or empty `projectId` yields one reason, not its text. | fixed, RFC-0025 |
 
 ### Verification
 
 **GS6, falsification audit of RFC-0025's statements (WORKFLOW §6.3), at `28107d2`, 2026-09-30.** An agent that did not write the tests (a different model, Sonnet 5) tried to break COM-3, STO-4, STO-6 to STO-12, SEC-3 to SEC-8, SEC-11, DEP-8 to DEP-13 and ADP-1 to ADP-7 by changing the code while the unit, integration and end-to-end tests still passed; it reasoned about the contract tests without running them. STO-4, STO-10, SEC-7, SEC-11 and DEP-13 held. The counterexamples are GF22 (a defect), GF23 (a clause nothing implements) and GF24 to GF26 (tests that miss parts of their statements).
+
+**GS8, falsification audit of RFC-0027's statements, at `63891bd`, 2026-10-01.** An agent that wrote neither the code nor the tests made 44 mutations of STO-9, STO-11, STO-12, DEP-10 and ADP-5; 31 failed a test. Of the 13 that passed, GF30 records the gaps; three were not: `IGNORED_ROUTES` as the last key, and the prerendered middleware before the client one, which no observer can tell apart, and a `static/` middleware put back, which serves nothing (GF23). Reading the client library, it found GF29, and that STO-9's page was one item short after `startAfter`, which STO-9 now settles.
+
+**GS9, falsification audit of STO-9 and STO-11 as amended, at `f771062`, 2026-10-01.** The same method, 32 mutations, 23 failed a test. Of the rest, two only lowered the delete bound, which STO-11 allows. Six were gaps, now in GF30: the last error instead of the first, a later page's listing error swallowed, a short page's deletes overlapping the next page's, an empty page ending the delete, the entries kept by `limit` chosen out of order, and `limit: 0` read as no limit. It found one defect, the order of names compared in UTF-16 rather than UTF-8 bytes (GF30), and STO-9 and STO-11 now state the page order, the stop after a failed delete and which entries `limit` keeps.
 
 ### History
 
@@ -149,6 +155,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
 - **2026-09-28, later**: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` (RFC-0023), and every current runtime statement got a unit test (RFC-0024).
 - **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
+- **2026-10-01** (RFC-0027): the open findings GF10 and GF20 to GF26 were fixed, with two more that its audits found (GF29, GF30): bounded directory operations (GD7), the framework's ignored routes disabled (GD8), and the missing tests.
 
 ---
 
@@ -165,12 +172,15 @@ Every `G` ID, where it lives, and its state.
 | GU5 | SEC-9 and SEC-10 at `unit` only | decided | [`secrets.md`](secrets.md) |
 | GU6 | Contract tests in production's project, confined per run | decided | README |
 | GU7 | A real deploy on every push to `main` | decided | [`deployment.md`](deployment.md) |
+| GU8 | RFC-0027's scope; bounded directory operations | decided | [`storage.md`](storage.md), [`deployment.md`](deployment.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
 | GD6 | Every current runtime statement has a unit test | current, RFC-0024 | README |
+| GD7 | Directory operations are bounded and stop at the first failure | current, RFC-0027 | [`storage.md`](storage.md) |
+| GD8 | The deploy disables the framework's ignored routes | current, RFC-0027 | [`deployment.md`](deployment.md) |
 | GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
@@ -180,7 +190,7 @@ Every `G` ID, where it lives, and its state.
 | GF7 | `getClientAddress` returned the raw `X-Forwarded-For` list | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (IAM) | [`storage.md`](storage.md) |
 | GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
-| GF10 | Directory operations are unbounded and not atomic | open | [`storage.md`](storage.md) |
+| GF10 | Directory operations are unbounded and not atomic | fixed, RFC-0027 | [`storage.md`](storage.md) |
 | GF11 | The SvelteKit adapter's tests were disabled and stale | fixed, RFC-0023 and RFC-0025 | [`deployment.md`](deployment.md) |
 | GF12 | Most of the storage runtime was untested | fixed, RFC-0024 | [`storage.md`](storage.md) |
 | GF13 | The Firestore runtime's methods had no unit tests | fixed, RFC-0024 | [`database.md`](database.md) |
@@ -190,21 +200,26 @@ Every `G` ID, where it lives, and its state.
 | GF17 | The deploy procedure has no contract test | fixed, RFC-0025 | [`deployment.md`](deployment.md) |
 | GF18 | The SvelteKit adapter has no end-to-end test | fixed, RFC-0025 | [`deployment.md`](deployment.md) |
 | GF19 | COM-3 is only partly tested | fixed, RFC-0025 | README |
-| GF20 | The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt` | open | [`deployment.md`](deployment.md) |
-| GF21 | `startAfter` is inclusive | open | [`storage.md`](storage.md) |
-| GF22 | A directory moved to a name with `$` patterns gets wrong names | open | [`storage.md`](storage.md) |
-| GF23 | ADP-5 and ADP-2 describe a `static/` directory nothing writes | open | [`deployment.md`](deployment.md) |
-| GF24 | The storage tests miss parts of their statements | open | [`storage.md`](storage.md) |
-| GF25 | The Secret Manager tests miss parts of their statements | open | [`secrets.md`](secrets.md) |
-| GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | open | [`deployment.md`](deployment.md) |
+| GF20 | The Functions Framework answers 404 for `/favicon.ico` and `/robots.txt` | fixed, RFC-0027 | [`deployment.md`](deployment.md) |
+| GF21 | `startAfter` is inclusive | fixed, RFC-0027 | [`storage.md`](storage.md) |
+| GF22 | A directory moved to a name with `$` patterns gets wrong names | fixed, RFC-0027 | [`storage.md`](storage.md) |
+| GF23 | ADP-5 and ADP-2 describe a `static/` directory nothing writes | fixed, RFC-0027 | [`deployment.md`](deployment.md) |
+| GF29 | The client library's `deleteFiles` does not stop at the first failure | fixed, RFC-0027 | [`storage.md`](storage.md) |
+| GF30 | RFC-0027's tests miss parts of their statements | fixed, RFC-0027 | README |
+| GF24 | The storage tests miss parts of their statements | fixed, RFC-0027 | [`storage.md`](storage.md) |
+| GF25 | The Secret Manager tests miss parts of their statements | fixed, RFC-0027 | [`secrets.md`](secrets.md) |
+| GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | fixed, RFC-0027 | [`deployment.md`](deployment.md) |
 | GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
-| GF28 | DB-3's reasoning assumes CMS users define collections | open | [`database.md`](database.md) |
+| GF28 | DB-3's reasoning assumes CMS users define collections | fixed: the reason corrected | [`database.md`](database.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
 | GS4 | Version destruction and its recovery window (live) | automated, RFC-0025 | [`secrets.md`](secrets.md) |
 | GS5 | `XFF_DEPTH` 1 yields the real client behind Google's front end (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS6 | Falsification audit of RFC-0025's statements | run at `28107d2`; findings GF22 to GF26 | README |
+| GS7 | The deployed framework serves `/favicon.ico` through the handler (live) | not run (author) | [`deployment.md`](deployment.md) |
+| GS8 | Falsification audit of RFC-0027's statements | run at `63891bd`; findings GF29, GF30 | README |
+| GS9 | Falsification audit of STO-9 and STO-11 as amended | run at `f771062`; finding GF30 | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

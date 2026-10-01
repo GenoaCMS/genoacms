@@ -5,10 +5,43 @@ import type {
 } from '@genoacms/contracts/storage'
 import { defineRuntime } from '@genoacms/contracts'
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
-import { type Bucket, type File, Storage } from '@google-cloud/storage'
+import { type Bucket, type File, type GetFilesOptions, Storage } from '@google-cloud/storage'
 import type { GcpStorageOptions } from './descriptor.js'
 
 const HTTP_PRECONDITION_FAILED = 412
+const DELETE_CONCURRENCY = 10
+
+// STO-9, GF21
+function requestedResults (limit?: number, startAfter?: string): number | undefined {
+  return limit !== undefined && startAfter !== undefined ? limit + 1 : limit
+}
+
+// STO-9
+const byUtf8Bytes = (a: string, b: string): number => Buffer.compare(Buffer.from(a), Buffer.from(b))
+
+// STO-9
+function firstByName (names: string[], limit?: number): Set<string> {
+  const sorted = [...names].sort(byUtf8Bytes)
+  return new Set(limit === undefined ? sorted : sorted.slice(0, limit))
+}
+
+// STO-11, GF29
+async function deleteAtMost (concurrency: number, files: File[]): Promise<void> {
+  let next = 0
+  let failure: { error: unknown } | undefined
+  const work = async (): Promise<void> => {
+    while (failure === undefined && next < files.length) {
+      const file = files[next++]
+      try {
+        await file.delete()
+      } catch (error) {
+        failure ??= { error }
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, work))
+  if (failure !== undefined) throw failure.error
+}
 
 /**
  * One GCS provider. Each construction owns its client and its credential, so two providers on this
@@ -98,7 +131,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       const options = {
         autoPaginate: false,
         prefix: name,
-        maxResults: listingParams?.limit,
+        maxResults: requestedResults(listingParams?.limit, listingParams?.startAfter),
         startOffset: listingParams?.startAfter,
         delimiter: '/'
 
@@ -106,9 +139,14 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       let [files, , apiResponse] =
         (await bucketInstance.getFiles(options)) as [File[], object, { prefixes: string[] } | undefined]
       files = files.filter((file) => !file.name.endsWith('.folderPlaceholder'))
+      // STO-9, GF21
+      const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams?.startAfter
+      files = files.filter(f => !skipped(f.name))
+      const prefixes = (apiResponse?.prefixes ?? []).filter((item) => !skipped(item))
+      const kept = firstByName([...files.map(f => f.name), ...prefixes], listingParams?.limit)
 
       return {
-        files: files.filter(f => f.name !== name).map((file) => {
+        files: files.filter(f => kept.has(f.name)).map((file) => {
           return {
             name: file.name,
             // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -116,7 +154,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
             lastModified: new Date(file.metadata.updated as string)
           } satisfies StorageObject
         }),
-        directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name).map(i => {
+        directories: prefixes.filter((item) => kept.has(item)).map(i => {
           const object: ObjectReference = {
             bucket,
             name: i
@@ -132,21 +170,21 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       await file.save('')
     }
 
+    // STO-11, GD7, GF29
     const deleteDirectory: Adapter['deleteDirectory'] = async ({ bucket, name }) => {
       const bucketInstance = getBucket(bucket)
-      const [files] = await bucketInstance.getFiles({ prefix: name })
-      const deletePromises = files.map(async (file) => await file.delete())
-      await Promise.all(deletePromises)
+      let query: GetFilesOptions | undefined = { prefix: name, autoPaginate: false }
+      while (query !== undefined) {
+        const [files, nextQuery]: [File[], GetFilesOptions | null, unknown] = await bucketInstance.getFiles(query)
+        await deleteAtMost(DELETE_CONCURRENCY, files)
+        query = nextQuery ?? undefined
+      }
     }
 
+    // STO-12, GD7, GF22
     const moveDirectory: Adapter['moveDirectory'] = async ({ bucket, name }, newName) => {
-      const bucketInstance = getBucket(bucket)
-      const [files] = await bucketInstance.getFiles({ prefix: name })
-      const movePromises = files.map(async (file) => {
-        const newFileName = file.name.replace(name, newName)
-        await file.move(newFileName)
-      })
-      await Promise.all(movePromises)
+      const [files] = await getBucket(bucket).getFiles({ prefix: name })
+      for (const file of files) await file.move(newName + file.name.slice(name.length))
     }
 
     return {
