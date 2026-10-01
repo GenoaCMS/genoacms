@@ -23,15 +23,16 @@ genoa build aws                               genoa deploy aws
                                (configuration.md D6, D9)         ──▶ Lambda: function, URL, permission
 ```
 
-At runtime, the Lambda Web Adapter, a layer running as a Lambda extension, starts adapter-node's
-server with `run.sh` and turns each invocation into an HTTP request to it on `localhost:8080`.
+At runtime, the Lambda Web Adapter, a layer running as a Lambda extension, starts the staged entry
+`genoacms-lambda.js` with `run.sh` and turns each invocation into an HTTP request to it on
+`localhost:8080`. The entry serves adapter-node's `handler` (LMB-15).
 
 ### Decisions
 
 **WD4. Lambda behind the Lambda Web Adapter and a function URL (WU1; WF15, WF17).** LMB-4, LMB-9 to
 LMB-11.
-*Why:* adapter-node's server runs unchanged, so the AWS target serves exactly what the Node target
-serves, and no wrapper is maintained. A function URL is one resource of the function itself, where
+*Why:* adapter-node's handler runs unchanged, so the AWS target serves exactly what the Node target
+serves; the only addition is an entry of a few lines that sets the client address (WD7). A function URL is one resource of the function itself, where
 API Gateway needed an API, a resource, a method, an integration, a deployment and a stage, and the old
 wiring of those never worked (WF15). The layer is maintained by AWS Labs.
 *Cost:*
@@ -51,10 +52,19 @@ console is reverted by the next deploy.
 
 **The origin comes from forwarded headers unless `origin` is set (LMB-10).** Adapter-node reads the
 protocol and host from the headers the function URL sends, or takes `ORIGIN` when the target sets
-it. The client address is the rightmost `X-Forwarded-For` entry.
-*Cost:* which headers reach the server through the function URL and the Web Adapter is established
-from documentation only (WS2). Behind CloudFront the depth and the host differ, and `origin` must
-be set.
+it (WS2).
+*Cost:* behind CloudFront the host differs, and `origin` must be set.
+
+**WD7. The client address comes from the request context, not `X-Forwarded-For` (WU6; LMB-10,
+LMB-15; WF25).** The staged entry copies `http.sourceIp` from the `x-amzn-request-context` header, which
+the Web Adapter fills from the invocation's event, into `x-genoacms-client-address`, and
+adapter-node's `ADDRESS_HEADER` names that header.
+*Why:* a function URL passes the client's `X-Forwarded-For` through unchanged and appends nothing
+(WS2), so any entry of it can be forged, and sign-in throttling (`configuration.md` Q5) would key
+on what the client chose. The event's source address is set by AWS.
+*Cost:* the entry replaces adapter-node's `index.js`, so its graceful shutdown, `SHUTDOWN_TIMEOUT`,
+`IDLE_TIMEOUT` and socket activation are not used; the Lambda sandbox ends the process itself.
+Behind CloudFront, `sourceIp` is CloudFront's address, not the client's.
 
 ### Findings
 
@@ -65,6 +75,7 @@ be set.
 | WF17 | **Retired runtime and wrapper; no URL printed; one archive key.** `nodejs20.x` reached end of support in April 2026. `aws-serverless-express` is deprecated. The deploy prints no URL. Every function's archive goes to `.genoacms/deployment/build.zip`, so two functions deployed from one bucket overwrite each other's archive. | open |
 | WF18 | **Dependencies are installed for the operator's platform.** `npm install --omit=dev` runs on the operator's machine, so a native binary is the host's, which Lambda (Linux x64) cannot load. | open |
 | WF20 | **Empty and non-string options passed LMB-3** (WS5). `functionName`, `memory`, `timeoutSeconds` and `origin` set to `""` were accepted: an empty `functionName` named the archive `.genoacms/deployment/.zip`, and an empty `origin` set `ORIGIN=""` without the forwarded headers. A `role` that was not a string got two reasons, where LMB-3 allows one. | open |
+| WF25 | **The client address can be forged** (LMB-10, WS2). With `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`, RFC-0026's contract test sent `X-Forwarded-For: 203.0.113.9` and the server received exactly `203.0.113.9`: the function URL does not append the client's address, so `getClientAddress()` returned the forged one. | open |
 
 ### History
 
@@ -75,7 +86,7 @@ settings target options, keeping every step (`configuration.md` P9).
 ### Verification
 
 - **WS1, for LMB-9: established from the Lambda Web Adapter's README (2026-09-30), not yet by experiment.** The layer is `arn:aws:lambda:<region>:753240598075:layer:LambdaAdapterLayerX86:30` for `x86_64`; it listens on `PORT` (default 8080), is enabled by `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, and treats the app as ready when `/` answers a status from 100 to 499. RFC-0026's contract test deploys with it in `eu-central-1`.
-- **WS2, for LMB-10: not run.** Request a deployed function through its URL with a forged `X-Forwarded-For: 203.0.113.9`, and observe the headers the server receives. Expected: `host` is the URL's host, `x-forwarded-proto` is `https`, and the rightmost `x-forwarded-for` entry is not `203.0.113.9`. RFC-0026's contract test automates it.
+- **WS2, for LMB-10: run 2026-10-01 by RFC-0026's contract test, `eu-central-1`.** A deployed function was requested through its URL with a forged `X-Forwarded-For: 203.0.113.9`, and the server echoed the headers it received. `host` was the URL's host and `x-forwarded-proto` `https`, as expected; `x-forwarded-for` was exactly `203.0.113.9`, against the expectation (WF25). The client's real address arrived only as `http.sourceIp` in the JSON header `x-amzn-request-context`. Whether a client can forge that header is checked by LMB-15's contract test.
 - **WS3, for LMB-9: established from AWS's documentation (2026-09-30).** Since October 2025 a new function URL with `AuthType: NONE` answers anonymous requests only when the resource policy allows both `lambda:InvokeFunctionUrl` (condition `lambda:FunctionUrlAuthType` `NONE`) and `lambda:InvokeFunction` (condition `lambda:InvokedViaFunctionUrl` `true`), each added by its own `AddPermission` call; without them it answers 403. RFC-0026's contract test requests the deployed URL anonymously.
 
 ## Specification
@@ -112,11 +123,11 @@ directory it is given.
 
 #### LMB-4 · Staging
 
-Copy the build directory to `<workDir>/app`. Without `<buildDir>/package.json`, throw `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`. Write `<workDir>/app/run.sh`, mode `0755`, exactly:
+Copy the build directory to `<workDir>/app`. Without `<buildDir>/package.json`, throw `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`. Write `<workDir>/app/genoacms-lambda.js`, the entry of LMB-15, replacing a file of that name, and `<workDir>/app/run.sh`, mode `0755`, exactly:
 
 ```sh
 #!/bin/sh
-exec node index.js
+exec node genoacms-lambda.js
 ```
 
 The copied files, `package.json` included, are not changed.
@@ -167,7 +178,7 @@ A zip (level 9) of exactly the staged directory, at its root: no globbing, no ig
 
 #### LMB-10 · Environment
 
-The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, `PORT=8080`, `ADDRESS_HEADER=x-forwarded-for`, `XFF_DEPTH=1`, and either `ORIGIN=<origin>` when `origin` is set, or `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=host` when it is not.
+The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, `PORT=8080`, `ADDRESS_HEADER=x-genoacms-client-address` (LMB-15), and either `ORIGIN=<origin>` when `origin` is set, or `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=host` when it is not.
 
 - Test: none yet
 - Level: unit, contract
@@ -203,4 +214,12 @@ The S3 and Lambda clients use `credentials` when given, else the operator's defa
 
 - Test: none yet
 - Level: unit, contract
+- State: new (RFC-0026)
+
+#### LMB-15 · Entry and client address
+
+`genoacms-lambda.js` is an ES module that imports `handler` from `./handler.js`, adapter-node's, and serves it with `node:http` on `Number(process.env.PORT)`, on all interfaces. For each request, before the handler runs, it deletes any `x-genoacms-client-address` header the client sent, and, when the `x-amzn-request-context` header parses as JSON whose `http.sourceIp` is a string, sets `x-genoacms-client-address` to that string. A request the handler passes on, by calling its third argument, answers 404 with an empty body.
+
+- Test: none yet
+- Level: integration, contract
 - State: new (RFC-0026)

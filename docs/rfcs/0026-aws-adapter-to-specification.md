@@ -6,7 +6,7 @@ status: draft
 commits: []
 depends: [25]
 architecture: [architecture/adapter-aws/README.md, architecture/adapter-aws/storage.md, architecture/adapter-aws/database.md, architecture/adapter-aws/secrets.md, architecture/adapter-aws/deployment.md]
-changes: [OBJ-2 added, OBJ-3 added, OBJ-4 added, OBJ-5 added, OBJ-6 added, OBJ-7 added, OBJ-8 added, OBJ-9 added, OBJ-10 added, OBJ-11 added, DDB-2 added, DDB-3 added, DDB-4 added, DDB-5 added, DDB-6 added, DDB-7 added, ASM-1 added, ASM-2 added, ASM-3 added, ASM-4 added, ASM-5 added, ASM-6 added, LMB-2 added, LMB-3 added, LMB-4 added, LMB-5 added, LMB-6 added, LMB-7 added, LMB-8 added, LMB-9 added, LMB-10 added, LMB-11 added, LMB-12 added, LMB-13 added, LMB-14 added]
+changes: [OBJ-2 added, OBJ-3 added, OBJ-4 added, OBJ-5 added, OBJ-6 added, OBJ-7 added, OBJ-8 added, OBJ-9 added, OBJ-10 added, OBJ-11 added, DDB-2 added, DDB-3 added, DDB-4 added, DDB-5 added, DDB-6 added, DDB-7 added, ASM-1 added, ASM-2 added, ASM-3 added, ASM-4 added, ASM-5 added, ASM-6 added, LMB-2 added, LMB-3 added, LMB-4 added, LMB-5 added, LMB-6 added, LMB-7 added, LMB-8 added, LMB-9 added, LMB-10 added, LMB-11 added, LMB-12 added, LMB-13 added, LMB-14 added, LMB-15 added]
 commit-subject: "feat(adapter-aws): implement the AWS Specification"
 ---
 
@@ -28,16 +28,19 @@ state the target. This RFC brings the package to it:
    adapter's listing shape and directory placeholders (WD1, WD2).
 3. **Database** implements DDB-2 to DDB-7: paged strongly consistent scans, merging conditional
    updates, conditional creates, string keys only (WD3), plain JSON values.
-4. **Secrets** is new: `./secrets` on Secrets Manager, ASM-1 to ASM-6 (WU3, WD5).
+4. **Secrets** is new: `./secrets` on Secrets Manager, ASM-1 to ASM-6 (WU3, WD5, WD6).
 5. **Deployment** is rebuilt: one Lambda function with the Lambda Web Adapter and a public function URL,
-   LMB-2 to LMB-14 (WU1, WD4).
+   LMB-2 to LMB-15 (WU1, WD4, WD7).
 6. **Tests at both levels** (WU4): unit tests with the SDK mocked, and contract tests against the
    author's account in `eu-central-1`, locally with the IAM user `genoacms-contract` and in CI with
    the OIDC role `genoacms-ci`. Every test title carries its statement IDs.
 
 The author's decisions for it are WU1 to WU4 (2026-09-30): one RFC for all of it, TypeScript like
 `adapter-gcp`, and the AWS resources of §The contract environment, created in the author's account
-before implementation.
+before implementation. The first contract run (2026-10-01) found that a forced secret delete
+completes asynchronously (WF24, WS6) and that a function URL passes a forged `X-Forwarded-For`
+through (WF25, WS2); the author decided WU5 and WU6, which changed ASM-6, LMB-4 and LMB-10 and added
+LMB-15.
 
 ## Files
 
@@ -54,13 +57,13 @@ before implementation.
 | `src/database/descriptor.ts`, `src/database/runtime.ts`, `src/database/values.ts` | create: DDB-1 to DDB-7 |
 | `src/secrets/descriptor.ts`, `src/secrets/runtime.ts` | create: ASM-1 to ASM-6 |
 | `src/deployment/descriptor.ts`, `src/deployment/settings.ts` | create: LMB-1 to LMB-3 |
-| `src/deployment/stage.ts` | create from `stage.js`: LMB-4 to LMB-6 |
+| `src/deployment/stage.ts` | create from `stage.js`: LMB-4 to LMB-6, and the entry of LMB-15 |
 | `src/deployment/functions.ts` | create: LMB-8 to LMB-13 |
 | `src/deployment/procedure.ts` | create from `procedure.js`: LMB-7, LMB-14, and the order of the steps |
 | `src/**/*.test.ts` | create: §Tests, unit and integration |
 | `test/contract/aws.ts` | create: the opt-in switch, the environment, the run's names, the run's table |
 | `test/contract/{storage,database,secrets,deployment}.test.ts` | create: §Tests, contract |
-| `test/contract/artifact/{package.json,index.js}` | create: §The deploy artifact |
+| `test/contract/artifact/{package.json,handler.js}` | create: §The deploy artifact |
 | `test/conformance.test.ts` | create from `conformance.test.js`, on the run's bucket prefix and table |
 | every other `src/**/*.js`, `src/**/*.d.ts`, `test/conformance.test.js`, `deployment/assets/` | delete |
 | `/scripts/test-level.mjs` | modify: §Test levels |
@@ -122,7 +125,9 @@ sends nothing and returns. The error messages are `database/unsupported-key-type
 
 ### Secrets
 
-`ASM-3`'s `secrets/not-a-string: <key>` applies when `SecretString` is `undefined`.
+`ASM-3`'s `secrets/not-a-string: <key>` applies when `SecretString` is `undefined`. ASM-6's wait
+uses `DELETE_POLL_MS = 250` and `DELETE_TIMEOUT_MS = 30_000`, waits with `setTimeout` and measures
+with `Date.now()`, so fake timers drive it; the deadline is checked after each failed read.
 
 ### Deployment
 
@@ -142,6 +147,7 @@ export interface AwsDeploymentOptions {
 `settings.ts` exports `SETTING_KEYS`, `validateSettings(options): string[]` (LMB-3) and
 `functionEnvironment(options): Record<string, string>` (LMB-10). `stage.ts` exports
 `stageLambdaApp(buildDir, app)`, `installProductionDependencies(dir)` and `zipDirectory(dir, out)`.
+`stageLambdaApp` writes `genoacms-lambda.js` from the string constant `LAMBDA_ENTRY` (LMB-15).
 `installProductionDependencies` runs `npm` with `execFile`, the arguments of LMB-5 plus `--libc=glibc`,
 and includes the process's `stderr` in `deploy/install-failed: <stderr>`. `functions.ts` exports
 `createFunctionOperations(lambda, options, key)` with `lookup()`, `create()`, `update()`,
@@ -178,11 +184,11 @@ after one day.
 
 ### The deploy artifact
 
-`test/contract/artifact/` is a build directory without dependencies: `package.json`
-`{ "name": "genoacms-contract", "type": "module" }` and `index.js`, a `node:http` server on
-`process.env.PORT` that answers every request with 200 and the JSON
-`{ env: { NODE_ENV, PORT, ADDRESS_HEADER, XFF_DEPTH, ORIGIN, PROTOCOL_HEADER, HOST_HEADER }, headers }`
-from `process.env` and the request.
+`test/contract/artifact/` is a build directory without dependencies, shaped like adapter-node's:
+`package.json` `{ "name": "genoacms-contract", "type": "module" }` and `handler.js`, which exports
+`handler(request, response)` answering every request with 200 and the JSON
+`{ env: { NODE_ENV, PORT, ADDRESS_HEADER, ORIGIN, PROTOCOL_HEADER, HOST_HEADER }, headers }` from
+`process.env` and the request. The staged `genoacms-lambda.js` serves it (LMB-15).
 
 ### Test levels
 
@@ -264,11 +270,18 @@ tests run the runtimes and the procedure against the real services (§The contra
 - `ASM-4: puts a value into an existing secret`: then one `PutSecretValue` and `true`.
 - `ASM-4: creates a missing secret, and puts again when another caller created it first`: given `PutSecretValue` rejects with `ResourceNotFoundException`, then `CreateSecret` with `Name` and `SecretString`; given that rejects with `ResourceExistsException`, then a second `PutSecretValue`, and `true`.
 - `ASM-5: claims with one CreateSecret, and reports false when it exists`: then `true` after one `CreateSecret`; given `ResourceExistsException`, then `false`; given another error, then that error object.
-- `ASM-6: deletes without recovery, and reports false for a missing secret`: then `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and `true`; given `ResourceNotFoundException`, then `false`.
+- `ASM-6: deletes without recovery, and reports false for a missing secret`: then `DeleteSecret` with `ForceDeleteWithoutRecovery: true`; given `DeleteSecret` rejects with `ResourceNotFoundException`, then `false` and no `GetSecretValue` was sent.
+- `ASM-6: waits until the secret is gone`: given `GetSecretValue` rejects twice with `InvalidRequestException`, then with `ResourceNotFoundException`, then `deleteSecret` resolves `true` only after three reads, 250 ms apart, the first at once; given it resolves a value on the first read, then `true` after one read.
+- `ASM-6: propagates other errors while waiting`: given `GetSecretValue` rejects with `AccessDeniedException`, then that error object.
+- `ASM-6: gives up after 30 seconds`: given `GetSecretValue` always rejects with `InvalidRequestException`, then `secrets/delete-timeout: <key>` once 30 s have passed, and not before.
 
 ### Deployment (`src/deployment/*.test.ts`)
 
-- `stage.test.ts` (integration) › `LMB-4: copies the build, adds run.sh, and changes nothing else`: given a build directory with `package.json`, `index.js` and `client/a.js`, then the staged app holds the same bytes for each and `run.sh` with exactly LMB-4's content and mode `0755`.
+- `stage.test.ts` (integration) › `LMB-4: copies the build, adds run.sh and the entry, and changes nothing else`: given a build directory with `package.json`, `index.js` and `client/a.js`, then the staged app holds the same bytes for each, `run.sh` with exactly LMB-4's content and mode `0755`, and `genoacms-lambda.js`.
+- `stage.test.ts` (integration) › `LMB-4: replaces a genoacms-lambda.js of the build`: given a build holding `genoacms-lambda.js` with other content, then the staged one is the entry.
+- `stage.test.ts` (integration) › `LMB-15: serves the handler with the request context's source address`: given a staged app whose `handler.js` echoes the request's headers as JSON, when `node genoacms-lambda.js` runs with a free `PORT` and is sent `x-amzn-request-context: {"http":{"sourceIp":"198.51.100.7"}}` and `x-genoacms-client-address: 203.0.113.9`, then the handler received `x-genoacms-client-address` `198.51.100.7`.
+- `stage.test.ts` (integration) › `LMB-15: drops a client's address header when the context has none`: when sent `x-genoacms-client-address: 203.0.113.9` with no `x-amzn-request-context`, with one that is not JSON, and with one whose `http.sourceIp` is a number, then each time the handler received no `x-genoacms-client-address`.
+- `stage.test.ts` (integration) › `LMB-15: answers 404 when the handler passes the request on`: given a `handler.js` that calls its third argument, then 404 with an empty body.
 - `stage.test.ts` (integration) › `LMB-4: refuses a build without package.json`: then `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`.
 - `stage.test.ts` (integration) › `LMB-5: installs for Linux x64 without a shell, and fails with npm's output`: given an app whose `package.json` is not valid JSON, then `deploy/install-failed: ` followed by npm's error output.
 - `stage.test.ts` (integration) › `LMB-6: zips exactly the staged directory, keeping run.sh executable`: then the archive's entries are the staged files at its root, and `run.sh`'s entry has mode `0755`.
@@ -278,6 +291,7 @@ tests run the runtimes and the procedure against the real services (§The contra
 - `procedure.test.ts` (unit) › `LMB-9, LMB-10: creates the function with the adapter layer, waits, then opens its URL`: given no function and no `origin`, then `CreateFunction` with exactly LMB-9's fields and LMB-10's variables with `PROTOCOL_HEADER` and `HOST_HEADER`, a wait until active, `CreateFunctionUrlConfig` with `AuthType: 'NONE'`, `InvokeMode: 'BUFFERED'`, and the two `AddPermission` calls of LMB-9.
 - `procedure.test.ts` (unit) › `LMB-9: tolerates an existing URL and existing statements`: given each of the three rejects with `ResourceConflictException`, then the deploy resolves.
 - `procedure.test.ts` (unit) › `LMB-10: sets ORIGIN instead of the forwarded headers when origin is given`.
+- In both, `ADDRESS_HEADER` is `x-genoacms-client-address` and no `XFF_DEPTH` is set.
 - `procedure.test.ts` (unit) › `LMB-11: updates code, then the whole configuration, waiting after each`: given the function exists, then `UpdateFunctionCode`, a wait, `UpdateFunctionConfiguration` with LMB-9's fields except `FunctionName`, `Architectures` and `Code`, a wait, then the URL ensured.
 - `procedure.test.ts` (unit) › `LMB-12: reports a failed update with its reason`: given the wait fails and `GetFunctionConfiguration` reports `LastUpdateStatus: 'Failed'` and `LastUpdateStatusReason: 'r'`, then `deploy/function-failed: r` with the waiter's error as `cause`; likewise `State: 'Failed'` with `StateReason` after a create.
 - `procedure.test.ts` (unit) › `LMB-13: prints the function URL`: then `console.info` with `Function URL: <FunctionUrl>`.
@@ -318,7 +332,7 @@ tests run the runtimes and the procedure against the real services (§The contra
 
 ### Deployment (`test/contract/deployment.test.ts`, contract, sequential, one function)
 
-- `LMB-7, LMB-8, LMB-9, LMB-10, LMB-13, LMB-14: creates a public function with the web adapter, and prints its URL`: given no function by the run's name and no `credentials`, when the procedure deploys the artifact with `role` the run's Lambda role, then it prints `Function URL: https://…`, and an anonymous `GET` of that URL with `X-Forwarded-For: 203.0.113.9` answers 200 with `env` of LMB-10 without `ORIGIN`, `headers.host` equal to the URL's host, `headers['x-forwarded-proto']` `https`, and a rightmost `x-forwarded-for` entry other than `203.0.113.9` (WS1, WS2, WS3).
+- `LMB-7, LMB-8, LMB-9, LMB-10, LMB-13, LMB-14: creates a public function with the web adapter, and prints its URL`: given no function by the run's name and no `credentials`, when the procedure deploys the artifact with `role` the run's Lambda role, then it prints `Function URL: https://…`, and an anonymous `GET` of that URL with `X-Forwarded-For`, `x-genoacms-client-address` and `x-amzn-request-context` forged (address `203.0.113.9`, the context `{"http":{"sourceIp":"203.0.113.9"}}`) answers 200 with `env` of LMB-10 without `ORIGIN`, `headers.host` equal to the URL's host, `headers['x-forwarded-proto']` `https`, and `headers['x-genoacms-client-address']` equal to `http.sourceIp` of the `x-amzn-request-context` the handler received, an IP address other than `203.0.113.9` (WS1, WS2, WS3, WD7). The title becomes `LMB-7, LMB-8, LMB-9, LMB-10, LMB-13, LMB-14, LMB-15: …`.
 - `LMB-11: updates code and configuration`: when deployed again with `memory: 512` and `origin: 'https://cms.example'`, then `GetFunctionConfiguration` reports 512 MB, and a `GET` of the URL answers `env.ORIGIN` `https://cms.example` and no `PROTOCOL_HEADER`.
 
 `test/conformance.test.ts` runs the conformance suites as today, on the run's prefix and table, with
@@ -344,15 +358,15 @@ the titles `OBJ-3: S3 conformance` and `DDB-4, DDB-5, DDB-6, DDB-7: DynamoDB con
 6. Run §Verification locally with the author's profile.
 7. CI: `test-level.mjs`, `ci.yml`, `docs/README.md`; then the repository variables. Run on a pull
    request, then on `main`.
-8. Update the architecture documents to current: markers removed, test files named, WF1 to WF19
-   fixed, WS1 to WS3 recorded as run, `verified` updated; mark this RFC implemented.
+8. Update the architecture documents to current: markers removed, test files named, WF1
+   to WF25 fixed, WS1 to WS3 recorded as run, `verified` updated; mark this RFC implemented.
 
 ## Verification
 
 ```bash
 pnpm --filter @genoacms/adapter-aws run build     # no errors; dist/ holds the four services
 node scripts/test-level.mjs unit                  # passes
-node scripts/test-level.mjs integration           # LMB-4 to LMB-6 pass
+node scripts/test-level.mjs integration           # LMB-4 to LMB-6 and LMB-15 pass
 GENOACMS_TEST_AWS=1 GENOACMS_TEST_AWS_REGION=eu-central-1 GENOACMS_TEST_AWS_BUCKET=genoacms-contract-<account> \
   GENOACMS_TEST_AWS_LAMBDA_ROLE=arn:aws:iam::<account>:role/genoacms-contract-lambda \
   AWS_PROFILE=genoacms-contract node scripts/test-level.mjs contract   # every OBJ, DDB, ASM, LMB test passes
@@ -372,7 +386,8 @@ write the code, recorded as a Verification entry in the AWS README.
 **Pros**
 - The adapter meets the contract core relies on, including the three storage methods whose absence breaks core's storage browser and publication on AWS today.
 - Every statement is tested at the boundary it names, and the contract tests settle WS1 to WS3 by running them rather than trusting documentation.
-- The deploy has no wrapper and no API Gateway: adapter-node runs as it does on the Node target, so one server serves both.
+- The deploy has no API Gateway and only a few lines of entry: adapter-node's handler runs as it does on the Node target, so one server serves both.
+- The client address cannot be forged through `X-Forwarded-For`, which a function URL passes through (WF25).
 - The TypeScript conversion removes the hand-written `.d.ts` files that could drift from the code, and stops publishing tests.
 
 **Cons & trade-offs**
@@ -381,6 +396,8 @@ write the code, recorded as a Verification entry in the AWS README.
 - Contract runs cost money on every push to `main` (Lambda, DynamoDB on demand, Secrets Manager by the hour, S3), fractions of a cent per run by AWS's published prices, and fail when AWS has an outage.
 - The unit tests encode the SDK's command shapes through `aws-sdk-client-mock`; an SDK upgrade that changes them breaks tests that do not touch real behavior.
 - `aws-sdk-client-mock` and TypeScript tooling are new dev dependencies.
+- The entry replaces adapter-node's `index.js`, dropping its graceful shutdown and its `SHUTDOWN_TIMEOUT`, `IDLE_TIMEOUT` and socket-activation settings (WD7), and it depends on adapter-node's `handler.js` export and its third-argument fallthrough.
+- A secret delete takes about a second, and a delete that Secrets Manager does not finish within 30 s throws though the delete itself was accepted (WD6).
 
 **Blindspots & missed edge cases**
 - LMB-12's failure paths cannot be provoked against the real service on demand, so they are verified at `unit` only.
@@ -389,4 +406,5 @@ write the code, recorded as a Verification entry in the AWS README.
 - A presigned URL signed under the function's role stops working when the role's session ends (OBJ-5); the contract test signs with the IAM user and cannot show it.
 - Secrets Manager's version limit under frequent overwrites (WS4) stays untested.
 - A crashed run leaves its table, secrets or function behind until someone removes them; only the bucket expires by itself.
-- The deploy's `index.js` of adapter-node listens on `PORT`; `HOST` is not set, so it binds to all interfaces inside the sandbox, which is what the web adapter expects but is not asserted.
+- That a client cannot forge `x-amzn-request-context` rests on the contract test against today's Web Adapter; a layer that passes a client's header through would reopen WF25, and only that test would catch it.
+- Behind CloudFront, `sourceIp` is CloudFront's address (WD7's cost); a future CloudFront target needs its own rule.
