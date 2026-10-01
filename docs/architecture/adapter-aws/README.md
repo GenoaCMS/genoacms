@@ -51,7 +51,7 @@ meet yet is **New**.
 | WU2 | 2026-09-30: **one DynamoDB table per collection**, prepared by the operator with its key. Collections are never created at runtime: they are defined in the config or by the operator (`.genoacms/collections`), never by a CMS user. | [`database.md`](database.md) |
 | WU3 | 2026-09-30: a secrets provider on **Secrets Manager**. | [`secrets.md`](secrets.md) |
 | WU4 | 2026-09-30: every runtime statement is verified at `unit` and `contract`. The contract tests run against the author's AWS account: locally with a scoped IAM user (`genoacms-contract`), and in CI through GitHub's OIDC provider and a role, never an access key. The root user is never used. | Verification |
-| WU5 | 2026-10-01: a secret delete **waits until Secrets Manager reports the secret gone**, so that reads and writes after it behave as for a key that never existed (WF24). | [`secrets.md`](secrets.md) WD6 |
+| WU5 | 2026-10-01: a secret **scheduled for deletion is absent**: reading it resolves `undefined` and deleting it again `false`, and a delete does not wait for Secrets Manager to finish (WF24). It replaced the same day's decision to wait in the delete, once the delete was seen to take up to 30 seconds (WS6). | [`secrets.md`](secrets.md) WD6 |
 | WU6 | 2026-10-01: the client address is taken from **`http.sourceIp` of the request context** through a small staged entry, not from `X-Forwarded-For`, which a function URL passes through unchanged (WF25). | [`deployment.md`](deployment.md) WD7 |
 
 **WD1. The AWS adapter matches the GCP adapter where the contract is silent.** Directory
@@ -104,7 +104,7 @@ What each identity needs.
 | :-- | :-- | :-- | :-- |
 | Runtime | `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket` | every configured bucket and its objects | [`storage.md`](storage.md); a move is a copy (get and put) and a delete |
 | Runtime | `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`, `Scan` | every collection's table | [`database.md`](database.md) |
-| Runtime | `secretsmanager:GetSecretValue`, `PutSecretValue`, `CreateSecret`, `DeleteSecret` | the account's secrets, or the names core uses (`GENOACMS_*`) | core creates its signing seeds on first start ([`secrets.md`](secrets.md)) |
+| Runtime | `secretsmanager:GetSecretValue`, `DescribeSecret`, `PutSecretValue`, `CreateSecret`, `DeleteSecret` | the account's secrets, or the names core uses (`GENOACMS_*`) | core creates its signing seeds on first start ([`secrets.md`](secrets.md)) |
 | Runtime | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | the function's log group | Lambda's logging; the managed policy `AWSLambdaBasicExecutionRole` |
 | Operator | `lambda:GetFunction`, `CreateFunction`, `UpdateFunctionCode`, `UpdateFunctionConfiguration`, `GetFunctionUrlConfig`, `CreateFunctionUrlConfig`, `AddPermission` | the function | [`deployment.md`](deployment.md) |
 | Operator | `lambda:GetLayerVersion` | the Lambda Web Adapter layer | the function uses it (WS1) |
@@ -150,14 +150,14 @@ Every `W` ID, where it lives, and its state.
 | WU2 | One table per collection, prepared by the operator | decided | [`database.md`](database.md) |
 | WU3 | Secrets on Secrets Manager | decided | [`secrets.md`](secrets.md) |
 | WU4 | `unit` and `contract` levels; scoped IAM user locally, OIDC role in CI | decided | README |
-| WU5 | A secret delete waits until the secret is gone | decided | [`secrets.md`](secrets.md) |
+| WU5 | A secret scheduled for deletion is absent | decided | [`secrets.md`](secrets.md) |
 | WU6 | The client address from the request context | decided | [`deployment.md`](deployment.md) |
 | WD1 | Match the GCP adapter where the contract is silent | new, RFC-0026 | README |
 | WD2 | SDK errors propagate unchanged | new, RFC-0026 | README |
 | WD3 | Only string keys | new, RFC-0026 | [`database.md`](database.md) |
 | WD4 | Lambda behind the Lambda Web Adapter and a function URL | new, RFC-0026 | [`deployment.md`](deployment.md) |
 | WD5 | Secrets are deleted without a recovery window | new, RFC-0026 | [`secrets.md`](secrets.md) |
-| WD6 | A delete waits until the secret is gone | new, RFC-0026 | [`secrets.md`](secrets.md) |
+| WD6 | A secret scheduled for deletion is absent | new, RFC-0026 | [`secrets.md`](secrets.md) |
 | WD7 | The client address comes from the request context | new, RFC-0026 | [`deployment.md`](deployment.md) |
 | WF1 | Three storage methods of the contract are missing | open | [`storage.md`](storage.md) |
 | WF2 | `getObject` swallows every error | open | [`storage.md`](storage.md) |
@@ -182,14 +182,14 @@ Every `W` ID, where it lives, and its state.
 | WF21 | An empty update succeeded on a missing document | open | [`database.md`](database.md) |
 | WF22 | A key field with an unsupported value failed a create | open | [`database.md`](database.md) |
 | WF23 | The RFC-0026 tests miss parts of their statements | open | README |
-| WF24 | A deleted secret is not gone at once | open | [`secrets.md`](secrets.md) |
+| WF24 | A deleted secret is not gone at once; deleting a missing one succeeds | open | [`secrets.md`](secrets.md) |
 | WF25 | The client address can be forged behind a function URL | open | [`deployment.md`](deployment.md) |
 | WS1 | The Lambda Web Adapter layer's ARN and version | documented; automated by RFC-0026 | [`deployment.md`](deployment.md) |
 | WS2 | What reaches adapter-node through a function URL | run 2026-10-01; finding WF25 | [`deployment.md`](deployment.md) |
 | WS3 | The permissions a public function URL needs | documented | [`deployment.md`](deployment.md) |
 | WS4 | Secrets Manager's version limit under frequent overwrites | not run | [`secrets.md`](secrets.md) |
 | WS5 | Falsification audit of RFC-0026's statements | run at `34ef76f`; findings WF20 to WF23 | README |
-| WS6 | How long a forced secret delete takes | run 2026-10-01; finding WF24 | [`secrets.md`](secrets.md) |
+| WS6 | How a forced secret delete completes | run 2026-10-01; finding WF24 | [`secrets.md`](secrets.md) |
 
 ---
 

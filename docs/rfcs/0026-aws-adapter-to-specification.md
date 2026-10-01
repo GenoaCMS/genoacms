@@ -38,9 +38,9 @@ state the target. This RFC brings the package to it:
 The author's decisions for it are WU1 to WU4 (2026-09-30): one RFC for all of it, TypeScript like
 `adapter-gcp`, and the AWS resources of §The contract environment, created in the author's account
 before implementation. The first contract run (2026-10-01) found that a forced secret delete
-completes asynchronously (WF24, WS6) and that a function URL passes a forged `X-Forwarded-For`
-through (WF25, WS2); the author decided WU5 and WU6, which changed ASM-6, LMB-4 and LMB-10 and added
-LMB-15.
+completes asynchronously, after up to 30 seconds, and succeeds for a missing name (WF24, WS6), and
+that a function URL passes a forged `X-Forwarded-For` through (WF25, WS2); the author decided WU5 and
+WU6, which changed ASM-3, ASM-6, LMB-4 and LMB-10 and added LMB-15.
 
 ## Files
 
@@ -74,7 +74,7 @@ LMB-15.
 ## Specification
 
 The statements are those of `docs/architecture/adapter-aws/`, whose text is exact and normative:
-OBJ-2 to OBJ-11, DDB-2 to DDB-7, ASM-1 to ASM-6 and LMB-2 to LMB-14 are added (`State: new (RFC-0026)`).
+OBJ-2 to OBJ-11, DDB-2 to DDB-7, ASM-1 to ASM-6 and LMB-2 to LMB-15 are added (`State: new (RFC-0026)`).
 AWS-1 to AWS-4, OBJ-1, DDB-1 and LMB-1 stay as they are; they only gain tests. Everything below is
 what the implementer needs beyond them.
 
@@ -125,9 +125,9 @@ sends nothing and returns. The error messages are `database/unsupported-key-type
 
 ### Secrets
 
-`ASM-3`'s `secrets/not-a-string: <key>` applies when `SecretString` is `undefined`. ASM-6's wait
-uses `DELETE_POLL_MS = 250` and `DELETE_TIMEOUT_MS = 30_000`, waits with `setTimeout` and measures
-with `Date.now()`, so fake timers drive it; the deadline is checked after each failed read.
+`ASM-3`'s `secrets/not-a-string: <key>` applies when `SecretString` is `undefined`. A secret is
+scheduled for deletion when `DescribeSecret` reports a `DeletedDate` (WD6); ASM-3 and ASM-6 share
+one function for that check.
 
 ### Deployment
 
@@ -265,15 +265,15 @@ tests run the runtimes and the procedure against the real services (§The contra
 ### Secrets (`src/secrets/runtime.test.ts`, unit)
 
 - `ASM-2, ASM-3: reads SecretString by the key unchanged`: then `GetSecretValue` with `SecretId` equal to the key and the string returned.
-- `ASM-3: resolves undefined only for ResourceNotFoundException`: given that error, then `undefined`; given `InvalidRequestException`, then that error object.
+- `ASM-3: resolves undefined only for ResourceNotFoundException`: given that error, then `undefined` and no `DescribeSecret` was sent; given `InvalidRequestException` and `DescribeSecret` resolving without `DeletedDate`, then that error object.
+- `ASM-3: reads a secret scheduled for deletion as undefined`: given `InvalidRequestException`, and `DescribeSecret` of the key either resolving with a `DeletedDate` or rejecting with `ResourceNotFoundException`, then `undefined`; given `DescribeSecret` rejects with another error, then that error object.
 - `ASM-3: refuses a binary-only secret`: given no `SecretString`, then `secrets/not-a-string: <key>`.
 - `ASM-4: puts a value into an existing secret`: then one `PutSecretValue` and `true`.
 - `ASM-4: creates a missing secret, and puts again when another caller created it first`: given `PutSecretValue` rejects with `ResourceNotFoundException`, then `CreateSecret` with `Name` and `SecretString`; given that rejects with `ResourceExistsException`, then a second `PutSecretValue`, and `true`.
 - `ASM-5: claims with one CreateSecret, and reports false when it exists`: then `true` after one `CreateSecret`; given `ResourceExistsException`, then `false`; given another error, then that error object.
-- `ASM-6: deletes without recovery, and reports false for a missing secret`: then `DeleteSecret` with `ForceDeleteWithoutRecovery: true`; given `DeleteSecret` rejects with `ResourceNotFoundException`, then `false` and no `GetSecretValue` was sent.
-- `ASM-6: waits until the secret is gone`: given `GetSecretValue` rejects twice with `InvalidRequestException`, then with `ResourceNotFoundException`, then `deleteSecret` resolves `true` only after three reads, 250 ms apart, the first at once; given it resolves a value on the first read, then `true` after one read.
-- `ASM-6: propagates other errors while waiting`: given `GetSecretValue` rejects with `AccessDeniedException`, then that error object.
-- `ASM-6: gives up after 30 seconds`: given `GetSecretValue` always rejects with `InvalidRequestException`, then `secrets/delete-timeout: <key>` once 30 s have passed, and not before.
+- `ASM-6: deletes without recovery, and does not wait`: given `DescribeSecret` resolves without `DeletedDate`, then `DeleteSecret` with `ForceDeleteWithoutRecovery: true`, `true`, and no `GetSecretValue` was sent.
+- `ASM-6: reports false for a missing secret, or one scheduled for deletion`: given `DescribeSecret` rejects with `ResourceNotFoundException`, or resolves with a `DeletedDate`, then `false` and no `DeleteSecret` was sent; given `DeleteSecret` rejects with `ResourceNotFoundException`, then `false`.
+- `ASM-6: propagates other errors`: given `DescribeSecret` rejects with `AccessDeniedException`, then that error object and no `DeleteSecret` was sent.
 
 ### Deployment (`src/deployment/*.test.ts`)
 
@@ -327,8 +327,8 @@ tests run the runtimes and the procedure against the real services (§The contra
 - `ASM-2, ASM-3: reads a secret that never existed as undefined`.
 - `ASM-4: creates a missing secret when overwriting, and overwrites it`: then `true`, the first value, then the second value reads back.
 - `ASM-5: claims an absent key once, and a second claim keeps the first value`.
-- `ASM-6: deletes a secret at once, and reports false for one that does not exist`: then `true`, reading it resolves `undefined`, and deleting again resolves `false`.
-- `ASM-3: propagates the failure to read a secret scheduled for deletion`: given a secret deleted through the SDK with a 7-day recovery window, then `getSecret` rejects with `InvalidRequestException`; the test then force-deletes it.
+- `ASM-6: deletes a secret at once, and reports false for one that does not exist`: then `true`, reading it at once resolves `undefined`, deleting again at once resolves `false`, and deleting a name that never existed resolves `false`.
+- `ASM-3: reads a secret scheduled for deletion as undefined`: given a secret deleted through the SDK with a 7-day recovery window, then `getSecret` resolves `undefined`; the test then force-deletes it.
 
 ### Deployment (`test/contract/deployment.test.ts`, contract, sequential, one function)
 
@@ -397,7 +397,7 @@ write the code, recorded as a Verification entry in the AWS README.
 - The unit tests encode the SDK's command shapes through `aws-sdk-client-mock`; an SDK upgrade that changes them breaks tests that do not touch real behavior.
 - `aws-sdk-client-mock` and TypeScript tooling are new dev dependencies.
 - The entry replaces adapter-node's `index.js`, dropping its graceful shutdown and its `SHUTDOWN_TIMEOUT`, `IDLE_TIMEOUT` and socket-activation settings (WD7), and it depends on adapter-node's `handler.js` export and its third-argument fallthrough.
-- A secret delete takes about a second, and a delete that Secrets Manager does not finish within 30 s throws though the delete itself was accepted (WD6).
+- For up to about 30 s after a delete, writing or claiming the same name fails (WD6); reads of a deleted secret and every delete cost a `DescribeSecret` more, and the runtime role needs `secretsmanager:DescribeSecret`.
 
 **Blindspots & missed edge cases**
 - LMB-12's failure paths cannot be provoked against the real service on demand, so they are verified at `unit` only.

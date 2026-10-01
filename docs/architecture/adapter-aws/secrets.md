@@ -37,26 +37,30 @@ minutes (WS4).
 
 **WD5. Secrets are deleted without a recovery window (ASM-6).** `DeleteSecret` with
 `ForceDeleteWithoutRecovery: true`.
-*Why:* core deletes a subordinate seed and then expects `getSecret` of it to resolve `undefined`. A
-secret in its recovery window answers `InvalidRequestException` instead, which would fail every load
-of a forgotten key for up to 30 days. GCP deletes a secret immediately too.
+*Why:* core deletes a subordinate seed so that nothing can sign with it again; a recovery window
+would keep it restorable, and its name taken, for 7 to 30 days. GCP deletes a secret immediately too.
 *Cost:* a deleted secret cannot be restored.
 
-**WD6. A delete waits until the secret is gone (WU5; ASM-6; WF24).** After `DeleteSecret` the adapter
-reads the secret until Secrets Manager answers `ResourceNotFoundException`.
-*Why:* a forced delete completes asynchronously. Until it does, reading or writing the name fails
-with `InvalidRequestException` (WS6), so core's read after a delete would throw where it expects
-`undefined`, and a write of the same key would fail. Waiting in the delete keeps every other method
-as for a key that never existed.
-*Cost:* a delete takes about a second, and up to 30 seconds before it gives up; deletes are rare
-(a seed no key signs with any more).
+**WD6. A secret scheduled for deletion is absent (WU5; ASM-3, ASM-6; WF24).** Reading a secret that
+`DescribeSecret` shows with a `DeletedDate` resolves `undefined`, and deleting it again resolves
+`false`. The delete does not wait for Secrets Manager to finish.
+*Why:* a forced delete completes asynchronously, after anything from under a second to about 30
+seconds (WS6), and until then reading the name fails with `InvalidRequestException`. Core deletes a
+subordinate seed and later expects `getSecret` of it to resolve `undefined`, and ignores the
+delete's result. Waiting in the delete could outlast a request on a function with the default
+30-second timeout. A forced delete of a name that does not exist succeeds (WS6), so `false` needs
+the `DescribeSecret` before it.
+*Cost:* a write or claim of the same name fails with `InvalidRequestException` until the delete
+completes; core never reuses a seed's name. A read of a secret scheduled for deletion costs a second
+call, and so does every delete. A secret scheduled for deletion outside GenoaCMS, with a recovery
+window, also reads as absent.
 
 ### Findings
 
 | # | Finding | State |
 | :-- | :-- | :-- |
 | WF14 | **No secrets provider.** An AWS stack must take its secrets from another provider, such as the environment, which cannot claim atomically, so two instances starting together can each mint a root seed. `configuration.md` notes that the AWS suite's `production.ts` names a secrets adapter that does not exist. | open |
-| WF24 | **A deleted secret is not gone at once** (ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. | open |
+| WF24 | **A deleted secret is not gone at once, and deleting a missing one succeeds** (ASM-3, ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. Once the delete had completed, a second forced delete resolved, so `deleteSecret` reported `true` where ASM-6 says `false`. | open |
 
 ### History
 
@@ -65,7 +69,7 @@ None: nothing is implemented yet.
 ### Verification
 
 - **Established from AWS's documentation, not by experiment:** `CreateSecret` of an existing name fails with `ResourceExistsException`; `GetSecretValue` of a missing secret fails with `ResourceNotFoundException`, and of a secret scheduled for deletion with `InvalidRequestException`; storage is billed per secret per month, prorated by the hour, plus per 10,000 API calls.
-- **WS6, for ASM-6: run 2026-10-01, `eu-central-1`.** Create a secret, delete it with `ForceDeleteWithoutRecovery: true`, then read, describe and write it every 0.5 s. Three runs: for about 0.7 s after the delete, `GetSecretValue` and `PutSecretValue` fail with `InvalidRequestException` and `DescribeSecret` shows a `DeletedDate`; from then on all answer `ResourceNotFoundException`, and `CreateSecret` of the same name succeeds.
+- **WS6, for ASM-3 and ASM-6: run 2026-10-01, `eu-central-1`.** Create a secret, delete it with `ForceDeleteWithoutRecovery: true`, then read, describe and write it every 0.25 to 0.5 s. Until the delete completes, `GetSecretValue` and `PutSecretValue` fail with `InvalidRequestException` and `DescribeSecret` shows a `DeletedDate`; from then on all answer `ResourceNotFoundException`, and `CreateSecret` of the same name succeeds. The delete completed after about 0.7 s in three runs, and after 29.5, 27.5 and 15.6 s in three runs an hour later. A forced `DeleteSecret` of a name that never existed, or whose delete had completed, resolves with a `DeletionDate`; with a recovery window it fails with `ResourceNotFoundException`.
 - **WS4, for ASM-4: not run.** Overwrite one secret many times within minutes and read the number of its versions. It establishes whether core's key-registry sequence, overwritten on every key issuance, can reach Secrets Manager's version limit.
 
 ## Specification
@@ -97,7 +101,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 #### ASM-3 · Reading
 
-`getSecret(key)` sends `GetSecretValue` and returns its `SecretString`, the `AWSCURRENT` version's value. It returns `undefined` when, and only when, the call fails with `ResourceNotFoundException`. A secret holding only `SecretBinary` throws `secrets/not-a-string: <key>`.
+`getSecret(key)` sends `GetSecretValue` and returns its `SecretString`, the `AWSCURRENT` version's value. It returns `undefined` when, and only when, the call fails with `ResourceNotFoundException`, or fails with `InvalidRequestException` and a `DescribeSecret` of the key then shows a `DeletedDate` or fails with `ResourceNotFoundException` (WD6). Otherwise that `InvalidRequestException` propagates, and so does an error of the `DescribeSecret`. A secret holding only `SecretBinary` throws `secrets/not-a-string: <key>`.
 
 - Test: none yet
 - Level: unit, contract
@@ -121,7 +125,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 #### ASM-6 · Deleting
 
-`deleteSecret(key)` sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true`; `ResourceNotFoundException` resolves `false`. It then sends `GetSecretValue` of the key every 250 ms, the first at once, while it fails with `InvalidRequestException`, and resolves `true` once it fails with `ResourceNotFoundException` or resolves. Any other error propagates. When `InvalidRequestException` is still answered 30 seconds after the delete, it throws `secrets/delete-timeout: <key>`.
+`deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete.
 
 - Test: none yet
 - Level: unit, contract
