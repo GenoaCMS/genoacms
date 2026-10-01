@@ -63,7 +63,7 @@ describe('the Secrets Manager runtime', () => {
     await expect(secrets.getSecret(KEY)).rejects.toBe(failure)
   })
 
-  it.fails('ASM-3: reads a secret scheduled for deletion as undefined', async () => {
+  it('ASM-3: reads a secret scheduled for deletion as undefined', async () => {
     const secrets = await provider()
     secretsManager.on(GetSecretValueCommand).rejects(invalid())
     secretsManager.on(DescribeSecretCommand).resolves(scheduled())
@@ -128,7 +128,7 @@ describe('the Secrets Manager runtime', () => {
     await expect(secrets.setSecretIfAbsent(KEY, 'value')).rejects.toBe(failure)
   })
 
-  it.fails('ASM-6: deletes without recovery, and does not wait', async () => {
+  it('ASM-6: deletes without recovery, and does not wait', async () => {
     secretsManager.on(DescribeSecretCommand).resolves({})
     secretsManager.on(DeleteSecretCommand).resolves({})
     const secrets = await provider()
@@ -138,7 +138,7 @@ describe('the Secrets Manager runtime', () => {
     expect(inputs(GetSecretValueCommand)).toHaveLength(0)
   })
 
-  it.fails('ASM-6: reports false for a missing secret, or one scheduled for deletion', async () => {
+  it('ASM-6: reports false for a missing secret, or one scheduled for deletion', async () => {
     const secrets = await provider()
     secretsManager.on(DescribeSecretCommand).rejects(notFound())
     secretsManager.on(DeleteSecretCommand).resolves({})
@@ -158,7 +158,7 @@ describe('the Secrets Manager runtime', () => {
     expect(inputs(DeleteSecretCommand)).toEqual([expect.objectContaining({ SecretId: KEY, ForceDeleteWithoutRecovery: true })])
   })
 
-  it.fails('ASM-6: propagates other errors', async () => {
+  it('ASM-6: propagates other errors', async () => {
     const failure = denied()
     secretsManager.on(DescribeSecretCommand).rejects(failure)
     secretsManager.on(DeleteSecretCommand).resolves({})
