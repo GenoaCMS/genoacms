@@ -368,7 +368,7 @@ describe('the GCP storage runtime', () => {
     for (const object of objects) expect(object.delete).toHaveBeenCalledOnce()
   })
 
-  it.fails('STO-9: keeps the first limit entries in UTF-8 byte order', async () => {
+  it('STO-9: keeps the first limit entries in UTF-8 byte order', async () => {
     const storage = await create()
     const names = ['p/b', 'p/\u{1F600}', 'p/\u{FFFD}']
     bucket.getFiles.mockResolvedValueOnce([names.map(name => mockFileResolvingEveryCall(name)), {}, { prefixes: [] }])

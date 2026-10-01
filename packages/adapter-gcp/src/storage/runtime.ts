@@ -17,8 +17,11 @@ function requestedResults (limit?: number, startAfter?: string): number | undefi
 }
 
 // STO-9
+const byUtf8Bytes = (a: string, b: string): number => Buffer.compare(Buffer.from(a), Buffer.from(b))
+
+// STO-9
 function firstByName (names: string[], limit?: number): Set<string> {
-  const sorted = [...names].sort()
+  const sorted = [...names].sort(byUtf8Bytes)
   return new Set(limit === undefined ? sorted : sorted.slice(0, limit))
 }
 
