@@ -815,7 +815,7 @@ present.
 ## 9. Lifecycle
 
 ```
-DEVELOPMENT   genoa dev [--config f]            (monorepo: pnpm dev in packages/core)
+DEVELOPMENT   genoa dev [--config f] [--mode m]            (monorepo: pnpm dev in packages/core)
   cli    root = cwd; spawn `vite dev`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG
   vite   genoa(): loadConfig(mode = config.mode = 'development') → manifest (with source)
                   virtual:genoa/manifest; watch source.dependencies
@@ -824,15 +824,15 @@ DEVELOPMENT   genoa dev [--config f]            (monorepo: pnpm dev in packages/
          hooks: ensureInstanceInitialized() → host.secrets() (secrets-env) → root seed → default bucket
   edit   config or any file it imports → reload manifest → server.restart()
 
-BUILD         genoa build [target] [--config f] [--no-inline] [--development]
-  cli    loadConfig(mode = production, or development with --development) → refuse on any error
+BUILD         genoa build [target] [--config f] [--no-inline] [--mode m]
+  cli    loadConfig(mode = --mode, default production) → refuse on any error
          target = arg ?? deployment.default ?? first key
          spawn `vite build`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG, GENOA_TARGET, GENOA_MODE
   kit    svelte.config.js: descriptor(target) → (await descriptor.svelteKitAdapter()).default(svelteKitOptions + out)
   vite   genoa(): embeds the RuntimeManifest; adapter runtimes stay external (D4)
   cli    write .genoacms/build/package.json (S7.1)
 
-DEPLOY        genoa deploy [target] [--config f]
+DEPLOY        genoa deploy [target] [--config f] [--no-inline] [--mode m]
   cli    run BUILD
          host = createHost({ manifest, load, projectRoot })
          options = host.resolve(target.options, descriptor.secretOptions, `deployment.targets.${target}`)
@@ -846,7 +846,9 @@ PRODUCTION    cold start of the artifact
   failure       construction rejects → request 500 → next call retries
 ```
 
-**Mode** is `GENOA_MODE` (D7), never Vite's `mode`. `genoa build --development` sets it to
+The CLI's commands, flags and messages are specified in [`cli.md`](cli.md).
+
+**Mode** is `GENOA_MODE` (D7), never Vite's `mode`. `genoa build --mode development` sets it to
 `development` and produces a development artifact: its manifest carries `source.root` and it may use `developmentOnly` adapters. Core's
 Playwright suite uses this (`build && preview` against the dev store), replacing today's
 `deploy --dev`.
@@ -888,7 +890,7 @@ without `npm explore` and without `GENOA_BUILD`.
 | K6 | Root rotation with explicit confirmation | `genoa rotate-root`, same confirmation |
 | P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts`, `security.ts` and `languages.ts` both import; installs secrets-env and language-adapter-ts |
 | P2 | `run` (dev server) | `genoa dev`; `run` kept as an alias |
-| P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --development` |
+| P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --mode development` (RFC-0015; `cli.md`) |
 | P4 | `database`: list and delete dynamic collections | Over `host.storageForBucket(host.defaultBucket)`; fixes F8's `config.storage.adapter` |
 | P5 | `roles`: offline composition with the catalog from config | Reads `manifest.config` only and never constructs a provider |
 | P6 | `rotate-root` | Same command |
