@@ -12,6 +12,11 @@ import type { AwsSecretsOptions } from './descriptor.js'
 
 const NOT_FOUND = 'ResourceNotFoundException'
 const EXISTS = 'ResourceExistsException'
+const MARKED_FOR_DELETION = 'InvalidRequestException'
+const DELETE_POLL_MS = 250
+const DELETE_TIMEOUT_MS = 30_000
+
+const sleep = async (ms: number): Promise<void> => { await new Promise(resolve => setTimeout(resolve, ms)) }
 
 export default defineRuntime<AwsSecretsOptions, Adapter>({
   create ({ region, credentials }): Adapter {
@@ -68,15 +73,36 @@ export default defineRuntime<AwsSecretsOptions, Adapter>({
       }
     }
 
+    const isGone = async (key: string): Promise<boolean> => {
+      try {
+        await client.send(new GetSecretValueCommand({ SecretId: key }))
+        return true
+      } catch (error) {
+        if (isAwsError(error, NOT_FOUND)) return true
+        if (isAwsError(error, MARKED_FOR_DELETION)) return false
+        throw error
+      }
+    }
+
+    // ASM-6, WD6
+    const waitUntilGone = async (key: string): Promise<void> => {
+      const deadline = Date.now() + DELETE_TIMEOUT_MS
+      while (!await isGone(key)) {
+        if (Date.now() >= deadline) throw new Error(`secrets/delete-timeout: ${key}`)
+        await sleep(DELETE_POLL_MS)
+      }
+    }
+
     // ASM-6
     const deleteSecret: Adapter['deleteSecret'] = async (key) => {
       try {
         await client.send(new DeleteSecretCommand({ SecretId: key, ForceDeleteWithoutRecovery: true }))
-        return true
       } catch (error) {
         if (isAwsError(error, NOT_FOUND)) return false
         throw error
       }
+      await waitUntilGone(key)
+      return true
     }
 
     return { getSecret, setSecret, setSecretIfAbsent, deleteSecret }

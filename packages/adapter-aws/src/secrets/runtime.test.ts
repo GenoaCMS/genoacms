@@ -130,7 +130,7 @@ describe('the Secrets Manager runtime', () => {
     expect(reads()).toBe(readsBefore)
   })
 
-  it.fails('ASM-6: waits until the secret is gone', async () => {
+  it('ASM-6: waits until the secret is gone', async () => {
     vi.useFakeTimers()
     const secrets = await provider()
     secretsManager.on(DeleteSecretCommand).resolves({})
@@ -162,7 +162,7 @@ describe('the Secrets Manager runtime', () => {
     expect(reads()).toBe(1)
   })
 
-  it.fails('ASM-6: propagates other errors while waiting', async () => {
+  it('ASM-6: propagates other errors while waiting', async () => {
     const failure = denied()
     secretsManager.on(DeleteSecretCommand).resolves({})
     secretsManager.on(GetSecretValueCommand).rejects(failure)
@@ -170,7 +170,7 @@ describe('the Secrets Manager runtime', () => {
     await expect(secrets.deleteSecret(KEY)).rejects.toBe(failure)
   })
 
-  it.fails('ASM-6: gives up after 30 seconds', async () => {
+  it('ASM-6: gives up after 30 seconds', async () => {
     vi.useFakeTimers()
     const secrets = await provider()
     secretsManager.on(DeleteSecretCommand).resolves({})
