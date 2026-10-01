@@ -122,6 +122,21 @@ function answerAndLog (name: string): (input: any) => Promise<unknown> {
   }
 }
 
+async function drain (body: any): Promise<void> {
+  if (typeof body?.toArray === 'function') await body.toArray()
+}
+
+function answerDrainingBody (name: string): (input: any) => Promise<unknown> {
+  const answer = answerAndLog(name)
+  return async (input) => {
+    try {
+      return await answer(input)
+    } finally {
+      await drain(input.Body)
+    }
+  }
+}
+
 function functionExists (): void {
   answers.GetFunction = () => ({ Configuration: { FunctionName: 'genoacms', State: 'Active', LastUpdateStatus: 'Successful' } })
 }
@@ -160,7 +175,7 @@ beforeEach(() => {
   constructed.length = 0
   log.length = 0
   answers = defaultAnswers()
-  s3.on(PutObjectCommand).callsFake(answerAndLog('PutObject'))
+  s3.on(PutObjectCommand).callsFake(answerDrainingBody('PutObject'))
   for (const [name, command] of LAMBDA_COMMANDS) lambda.on(command).callsFake(answerAndLog(name))
   vi.mocked(waitUntilFunctionActiveV2).mockReset().mockImplementation(async () => { log.push('wait:active'); return { state: 'SUCCESS' } as never })
   vi.mocked(waitUntilFunctionUpdatedV2).mockReset().mockImplementation(async () => { log.push('wait:updated'); return { state: 'SUCCESS' } as never })
