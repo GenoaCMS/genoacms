@@ -150,9 +150,5 @@ function sequence(handlers) {
 }
 
 export const handler = sequence(
-	[
-		serve(path.join(dir, 'client'), true),
-		serve_prerendered(),
-		ssr
-	].filter(Boolean)
+	[serve(path.join(dir, 'client'), true), serve_prerendered(), ssr].filter(Boolean)
 );
