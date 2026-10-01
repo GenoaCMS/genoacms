@@ -106,9 +106,11 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       let [files, , apiResponse] =
         (await bucketInstance.getFiles(options)) as [File[], object, { prefixes: string[] } | undefined]
       files = files.filter((file) => !file.name.endsWith('.folderPlaceholder'))
+      // STO-9, GF21
+      const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams?.startAfter
 
       return {
-        files: files.filter(f => f.name !== name).map((file) => {
+        files: files.filter(f => !skipped(f.name)).map((file) => {
           return {
             name: file.name,
             // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -116,7 +118,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
             lastModified: new Date(file.metadata.updated as string)
           } satisfies StorageObject
         }),
-        directories: (apiResponse?.prefixes ?? []).filter((item) => item !== name).map(i => {
+        directories: (apiResponse?.prefixes ?? []).filter((item) => !skipped(item)).map(i => {
           const object: ObjectReference = {
             bucket,
             name: i
@@ -132,21 +134,15 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       await file.save('')
     }
 
+    // STO-11, GD7
     const deleteDirectory: Adapter['deleteDirectory'] = async ({ bucket, name }) => {
-      const bucketInstance = getBucket(bucket)
-      const [files] = await bucketInstance.getFiles({ prefix: name })
-      const deletePromises = files.map(async (file) => await file.delete())
-      await Promise.all(deletePromises)
+      await getBucket(bucket).deleteFiles({ prefix: name })
     }
 
+    // STO-12, GD7, GF22
     const moveDirectory: Adapter['moveDirectory'] = async ({ bucket, name }, newName) => {
-      const bucketInstance = getBucket(bucket)
-      const [files] = await bucketInstance.getFiles({ prefix: name })
-      const movePromises = files.map(async (file) => {
-        const newFileName = file.name.replace(name, newName)
-        await file.move(newFileName)
-      })
-      await Promise.all(movePromises)
+      const [files] = await getBucket(bucket).getFiles({ prefix: name })
+      for (const file of files) await file.move(newName + file.name.slice(name.length))
     }
 
     return {

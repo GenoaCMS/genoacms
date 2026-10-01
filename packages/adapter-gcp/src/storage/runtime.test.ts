@@ -155,7 +155,7 @@ describe('the GCP storage runtime', () => {
     expect(listed[1].move).toHaveBeenCalledWith('n/e/d/y')
   })
 
-  it.fails('STO-9: does not list the object or prefix named startAfter', async () => {
+  it('STO-9: does not list the object or prefix named startAfter', async () => {
     const storage = await create()
     const page = () => [[mockFileResolvingEveryCall('p/2'), mockFileResolvingEveryCall('p/3')], {}, { prefixes: ['p/2/', 'p/4/'] }]
     const names = (listing: { files: Array<{ name: string }>, directories: Array<{ name: string }> }) =>
@@ -180,7 +180,7 @@ describe('the GCP storage runtime', () => {
     expect(listing.files.map(file => file.name)).toEqual(['d/a.folderPlaceholder.txt'])
   })
 
-  it.fails('STO-11: deletes through deleteFiles with the prefix, and rejects with its error', async () => {
+  it('STO-11: deletes through deleteFiles with the prefix, and rejects with its error', async () => {
     const storage = await create()
     const listed = mockFileResolvingEveryCall('d/x')
     bucket.getFiles.mockResolvedValue([[listed]])
@@ -195,7 +195,7 @@ describe('the GCP storage runtime', () => {
     await expect(storage.deleteDirectory({ bucket: 'b', name: 'd/' })).rejects.toBe(failure)
   })
 
-  it.fails('STO-12: moves one object at a time in listing order, to the literal new name', async () => {
+  it('STO-12: moves one object at a time in listing order, to the literal new name', async () => {
     const storage = await create()
     const listed = [mockFileResolvingEveryCall('d/a'), mockFileResolvingEveryCall('d/b/c')]
     let finishFirstMove: () => void = () => {}
@@ -210,7 +210,7 @@ describe('the GCP storage runtime', () => {
     expect(listed[1].move).toHaveBeenCalledWith('n$&/b/c')
   })
 
-  it.fails('STO-12: stops at the first failed move', async () => {
+  it('STO-12: stops at the first failed move', async () => {
     const storage = await create()
     const listed = [mockFileResolvingEveryCall('d/a'), mockFileResolvingEveryCall('d/b')]
     const failure = Object.assign(new Error('forbidden'), { code: 403 })
