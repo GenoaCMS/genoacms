@@ -2,8 +2,8 @@
 type: rfc
 number: 27
 title: Fix the open GCP findings
-status: draft
-commits: []
+status: implemented
+commits: [a01bec5, 6a5822a, 0b68882, 0d9f0b6, 63891bd, ec6685a, 52f619f, f771062, 00f6509, aa17eb9]
 depends: [25]
 architecture: [architecture/adapter-gcp/README.md, architecture/adapter-gcp/storage.md, architecture/adapter-gcp/secrets.md, architecture/adapter-gcp/deployment.md, architecture/adapter-gcp/database.md]
 changes: [STO-9 compatible, STO-11 compatible, STO-12 compatible, DEP-10 compatible, ADP-5 editorial, SEC-8 editorial]

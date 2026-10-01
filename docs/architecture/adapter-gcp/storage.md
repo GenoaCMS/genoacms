@@ -2,7 +2,7 @@
 type: architecture
 title: GCP storage: Cloud Storage
 codes: [STO]
-verified: 28107d2
+verified: aa17eb9
 ---
 
 # GCP storage: Cloud Storage
@@ -51,13 +51,13 @@ partly deleted or partly moved, now up to the failing object, and the operation 
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF8 | **Signed URLs under ADC need `signBlob`** (STO-8). Without a key, the client library signs through the IAM Credentials API as the runtime identity, which needs `iam.serviceAccounts.signBlob` on itself (README, IAM). Core's storage browser uses signed URLs, so without the grant file previews and downloads fail while everything else works. Whether the default compute account holds it depends on the project's grants. | documented; GS3 not run |
-| GF10 | **Directory operations are unbounded and not atomic** (STO-11, STO-12). They list the whole prefix and act on every object at once, in parallel. A large directory issues that many requests simultaneously, and a failure part-way leaves it half moved or half deleted. GD7 bounds them and stops at the first failure; atomicity stays out of reach. | open, RFC-0027 |
+| GF10 | **Directory operations are unbounded and not atomic** (STO-11, STO-12). They list the whole prefix and act on every object at once, in parallel. A large directory issues that many requests simultaneously, and a failure part-way leaves it half moved or half deleted. GD7 bounds them and stops at the first failure; atomicity stays out of reach. | fixed, RFC-0027 |
 | GF12 | *History.* **Most of the runtime was untested.** STO-5 to STO-12 had no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling were verified by nothing. | fixed, RFC-0024 |
 | GF15 | *History.* **Most storage statements have no contract test** (STO-6 to STO-12). Their level includes `contract`, but the GCP conformance run carries only STO-4, and `@genoacms/conformance` covers only upload, read, list and delete. Preconditions, moves, directories and signed URLs (GS3) are checked only against a mocked SDK. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
-| GF21 | **`startAfter` is inclusive** (STO-9). The runtime passes it to GCS as `startOffset`, which lists from the named object on, so the next page repeats the object named `startAfter`, while STO-9 starts after it. Found by RFC-0025's contract test (2026-09-30). Core passes no `startAfter`, so no user meets it today. | open, RFC-0027 |
-| GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | open, RFC-0027 |
-| GF29 | **The client library's `deleteFiles` does not stop at the first failure** (STO-11, GS8). RFC-0027 first used `bucket.deleteFiles({ prefix })` of `@google-cloud/storage` 7.21 for GD7. It queues up to 1000 deletes before awaiting any, so a failed delete leaves the queued ones running; and while the listing is still streaming it rejects with `Premature close` and leaves the delete's own error as an unhandled rejection, which ends a Node process. Found before release; the runtime lists and deletes page by page itself. | open, RFC-0027 |
-| GF24 | **The storage tests miss parts of their statements** (GS6). Tests pass when: a non-string `projectId` is accepted (COM-3); `ifVersion` wins over `ifAbsent`, or a non-412 error on a conditional write becomes `PreconditionFailedError` (STO-6); `deleteObject` swallows its errors (STO-7); the URL is signed for `write` (STO-8, unit level); any name containing `.folderPlaceholder` is hidden (STO-9); one failed delete or move is ignored (STO-11, STO-12). STO-11 and STO-12 also said "in parallel", which no test and no user can observe; GD7 replaced it. | open, RFC-0027 |
+| GF21 | **`startAfter` is inclusive** (STO-9). The runtime passes it to GCS as `startOffset`, which lists from the named object on, so the next page repeats the object named `startAfter`, while STO-9 starts after it. Found by RFC-0025's contract test (2026-09-30). Core passes no `startAfter`, so no user meets it today. | fixed, RFC-0027 |
+| GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | fixed, RFC-0027 |
+| GF29 | **The client library's `deleteFiles` does not stop at the first failure** (STO-11, GS8). RFC-0027 first used `bucket.deleteFiles({ prefix })` of `@google-cloud/storage` 7.21 for GD7. It queues up to 1000 deletes before awaiting any, so a failed delete leaves the queued ones running; and while the listing is still streaming it rejects with `Premature close` and leaves the delete's own error as an unhandled rejection, which ends a Node process. Found before release; the runtime lists and deletes page by page itself. | fixed, RFC-0027 |
+| GF24 | **The storage tests miss parts of their statements** (GS6). Tests pass when: a non-string `projectId` is accepted (COM-3); `ifVersion` wins over `ifAbsent`, or a non-412 error on a conditional write becomes `PreconditionFailedError` (STO-6); `deleteObject` swallows its errors (STO-7); the URL is signed for `write` (STO-8, unit level); any name containing `.folderPlaceholder` is hidden (STO-9); one failed delete or move is ignored (STO-11, STO-12). STO-11 and STO-12 also said "in parallel", which no test and no user can observe; GD7 replaced it. | fixed, RFC-0027 |
 
 ### History
 
@@ -65,6 +65,8 @@ partly deleted or partly moved, now up to the failing object, and the operation 
 2025-03 to the current `files` and `directories` shape. Generation preconditions were added on
 2026-08-16 for core's optimistic concurrency. RFC-0007 moved the bodies into the runtime unchanged,
 except the bucket check, which now uses the host's resource list instead of reading the config.
+RFC-0027 (2026-10-01) made `startAfter` exclusive, bounded the directory operations and stopped
+them at the first failure (GD7), and took a moved directory's new name literally.
 
 ### Verification
 
@@ -140,7 +142,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 `listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together: when more come back, the first `limit` in GCS's order, by the UTF-8 bytes of the name, are kept, and `limit: 0` lists nothing. It starts after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
 
-- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts` (unverified: `startAfter`, GF21)
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-10 · Creating a directory
