@@ -20,6 +20,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | :-- | :-- | :-- | :-- | :-- |
 | [`architecture/configuration.md`](architecture/configuration.md) | none: it predates the workflow, and its IDs (`U`, `D`, `F`, `S`, `Q`, `C`, `A`, `P`, `K`, `R`) are unprefixed | — | config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no** (`conforms: false`): written as a proposal. Restructuring pending. |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements: 54 name a test, 2 of them partly verified (STO-8, STO-9), and 1 is unverified (COM-1, a type); 8 more are **New** (authentication). |
+| [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements: 42 name a test, and 1 is unverified (AWS-1, a type). |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
 ## Coverage
@@ -30,8 +31,9 @@ What the Specifications cover, measured against the reproducibility principle
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not restructured |
-| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26 |
-| Other adapters | `adapter-aws`, `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. The AWS findings of the AWS discussion are recorded nowhere yet. |
+| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26, GF28 |
+| AWS | `adapter-aws` | `adapter-aws/` | covered; no open findings (WF1 to WF26 fixed, RFC-0026) |
+| Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
@@ -50,7 +52,7 @@ What the Specifications cover, measured against the reproducibility principle
 | `unit` | a package's vitest tests in `src/`, through its public interface, with external SDKs mocked | always |
 | `integration` | tests with real collaborators: the file system, a local database or object store | always |
 | `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI; today the SvelteKit adapter's build served by the Functions Framework, in the package's `e2e/` directory | always |
-| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_TABLE`; without them the tests are skipped. Deferred on pull requests. |
+| `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_LAMBDA_ROLE`; without them the tests are skipped. Deferred on pull requests. |
 | `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always, except MinIO |
 
 Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:
@@ -61,7 +63,7 @@ Known gaps in the test runs, recorded 2026-09-28 when the project adopted workfl
 - **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
 - **`@genoacms/cli`** has no tests: its `test` script starts the CLI.
 - **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
-- The GCP findings still open are GF10 and GF20 to GF26 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
+- The GCP findings still open are GF10, GF20 to GF26 and GF28 in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
 
 ## History
 

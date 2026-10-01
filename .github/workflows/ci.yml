@@ -113,7 +113,7 @@ jobs:
           GENOACMS_TEST_AWS: ${{ vars.AWS_TEST_ROLE_ARN != '' && '1' || '' }}
           GENOACMS_TEST_AWS_REGION: ${{ vars.AWS_TEST_REGION }}
           GENOACMS_TEST_AWS_BUCKET: ${{ vars.AWS_TEST_BUCKET }}
-          GENOACMS_TEST_AWS_TABLE: ${{ vars.AWS_TEST_TABLE }}
+          GENOACMS_TEST_AWS_LAMBDA_ROLE: ${{ vars.AWS_TEST_LAMBDA_ROLE }}
 
       - name: Record verification
         if: always() && steps.build.outcome != 'skipped'
