@@ -101,7 +101,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `STO-11: lists page by page and deletes at most 10 at a time`: given two pages of 15 and 3 objects with deletes that resolve only when released, then `getFiles` was called with `{ prefix: name, autoPaginate: false }` and then the page's next query, never more than 10 deletes were pending at once, the second page was listed only after the first page's deletes ended, and every object was deleted. It replaces the test of `deleteFiles` (GF29).
 - `STO-11: starts no delete after the first failure, and rejects with it once the started ones end`: given one page of 30 objects whose third delete rejects, then no delete starts after the rejection, the rejection waits for the deletes already started, it is that error object, and no further page is listed.
 - `STO-11: rejects with a listing error`: given `getFiles` rejects, then that error object and no delete.
-- `STO-9: does not count startAfter toward limit`: given `limit: 2` and `startAfter: 'p/1'`, then `maxResults` is 3, and `getFiles` resolving `p/1`, `p/2`, `p/3` lists `p/2`, `p/3`; given `p/2`, `p/3`, `p/4` (the object `p/1` gone), then `p/2`, `p/3`. Without `startAfter`, `maxResults` is `limit`.
+- `STO-9: does not count startAfter toward limit`: given `limit: 2` and `startAfter: 'p/1'`, then `maxResults` is 3, and `getFiles` resolving `p/1`, `p/2`, `p/3` lists `p/2`, `p/3`; given `p/2`, `p/3`, `p/4` (the object `p/1` gone), then `p/2`, `p/3`; given the file `p/2` and the prefixes `p/1/`, `p/3/`, then `directories` `p/1/` and `files` `p/2` (files and directories count together, by name). Without `startAfter`, `maxResults` is `limit`.
 - `STO-9: hides a name only when it ends in .folderPlaceholder`: also `d/.folderPlaceholder.txt` is listed (GF30).
 - `STO-12: lists every page of the prefix, placeholders included, without a delimiter`: then `getFiles` was called with exactly `{ prefix: name }`, and `d/.folderPlaceholder` moved too (GF30).
 - `STO-12: moves into its own subtree once`: given `d/a` moved to `d/x/`, then exactly one move, to `d/x/a` (GF30).
@@ -144,7 +144,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `ADP-5: serves the .gz variant to a client that accepts only gzip` (GF30).
 - `ADP-5: does not mark a 304 of an immutable asset immutable`: a conditional request with the asset's ETag answers 304 without `cache-control: immutable` (GF30).
 - `ADP-5: serves a prerendered page whose path is percent-encoded` (GF30): the fixture gains a prerendered route with a space in its name.
-- `ADP-5: joins header arrays with a comma in the request the app sees`: a request with two `Accept-Language` lines reaches the app as one value joined with `,` (GF30).
+- `ADP-5: joins header arrays with a comma in the request the app sees`: Node joins most repeated request headers itself, with `, `, and keeps only `set-cookie` as an array; a request with two `Set-Cookie` lines reaches the app as one value joined with `,` (GF30).
 - `ADP-1, ADP-2: defaults out, precompress and envPrefix, empties out, and honors base`.
 - `ADP-3: keeps deep imports external, and writes sourcemaps and chunks/`.
 - `ADP-4: installs the shims and initializes with process.env`.
