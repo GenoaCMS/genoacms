@@ -34,7 +34,9 @@ const notFound = (): ResourceNotFoundException => new ResourceNotFoundException(
 const exists = (): ResourceExistsException => new ResourceExistsException({ message: 'exists', $metadata: {} })
 const invalid = (): InvalidRequestException => new InvalidRequestException({ message: 'invalid', $metadata: {} })
 const denied = (): Error => Object.assign(new Error('denied'), { name: 'AccessDeniedException' })
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 const scheduled = (): { DeletedDate: Date } => ({ DeletedDate: new Date() })
+const scheduledWithRecovery = (): { DeletedDate: Date } => ({ DeletedDate: new Date(Date.now() + WEEK_MS) })
 
 async function provider () {
   return await runtime.create({ region: 'eu-central-1' }, { name: 'secrets', resources: [] })
@@ -69,6 +71,11 @@ describe('the Secrets Manager runtime', () => {
     secretsManager.on(DescribeSecretCommand).resolves(scheduled())
     expect(await secrets.getSecret(KEY)).toBeUndefined()
     expect(inputs(DescribeSecretCommand)).toEqual([{ SecretId: KEY }])
+
+    secretsManager.reset()
+    secretsManager.on(GetSecretValueCommand).rejects(invalid())
+    secretsManager.on(DescribeSecretCommand).resolves(scheduledWithRecovery())
+    expect(await secrets.getSecret(KEY)).toBeUndefined()
 
     secretsManager.reset()
     secretsManager.on(GetSecretValueCommand).rejects(invalid())

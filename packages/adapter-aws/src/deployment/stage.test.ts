@@ -5,6 +5,7 @@ import { join, relative } from 'node:path'
 import { deflateRawSync } from 'node:zlib'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer, connect, type AddressInfo } from 'node:net'
+import { request as httpRequest, type OutgoingHttpHeaders } from 'node:http'
 import { stageLambdaApp, installProductionDependencies, zipDirectory } from './stage.js'
 
 const RUN_SH = '#!/bin/sh\nexec node genoacms-lambda.js\n'
@@ -95,10 +96,19 @@ async function stagedWithHandler (handler: string): Promise<string> {
   return app
 }
 
-async function receivedHeaders (origin: string, headers: Record<string, string>): Promise<Record<string, string>> {
-  const response = await fetch(origin, { headers })
-  expect(response.status).toBe(200)
-  return await response.json() as Record<string, string>
+async function receivedHeaders (origin: string, headers: OutgoingHttpHeaders): Promise<Record<string, string>> {
+  return await new Promise((resolve, reject) => {
+    const sent = httpRequest(origin, { headers }, (response) => {
+      const chunks: Buffer[] = []
+      response.on('data', (chunk: Buffer) => chunks.push(chunk))
+      response.on('end', () => {
+        expect(response.statusCode).toBe(200)
+        resolve(JSON.parse(Buffer.concat(chunks).toString()) as Record<string, string>)
+      })
+    })
+    sent.on('error', reject)
+    sent.end()
+  })
 }
 
 interface ZipEntry { name: string, mode: number, method: number, data: Buffer }
@@ -166,15 +176,28 @@ describe('staging the Lambda app', () => {
   it("LMB-15: drops a client's address header when the context has none", async () => {
     const running = await startEntry(await stagedWithHandler(ECHO_HANDLER))
     try {
-      const contexts: Array<Record<string, string>> = [
+      const valid = JSON.stringify({ http: { sourceIp: '198.51.100.7' } })
+      const contexts: OutgoingHttpHeaders[] = [
         {},
         { 'x-amzn-request-context': 'not json' },
-        { 'x-amzn-request-context': JSON.stringify({ http: { sourceIp: 7 } }) }
+        { 'x-amzn-request-context': JSON.stringify({ http: { sourceIp: 7 } }) },
+        { 'x-amzn-request-context': JSON.stringify({ identity: { sourceIp: '198.51.100.7' } }) },
+        { 'x-amzn-request-context': [valid, valid] }
       ]
       for (const context of contexts) {
-        const headers = await receivedHeaders(running.origin, { ...context, [CLIENT_ADDRESS]: FORGED_CLIENT })
+        const headers = await receivedHeaders(running.origin, { ...context, [CLIENT_ADDRESS]: FORGED_CLIENT, 'x-forwarded-for': FORGED_CLIENT })
         expect(headers).not.toHaveProperty(CLIENT_ADDRESS)
       }
+    } finally {
+      stopEntry(running)
+    }
+  }, 20_000)
+
+  it('LMB-15: sets an empty source address as given', async () => {
+    const running = await startEntry(await stagedWithHandler(ECHO_HANDLER))
+    try {
+      const headers = await receivedHeaders(running.origin, { 'x-amzn-request-context': JSON.stringify({ http: { sourceIp: '' } }) })
+      expect(headers[CLIENT_ADDRESS]).toBe('')
     } finally {
       stopEntry(running)
     }
