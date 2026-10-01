@@ -138,7 +138,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-9 · Listing one level
 
-`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together, starting after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
+`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together: when more come back, the first `limit` in GCS's order, by the UTF-8 bytes of the name, are kept, and `limit: 0` lists nothing. It starts after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts` (unverified: `startAfter`, GF21)
 - Level: unit, contract
@@ -152,7 +152,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-11 · Deleting a directory
 
-`deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth. It lists them page by page and deletes at most 10 at a time (GD7). After the first failed delete no further delete starts; once the deletes already started have ended, it rejects with that first error. A listing error rejects likewise, and no further page is listed (GF29).
+`deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth. It lists them page by page, lists a page only after every delete of the previous one has ended, and has at most 10 deletes in flight (GD7). After the first failed delete no further delete starts and no further page is listed; once the deletes already started have ended, it rejects with that first error. A listing error of any page rejects with that error likewise. An empty page that has a next page does not end the listing (GF29).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract

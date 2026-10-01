@@ -58,7 +58,8 @@ No statement is added or removed.
 // listDirectory: startAfter as startOffset; maxResults is limit, or limit + 1 when startAfter is given
 const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams?.startAfter
 // files: drop placeholders, then skipped(file.name); directories: drop skipped(prefix);
-// then, with a limit, keep the first `limit` of files and directories together, by name
+// then, with a limit, keep the first `limit` of files and directories together, comparing names
+// by their UTF-8 bytes (Buffer.compare), as GCS orders them
 
 // deleteDirectory (GF29): one page at a time, at most DELETE_CONCURRENCY = 10 deletes in flight
 let query: GetFilesOptions | undefined = { prefix: name, autoPaginate: false }
@@ -101,6 +102,12 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `STO-11: lists page by page and deletes at most 10 at a time`: given two pages of 15 and 3 objects with deletes that resolve only when released, then `getFiles` was called with `{ prefix: name, autoPaginate: false }` and then the page's next query, never more than 10 deletes were pending at once, the second page was listed only after the first page's deletes ended, and every object was deleted. It replaces the test of `deleteFiles` (GF29).
 - `STO-11: starts no delete after the first failure, and rejects with it once the started ones end`: given one page of 30 objects whose third delete rejects, then no delete starts after the rejection, the rejection waits for the deletes already started, it is that error object, and no further page is listed.
 - `STO-11: rejects with a listing error`: given `getFiles` rejects, then that error object and no delete.
+- `STO-11: rejects with the first failed delete's error, not a later one`: given two deletes of one page that reject with different errors, the first rejecting first, then the first error object (GS9).
+- `STO-11: rejects with a later page's listing error`: given the second `getFiles` rejects, then that error object (GS9).
+- `STO-11: lists a short page's successor only after its deletes end`: given pages of 3 and 10 objects, then the second listing starts after the three deletes ended, and never more than 10 deletes are pending (GS9).
+- `STO-11: goes on past an empty page that has a next page`: given pages of 0 (with a next query) and 2 objects, then both objects are deleted (GS9).
+- `STO-9: keeps the first limit entries in UTF-8 byte order`: given `limit: 2`, no `startAfter`, and the entries `p/b`, `p/\u{1F600}`, `p/\u{FFFD}` returned in that order, then `p/b` and `p/\u{FFFD}` are kept (GS9).
+- `STO-9: lists nothing with limit 0` (GS9).
 - `STO-9: does not count startAfter toward limit`: given `limit: 2` and `startAfter: 'p/1'`, then `maxResults` is 3, and `getFiles` resolving `p/1`, `p/2`, `p/3` lists `p/2`, `p/3`; given `p/2`, `p/3`, `p/4` (the object `p/1` gone), then `p/2`, `p/3`; given the file `p/2` and the prefixes `p/1/`, `p/3/`, then `directories` `p/1/` and `files` `p/2` (files and directories count together, by name). Without `startAfter`, `maxResults` is `limit`.
 - `STO-9: hides a name only when it ends in .folderPlaceholder`: also `d/.folderPlaceholder.txt` is listed (GF30).
 - `STO-12: lists every page of the prefix, placeholders included, without a delimiter`: then `getFiles` was called with exactly `{ prefix: name }`, and `d/.folderPlaceholder` moved too (GF30).
