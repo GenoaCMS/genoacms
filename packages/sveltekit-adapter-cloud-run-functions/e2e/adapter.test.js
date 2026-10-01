@@ -9,6 +9,7 @@ import {
 	rmSync,
 	writeFileSync
 } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -132,6 +133,34 @@ async function echo(url, headers = {}) {
 		body: '{"sent":true}'
 	});
 	return response.json();
+}
+
+/** @param {string} out */
+function immutableScript(out) {
+	const client = join(out, 'client');
+	const script = filesUnder(client).find(
+		(file) => file.includes(join('_app', 'immutable')) && file.endsWith('.js')
+	);
+	return /** @type {string} */ (script).slice(client.length).split(sep).join('/');
+}
+
+/**
+ * @param {string} url
+ * @param {string[]} rawHeaders name, value, name, value, …; a name may repeat
+ * @returns {Promise<{ status: number | undefined, body: string }>}
+ */
+function rawGet(url, rawHeaders) {
+	return new Promise((resolve, reject) => {
+		const headers = ['Host', new URL(url).host, ...rawHeaders];
+		const request = httpRequest(url, { headers }, (response) => {
+			let body = '';
+			response.setEncoding('utf-8');
+			response.on('data', (chunk) => (body += chunk));
+			response.on('end', () => resolve({ status: response.statusCode, body }));
+		});
+		request.on('error', reject);
+		request.end();
+	});
 }
 
 /** @param {Record<string, string>} env */
@@ -361,6 +390,49 @@ describe('the served function', () => {
 			expect(response.status).toBe(200);
 			expect(response.headers.get('cache-control') ?? '').not.toContain('immutable');
 		}
+	});
+
+	it('ADP-5: serves the .gz variant to a client that accepts only gzip', async () => {
+		const url = await serve(buildA);
+		const asset = immutableScript(buildA);
+		const script = await fetch(`${url}${asset}`, { headers: { 'accept-encoding': 'gzip' } });
+		expect(script.status).toBe(200);
+		expect(script.headers.get('content-encoding')).toBe('gzip');
+		expect(await script.text()).toBe(readFileSync(join(buildA, 'client', asset), 'utf-8'));
+		const about = await fetch(`${url}/about`, { headers: { 'accept-encoding': 'gzip' } });
+		expect(about.status).toBe(200);
+		expect(about.headers.get('content-encoding')).toBe('gzip');
+		expect(await about.text()).toContain('<h1>prerendered</h1>');
+	});
+
+	it('ADP-5: does not mark a 304 of an immutable asset immutable', async () => {
+		const url = await serve(buildA);
+		const asset = immutableScript(buildA);
+		const first = await fetch(`${url}${asset}`);
+		const etag = first.headers.get('etag');
+		expect(etag).toBeTruthy();
+		const conditional = await fetch(`${url}${asset}`, {
+			headers: { 'if-none-match': /** @type {string} */ (etag) }
+		});
+		expect(conditional.status).toBe(304);
+		expect(conditional.headers.get('cache-control') ?? '').not.toContain('immutable');
+	});
+
+	it('ADP-5: serves a prerendered page whose path is percent-encoded', async () => {
+		const response = await fetch(`${await serve(buildA)}/a%20b`);
+		expect(response.status).toBe(200);
+		expect(await response.text()).toContain('<h1>prerendered a b</h1>');
+	});
+
+	it('ADP-5: joins header arrays with a comma in the request the app sees', async () => {
+		const response = await rawGet(`${await serve(buildA)}/headers`, [
+			'Set-Cookie',
+			'a=1',
+			'Set-Cookie',
+			'b=2'
+		]);
+		expect(response.status).toBe(200);
+		expect(JSON.parse(response.body)).toEqual({ setCookie: 'a=1,b=2' });
 	});
 
 	it('ADP-5: answers 400 for a URL that cannot be parsed', async () => {

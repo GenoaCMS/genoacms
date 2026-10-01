@@ -160,6 +160,17 @@ describe('the GCP deploy procedure', () => {
     })
   })
 
+  it('DEP-10: the request carries exactly the environment of DEP-10 and DEP-14', async () => {
+    const environment = async (settings: Record<string, unknown>): Promise<unknown> => {
+      await procedure({ projectId: 'p', region: 'r', ...settings }, context())
+      return (client.createFunction.mock.calls.at(-1) as unknown as [Record<string, any>])[0].function.serviceConfig.environmentVariables
+    }
+    functionExists.value = false
+    expect(await environment({})).toEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
+    expect(await environment({ origin: 'https://cms.example.com', xffDepth: 2 }))
+      .toEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' })
+  })
+
   it('DEP-11: keeps the operation\'s error as cause', async () => {
     functionExists.value = false
     const failure = new Error('Build failed: npm ERR! 404')
