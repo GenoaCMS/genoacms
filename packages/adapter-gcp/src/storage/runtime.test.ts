@@ -313,6 +313,75 @@ describe('the GCP storage runtime', () => {
     expect(bucket.getFiles).toHaveBeenLastCalledWith(expect.objectContaining({ maxResults: 2 }))
   })
 
+  it('STO-11: rejects with the first failed delete\'s error, not a later one', async () => {
+    const storage = await create()
+    const deletes = deletesThatWaitForRelease()
+    const page = [deletes.file('d/1'), deletes.file('d/2')]
+    bucket.getFiles.mockImplementation(async () => [page, null, {}])
+    const first = new Error('first')
+    const second = new Error('second')
+    const outcome = settlement(storage.deleteDirectory({ bucket: 'b', name: 'd/' }))
+    await settleTasks()
+    deletes.pending.shift()?.reject(first)
+    await settleTasks()
+    deletes.pending.shift()?.reject(second)
+    await settleTasks()
+    expect(outcome.error).toBe(first)
+  })
+
+  it('STO-11: rejects with a later page\'s listing error', async () => {
+    const storage = await create()
+    const failure = Object.assign(new Error('unavailable'), { code: 503 })
+    bucket.getFiles
+      .mockResolvedValueOnce([[mockFileResolvingEveryCall('d/1')], { prefix: 'd/', autoPaginate: false, pageToken: 'second' }, {}])
+      .mockRejectedValueOnce(failure)
+    await expect(storage.deleteDirectory({ bucket: 'b', name: 'd/' })).rejects.toBe(failure)
+  })
+
+  it('STO-11: lists a short page\'s successor only after its deletes end', async () => {
+    const storage = await create()
+    const deletes = deletesThatWaitForRelease()
+    const firstPage = Array.from({ length: 3 }, (_, index) => deletes.file(`d/one/${index}`))
+    const secondPage = Array.from({ length: 10 }, (_, index) => deletes.file(`d/two/${index}`))
+    bucket.getFiles.mockImplementation(async (query: { pageToken?: string }) => {
+      deletes.log.push(`list ${query.pageToken ?? 'first'}`)
+      return query.pageToken === 'second' ? [secondPage, null, {}] : [firstPage, { prefix: 'd/', autoPaginate: false, pageToken: 'second' }, {}]
+    })
+    const outcome = settlement(storage.deleteDirectory({ bucket: 'b', name: 'd/' }))
+    for (let round = 0; round < 100 && !outcome.settled; round++) {
+      await settleTasks()
+      deletes.releaseOldest()
+    }
+    expect(outcome).toEqual({ settled: true })
+    expect(deletes.state.maxInFlight).toBeLessThanOrEqual(10)
+    const lastFirstPageEnd = Math.max(...firstPage.map(file => deletes.log.indexOf(`end ${file.name}`)))
+    expect(deletes.log.indexOf('list second')).toBeGreaterThan(lastFirstPageEnd)
+  })
+
+  it('STO-11: goes on past an empty page that has a next page', async () => {
+    const storage = await create()
+    const objects = [mockFileResolvingEveryCall('d/1'), mockFileResolvingEveryCall('d/2')]
+    bucket.getFiles
+      .mockResolvedValueOnce([[], { prefix: 'd/', autoPaginate: false, pageToken: 'second' }, {}])
+      .mockResolvedValueOnce([objects, null, {}])
+    await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
+    for (const object of objects) expect(object.delete).toHaveBeenCalledOnce()
+  })
+
+  it.fails('STO-9: keeps the first limit entries in UTF-8 byte order', async () => {
+    const storage = await create()
+    const names = ['p/b', 'p/\u{1F600}', 'p/\u{FFFD}']
+    bucket.getFiles.mockResolvedValueOnce([names.map(name => mockFileResolvingEveryCall(name)), {}, { prefixes: [] }])
+    const listing = await storage.listDirectory({ bucket: 'b', name: 'p/' }, { limit: 2 })
+    expect(listing.files.map(file => file.name)).toEqual(['p/b', 'p/\u{FFFD}'])
+  })
+
+  it('STO-9: lists nothing with limit 0', async () => {
+    const storage = await create()
+    bucket.getFiles.mockResolvedValueOnce([[mockFileResolvingEveryCall('p/1')], {}, { prefixes: ['p/d/'] }])
+    expect(await storage.listDirectory({ bucket: 'b', name: 'p/' }, { limit: 0 })).toEqual({ files: [], directories: [] })
+  })
+
   it('STO-9: hides a name only when it ends in .folderPlaceholder', async () => {
     const storage = await create()
     bucket.getFiles.mockResolvedValueOnce([[
