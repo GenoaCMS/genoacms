@@ -55,23 +55,28 @@ No statement is added or removed.
 ### Storage
 
 ```ts
-// listDirectory, after the getFiles call of today
+// listDirectory: startAfter as startOffset; maxResults is limit, or limit + 1 when startAfter is given
 const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams?.startAfter
-// files: drop placeholders, then drop skipped(file.name); directories: drop skipped(prefix)
+// files: drop placeholders, then skipped(file.name); directories: drop skipped(prefix);
+// then, with a limit, keep the first `limit` of files and directories together, by name
 
-// deleteDirectory
-await bucketInstance.deleteFiles({ prefix: name })
+// deleteDirectory (GF29): one page at a time, at most DELETE_CONCURRENCY = 10 deletes in flight
+let query: GetFilesOptions | undefined = { prefix: name, autoPaginate: false }
+while (query !== undefined) {
+  const [files, nextQuery] = await bucket.getFiles(query)
+  await deleteAtMost(DELETE_CONCURRENCY, files)   // no delete starts after a failure; awaits the started ones; throws the first error
+  query = nextQuery ?? undefined
+}
 
 // moveDirectory
-const [files] = await bucketInstance.getFiles({ prefix: name })   // autoPaginate: the whole prefix
+const [files] = await bucket.getFiles({ prefix: name })   // autoPaginate (the default): every page, no delimiter
 for (const file of files) await file.move(newName + file.name.slice(name.length))
 ```
 
-`listDirectory` still passes `startAfter` as `startOffset` and `limit` as `maxResults`, so a page that
-dropped `startAfter` holds one item fewer than `limit` (STO-9's "at most"). `deleteFiles` without
-`force` is `@google-cloud/storage` 7.21's: it streams the listing, deletes through a `p-limit` of 10,
-and on the first failed delete destroys the stream and rejects with that error. Its errors are
-returned unchanged.
+`deleteAtMost(limit, files)` runs `limit` workers that take the next file from a shared index and
+`delete()` it; a worker stops when the files run out or any delete has failed. It awaits every
+worker and then throws the first error, unchanged. The client library's `deleteFiles` is not used:
+it keeps queued deletes running after a failure, and can leave the error unhandled (GF29).
 
 ### Deployment
 
@@ -93,7 +98,13 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 
 - `STO-9: does not list the object or prefix named startAfter`: given `getFiles` resolving files `p/2`, `p/3` and prefixes `p/2/`, `p/4/` with `startAfter: 'p/2'`, then `files` is `p/3` only; with `startAfter: 'p/2/'`, then `directories` is `p/4/` only and `files` holds both. `startOffset` is `startAfter`.
 - `STO-9: hides only names that end in .folderPlaceholder`: given `a.folderPlaceholder.txt` and `d/.folderPlaceholder`, then only the first is listed (GF24).
-- `STO-11: deletes through deleteFiles with the prefix, and rejects with its error`, replacing the test of the per-object delete STO-11 described before: then `deleteFiles` was called once with exactly `{ prefix: name }` and no `file.delete`; given it rejects, then that error object.
+- `STO-11: lists page by page and deletes at most 10 at a time`: given two pages of 15 and 3 objects with deletes that resolve only when released, then `getFiles` was called with `{ prefix: name, autoPaginate: false }` and then the page's next query, never more than 10 deletes were pending at once, the second page was listed only after the first page's deletes ended, and every object was deleted. It replaces the test of `deleteFiles` (GF29).
+- `STO-11: starts no delete after the first failure, and rejects with it once the started ones end`: given one page of 30 objects whose third delete rejects, then no delete starts after the rejection, the rejection waits for the deletes already started, it is that error object, and no further page is listed.
+- `STO-11: rejects with a listing error`: given `getFiles` rejects, then that error object and no delete.
+- `STO-9: does not count startAfter toward limit`: given `limit: 2` and `startAfter: 'p/1'`, then `maxResults` is 3, and `getFiles` resolving `p/1`, `p/2`, `p/3` lists `p/2`, `p/3`; given `p/2`, `p/3`, `p/4` (the object `p/1` gone), then `p/2`, `p/3`. Without `startAfter`, `maxResults` is `limit`.
+- `STO-9: hides a name only when it ends in .folderPlaceholder`: also `d/.folderPlaceholder.txt` is listed (GF30).
+- `STO-12: lists every page of the prefix, placeholders included, without a delimiter`: then `getFiles` was called with exactly `{ prefix: name }`, and `d/.folderPlaceholder` moved too (GF30).
+- `STO-12: moves into its own subtree once`: given `d/a` moved to `d/x/`, then exactly one move, to `d/x/a` (GF30).
 - `STO-12: moves one object at a time in listing order, to the literal new name`: given `d/a`, `d/b/c` and `newName` `n$&/`, then `move('n$&/a')` and then `move('n$&/b/c')`, the second starting only after the first resolved.
 - `STO-12: stops at the first failed move`: given the first move rejects, then that error object and the second object was not moved.
 - `STO-12: replaces only the leading name`: given `d/` moved to `x/` and an object `d/d/y`, then `x/d/y`.
@@ -116,6 +127,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `DEP-10: sets IGNORED_ROUTES to the empty string`: then `environmentVariables` is exactly `{ NODE_ENV: 'production', IGNORED_ROUTES: '' }` without settings, plus `ORIGIN` and `XFF_DEPTH` when set; existing DEP-10 and DEP-14 assertions of the exact environment gain `IGNORED_ROUTES: ''`.
 - `DEP-8: uploads to the location with the zip content type, and requires a storage source`: then `generateUploadUrl` with `parent: 'projects/<p>/locations/<r>'` and `PUT` with `Content-Type: application/zip`; given no `storageSource`, then `Upload URL not found`.
 - `DEP-10: sends no update mask and no unset setting`.
+- `DEP-10: the request carries exactly the environment of DEP-10 and DEP-14` in `procedure.test.ts`: `toEqual`, not `objectContaining` (GF30).
 - `DEP-11: keeps the operation's error as cause`.
 - `DEP-12: prefers url over serviceConfig.uri, falls back to it, and prints nothing without either`.
 
@@ -129,6 +141,10 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 `e2e/adapter.test.js` (e2e):
 - `DEP-10, ADP-5: with IGNORED_ROUTES empty, serves /favicon.ico and /robots.txt through the handler`: the framework started with `IGNORED_ROUTES=''`, then both answer 200 with the fixture's bytes; without the variable, both answer 404 (GF20).
 - `ADP-5: keeps the query string on a 308, and marks only immutable assets immutable`.
+- `ADP-5: serves the .gz variant to a client that accepts only gzip` (GF30).
+- `ADP-5: does not mark a 304 of an immutable asset immutable`: a conditional request with the asset's ETag answers 304 without `cache-control: immutable` (GF30).
+- `ADP-5: serves a prerendered page whose path is percent-encoded` (GF30): the fixture gains a prerendered route with a space in its name.
+- `ADP-5: joins header arrays with a comma in the request the app sees`: a request with two `Accept-Language` lines reaches the app as one value joined with `,` (GF30).
 - `ADP-1, ADP-2: defaults out, precompress and envPrefix, empties out, and honors base`.
 - `ADP-3: keeps deep imports external, and writes sourcemaps and chunks/`.
 - `ADP-4: installs the shims and initializes with process.env`.
@@ -148,7 +164,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 2. Tests, written from the Specification and this RFC by an agent session that has not seen the code, each one the code does not meet yet marked `it.fails`. One commit.
 3. The code: storage, deployment, SvelteKit adapter, each removing its markers and changing no assertion. One commit each.
 4. Run §Verification, including the GCP contract tests with the author's key.
-5. A falsification audit of STO-9, STO-11, STO-12 and DEP-10 by an agent that wrote none of it.
+5. A falsification audit of STO-9, STO-11, STO-12 and DEP-10 by an agent that wrote none of it. The first, at `63891bd`, found GF29 and GF30, which this RFC now covers.
 6. The architecture documents updated to current: GF10 and GF20 to GF26 fixed, GD7 and GD8 current, `verified` updated; this RFC implemented.
 
 ## Verification
@@ -173,11 +189,11 @@ node docs/tools/check-docs.mjs docs
 
 **Cons & trade-offs**
 - A directory move is now one request at a time and slow for large directories; a delete is bounded at 10 in flight.
-- The bound of 10 and the stop on failure come from the client library's `deleteFiles`; an upgrade that changes either changes STO-11, and only the unit test of the call and the contract run would notice.
+- The runtime keeps its own small delete limiter instead of the client library's `deleteFiles` (GF29).
 - Every `/favicon.ico` and `/robots.txt` request now invokes the function.
 - One RFC with eight findings is a longer review than eight small ones.
 
 **Blindspots & missed edge cases**
 - A move's listing is taken before the first move; objects written under the prefix meanwhile stay behind.
-- A page that dropped `startAfter` holds `limit - 1` items; a caller that treats a short page as the last one stops early. Core passes no `startAfter`.
+- A page can still hold fewer than `limit` items: placeholders and the object named `name` use slots GCS counts. A caller that treats a short page as the last one stops early. Core passes no `startAfter`.
 - The deployed framework version is the buildpack's, so GD8 rests on GS7 until it is run.

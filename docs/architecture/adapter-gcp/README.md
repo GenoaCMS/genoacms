@@ -134,11 +134,14 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 | # | Finding | State |
 | :-- | :-- | :-- |
 | GF4 | *History.* **The runtime's IAM needs were documented nowhere.** On first start core creates secrets, so the runtime identity needs to create secrets and add versions, not only read them. The default compute service account's broad roles hid this until someone narrowed it. | fixed: the IAM section, and the `serviceAccount` option (GD3) |
+| GF30 | **RFC-0027's tests miss parts of their statements** (GS8). They pass when: a directory move lists only the first page, caps the listing, lists one level, or skips placeholders (STO-12); a listing hides any name containing `/.folderPlaceholder` (STO-9); the deploy request replaces the environment that `serviceConfig` builds (DEP-10, unit level); the handler serves no `.gz` variant, marks a non-200 immutable response immutable, does not decode a prerendered path, or joins header arrays differently (ADP-5). | open, RFC-0027 |
 | GF19 | *History.* **COM-3 is only partly tested.** The descriptor tests assert that a missing or empty `projectId` yields one reason, not its text. | fixed, RFC-0025 |
 
 ### Verification
 
 **GS6, falsification audit of RFC-0025's statements (WORKFLOW §6.3), at `28107d2`, 2026-09-30.** An agent that did not write the tests (a different model, Sonnet 5) tried to break COM-3, STO-4, STO-6 to STO-12, SEC-3 to SEC-8, SEC-11, DEP-8 to DEP-13 and ADP-1 to ADP-7 by changing the code while the unit, integration and end-to-end tests still passed; it reasoned about the contract tests without running them. STO-4, STO-10, SEC-7, SEC-11 and DEP-13 held. The counterexamples are GF22 (a defect), GF23 (a clause nothing implements) and GF24 to GF26 (tests that miss parts of their statements).
+
+**GS8, falsification audit of RFC-0027's statements, at `63891bd`, 2026-10-01.** An agent that wrote neither the code nor the tests made 44 mutations of STO-9, STO-11, STO-12, DEP-10 and ADP-5; 31 failed a test. Of the 13 that passed, GF30 records the gaps; three were not: `IGNORED_ROUTES` as the last key, and the prerendered middleware before the client one, which no observer can tell apart, and a `static/` middleware put back, which serves nothing (GF23). Reading the client library, it found GF29, and that STO-9's page was one item short after `startAfter`, which STO-9 now settles.
 
 ### History
 
@@ -198,6 +201,8 @@ Every `G` ID, where it lives, and its state.
 | GF21 | `startAfter` is inclusive | open, RFC-0027 | [`storage.md`](storage.md) |
 | GF22 | A directory moved to a name with `$` patterns gets wrong names | open, RFC-0027 | [`storage.md`](storage.md) |
 | GF23 | ADP-5 and ADP-2 describe a `static/` directory nothing writes | open, RFC-0027 | [`deployment.md`](deployment.md) |
+| GF29 | The client library's `deleteFiles` does not stop at the first failure | open, RFC-0027 | [`storage.md`](storage.md) |
+| GF30 | RFC-0027's tests miss parts of their statements | open, RFC-0027 | README |
 | GF24 | The storage tests miss parts of their statements | open, RFC-0027 | [`storage.md`](storage.md) |
 | GF25 | The Secret Manager tests miss parts of their statements | open, RFC-0027 | [`secrets.md`](secrets.md) |
 | GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | open, RFC-0027 | [`deployment.md`](deployment.md) |
@@ -210,6 +215,7 @@ Every `G` ID, where it lives, and its state.
 | GS5 | `XFF_DEPTH` 1 yields the real client behind Google's front end (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS6 | Falsification audit of RFC-0025's statements | run at `28107d2`; findings GF22 to GF26 | README |
 | GS7 | The deployed framework serves `/favicon.ico` through the handler (live) | not run (author) | [`deployment.md`](deployment.md) |
+| GS8 | Falsification audit of RFC-0027's statements | run at `63891bd`; findings GF29, GF30 | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

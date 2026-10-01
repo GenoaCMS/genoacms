@@ -200,7 +200,7 @@ The procedure never reads `process.cwd()`. It works only from the build director
 
 #### DEP-10 · Create or update
 
-**Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables: { NODE_ENV: 'production', IGNORED_ROUTES: '' }` (GD8), and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
+**Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables` holding `NODE_ENV: 'production'` and `IGNORED_ROUTES: ''` (GD8), plus DEP-14's variables when set, and nothing else, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`
 - Level: unit, contract, e2e
@@ -280,7 +280,7 @@ The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks u
 
 #### ADP-5 · Middleware chain and request URL
 
-The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving precompressed `.gz`/`.br` variants; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
+The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving a precompressed `.br` or `.gz` variant when the request's `Accept-Encoding` allows it; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e

@@ -55,7 +55,8 @@ partly deleted or partly moved, now up to the failing object, and the operation 
 | GF12 | *History.* **Most of the runtime was untested.** STO-5 to STO-12 had no unit test, and the opt-in conformance suite covers only upload, read, list and delete. Conditional writes (STO-6), the precondition mapping and directory handling were verified by nothing. | fixed, RFC-0024 |
 | GF15 | *History.* **Most storage statements have no contract test** (STO-6 to STO-12). Their level includes `contract`, but the GCP conformance run carries only STO-4, and `@genoacms/conformance` covers only upload, read, list and delete. Preconditions, moves, directories and signed URLs (GS3) are checked only against a mocked SDK. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |
 | GF21 | **`startAfter` is inclusive** (STO-9). The runtime passes it to GCS as `startOffset`, which lists from the named object on, so the next page repeats the object named `startAfter`, while STO-9 starts after it. Found by RFC-0025's contract test (2026-09-30). Core passes no `startAfter`, so no user meets it today. | open, RFC-0027 |
-| GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `nmoving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | open |/` names `d/x` as `nd//x`. Found by GS6. | open, RFC-0027 |
+| GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | open, RFC-0027 |
+| GF29 | **The client library's `deleteFiles` does not stop at the first failure** (STO-11, GS8). RFC-0027 first used `bucket.deleteFiles({ prefix })` of `@google-cloud/storage` 7.21 for GD7. It queues up to 1000 deletes before awaiting any, so a failed delete leaves the queued ones running; and while the listing is still streaming it rejects with `Premature close` and leaves the delete's own error as an unhandled rejection, which ends a Node process. Found before release; the runtime lists and deletes page by page itself. | open, RFC-0027 |
 | GF24 | **The storage tests miss parts of their statements** (GS6). Tests pass when: a non-string `projectId` is accepted (COM-3); `ifVersion` wins over `ifAbsent`, or a non-412 error on a conditional write becomes `PreconditionFailedError` (STO-6); `deleteObject` swallows its errors (STO-7); the URL is signed for `write` (STO-8, unit level); any name containing `.folderPlaceholder` is hidden (STO-9); one failed delete or move is ignored (STO-11, STO-12). STO-11 and STO-12 also said "in parallel", which no test and no user can observe; GD7 replaced it. | open, RFC-0027 |
 
 ### History
@@ -137,7 +138,7 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-9 · Listing one level
 
-`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, starting after `startAfter`: an object or prefix named exactly `startAfter` is not listed (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
+`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together, starting after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts` (unverified: `startAfter`, GF21)
 - Level: unit, contract
@@ -151,14 +152,14 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-11 · Deleting a directory
 
-`deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth. It lists them page by page and deletes at most 10 at a time (GD7). The first failed delete rejects with that error, and no further delete starts; deletes already started may complete. A listing error rejects likewise.
+`deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every depth. It lists them page by page and deletes at most 10 at a time (GD7). After the first failed delete no further delete starts; once the deletes already started have ended, it rejects with that first error. A listing error rejects likewise, and no further page is listed (GF29).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-12 · Moving a directory
 
-`moveDirectory({ bucket, name }, newName)` first lists every object whose name starts with `name`, at every depth, then moves them one at a time, in listing order (GD7). Each moves to `newName` followed by the rest of its name after the leading `name`, taken literally (GF22). The first failed move rejects with that error, and no further object is moved.
+`moveDirectory({ bucket, name }, newName)` first lists every object whose name starts with `name`, at every depth and placeholders included, across all pages, then moves them one at a time, in name order as GCS lists them (GD7). Each moves to `newName` followed by the rest of its name after the leading `name`, taken literally (GF22). The first failed move rejects with that error, and no further object is moved.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
