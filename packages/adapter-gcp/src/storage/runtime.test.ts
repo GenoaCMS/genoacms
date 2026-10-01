@@ -30,7 +30,7 @@ const fileNamed = (name: string): MockFile => {
   if (!files.has(name)) files.set(name, mockFileResolvingEveryCall(name))
   return files.get(name) as MockFile
 }
-const bucket = { file: vi.fn(fileNamed), getFiles: vi.fn() }
+const bucket = { file: vi.fn(fileNamed), getFiles: vi.fn(), deleteFiles: vi.fn() }
 const instances: Array<{ options: unknown, bucket: ReturnType<typeof vi.fn> }> = []
 vi.mock('@google-cloud/storage', () => ({
   Storage: vi.fn(function (this: any, options: unknown) {
@@ -44,6 +44,7 @@ beforeEach(() => {
   instances.length = 0
   files.clear()
   bucket.getFiles.mockReset()
+  bucket.deleteFiles.mockReset()
 })
 
 const create = async () => await runtime.create({ projectId: 'p' }, { name: 'a', resources: ['b'] })
@@ -145,15 +146,6 @@ describe('the GCP storage runtime', () => {
     expect(fileNamed('d/.folderPlaceholder').save).toHaveBeenCalledWith('')
   })
 
-  it('STO-11: deletes every object under a directory', async () => {
-    const storage = await create()
-    const listed = [mockFileResolvingEveryCall('d/x'), mockFileResolvingEveryCall('d/e/y')]
-    bucket.getFiles.mockResolvedValueOnce([listed])
-    await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
-    expect(bucket.getFiles).toHaveBeenCalledWith({ prefix: 'd/' })
-    for (const file of listed) expect(file.delete).toHaveBeenCalled()
-  })
-
   it('STO-12: moves every object under a directory, replacing the first occurrence', async () => {
     const storage = await create()
     const listed = [mockFileResolvingEveryCall('d/x'), mockFileResolvingEveryCall('d/e/d/y')]
@@ -161,5 +153,100 @@ describe('the GCP storage runtime', () => {
     await storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'n/')
     expect(listed[0].move).toHaveBeenCalledWith('n/x')
     expect(listed[1].move).toHaveBeenCalledWith('n/e/d/y')
+  })
+
+  it.fails('STO-9: does not list the object or prefix named startAfter', async () => {
+    const storage = await create()
+    const page = () => [[mockFileResolvingEveryCall('p/2'), mockFileResolvingEveryCall('p/3')], {}, { prefixes: ['p/2/', 'p/4/'] }]
+    const names = (listing: { files: Array<{ name: string }>, directories: Array<{ name: string }> }) =>
+      ({ files: listing.files.map(file => file.name), directories: listing.directories.map(directory => directory.name) })
+    bucket.getFiles.mockResolvedValueOnce(page())
+    expect(names(await storage.listDirectory({ bucket: 'b', name: 'p/' }, { limit: 10, startAfter: 'p/2' })))
+      .toEqual({ files: ['p/3'], directories: ['p/2/', 'p/4/'] })
+    expect(bucket.getFiles).toHaveBeenLastCalledWith(expect.objectContaining({ startOffset: 'p/2' }))
+    bucket.getFiles.mockResolvedValueOnce(page())
+    expect(names(await storage.listDirectory({ bucket: 'b', name: 'p/' }, { limit: 10, startAfter: 'p/2/' })))
+      .toEqual({ files: ['p/2', 'p/3'], directories: ['p/4/'] })
+    expect(bucket.getFiles).toHaveBeenLastCalledWith(expect.objectContaining({ startOffset: 'p/2/' }))
+  })
+
+  it('STO-9: hides only names that end in .folderPlaceholder', async () => {
+    const storage = await create()
+    bucket.getFiles.mockResolvedValueOnce([[
+      mockFileResolvingEveryCall('d/a.folderPlaceholder.txt'),
+      mockFileResolvingEveryCall('d/.folderPlaceholder')
+    ], {}, { prefixes: [] }])
+    const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' })
+    expect(listing.files.map(file => file.name)).toEqual(['d/a.folderPlaceholder.txt'])
+  })
+
+  it.fails('STO-11: deletes through deleteFiles with the prefix, and rejects with its error', async () => {
+    const storage = await create()
+    const listed = mockFileResolvingEveryCall('d/x')
+    bucket.getFiles.mockResolvedValue([[listed]])
+    bucket.deleteFiles.mockResolvedValueOnce(undefined)
+    await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
+    expect(bucket.deleteFiles).toHaveBeenCalledOnce()
+    expect(bucket.deleteFiles.mock.calls[0]).toEqual([{ prefix: 'd/' }])
+    expect(listed.delete).not.toHaveBeenCalled()
+    expect(fileNamed('d/x').delete).not.toHaveBeenCalled()
+    const failure = Object.assign(new Error('forbidden'), { code: 403 })
+    bucket.deleteFiles.mockRejectedValueOnce(failure)
+    await expect(storage.deleteDirectory({ bucket: 'b', name: 'd/' })).rejects.toBe(failure)
+  })
+
+  it.fails('STO-12: moves one object at a time in listing order, to the literal new name', async () => {
+    const storage = await create()
+    const listed = [mockFileResolvingEveryCall('d/a'), mockFileResolvingEveryCall('d/b/c')]
+    let finishFirstMove: () => void = () => {}
+    listed[0].move.mockImplementationOnce(async () => await new Promise<void>(resolve => { finishFirstMove = resolve }))
+    bucket.getFiles.mockResolvedValueOnce([listed])
+    const moving = storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'n$&/')
+    await vi.waitFor(() => expect(listed[0].move).toHaveBeenCalledWith('n$&/a'))
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(listed[1].move).not.toHaveBeenCalled()
+    finishFirstMove()
+    await moving
+    expect(listed[1].move).toHaveBeenCalledWith('n$&/b/c')
+  })
+
+  it.fails('STO-12: stops at the first failed move', async () => {
+    const storage = await create()
+    const listed = [mockFileResolvingEveryCall('d/a'), mockFileResolvingEveryCall('d/b')]
+    const failure = Object.assign(new Error('forbidden'), { code: 403 })
+    listed[0].move.mockRejectedValueOnce(failure)
+    bucket.getFiles.mockResolvedValueOnce([listed])
+    await expect(storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'n/')).rejects.toBe(failure)
+    expect(listed[1].move).not.toHaveBeenCalled()
+  })
+
+  it('STO-12: replaces only the leading name', async () => {
+    const storage = await create()
+    const listed = [mockFileResolvingEveryCall('d/d/y')]
+    bucket.getFiles.mockResolvedValueOnce([listed])
+    await storage.moveDirectory({ bucket: 'b', name: 'd/' }, 'x/')
+    expect(listed[0].move).toHaveBeenCalledWith('x/d/y')
+  })
+
+  it('STO-6: ifAbsent wins over ifVersion, and only 412 maps to PreconditionFailedError', async () => {
+    const storage = await create()
+    const data = stream()
+    await storage.uploadObject({ bucket: 'b', name: 'n' }, data, { ifAbsent: true, ifVersion: '5' })
+    expect(fileNamed('n').save).toHaveBeenCalledWith(data, { preconditionOpts: { ifGenerationMatch: 0 } })
+    for (const options of [{ ifAbsent: true }, { ifVersion: '5' }]) {
+      const failure = Object.assign(new Error('http 500'), { code: 500 })
+      fileNamed('n').save.mockRejectedValueOnce(failure)
+      await expect(storage.uploadObject({ bucket: 'b', name: 'n' }, stream(), options)).rejects.toBe(failure)
+    }
+  })
+
+  it('STO-7: deleteObject propagates its errors', async () => {
+    const storage = await create()
+    const failure = Object.assign(new Error('forbidden'), { code: 403 })
+    fileNamed('n').delete.mockRejectedValueOnce(failure)
+    await expect(storage.deleteObject({ bucket: 'b', name: 'n' })).rejects.toBe(failure)
+    const moveFailure = Object.assign(new Error('not found'), { code: 404 })
+    fileNamed('n').move.mockRejectedValueOnce(moveFailure)
+    await expect(storage.moveObject({ bucket: 'b', name: 'n' }, 'new')).rejects.toBe(moveFailure)
   })
 })

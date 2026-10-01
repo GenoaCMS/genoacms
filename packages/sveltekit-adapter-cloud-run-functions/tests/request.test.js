@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clientAddress, parseXffDepth, requestUrl } from '../src/request.js';
 
 /**
@@ -53,5 +53,52 @@ describe('request', () => {
 
 	it('ADP-6: falls back to the socket address without X-Forwarded-For', () => {
 		expect(clientAddress(request({}), 1)).toBe('192.0.2.1');
+	});
+
+	it('ADP-5: joins header arrays with a comma, and answers 400 for a URL that cannot be parsed', () => {
+		expect(
+			requestUrl(
+				request({ 'x-forwarded-proto': ['https'], 'x-forwarded-host': ['a.example', 'b.example'] }),
+				undefined
+			)
+		).toBe('https://a.example,b.example/a?b=1');
+		expect(requestUrl(request({ host: ['fn.example'] }), undefined)).toBe(
+			'http://fn.example/a?b=1'
+		);
+		expect(() => new URL(requestUrl(request({ host: 'bad host' }), undefined))).toThrow();
+	});
+
+	it('ADP-6: drops empty X-Forwarded-For entries, and passes the request as platform.req', () => {
+		const req = request({ 'x-forwarded-for': ' , 203.0.113.9,, 198.51.100.7 , ' });
+		expect(clientAddress(req, 1)).toBe('198.51.100.7');
+		expect(clientAddress(req, 2)).toBe('203.0.113.9');
+		expect(() => clientAddress(req, 3)).toThrow(
+			'XFF_DEPTH is 3, but X-Forwarded-For has 2 entries'
+		);
+		const joined = request({ 'x-forwarded-for': ['203.0.113.9', '', '198.51.100.7'] });
+		expect(clientAddress(joined, 2)).toBe('203.0.113.9');
+		expect(() => clientAddress(joined, 3)).toThrow(
+			'XFF_DEPTH is 3, but X-Forwarded-For has 2 entries'
+		);
+	});
+
+	describe('under envPrefix', () => {
+		const globals = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis));
+
+		afterEach(() => {
+			delete process.env.APP_XFF_DEPTH;
+			delete process.env.XFF_DEPTH;
+			delete globals.ENV_PREFIX;
+			vi.resetModules();
+		});
+
+		it('ADP-7: reads XFF_DEPTH under envPrefix', async () => {
+			globals.ENV_PREFIX = 'APP_';
+			process.env.XFF_DEPTH = '5';
+			process.env.APP_XFF_DEPTH = '2';
+			vi.resetModules();
+			const { env } = await import('../src/env.js');
+			expect(parseXffDepth(env('XFF_DEPTH', undefined))).toBe(2);
+		});
 	});
 });

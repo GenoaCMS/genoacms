@@ -1,0 +1,8 @@
+{
+	"name": "genoacms-e2e-deep",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./deep": "./deep.js"
+	}
+}

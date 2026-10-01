@@ -16,4 +16,9 @@ describe('the GCP storage descriptor', () => {
     expect(validate({})).toEqual(['projectId is required and must be a non-empty string'])
     expect(validate({ projectId: '' })).toHaveLength(1)
   })
+
+  it('COM-3: refuses a projectId that is not a string', () => {
+    const validate = descriptor.validate as (options: unknown) => string[]
+    expect(validate({ projectId: 5 })).toEqual(['projectId is required and must be a non-empty string'])
+  })
 })

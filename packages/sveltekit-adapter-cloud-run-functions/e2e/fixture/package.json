@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@polka/url": "*"
+		"@polka/url": "*",
+		"genoacms-e2e-deep": "*"
 	}
 }

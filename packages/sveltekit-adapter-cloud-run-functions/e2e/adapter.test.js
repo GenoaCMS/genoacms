@@ -1,13 +1,23 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync
+} from 'node:fs';
 import { createServer } from 'node:net';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fixtureDir = join(packageDir, 'e2e', 'fixture');
 const outRoot = join(packageDir, 'e2e', '.out');
+const defaultOut = join(fixtureDir, 'build');
+const e2eModules = join(packageDir, 'e2e', 'node_modules');
 const vite = join(packageDir, 'node_modules', 'vite', 'bin', 'vite.js');
 const functionsFramework = join(
 	packageDir,
@@ -124,14 +134,46 @@ async function echo(url, headers = {}) {
 	return response.json();
 }
 
+/** @param {Record<string, string>} env */
+function buildFixtureIntoDefaultOut(env) {
+	mkdirSync(defaultOut, { recursive: true });
+	writeFileSync(join(defaultOut, 'stale.txt'), 'stale\n');
+	run(process.execPath, [vite, 'build'], fixtureDir, env);
+	writeFileSync(join(defaultOut, 'function.js'), FUNCTION_ENTRY);
+	return defaultOut;
+}
+
+const STATIC_FILES = [
+	['/favicon.ico', 'ICO\n'],
+	['/robots.txt', 'User-agent: *\n']
+];
+
+const WITHOUT_CRYPTO_AND_FILE =
+	'--import=data:text/javascript,delete%20globalThis.crypto;delete%20globalThis.File';
+
 let buildA = '';
 let buildB = '';
+let buildC = '';
+
+// ADP-3
+function installDeepDependency() {
+	cpSync(join(packageDir, 'e2e', 'deep-dependency'), join(e2eModules, 'genoacms-e2e-deep'), {
+		recursive: true
+	});
+}
 
 beforeAll(() => {
 	run('pnpm', ['run', 'build'], packageDir);
+	installDeepDependency();
 	buildA = buildFixture('a', {});
 	buildB = buildFixture('b', { FIXTURE_PRECOMPRESS: 'false', FIXTURE_ENV_PREFIX: 'APP_' });
-}, 180_000);
+	buildC = buildFixtureIntoDefaultOut({ FIXTURE_BASE: '/base' });
+}, 240_000);
+
+afterAll(() => {
+	rmSync(defaultOut, { recursive: true, force: true });
+	rmSync(e2eModules, { recursive: true, force: true });
+});
 
 afterEach(() => {
 	while (running.length > 0) running.pop()?.();
@@ -167,6 +209,47 @@ describe('the adapter output', () => {
 			.map((file) => readFileSync(file, 'utf-8'))
 			.join('\n');
 		expect(server).toMatch(/from ['"]@polka\/url['"]/);
+	});
+
+	it('ADP-1, ADP-2: defaults out, precompress and envPrefix, empties out, and honors base', async () => {
+		expect(existsSync(join(buildC, 'handler.js'))).toBe(true);
+		expect(existsSync(join(buildC, 'stale.txt'))).toBe(false);
+		const immutable = filesUnder(join(buildC, 'client', 'base', '_app', 'immutable'));
+		expect(immutable.some((file) => file.endsWith('.js'))).toBe(true);
+		expect(immutable.some((file) => file.endsWith('.js.gz'))).toBe(true);
+		expect(immutable.some((file) => file.endsWith('.js.br'))).toBe(true);
+		expect(existsSync(join(buildC, 'client', 'base', 'genoacms.txt'))).toBe(true);
+		for (const file of ['about.html', 'about.html.gz', 'about.html.br']) {
+			expect(existsSync(join(buildC, 'prerendered', 'base', file))).toBe(true);
+		}
+		const { base } = await import(join(buildC, 'server', 'manifest.js'));
+		expect(base).toBe('/base');
+		const url = await serve(buildC, { ORIGIN: 'https://origin.example' });
+		const file = await fetch(`${url}/base/genoacms.txt`);
+		expect(file.status).toBe(200);
+		expect(await file.text()).toBe('static\n');
+		const about = await fetch(`${url}/base/about`);
+		expect(about.status).toBe(200);
+		expect(await about.text()).toContain('<h1>prerendered</h1>');
+		expect((await echo(`${url}/base`)).href).toBe('https://origin.example/base/echo');
+	});
+
+	it('ADP-3: keeps deep imports external, and writes sourcemaps and chunks/', async () => {
+		const serverDir = join(buildA, 'server');
+		const files = filesUnder(serverDir);
+		const server = files
+			.filter((file) => file.endsWith('.js'))
+			.map((file) => readFileSync(file, 'utf-8'))
+			.join('\n');
+		expect(server).toMatch(/from ['"]genoacms-e2e-deep\/deep['"]/);
+		expect(server).not.toContain("'deep import'");
+		expect(files.some((file) => file.endsWith('.js.map'))).toBe(true);
+		expect(
+			files.some((file) => file.startsWith(join(serverDir, 'chunks') + sep) && file.endsWith('.js'))
+		).toBe(true);
+		const deep = await fetch(`${await serve(buildA)}/deep`);
+		expect(deep.status).toBe(200);
+		expect(await deep.text()).toBe('deep import');
 	});
 });
 
@@ -239,5 +322,64 @@ describe('the served function', () => {
 		expect(response.href).toBe('https://prefixed.example/echo');
 		const { code } = await startupFailure(buildB, { APP_UNKNOWN: '1' });
 		expect(code).not.toBe(0);
+	});
+
+	it('ADP-4: installs the shims and initializes with process.env', async () => {
+		const url = await serve(buildA, {
+			NODE_OPTIONS: WITHOUT_CRYPTO_AND_FILE,
+			FIXTURE_VALUE: 'from process.env'
+		});
+		const response = await fetch(`${url}/runtime`);
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
+			crypto: 'object',
+			File: 'function',
+			value: 'from process.env'
+		});
+	});
+
+	it('DEP-10, ADP-5: with IGNORED_ROUTES empty, serves /favicon.ico and /robots.txt through the handler', async () => {
+		const served = await serve(buildA, { IGNORED_ROUTES: '' });
+		for (const [path, content] of STATIC_FILES) {
+			const response = await fetch(`${served}${path}`);
+			expect(response.status).toBe(200);
+			expect(await response.text()).toBe(content);
+		}
+		const ignoring = await serve(buildA);
+		for (const [path] of STATIC_FILES) {
+			expect((await fetch(`${ignoring}${path}`)).status).toBe(404);
+		}
+	});
+
+	it('ADP-5: keeps the query string on a 308, and marks only immutable assets immutable', async () => {
+		const url = await serve(buildA);
+		const redirect = await fetch(`${url}/about/?x=1&y=2`, { redirect: 'manual' });
+		expect(redirect.status).toBe(308);
+		expect(redirect.headers.get('location')).toBe('/about?x=1&y=2');
+		for (const path of ['/genoacms.txt', '/_app/version.json', '/about']) {
+			const response = await fetch(`${url}${path}`);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('cache-control') ?? '').not.toContain('immutable');
+		}
+	});
+
+	it('ADP-5: answers 400 for a URL that cannot be parsed', async () => {
+		const response = await fetch(`${await serve(buildA)}/`, {
+			headers: { 'x-forwarded-host': 'bad host' }
+		});
+		expect(response.status).toBe(400);
+		expect(response.statusText).toBe('Bad Request');
+	});
+
+	it('ADP-6: passes the request as platform.req', async () => {
+		const response = await fetch(`${await serve(buildA)}/platform`, {
+			headers: { 'x-check': 'node request' }
+		});
+		expect(await response.json()).toEqual({
+			keys: ['req'],
+			method: 'GET',
+			check: 'node request',
+			readable: true
+		});
 	});
 });

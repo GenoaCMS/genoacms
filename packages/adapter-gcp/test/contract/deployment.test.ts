@@ -69,6 +69,7 @@ describe.runIf(enabled)('Cloud Run functions deploy, against the real service', 
     expect(deployed.buildConfig?.entryPoint).toBe('genoacms')
     expect(deployed.buildConfig?.runtime).toBe('nodejs22')
     expect(deployed.serviceConfig?.environmentVariables).toMatchObject({ NODE_ENV: 'production' })
+    expect(deployed.serviceConfig?.environmentVariables).toHaveProperty('IGNORED_ROUTES', '')
     expect(deployed.serviceConfig?.environmentVariables).not.toHaveProperty('ORIGIN')
     expect(deployed.serviceConfig?.environmentVariables).not.toHaveProperty('XFF_DEPTH')
     expect(deployed.serviceConfig?.maxInstanceCount).toBe(1)

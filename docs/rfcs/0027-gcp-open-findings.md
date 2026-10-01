@@ -93,7 +93,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 
 - `STO-9: does not list the object or prefix named startAfter`: given `getFiles` resolving files `p/2`, `p/3` and prefixes `p/2/`, `p/4/` with `startAfter: 'p/2'`, then `files` is `p/3` only; with `startAfter: 'p/2/'`, then `directories` is `p/4/` only and `files` holds both. `startOffset` is `startAfter`.
 - `STO-9: hides only names that end in .folderPlaceholder`: given `a.folderPlaceholder.txt` and `d/.folderPlaceholder`, then only the first is listed (GF24).
-- `STO-11: deletes through deleteFiles with the prefix, and rejects with its error`: then `deleteFiles` was called once with exactly `{ prefix: name }` and no `file.delete`; given it rejects, then that error object.
+- `STO-11: deletes through deleteFiles with the prefix, and rejects with its error`, replacing the test of the per-object delete STO-11 described before: then `deleteFiles` was called once with exactly `{ prefix: name }` and no `file.delete`; given it rejects, then that error object.
 - `STO-12: moves one object at a time in listing order, to the literal new name`: given `d/a`, `d/b/c` and `newName` `n$&/`, then `move('n$&/a')` and then `move('n$&/b/c')`, the second starting only after the first resolved.
 - `STO-12: stops at the first failed move`: given the first move rejects, then that error object and the second object was not moved.
 - `STO-12: replaces only the leading name`: given `d/` moved to `x/` and an object `d/d/y`, then `x/d/y`.
@@ -109,7 +109,7 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `SEC-4: other failures propagate as the same error object`: given a failure with code 7, then `rejects.toBe(failure)`.
 - `SEC-5: propagates an error of the existence check, and any createSecret error but ALREADY_EXISTS`.
 - `SEC-6: propagates every createSecret error but ALREADY_EXISTS`.
-- `SEC-8: keeps a version numbered 0 or not a number`: given versions `0`, `x` and lower numbers, then only the positive lower numbers are destroyed.
+- `SEC-8: keeps a version numbered 0 or not a number`: given lower numbers listed before `0` and `x`, then only the positive lower numbers are destroyed; an unnumbered name ends the cleanup as SEC-9 says.
 
 ### Deployment (`packages/adapter-gcp/src/deployment/*.test.ts`, unit; GF20, GF26)
 
@@ -122,8 +122,8 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 ### SvelteKit adapter (`packages/sveltekit-adapter-cloud-run-functions`; GF23, GF26)
 
 `tests/request.test.js` (unit):
-- `ADP-5: joins header arrays with a comma, and answers 400 for a URL that cannot be parsed`.
-- `ADP-6: drops empty X-Forwarded-For entries, and passes the request as platform.req`.
+- `ADP-5: joins header arrays with a comma`.
+- `ADP-6: drops empty X-Forwarded-For entries`.
 - `ADP-7: reads XFF_DEPTH under envPrefix`.
 
 `e2e/adapter.test.js` (e2e):
@@ -132,6 +132,8 @@ Titles carry the statement IDs. Each given / when / then names what the test ass
 - `ADP-1, ADP-2: defaults out, precompress and envPrefix, empties out, and honors base`.
 - `ADP-3: keeps deep imports external, and writes sourcemaps and chunks/`.
 - `ADP-4: installs the shims and initializes with process.env`.
+- `ADP-5: answers 400 for a URL that cannot be parsed`.
+- `ADP-6: passes the request as platform.req`.
 
 ### Contract (`packages/adapter-gcp/test/contract/`)
 

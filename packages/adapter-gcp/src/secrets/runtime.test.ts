@@ -128,4 +128,54 @@ describe('the Secret Manager runtime', () => {
     client.deleteSecret.mockRejectedValueOnce(grpcError(7))
     await expect(secrets.deleteSecret('KEY')).rejects.toThrow('grpc 7')
   })
+
+  it('SEC-3: an empty payload reads as the empty string', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    client.accessSecretVersion.mockResolvedValueOnce([{ payload: { data: Buffer.alloc(0) } }])
+    expect(await secrets.getSecret('KEY')).toBe('')
+    client.accessSecretVersion.mockResolvedValueOnce([{ payload: { data: new Uint8Array(0) } }])
+    expect(await secrets.getSecret('KEY')).toBe('')
+  })
+
+  it('SEC-4: other failures propagate as the same error object', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    const failure = grpcError(7)
+    client.accessSecretVersion.mockRejectedValueOnce(failure)
+    await expect(secrets.getSecret('KEY')).rejects.toBe(failure)
+  })
+
+  it('SEC-5: propagates an error of the existence check, and any createSecret error but ALREADY_EXISTS', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    const checkFailure = grpcError(7)
+    client.getSecret.mockRejectedValueOnce(checkFailure)
+    await expect(secrets.setSecret('KEY', 'v')).rejects.toBe(checkFailure)
+    expect(client.createSecret).not.toHaveBeenCalled()
+    for (const code of [7, 9, 13]) {
+      const createFailure = grpcError(code)
+      client.getSecret.mockRejectedValueOnce(grpcError(5))
+      client.createSecret.mockRejectedValueOnce(createFailure)
+      await expect(secrets.setSecret('KEY', 'v')).rejects.toBe(createFailure)
+    }
+    expect(client.addSecretVersion).not.toHaveBeenCalled()
+  })
+
+  it('SEC-6: propagates every createSecret error but ALREADY_EXISTS', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    for (const code of [5, 7, 9, 13]) {
+      const failure = grpcError(code)
+      client.createSecret.mockRejectedValueOnce(failure)
+      await expect(secrets.setSecretIfAbsent('KEY', 'v')).rejects.toBe(failure)
+    }
+    expect(client.addSecretVersion).not.toHaveBeenCalled()
+  })
+
+  it('SEC-8: keeps a version numbered 0 or not a number', async () => {
+    const secrets = await runtime.create({ projectId: 'p' }, { name: 's', resources: [] })
+    for (const unnumbered of [version(0), version('x')]) {
+      client.destroySecretVersion.mockClear()
+      client.listSecretVersions.mockResolvedValueOnce([[version(1), version(2), version(3), unnumbered]])
+      expect(await secrets.setSecret('KEY', 'v')).toBe(true)
+      expect(client.destroySecretVersion.mock.calls).toEqual([[version(1)], [version(2)]])
+    }
+  })
 })

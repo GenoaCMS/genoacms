@@ -24,12 +24,15 @@ async function consumeUploadBody (body: AsyncIterable<unknown>): Promise<void> {
 }
 
 const roots: string[] = []
+const uploads: Array<{ url: string, method: string, headers: Headers }> = []
 beforeEach(() => {
   calls.length = 0
   vi.spyOn(console, 'info').mockImplementation(() => {})
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init: { method: string, body: AsyncIterable<unknown> }) => {
+  uploads.length = 0
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init: { method: string, body: AsyncIterable<unknown>, headers?: HeadersInit }) => {
     await consumeUploadBody(init.body)
     calls.push(`${init.method} ${url}`)
+    uploads.push({ url, method: init.method, headers: new Headers(init.headers) })
     return new Response(null)
   }))
 })
@@ -114,5 +117,71 @@ describe('the GCP deploy procedure', () => {
     await procedure({ projectId: 'p', region: 'r', credentials: { client_email: 'op' } as any }, context())
     await procedure({ projectId: 'p', region: 'r' }, context())
     expect(clientOptions).toEqual([{ credentials: { client_email: 'op' } }, {}])
+  })
+
+  it('DEP-8: uploads to the location with the zip content type, and requires a storage source', async () => {
+    functionExists.value = false
+    await procedure({ projectId: 'p', region: 'europe-west3' }, context())
+    expect(client.generateUploadUrl).toHaveBeenLastCalledWith(expect.objectContaining({ parent: 'projects/p/locations/europe-west3' }))
+    expect(uploads).toHaveLength(1)
+    expect(uploads[0].url).toBe('https://upload.example')
+    expect(uploads[0].method).toBe('PUT')
+    expect(uploads[0].headers.get('content-type')).toBe('application/zip')
+    for (const answer of [{ uploadUrl: 'https://upload.example' }, { storageSource: { bucket: 'b', object: 'o' } }]) {
+      calls.length = 0
+      client.generateUploadUrl.mockResolvedValueOnce([answer] as any)
+      await expect(procedure({ projectId: 'p', region: 'r' }, context())).rejects.toThrow('Upload URL not found')
+      expect(calls.filter(call => call !== 'generateUploadUrl')).toEqual([])
+    }
+  })
+
+  it('DEP-10: sends no update mask and no unset setting', async () => {
+    const unsetKeys = ['availableMemory', 'timeoutSeconds', 'serviceAccountEmail']
+    const request = (mock: typeof client.createFunction) => (mock.mock.calls.at(-1) as unknown as [Record<string, any>])[0]
+    functionExists.value = true
+    await procedure({ projectId: 'p', region: 'r' }, context())
+    const update = request(client.updateFunction)
+    expect(update).not.toHaveProperty('updateMask')
+    expect(Object.keys(update).sort()).toEqual(['function', 'functionId', 'parent'])
+    for (const key of unsetKeys) expect(update.function.serviceConfig).not.toHaveProperty(key)
+    functionExists.value = false
+    await procedure({ projectId: 'p', region: 'r' }, context())
+    const create = request(client.createFunction)
+    expect(create).not.toHaveProperty('updateMask')
+    for (const key of unsetKeys) expect(create.function.serviceConfig).not.toHaveProperty(key)
+    expect(create).toEqual({
+      functionId: 'genoacms',
+      parent: 'projects/p/locations/r',
+      function: {
+        name: 'projects/p/locations/r/functions/genoacms',
+        buildConfig: { entryPoint: 'genoacms', runtime: 'nodejs22', source: { storageSource: { bucket: 'b', object: 'o' } } },
+        serviceConfig: { minInstanceCount: 0, maxInstanceCount: 1, ingressSettings: 1, environmentVariables: expect.objectContaining({ NODE_ENV: 'production' }) }
+      }
+    })
+  })
+
+  it('DEP-11: keeps the operation\'s error as cause', async () => {
+    functionExists.value = false
+    const failure = new Error('Build failed: npm ERR! 404')
+    client.createFunction.mockResolvedValueOnce([operation(async () => { throw failure })])
+    const error = await procedure({ projectId: 'p', region: 'r' }, context()).then(() => undefined, (rejection: unknown) => rejection)
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).toBe('deploy/function-failed: Build failed: npm ERR! 404')
+    expect((error as Error).cause).toBe(failure)
+  })
+
+  it('DEP-12: prefers url over serviceConfig.uri, falls back to it, and prints nothing without either', async () => {
+    functionExists.value = false
+    const printed = (): string[] => vi.mocked(console.info).mock.calls.map(call => String(call[0])).filter(line => line.startsWith('Function URL'))
+    const deployReturning = async (fn: Record<string, unknown>): Promise<string[]> => {
+      vi.mocked(console.info).mockClear()
+      client.createFunction.mockResolvedValueOnce([operation(async () => [fn])])
+      await procedure({ projectId: 'p', region: 'r' }, context())
+      return printed()
+    }
+    expect(await deployReturning({ url: 'https://url.example', serviceConfig: { uri: 'https://uri.example' } })).toEqual(['Function URL: https://url.example'])
+    expect(await deployReturning({ serviceConfig: { uri: 'https://uri.example' } })).toEqual(['Function URL: https://uri.example'])
+    expect(await deployReturning({ serviceConfig: {} })).toEqual([])
+    expect(await deployReturning({})).toEqual([])
   })
 })

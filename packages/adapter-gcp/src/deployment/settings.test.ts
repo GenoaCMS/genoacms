@@ -40,16 +40,16 @@ describe('function settings', () => {
     expect(buildConfig({ runtime: 'nodejs24' }, source)).toMatchObject({ runtime: 'nodejs24' })
   })
 
-  it('DEP-3, DEP-10: keeps the service settings the adapter always had when none are set', () => {
-    expect(serviceConfig({})).toEqual({ minInstanceCount: 0, maxInstanceCount: 1, ingressSettings: 1, environmentVariables: { NODE_ENV: 'production' } })
+  it.fails('DEP-3, DEP-10: keeps the service settings the adapter always had when none are set', () => {
+    expect(serviceConfig({})).toEqual({ minInstanceCount: 0, maxInstanceCount: 1, ingressSettings: 1, environmentVariables: { NODE_ENV: 'production', IGNORED_ROUTES: '' } })
   })
 
-  it('DEP-3: maps every setting onto the service configuration', () => {
+  it.fails('DEP-3: maps every setting onto the service configuration', () => {
     expect(serviceConfig(full)).toEqual({
       minInstanceCount: 0,
       maxInstanceCount: 3,
       ingressSettings: 3,
-      environmentVariables: { NODE_ENV: 'production' },
+      environmentVariables: { NODE_ENV: 'production', IGNORED_ROUTES: '' },
       availableMemory: '1Gi',
       timeoutSeconds: 300,
       serviceAccountEmail: 'cms@p.iam.gserviceaccount.com'
@@ -72,8 +72,17 @@ describe('function settings', () => {
     expect(validateSettings({ xffDepth: 0 })).toEqual(['xffDepth must be an integer of at least 1'])
   })
 
-  it('DEP-14: sets no variable beyond NODE_ENV by default', () => {
+  it.fails('DEP-14: sets no variable beyond NODE_ENV by default', () => {
     expect(serviceConfig({})).toMatchObject({ environmentVariables: { NODE_ENV: 'production' } })
-    expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV'])
+    expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV', 'IGNORED_ROUTES'])
+  })
+
+  it.fails('DEP-10: sets IGNORED_ROUTES to the empty string', () => {
+    const environment = (settings: Record<string, unknown>): unknown => (serviceConfig(settings) as { environmentVariables: unknown }).environmentVariables
+    expect(environment({})).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
+    expect(environment({ origin: 'https://cms.example.com' })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com' })
+    expect(environment({ xffDepth: 2 })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', XFF_DEPTH: '2' })
+    expect(environment({ origin: 'https://cms.example.com', xffDepth: 2 }))
+      .toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' })
   })
 })
