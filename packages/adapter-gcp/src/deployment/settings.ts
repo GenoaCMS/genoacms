@@ -59,10 +59,11 @@ function buildConfig (settings: FunctionSettings, storageSource: object): object
   return { entryPoint: 'genoacms', runtime: settings.runtime ?? DEFAULT_RUNTIME, source: { storageSource } }
 }
 
-// DEP-10, DEP-14, GQ1
+// DEP-10, DEP-14, GQ1, GD8
 function environmentVariables (settings: FunctionSettings): Record<string, string> {
   return {
     NODE_ENV: 'production',
+    IGNORED_ROUTES: '',
     ...(settings.origin === undefined ? {} : { ORIGIN: settings.origin }),
     ...(settings.xffDepth === undefined ? {} : { XFF_DEPTH: String(settings.xffDepth) })
   }

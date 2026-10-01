@@ -40,11 +40,11 @@ describe('function settings', () => {
     expect(buildConfig({ runtime: 'nodejs24' }, source)).toMatchObject({ runtime: 'nodejs24' })
   })
 
-  it.fails('DEP-3, DEP-10: keeps the service settings the adapter always had when none are set', () => {
+  it('DEP-3, DEP-10: keeps the service settings the adapter always had when none are set', () => {
     expect(serviceConfig({})).toEqual({ minInstanceCount: 0, maxInstanceCount: 1, ingressSettings: 1, environmentVariables: { NODE_ENV: 'production', IGNORED_ROUTES: '' } })
   })
 
-  it.fails('DEP-3: maps every setting onto the service configuration', () => {
+  it('DEP-3: maps every setting onto the service configuration', () => {
     expect(serviceConfig(full)).toEqual({
       minInstanceCount: 0,
       maxInstanceCount: 3,
@@ -72,12 +72,12 @@ describe('function settings', () => {
     expect(validateSettings({ xffDepth: 0 })).toEqual(['xffDepth must be an integer of at least 1'])
   })
 
-  it.fails('DEP-14: sets no variable beyond NODE_ENV and IGNORED_ROUTES by default', () => {
+  it('DEP-14: sets no variable beyond NODE_ENV and IGNORED_ROUTES by default', () => {
     expect(serviceConfig({})).toMatchObject({ environmentVariables: { NODE_ENV: 'production' } })
     expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV', 'IGNORED_ROUTES'])
   })
 
-  it.fails('DEP-10: sets IGNORED_ROUTES to the empty string', () => {
+  it('DEP-10: sets IGNORED_ROUTES to the empty string', () => {
     const environment = (settings: Record<string, unknown>): unknown => (serviceConfig(settings) as { environmentVariables: unknown }).environmentVariables
     expect(environment({})).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
     expect(environment({ origin: 'https://cms.example.com' })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com' })
