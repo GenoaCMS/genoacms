@@ -32,7 +32,7 @@ What the Specifications cover, measured against the reproducibility principle
 | :-- | :-- | :-- | :-- |
 | Configuration, adapter model, build, artifact, CLI | `config`, `contracts`, `cli`, `conformance` | `configuration.md` | covered, not restructured |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF10, GF20 to GF26, GF28 |
-| AWS | `adapter-aws` | `adapter-aws/` | the target is specified; the code diverges: open findings WF1 to WF25 |
+| AWS | `adapter-aws` | `adapter-aws/` | the target is specified; the code diverges: open findings WF1 to WF26 |
 | Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |

@@ -64,7 +64,10 @@ adapter-node's `ADDRESS_HEADER` names that header.
 on what the client chose. The event's source address is set by AWS.
 *Cost:* the entry replaces adapter-node's `index.js`, so its graceful shutdown, `SHUTDOWN_TIMEOUT`,
 `IDLE_TIMEOUT` and socket activation are not used; the Lambda sandbox ends the process itself.
-Behind CloudFront, `sourceIp` is CloudFront's address, not the client's.
+Behind CloudFront, `sourceIp` is CloudFront's address, not the client's. A request without a usable
+context has no client address, and adapter-node's `getClientAddress()` then throws; through a
+function URL every request carries the Web Adapter's context, and a client's own
+`x-amzn-request-context` does not reach the server as sent (LMB-15's contract test).
 
 ### Findings
 
@@ -218,7 +221,7 @@ The S3 and Lambda clients use `credentials` when given, else the operator's defa
 
 #### LMB-15 · Entry and client address
 
-`genoacms-lambda.js` is an ES module that imports `handler` from `./handler.js`, adapter-node's, and serves it with `node:http` on `Number(process.env.PORT)`, on all interfaces. For each request, before the handler runs, it deletes any `x-genoacms-client-address` header the client sent, and, when the `x-amzn-request-context` header parses as JSON whose `http.sourceIp` is a string, sets `x-genoacms-client-address` to that string. A request the handler passes on, by calling its third argument, answers 404 with an empty body.
+`genoacms-lambda.js` is an ES module that imports `handler` from `./handler.js`, adapter-node's, and serves it with `node:http` on `Number(process.env.PORT)`. For each request, before the handler runs, it deletes any `x-genoacms-client-address` header the client sent, in any letter case, and, when the value of `x-amzn-request-context` as Node presents it parses as JSON whose property `http` holds a property `sourceIp` that is a string, the empty string included, sets `x-genoacms-client-address` to that string. Node joins the copies of a repeated header with `, `, so a repeated context sets no address, and neither does an address found in any other property or header, `X-Forwarded-For` included. A request the handler passes on, by calling its third argument, answers 404 with an empty body.
 
 - Test: none yet
 - Level: integration, contract

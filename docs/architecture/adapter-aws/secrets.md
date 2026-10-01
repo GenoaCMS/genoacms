@@ -125,7 +125,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 #### ASM-6 · Deleting
 
-`deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete.
+`deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Any other error of the `DescribeSecret` propagates, and no `DeleteSecret` is sent. Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete.
 
 - Test: none yet
 - Level: unit, contract

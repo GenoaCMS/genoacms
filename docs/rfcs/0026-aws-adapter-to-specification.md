@@ -266,7 +266,7 @@ tests run the runtimes and the procedure against the real services (§The contra
 
 - `ASM-2, ASM-3: reads SecretString by the key unchanged`: then `GetSecretValue` with `SecretId` equal to the key and the string returned.
 - `ASM-3: resolves undefined only for ResourceNotFoundException`: given that error, then `undefined` and no `DescribeSecret` was sent; given `InvalidRequestException` and `DescribeSecret` resolving without `DeletedDate`, then that error object.
-- `ASM-3: reads a secret scheduled for deletion as undefined`: given `InvalidRequestException`, and `DescribeSecret` of the key either resolving with a `DeletedDate` or rejecting with `ResourceNotFoundException`, then `undefined`; given `DescribeSecret` rejects with another error, then that error object.
+- `ASM-3: reads a secret scheduled for deletion as undefined`: given `InvalidRequestException`, and `DescribeSecret` of the key either resolving with a `DeletedDate` or rejecting with `ResourceNotFoundException`, then `undefined`; given `DescribeSecret` rejects with another error, then that error object. A `DeletedDate` a week ahead, as a recovery window gives, counts too (WF26).
 - `ASM-3: refuses a binary-only secret`: given no `SecretString`, then `secrets/not-a-string: <key>`.
 - `ASM-4: puts a value into an existing secret`: then one `PutSecretValue` and `true`.
 - `ASM-4: creates a missing secret, and puts again when another caller created it first`: given `PutSecretValue` rejects with `ResourceNotFoundException`, then `CreateSecret` with `Name` and `SecretString`; given that rejects with `ResourceExistsException`, then a second `PutSecretValue`, and `true`.
@@ -280,7 +280,8 @@ tests run the runtimes and the procedure against the real services (§The contra
 - `stage.test.ts` (integration) › `LMB-4: copies the build, adds run.sh and the entry, and changes nothing else`: given a build directory with `package.json`, `index.js` and `client/a.js`, then the staged app holds the same bytes for each, `run.sh` with exactly LMB-4's content and mode `0755`, and `genoacms-lambda.js`.
 - `stage.test.ts` (integration) › `LMB-4: replaces a genoacms-lambda.js of the build`: given a build holding `genoacms-lambda.js` with other content, then the staged one is the entry.
 - `stage.test.ts` (integration) › `LMB-15: serves the handler with the request context's source address`: given a staged app whose `handler.js` echoes the request's headers as JSON, when `node genoacms-lambda.js` runs with a free `PORT` and is sent `x-amzn-request-context: {"http":{"sourceIp":"198.51.100.7"}}` and `x-genoacms-client-address: 203.0.113.9`, then the handler received `x-genoacms-client-address` `198.51.100.7`.
-- `stage.test.ts` (integration) › `LMB-15: drops a client's address header when the context has none`: when sent `x-genoacms-client-address: 203.0.113.9` with no `x-amzn-request-context`, with one that is not JSON, and with one whose `http.sourceIp` is a number, then each time the handler received no `x-genoacms-client-address`.
+- `stage.test.ts` (integration) › `LMB-15: drops a client's address header when the context has none`: when sent `x-genoacms-client-address: 203.0.113.9` and `X-Forwarded-For: 203.0.113.9` with no `x-amzn-request-context`, with one that is not JSON, with one whose `http.sourceIp` is a number, with one whose address is under `identity.sourceIp` instead, and with two copies of a valid one, then each time the handler received no `x-genoacms-client-address` (WF26).
+- `stage.test.ts` (integration) › `LMB-15: sets an empty source address as given`: when sent the context `{"http":{"sourceIp":""}}`, then the handler received `x-genoacms-client-address` `""`.
 - `stage.test.ts` (integration) › `LMB-15: answers 404 when the handler passes the request on`: given a `handler.js` that calls its third argument, then 404 with an empty body.
 - `stage.test.ts` (integration) › `LMB-4: refuses a build without package.json`: then `deploy/no-runtime-package: <buildDir>/package.json is missing; build with genoa build`.
 - `stage.test.ts` (integration) › `LMB-5: installs for Linux x64 without a shell, and fails with npm's output`: given an app whose `package.json` is not valid JSON, then `deploy/install-failed: ` followed by npm's error output.
@@ -359,7 +360,7 @@ the titles `OBJ-3: S3 conformance` and `DDB-4, DDB-5, DDB-6, DDB-7: DynamoDB con
 7. CI: `test-level.mjs`, `ci.yml`, `docs/README.md`; then the repository variables. Run on a pull
    request, then on `main`.
 8. Update the architecture documents to current: markers removed, test files named, WF1
-   to WF25 fixed, WS1 to WS3 recorded as run, `verified` updated; mark this RFC implemented.
+   to WF26 fixed, WS1 to WS3 recorded as run, `verified` updated; mark this RFC implemented.
 
 ## Verification
 
