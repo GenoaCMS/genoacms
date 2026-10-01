@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mockClient } from 'aws-sdk-client-mock'
 import {
   SecretsManagerClient,
@@ -32,6 +32,15 @@ const inputs = (command: new (...args: any[]) => unknown): any[] => secretsManag
 const notFound = (): ResourceNotFoundException => new ResourceNotFoundException({ message: 'not found', $metadata: {} })
 const exists = (): ResourceExistsException => new ResourceExistsException({ message: 'exists', $metadata: {} })
 const invalid = (): InvalidRequestException => new InvalidRequestException({ message: 'invalid', $metadata: {} })
+const denied = (): Error => Object.assign(new Error('denied'), { name: 'AccessDeniedException' })
+const realSetImmediate = setImmediate
+const settle = async (): Promise<void> => { for (let turn = 0; turn < 5; turn++) await new Promise(resolve => realSetImmediate(resolve)) }
+const reads = (): number => secretsManager.commandCalls(GetSecretValueCommand).length
+
+async function advance (ms: number): Promise<void> {
+  await vi.advanceTimersByTimeAsync(ms)
+  await settle()
+}
 
 async function provider () {
   return await runtime.create({ region: 'eu-central-1' }, { name: 'secrets', resources: [] })
@@ -40,6 +49,10 @@ async function provider () {
 beforeEach(() => {
   secretsManager.reset()
   constructed.length = 0
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('the Secrets Manager runtime', () => {
@@ -107,10 +120,71 @@ describe('the Secrets Manager runtime', () => {
   it('ASM-6: deletes without recovery, and reports false for a missing secret', async () => {
     const secrets = await provider()
     secretsManager.on(DeleteSecretCommand).resolvesOnce({}).rejectsOnce(notFound())
+    secretsManager.on(GetSecretValueCommand).rejects(notFound())
     expect(await secrets.deleteSecret(KEY)).toBe(true)
     expect(inputs(DeleteSecretCommand)).toEqual([expect.objectContaining({ SecretId: KEY, ForceDeleteWithoutRecovery: true })])
 
+    const readsBefore = reads()
     expect(await secrets.deleteSecret(KEY)).toBe(false)
+    expect(inputs(DeleteSecretCommand)).toHaveLength(2)
+    expect(reads()).toBe(readsBefore)
+  })
+
+  it.fails('ASM-6: waits until the secret is gone', async () => {
+    vi.useFakeTimers()
+    const secrets = await provider()
+    secretsManager.on(DeleteSecretCommand).resolves({})
+    secretsManager.on(GetSecretValueCommand).rejectsOnce(invalid()).rejectsOnce(invalid()).rejects(notFound())
+    let outcome: unknown = 'pending'
+    const deletion = secrets.deleteSecret(KEY).then(value => { outcome = value }, (error: unknown) => { outcome = error })
+
+    await settle()
+    expect(reads()).toBe(1)
+    await advance(249)
+    expect(reads()).toBe(1)
+    await advance(1)
+    expect(reads()).toBe(2)
+    await advance(249)
+    expect(reads()).toBe(2)
+    expect(outcome).toBe('pending')
+    await advance(1)
+    await deletion
+    expect(reads()).toBe(3)
+    expect(outcome).toBe(true)
+    expect(inputs(GetSecretValueCommand)).toEqual([{ SecretId: KEY }, { SecretId: KEY }, { SecretId: KEY }])
+
+    secretsManager.reset()
+    secretsManager.on(DeleteSecretCommand).resolves({})
+    secretsManager.on(GetSecretValueCommand).resolves({ SecretString: 'value' })
+    const immediate = secrets.deleteSecret(KEY)
+    await settle()
+    expect(await immediate).toBe(true)
+    expect(reads()).toBe(1)
+  })
+
+  it.fails('ASM-6: propagates other errors while waiting', async () => {
+    const failure = denied()
+    secretsManager.on(DeleteSecretCommand).resolves({})
+    secretsManager.on(GetSecretValueCommand).rejects(failure)
+    const secrets = await provider()
+    await expect(secrets.deleteSecret(KEY)).rejects.toBe(failure)
+  })
+
+  it.fails('ASM-6: gives up after 30 seconds', async () => {
+    vi.useFakeTimers()
+    const secrets = await provider()
+    secretsManager.on(DeleteSecretCommand).resolves({})
+    secretsManager.on(GetSecretValueCommand).rejects(invalid())
+    let outcome: unknown = 'pending'
+    const deletion = secrets.deleteSecret(KEY).then(value => { outcome = value }, (error: unknown) => { outcome = error })
+
+    await settle()
+    await advance(29_999)
+    expect(outcome).toBe('pending')
+    await advance(1)
+    await deletion
+    expect(outcome).toBeInstanceOf(Error)
+    expect((outcome as Error).message).toBe(`secrets/delete-timeout: ${KEY}`)
   })
 
   it('AWS-4: passes the region, credentials only when given, and keeps providers apart', async () => {
@@ -133,11 +207,12 @@ describe('the Secrets Manager runtime', () => {
     await secrets.getSecret(key)
     await secrets.setSecret(key, 'v')
     await secrets.setSecretIfAbsent(key, 'v')
-    await secrets.deleteSecret(key)
     expect(inputs(GetSecretValueCommand).map(input => input.SecretId)).toEqual([key])
     expect(inputs(PutSecretValueCommand).map(input => input.SecretId)).toEqual([key])
     expect(inputs(CreateSecretCommand).map(input => input.Name)).toEqual([key, key])
+    await secrets.deleteSecret(key)
     expect(inputs(DeleteSecretCommand).map(input => input.SecretId)).toEqual([key])
+    expect(inputs(GetSecretValueCommand).map(input => input.SecretId).every(id => id === key)).toBe(true)
   })
 
   it('ASM-4: propagates a put error other than ResourceNotFoundException and sends nothing else', async () => {
