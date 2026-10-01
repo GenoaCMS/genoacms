@@ -72,7 +72,7 @@ describe('function settings', () => {
     expect(validateSettings({ xffDepth: 0 })).toEqual(['xffDepth must be an integer of at least 1'])
   })
 
-  it.fails('DEP-14: sets no variable beyond NODE_ENV by default', () => {
+  it.fails('DEP-14: sets no variable beyond NODE_ENV and IGNORED_ROUTES by default', () => {
     expect(serviceConfig({})).toMatchObject({ environmentVariables: { NODE_ENV: 'production' } })
     expect(Object.keys((serviceConfig({}) as { environmentVariables: object }).environmentVariables)).toEqual(['NODE_ENV', 'IGNORED_ROUTES'])
   })

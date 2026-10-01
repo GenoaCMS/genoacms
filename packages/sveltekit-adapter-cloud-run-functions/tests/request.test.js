@@ -55,7 +55,7 @@ describe('request', () => {
 		expect(clientAddress(request({}), 1)).toBe('192.0.2.1');
 	});
 
-	it('ADP-5: joins header arrays with a comma, and answers 400 for a URL that cannot be parsed', () => {
+	it('ADP-5: joins header arrays with a comma', () => {
 		expect(
 			requestUrl(
 				request({ 'x-forwarded-proto': ['https'], 'x-forwarded-host': ['a.example', 'b.example'] }),
@@ -68,7 +68,7 @@ describe('request', () => {
 		expect(() => new URL(requestUrl(request({ host: 'bad host' }), undefined))).toThrow();
 	});
 
-	it('ADP-6: drops empty X-Forwarded-For entries, and passes the request as platform.req', () => {
+	it('ADP-6: drops empty X-Forwarded-For entries', () => {
 		const req = request({ 'x-forwarded-for': ' , 203.0.113.9,, 198.51.100.7 , ' });
 		expect(clientAddress(req, 1)).toBe('198.51.100.7');
 		expect(clientAddress(req, 2)).toBe('203.0.113.9');
