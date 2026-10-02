@@ -13,6 +13,12 @@ function checkMode (mode) {
   throw new Error(`cli/invalid-mode: --mode must be development (dev) or production (prod), not ${mode}`)
 }
 
+/** @param {string | undefined} config */
+function checkConfig (config) {
+  if (config === '') throw new Error('cli/invalid-config: --config must name a file')
+  return config
+}
+
 const OPTIONS = {
   config: { type: 'string', short: 'c' },
   mode: { type: 'string', short: 'm' },
@@ -30,7 +36,7 @@ function parseCliArgs (argv) {
   return {
     command: normalizeCommand(positionals[0]),
     target: positionals[1],
-    config: values.config,
+    config: checkConfig(values.config),
     mode: checkMode(values.mode),
     noInline: values['no-inline'],
     help: values.help,

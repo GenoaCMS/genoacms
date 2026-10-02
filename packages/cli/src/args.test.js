@@ -45,7 +45,7 @@ describe('parseCliArgs', () => {
     assert.throws(() => parseCliArgs(['build', '--mode']), { code: 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE' })
   })
 
-  test.fails('CLI-1: refuses an empty --config', () => {
+  test('CLI-1: refuses an empty --config', () => {
     assert.throws(() => parseCliArgs(['build', '-c', '']), { message: 'cli/invalid-config: --config must name a file' })
     assert.throws(() => parseCliArgs(['build', '--config=']), { message: 'cli/invalid-config: --config must name a file' })
   })
