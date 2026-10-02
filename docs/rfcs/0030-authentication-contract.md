@@ -2,7 +2,7 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: implemented
+status: draft
 commits: [fe9d371]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
@@ -30,6 +30,13 @@ This RFC:
 4. adds `authenticationProviderKeys` to the host, so core can construct providers one at a time;
 5. ports `@genoacms/authentication-adapter-array` to the new contract;
 6. adds the authentication conformance suite (CONF-4) and runs it against the array adapter.
+
+**Amended 2026-10-02, after its falsification audit (CS1).** The branch was not merged, so the
+RFC went back to `draft`. The amendment changes no behavior. It settles one reading of AUTHN-5,
+where a throttled provider among other failures gives `too-many-attempts`. It also adds the tests
+that CS1 showed missing (CF10 to CF15): how a refresh is joined to revalidation, the recorded
+provider after a rotation, the trial's mixed failures and logs, the lookup in order, and the
+suite's email and disabled checks. The amendment is marked *Amendment* below.
 
 The limits on failed sign-ins (AUTHN-8 to AUTHN-11) are RFC-0031. AUTHN-5's text here omits them;
 RFC-0031 adds them.
@@ -137,6 +144,11 @@ AUTHN-5's table. It logs:
 - a rejection: `console.warn('[genoacms:auth] provider <key> rejected the sign-in: <reason>')`;
 - a failure: `console.error('[genoacms:auth] provider <key> failed: <message>')`.
 
+*Amendment.* AUTHN-5's table now gives `too-many-attempts` when any provider threw an error whose
+message starts with `authentication/throttled`, whatever the others threw, and a `Rejection` that
+stops the trial gives `invalid-credentials` whatever earlier providers threw. Both are what the code
+already does. Every rejection is logged, whatever its reason, and every failure.
+
 `login(email, password, cookies)` throws `SignInError` (exported from `auth.server.ts`, `name`
 `'SignInError'`, `code: SignInFailure`, `message` equal to `code`) for a failed sign-in and for an
 `Identity` whose subject authorization does not know (`invalid-credentials`). Errors of session
@@ -178,6 +190,11 @@ for a `SignInError` and rethrows anything else. The login page shows:
 `suite('authentication conformance', …)`. Its tests and their titles are in §Tests. The
 `credentials` checks use the fixture's email with the password `fixture.identity.password + '-wrong'`,
 and the email `conformance-unknown-<random UUID>@example.invalid`.
+
+*Amendment.* The identity checks compare the whole `Identity`, `{ subject, email }` of the fixture,
+for `authenticate` and for `getIdentity`. The wrong-password check tries three passwords:
+`password + '-wrong'`, `''` and `password.slice(0, -1)`. With `disabled`, a new check sends its email
+with `disabled.password + '-wrong'` and expects `{ rejected: 'credentials' }`.
 
 ## Non-goals
 
@@ -247,6 +264,33 @@ And in the same file, `CONF-4: each assertion fails against its mutant`: *given*
 **Core**, `packages/core/src/lib/script/auth/session.test.ts` (unit):
 - `AUTHN-6: refuses a provider that is not a non-empty string`: *given* payloads with `provider` `''`, `1` and `null`, *then* `parseSessionFamily` returns `undefined`; absent, it parses.
 
+**Amendment (CS1).** Written from CF10 to CF15. Where an existing test changes, its title stays.
+
+`packages/core/src/lib/script/auth/providers.server.test.ts` (unit):
+- `AUTHN-5: a stopping rejection after an outage fails as invalid credentials`: *given* `a` throwing `authentication/provider-failed: 503 down` and `b` rejecting `disabled`, *then* `invalid-credentials`.
+- `AUTHN-5: a throttled provider reads as too many attempts whatever the others threw`: *given* `a` throwing `authentication/provider-failed: 503 down` and `b` throwing `authentication/throttled`, *then* `too-many-attempts`; *and given* the same providers in the other order, *then* `too-many-attempts`.
+- `AUTHN-5: only a message starting authentication/throttled is throttled`: *given* one provider throwing `authentication/provider-failed: 429 throttled`, *then* `sign-in-unavailable`; *given* one throwing `authentication/throttled: retry after 30s`, *then* `too-many-attempts`.
+- `AUTHN-5: logs every rejection and every failure`: *given* `a` rejecting `credentials`, `b` and `c` throwing, and `d` rejecting `disabled`, *then* warnings name `a` with `credentials` and `d` with `disabled`, and errors name `b` and `c` with their messages, in that order.
+- `AUTHN-7: a failure during the lookup in order fails the revalidation`: *given* no recorded provider, `a` throwing and `b` returning `null`, *then* `revalidate` rejects with a message starting `session/revalidation-failed: a:`.
+- `AUTHN-7: the lookup in order takes the first identity`: *given* no recorded provider, `a` returning `ada` and `b` returning the same subject with another email, *then* `ada`.
+
+`packages/core/src/lib/script/auth/auth.server.test.ts` (unit). The `refreshSession` mock calls the `revalidate` it receives with a family of subject `subject-1` and provider `b`, and answers as AUTHN-7 says: `null` gives `rejected`, a thrown error propagates, an `Identity` gives `refreshed` with its email. `revalidate` from `./providers.server` is a mock that records its arguments.
+- `AUTHN-6: a session records the provider that signed it in`: unchanged, except that `signIn` signs in with provider `b`, as this RFC already said, not `array`.
+- `AUTHN-7: a refresh revalidates the family's subject with its recorded provider`: *given* an expired access token, *then* `revalidate` was called once, with `subject-1` and `b`.
+- `AUTHN-7: a failed revalidation fails the request and leaves the cookie`: *given* `revalidate` throwing, *then* `authenticateRequest` rejects with that error and the cookie jar is unchanged.
+- `AUTHN-7: the renewed access token carries the email revalidation returned`: *given* `revalidate` returning `ada@new.example.com`, *then* the renewed access token's `email` is `ada@new.example.com`.
+- `AUTHN-7: a gone identity clears the session`: *given* `revalidate` returning `null`, *then* the request is anonymous and the cookie is cleared.
+
+`packages/core/src/lib/script/auth/session.server.test.ts` (unit):
+- `AUTHN-6: the provider survives a rotation`: *given* `startSession(identity, 'b')` and one refresh, *then* the stored family still has `provider: 'b'`, and the next refresh's `revalidate` receives `b`.
+
+`packages/config/src/host/host.test.ts` (unit): test 13 runs on a manifest whose providers are `second`, then `first`, *then* `authenticationProviderKeys` is `['second', 'first']`.
+
+`packages/authentication-adapter-array/src/runtime.test.js` (unit):
+- `AUTHN-4: an email is not a subject`: *given* the entry `ada`, *then* `getIdentity('ada@example.com')` returns `null`.
+
+`packages/conformance/src/authentication.js` (conformance), as §Specification's amendment, with the new test `AUTHN-2: a disabled identity's wrong password is rejected for credentials`. `packages/conformance/test/mutants/authentication.js` gains one mutant per new check, and the CONF-4 mutant test still expects each to fail exactly its test: the identity carries another email (`the fixture's credentials return its identity`); `getIdentity` returns a stale email (`getIdentity returns the fixture's identity`); the empty password signs in (`a wrong password is rejected for credentials`); `disabled` is answered before the password is checked (`a disabled identity's wrong password is rejected for credentials`). The mutant `a disabled identity signs in` returns the identity only for the disabled entry's correct password, so that it fails one test.
+
 No test of this RFC carries AUTHN-3: the array adapter has no service that can fail. It stays unverified until an adapter with a service tests it by fault injection (RFC-0032).
 
 Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, but core has no end-to-end tests that run in CI (`docs/README.md`, known gaps). Step 6 changes their level to `unit`, which these tests are; the author confirms or keeps `e2e`, which would leave `main` not releasable.
@@ -260,6 +304,14 @@ Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, 
 5. Remove the `it.fails` markers without changing an assertion; run §Verification.
 6. Documents, committed separately: AUTHN-2 to AUTHN-7 and CONF-4 lose their `State`, name their test files, and AUTHN-5's text becomes this RFC's; their levels as the author confirmed; `host.md`'s `Host`; `contracts/authentication.md` CF4 fixed, CF3 mitigated, CF5 fixed; `verified` updated; this RFC `implemented` with its commits.
 7. A falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 by an agent that did not write the code, recorded as a `CS` entry.
+
+*Amendment*, after CS1:
+
+8. Documents: AUTHN-5 and CONF-4 as amended; CF10 to CF15 open, fixed by this RFC; this RFC `draft`.
+9. Tests: the amendment's tests (§Tests), marked `it.fails` where they do not yet pass, committed: `test: the tests CS1 showed missing, expected to fail until fixed (RFC-0030)`.
+10. Code, only where a test of step 9 fails; then remove the `it.fails` markers without changing an assertion.
+11. Documents: CF10 to CF15 fixed; AUTHN-7 names `auth.server.test.ts`; `verified`; this RFC `implemented` with all its commits.
+12. A falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 by an agent that wrote neither the code nor the amendment's tests, recorded as a `CS` entry.
 
 ## Verification
 
@@ -275,6 +327,9 @@ pnpm --filter @genoacms/core run check
 pnpm run docs:check
 # 0 errors
 ```
+
+*Amendment.* The 16 mutations CS1 found passing, run again with the script CS1 used: each now fails a
+test. The 5 adapters CS1 found passing CONF-4 now fail it.
 
 ## Critique
 
