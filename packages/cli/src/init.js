@@ -28,8 +28,7 @@ const SUITES = {
         package: '@genoacms/adapter-aws',
         storage: '@genoacms/adapter-aws/storage',
         database: '@genoacms/adapter-aws/database',
-        // The AWS suite has no secrets adapter yet.
-        secrets: 'TODO: secrets adapter',
+        secrets: '@genoacms/adapter-aws/secrets',
         deployment: '@genoacms/adapter-aws/deployment',
         target: 'aws'
     }

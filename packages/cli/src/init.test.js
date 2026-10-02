@@ -36,7 +36,7 @@ describe('the rendered templates', () => {
     assert.match(production, /'@genoacms\/adapter-gcp\/deployment'/)
   })
 
-  test.fails('CLI-13: the AWS suite scaffolds @genoacms/adapter-aws/secrets', () => {
+  test('CLI-13: the AWS suite scaffolds @genoacms/adapter-aws/secrets', () => {
     assert.equal(initTemplateValues('aws', 'array').secrets, '@genoacms/adapter-aws/secrets')
     const production = rendered('production.ts', 'aws')
     assert.match(production, /'@genoacms\/adapter-aws\/secrets'/)
