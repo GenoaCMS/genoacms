@@ -94,10 +94,10 @@ Every `C` ID, where it lives, and its state.
 | CF23 | The authentication suite still samples few inputs | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
 | CF24 | A refresh that loses its write race carries the old email | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF25 | A provider that answers `null` to `authenticate` crashes the sign-in | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
-| CF26 | A malformed rejection stopped the trial | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
+| CF26 | A malformed rejection stopped the trial | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF27 | Parts of the third amendment that CS4 found untested | open | [`authentication.md`](authentication.md) |
 | CF28 | The authentication suite catches some faults only by chance, and others not at all | open | [`conformance.md`](conformance.md) |
-| CF29 | The authentication suite's tests outlast vitest's default timeout against a real provider | open, fixed by RFC-0030 | [`conformance.md`](conformance.md) |
+| CF29 | The authentication suite's tests outlast vitest's default timeout against a real provider | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
 | CS3 | Falsification audit of AUTHN-5, AUTHN-7 and CONF-4 as amended again, at `eea34d9` | recorded | [`authentication.md`](authentication.md) |
