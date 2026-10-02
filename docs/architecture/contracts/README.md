@@ -84,12 +84,12 @@ Every `C` ID, where it lives, and its state.
 | CF13 | Revalidation of a family without a provider is checked with no failure | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF14 | The array adapter's `getIdentity` is tested only with its own subject and an unknown one | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF15 | The authentication suite checks neither the email nor when `disabled` may be reported | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
-| CF16 | Parts of the sign-in trial that CS2 found untested | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF17 | `login`'s joins to authorization and to the session are tested with one scenario each | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF18 | Parts of revalidation that CS2 found untested | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF19 | Host test 13 cannot see late construction or a cut list | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF20 | The authentication suite tries few inputs, once each | open, fixed by RFC-0030 | [`conformance.md`](conformance.md) |
-| CF21 | A gone identity's family can stay in storage | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
+| CF16 | Parts of the sign-in trial that CS2 found untested | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF17 | `login`'s joins to authorization and to the session are tested with one scenario each | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF18 | Parts of revalidation that CS2 found untested | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF19 | Host test 13 cannot see late construction or a cut list | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF20 | The authentication suite tries few inputs, once each | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
+| CF21 | A gone identity's family can stay in storage | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
 | CQ1 | Where are failed sign-ins limited? | answered by CU4, CD7 | [`authentication.md`](authentication.md) |

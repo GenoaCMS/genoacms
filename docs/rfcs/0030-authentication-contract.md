@@ -2,8 +2,8 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: draft
-commits: [fe9d371, 4bce5b2]
+status: implemented
+commits: [fe9d371, 4bce5b2, 60635dc, b122128, 18017e1]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
 changes: [AUTHN-2 breaking, AUTHN-4 breaking, AUTHN-3 added, AUTHN-5 added, AUTHN-6 added, AUTHN-7 added, CONF-4 added]
@@ -404,7 +404,7 @@ pnpm run docs:check
 *Amendment.* The 16 mutations CS1 found passing, run again with the script CS1 used: each now fails a
 test. The 5 adapters CS1 found passing CONF-4 now fail it.
 
-*Second amendment.* The 37 mutations and adapters CS2 found passing, minus those §Tests leaves untested by decision, now fail a test.
+*Second amendment.* The 37 mutations and adapters CS2 found passing, minus those §Tests leaves untested by decision (an empty email; a lockout after wrong passwords), now fail a test. The mutations CS2 wrote against the lookup in order and the removal on `identity-gone` were rewritten for the new code, and fail a test too.
 
 ## Critique
 
