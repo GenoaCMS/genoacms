@@ -26,7 +26,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@genoacms/contracts": "workspace:^"
+    "@genoacms/contracts": "workspace:^",
+    "fast-check": "^4.10.2"
   },
   "peerDependencies": {
     "vitest": "^3.0.0"

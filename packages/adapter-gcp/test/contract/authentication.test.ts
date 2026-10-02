@@ -70,6 +70,6 @@ describe.skipIf(fixture === undefined)('Identity Platform, against the real serv
   })
 
   describe('CONF-4: Identity Platform conformance', () => {
-    if (fixture !== undefined) runAuthenticationConformance(provider, fixture)
+    if (fixture !== undefined) runAuthenticationConformance(provider, fixture, { runs: 5 })
   })
 })

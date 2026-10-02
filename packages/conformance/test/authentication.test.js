@@ -26,8 +26,8 @@ function failedTests (mutant) {
 
 describe('the authentication suite', () => {
   it('CONF-4: each assertion fails against its mutant', () => {
-    for (const [mutant, { test }] of Object.entries(MUTANTS)) {
-      expect({ mutant, failed: failedTests(mutant) }).toEqual({ mutant, failed: [test] })
+    for (const [mutant, { tests }] of Object.entries(MUTANTS)) {
+      expect({ mutant, failed: failedTests(mutant).sort() }).toEqual({ mutant, failed: [...tests].sort() })
     }
-  }, 120_000)
+  }, 300_000)
 })

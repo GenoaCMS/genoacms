@@ -79,6 +79,28 @@ vi.mock('$lib/script/storage/storage.server', () => {
   }
 })
 
+/** The providers the real host answers with, for the renewal that runs end to end (AUTHN-7). */
+const chainProviders: Record<string, { getIdentity: (subject: string) => Promise<{ subject: string, email: string } | null> }> = {}
+const chainCalls: string[][] = []
+
+vi.mock('$lib/script/host.server', async (importOriginal) => {
+  const { host } = await importOriginal<typeof import('$lib/script/host.server')>()
+  return {
+    host: new Proxy(host, {
+      get (target, property, receiver) {
+        if (property === 'authenticationProviderKeys') return Object.keys(chainProviders)
+        if (property === 'authentication') {
+          return async (key: string) => ({
+            authenticate: async () => ({ rejected: 'credentials' }),
+            getIdentity: async (subject: string) => { chainCalls.push([key, subject]); return await chainProviders[key].getIdentity(subject) }
+          })
+        }
+        return Reflect.get(target, property, receiver)
+      }
+    })
+  }
+})
+
 vi.mock('$lib/script/utils.server', () => ({
   streamToString: async (data: string) => data
 }))
@@ -399,6 +421,50 @@ describe('the provider and revalidation', () => {
     expect(await sessions.loadFamily(started.familyId)).toBeDefined()
     expect(await sessions.refreshSession(started.familyId, started.token, async () => null))
       .toEqual({ outcome: 'rejected', reason: 'identity-gone' })
+  })
+
+  it('AUTHN-7: every rotation is revalidated', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const subjects: string[] = []
+    let token = started.token
+
+    for (let rotation = 0; rotation < 5; rotation++) {
+      const result = await sessions.refreshSession(started.familyId, token, async family => { subjects.push(family.subject); return IDENTITY })
+      if (result.outcome !== 'refreshed') throw new Error('unreachable')
+      token = result.token
+    }
+
+    expect(subjects).toEqual([SUBJECT, SUBJECT, SUBJECT, SUBJECT, SUBJECT])
+  })
+
+  it.fails('AUTHN-7: a lost race carries the email revalidation returned', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const storage = await import('$lib/script/storage/storage.server')
+    vi.spyOn(storage, 'uploadObject').mockImplementationOnce(async () => { throw new PreconditionFailed('lost the race') })
+
+    const result = await sessions.refreshSession(started.familyId, started.token, async () => ({ subject: SUBJECT, email: 'ada@new.example.com' }))
+
+    expect(result).toMatchObject({ outcome: 'concurrent', email: 'ada@new.example.com' })
+  })
+
+  it('AUTHN-7: a renewal asks the recorded provider about the family\'s subject', async () => {
+    for (const key of Object.keys(chainProviders)) Reflect.deleteProperty(chainProviders, key)
+    chainCalls.length = 0
+    chainProviders.a = { getIdentity: async subject => ({ subject, email: 'ada@a.example.com' }) }
+    chainProviders.b = { getIdentity: async subject => ({ subject, email: 'ada@b.example.com' }) }
+    const started = await sessions.startSession(IDENTITY, 'b')
+    const { SignJWT } = await import('jose')
+    const { getSessionKey } = await import('$lib/script/signing/rootKey.server')
+    const { packSessionCookie } = await import('./sessionCookie')
+    const { authenticateRequest, cookieName } = await import('./auth.server')
+    const expired = await new SignJWT({ email: EMAIL }).setProtectedHeader({ alg: 'HS256' }).setSubject(SUBJECT).setExpirationTime('-1s').sign(await getSessionKey())
+    const jar = new Map([[cookieName, packSessionCookie({ accessToken: expired, refreshToken: started.token, familyId: started.familyId })]])
+    const cookies = { get: (name: string) => jar.get(name), set: (name: string, value: string) => { jar.set(name, value) }, delete: (name: string) => { jar.delete(name) } }
+
+    const payload = await authenticateRequest(cookies as unknown as import('@sveltejs/kit').Cookies)
+
+    expect(chainCalls).toEqual([['b', SUBJECT]])
+    expect(payload?.email).toBe('ada@b.example.com')
   })
 
   it('AUTHN-7: an unavailable provider keeps the session as it was', async () => {

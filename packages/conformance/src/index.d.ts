@@ -11,7 +11,9 @@ declare function runDatabaseConformance (
 interface AuthenticationFixtureIdentity { email: string, password: string, subject: string }
 declare function runAuthenticationConformance (
   adapter: AuthenticationAdapter,
-  fixture: { identity: AuthenticationFixtureIdentity, disabled?: AuthenticationFixtureIdentity }
+  fixture: { identity: AuthenticationFixtureIdentity, disabled?: AuthenticationFixtureIdentity },
+  /** How many generated cases each property runs; default 50. */
+  options?: { runs?: number }
 ): void
 
 export { runStorageConformance, runDatabaseConformance, runAuthenticationConformance }

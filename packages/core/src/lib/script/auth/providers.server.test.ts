@@ -50,7 +50,7 @@ const knowing = (identity: Identity | null): Partial<Adapter> => ({ getIdentity:
 
 let warnings: string[]
 let errors: string[]
-/** Lines on the channels core does not log to: `log`, `info` and `debug`. */
+/** Lines on every other channel: the other `console` methods, `process.stdout` and `process.stderr`. */
 let others: string[]
 
 beforeEach(() => {
@@ -59,8 +59,12 @@ beforeEach(() => {
   warnings = []
   errors = []
   others = []
-  for (const channel of ['log', 'info', 'debug'] as const) {
-    vi.spyOn(console, channel).mockImplementation((...line: unknown[]) => { others.push(line.join(' ')) })
+  for (const channel of Object.keys(console) as Array<keyof Console>) {
+    if (channel === 'warn' || channel === 'error' || typeof console[channel] !== 'function') continue
+    vi.spyOn(console, channel as 'log').mockImplementation((...line: unknown[]) => { others.push(line.map(part => typeof part === 'string' ? part : JSON.stringify(part)).join(' ')) })
+  }
+  for (const stream of [process.stdout, process.stderr]) {
+    vi.spyOn(stream, 'write').mockImplementation((chunk: unknown) => { others.push(String(chunk)); return true })
   }
   vi.spyOn(console, 'warn').mockImplementation((line: string) => { warnings.push(line) })
   vi.spyOn(console, 'error').mockImplementation((line: string) => { errors.push(line) })
@@ -151,6 +155,9 @@ describe('the trial\'s mixed failures and logs (CS1)', () => {
 
     configured.providers = { a: throwing('authentication/rate-limited') }
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+
+    configured.providers = { a: throwing('x authentication/throttled') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
   })
 
   it('AUTHN-5: logs every rejection and every failure', async () => {
@@ -215,6 +222,15 @@ describe('the trial, after CS2', () => {
     configured.providers = { a: returning(mixedCase) }
 
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'a', identity: mixedCase })
+  })
+
+  it.fails('AUTHN-5: an answer that is neither an identity nor a rejection counts as a failure', async () => {
+    configured.providers = { a: { authenticate: async () => null as unknown as Identity }, b: rejecting('credentials') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+    expect(errors).toEqual(['[genoacms:auth] provider a failed: authentication/invalid-answer'])
+
+    configured.providers = { a: { authenticate: async () => ({ subject: '' }) as unknown as Identity }, b: returning(ada) }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'b', identity: ada })
   })
 
   it('AUTHN-5: no provider configured reads as unavailable', async () => {
@@ -295,6 +311,18 @@ describe('revalidating a session', () => {
     configured.providers = { b: knowing(mixedCase) }
 
     expect(await revalidate(ada.subject, 'b')).toEqual(mixedCase)
+  })
+
+  it.fails('AUTHN-7: an answer of getIdentity that is neither an identity nor null fails the revalidation', async () => {
+    configured.providers = { b: { getIdentity: async () => undefined as unknown as Identity } }
+
+    await expect(revalidate(ada.subject, 'b')).rejects.toThrow('session/revalidation-failed: b: authentication/invalid-answer')
+  })
+
+  it('AUTHN-7: with no provider configured, a family without one revalidates as null', async () => {
+    configured.providers = {}
+
+    expect(await revalidate(ada.subject, undefined)).toBeNull()
   })
 
   it('AUTHN-7: the lookup in order takes the first identity', async () => {
