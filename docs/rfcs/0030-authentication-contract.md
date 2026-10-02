@@ -2,7 +2,7 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: implemented
+status: draft
 commits: [fe9d371, 4bce5b2]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
@@ -37,6 +37,15 @@ where a throttled provider among other failures gives `too-many-attempts`. It al
 that CS1 showed missing (CF10 to CF15): how a refresh is joined to revalidation, the recorded
 provider after a rotation, the trial's mixed failures and logs, the lookup in order, and the
 suite's email and disabled checks. The amendment is marked *Amendment* below.
+
+**Amended again 2026-10-02, after the audit of the amendment (CS2).** The amendment marked *Second
+amendment* below changes three behaviors:
+- with no provider configured, sign-in fails as `sign-in-unavailable` and logs why;
+- revalidating a family that records no provider moves on past a provider that throws, as sign-in
+  does, and fails only when no provider returned an `Identity`;
+- when an identity is gone and its family cannot be removed, the refresh fails (CF21).
+
+It also adds the tests CS2 showed missing (CF16 to CF20).
 
 The limits on failed sign-ins (AUTHN-8 to AUTHN-11) are RFC-0031. AUTHN-5's text here omits them;
 RFC-0031 adds them.
@@ -184,6 +193,20 @@ for a `SignInError` and rethrows anything else. The login page shows:
   propagates out of `authenticateRequest`, so the request fails with SvelteKit's 500 and the cookie
   is left as it was.
 
+*Second amendment.*
+- `signIn` with an empty `host.authenticationProviderKeys` logs
+  `console.error('[genoacms:auth] no authentication provider is configured')` and returns
+  `{ outcome: 'failed', failure: 'sign-in-unavailable' }`.
+- `revalidate(subject, undefined)` calls `getIdentity` on each provider in key order and returns the
+  first `Identity`; it calls no provider after that one. A provider that throws, or fails to
+  construct, moves on to the next. When no provider returned an `Identity` and at least one threw,
+  it throws `Error('session/revalidation-failed: <key>: <message>')` for the first that threw; when
+  every one returned `null`, it returns `null`. With a recorded provider, nothing changes.
+- `refreshSession`, on `identity-gone`, removes the family with `deleteInternalObject` directly and
+  lets its error propagate: the result is then a thrown error, the family stays, and so does the
+  cookie. The family was just read, so a failed delete is a failure, not an absence. `revokeSession`,
+  used by sign-out and on reuse, still swallows errors.
+
 ### The conformance suite (CONF-4)
 
 `runAuthenticationConformance(adapter, fixture)` as CONF-4 states, registered as
@@ -195,6 +218,15 @@ and the email `conformance-unknown-<random UUID>@example.invalid`.
 for `authenticate` and for `getIdentity`. The wrong-password check tries three passwords:
 `password + '-wrong'`, `''` and `password.slice(0, -1)`. With `disabled`, a new check sends its email
 with `disabled.password + '-wrong'` and expects `{ rejected: 'credentials' }`.
+
+*Second amendment.* The wrong passwords are `password + '-wrong'`, `''`, `password.slice(0, -1)`,
+the password with its first character's code point changed by one (`^ 1`), the password with the case
+of each letter swapped, and `` ` ${password} ` ``. Any that equals the right password is left out. The
+disabled identity gets the same set. The identity check presents the fixture's credentials twice,
+and the `getIdentity` check asks twice. The unknown-subject check also asks for the fixture's email,
+its subject without its last character, and its subject with the case of its letters swapped, when
+that differs from the subject. The empty subject is not tried: an adapter MAY treat it as a malformed
+request.
 
 ## Non-goals
 
@@ -291,6 +323,39 @@ And in the same file, `CONF-4: each assertion fails against its mutant`: *given*
 
 `packages/conformance/src/authentication.js` (conformance), as §Specification's amendment, with the new test `AUTHN-2: a disabled identity's wrong password is rejected for credentials`. `packages/conformance/test/mutants/authentication.js` gains one mutant per new check, and the CONF-4 mutant test still expects each to fail exactly its test: the identity carries another email (`the fixture's credentials return its identity`); `getIdentity` returns a stale email (`getIdentity returns the fixture's identity`); the empty password signs in (`a wrong password is rejected for credentials`); `disabled` is answered before the password is checked (`a disabled identity's wrong password is rejected for credentials`). The mutant `a disabled identity signs in` returns the identity only for the disabled entry's correct password, so that it fails one test.
 
+**Second amendment (CS2).** Written from CF16 to CF21. Where an existing test changes, its title stays.
+
+`packages/core/src/lib/script/auth/providers.server.test.ts` (unit). Beside `console.warn` and `console.error`, the test spies on `console.log`, `console.info` and `console.debug`.
+- `AUTHN-5: tries the providers in config order, not sorted order`: *given* providers `b`, rejecting `credentials`, then `a`, returning `ada`, *then* the calls are `b.authenticate`, `a.authenticate` and the result names `a`.
+- `AUTHN-5: a second-factor rejection stops the trial and is logged`: *given* `a` rejecting `second-factor-required` and `b` returning `ada`, *then* `invalid-credentials`, only `a` was called, and the warning names `a` with `second-factor-required`.
+- `AUTHN-5: only a message starting authentication/throttled is throttled`: also *given* one provider throwing `authentication/rate-limited`, *then* `sign-in-unavailable`.
+- `AUTHN-5: several failures, none throttled, read as unavailable`: *given* `a` and `b` both throwing `authentication/provider-failed`, *then* `sign-in-unavailable`.
+- `AUTHN-5: a stopping rejection after a throttled provider fails as invalid credentials`: *given* `a` throwing `authentication/throttled` and `b` rejecting `disabled`, *then* `invalid-credentials`.
+- `AUTHN-5: a provider that fails to construct is logged`: *given* `host.authentication('a')` rejecting with `provider/secret-unavailable: a`, *then* one error names `a` with that message.
+- `AUTHN-5: logs rejections and failures without the email or password`: the providers are now `a` rejecting, `b` throwing and `c` returning `ada`, and no line on any of the five channels contains the email or the password.
+- `AUTHN-5: returns the provider's identity unchanged`: *given* `a` returning `{ subject: 's-ada', email: 'Ada@Example.COM' }`, *then* that identity, as given.
+- `AUTHN-5: no provider configured reads as unavailable`: *given* no provider, *then* `sign-in-unavailable` and the error `[genoacms:auth] no authentication provider is configured`.
+- `AUTHN-7: a gone identity at the recorded provider is not looked up elsewhere`: *given* `a` knowing `ada`, `b` returning `null` and provider `b`, *then* `null`, and only `b.getIdentity` was called.
+- `AUTHN-7: the lookup in order follows config order and stops at the first identity`: *given* `b`, returning `ada` with the email `ada@b.example.com`, then `a`, returning `ada`, *then* `b`'s identity and only `b.getIdentity` was called; *and given* `a` returning `ada` and `b` throwing, *then* `ada`.
+- `AUTHN-7: a failure in the lookup in order moves on to the next provider`: *given* no recorded provider, `a` throwing and `b` returning `ada`, *then* `ada`.
+- `AUTHN-7: a throttled provider fails the revalidation`: *given* the recorded provider `b` throwing `authentication/throttled`, *then* `revalidate` rejects with a message starting `session/revalidation-failed: b:`.
+- `AUTHN-7: revalidation returns the provider's identity unchanged`: *given* `b` returning `ada` with the email `Ada@New.Example.com`, *then* that identity, as given.
+
+`packages/core/src/lib/script/auth/auth.server.test.ts` (unit). The mocked host has the keys `a`, `b` and `c`. The mocked `resolvePrincipal` records its argument. The family the `refreshSession` mock revalidates is configurable, and has provider `b` by default.
+- `AUTHN-5: authorization is asked about the subject`: *given* a sign-in, *then* `resolvePrincipal` received `subject-1` and nothing else.
+- `AUTHN-5: a sign-in authorization does not know fails as invalid credentials`: also *then* no session was started.
+- `AUTHN-7: a family without a provider is revalidated without one`: *given* a family that records no provider, *then* `revalidate` received `subject-1` and `undefined`.
+- `AUTHN-7: the renewed access token carries the email revalidation returned`: the email is now `Ada@New.Example.com`, carried as given.
+
+`packages/core/src/lib/script/auth/session.server.test.ts` (unit):
+- `AUTHN-7: a gone identity whose family cannot be removed fails the refresh`: *given* `revalidate` returning `null` and the storage delete failing once, *then* `refreshSession` rejects with that failure, the family is still stored, and the next refresh, with the delete working, is `rejected` with `identity-gone`.
+
+`packages/config/src/host/host.test.ts` (unit): test 13 runs on three providers, `third`, `second`, `first`, *then* `authenticationProviderKeys` is `['third', 'second', 'first']`, and nothing was loaded once a macrotask has passed.
+
+`packages/conformance/src/authentication.js` (conformance), as §Specification's second amendment. `packages/conformance/test/mutants/authentication.js` gains, each failing exactly its test: a password compared without case for the fixture (`a wrong password is rejected for credentials`); the disabled identity answering `disabled` to the empty password (`a disabled identity's wrong password is rejected for credentials`); `getIdentity` answering the fixture's email (`getIdentity returns null for an unknown subject`); the fixture's credentials answered only once (`the fixture's credentials return its identity`).
+
+Not tested, by decision: an empty email from `getIdentity`, which no adapter has a reason to return, and a lockout after wrong passwords, which AUTHN-3 requires to throw, so the suite cannot tell it from an outage.
+
 No test of this RFC carries AUTHN-3: the array adapter has no service that can fail. It stays unverified until an adapter with a service tests it by fault injection (RFC-0032).
 
 Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, but core has no end-to-end tests that run in CI (`docs/README.md`, known gaps). Step 6 changes their level to `unit`, which these tests are; the author confirms or keeps `e2e`, which would leave `main` not releasable.
@@ -313,6 +378,14 @@ Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, 
 11. Documents: CF10 to CF15 fixed; AUTHN-7 names `auth.server.test.ts`; `verified`; this RFC `implemented` with all its commits.
 12. A falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 by an agent that wrote neither the code nor the amendment's tests, recorded as a `CS` entry.
 
+*Second amendment*, after CS2:
+
+13. Documents: AUTHN-5, AUTHN-7 and CONF-4 as amended; CF16 to CF21 open, fixed by this RFC; this RFC `draft`.
+14. Tests: the second amendment's tests, marked `it.fails` where they do not yet pass, committed separately.
+15. Code: `signIn` with no provider, the lookup in order, the removal on `identity-gone`; then remove the `it.fails` markers without changing an assertion.
+16. Documents: CF16 to CF21 fixed; `verified`; this RFC `implemented` with all its commits.
+17. A falsification audit of AUTHN-5, AUTHN-7 and CONF-4 by an agent that wrote neither the code nor these tests, recorded as a `CS` entry.
+
 ## Verification
 
 ```bash
@@ -331,6 +404,8 @@ pnpm run docs:check
 *Amendment.* The 16 mutations CS1 found passing, run again with the script CS1 used: each now fails a
 test. The 5 adapters CS1 found passing CONF-4 now fail it.
 
+*Second amendment.* The 37 mutations and adapters CS2 found passing, minus those §Tests leaves untested by decision, now fail a test.
+
 ## Critique
 
 **Pros**
@@ -342,6 +417,8 @@ test. The 5 adapters CS1 found passing CONF-4 now fail it.
 - Breaking for every authentication adapter, third-party ones included, and for `Host` users of `authenticationProviders`.
 - Every refresh calls a provider; during a provider outage, users whose access token expires get a 500 until it returns.
 - Trying providers in order makes a sign-in to the last provider as slow as all earlier calls together.
+- *Second amendment.* A family without a provider can be revalidated by a later provider while an earlier one is down. Where two providers hold the same subject (`identities.md` ID4), that may be the wrong one; it already was for an earlier provider returning `null`.
+- *Second amendment.* A logout in another tab while the identity is gone can make the delete fail once; that request fails, and the next finds no family.
 
 **Blindspots & missed edge cases**
 - Renaming a provider's key in the config ends every session it signed in, because revalidation cannot tell a rename from a removal.
