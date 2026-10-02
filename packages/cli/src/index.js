@@ -4,8 +4,6 @@ import { isCancel, select } from '@clack/prompts'
 import { parseCliArgs } from './args.js'
 import { COMMANDS, findCommand } from './commands.js'
 import { usage, commandUsage, version } from './help.js'
-import { productionConfigHint } from './hint.js'
-import { resolveProject } from './project.js'
 
 async function selectCommand () {
     return await select({
@@ -18,7 +16,8 @@ async function selectCommand () {
 }
 
 /** Everything a command receives. Resolved only once the command is known: `init` needs no project. */
-function commandContext (command, args) {
+async function commandContext (command, args) {
+    const { resolveProject } = await import('./project.js')
     const project = resolveProject({ cwd: process.cwd(), config: args.config })
     return { ...project, target: args.target, mode: args.mode ?? command.mode, noInline: args.noInline }
 }
@@ -44,17 +43,18 @@ const chooseCommand = async (name) => name === undefined ? await commandFromMenu
 const HINTED_COMMANDS = ['build', 'deploy']
 
 /** CLI-19, LD4 */
-function hintFor (command, context, args, error) {
+async function hintFor (command, context, args, error) {
     if (!HINTED_COMMANDS.includes(command.name) || context.mode !== 'production' || args.config !== undefined) return []
+    const { productionConfigHint } = await import('./hint.js')
     return productionConfigHint({ root: context.root, command: command.name, target: args.target, error }) ?? []
 }
 
 async function runInProject (command, run, args) {
-    const context = commandContext(command, args)
+    const context = await commandContext(command, args)
     try {
         await run(context)
     } catch (error) {
-        fail(error, hintFor(command, context, args, error))
+        fail(error, await hintFor(command, context, args, error))
     }
 }
 

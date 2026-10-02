@@ -250,7 +250,7 @@ describe('genoa', () => {
     })
   }, 30000)
 
-  test.fails('CLI-14: help and version import neither a command nor the config loader', () => {
+  test('CLI-14: help and version import neither a command nor the config loader', () => {
     const cwd = directory()
     const hooks = forbiddingImports()
     const build = genoaUnder(cwd, hooks, 'build')
