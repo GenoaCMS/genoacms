@@ -41,7 +41,7 @@ function unitRuns () {
 function endToEndRuns () {
   return workspacePackages()
     .filter(({ dir, manifest }) => runsVitest(manifest) && existsSync(join(dir, 'e2e')))
-    .map(({ dir }) => ({ dir, args: ['--mode', 'e2e', 'e2e'] }))
+    .map(({ dir, manifest }) => ({ dir, sveltekitConfig: SVELTEKIT_PACKAGES[manifest.name], args: ['--mode', 'e2e', 'e2e'] }))
 }
 
 const RUNS = {

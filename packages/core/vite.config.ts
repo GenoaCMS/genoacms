@@ -8,10 +8,10 @@ if (process.env.VITEST !== undefined) {
   process.env.GENOA_CONFIG ??= fileURLToPath(new URL('./genoa.config/test.ts', import.meta.url))
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [genoa(), tailwindcss(), sveltekit()],
   test: {
-    include: ['src/**/*.{test,spec}.{js,ts}', 'evidence/**/*.{test,spec}.{js,ts}']
+    include: mode === 'e2e' ? ['e2e/**/*.test.ts'] : ['src/**/*.{test,spec}.{js,ts}', 'evidence/**/*.{test,spec}.{js,ts}']
   },
   ssr: {
     noExternal: []
@@ -24,4 +24,4 @@ export default defineConfig({
   optimizeDeps: {
     include: []
   }
-})
+}))
