@@ -156,7 +156,7 @@ exist before the suite runs; the suite creates none, because the contract cannot
 
 - Test: none yet
 - Level: conformance
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### CONF-5 · The identity-store suite
 

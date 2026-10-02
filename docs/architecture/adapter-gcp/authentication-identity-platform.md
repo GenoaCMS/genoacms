@@ -11,7 +11,8 @@ Part of the [GCP adapter architecture](README.md). Markers, IDs and test referen
 
 **Everything in this document is New.** No GCP authentication adapter exists. *(current)* core's
 production config authenticates with `@genoacms/authentication-adapter-array` and a JSON secret.
-GD2 replaces that on GCP once GS1 has passed. No RFC exists yet: it is written after GS1.
+GD2 replaces that on GCP. RFC-0032 implements it from Google's reference documentation, and GS1
+confirms it afterwards (GU11).
 
 ## Design
 
@@ -75,8 +76,10 @@ None: nothing is implemented yet.
 - the response carries `localId`, `email`, `idToken`, `refreshToken`, and `mfaPendingCredential` when a second factor is required;
 - with email-enumeration protection, the default for projects created from 2023-09-15, an unknown email and a wrong password both answer `INVALID_LOGIN_CREDENTIALS`.
 
-**GS1, for GD2: not run yet.** It needs Identity Platform enabled on a GCP project, so the author runs
-it or authorizes it. The GD2 RFC is written only after it passes.
+**GS1, for GD2: not run yet.** It needs email/password sign-in enabled in `genoacms` and a credential
+the agent may use (GU10). *History.* Until 2026-10-02 the GD2 RFC was to be written only after GS1
+passed; since GU11, RFC-0032 is written from Google's reference documentation, and a GS1 result
+that contradicts a statement reopens it through a new RFC (discovery rule).
 
 | Case | Assumption to verify |
 | :-- | :-- |
@@ -89,17 +92,17 @@ it or authorizes it. The GD2 RFC is written only after it passes.
 
 ## Specification
 
-**New**, all of it: no RFC yet, written after GS1.
+**New**, all of it: RFC-0032.
 
 ### Descriptor
 
 #### AUTH-1 · Descriptor
 
-Specifier `@genoacms/adapter-gcp/authentication/identity-platform`, kind `authentication`. Runtime specifier `@genoacms/adapter-gcp/authentication/identity-platform/runtime`. Options: `projectId: string` (required, COM-3); `tenantId?: string`, an Identity Platform tenant, omitted for the project's own user pool; `apiKey?: Secret<string>`, decoded as a string; `credentials?: Secret<ServiceAccount>`, decoded as JSON, only for running outside GCP. Other keys are refused (COM-2). Whether `apiKey` stays optional is decided by GS1a.
+Specifier `@genoacms/adapter-gcp/authentication/identity-platform`, kind `authentication`. Runtime specifier `@genoacms/adapter-gcp/authentication/identity-platform/runtime`. Options: `projectId: string` (required, COM-3); `tenantId?: string`, an Identity Platform tenant, omitted for the project's own user pool; `apiKey?: Secret<string>`, decoded as a string; `credentials?: Secret<ServiceAccount>`, decoded as JSON, only for running outside GCP. A present `tenantId` that is not a non-empty string yields `tenantId must be a non-empty string`. Other keys are refused (COM-2). `apiKey` stays optional unless GS1a shows that a call without it fails.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-9 · No management capability
 
@@ -107,17 +110,17 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 ### Runtime
 
 #### AUTH-2 · One sign-in call
 
-`authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope.
+`authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. A call that has not answered within 10 seconds is abandoned and fails as AUTH-7.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-3 · Success
 
@@ -125,7 +128,7 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-4 · Second factor required
 
@@ -133,31 +136,31 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-5 · Rejected credentials
 
-`400` whose error message is `INVALID_LOGIN_CREDENTIALS`, `EMAIL_NOT_FOUND`, `INVALID_PASSWORD`, `INVALID_EMAIL` or `MISSING_PASSWORD` returns `{ rejected: 'credentials' }`. `USER_DISABLED` returns `{ rejected: 'disabled' }` if GS1b shows that Identity Platform reports it only for a correct password, and `{ rejected: 'credentials' }` otherwise (AUTHN-2).
+A `400` response's **error code** is its `error.message`, up to the first ` : ` when there is one (`TOO_MANY_ATTEMPTS_TRY_LATER : Access to this account …` has the code `TOO_MANY_ATTEMPTS_TRY_LATER`). The codes `INVALID_LOGIN_CREDENTIALS`, `EMAIL_NOT_FOUND`, `INVALID_PASSWORD`, `INVALID_EMAIL`, `MISSING_PASSWORD` and `USER_DISABLED` return `{ rejected: 'credentials' }`. `USER_DISABLED` returns `credentials` rather than `disabled` because it is not known whether Identity Platform reports it only for a correct password (AUTHN-2); GS1b settles that.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-6 · Throttled
 
-`400` with `TOO_MANY_ATTEMPTS_TRY_LATER` throws `authentication/throttled`.
+`400` with the error code `TOO_MANY_ATTEMPTS_TRY_LATER` throws `authentication/throttled`.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-7 · Provider failure
 
-Any other outcome (network error, `403`, `5xx`, an invalid key, reCAPTCHA required) throws `authentication/provider-failed: <status> <message>`, so an outage is not reported as a wrong password.
+Any other outcome (network error, timeout, `403`, `5xx`, an invalid key, reCAPTCHA required, an ADC token that cannot be obtained) throws `authentication/provider-failed: <status> <message>`, so an outage is not reported as a wrong password. `<status>` is the HTTP status, or `network` when no response arrived; `<message>` is the response's `error.message`, or the error's message.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-8 · Tokens are discarded
 
@@ -165,12 +168,12 @@ The response's `idToken` and `refreshToken` are discarded: never stored, never l
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0032)
 
 #### AUTH-10 · getIdentity
 
-`getIdentity(subject)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup` with the JSON body `{ localId: [subject] }`, plus `tenantId` when configured, carrying an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. A response whose `users` holds an entry with `disabled` not `true` returns `{ subject: localId, email }` from it; no entry, or a disabled one, returns `null`. Any other outcome throws as AUTH-7. The permission it needs is decided by GS1f.
+`getIdentity(subject)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup` with the JSON body `{ localId: [subject], targetProjectId: projectId }`, plus `tenantId` when configured, carrying an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. A response whose `users` holds an entry with `disabled` not `true` and an `email` returns `{ subject: localId, email }` from it; no entry, a disabled one, or one without an email returns `null`. The 10-second limit of AUTH-2 applies. Any other outcome throws as AUTH-7. The permission it needs is decided by GS1f.
 
 - Test: none yet
 - Level: unit, contract
-- State: new (no RFC yet)
+- State: new (RFC-0032)

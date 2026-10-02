@@ -55,6 +55,7 @@ is corrected to point here.
 | GU8 | 2026-10-01: RFC-0027 fixes GF10, GF20 to GF26 and GF28 together. Directory operations become bounded and stop at the first failure (GD7); the deploy disables the framework's ignored routes (GD8). | [`storage.md`](storage.md) GD7, [`deployment.md`](deployment.md) GD8 |
 | GU9 | 2026-10-02: GCP offers two authentication adapters, chosen by the operator per deployment: `./authentication/identity-platform` (GD2) and `./authentication/firestore`, a self-owned identity store that hashes passwords as [`identities.md`](../identities.md) specifies (GD9). | [`authentication-firestore.md`](authentication-firestore.md) |
 | GU10 | 2026-10-02: the Identity Platform adapter serves plain Firebase Authentication as well, with no option to choose between them: both are one service behind one API, and Identity Platform is Firebase Authentication upgraded. Only `tenantId` needs the upgrade. GS1 runs in `genoacms`, on its Firebase Authentication, with throwaway users removed after each run (GU6). | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GU11 | 2026-10-02: the Identity Platform adapter (GD2) is implemented from Google's reference documentation, before GS1 runs. GS1 confirms it afterwards; a contradiction reopens the statement it contradicts. | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
@@ -182,8 +183,9 @@ Every `G` ID, where it lives, and its state.
 | GU8 | RFC-0027's scope; bounded directory operations | decided | [`storage.md`](storage.md), [`deployment.md`](deployment.md) |
 | GU9 | Two authentication adapters: Identity Platform and Firestore | decided | [`authentication-firestore.md`](authentication-firestore.md) |
 | GU10 | Firebase Authentication served too, no toggle; GS1 in `genoacms` | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GU11 | Identity Platform implemented before GS1, which confirms it | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
-| GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GD2 | Identity Platform authentication adapter | new, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |

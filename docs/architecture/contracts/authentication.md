@@ -157,7 +157,7 @@ right.
 
 - Test: none yet
 - Level: unit, conformance
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### AUTHN-3 · Failures throw
 
@@ -168,7 +168,7 @@ from `getIdentity`.
 
 - Test: none yet
 - Level: unit, conformance
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### AUTHN-4 · getIdentity
 
@@ -177,7 +177,7 @@ current email, and `null` for a subject that is unknown, deleted or disabled.
 
 - Test: none yet
 - Level: unit, conformance
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 ### Core
 
@@ -200,7 +200,7 @@ provider's key and its message. It logs neither the email nor the password.
 
 - Test: none yet
 - Level: e2e
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### AUTHN-6 · A session records its provider
 
@@ -208,7 +208,7 @@ The session family created at sign-in records the key of the provider whose `Ide
 
 - Test: none yet
 - Level: e2e
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### AUTHN-7 · A refresh revalidates the session
 
@@ -216,11 +216,11 @@ Before it rotates a refresh token, core calls `getIdentity` with the family's su
 the family records, or, for a family that records none, on every provider, taking the first
 `Identity` in key order. When the result is `null`, core revokes the family and clears the cookie, and
 the user signs in again. When the call throws, the request fails and the family and the cookie are
-left unchanged. Otherwise the renewed access token carries the email `getIdentity` returned.
+left unchanged. A family whose provider the config no longer holds revalidates as `null`. Otherwise the renewed access token carries the email `getIdentity` returned.
 
 - Test: none yet
 - Level: e2e
-- State: new (no RFC yet)
+- State: new (RFC-0030)
 
 #### AUTHN-8 · Limits before any provider
 
@@ -233,7 +233,7 @@ is called and nothing is recorded. When the failures cannot be read, the sign-in
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0031)
 
 #### AUTHN-9 · Recording failures
 
@@ -244,7 +244,7 @@ does not change the sign-in's outcome.
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0031)
 
 #### AUTHN-10 · The counter objects
 
@@ -263,7 +263,7 @@ the write retried, at most three times in all. The objects are not signed.
 
 - Test: none yet
 - Level: unit, integration
-- State: new (no RFC yet)
+- State: new (RFC-0031)
 
 #### AUTHN-11 · The limits are security policy
 
@@ -275,4 +275,4 @@ range is refused as the policy's other values are.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0031)
