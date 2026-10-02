@@ -451,7 +451,7 @@ describe('the provider and revalidation', () => {
     for (const key of Object.keys(chainProviders)) Reflect.deleteProperty(chainProviders, key)
     chainCalls.length = 0
     chainProviders.a = { getIdentity: async subject => ({ subject, email: 'ada@a.example.com' }) }
-    chainProviders.b = { getIdentity: async subject => ({ subject, email: 'ada@b.example.com' }) }
+    chainProviders.b = { getIdentity: async subject => ({ subject, email: ' Ada@B.Example.com ' }) }
     const started = await sessions.startSession(IDENTITY, 'b')
     const { SignJWT } = await import('jose')
     const { getSessionKey } = await import('$lib/script/signing/rootKey.server')
@@ -464,7 +464,7 @@ describe('the provider and revalidation', () => {
     const payload = await authenticateRequest(cookies as unknown as import('@sveltejs/kit').Cookies)
 
     expect(chainCalls).toEqual([['b', SUBJECT]])
-    expect(payload?.email).toBe('ada@b.example.com')
+    expect(payload?.email).toBe(' Ada@B.Example.com ')
   })
 
   it('AUTHN-7: an unavailable provider keeps the session as it was', async () => {
