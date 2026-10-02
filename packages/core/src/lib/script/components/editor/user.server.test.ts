@@ -23,6 +23,12 @@ import type { AuthContext } from '$lib/script/authorization/context'
 
 const calls: string[] = []
 
+vi.mock('../page/tree/dependents.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../page/tree/dependents.server')>(),
+  requireNoPublishedDependents: async () => {},
+  listPagesPinning: async () => []
+}))
+
 vi.mock('./index', () => ({
   createComponent: async (name: string) => { calls.push(`create:${name}`); return 'uid-1' },
   listOrCreateComponentList: async () => { calls.push('list'); return [] },
