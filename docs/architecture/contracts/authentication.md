@@ -102,6 +102,8 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 | CF21 | *History.* **A gone identity's family can stay in storage.** When `getIdentity` returns `null`, `refreshSession` calls `revokeSession`, which swallows every failure of the delete, and answers `identity-gone`; core clears the cookie. If the delete failed, the family and its current token remain valid, and a copy of the token refreshes again once the provider knows the subject again. AUTHN-7 says core revokes the family. No test covers a failing delete. Found 2026-10-02 by CS2. | fixed, RFC-0030 |
 | CF22 | *History.* **Parts of sign-in and revalidation that CS3 found untested.** Each of these passes every test. (1) A message that contains `authentication/throttled` without starting with it read as throttled. (2) The email or password written to `process.stdout` or `process.stderr`, or through `console.dir` or `console.table`, or logged by `login`, which the tests do not watch at all. (3) `login` lowercasing the admitted identity's email before the token, and the renewed token's email trimmed. (4) `refreshSession` handing the revalidation another family, or another subject, than the one it read: core's tests replace either `refreshSession` or `revalidate`, so the whole chain is never run. (5) Revalidation skipped after a few rotations: only the first two are tested. (6) With no provider configured, a family without a provider failing instead of revalidating as `null`. Shown 2026-10-02 by CS3. AUTHN-5, AUTHN-7. | fixed, RFC-0030 |
 | CF24 | *History.* **A refresh that loses its write race carries the old email.** After `revalidate` returned an `Identity`, a conditional write that fails makes `refreshSession` answer `concurrent` with the email of the family it read, not the one `getIdentity` returned; the renewed access token carries that email until the next refresh. AUTHN-7 says the renewed token carries the email `getIdentity` returned. No test makes the write fail after a successful revalidation. Found 2026-10-02 by CS3. | fixed, RFC-0030 |
+| CF26 | **A malformed rejection stopped the trial.** `{ rejected: 'bogus' }`, or a `rejected` that is not a string, passed as a `Rejection`: the trial stopped and the sign-in failed as `invalid-credentials`, where AUTHN-5 makes it a failure that moves on. The provider's value was also logged. Found 2026-10-02 by CS4. | open, fixed by RFC-0030 |
+| CF27 | **Parts of the third amendment that CS4 found untested.** Each passes every test: `isIdentity` loosened (an empty or non-string subject, a non-string email); an invalid `getIdentity` answer in the lookup in order skipped or ending the lookup; the email logged on other branches than the tested ones; the identity or the renewed email normalized (NFKC, whitespace collapsed, trimmed, lowercased) on paths whose test emails have nothing to normalize; revalidation skipped after the sixth rotation, or on every seventh; the family's subject trimmed before revalidation. Shown 2026-10-02 by CS4. AUTHN-5, AUTHN-7. | open |
 | CF25 | *History.* **A provider that answers `null` to `authenticate` crashes the sign-in.** `isRejection(null)` is false, so `signIn` reports `signed-in` with no identity, and `login` throws a `TypeError` reading its subject: the user sees `Login failed`, not one of AUTHN-5's three messages. The provider violates AUTHN-2, and a provider written before RFC-0030 does exactly this. Found 2026-10-02 by CS3, by reading. | fixed, RFC-0030 |
 
 ### Open questions
@@ -165,6 +167,18 @@ channel" cannot be observed by a test that watches the console alone; whether th
 which does not revalidate, is meant to carry the stored email; what "as returned" means for
 surrounding whitespace; whether an email differs from the same email in another case (AUTHN-2); and
 that "each time" in CONF-4 is bounded only by how often the suite asks.
+
+**CS4, falsification audit of the clauses RFC-0030's third amendment changed, at `0c20ed9`,
+2026-10-02.** A new agent on a different model, which wrote neither the code nor the tests, made 31
+mutations of core; 9 failed a test, 2 were equivalent, and the 20 that passed are CF27. It ran 12
+faulty adapters against the suite: those it lets through, and those it catches only in some runs, are
+CF28 (in [`conformance.md`](conformance.md)). It found the defects CF26 and CF29. It saw some rows of
+the Findings table by accident, and says it did not use them. By the author's decision, CF26 and
+CF29 are fixed on RFC-0030, and CF27 and CF28 are left to a later RFC. Readings the statements leave
+open: whether a provider's own thrown message, which core logs, may contain the email; whether "the
+email" in AUTHN-5's logging rule is the typed one or the returned one; whether "as returned" in
+AUTHN-7 covers the email stored in the family; whether an `Identity` may carry other fields; and
+whether a provider may throttle the right password after the suite's many wrong ones.
 
 ## Specification
 
@@ -234,7 +248,8 @@ current email, and `null` for a subject that is unknown, deleted or disabled.
 
 Core calls `authenticate` on the providers one at a time, in key
 order. An answer that is neither an `Identity`, an object with a non-empty string `subject` and a
-string `email`, nor a `Rejection` counts as a thrown failure. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
+string `email`, nor a `Rejection`, an object whose `rejected` is one of the three reasons, counts
+as a thrown failure. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
 a `credentials` rejection or a thrown failure moves on to the next provider. An `Identity` is admitted
 only if the authorization data knows its subject. Otherwise the sign-in fails with one of three
 messages, the only ones the user sees:
