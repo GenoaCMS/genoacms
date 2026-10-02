@@ -56,8 +56,8 @@ const COMMANDS = [
   {
     name: 'roles',
     summary: 'Compose a role or an assignment to paste into the config',
-    usage: 'genoa roles [--config <file>]',
-    flags: ['config'],
+    usage: 'genoa roles [--config <file>] [--mode <mode>]',
+    flags: ['config', 'mode'],
     mode: 'development',
     examples: ['genoa roles'],
     load: async () => (await import('./roles.js')).default
@@ -65,8 +65,8 @@ const COMMANDS = [
   {
     name: 'rotate-root',
     summary: 'Rotate the root trust anchor (asks to confirm)',
-    usage: 'genoa rotate-root [--config <file>]',
-    flags: ['config'],
+    usage: 'genoa rotate-root [--config <file>] [--mode <mode>]',
+    flags: ['config', 'mode'],
     mode: 'development',
     examples: ['genoa rotate-root --config genoa.config/production.ts'],
     load: async () => (await import('./rotateRoot.js')).default

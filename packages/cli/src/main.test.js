@@ -261,7 +261,7 @@ describe('genoa', () => {
     assert.deepEqual(genoaUnder(cwd, hooks, '-v'), { status: 0, stdout: `${version}\n`, stderr: '' })
   }, 30000)
 
-  test.fails('CLI-15: prints every command\'s usage as the table gives it', () => {
+  test('CLI-15: prints every command\'s usage as the table gives it', () => {
     const cwd = directory()
     assert.equal(commandUsageText(COMMAND_TABLE.find(command => command.name === 'deploy')), DEPLOY_USAGE)
     for (const command of COMMAND_TABLE) {
