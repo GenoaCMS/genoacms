@@ -23,8 +23,8 @@ reference carrying a collection name.
 ### Decisions
 
 **Names pass through unchanged (DB-3).** A GenoaCMS collection is the Firestore collection of the same
-name. So any collection name reaches Firestore. A future identity store in Firestore
-(`configuration.md` U13, deferred) must therefore live in a separate Firestore database that no
+name. So any collection name reaches Firestore. The Firestore identity store
+([`authentication-firestore.md`](authentication-firestore.md) GD10) therefore lives in a separate Firestore database that no
 `databases` entry names, not in a reserved collection, because the operator, who defines every collection in the config
 and in `.genoacms/collections`, could name one after it by mistake (GF28). CMS users define none.
 *Cost:* Firestore reserves names matching `__.*__`. A collection the operator gives such a name fails at

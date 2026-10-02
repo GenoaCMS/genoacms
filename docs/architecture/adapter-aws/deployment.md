@@ -60,7 +60,7 @@ LMB-15; WF25).** The staged entry copies `http.sourceIp` from the `x-amzn-reques
 the Web Adapter fills from the invocation's event, into `x-genoacms-client-address`, and
 adapter-node's `ADDRESS_HEADER` names that header.
 *Why:* a function URL passes the client's `X-Forwarded-For` through unchanged and appends nothing
-(WS2), so any entry of it can be forged, and sign-in throttling (`configuration.md` Q5) would key
+(WS2), so any entry of it can be forged, and sign-in throttling (`contracts/authentication.md` CQ1) would key
 on what the client chose. The event's source address is set by AWS.
 *Cost:* the entry replaces adapter-node's `index.js`, so its graceful shutdown, `SHUTDOWN_TIMEOUT`,
 `IDLE_TIMEOUT` and socket activation are not used; the Lambda sandbox ends the process itself.

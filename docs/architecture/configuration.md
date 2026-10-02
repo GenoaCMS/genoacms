@@ -29,11 +29,13 @@ moved ID keeps a pointer in its old place.
 | Content | Now in |
 | :-- | :-- |
 | Packages and their dependency direction, module graph, reference types, registries, descriptors and runtimes (U4, D2, D4) | [`contracts/adapter-model.md`](contracts/adapter-model.md) |
+| The service contracts, starting with authentication (U14, F20, Q5, Q6) | [`contracts/`](contracts/README.md) |
 | The host and provider construction (D3) | [`host.md`](host.md) |
 | Secret references, resolution, bootstrap, the development store (U3, U11, D5) | [`secrets.md`](secrets.md) |
 | The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9) | [`build.md`](build.md) |
 | The CLI's commands, flags and messages (since 2026-10-02, before this split) | [`cli.md`](cli.md) |
-| Everything else: the config, the manifest and the loader (D1), authentication (U13, U14, F20, Q5, Q6), the reality before the redesign (F1 to F19, R1 to R8), goals, preserved functionality (C, A, K, P), spikes (S-1 to S-8), the RFC list | here |
+| Authentication on GCP, and self-owned identity stores (U13) | [`adapter-gcp/authentication-identity-platform.md`](adapter-gcp/authentication-identity-platform.md), [`identities.md`](identities.md) |
+| Everything else: the config, the manifest and the loader (D1), the reality before the redesign (F1 to F19, R1 to R8), goals, preserved functionality (C, A, K, P), spikes (S-1 to S-8), the RFC list | here |
 
 ## Decisions already made by the author
 
@@ -51,8 +53,8 @@ moved ID keeps a pointer in its old place.
 | U10 | *Moved* to [`build.md`](build.md). | |
 | U11 | *Moved* to [`secrets.md`](secrets.md). | |
 | U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (*Types: the config and the manifest*). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (*Config files per environment*). |
-| U13 | Production authentication on GCP uses **Identity Platform**, through a new `@genoacms/adapter-gcp/authentication`. GenoaCMS stores no password and no password hash on GCP. An identity store GenoaCMS owns itself (Firestore, later Postgres) is deferred. | Designed in [`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). The authentication contract stays `authenticate` only, so users are managed in Identity Platform (console, `gcloud`, Admin SDK), not in the CMS. `packages/core/genoa.config/production.ts` switches to it (*Config files per environment*). |
-| U14 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. | Replaces `GENOACMS_ADMIN_CREDENTIALS` and the key `admins` in the CLI templates, the config README and core's configs. Already-implemented RFCs keep the old name as history. |
+| U13 | *Moved* to [`adapter-gcp/README.md`](adapter-gcp/README.md) GU1 (Identity Platform) and [`identities.md`](identities.md) IU1 (self-owned stores), 2026-10-02. | |
+| U14 | *Moved* to [`contracts/authentication.md`](contracts/authentication.md) CU2. | |
 
 ## Reality: the system before the redesign
 
@@ -116,7 +118,7 @@ another and the process would exit with code 13 (unsettled top-level await).
 | F17 | `@genoacms/sveltekit-adapter-cloud-run-functions` needs its `files/` directory built (`rollup -c`) before use. That directory is gitignored and absent in a fresh checkout, so the GCP target cannot build from the monorepo without that step. Published packages include it through `prepublishOnly`. | `sveltekit-adapter-cloud-run-functions/index.js:8`, `.gitignore` |
 | F18 | **Every build runs the instance's startup I/O.** SvelteKit runs the built server to analyse it, which evaluates `hooks.server.ts` and every route's server modules. Two of core's modules do provider I/O at module scope. The first is the instance bootstrap (`await ensureInstanceInitialized()`): signing keys, manifests, the security policy. The second is the dynamic-collection listing, which also creates `.genoacms/collections` when it is missing. So every `vite build` resolves secrets and reads and writes the configured storage. With inline credentials this succeeds without anyone noticing, and the old Cloud Build flow bootstrapped the production instance from inside the build. Without credentials, as in a production config that relies on ADC, the build crashes. Found while verifying RFC-0015. | `hooks.server.ts:11`, `database/database.server.ts:13` |
 | F19 | **The runtime `package.json` names versions the registry does not have, or has with different code.** It pins each package to its installed version ([`build.md`](build.md) *The artifact*), and the platform installs from npm. From the monorepo, `@genoacms/language-adapter-ts@0.1.0` and `@genoacms/contracts` are unpublished, so the install fails. `@genoacms/adapter-gcp@0.8.2-1` is published, but from before the descriptor/runtime split: it has no `./secrets` or `./*/runtime` exports, so the install succeeds and the runtime cannot load. Nothing detects the second case. A user's own adapter, kept in their repository and never published, fails the same way. Found preparing the first production deploy. | `config/src/artifact/index.ts`, `versions.ts` |
-| F20 | **Nothing limits failed sign-ins.** `login` calls every authentication provider for every attempt, with no count per email or per client. The array adapter compares plain text, not in constant time (*Goals and non-goals* non-goal). Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication.md` GS1c). | `core/src/lib/script/auth/auth.server.ts`, `authentication-adapter-array/src/runtime.js` |
+| F20 | *Moved* to [`contracts/authentication.md`](contracts/authentication.md) CF1. | |
 
 ### Constraints the design must respect
 
@@ -137,7 +139,7 @@ These are facts about the tools, not choices. A design that ignores one fails in
 
 ### Goals (not negotiable)
 
-1. Any platform through an adapter: first-party (GCP including Identity Platform authentication, AWS, MinIO, Postgres, Node, env secrets, array auth, TypeScript language) and third-party.
+1. Any platform through an adapter: first-party (GCP including Identity Platform and Firestore authentication, AWS, MinIO, Postgres, Node, env secrets, array auth, TypeScript language) and third-party.
 2. Several providers serving one service at once, **including two instances of the same adapter**.
 3. The full service set: `authentication`, `database`, `storage`, `deployment`, `secrets`, `languages`. Plus `authorization`, `security` and collection definitions.
 4. Deployment targets that choose a SvelteKit adapter at build time and run a deploy procedure.
@@ -148,14 +150,11 @@ These are facts about the tools, not choices. A design that ignores one fails in
 ### Non-goals
 
 - Hot-applying config changes in dev without restarting the server.
-- Fixing plain-text password comparison in `authentication-adapter-array`. A separate task.
-- Managing users from the CMS: creating accounts, setting passwords, disabling. The contract stays `authenticate` only (U13).
-- An identity store owned by GenoaCMS (Firestore, Postgres). Deferred (U13).
-- Multi-factor sign-in. An account that requires a second factor cannot sign in (`adapter-gcp/authentication.md` GD2).
 - A credential-free CI build of core itself (U7).
 
 The non-goals of the other subjects moved with them: secrets to [`secrets.md`](secrets.md), the build
-to [`build.md`](build.md), and adapter resolution to [`contracts/adapter-model.md`](contracts/adapter-model.md).
+to [`build.md`](build.md), adapter resolution to [`contracts/adapter-model.md`](contracts/adapter-model.md),
+and authentication to [`contracts/authentication.md`](contracts/authentication.md).
 
 ## Decisions
 
@@ -298,7 +297,7 @@ file for a production build is caught at build time, because the dev config's se
 | File | Providers | Credentials |
 | :-- | :-- | :-- |
 | `packages/core/genoa.config/development.ts` | Today's set: GCS (`FIM-gcs`), Firestore, `secrets-env`, `authentication-adapter-array`, `language-adapter-ts`; target `local` (`adapter-node`) | Today's gitignored files, imported and wrapped: `inline(serviceAccount)` and `inline(authCredentials)`, imported from where they are now, beside the config (`genoa.config/gcp/serviceAccount.json`, `genoa.config/gcp/authCredentials.js`). `genoa.config/index.js` and `genoa.config/gcp/index.js` are removed, so the default lookup finds `genoa.config/development.ts`. Development mode does not warn. |
-| `packages/core/genoa.config/production.ts` | The same storage, database and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; `@genoacms/adapter-gcp/authentication` (Identity Platform, U13, `adapter-gcp/authentication.md` GD2) instead of the array adapter, once GD2 is implemented; until then the array adapter with a JSON secret; target `gcp` | Storage, Firestore, Secret Manager and Identity Platform omit `credentials` (Application Default Credentials: the function's service account). No user credential is configured: users live in Identity Platform. If `adapter-gcp/authentication.md` GS1a requires an API key, it is `secret('GENOACMS_IDENTITY_API_KEY')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
+| `packages/core/genoa.config/production.ts` | The same storage, database and language providers; `@genoacms/adapter-gcp/secrets` instead of `secrets-env`; `@genoacms/adapter-gcp/authentication/identity-platform` (U13, `adapter-gcp/authentication-identity-platform.md` GD2) or `@genoacms/adapter-gcp/authentication/firestore` (`adapter-gcp/authentication-firestore.md` GD9) instead of the array adapter, once one is implemented; until then the array adapter with a JSON secret; target `gcp` | Storage, Firestore, Secret Manager and Identity Platform omit `credentials` (Application Default Credentials: the function's service account). No user credential is configured: users live in Identity Platform or the Firestore identity store. If `adapter-gcp/authentication-identity-platform.md` GS1a requires an API key, it is `secret('GENOACMS_IDENTITY_API_KEY')`. The `gcp` target's deploy credential is `inline(serviceAccount)`, which runs on the operator's machine only and never enters the runtime manifest. |
 
 Shared parts (collections, authorization, security, languages) live in modules beside them in
 `genoa.config/`, which both files import.
@@ -375,12 +374,8 @@ The other rejected alternatives moved with their subjects.
 
 ## Open questions
 
-Q1 to Q3 are recorded as U5 to U8, and Q4 as U9.
-
-| # | Question | Recommendation |
-| :-- | :-- | :-- |
-| Q5 | Where are failed sign-ins limited (F20)? | In core, before any provider is called, per normalized email and per client address, with the counters in the database service. It then covers every adapter, and a managed provider's per-IP protection stops seeing the server as one abusive client. Needs its own decision: the client address depends on the hosting layer's forwarding header. |
-| Q6 | When a self-owned identity store comes (U13), how are users created? | An optional management capability on the authentication contract (`createIdentity`, `setPassword`, `disable`), shown in the CMS only for providers that offer it, plus a CLI command for the first user, who cannot sign in to create themselves. |
+Q1 to Q3 are recorded as U5 to U8, and Q4 as U9. Q5 and Q6 moved to
+[`contracts/authentication.md`](contracts/authentication.md), as CQ1 and CQ2.
 
 ## Verification before any RFC was written
 
@@ -507,21 +502,3 @@ Findings made while writing the RFCs were folded back into this document:
 - **Re-running `init`.** It refuses when any target file exists, so it cannot be used to add a missing file later. The user copies from the template instead.
 - **A `TODO` specifier in `production.ts`** is invisible to `genoa dev`, because the default lookup never loads that file. It surfaces at the first `genoa build --config genoa.config/production.ts`, which is the intended point, but possibly long after `init`.
 - **The collection example** uses schema helpers from `@genoacms/contracts/schemas`, so `init` must install `@genoacms/contracts` directly. Under strict pnpm, the helper import fails without it.
-
-## Critique & architectural sanity check: U13, U14, F20 (authentication scope)
-
-The GCP side of U13, Identity Platform, is decided and critiqued in
-[`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). This section covers what stays here.
-
-**Pros**
-- The authentication contract stays one method. Managed providers map onto it directly, and nothing in core or the host changes for U13.
-- U14 removes a name that misled: the array adapter's list was never only administrators.
-- F20 records the missing sign-in throttling as a core concern, so no adapter is expected to solve it alone.
-
-**Cons & trade-offs**
-- Without a management capability (Q6), every provider's users are managed outside the CMS. For the array adapter that means editing a JSON secret, and a new user takes effect only after the next cold start ([`secrets.md`](secrets.md) *Caching and rotation*).
-- U14 is a rename across templates, the config README and core's configs. Existing development stores holding `GENOACMS_ADMIN_CREDENTIALS` stop authenticating until the key is renamed in them.
-
-**Blindspots & missed edge cases**
-- Until Q5 is decided, every deployed instance, on any stack, accepts unlimited password guesses.
-- Deferring the self-owned identity store leaves AWS and self-hosted stacks with only the plain-text array adapter for production (*Goals and non-goals* non-goal).
