@@ -66,7 +66,7 @@ What the Specifications cover, measured against the reproducibility principle
 
 Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:
 
-- **Core is not built or tested in CI.** Its `vite build` and its vitest setup load `genoa.config/development.ts`, which imports gitignored credential files, so neither runs in a clean checkout. Its Playwright tests need a real GCP project.
+- **Core is not built in CI, and its Playwright tests do not run there.** Its `vite build` loads `genoa.config/development.ts`, which imports gitignored credential files, and its Playwright tests need a real GCP project. Its unit tests do run: under Vitest, `vite.config.ts` points `GENOA_CONFIG` at the committed `genoa.config/test.ts`, whose credentials are `env()` references no test resolves, and no unit test reaches a real service.
 - **`@genoacms/sdk`** passes every test but exits non-zero on vitest's `Timeout calling "onTaskUpdate"`.
 - **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
 - **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
