@@ -14,7 +14,7 @@ function overrideProperty (target, key, value) {
 }
 
 describe('the command table', () => {
-  test.fails('CLI-2: declares every command once, in the menu\'s order, with its default mode', async () => {
+  test('CLI-2: declares every command once, in the menu\'s order, with its default mode', async () => {
     const { COMMANDS } = await import('./commands.js')
     assert.deepEqual(COMMANDS.map(command => [command.name, command.mode ?? null]), [
       ['init', null],
@@ -27,7 +27,7 @@ describe('the command table', () => {
     ])
   })
 
-  test.fails('CLI-18: the menu offers every command, then Exit', async () => {
+  test('CLI-18: the menu offers every command, then Exit', async () => {
     const { COMMANDS } = await import('./commands.js')
     select.mockResolvedValue('exit')
     overrideProperty(process, 'argv', [process.execPath, 'genoa'])

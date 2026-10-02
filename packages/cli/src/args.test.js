@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { parseCliArgs } from './args.js'
 
 describe('parseCliArgs', () => {
-  test.fails('CLI-1: reads the command, the target and every flag', () => {
+  test('CLI-1: reads the command, the target and every flag', () => {
     assert.deepEqual(parseCliArgs(['build', 'gcp', '--config', 'x.ts', '--no-inline']), {
       command: 'build', target: 'gcp', config: 'x.ts', mode: undefined, noInline: true, help: false, version: false
     })
@@ -18,18 +18,18 @@ describe('parseCliArgs', () => {
     assert.equal(parseCliArgs(['run']).command, 'dev')
   })
 
-  test.fails('CLI-1: reads -c and -m as --config and --mode', () => {
+  test('CLI-1: reads -c and -m as --config and --mode', () => {
     const args = parseCliArgs(['deploy', 'gcp', '-c', 'genoa.config/production.ts', '-m', 'production'])
     assert.equal(args.config, 'genoa.config/production.ts')
     assert.equal(args.mode, 'production')
   })
 
-  test.fails('CLI-1: replaces dev and prod with development and production', () => {
+  test('CLI-1: replaces dev and prod with development and production', () => {
     assert.equal(parseCliArgs(['build', '-m', 'dev']).mode, 'development')
     assert.equal(parseCliArgs(['build', '--mode', 'prod']).mode, 'production')
   })
 
-  test.fails('CLI-1: refuses a mode that is neither development nor production', () => {
+  test('CLI-1: refuses a mode that is neither development nor production', () => {
     assert.throws(() => parseCliArgs(['build', '--mode', 'staging']), /^Error: cli\/invalid-mode/)
     assert.throws(() => parseCliArgs(['build', '--mode', 'staging']), {
       message: 'cli/invalid-mode: --mode must be development (dev) or production (prod), not staging'

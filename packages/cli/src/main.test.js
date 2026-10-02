@@ -111,7 +111,7 @@ function developmentOnlyProject () {
 }
 
 describe('genoa', () => {
-  test.fails('CLI-14: prints the usage with -h and --help, and exits 0, outside any project', () => {
+  test('CLI-14: prints the usage with -h and --help, and exits 0, outside any project', () => {
     for (const flag of ['-h', '--help']) {
       const cwd = directory()
       assert.deepEqual(genoa(cwd, flag), { status: 0, stdout: `${USAGE}\n`, stderr: '' }, flag)
@@ -119,7 +119,7 @@ describe('genoa', () => {
     }
   }, 30000)
 
-  test.fails('CLI-15: prints a command\'s usage, with run as dev, without running it', () => {
+  test('CLI-15: prints a command\'s usage, with run as dev, without running it', () => {
     const cwd = directory()
     assert.deepEqual(genoa(cwd, 'deploy', '--help'), { status: 0, stdout: `${DEPLOY_USAGE}\n`, stderr: '' })
     assert.deepEqual(genoa(cwd, '--help', 'deploy'), { status: 0, stdout: `${DEPLOY_USAGE}\n`, stderr: '' })
@@ -135,7 +135,7 @@ describe('genoa', () => {
     assert.deepEqual(readdirSync(cwd), [])
   }, 30000)
 
-  test.fails('CLI-16: prints the version alone, and help wins over it', () => {
+  test('CLI-16: prints the version alone, and help wins over it', () => {
     const cwd = directory()
     assert.deepEqual(genoa(cwd, '-v'), { status: 0, stdout: `${version}\n`, stderr: '' })
     assert.deepEqual(genoa(cwd, '--version'), { status: 0, stdout: `${version}\n`, stderr: '' })
