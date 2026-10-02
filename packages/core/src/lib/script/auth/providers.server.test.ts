@@ -50,12 +50,18 @@ const knowing = (identity: Identity | null): Partial<Adapter> => ({ getIdentity:
 
 let warnings: string[]
 let errors: string[]
+/** Lines on the channels core does not log to: `log`, `info` and `debug`. */
+let others: string[]
 
 beforeEach(() => {
   configured.providers = {}
   calls.length = 0
   warnings = []
   errors = []
+  others = []
+  for (const channel of ['log', 'info', 'debug'] as const) {
+    vi.spyOn(console, channel).mockImplementation((...line: unknown[]) => { others.push(line.join(' ')) })
+  }
   vi.spyOn(console, 'warn').mockImplementation((line: string) => { warnings.push(line) })
   vi.spyOn(console, 'error').mockImplementation((line: string) => { errors.push(line) })
 })
@@ -108,13 +114,13 @@ describe('signing in across providers', () => {
   })
 
   it('AUTHN-5: logs rejections and failures without the email or password', async () => {
-    configured.providers = { a: rejecting('credentials'), b: throwing('authentication/provider-failed: 503 down') }
+    configured.providers = { a: rejecting('credentials'), b: throwing('authentication/provider-failed: 503 down'), c: returning(ada) }
 
     await signIn(EMAIL, PASSWORD)
 
     expect(warnings).toEqual(['[genoacms:auth] provider a rejected the sign-in: credentials'])
     expect(errors).toEqual(['[genoacms:auth] provider b failed: authentication/provider-failed: 503 down'])
-    for (const line of [...warnings, ...errors]) {
+    for (const line of [...warnings, ...errors, ...others]) {
       expect(line).not.toContain(EMAIL)
       expect(line).not.toContain(PASSWORD)
     }
@@ -142,6 +148,9 @@ describe('the trial\'s mixed failures and logs (CS1)', () => {
 
     configured.providers = { a: throwing('authentication/throttled: retry after 30s') }
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'too-many-attempts' })
+
+    configured.providers = { a: throwing('authentication/rate-limited') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
   })
 
   it('AUTHN-5: logs every rejection and every failure', async () => {
@@ -162,6 +171,57 @@ describe('the trial\'s mixed failures and logs (CS1)', () => {
       '[genoacms:auth] provider b failed: authentication/provider-failed: 503 down',
       '[genoacms:auth] provider c failed: authentication/provider-failed: 500 broken'
     ])
+  })
+})
+
+describe('the trial, after CS2', () => {
+  it('AUTHN-5: tries the providers in config order, not sorted order', async () => {
+    configured.providers = { b: rejecting('credentials'), a: returning(ada) }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'a', identity: ada })
+    expect(calls).toEqual(['b.authenticate', 'a.authenticate'])
+  })
+
+  it('AUTHN-5: a second-factor rejection stops the trial and is logged', async () => {
+    configured.providers = { a: rejecting('second-factor-required'), b: returning(ada) }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'invalid-credentials' })
+    expect(calls).toEqual(['a.authenticate'])
+    expect(warnings).toEqual(['[genoacms:auth] provider a rejected the sign-in: second-factor-required'])
+  })
+
+  it('AUTHN-5: several failures, none throttled, read as unavailable', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: throwing('authentication/provider-failed: 500 broken') }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+  })
+
+  it('AUTHN-5: a stopping rejection after a throttled provider fails as invalid credentials', async () => {
+    configured.providers = { a: throwing('authentication/throttled'), b: rejecting('disabled') }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'invalid-credentials' })
+  })
+
+  it('AUTHN-5: a provider that fails to construct is logged', async () => {
+    configured.providers = { a: new Error('provider/secret-unavailable: a') }
+
+    await signIn(EMAIL, PASSWORD)
+
+    expect(errors).toEqual(['[genoacms:auth] provider a failed: provider/secret-unavailable: a'])
+  })
+
+  it('AUTHN-5: returns the provider\'s identity unchanged', async () => {
+    const mixedCase = { subject: 's-ada', email: 'Ada@Example.COM' }
+    configured.providers = { a: returning(mixedCase) }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'a', identity: mixedCase })
+  })
+
+  it.fails('AUTHN-5: no provider configured reads as unavailable', async () => {
+    configured.providers = {}
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+    expect(errors).toEqual(['[genoacms:auth] no authentication provider is configured'])
   })
 })
 
@@ -199,6 +259,42 @@ describe('revalidating a session', () => {
     configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: knowing(null) }
 
     await expect(revalidate(ada.subject, undefined)).rejects.toThrow(/^session\/revalidation-failed: a:/)
+  })
+
+  it('AUTHN-7: a gone identity at the recorded provider is not looked up elsewhere', async () => {
+    configured.providers = { a: knowing(ada), b: knowing(null) }
+
+    expect(await revalidate(ada.subject, 'b')).toBeNull()
+    expect(calls).toEqual(['b.getIdentity'])
+  })
+
+  it('AUTHN-7: the lookup in order follows config order and stops at the first identity', async () => {
+    const atB = { subject: ada.subject, email: 'ada@b.example.com' }
+    configured.providers = { b: knowing(atB), a: knowing(ada) }
+    expect(await revalidate(ada.subject, undefined)).toEqual(atB)
+    expect(calls).toEqual(['b.getIdentity'])
+
+    configured.providers = { a: knowing(ada), b: throwing('authentication/provider-failed: 503 down') }
+    expect(await revalidate(ada.subject, undefined)).toEqual(ada)
+  })
+
+  it.fails('AUTHN-7: a failure in the lookup in order moves on to the next provider', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: knowing(ada) }
+
+    expect(await revalidate(ada.subject, undefined)).toEqual(ada)
+  })
+
+  it('AUTHN-7: a throttled provider fails the revalidation', async () => {
+    configured.providers = { a: knowing(ada), b: throwing('authentication/throttled') }
+
+    await expect(revalidate(ada.subject, 'b')).rejects.toThrow(/^session\/revalidation-failed: b:/)
+  })
+
+  it('AUTHN-7: revalidation returns the provider\'s identity unchanged', async () => {
+    const mixedCase = { subject: ada.subject, email: 'Ada@New.Example.com' }
+    configured.providers = { b: knowing(mixedCase) }
+
+    expect(await revalidate(ada.subject, 'b')).toEqual(mixedCase)
   })
 
   it('AUTHN-7: the lookup in order takes the first identity', async () => {

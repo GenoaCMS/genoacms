@@ -390,6 +390,17 @@ describe('the provider and revalidation', () => {
     expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('rejected')
   })
 
+  it.fails('AUTHN-7: a gone identity whose family cannot be removed fails the refresh', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const storage = await import('$lib/script/storage/storage.server')
+    vi.spyOn(storage, 'deleteInternalObject').mockImplementationOnce(async () => { throw new Error('storage/unavailable') })
+
+    await expect(sessions.refreshSession(started.familyId, started.token, async () => null)).rejects.toThrow('storage/unavailable')
+    expect(await sessions.loadFamily(started.familyId)).toBeDefined()
+    expect(await sessions.refreshSession(started.familyId, started.token, async () => null))
+      .toEqual({ outcome: 'rejected', reason: 'identity-gone' })
+  })
+
   it('AUTHN-7: an unavailable provider keeps the session as it was', async () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
     const before = objects.get(`${sessions.sessionsDirectory}/${started.familyId}.json`)

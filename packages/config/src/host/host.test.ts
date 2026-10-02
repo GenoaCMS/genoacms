@@ -213,9 +213,10 @@ describe('routing and reads', () => {
     const loaded: string[] = []
     const m = manifest()
     const { first, second } = (m.config.authentication as any).providers
-    ;(m.config.authentication as any).providers = { second, first }
+    ;(m.config.authentication as any).providers = { third: first, second, first }
     const host = createHost({ manifest: m, load: async (specifier) => { loaded.push(specifier); return await load(specifier) } })
-    expect(host.authenticationProviderKeys).toEqual(['second', 'first'])
+    expect(host.authenticationProviderKeys).toEqual(['third', 'second', 'first'])
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(loaded).toEqual([])
   })
 })
