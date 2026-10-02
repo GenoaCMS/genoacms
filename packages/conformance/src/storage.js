@@ -40,13 +40,8 @@ function runStorageConformance (adapter, { bucket }) {
         name: fileName
       })
       const responseChunks = []
-      data.on('data', (chunk) => {
-        responseChunks.push(chunk)
-      })
-      data.on('end', () => {
-        const response = Buffer.concat(responseChunks)
-        expect(response.toString()).toEqual(testingString)
-      })
+      for await (const chunk of data) responseChunks.push(chunk)
+      expect(Buffer.concat(responseChunks).toString()).toEqual(testingString)
     })
     it('is deleting uploaded object', async () => {
       const response = await adapter.deleteObject({
