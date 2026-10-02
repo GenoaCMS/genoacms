@@ -128,7 +128,9 @@ array adapter and, in contract runs, the Identity Platform adapter, each with a 
 credential and, where the adapter can hold one, a disabled identity. It checks AUTHN-2 and AUTHN-4;
 AUTHN-3 needs a failing service, so each adapter checks it by fault injection in its own tests, and the
 array adapter has none. Core's part (AUTHN-5 to AUTHN-7) is tested at `unit`, with the host and the
-storage replaced; no `e2e` test signs in through the login page yet.
+storage replaced, and at `e2e`, through the login form and the session cookie of core built and
+served with two array providers, the users of each server run given in its environment. The `e2e` run
+cannot make a provider throttle (`too-many-attempts`), and does not remove a provider from the config.
 
 **CS1, falsification audit of RFC-0030's statements (WORKFLOW §6.3), AUTHN-2 to AUTHN-7 and CONF-4,
 at `5dcc69f`, 2026-10-02.** An agent that wrote neither the code nor the tests, in a separate
@@ -269,14 +271,14 @@ the process's standard output or error, contains the email or the password.
 Core passes the admitted `Identity` on as the provider returned it: the session family and the access
 token carry its subject and its email unchanged.
 
-- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts` (unverified: no e2e test yet)
+- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/e2e/signIn.test.ts`
 - Level: unit, e2e
 
 #### AUTHN-6 · A session records its provider
 
 The session family created at sign-in records the key of the provider whose `Identity` was admitted.
 
-- Test: `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/session.test.ts` (unverified: no e2e test yet)
+- Test: `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/session.test.ts`, `packages/core/e2e/signIn.test.ts`
 - Level: unit, e2e
 
 #### AUTHN-7 · A refresh revalidates the session
@@ -298,7 +300,7 @@ written.
 A request presenting the token that was just superseded, within the grace window, rotates nothing:
 it is not revalidated, and its access token carries the email the family holds.
 
-- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts` (unverified: no e2e test yet)
+- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/e2e/signIn.test.ts`
 - Level: unit, e2e
 
 #### AUTHN-8 · Limits before any provider
