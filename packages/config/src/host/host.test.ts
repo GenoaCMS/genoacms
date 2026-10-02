@@ -211,8 +211,11 @@ describe('routing and reads', () => {
   it('13: lists the authentication provider keys in config key order, constructing nothing', async () => {
     const { load } = runtimes()
     const loaded: string[] = []
-    const host = createHost({ manifest: manifest(), load: async (specifier) => { loaded.push(specifier); return await load(specifier) } })
-    expect(host.authenticationProviderKeys).toEqual(['first', 'second'])
+    const m = manifest()
+    const { first, second } = (m.config.authentication as any).providers
+    ;(m.config.authentication as any).providers = { second, first }
+    const host = createHost({ manifest: m, load: async (specifier) => { loaded.push(specifier); return await load(specifier) } })
+    expect(host.authenticationProviderKeys).toEqual(['second', 'first'])
     expect(loaded).toEqual([])
   })
 })

@@ -19,12 +19,13 @@ function runAuthenticationConformance (adapter, { identity, disabled }) {
     const unknownSubject = `conformance-unknown-${randomUUID()}`
 
     it('AUTHN-2: the fixture\'s credentials return its identity', async () => {
-      const result = await adapter.authenticate(identity.email, identity.password)
-      expect(result).toEqual({ subject: identity.subject, email: expect.any(String) })
+      expect(await adapter.authenticate(identity.email, identity.password)).toEqual({ subject: identity.subject, email: identity.email })
     })
 
     it('AUTHN-2: a wrong password is rejected for credentials', async () => {
-      expect(await adapter.authenticate(identity.email, `${identity.password}-wrong`)).toEqual(credentialsRejected)
+      for (const password of [`${identity.password}-wrong`, '', identity.password.slice(0, -1)]) {
+        expect(await adapter.authenticate(identity.email, password)).toEqual(credentialsRejected)
+      }
     })
 
     it('AUTHN-2: an unknown email is rejected for credentials', async () => {
@@ -36,8 +37,12 @@ function runAuthenticationConformance (adapter, { identity, disabled }) {
       expect([{ rejected: 'disabled' }, credentialsRejected]).toContainEqual(result)
     })
 
+    it.skipIf(disabled === undefined)('AUTHN-2: a disabled identity\'s wrong password is rejected for credentials', async () => {
+      expect(await adapter.authenticate(disabled.email, `${disabled.password}-wrong`)).toEqual(credentialsRejected)
+    })
+
     it('AUTHN-4: getIdentity returns the fixture\'s identity', async () => {
-      expect(await adapter.getIdentity(identity.subject)).toEqual({ subject: identity.subject, email: expect.any(String) })
+      expect(await adapter.getIdentity(identity.subject)).toEqual({ subject: identity.subject, email: identity.email })
     })
 
     it('AUTHN-4: getIdentity returns null for an unknown subject', async () => {

@@ -349,6 +349,20 @@ describe('the provider and revalidation', () => {
     expect((storedRecord(familyId).payload as { provider: string }).provider).toBe('b')
   })
 
+  it('AUTHN-6: the provider survives a rotation', async () => {
+    const started = await sessions.startSession(IDENTITY, 'b')
+    const first = await sessions.refreshSession(started.familyId, started.token, stillKnown)
+    if (first.outcome !== 'refreshed') throw new Error('unreachable')
+
+    expect((storedRecord(started.familyId).payload as { provider: string }).provider).toBe('b')
+    const providers: Array<string | undefined> = []
+    await sessions.refreshSession(started.familyId, first.token, async family => {
+      providers.push(family.provider)
+      return IDENTITY
+    })
+    expect(providers).toEqual(['b'])
+  })
+
   it('AUTHN-6: reads a family written without a provider', async () => {
     const { sign } = await import('$lib/script/signing/envelope')
     const { getCurrentSigningKey } = await import('$lib/script/signing/keyResolution.server')

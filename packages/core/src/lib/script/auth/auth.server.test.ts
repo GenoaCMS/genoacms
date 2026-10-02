@@ -20,7 +20,7 @@ import type { Cookies } from '@sveltejs/kit'
 const COOKIE_NAME = 'session'
 const SESSION_KEY = new Uint8Array(32).fill(7)
 
-vi.mock('$lib/script/host.server', () => ({ host: { get cookieName () { return COOKIE_NAME } } }))
+vi.mock('$lib/script/host.server', () => ({ host: { get cookieName () { return COOKIE_NAME }, authenticationProviderKeys: ['a', 'b'] } }))
 
 vi.mock('$lib/script/signing/rootKey.server', () => ({
   getSessionKey: async () => SESSION_KEY
@@ -42,11 +42,14 @@ vi.mock('$lib/script/securityPolicy/policy.server', () => ({
 const identity = { subject: 'subject-1', email: 'admin@example.com' }
 const credentials: { valid: boolean, failure: 'invalid-credentials' | 'too-many-attempts' | 'sign-in-unavailable' } = { valid: true, failure: 'invalid-credentials' }
 
+const revalidated: unknown[][] = []
+const revalidation: { answer: () => Promise<{ subject: string, email: string } | null> } = { answer: async () => identity }
+
 vi.mock('./providers.server', () => ({
   signIn: async () => credentials.valid
-    ? { outcome: 'signed-in', provider: 'array', identity }
+    ? { outcome: 'signed-in', provider: 'b', identity }
     : { outcome: 'failed', failure: credentials.failure },
-  revalidate: async () => identity
+  revalidate: async (...args: unknown[]) => { revalidated.push(args); return await revalidation.answer() }
 }))
 
 const principal: { known: boolean } = { known: true }
@@ -62,9 +65,19 @@ const startedWith: unknown[][] = []
 const refreshOutcome: { value: unknown } = { value: undefined }
 const revoked: string[] = []
 
+type Revalidate = (family: { subject: string, email: string, provider?: string }) => Promise<{ subject: string, email: string } | null>
+
+/** A current token, answered as AUTHN-7 says, for the tests that set no outcome of their own. */
+async function refreshingCurrent (revalidate: Revalidate): Promise<unknown> {
+  const answer = await revalidate({ subject: identity.subject, email: identity.email, provider: 'b' })
+  if (answer === null) return { outcome: 'rejected', reason: 'identity-gone' }
+  return { outcome: 'refreshed', subject: identity.subject, email: answer.email, token: 'refresh-token-2', expiresAt: EXPIRY }
+}
+
 vi.mock('./session.server', () => ({
   startSession: async (...args: unknown[]) => { startedWith.push(args); return started },
-  refreshSession: async () => refreshOutcome.value,
+  refreshSession: async (_familyId: string, _token: string, revalidate: Revalidate) =>
+    refreshOutcome.value ?? await refreshingCurrent(revalidate),
   revokeSession: async (familyId: string) => { revoked.push(familyId) }
 }))
 
@@ -103,6 +116,8 @@ beforeEach(() => {
   principal.known = true
   refreshOutcome.value = undefined
   revoked.length = 0
+  revalidated.length = 0
+  revalidation.answer = async () => identity
 })
 
 describe('login', () => {
@@ -169,7 +184,7 @@ describe('login', () => {
 
     await login(identity.email, 'password', cookies)
 
-    expect(startedWith).toEqual([[identity, 'array']])
+    expect(startedWith).toEqual([[identity, 'b']])
   })
 })
 
@@ -287,6 +302,52 @@ describe('renewing an expired session', () => {
 
     expect(await authenticateRequest(cookies)).toBeUndefined()
     expect(revoked).toEqual([])
+  })
+})
+
+describe('revalidating at renewal (CS1)', () => {
+  const expiredCookie = async (): Promise<string> => {
+    const { packSessionCookie } = await import('./sessionCookie')
+    return packSessionCookie({
+      accessToken: await accessTokenFor('-1s'),
+      refreshToken: started.token,
+      familyId: started.familyId
+    })
+  }
+
+  it('AUTHN-7: a refresh revalidates the family\'s subject with its recorded provider', async () => {
+    const { authenticateRequest } = await authModule()
+    const { cookies } = cookieJar({ [COOKIE_NAME]: await expiredCookie() })
+
+    expect((await authenticateRequest(cookies))?.sub).toBe(identity.subject)
+    expect(revalidated).toEqual([[identity.subject, 'b']])
+  })
+
+  it('AUTHN-7: a failed revalidation fails the request and leaves the cookie', async () => {
+    revalidation.answer = async () => { throw new Error('session/revalidation-failed: b: down') }
+    const { authenticateRequest } = await authModule()
+    const cookie = await expiredCookie()
+    const { cookies, jar } = cookieJar({ [COOKIE_NAME]: cookie })
+
+    await expect(authenticateRequest(cookies)).rejects.toThrow('session/revalidation-failed: b: down')
+    expect([...jar.entries()]).toEqual([[COOKIE_NAME, cookie]])
+  })
+
+  it('AUTHN-7: the renewed access token carries the email revalidation returned', async () => {
+    revalidation.answer = async () => ({ subject: identity.subject, email: 'ada@new.example.com' })
+    const { authenticateRequest } = await authModule()
+    const { cookies } = cookieJar({ [COOKIE_NAME]: await expiredCookie() })
+
+    expect((await authenticateRequest(cookies))?.email).toBe('ada@new.example.com')
+  })
+
+  it('AUTHN-7: a gone identity clears the session', async () => {
+    revalidation.answer = async () => null
+    const { authenticateRequest } = await authModule()
+    const { cookies, jar } = cookieJar({ [COOKIE_NAME]: await expiredCookie() })
+
+    expect(await authenticateRequest(cookies)).toBeUndefined()
+    expect(jar.size).toBe(0)
   })
 })
 

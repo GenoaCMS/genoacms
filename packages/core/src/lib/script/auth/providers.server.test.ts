@@ -121,6 +121,50 @@ describe('signing in across providers', () => {
   })
 })
 
+describe('the trial\'s mixed failures and logs (CS1)', () => {
+  it('AUTHN-5: a stopping rejection after an outage fails as invalid credentials', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: rejecting('disabled') }
+
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'invalid-credentials' })
+  })
+
+  it('AUTHN-5: a throttled provider reads as too many attempts whatever the others threw', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: throwing('authentication/throttled') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'too-many-attempts' })
+
+    configured.providers = { b: throwing('authentication/throttled'), a: throwing('authentication/provider-failed: 503 down') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'too-many-attempts' })
+  })
+
+  it('AUTHN-5: only a message starting authentication/throttled is throttled', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 429 throttled') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+
+    configured.providers = { a: throwing('authentication/throttled: retry after 30s') }
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'too-many-attempts' })
+  })
+
+  it('AUTHN-5: logs every rejection and every failure', async () => {
+    configured.providers = {
+      a: rejecting('credentials'),
+      b: throwing('authentication/provider-failed: 503 down'),
+      c: throwing('authentication/provider-failed: 500 broken'),
+      d: rejecting('disabled')
+    }
+
+    await signIn(EMAIL, PASSWORD)
+
+    expect(warnings).toEqual([
+      '[genoacms:auth] provider a rejected the sign-in: credentials',
+      '[genoacms:auth] provider d rejected the sign-in: disabled'
+    ])
+    expect(errors).toEqual([
+      '[genoacms:auth] provider b failed: authentication/provider-failed: 503 down',
+      '[genoacms:auth] provider c failed: authentication/provider-failed: 500 broken'
+    ])
+  })
+})
+
 describe('revalidating a session', () => {
   it('AUTHN-7: revalidates with the recorded provider only', async () => {
     configured.providers = { a: knowing(ada), b: knowing(ada) }
@@ -149,5 +193,17 @@ describe('revalidating a session', () => {
     configured.providers = { a: knowing(ada), b: throwing('authentication/provider-failed: 503 down') }
 
     await expect(revalidate(ada.subject, 'b')).rejects.toThrow(/^session\/revalidation-failed: b:/)
+  })
+
+  it('AUTHN-7: a failure during the lookup in order fails the revalidation', async () => {
+    configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: knowing(null) }
+
+    await expect(revalidate(ada.subject, undefined)).rejects.toThrow(/^session\/revalidation-failed: a:/)
+  })
+
+  it('AUTHN-7: the lookup in order takes the first identity', async () => {
+    configured.providers = { a: knowing(ada), b: knowing({ subject: ada.subject, email: 'ada@other.example.com' }) }
+
+    expect(await revalidate(ada.subject, undefined)).toEqual(ada)
   })
 })

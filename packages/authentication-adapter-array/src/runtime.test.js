@@ -30,6 +30,11 @@ describe('the array authentication runtime', () => {
         expect(await provider.getIdentity('nobody')).toBeNull()
     })
 
+    it('AUTHN-4: an email is not a subject', async () => {
+        const provider = runtime.create({ credentials: [ada] }, ctx)
+        expect(await provider.getIdentity('ada@example.com')).toBeNull()
+    })
+
     it('keeps two providers independent', async () => {
         const first = runtime.create({ credentials: [ada] }, ctx)
         const second = runtime.create({ credentials: [{ subject: 's-bob', email: 'bob@example.com', password: 'b' }] }, ctx)
