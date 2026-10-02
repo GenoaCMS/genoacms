@@ -14,7 +14,7 @@ Part of the [GCP adapter architecture](README.md). Markers, IDs and test referen
 ### Role
 
 `@genoacms/adapter-gcp/storage` serves GenoaCMS buckets from Cloud Storage. A provider serves the
-buckets the config assigns to it (`configuration.md` §5.5), and core's storage browser, media fields
+buckets the config assigns to it (`configuration.md`, *Types: the config and the manifest*), and core's storage browser, media fields
 and publication all go through it.
 
 ### Decisions

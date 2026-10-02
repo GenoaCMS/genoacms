@@ -21,6 +21,8 @@ interface SessionFamily {
    * authentic, where an unverified decode would let a forged cookie put any address on screen.
    */
   email: string
+  /** The key of the provider that signed the session in (AUTHN-6). Absent on families written before it was recorded. */
+  provider?: string
   /** Digest of the token that is currently valid. */
   currentHash: string
   /**
@@ -89,9 +91,10 @@ function assessToken (
 }
 
 /** The family record after a successful rotation. The superseded hash is retained for the window. */
-function rotated (family: SessionFamily, nextToken: string, now: number): SessionFamily {
+function rotated (family: SessionFamily, nextToken: string, now: number, email: string): SessionFamily {
   return {
     ...family,
+    email,
     previousHash: family.currentHash,
     rotatedAt: now,
     currentHash: hashToken(nextToken),
@@ -103,6 +106,7 @@ function newFamily (
   familyId: string,
   subject: string,
   email: string,
+  provider: string,
   token: string,
   now: number,
   lifetimeDays: number
@@ -111,6 +115,7 @@ function newFamily (
     familyId,
     subject,
     email,
+    provider,
     currentHash: hashToken(token),
     generation: 1,
     createdAt: now,
@@ -128,11 +133,12 @@ const isTimestamp = (value: unknown): value is number =>
 /** Parses a stored family record. A malformed one is rejected, never partially believed. */
 function parseSessionFamily (payload: unknown): SessionFamily | undefined {
   if (!isPlainObject(payload)) return undefined
-  const { familyId, subject, email, currentHash, previousHash, rotatedAt, generation, createdAt, expiresAt, ...rest } = payload
+  const { familyId, subject, email, provider, currentHash, previousHash, rotatedAt, generation, createdAt, expiresAt, ...rest } = payload
   if (Object.keys(rest).length > 0) return undefined
   if (typeof familyId !== 'string' || familyId.length === 0) return undefined
   if (typeof subject !== 'string' || subject.length === 0) return undefined
   if (typeof email !== 'string') return undefined
+  if (provider !== undefined && (typeof provider !== 'string' || provider.length === 0)) return undefined
   if (typeof currentHash !== 'string' || currentHash.length === 0) return undefined
   if (previousHash !== undefined && typeof previousHash !== 'string') return undefined
   if (rotatedAt !== undefined && !isTimestamp(rotatedAt)) return undefined
@@ -140,6 +146,7 @@ function parseSessionFamily (payload: unknown): SessionFamily | undefined {
   if (!isTimestamp(createdAt) || !isTimestamp(expiresAt)) return undefined
 
   const family: SessionFamily = { familyId, subject, email, currentHash, generation, createdAt, expiresAt }
+  if (provider !== undefined) family.provider = provider
   if (previousHash !== undefined) family.previousHash = previousHash
   if (rotatedAt !== undefined) family.rotatedAt = rotatedAt
   return family

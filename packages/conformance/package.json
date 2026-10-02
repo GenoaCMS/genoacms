@@ -1,7 +1,7 @@
 {
   "name": "@genoacms/conformance",
   "version": "0.0.1",
-  "description": "Conformance suites every GenoaCMS storage and database adapter must pass",
+  "description": "Conformance suites every GenoaCMS storage, database and authentication adapter must pass",
   "type": "module",
   "author": {
     "name": "Filip Holčík",
@@ -26,7 +26,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@genoacms/contracts": "workspace:^"
+    "@genoacms/contracts": "workspace:^",
+    "fast-check": "^4.10.2"
   },
   "peerDependencies": {
     "vitest": "^3.0.0"

@@ -11,6 +11,21 @@ interface Identity {
   email: string
 }
 
+/**
+ * Why a provider refused a sign-in (AUTHN-2).
+ *
+ * `credentials` covers an unknown email and a wrong password alike, and is the reason whenever the
+ * provider cannot tell. The other two are reported only once the password is known to be right.
+ */
+type RejectionReason = 'credentials' | 'disabled' | 'second-factor-required'
+
+/** A refused sign-in. Core shows the user one message for every reason, and logs the reason. */
+interface Rejection {
+  readonly rejected: RejectionReason
+}
+
 export type {
-  Identity
+  Identity,
+  Rejection,
+  RejectionReason
 }

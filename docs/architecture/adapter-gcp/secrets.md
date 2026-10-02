@@ -14,9 +14,9 @@ Part of the [GCP adapter architecture](README.md). Markers, IDs and test referen
 ### Role
 
 `@genoacms/adapter-gcp/secrets` is the production secrets store on GCP. The host resolves `secret()`
-references through it (`configuration.md` §6), and core reads and writes its own signing material
+references through it (`secrets.md`), and core reads and writes its own signing material
 through it directly: the root seed, the registry sequence and the subordinate seeds
-(`configuration.md` §6.3). Only one secrets provider may be configured (`configuration.md` non-goal).
+(`secrets.md`, *Bootstrap ordering*). Only one secrets provider may be configured (`secrets.md`, non-goal).
 
 **Who overwrites.** `setSecret` is called by root rotation (`GENOACMS_ROOT_KEY_SEED`, once per
 rotation) and by the registry sequence (`GENOACMS_KEY_REGISTRY_SEQUENCE`, on every change to the key

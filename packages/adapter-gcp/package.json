@@ -34,7 +34,8 @@
     "@google-cloud/storage": "^7.7.0",
     "archiver": "^7.0.0",
     "@genoacms/contracts": "workspace:^",
-    "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^"
+    "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^",
+    "google-auth-library": "^9.15.1"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.2",
@@ -76,6 +77,14 @@
     "./secrets/runtime": {
       "types": "./dist/secrets/runtime.d.ts",
       "import": "./dist/secrets/runtime.js"
+    },
+    "./authentication/identity-platform": {
+      "types": "./dist/authentication/identity-platform/descriptor.d.ts",
+      "import": "./dist/authentication/identity-platform/descriptor.js"
+    },
+    "./authentication/identity-platform/runtime": {
+      "types": "./dist/authentication/identity-platform/runtime.d.ts",
+      "import": "./dist/authentication/identity-platform/runtime.js"
     },
     "./deployment": {
       "types": "./dist/deployment/descriptor.d.ts",

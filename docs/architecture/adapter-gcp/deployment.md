@@ -23,7 +23,7 @@ make that:
 genoa build gcp                          genoa deploy gcp
   vite build ──SvelteKit adapter──▶ .genoacms/build/   ──procedure──▶ Cloud Functions API
                                     + package.json, vendor/          ──▶ Cloud Build (buildpacks: npm install)
-                                    (configuration.md D6, D9)        ──▶ Cloud Run service
+                                    (build.md D6, D9)                ──▶ Cloud Run service
 ```
 
 The SvelteKit adapter is a fork of `@sveltejs/adapter-node`'s shape for a function, which has no
@@ -33,7 +33,7 @@ server of its own to start: the Functions Framework calls an exported handler.
 
 **GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).** DEP-9 to DEP-12.
 *Why:* a deploy that reports success when the platform rejected it is worse than no report, and a
-buildpack install failure (`configuration.md` D9 critique) is exactly the case that must surface.
+buildpack install failure (`build.md` D9, its *Cost:*) is exactly the case that must surface.
 *Cost:* `genoa deploy` takes as long as Cloud Build, a few minutes, instead of returning after the upload.
 An interrupted CLI leaves the operation running on Google's side, and a deploy started meanwhile may
 fail with a conflict until it ends. The client library's polling timeout bounds how long a build may
@@ -62,7 +62,7 @@ RFC-0023. DEP-14, ADP-5, ADP-6, ADP-7.
 - The rest of adapter-node's variables are dropped from `env.js`: `BODY_SIZE_LIMIT` is moot because the Functions Framework has already read the body, and the others describe a server this adapter does not start.
 - The address and origin logic moves into a module with no build-time placeholders, so it can be unit-tested, and the adapter's test script runs again (GF11).
 
-*Why:* the client address is what sign-in throttling will key on (`configuration.md` Q5), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
+*Why:* the client address is what sign-in throttling will key on (`contracts/authentication.md` CQ1), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
 *Cost:* two more target options. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
 
 **GD8. The deploy disables the Functions Framework's ignored routes (GU8; DEP-10; GF20).** The
@@ -88,7 +88,7 @@ leave the machine (`configuration.md` F9, F15).
 | GF2 | *History.* The upload's HTTP status was never checked, so a rejected upload continued to `createFunction`. | fixed, RFC-0021 |
 | GF3 | *History.* `nodejs20` (end of life April 2026), one instance, ingress `ALLOW_ALL`, and no memory, timeout or service account, all hardcoded. The function ran as the default compute account. | fixed, RFC-0021 |
 | GF6 | *History.* Any error from `getFunction` counted as "does not exist" and led to a misleading `createFunction`. | fixed, RFC-0021 |
-| GF7 | *History.* **`getClientAddress` returned the whole `X-Forwarded-For` header** (ADP-6). Behind Google's front end it is a comma-separated list whose first entries the client can set. Anything that trusts it as "the client's address", which sign-in throttling would (`configuration.md` Q5), must take the entry Google appended, the last one. Q5 decides who reads it. | fixed, RFC-0023 |
+| GF7 | *History.* **`getClientAddress` returned the whole `X-Forwarded-For` header** (ADP-6). Behind Google's front end it is a comma-separated list whose first entries the client can set. Anything that trusts it as "the client's address", which sign-in throttling would (`contracts/authentication.md` CQ1), must take the entry Google appended, the last one. Q5 decides who reads it. | fixed, RFC-0023 |
 | GF11 | *History.* **The SvelteKit adapter's tests were disabled and stale.** Its `test` script only echoes `tests temporarily disabled`, and `tests/smoke.spec.js` imports `create_kit_middleware`, which the handler no longer exports. Every `ADP` statement is unverified by tests. The live deploy exercises them together, not one by one. | fixed: ADP-5 to ADP-7 by RFC-0023, ADP-1 to ADP-4 by RFC-0025 |
 | GF14 | *History.* **`env.js` was dead code.** The adapter copies `env.js`, adapter-node's reader for `ORIGIN`, `XFF_DEPTH`, `ADDRESS_HEADER`, `BODY_SIZE_LIMIT` and similar variables, but the handler never imports it. The `envPrefix` option and all those variables have no effect. The origin comes only from forwarded headers (ADP-5). | fixed, RFC-0023 |
 | GF17 | *History.* **The deploy procedure has no contract test** against the Cloud Functions API (DEP-8 to DEP-13). Their level includes `contract`; GS2 checks GD1 once, by hand. Until they exist, the results checker fails on every push to `main`, which is therefore not releasable (author, 2026-09-28: the level is kept, not lowered). | fixed, RFC-0025 |

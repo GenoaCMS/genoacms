@@ -27,6 +27,17 @@ const created: string[] = []
 /** What storage holds. Absent by default; set by the deletion tests to the kind under test. */
 let stored: { uid: string, type: string, name: string } | null = null
 
+vi.mock('./publication/io.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./publication/io.server')>(),
+  deleteComponentPublications: async () => {}
+}))
+
+vi.mock('./page/tree/dependents.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./page/tree/dependents.server')>(),
+  requireNoPublishedDependents: async () => {},
+  listPagesPinning: async () => []
+}))
+
 vi.mock('./componentHeader/io.server', () => ({
   uploadComponentHeader: async (header: { uid: string, type: string, name: string }) => {
     created.push(`header:${header.type}:${header.name}`)

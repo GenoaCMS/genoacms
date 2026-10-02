@@ -23,6 +23,17 @@ const calls: string[] = []
 let stored: { uid: string, type: string, name: string } | null =
   { uid: 'hero', type: 'prebuilt', name: 'Hero' }
 
+vi.mock('../publication/io.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../publication/io.server')>(),
+  deleteComponentPublications: async () => {}
+}))
+
+vi.mock('../page/tree/dependents.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../page/tree/dependents.server')>(),
+  requireNoPublishedDependents: async () => {},
+  listPagesPinning: async () => []
+}))
+
 vi.mock('./io.server', () => ({
   listOrCreateComponentHeaderList: async () => {
     calls.push('list')

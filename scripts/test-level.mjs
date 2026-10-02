@@ -16,9 +16,10 @@ const GCP_ARCHIVE_TESTS = 'src/deployment/archive.test.ts'
 const AWS_STAGE_TESTS = 'src/deployment/stage.test.ts'
 const CLI_MAIN_TESTS = 'src/main.test.js'
 const INTEGRATION_TESTS = { '@genoacms/adapter-gcp': GCP_ARCHIVE_TESTS, '@genoacms/adapter-aws': AWS_STAGE_TESTS, '@genoacms/cli': CLI_MAIN_TESTS }
-const EXCLUDED_FROM_UNIT = new Set(['@genoacms/core', '@genoacms/conformance'])
+const EXCLUDED_FROM_UNIT = new Set(['@genoacms/conformance'])
+const SVELTEKIT_PACKAGES = { '@genoacms/core': 'genoa.config/test.ts' }
 
-const runsVitest = (manifest) => /\bvitest\b/.test(manifest.scripts?.test ?? '')
+const runsVitest = (manifest) => /\bvitest\b/.test(manifest.scripts?.['test:unit'] ?? manifest.scripts?.test ?? '')
 
 function workspacePackages () {
   return readdirSync('packages')
@@ -32,6 +33,7 @@ function unitRuns () {
     .filter(({ manifest }) => runsVitest(manifest) && !EXCLUDED_FROM_UNIT.has(manifest.name))
     .map(({ dir, manifest }) => ({
       dir,
+      sveltekitConfig: SVELTEKIT_PACKAGES[manifest.name],
       args: ['--exclude', REAL_SERVICE_TESTS, '--exclude', END_TO_END_TESTS, ...(manifest.name in INTEGRATION_TESTS ? ['--exclude', INTEGRATION_TESTS[manifest.name]] : [])]
     }))
 }
@@ -39,7 +41,7 @@ function unitRuns () {
 function endToEndRuns () {
   return workspacePackages()
     .filter(({ dir, manifest }) => runsVitest(manifest) && existsSync(join(dir, 'e2e')))
-    .map(({ dir }) => ({ dir, args: ['--mode', 'e2e', 'e2e'] }))
+    .map(({ dir, manifest }) => ({ dir, sveltekitConfig: SVELTEKIT_PACKAGES[manifest.name], args: ['--mode', 'e2e', 'e2e'] }))
 }
 
 const RUNS = {
@@ -51,7 +53,8 @@ const RUNS = {
   ],
   conformance: () => [
     { dir: 'packages/conformance', args: [] },
-    { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] }
+    { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] },
+    { dir: 'packages/authentication-adapter-array', args: ['test/conformance.test.js'] }
   ],
   contract: () => [
     { dir: 'packages/adapter-gcp', args: ['test/conformance.test.ts', 'test/contract'] },
@@ -66,7 +69,13 @@ function reportPath (level, dir) {
   return join(directory, `${dir.replaceAll('/', '-')}.xml`)
 }
 
-function runVitest (level, { dir, args }) {
+function syncSvelteKit (dir, config) {
+  const environment = { ...process.env, GENOA_MODE: 'development', GENOA_CONFIG: resolve(dir, config) }
+  return spawnSync('pnpm', ['exec', 'svelte-kit', 'sync'], { cwd: dir, stdio: 'inherit', env: environment }).status === 0
+}
+
+function runVitest (level, { dir, args, sveltekitConfig }) {
+  if (sveltekitConfig !== undefined && !syncSvelteKit(dir, sveltekitConfig)) return false
   const reporterArgs = ['--reporter=default', '--reporter=junit', `--outputFile.junit=${reportPath(level, dir)}`, '--passWithNoTests']
   const result = spawnSync('pnpm', ['exec', 'vitest', 'run', ...args, ...reporterArgs], { cwd: dir, stdio: 'inherit' })
   return result.status === 0

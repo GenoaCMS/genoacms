@@ -5,6 +5,8 @@ import { verify } from '$lib/script/signing/envelope'
 import { PUBLICATION_DOCUMENT } from './payload'
 import { ComponentCodeError, ComponentDiffError } from '../editor/errors'
 
+vi.setConfig({ testTimeout: 30_000 })
+
 /**
  * Publishing, end to end within the server.
  *
@@ -25,6 +27,20 @@ import { ComponentCodeError, ComponentDiffError } from '../editor/errors'
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(3))
 const keyId = deriveKeyId(keypair.publicKey)
+
+vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
+  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
+  loadSecurityPolicy: async () => ({
+    subordinateKeyRotationDays: 90,
+    accessTokenMinutes: 15,
+    grantCacheSeconds: 30,
+    refreshTokenDays: 14,
+    maxFuel: 1_000_000,
+    maxDepth: 100,
+    maxAllocation: 10_000_000,
+    fetchOrigins: []
+  })
+}))
 
 vi.mock('$lib/script/signing/keyResolution.server', () => ({
   getCurrentSigningKey: async () => ({

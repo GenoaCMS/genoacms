@@ -208,13 +208,16 @@ describe('routing and reads', () => {
     expect(host.authorization.roles).toEqual({ Editor: [] })
   })
 
-  it('13: constructs every authentication provider in key order, failing if one fails', async () => {
-    const { load, modules } = runtimes()
-    const providers = await createHost({ manifest: manifest(), load }).authenticationProviders() as any[]
-    expect(providers.map(p => p.options.token)).toEqual(['one', 'two'])
-
-    modules['mem/auth/runtime'].create = (options: any) => { if (options.token === 'two') throw new Error('down'); return {} }
-    await expect(createHost({ manifest: manifest(), load }).authenticationProviders()).rejects.toThrow('down')
+  it('13: lists the authentication provider keys in config key order, constructing nothing', async () => {
+    const { load } = runtimes()
+    const loaded: string[] = []
+    const m = manifest()
+    const { first, second } = (m.config.authentication as any).providers
+    ;(m.config.authentication as any).providers = { third: first, second, first }
+    const host = createHost({ manifest: m, load: async (specifier) => { loaded.push(specifier); return await load(specifier) } })
+    expect(host.authenticationProviderKeys).toEqual(['third', 'second', 'first'])
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(loaded).toEqual([])
   })
 })
 

@@ -42,4 +42,4 @@ The secrets provider resolves every `secret()`, so it cannot be configured with 
 `defineSecretsAdapter` refuses, at compile time, an options type with a `Secret<T>` field anywhere in
 it; use `BootstrapSecret<T>` (`env()` or `inline()` only).
 
-See [`docs/architecture/configuration.md`](../../docs/architecture/configuration.md).
+See [`docs/architecture/contracts/`](../../docs/architecture/contracts/README.md).

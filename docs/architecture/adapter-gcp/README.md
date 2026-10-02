@@ -21,12 +21,14 @@ Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID prefix is `G`.
 the statements it checks in its title (`WORKFLOW.md` §6.2). `packages/adapter-gcp/test/conformance.test.ts`
 runs `@genoacms/conformance` against real GCP, only with `GENOACMS_TEST_GCP=1`.
 
-**Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
-this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
-secret references (D5), the artifact (D6, D9) and deployment targets (§7). It stays authoritative for
-all of that. These documents cover only what is specific to GCP. If they disagree on the adapter
-model, `configuration.md` wins. If they disagree on a GCP detail, these documents win, and
-`configuration.md` is corrected to point here.
+**Relation to the platform documents.** They define what this package implements: descriptors,
+runtimes and bare-specifier loading ([`contracts/adapter-model.md`](../contracts/adapter-model.md)
+D2, D4), the service contracts ([`contracts/`](../contracts/README.md)), the host
+([`host.md`](../host.md) D3), secret references ([`secrets.md`](../secrets.md) D5), and the artifact
+and deployment targets ([`build.md`](../build.md) D6, D9). They stay authoritative for all of that.
+These documents cover only what is specific to GCP. If they disagree on the adapter model or a
+contract, those documents win. If they disagree on a GCP detail, these documents win, and the other
+is corrected to point here.
 
 ### Documents
 
@@ -37,19 +39,23 @@ model, `configuration.md` wins. If they disagree on a GCP detail, these document
 | [`database.md`](database.md) | DB | Firestore |
 | [`secrets.md`](secrets.md) | SEC | Secret Manager |
 | [`deployment.md`](deployment.md) | DEP, ADP | Cloud Run functions, the deploy procedure, the SvelteKit adapter |
-| [`authentication.md`](authentication.md) | AUTH | Identity Platform |
+| [`authentication-identity-platform.md`](authentication-identity-platform.md) | AUTH | Identity Platform |
+| [`authentication-firestore.md`](authentication-firestore.md) | FAUTH | the Firestore identity store |
 
 ### Decisions
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
-| GU1 | Production authentication on GCP uses **Identity Platform**. GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication.md`](authentication.md) GD2 |
+| GU1 | Production authentication on GCP uses **Identity Platform** or, since GU9, the **Firestore identity store**. With Identity Platform, GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication-identity-platform.md`](authentication-identity-platform.md) GD2 |
 | GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | Identities |
 | GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), IAM, [`secrets.md`](secrets.md) |
 | GU5 | 2026-09-29: SEC-9 and SEC-10 are verified at `unit` only. They describe the adapter's own handling, which the real service cannot provoke or show (RFC-0025). | [`secrets.md`](secrets.md) |
 | GU6 | 2026-09-29: the contract tests run in production's project `genoacms`, confined to names unique to each run and removed after it, rather than in a separate project. | Verification |
 | GU7 | 2026-09-29: the deploy contract tests create, update and delete a function on every push to `main`, as the only real check of GD1. | [`deployment.md`](deployment.md) |
 | GU8 | 2026-10-01: RFC-0027 fixes GF10, GF20 to GF26 and GF28 together. Directory operations become bounded and stop at the first failure (GD7); the deploy disables the framework's ignored routes (GD8). | [`storage.md`](storage.md) GD7, [`deployment.md`](deployment.md) GD8 |
+| GU9 | 2026-10-02: GCP offers two authentication adapters, chosen by the operator per deployment: `./authentication/identity-platform` (GD2) and `./authentication/firestore`, a self-owned identity store that hashes passwords as [`identities.md`](../identities.md) specifies (GD9). | [`authentication-firestore.md`](authentication-firestore.md) |
+| GU10 | 2026-10-02: the Identity Platform adapter serves plain Firebase Authentication as well, with no option to choose between them: both are one service behind one API, and Identity Platform is Firebase Authentication upgraded. Only `tenantId` needs the upgrade. GS1 runs in `genoacms`, on its Firebase Authentication, with throwaway users removed after each run (GU6). | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GU11 | 2026-10-02: the Identity Platform adapter (GD2) is implemented from Google's reference documentation, before GS1 runs. GS1 confirms it afterwards; a contradiction reopens the statement it contradicts. | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
@@ -66,9 +72,9 @@ partial failure leaves behind (GF10).
 
 ### The package
 
-`@genoacms/adapter-gcp` implements four GenoaCMS services on Google Cloud, plus one planned. Each is a
+`@genoacms/adapter-gcp` implements four GenoaCMS services on Google Cloud, plus authentication, planned as two adapters. Each is a
 descriptor, which the build loads and which imports no SDK, and a runtime, which the host constructs
-per provider (`configuration.md` D2, D3).
+per provider (`contracts/adapter-model.md` D2, `host.md` D3).
 
 | Export | Google service | Document |
 | :-- | :-- | :-- |
@@ -76,7 +82,8 @@ per provider (`configuration.md` D2, D3).
 | `./database`, `./database/runtime` | Firestore (native mode) | [`database.md`](database.md) |
 | `./secrets`, `./secrets/runtime` | Secret Manager | [`secrets.md`](secrets.md) |
 | `./deployment` (descriptor and procedure; no runtime) | Cloud Run functions (2nd gen) | [`deployment.md`](deployment.md) |
-| **New** `./authentication`, `./authentication/runtime` | Identity Platform | [`authentication.md`](authentication.md) |
+| **New** `./authentication/identity-platform`, `./authentication/identity-platform/runtime` | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| **New** `./authentication/firestore`, `./authentication/firestore/runtime` | Firestore (native mode), its own database | [`authentication-firestore.md`](authentication-firestore.md) |
 
 What every service shares is specified once, in COM-1 to COM-4 at the end of this README.
 
@@ -113,7 +120,8 @@ nowhere, and the broad default compute service account hid them.
 | Runtime | read and write documents | the configured Firestore database | [`database.md`](database.md) |
 | Runtime | get and create secrets, add and access versions | the project's Secret Manager | core creates its signing seeds on first start ([`secrets.md`](secrets.md)) |
 | Runtime | list and destroy secret versions | the project's Secret Manager | superseded versions are destroyed (GD4). Without it, overwrites warn and versions accumulate. |
-| Runtime | **New** (GD2): sign users in, as an IAM grant or an API key (GS1a) | Identity Platform | [`authentication.md`](authentication.md) |
+| Runtime | **New** (GD2): sign users in, as an IAM grant or an API key (GS1a) | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| Runtime | **New** (GD9): read and write documents | the identity database (GD10) | [`authentication-firestore.md`](authentication-firestore.md) |
 | Operator | create, get and update functions; generate upload URLs; wait on operations | the project and region | [`deployment.md`](deployment.md) |
 | Operator | act as the runtime service account (`iam.serviceAccounts.actAs`) | the runtime service account | a function can only be deployed to run as an account its deployer may use |
 
@@ -154,7 +162,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 - **2026-08**: moved into the monorepo; the authorization service was removed from the abstraction (core owns authorization); a Secret Manager secrets service with atomic claims and generation preconditions on storage were added.
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
 - **2026-09-28, later**: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` (RFC-0023), and every current runtime statement got a unit test (RFC-0024).
-- **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
+- **2026-09-28**: vendored runtime packages (`build.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
 - **2026-10-01** (RFC-0027): the open findings GF10 and GF20 to GF26 were fixed, with two more that its audits found (GF29, GF30): bounded directory operations (GD7), the framework's ignored routes disabled (GD8), and the missing tests.
 
 ---
@@ -165,7 +173,7 @@ Every `G` ID, where it lives, and its state.
 
 | ID | Summary | State | Document |
 | :-- | :-- | :-- | :-- |
-| GU1 | Identity Platform authenticates on GCP | decided | [`authentication.md`](authentication.md) |
+| GU1 | Identity Platform, or the Firestore store (GU9), authenticates on GCP | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU2 | ADC at runtime; keys only for deploy | current | README |
 | GU3 | Deployment and secrets fixes approved | decided | README |
 | GU4 | `ORIGIN` and `XFF_DEPTH` over the alternatives | decided | README |
@@ -173,14 +181,20 @@ Every `G` ID, where it lives, and its state.
 | GU6 | Contract tests in production's project, confined per run | decided | README |
 | GU7 | A real deploy on every push to `main` | decided | [`deployment.md`](deployment.md) |
 | GU8 | RFC-0027's scope; bounded directory operations | decided | [`storage.md`](storage.md), [`deployment.md`](deployment.md) |
+| GU9 | Two authentication adapters: Identity Platform and Firestore | decided | [`authentication-firestore.md`](authentication-firestore.md) |
+| GU10 | Firebase Authentication served too, no toggle; GS1 in `genoacms` | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GU11 | Identity Platform implemented before GS1, which confirms it | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
-| GD2 | Identity Platform authentication adapter | new, after GS1 | [`authentication.md`](authentication.md) |
+| GD2 | Identity Platform authentication adapter | new, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
 | GD6 | Every current runtime statement has a unit test | current, RFC-0024 | README |
 | GD7 | Directory operations are bounded and stop at the first failure | current, RFC-0027 | [`storage.md`](storage.md) |
 | GD8 | The deploy disables the framework's ignored routes | current, RFC-0027 | [`deployment.md`](deployment.md) |
+| GD9 | Firestore identity store | new, after CD7 and CQ2 | [`authentication-firestore.md`](authentication-firestore.md) |
+| GD10 | Identities in their own Firestore database | new | [`authentication-firestore.md`](authentication-firestore.md) |
+| GD11 | Unique emails through a collection keyed by the email's hash | new | [`authentication-firestore.md`](authentication-firestore.md) |
 | GF1 | The deploy reported success before the function was built | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF2 | The upload ignored the HTTP status | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF3 | Function settings were hardcoded | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
@@ -211,7 +225,8 @@ Every `G` ID, where it lives, and its state.
 | GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | fixed, RFC-0027 | [`deployment.md`](deployment.md) |
 | GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
 | GF28 | DB-3's reasoning assumes CMS users define collections | fixed: the reason corrected | [`database.md`](database.md) |
-| GS1 | Identity Platform behavior | not run | [`authentication.md`](authentication.md) |
+| GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
+| GS1 | Identity Platform behavior | not run | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
 | GS4 | Version destruction and its recovery window (live) | automated, RFC-0025 | [`secrets.md`](secrets.md) |
@@ -220,6 +235,7 @@ Every `G` ID, where it lives, and its state.
 | GS7 | The deployed framework serves `/favicon.ico` through the handler (live) | not run (author) | [`deployment.md`](deployment.md) |
 | GS8 | Falsification audit of RFC-0027's statements | run at `63891bd`; findings GF29, GF30 | README |
 | GS9 | Falsification audit of STO-9 and STO-11 as amended | run at `f771062`; finding GF30 | README |
+| GS10 | 32 MiB per hash fits beside core on default memory (live) | not run | [`authentication-firestore.md`](authentication-firestore.md) |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

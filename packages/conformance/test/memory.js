@@ -85,4 +85,24 @@ function memoryDatabase () {
   }
 }
 
-export { memoryStorage, memoryDatabase }
+/**
+ * @param {Array<{ subject: string, email: string, password: string, disabled?: boolean }>} identities
+ * @returns {import('@genoacms/contracts/authentication').Adapter}
+ */
+function memoryAuthentication (identities) {
+  const identityOf = ({ subject, email }) => ({ subject, email })
+  return {
+    async authenticate (email, password) {
+      const entry = identities.find(identity => identity.email === email)
+      if (entry === undefined || entry.password !== password) return { rejected: 'credentials' }
+      if (entry.disabled === true) return { rejected: 'disabled' }
+      return identityOf(entry)
+    },
+    async getIdentity (subject) {
+      const entry = identities.find(identity => identity.subject === subject)
+      return entry === undefined || entry.disabled === true ? null : identityOf(entry)
+    }
+  }
+}
+
+export { memoryStorage, memoryDatabase, memoryAuthentication }

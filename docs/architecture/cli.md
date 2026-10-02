@@ -15,9 +15,10 @@ verified: 45bc5c1
 `@genoacms/cli` is the operator's tool: the `genoa` command. It scaffolds a project (`init`), runs
 it locally (`dev`), builds and deploys it (`build`, `deploy`), and runs the operator tasks that must
 not sit behind a CMS session (`rotate-root`, `roles`, `database`). It drives core's own Vite and
-SvelteKit and passes them the facts they need through the environment (`configuration.md` D7). The
-config file format, the loader's rules and the deployment targets belong to
-[`configuration.md`](configuration.md); this document covers what the operator types and sees.
+SvelteKit and passes them the facts they need through the environment (`build.md` D7). The
+config file format and the loader's rules belong to [`configuration.md`](configuration.md), and the
+build, the artifact and the deployment targets to [`build.md`](build.md); this document covers what
+the operator types and sees.
 
 ```
 genoa <command> [target] [flags]
@@ -33,7 +34,7 @@ genoa <command> [target] [flags]
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
-| LU1 | 2026-10-02: the CLI has its own Specification, this document, covering every command as it is, drift-audited against the code. `configuration.md` §9 points here for the CLI. | this document |
+| LU1 | 2026-10-02: the CLI has its own Specification, this document, covering every command as it is, drift-audited against the code. `configuration.md` §9, since 2026-10-02 the lifecycle in `build.md`, points here for the CLI. | this document |
 | LU2 | 2026-10-02: the CLI answers `-h`/`--help` with the usage of every command, `<command> --help` with that command's, and `-v`/`--version` with its version; an unknown command is an error with the usage, not the menu. A terminal without a command still opens the menu. | LD1 to LD3 |
 | LU3 | 2026-10-02: when a production run refuses a development-only adapter of the config the default lookup found, the CLI names that file and says how to name the production config. The default lookup itself is unchanged (`configuration.md` U12). | LD4 |
 | LU4 | 2026-10-02: `-c` is short for `--config` and `-m` for `--mode`, and `--mode` also takes `dev` for `development` and `prod` for `production`. | CLI-1 |
@@ -133,7 +134,7 @@ Any error of a command is printed to standard error as its message alone, and th
 
 #### CLI-5 · Environment for Vite
 
-`dev`, `build` and `rotate-root` hand Vite `GENOA_PROJECT` (the root) and `GENOA_MODE`, plus `GENOA_CONFIG` (the resolved `--config`) only when `--config` is given and `GENOA_TARGET` only for `build`; an unset value is never an empty string (`configuration.md` D7). No `GENOA_*` variable of the CLI's own environment reaches Vite: those it does not set are removed (LF12). Vite runs from core's own installation, with core as its working directory; a non-zero exit fails with `cli/vite-failed: vite <arguments> exited with <code>`.
+`dev`, `build` and `rotate-root` hand Vite `GENOA_PROJECT` (the root) and `GENOA_MODE`, plus `GENOA_CONFIG` (the resolved `--config`) only when `--config` is given and `GENOA_TARGET` only for `build`; an unset value is never an empty string (`build.md` D7). No `GENOA_*` variable of the CLI's own environment reaches Vite: those it does not set are removed (LF12). Vite runs from core's own installation, with core as its working directory; a non-zero exit fails with `cli/vite-failed: vite <arguments> exited with <code>`.
 
 - Test: `packages/cli/src/environment.test.js`, `packages/cli/src/vite.test.js`
 - Level: unit
@@ -149,7 +150,7 @@ Runs `vite dev --host` in core.
 
 #### CLI-7 · build
 
-Loads the config with the mode, refusing inline values with `--no-inline` (`configuration.md` §5.5). The target is the positional target, else `deployment.default`, else the first declared target. A config without targets fails with the `ConfigError` `config/no-deployment-target`, and an undeclared target with `config/unknown-target`, whose issue at `deployment.targets` reads `<target> is not a deployment target; known: <names>`. It runs `vite build` in core, then writes the artifact's `package.json` into `<root>/.genoacms/build` (`configuration.md` D9), warning about every import the dependency scan cannot see and listing the packages packed into the artifact.
+Loads the config with the mode, refusing inline values with `--no-inline` (`configuration.md` §5.5). The target is the positional target, else `deployment.default`, else the first declared target. A config without targets fails with the `ConfigError` `config/no-deployment-target`, and an undeclared target with `config/unknown-target`, whose issue at `deployment.targets` reads `<target> is not a deployment target; known: <names>`. It runs `vite build` in core, then writes the artifact's `package.json` into `<root>/.genoacms/build` (`build.md` D9), warning about every import the dependency scan cannot see and listing the packages packed into the artifact.
 
 - Test: `packages/cli/src/build.test.js`
 - Level: unit

@@ -23,8 +23,8 @@ reference carrying a collection name.
 ### Decisions
 
 **Names pass through unchanged (DB-3).** A GenoaCMS collection is the Firestore collection of the same
-name. So any collection name reaches Firestore. A future identity store in Firestore
-(`configuration.md` U13, deferred) must therefore live in a separate Firestore database that no
+name. So any collection name reaches Firestore. The Firestore identity store
+([`authentication-firestore.md`](authentication-firestore.md) GD10) therefore lives in a separate Firestore database that no
 `databases` entry names, not in a reserved collection, because the operator, who defines every collection in the config
 and in `.genoacms/collections`, could name one after it by mistake (GF28). CMS users define none.
 *Cost:* Firestore reserves names matching `__.*__`. A collection the operator gives such a name fails at
@@ -36,6 +36,7 @@ its first write, with Firestore's error rather than a GenoaCMS one.
 | :-- | :-- | :-- |
 | GF9 | **`getCollection` reads a whole collection** (DB-5): every document in one call, with no paging and no limit. Cost and latency grow with the collection, and a large one can exceed the function's memory. The contract offers no paging, so the fix belongs to the contract first. | open |
 | GF13 | *History.* **The runtime's methods were untested by unit tests.** Only construction (DB-2) was. DB-3 to DB-7 relied on the opt-in conformance suite alone. | fixed, RFC-0024 |
+| GF31 | **DB-5 and DB-7 are effectively unverified at `contract`.** Their only contract-level test is `packages/adapter-gcp/test/conformance.test.ts`, the database conformance suite, which passes a listing that misses the document and an update that changes nothing ([`contracts/conformance.md`](../contracts/conformance.md) CF7). The unit tests still check both against the mocked SDK. Found 2026-10-02. | open, fixed with CF7 |
 | GF28 | **The reason for DB-3's decision assumes that CMS users define collections.** They cannot: core only reads definitions from `.genoacms/collections`, which the operator writes (author, 2026-09-30). A reserved collection name is therefore at risk only from an operator's mistake. | fixed: the reason corrected |
 
 ### History
