@@ -316,7 +316,7 @@ present.
 | :-- | :-- | :-- |
 | C1 | Config as a module at the project root, split into files | `genoa.config.ts`, or the `genoa.config/` directory with `development.ts` as its default entry (U12); may import anything that evaluates to data |
 | C2 | `GENOA_CONFIG_PATH` override | `--config`, `GENOA_CONFIG` (absolute) |
-| C3 | Authentication providers tried in order; `cookieName` | Record in key order; `host.authenticationProviders()`, `host.cookieName` |
+| C3 | Authentication providers tried in order; `cookieName` | Record in key order; `host.authenticationProviderKeys` (RFC-0030), `host.cookieName` |
 | C4 | Databases → provider; collection lookup across databases | `database.databases`; `host.databaseForCollection`, `host.collections` |
 | C5 | Buckets → provider; `defaultBucket` | `storage.buckets`; `host.storageForBucket`, `host.defaultBucket`, `host.buckets` |
 | C6 | `storage.pathDelimiter` (read by the storage route, undocumented) | Typed, documented, default `'\|->'`; `host.pathDelimiter` |

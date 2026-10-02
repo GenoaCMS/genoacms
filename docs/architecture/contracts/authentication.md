@@ -2,7 +2,7 @@
 type: architecture
 title: Authentication contract
 codes: [AUTHN]
-verified: 7174f7f
+verified: fe9d371
 ---
 
 # Authentication contract
@@ -87,9 +87,9 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 | :-- | :-- | :-- |
 | CF1 | **Nothing limits failed sign-ins.** Core calls every authentication provider for every attempt, with no count per email or per client. Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication-identity-platform.md` GS1c). Moved from `configuration.md` F20. | open, fixed by CD7 |
 | CF2 | **The array adapter compares plain-text passwords, not in constant time.** Its credentials are a JSON secret with passwords in clear (`authentication-adapter-array/src/runtime.js`). Recorded as a non-goal of the 2026-09 redesign. | open |
-| CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. AUTHN-5 tries the providers one at a time and stops at the first that knows the user, so a user of a later provider still reaches every earlier one. | open, mitigated by AUTHN-5 |
-| CF4 | **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | open, fixed by AUTHN-5 |
-| CF5 | **A disabled or deleted user keeps an open session until its family expires.** A refresh does not ask the provider (`core/src/lib/script/auth/session.server.ts`, `refreshSession`). The only immediate revocation is removing the user's role assignments. | open, fixed by CD2 |
+| CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. AUTHN-5 tries the providers one at a time and stops at the first that knows the user, so a user of a later provider still reaches every earlier one. | mitigated, RFC-0030 |
+| CF4 | *History.* **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | fixed, RFC-0030 |
+| CF5 | *History.* **A disabled or deleted user keeps an open session until its family expires.** A refresh does not ask the provider (`core/src/lib/script/auth/session.server.ts`, `refreshSession`). The only immediate revocation is removing the user's role assignments. | fixed, RFC-0030 |
 
 ### Open questions
 
@@ -108,11 +108,12 @@ cannot inherit its previous holder's permissions. Until 2026-10-02 the contract 
 
 ### Verification
 
-No authentication conformance suite exists. **New:** `@genoacms/conformance` gains one (CONF-4), run
-against each adapter with a fixture of a valid credential and, where the adapter can hold one, a
-disabled identity. It checks AUTHN-2 and AUTHN-4; AUTHN-3 needs a failing service, so each adapter
-checks it by fault injection in its own tests. Core's part (AUTHN-5 to AUTHN-7) is tested at
-`e2e`, which needs core's tests in CI first (`docs/README.md`, known gaps).
+`@genoacms/conformance`'s authentication suite (CONF-4) runs against the in-memory adapter, the
+array adapter and, in contract runs, the Identity Platform adapter, each with a fixture of a valid
+credential and, where the adapter can hold one, a disabled identity. It checks AUTHN-2 and AUTHN-4;
+AUTHN-3 needs a failing service, so each adapter checks it by fault injection in its own tests, and the
+array adapter has none. Core's part (AUTHN-5 to AUTHN-7) is tested at `unit`, with the host and the
+storage replaced; no `e2e` test signs in through the login page yet.
 
 ## Specification
 
@@ -155,9 +156,8 @@ covers an unknown email and a wrong password alike, and is the reason whenever t
 tell. `disabled` and `second-factor-required` are reported only when the password is known to be
 right.
 
-- Test: none yet
+- Test: `packages/contracts/test/authentication.test.js`, `packages/authentication-adapter-array/src/runtime.test.js`, `packages/conformance/src/authentication.js`
 - Level: unit, conformance
-- State: new (RFC-0030)
 
 #### AUTHN-3 · Failures throw
 
@@ -166,24 +166,22 @@ throws an `Error` whose message starts with `authentication/`, such as
 `authentication/provider-failed: <message>`. It never reports a failure as a `Rejection`, or as `null`
 from `getIdentity`.
 
-- Test: none yet
-- Level: unit, conformance
-- State: new (RFC-0030)
+- Test: unverified (the array adapter has no service that can fail; `adapter-gcp` AUTH-7 tests the Identity Platform adapter by fault injection)
+- Level: unit
 
 #### AUTHN-4 · getIdentity
 
 `getIdentity(subject)` returns the `Identity` of a subject that exists and could sign in now, with its
 current email, and `null` for a subject that is unknown, deleted or disabled.
 
-- Test: none yet
+- Test: `packages/authentication-adapter-array/src/runtime.test.js`, `packages/conformance/src/authentication.js`
 - Level: unit, conformance
-- State: new (RFC-0030)
 
 ### Core
 
 #### AUTHN-5 · Sign-in
 
-After the limits allow it (AUTHN-8), core calls `authenticate` on the providers one at a time, in key
+Core calls `authenticate` on the providers one at a time, in key
 order. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
 a `credentials` rejection or a thrown failure moves on to the next provider. An `Identity` is admitted
 only if the authorization data knows its subject. Otherwise the sign-in fails with one of three
@@ -192,23 +190,21 @@ messages, the only ones the user sees:
 | Message | When |
 | :-- | :-- |
 | `sign-in-unavailable` | no provider returned an `Identity` or stopped the trial with a `Rejection`, and at least one threw something other than `authentication/throttled` |
-| `too-many-attempts` | as above, but a provider threw `authentication/throttled`; or the limits refused the attempt (AUTHN-8) |
+| `too-many-attempts` | as above, but a provider threw `authentication/throttled` |
 | `invalid-credentials` | every other failure: rejections only, or an `Identity` the authorization data does not know |
 
 Core logs each `Rejection` with the provider's key and its reason, and each failure with the
 provider's key and its message. It logs neither the email nor the password.
 
-- Test: none yet
-- Level: e2e
-- State: new (RFC-0030)
+- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts` (unverified: no e2e test yet)
+- Level: unit, e2e
 
 #### AUTHN-6 · A session records its provider
 
 The session family created at sign-in records the key of the provider whose `Identity` was admitted.
 
-- Test: none yet
-- Level: e2e
-- State: new (RFC-0030)
+- Test: `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/session.test.ts` (unverified: no e2e test yet)
+- Level: unit, e2e
 
 #### AUTHN-7 · A refresh revalidates the session
 
@@ -218,9 +214,8 @@ the family records, or, for a family that records none, on every provider, takin
 the user signs in again. When the call throws, the request fails and the family and the cookie are
 left unchanged. A family whose provider the config no longer holds revalidates as `null`. Otherwise the renewed access token carries the email `getIdentity` returned.
 
-- Test: none yet
-- Level: e2e
-- State: new (RFC-0030)
+- Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts` (unverified: no e2e test yet)
+- Level: unit, e2e
 
 #### AUTHN-8 · Limits before any provider
 

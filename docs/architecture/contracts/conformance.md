@@ -154,9 +154,8 @@ password returns `{ rejected: 'disabled' }` or `{ rejected: 'credentials' }`, an
 returns `null` for its subject. Each test carries the IDs it checks (CD4). The fixture's identities
 exist before the suite runs; the suite creates none, because the contract cannot.
 
-- Test: none yet
+- Test: `packages/conformance/test/authentication.test.js`, `packages/authentication-adapter-array/test/conformance.test.js`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: conformance
-- State: new (RFC-0030)
 
 #### CONF-5 · The identity-store suite
 

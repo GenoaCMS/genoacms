@@ -2,8 +2,8 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: draft
-commits: []
+status: implemented
+commits: [fe9d371]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
 changes: [AUTHN-2 breaking, AUTHN-4 breaking, AUTHN-3 added, AUTHN-5 added, AUTHN-6 added, AUTHN-7 added, CONF-4 added]
