@@ -20,7 +20,7 @@ URL** (WU1). `@genoacms/adapter-aws/deployment` is the target's descriptor and d
 genoa build aws                               genoa deploy aws
   vite build ──adapter-node──▶ .genoacms/build/   ──procedure──▶ npm install (linux x64)
                                + package.json, vendor/           ──▶ zip ──▶ S3 artifact bucket
-                               (configuration.md D6, D9)         ──▶ Lambda: function, URL, permission
+                               (build.md D6, D9)                 ──▶ Lambda: function, URL, permission
 ```
 
 At runtime, the Lambda Web Adapter, a layer running as a Lambda extension, starts the staged entry

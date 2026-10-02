@@ -18,7 +18,11 @@ Check the documents from the repository root with `pnpm run docs:check`
 
 | Document | Prefix | Codes | Subject | Conforms |
 | :-- | :-- | :-- | :-- | :-- |
-| [`architecture/configuration.md`](architecture/configuration.md) | none: it predates the workflow, and its IDs (`U`, `D`, `F`, `S`, `Q`, `C`, `A`, `P`, `K`, `R`) are unprefixed | — | config files, the manifest, adapters as descriptors and runtimes, the host, secrets, the build, the artifact, deployment targets, the CLI | **no** (`conforms: false`): written as a proposal. Restructuring pending. |
+| [`architecture/configuration.md`](architecture/configuration.md) | none: it predates the workflow, and its IDs (`U`, `D`, `F`, `S`, `Q`, `C`, `A`, `P`, `K`, `R`) are unprefixed, shared with the four documents split from it | — | config files, the manifest, the loader, one config per environment, authentication; the record of the 2026-09 redesign, and where each of its IDs now lives | **no** (`conforms: false`): written as a proposal. Restructuring pending. |
+| [`architecture/host.md`](architecture/host.md) | none (as `configuration.md`) | — | the host: provider construction and caching | **no**: split from `configuration.md` unchanged |
+| [`architecture/secrets.md`](architecture/secrets.md) | none (as `configuration.md`) | — | secret references, their resolution, the bootstrap, the development store | **no**: split from `configuration.md` unchanged |
+| [`architecture/build.md`](architecture/build.md) | none (as `configuration.md`) | — | the build, the artifact, vendoring, deployment targets, the lifecycle | **no**: split from `configuration.md` unchanged |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | — | the adapter model and the service contracts | partly: the index conforms; `adapter-model.md` was split from `configuration.md` unchanged and does not |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements: 54 name a test, 1 of them partly verified (STO-8), and 1 is unverified (COM-1, a type); 8 more are **New** (authentication). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements: 42 name a test, and 1 is unverified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 statements: 10 current, unverified until RFC-0028 adds their tests; 9 **New** (RFC-0028). |
@@ -31,15 +35,16 @@ What the Specifications cover, measured against the reproducibility principle
 
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
-| Configuration, adapter model, build, artifact | `config`, `contracts`, `conformance` | `configuration.md` | covered, not restructured |
+| Configuration, host, secrets, build, artifact | `config` | `configuration.md`, `host.md`, `secrets.md`, `build.md` | covered, not restructured |
+| Adapter model and service contracts | `contracts`, `conformance` | `contracts/` | adapter model covered, not restructured; the service contracts: none, their types are the only description |
 | CLI | `cli` | `cli.md` | specified; open findings LF2 to LF8, all but LF7 in RFC-0028 |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open finding: GF9 (needs paging in the contract first) |
 | AWS | `adapter-aws` | `adapter-aws/` | covered; no open findings (WF1 to WF26 fixed, RFC-0026) |
-| Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `configuration.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
+| Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `contracts/adapter-model.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `configuration.md` F20, U13, U14 only | none |
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
-| Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `configuration.md` §6.3 only | none |
+| Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: storage browser, collections, database UI | `core` (`storage/`, `database/`, routes) | none | none |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |

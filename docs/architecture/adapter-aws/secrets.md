@@ -81,7 +81,7 @@ window, also reads as absent.
 
 #### ASM-1 · Descriptor
 
-Specifier `@genoacms/adapter-aws/secrets`, kind `secrets`. Runtime specifier `@genoacms/adapter-aws/secrets/runtime`. Options `region: string` (required) and `credentials?: BootstrapSecret<AwsCredentials>` (`env()` or `inline()` only, `configuration.md` D5), decoded as JSON. Validation follows AWS-2 and AWS-3.
+Specifier `@genoacms/adapter-aws/secrets`, kind `secrets`. Runtime specifier `@genoacms/adapter-aws/secrets/runtime`. Options `region: string` (required) and `credentials?: BootstrapSecret<AwsCredentials>` (`env()` or `inline()` only, `secrets.md` D5), decoded as JSON. Validation follows AWS-2 and AWS-3.
 
 - Test: `packages/adapter-aws/src/secrets/descriptor.test.ts`
 - Level: unit

@@ -21,12 +21,14 @@ Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID prefix is `G`.
 the statements it checks in its title (`WORKFLOW.md` §6.2). `packages/adapter-gcp/test/conformance.test.ts`
 runs `@genoacms/conformance` against real GCP, only with `GENOACMS_TEST_GCP=1`.
 
-**Relation to [`configuration.md`](../configuration.md).** That document defines the adapter model
-this package implements: descriptors and runtimes (D2), the host (D3), bare-specifier loading (D4),
-secret references (D5), the artifact (D6, D9) and deployment targets (§7). It stays authoritative for
-all of that. These documents cover only what is specific to GCP. If they disagree on the adapter
-model, `configuration.md` wins. If they disagree on a GCP detail, these documents win, and
-`configuration.md` is corrected to point here.
+**Relation to the platform documents.** They define what this package implements: descriptors,
+runtimes and bare-specifier loading ([`contracts/adapter-model.md`](../contracts/adapter-model.md)
+D2, D4), the service contracts ([`contracts/`](../contracts/README.md)), the host
+([`host.md`](../host.md) D3), secret references ([`secrets.md`](../secrets.md) D5), and the artifact
+and deployment targets ([`build.md`](../build.md) D6, D9). They stay authoritative for all of that.
+These documents cover only what is specific to GCP. If they disagree on the adapter model or a
+contract, those documents win. If they disagree on a GCP detail, these documents win, and the other
+is corrected to point here.
 
 ### Documents
 
@@ -68,7 +70,7 @@ partial failure leaves behind (GF10).
 
 `@genoacms/adapter-gcp` implements four GenoaCMS services on Google Cloud, plus one planned. Each is a
 descriptor, which the build loads and which imports no SDK, and a runtime, which the host constructs
-per provider (`configuration.md` D2, D3).
+per provider (`contracts/adapter-model.md` D2, `host.md` D3).
 
 | Export | Google service | Document |
 | :-- | :-- | :-- |
@@ -154,7 +156,7 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 - **2026-08**: moved into the monorepo; the authorization service was removed from the abstraction (core owns authorization); a Secret Manager secrets service with atomic claims and generation preconditions on storage were added.
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
 - **2026-09-28, later**: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` (RFC-0023), and every current runtime statement got a unit test (RFC-0024).
-- **2026-09-28**: vendored runtime packages (`configuration.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
+- **2026-09-28**: vendored runtime packages (`build.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
 - **2026-10-01** (RFC-0027): the open findings GF10 and GF20 to GF26 were fixed, with two more that its audits found (GF29, GF30): bounded directory operations (GD7), the framework's ignored routes disabled (GD8), and the missing tests.
 
 ---

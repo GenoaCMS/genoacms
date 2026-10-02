@@ -20,9 +20,11 @@ They follow the Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID 
 the statements it checks in its title (`WORKFLOW.md` §6.2). `packages/adapter-aws/test/conformance.test.js`
 runs `@genoacms/conformance` against real AWS, only with `GENOACMS_TEST_AWS=1`.
 
-**Relation to [`configuration.md`](../configuration.md)** is the one the GCP adapter has
-([`adapter-gcp/README.md`](../adapter-gcp/README.md)): that document defines the adapter model and
-stays authoritative for it; these documents cover only what is specific to AWS.
+**Relation to the platform documents** is the one the GCP adapter has
+([`adapter-gcp/README.md`](../adapter-gcp/README.md)): [`contracts/`](../contracts/README.md),
+[`host.md`](../host.md), [`secrets.md`](../secrets.md) and [`build.md`](../build.md) define the
+adapter model and the contracts, and stay authoritative for them; these documents cover only what is
+specific to AWS.
 
 **Relation to the GCP adapter.** Both implement the same contracts for the same core. Where a
 contract leaves behavior open, the AWS adapter behaves as the GCP adapter does, unless a decision
@@ -73,7 +75,7 @@ differ from Google's.
 
 `@genoacms/adapter-aws` implements four GenoaCMS services on AWS. Each is a descriptor, which the build
 loads and which imports no SDK, and a runtime, which the host constructs per provider
-(`configuration.md` D2, D3).
+(`contracts/adapter-model.md` D2, `host.md` D3).
 
 | Export | AWS service | Document |
 | :-- | :-- | :-- |

@@ -10,45 +10,55 @@ conforms: false
 | :-- | :-- |
 | Tier | 1 (architecture). RFCs are derived from this document after it is approved. |
 | Status | Draft for review |
-| Date | 2026-09-26 |
-| Scope | `genoa.config`, `@genoacms/cloudabstraction`, the adapter contract, secrets, `svelte.config.js`, the Vite build, the CLI, the deploy pipeline |
+| Date | 2026-09-26; split 2026-10-02 |
+| Scope | `genoa.config`: authoring, the manifest, the loader, one config file per environment; and the record of the 2026-09 redesign |
 | Verified against | `main` at `9592593` |
-| Related | [`adapter-gcp/`](adapter-gcp/README.md): what is specific to GCP (services, IAM, deployment, Identity Platform) |
+| Related | [`contracts/`](contracts/README.md): the adapter model and the service contracts; [`host.md`](host.md); [`secrets.md`](secrets.md); [`build.md`](build.md); [`cli.md`](cli.md): the `genoa` command; [`adapter-gcp/`](adapter-gcp/README.md) and [`adapter-aws/`](adapter-aws/README.md): what is specific to each cloud |
 
 This document replaces the external proposal `genoacms-config-architecture.md` (2026-09-10). It keeps
 that proposal's core decisions and corrects the parts that did not match the repository or did not
-type-check. Section 11 lists what changed and why.
+type-check. *Rejected alternatives* lists what changed and why.
 
 Nothing is released, so there is no migration: every shape below replaces its predecessor outright.
 
----
+## Where the rest went
 
-## 1. Decisions already made by the author
+On 2026-10-02 this document was split by subject, without changing the content that moved. Each
+moved ID keeps a pointer in its old place.
+
+| Content | Now in |
+| :-- | :-- |
+| Packages and their dependency direction, module graph, reference types, registries, descriptors and runtimes (U4, D2, D4) | [`contracts/adapter-model.md`](contracts/adapter-model.md) |
+| The host and provider construction (D3) | [`host.md`](host.md) |
+| Secret references, resolution, bootstrap, the development store (U3, U11, D5) | [`secrets.md`](secrets.md) |
+| The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9) | [`build.md`](build.md) |
+| The CLI's commands, flags and messages (since 2026-10-02, before this split) | [`cli.md`](cli.md) |
+| Everything else: the config, the manifest and the loader (D1), authentication (U13, U14, F20, Q5, Q6), the reality before the redesign (F1 to F19, R1 to R8), goals, preserved functionality (C, A, K, P), spikes (S-1 to S-8), the RFC list | here |
+
+## Decisions already made by the author
 
 | # | Decision | Consequence |
 | :-- | :-- | :-- |
-| U1 | Development and production use **separate config files**, selected explicitly. | No profile or overlay mechanism inside one file (S8). |
-| U2 | GCP does not have to build remotely. **Build locally, ship the bundle**, still without uploading `node_modules`. | Build output carries a generated `package.json` of runtime dependencies; the platform installs them (S7). |
-| U3 | Inline credentials stay allowed, but only when written explicitly. | `inline()` exists, and a production build warns once per inline field (S6.2). |
-| U4 | Package names: `@genoacms/contracts` and `@genoacms/config`. | `@genoacms/cloudabstraction` is deleted (S4). |
-| U5 | `database.defaultDatabase` is history. | Dropped (S10). |
-| U6 | Core's `dependencies` stay as they are: `vite` and the build tooling are genuinely needed where core is installed as a package and built by the user. | The runtime `package.json` is derived from what the server bundle imports, not from core's `dependencies` (S7.1). |
-| U7 | Core's development config keeps today's providers and today's credential files, imported and wrapped in `inline()`. | Core's own CI still cannot load core's dev config (S8). A config that uses `secret()` or `env()` builds with no credential present. |
-| U8 | GCP deployment of core moves to a separate production config. | `packages/core/genoa.config/production.ts` (S8, U12). |
-| U9 | `--config` is optional on every command, `genoa deploy` included. | Without it, the default lookup applies (S5.5). A development config chosen by mistake for a production build fails the `developmentOnly` check (S8). |
-| U10 | The live GCP spike (S-4) is skipped until the production config exists. That config uses `@genoacms/adapter-gcp/secrets`. | The first real GCP deploy is part of the GCP deployment RFC's verification (S13). |
-| U11 | `packages/core/.env` holds the dev instance's signing seeds (root, registry sequence, subordinates). The author moves it once, by hand, to `packages/core/.genoacms/secrets.env` when core switches stores. | No path override and no fallback in code. `envDir: false` and `viteConfig.test.ts` are deleted. The core RFC stops for this step, and agents never read or move secret files. |
-| U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (S5.5). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (S8). |
-| U13 | Production authentication on GCP uses **Identity Platform**, through a new `@genoacms/adapter-gcp/authentication`. GenoaCMS stores no password and no password hash on GCP. An identity store GenoaCMS owns itself (Firestore, later Postgres) is deferred. | Designed in [`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). The authentication contract stays `authenticate` only, so users are managed in Identity Platform (console, `gcloud`, Admin SDK), not in the CMS. `packages/core/genoa.config/production.ts` switches to it (S8). |
+| U1 | Development and production use **separate config files**, selected explicitly. | No profile or overlay mechanism inside one file (*Config files per environment*). |
+| U2 | *Moved* to [`build.md`](build.md). | |
+| U3 | *Moved* to [`secrets.md`](secrets.md). | |
+| U4 | *Moved* to [`contracts/adapter-model.md`](contracts/adapter-model.md). | |
+| U5 | `database.defaultDatabase` is history. | Dropped (*Preserved functionality*). |
+| U6 | *Moved* to [`build.md`](build.md). | |
+| U7 | Core's development config keeps today's providers and today's credential files, imported and wrapped in `inline()`. | Core's own CI still cannot load core's dev config (*Config files per environment*). A config that uses `secret()` or `env()` builds with no credential present. |
+| U8 | GCP deployment of core moves to a separate production config. | `packages/core/genoa.config/production.ts` (*Config files per environment*, U12). |
+| U9 | `--config` is optional on every command, `genoa deploy` included. | Without it, the default lookup applies (*Types: the config and the manifest*). A development config chosen by mistake for a production build fails the `developmentOnly` check (*Config files per environment*). |
+| U10 | *Moved* to [`build.md`](build.md). | |
+| U11 | *Moved* to [`secrets.md`](secrets.md). | |
+| U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (*Types: the config and the manifest*). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (*Config files per environment*). |
+| U13 | Production authentication on GCP uses **Identity Platform**, through a new `@genoacms/adapter-gcp/authentication`. GenoaCMS stores no password and no password hash on GCP. An identity store GenoaCMS owns itself (Firestore, later Postgres) is deferred. | Designed in [`adapter-gcp/authentication.md`](adapter-gcp/authentication.md) (GU1, GD2). The authentication contract stays `authenticate` only, so users are managed in Identity Platform (console, `gcloud`, Admin SDK), not in the CMS. `packages/core/genoa.config/production.ts` switches to it (*Config files per environment*). |
 | U14 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. | Replaces `GENOACMS_ADMIN_CREDENTIALS` and the key `admins` in the CLI templates, the config README and core's configs. Already-implemented RFCs keep the old name as history. |
 
----
-
-## 2. Reality: the current system
+## Reality: the system before the redesign
 
 Every statement here was checked against the source. Paths are relative to `packages/`.
 
-### 2.1 Current module graph
+### Module graph before the redesign
 
 ```
   process.cwd() ─┐   GENOA_BUILD ─┐   GENOA_CONFIG_PATH ─┐
@@ -83,7 +93,7 @@ evaluating, so the adapter waits for it. When the config import settles, `config
 another and the process would exit with code 13 (unsettled top-level await).
 `language-adapter-ts/test/genoa.config/index.js` leaves out `adapter:` for exactly this reason.
 
-### 2.2 Findings
+### Findings
 
 | Id | Finding | Evidence |
 | :-- | :-- | :-- |
@@ -105,10 +115,10 @@ another and the process would exit with code 13 (unsettled top-level await).
 | F16 | Nothing calls `SecretReference` or `isSecretReference`. They are declared, and no resolution mechanism exists. | `cloudAbstraction/src/services/secrets/index.d.ts` |
 | F17 | `@genoacms/sveltekit-adapter-cloud-run-functions` needs its `files/` directory built (`rollup -c`) before use. That directory is gitignored and absent in a fresh checkout, so the GCP target cannot build from the monorepo without that step. Published packages include it through `prepublishOnly`. | `sveltekit-adapter-cloud-run-functions/index.js:8`, `.gitignore` |
 | F18 | **Every build runs the instance's startup I/O.** SvelteKit runs the built server to analyse it, which evaluates `hooks.server.ts` and every route's server modules. Two of core's modules do provider I/O at module scope. The first is the instance bootstrap (`await ensureInstanceInitialized()`): signing keys, manifests, the security policy. The second is the dynamic-collection listing, which also creates `.genoacms/collections` when it is missing. So every `vite build` resolves secrets and reads and writes the configured storage. With inline credentials this succeeds without anyone noticing, and the old Cloud Build flow bootstrapped the production instance from inside the build. Without credentials, as in a production config that relies on ADC, the build crashes. Found while verifying RFC-0015. | `hooks.server.ts:11`, `database/database.server.ts:13` |
-| F19 | **The runtime `package.json` names versions the registry does not have, or has with different code.** It pins each package to its installed version (§7.1), and the platform installs from npm. From the monorepo, `@genoacms/language-adapter-ts@0.1.0` and `@genoacms/contracts` are unpublished, so the install fails. `@genoacms/adapter-gcp@0.8.2-1` is published, but from before the descriptor/runtime split: it has no `./secrets` or `./*/runtime` exports, so the install succeeds and the runtime cannot load. Nothing detects the second case. A user's own adapter, kept in their repository and never published, fails the same way. Found preparing the first production deploy. | `config/src/artifact/index.ts`, `versions.ts` |
-| F20 | **Nothing limits failed sign-ins.** `login` calls every authentication provider for every attempt, with no count per email or per client. The array adapter compares plain text, not in constant time (§3 non-goal). Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication.md` GS1c). | `core/src/lib/script/auth/auth.server.ts`, `authentication-adapter-array/src/runtime.js` |
+| F19 | **The runtime `package.json` names versions the registry does not have, or has with different code.** It pins each package to its installed version ([`build.md`](build.md) *The artifact*), and the platform installs from npm. From the monorepo, `@genoacms/language-adapter-ts@0.1.0` and `@genoacms/contracts` are unpublished, so the install fails. `@genoacms/adapter-gcp@0.8.2-1` is published, but from before the descriptor/runtime split: it has no `./secrets` or `./*/runtime` exports, so the install succeeds and the runtime cannot load. Nothing detects the second case. A user's own adapter, kept in their repository and never published, fails the same way. Found preparing the first production deploy. | `config/src/artifact/index.ts`, `versions.ts` |
+| F20 | **Nothing limits failed sign-ins.** `login` calls every authentication provider for every attempt, with no count per email or per client. The array adapter compares plain text, not in constant time (*Goals and non-goals* non-goal). Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication.md` GS1c). | `core/src/lib/script/auth/auth.server.ts`, `authentication-adapter-array/src/runtime.js` |
 
-### 2.3 Constraints the design must respect
+### Constraints the design must respect
 
 These are facts about the tools, not choices. A design that ignores one fails in practice.
 
@@ -123,9 +133,7 @@ These are facts about the tools, not choices. A design that ignores one fails in
 | R7 | The authorization vs. security distinction (authority re-read on every resolution, versus seeds for the signed policy) is a requirement, carried verbatim from `cloudAbstraction/src/config/genoa.config.d.ts`. | same |
 | R8 | Core's `build` script runs `pnpm --filter @genoacms/language-adapter-ts run build`, which works only inside the monorepo. The CLI must not invoke core's npm scripts. | `core/package.json:15-17` |
 
----
-
-## 3. Goals and non-goals
+## Goals and non-goals
 
 ### Goals (not negotiable)
 
@@ -135,25 +143,21 @@ These are facts about the tools, not choices. A design that ignores one fails in
 4. Deployment targets that choose a SvelteKit adapter at build time and run a deploy procedure.
 5. Credentials can live in a secret manager. A reference is resolved at runtime and is never baked into the build.
 6. `vite build` constructs no client and resolves no secret, including while SvelteKit runs the app to analyse it (D8, F18). A config that uses only `secret()` and `env()` builds with no credential present. Core's own dev config imports credential files by choice (U7), so it still needs them to load.
-7. All current functionality preserved (S10).
+7. All current functionality preserved (*Preserved functionality*).
 
 ### Non-goals
 
-- Live credential rotation inside a running process. Rotation takes effect on restart (S6.5).
 - Hot-applying config changes in dev without restarting the server.
-- More than one secrets provider.
-- Linking `@genoacms/core` from outside the project (`link:` or `file:` pointing elsewhere). Adapter resolution relies on standard walk-up from the installed core (S5.4).
-- Mapping secret-store outages to HTTP 503. Errors stay 500, as today.
 - Fixing plain-text password comparison in `authentication-adapter-array`. A separate task.
 - Managing users from the CMS: creating accounts, setting passwords, disabling. The contract stays `authenticate` only (U13).
 - An identity store owned by GenoaCMS (Firestore, Postgres). Deferred (U13).
 - Multi-factor sign-in. An account that requires a second factor cannot sign in (`adapter-gcp/authentication.md` GD2).
-- Changing core's `dependencies` (U6).
 - A credential-free CI build of core itself (U7).
 
----
+The non-goals of the other subjects moved with them: secrets to [`secrets.md`](secrets.md), the build
+to [`build.md`](build.md), and adapter resolution to [`contracts/adapter-model.md`](contracts/adapter-model.md).
 
-## 4. Decisions
+## Decisions
 
 **D1. The config is data.** A config file is a module that must **evaluate to** a plain,
 JSON-serializable object. It may import helpers and collection files. It may not import adapters,
@@ -163,330 +167,23 @@ never the module.
 *Why:* removes the cycle (F2), the bundling step (F6) and SDK loading at build time (F7).
 *Cost:* the config cannot compute anything at runtime. Nothing needs to today.
 
-**D2. Adapters are two modules: a descriptor and a runtime.** The *descriptor* is SDK-free. It declares
-the service kind, which options are secrets, whether the adapter is development-only, an option
-validator, and the bare specifier of its runtime module. The *runtime* exports a factory
-`create(resolvedOptions, ctx)`. The config names the descriptor.
-*Why:* the loader and the build can validate every provider, and choose a SvelteKit adapter, without
-loading a single SDK. That is D1 applied to adapters. The external proposal ran validators inside the
-adapter module, which brought F7 back.
-*Cost:* an adapter ships two entry points per service.
+**D2.** *Moved* to [`contracts/adapter-model.md`](contracts/adapter-model.md).
 
-**D3. The host constructs providers; adapters never see the config.** A per-process host holds the
-manifest. For each provider entry it resolves the secret references, loads the runtime by specifier
-and calls `create`. It caches the **promise** of each construction per provider name, and drops a
-promise that rejects.
-*Why:* two entries naming one adapter become two `create` calls (F5). No self-identifying string (F3),
-no shared mutable state (F4).
-*Cost:* first use of a provider is async and can fail. The host is one more object to hand to tests.
+**D3.** *Moved* to [`host.md`](host.md).
 
-**D4. Adapter runtimes are loaded by bare specifier at runtime, not bundled.** The host's loader is a
-dynamic `import()` whose argument rollup cannot analyze. Adapter packages therefore stay external in
-every SvelteKit adapter's output (R3), and the build emits a `package.json` naming them next to core's
-own externals (D6).
-*Why:* bundling cloud SDKs through a SvelteKit adapter's rollup pass is fragile (for example, gRPC
-clients loading proto files by path) and outside our control for third-party SvelteKit adapters.
-*Cost:* the deployment must install dependencies. Every target already has to, for core's own
-externals.
+**D4.** *Moved* to [`contracts/adapter-model.md`](contracts/adapter-model.md).
 
-**D5. Secrets are typed references, resolved by the host just before construction.**
-`secret('KEY')`, `env('VAR')` and `inline(value)` are the only ways to fill a credential option. Each
-adapter's option types say which fields are credentials, and its descriptor says the same at runtime.
-The secrets provider's own options admit `env()` and `inline()` only: the bootstrap rule, enforced by
-the type and by the loader.
+**D5.** *Moved* to [`secrets.md`](secrets.md).
 
-**D6. A build produces a self-contained, self-describing artifact.** It contains the SvelteKit output
-and a generated `package.json`, pinned to the installed versions. That file lists the packages the
-server bundle actually imports, plus every adapter package the manifest names. It contains no project
-source, no config file and no deployment options. Targets add their own entry glue and install
-dependencies in their own way (R4).
-*Why derived from the bundle:* core's `dependencies` must keep build tooling such as `vite`, because a
-user installs core as a package and builds it (U6). Copying that list would install the build
-toolchain on every function. The bundle's imports are the exact set the running server needs.
+**D6.** *Moved* to [`build.md`](build.md).
 
-**D7. Explicit facts cross the process boundary, as absolute paths or names.** The CLI is the only
-entry point. It spawns Vite with `cwd` = core (R1) and passes `GENOA_PROJECT` (absolute project
-root), `GENOA_CONFIG` (absolute config file, optional), `GENOA_TARGET` (target name, build only) and
-`GENOA_MODE` (`development` or `production`). There are no relative directory walks.
-*Why `GENOA_MODE` is explicit:* Vite's `mode` is not reliable inside a SvelteKit build. One
-`vite build --mode development` fired the plugin's `configResolved` eight times, and some of those
-calls reported `production` (S-2 result, S13). SvelteKit runs extra internal Vite builds and resolves
-the Vite config while loading its own config. When `GENOA_MODE` is unset (monorepo `pnpm dev` or
-`pnpm build`), the plugin falls back to `development` for `vite dev` and `production` for `vite build`.
-That fallback depends only on `command`, which was consistent across every call.
+**D7.** *Moved* to [`build.md`](build.md).
 
-**D8. No provider is constructed while SvelteKit analyses the build (F18).** Core reads `building`
-from `$app/environment`, which SvelteKit sets exactly while it runs the app during `vite build`. It
-is enforced twice:
-- **At each module-scope call:** the bootstrap and the collection listing skip their I/O while `building`. The listing reads as empty.
-- **In core's host loader:** `host.server.ts` refuses to load any adapter runtime while `building` (`host/building`). A future module-scope call therefore fails the build loudly instead of quietly reaching a live instance.
+**D8.** *Moved* to [`build.md`](build.md).
 
-*Why:* goal 6 was an assumption about Vite, and SvelteKit's analysis step broke it. Any server-side
-code that runs at import time runs during the build. The guard reads a flag that SvelteKit defines for
-exactly this purpose, rather than inferring build time from the environment.
-*Cost:* two call sites must remember the flag. The loader check turns forgetting it into a build
-failure, not a silent write.
+**D9.** *Moved* to [`build.md`](build.md).
 
-**D9. Local packages travel inside the artifact (F19).** `createRuntimePackage` packs some packages
-with `npm pack` into `<buildDir>/vendor/`. The runtime `package.json` points each of them at its
-tarball, in `dependencies` and in `overrides`. Two rules decide what is vendored:
-- **Every runtime adapter package named in the manifest**, however it was installed. Adapters are the packages users write themselves, and the one install layout that hides where a package came from (yarn v1 copies `file:` dependencies into `node_modules`) cannot be detected (S-8).
-- **Every other package, transitively from a vendored one, that is local:** its installed directory's real path has no `node_modules` segment. That covers pnpm, npm and yarn workspaces, and `file:`/`link:` directory dependencies under npm and pnpm.
-
-Everything else installs from the registry as before. Packing uses npm, which ships with Node, so it
-works in npm, pnpm and yarn (node-modules linker) projects. The artifact is always installed with npm
-9 or later: Cloud Run buildpacks and the AWS procedure already do so, and the Node target documents it.
-
-*Why:* the artifact then installs exactly the adapter code that was loaded and tested on the
-developer's machine, published or not, and a version collision with the registry (F19) cannot occur.
-A user can deploy an adapter that exists only in their repository.
-*Cost:* the build needs `npm` on `PATH` and runs it once per vendored package. Vendored packages lose
-registry provenance, and their own dependencies still resolve by range, as all transitive
-dependencies already do.
-
----
-
-## 5. Architecture
-
-### 5.1 Packages and dependency direction
-
-```
-@genoacms/contracts        service contracts, reference types, descriptor & runtime types,
-  (no runtime deps)        registry interfaces, define* helpers, schema helpers,
-                           PreconditionFailedError, secret-key rule
-        ▲         ▲
-        │         └──────────────────────────────┐
-@genoacms/adapter-*                              │
-  <svc>            descriptor (SDK-free)         │
-  <svc>/runtime    factory (SDKs)                │
-                                                 │
-@genoacms/config ────────────────────────────────┘
-  .                defineConfig, *Provider(), secret/env/inline
-  ./load           loadConfig → Manifest, resolveKitAdapter,         (uses vite runnerImport,
-                   importFromProject                                   import-meta-resolve)
-  ./host           createHost                                        (runtime-safe, no vite)
-  ./vite           genoa() plugin: virtual:genoa/manifest
-  ./build          createRuntimePackage(manifest, coreDir)
-        ▲
-        ├──────────── @genoacms/core      host.server.ts, svelte.config.js, vite.config.ts
-        └──────────── @genoacms/cli       dev, build, deploy, database, roles, rotate-root, init
-@genoacms/conformance      storage & database suites (vitest peer), used by adapters' tests
-```
-
-Rules. An adapter imports only `@genoacms/contracts`. Nothing imports a config file except
-`loadConfig`. Nothing imports an adapter runtime except the host's loader. `@genoacms/config/host`
-does not import Vite, because it ships inside the server bundle.
-
-The conformance suites leave `contracts` for their own package, so contracts stays free of test
-tooling.
-
-`LanguageAdapter` **stays** in `@genoacms/internal/languageAdapter`. Its types are built from
-`internal`'s `attributes`, `executable`, `sast` and `guards`, and eight core modules import it from
-there. `@genoacms/contracts` depends on `@genoacms/internal`, as `cloudabstraction` does today, and
-imports the type for `defineLanguageAdapter` and the `LanguageAdapters` registry. (Corrected while
-writing the RFCs. An earlier draft moved it, which would have made `contracts` re-export half of
-`internal`.)
-
-### 5.2 Module graph after
-
-```
-genoa.config/development.ts ──imports──▶ ./collections.ts, @genoacms/config (helpers), adapter types (type-only)
-      │  runnerImport (dev machine / CI only)
-      v
-  Manifest (JSON) ────────────────────────────────────────────────┐
-      │                              │                            │
-      v                              v                            v
- @genoacms/config/vite         svelte.config.js              @genoacms/cli
-  virtual:genoa/manifest        resolveKitAdapter()           loadConfig(), createHost(),
-  (runtime manifest)            → target descriptor           deploy procedure
-      │                         → SvelteKit adapter
-      v
- core: host.server.ts ── createHost({ manifest, load }) ──▶ @genoacms/config/host
-      │                                                          │  load(runtimeSpecifier)
-      v                                                          v   = import(/* opaque */ s)
- service layer (storage.server.ts, …)                    @genoacms/adapter-*/…/runtime
-                                                                 │
-                                                                 v
-                                                         @genoacms/contracts (types)
-```
-
-Every arrow points down. The only `import()` of an adapter is in the host loader, after the manifest
-exists.
-
-### 5.3 Types: references and the registry (`@genoacms/contracts`)
-
-Checked with `tsc --strict`, including the negative cases marked `must not compile`.
-
-```ts
-/** A value fetched from the configured secrets provider when a provider is constructed. */
-interface SecretRef { readonly $secret: string }
-/** A value read from process.env when a provider is constructed. */
-interface EnvRef { readonly $env: string }
-/** A literal that travels with the build. Visible by design: a search for `inline(` finds every one. */
-interface InlineRef<T> { readonly $inline: T }
-
-/** An option that holds a credential. `T` is the resolved type: `string`, or an object for JSON credentials. */
-type Secret<T = string> = SecretRef | EnvRef | InlineRef<T>
-/** A credential the secrets provider itself may take. It cannot reference the store it configures. */
-type BootstrapSecret<T = string> = EnvRef | InlineRef<T>
-
-/** Options as `create` receives them: every reference replaced by its value. Optional fields stay optional. */
-type ResolvedValue<V> =
-  [V] extends [SecretRef | EnvRef | InlineRef<infer T>] ? T :
-  V extends readonly (infer E)[] ? ResolvedValue<E>[] :
-  V extends object ? Resolved<V> : V
-type Resolved<O> = {
-  [K in keyof O]: ResolvedValue<NonNullable<O[K]>> | (undefined extends O[K] ? undefined : never)
-}
-
-/** True when any field of O, at any depth, accepts a SecretRef. Used for the bootstrap rule. */
-type ContainsSecretRef<O> = true extends {
-  [K in keyof O]-?: [Extract<NonNullable<O[K]>, SecretRef>] extends [never]
-    ? (NonNullable<O[K]> extends object ? ContainsSecretRef<NonNullable<O[K]>> : false)
-    : true
-}[keyof O] ? true : false
-
-/**
- * Adapter descriptor specifier → option type. Adapters extend these by module augmentation, so each
- * provider entry is typed by the string naming its adapter. Replaces the `Extension` generic (F8).
- * An unregistered specifier gets `Record<string, unknown>`: it configures, unchecked.
- */
-interface StorageAdapters {}
-interface DatabaseAdapters {}
-interface AuthenticationAdapters {}
-interface SecretsAdapters {}
-interface LanguageAdapters {}
-interface DeploymentTargets {}
-type OptionsOf<R, S extends string> = S extends keyof R ? R[S] : Record<string, unknown>
-```
-
-**One JSON rule, stated once.** `secret()` and `env()` always yield strings. When the descriptor
-declares an option as `'json'`, the host parses the string before calling `create`. `inline()` passes
-its value through unchanged. There is no content sniffing, so a string secret that happens to begin
-with `{` is never misread.
-
-### 5.4 Types: adapters (`@genoacms/contracts`)
-
-```ts
-type SecretEncoding = 'string' | 'json'
-
-/** SDK-free. The module at the specifier the config names. */
-interface AdapterDescriptor<Kind extends string, O extends object> {
-  readonly kind: Kind
-  /** Bare specifier of the runtime module, e.g. '@genoacms/adapter-gcp/storage/runtime'. Never relative. */
-  readonly runtime: string
-  /** Top-level options that hold references, with how to decode them. References anywhere else are refused. */
-  readonly secretOptions?: { readonly [K in keyof O]?: SecretEncoding }
-  /** Refused by a production build (S6.6). */
-  readonly developmentOnly?: boolean
-  /** Checks unresolved options. Returns the reasons they are invalid; empty means valid. */
-  readonly validate?: (options: unknown) => string[]
-}
-
-interface AdapterContext {
-  /** The provider's key in the config. Used in log lines only, never for lookup. */
-  readonly name: string
-  /** The resources bound to this provider: bucket names for storage, database names for a database. */
-  readonly resources: readonly string[]
-  /** Present in the dev server, the CLI and development builds. Absent in a production artifact. */
-  readonly projectRoot?: string
-}
-
-/** Default export of a runtime module. */
-interface AdapterRuntime<O extends object, Instance> {
-  readonly create: (options: Resolved<O>, ctx: AdapterContext) => Instance | Promise<Instance>
-}
-
-/**
- * Deployment is the one service whose descriptor carries build-time behavior.
- *
- * Both loaders are functions written inside the descriptor module, e.g.
- * `svelteKitAdapter: () => import('@sveltejs/adapter-node')`, so each specifier resolves from the
- * adapter package that declares the dependency. Importing '@sveltejs/adapter-node' by name from core
- * fails under strict pnpm (S-5). The rule: a string where the value crosses into the manifest
- * (`runtime`), a loader function where the descriptor itself is at hand.
- */
-interface DeploymentDescriptor<O extends object> {
-  readonly kind: 'deployment'
-  /** Loads the SvelteKit adapter factory. Called by svelte.config.js only. */
-  readonly svelteKitAdapter: () => Promise<{ default: (options?: Record<string, unknown>) => import('@sveltejs/kit').Adapter }>
-  /** SvelteKit adapter options. Receives unresolved options: credentials never influence the build. */
-  readonly svelteKitOptions?: (options: O, ctx: { outDir: string }) => Record<string, unknown>
-  /** Loads the module exporting the DeployProcedure. Called by `genoa deploy` only. */
-  readonly procedure: () => Promise<{ default: DeployProcedure<O> }>
-  readonly secretOptions?: { readonly [K in keyof O]?: SecretEncoding }
-  readonly validate?: (options: unknown) => string[]
-}
-
-interface DeployContext {
-  readonly projectRoot: string
-  /** Absolute path of the build artifact (S7.1). */
-  readonly buildDir: string
-  /** Absolute scratch directory owned by this deploy. */
-  readonly workDir: string
-  readonly target: string
-}
-type DeployProcedure<O extends object> = (options: Resolved<O>, ctx: DeployContext) => Promise<void>
-```
-
-Service instances (`StorageAdapter`, `DatabaseAdapter`, `AuthenticationAdapter`, `SecretsAdapter`,
-`LanguageAdapter`) keep today's method signatures unchanged.
-
-`defineStorageAdapter`, `defineDatabaseAdapter`, `defineAuthenticationAdapter`,
-`defineLanguageAdapter` and `defineDeploymentTarget` stamp `kind` onto a descriptor.
-`defineSecretsAdapter` also enforces the bootstrap rule at compile time:
-
-```ts
-type BootstrapGuard<O> = ContainsSecretRef<O> extends true
-  ? { readonly 'secrets adapter options may not accept secret()': never }
-  : unknown
-declare function defineSecretsAdapter<O extends object> (
-  d: Omit<AdapterDescriptor<'secrets', O>, 'kind'> & BootstrapGuard<O>
-): AdapterDescriptor<'secrets', O>
-```
-
-**Example: the GCP storage adapter's two modules.**
-
-```ts
-// @genoacms/adapter-gcp/storage  — descriptor, imports nothing but contracts
-import { defineStorageAdapter, type Secret } from '@genoacms/contracts'
-
-export interface ServiceAccount { client_email: string, private_key: string, project_id?: string }
-export interface GcpStorageOptions {
-  projectId: string
-  /** Omitted: Application Default Credentials, i.e. the runtime's own identity. */
-  credentials?: Secret<ServiceAccount>
-}
-declare module '@genoacms/contracts' {
-  interface StorageAdapters { '@genoacms/adapter-gcp/storage': GcpStorageOptions }
-}
-export default defineStorageAdapter<GcpStorageOptions>({
-  runtime: '@genoacms/adapter-gcp/storage/runtime',
-  secretOptions: { credentials: 'json' },
-  validate: o => typeof (o as GcpStorageOptions).projectId === 'string' ? [] : ['projectId is required']
-})
-```
-
-```ts
-// @genoacms/adapter-gcp/storage/runtime  — the only module that imports the SDK
-import { Storage } from '@google-cloud/storage'
-import type { AdapterRuntime, StorageAdapter } from '@genoacms/contracts'
-import type { GcpStorageOptions } from './descriptor.js'
-
-export default {
-  create ({ projectId, credentials }, ctx) {
-    const storage = new Storage(credentials === undefined ? { projectId } : { projectId, credentials })
-    const bound = new Set(ctx.resources)
-    const bucket = (name: string) => {
-      if (!bound.has(name)) throw new Error(`bucket-unregistered: ${name} is not bound to ${ctx.name}`)
-      return storage.bucket(name)
-    }
-    return { /* today's ten methods, with getBucket replaced by bucket() */ }
-  }
-} satisfies AdapterRuntime<GcpStorageOptions, StorageAdapter>
-```
-
-### 5.5 Types: the config and the manifest (`@genoacms/config`)
+## Types: the config and the manifest (`@genoacms/config`)
 
 ```ts
 interface ProviderEntry<S extends string = string, O = unknown> { readonly adapter: S, readonly options: O }
@@ -576,206 +273,7 @@ The root file wins when both forms exist. The lookup never finds a production co
 10. `JSON.parse(JSON.stringify(config))` deep-equals `config`, which proves D1.
 11. In `production` mode: a `developmentOnly` adapter is an error, and each `inline()` warns by path (or is an error with `forbidInline`).
 
-### 5.6 Types: the host (`@genoacms/config/host`)
-
-```ts
-type RuntimeLoader = (specifier: string) => Promise<{ default: AdapterRuntime<object, unknown> }>
-
-interface HostOptions {
-  manifest: RuntimeManifest | Manifest
-  /** Injected by the caller. In core and the CLI it is `s => import(/* @vite-ignore */ s)`. */
-  load: RuntimeLoader
-  /** Defaults to manifest.source?.root. */
-  projectRoot?: string
-  /** Per getSecret call. Default 10 000. */
-  secretTimeoutMs?: number
-  environment?: Record<string, string | undefined>   // default process.env; injectable for tests
-}
-
-interface Host {
-  storage (provider: string): Promise<StorageAdapter>
-  database (provider: string): Promise<DatabaseAdapter>
-  authentication (provider: string): Promise<AuthenticationAdapter>
-  language (language: string): Promise<LanguageAdapter>   // checks adapter.language === key
-  secrets (): Promise<SecretsAdapter>                     // the sole store; constructed from env()/inline() only
-
-  storageForBucket (bucket: string): Promise<StorageAdapter>
-  databaseForCollection (collection: string): Promise<DatabaseAdapter>
-  authenticationProviders (): Promise<AuthenticationAdapter[]>   // in key order
-
-  readonly authorization: AuthorizationConfig
-  readonly security: SecurityConfig
-  readonly cookieName: string
-  readonly defaultBucket: string
-  readonly pathDelimiter: string
-  readonly buckets: readonly string[]
-  readonly collections: readonly CollectionReference[]
-
-  /** Resolves one options object against a descriptor's secretOptions. Used by `genoa deploy`. */
-  resolve<O extends object> (options: O, secretOptions: Record<string, SecretEncoding>, path: string): Promise<Resolved<O>>
-  /** Awaits pending constructions and drops them. CLI only; a server never calls it. */
-  close (): Promise<void>
-}
-declare function createHost (options: HostOptions): Host   // performs no I/O
-```
-
-**Construction, per provider name:**
-
-```
-host.storage(name)
-  cached = constructions.get(name);  if cached: return cached          ← the promise, not the instance
-  p = (async () => {
-        entry    = manifest.config.storage.providers[name]   ?? throw provider/not-found
-        meta     = manifest.adapters[entry.adapter]
-        options  = await resolve(entry.options, meta.secretOptions)       ← may call host.secrets()
-        runtime  = (await load(meta.runtime)).default
-        return runtime.create(options, { name, resources: bucketsOf(name), projectRoot })
-      })()
-  constructions.set(name, p)
-  p.catch(() => constructions.delete(name))                              ← failures are retried
-  return p
-```
-
-Caching by provider name, and by nothing else, is the whole of the "two instances" fix.
-`host.secrets()` follows the same pattern, except that it resolves only `env()` and `inline()`, so it
-never calls itself.
-
----
-
-## 6. Secrets
-
-### 6.1 Where a reference is resolved, and what holds the value
-
-References are resolved only in `host.resolve`: when the host constructs a provider, and when
-`genoa deploy` prepares a target's options. `core/src/lib/script/secrets/references.server.ts` is
-deleted, and its "throw naming the field" behavior moves into the resolver.
-
-Resolved values live in exactly three places:
-1. the adapter's closure after `create`;
-2. the host's per-process secret cache, keyed by secret name, which also collapses concurrent reads of one key;
-3. the transient options object passed to `create`.
-
-A value is never held in the manifest (except `inline()`), in the Vite module graph, or in an error
-message. Errors name the path and the reference: `storage.providers.gcs.options.credentials →
-GCS_SA`.
-
-The signing seeds and the registry sequence, which core reads through `host.secrets()` directly, bypass
-this cache. They keep the `getOrClaimSecret` and `setSecretIfAbsent` semantics they have today.
-
-### 6.2 `inline()`
-
-It is allowed (U3). A bare literal in a secret field is a type error and a load error, and `inline(x)`
-is the explicit way to write one. In production mode, `loadConfig` warns once per field:
-`storage.providers.gcs.options.credentials is inline: this value is written into the build`.
-`genoa build --no-inline` turns the warnings into errors. The runtime manifest therefore holds a
-credential only when the operator wrote `inline()`. Inline values under `deployment.targets` do not
-warn: deployment options never enter the runtime manifest.
-
-### 6.3 Bootstrap ordering
-
-```
-1. host.secrets()        options: env() / inline() only       → no network before the store exists
-2. host.storage(x)       options may contain secret()         → store round trip(s), concurrent per provider
-3. host.database(y)      same, on first use
-```
-
-The rule is stated three times, and all three agree:
-- the `BootstrapSecret` field type, for config authors;
-- `defineSecretsAdapter`'s guard, for adapter authors;
-- loader rule 5, at runtime.
-
-**Recommended production form:** `@genoacms/adapter-gcp/secrets` with `credentials` omitted, which
-uses Application Default Credentials (on Cloud Run, the function's own service account). Every other
-credential is then a `secret()`, and no credential exists in the config or the environment at all.
-
-`env()` is not a second store. The single-authority argument is about *writes*: `setSecret` has one
-target. `env()` is read-only and resolved by the host, so single-provider stays.
-
-### 6.4 Failure and latency in production
-
-- `createHost` does no I/O. The first I/O happens in `ensureInstanceInitialized()`: store construction, then the root-seed claim (already a secret read today), then the default bucket's provider.
-- A provider's references are fetched concurrently, so a provider costs one round trip of latency. A request that never touches a database never resolves the database's secrets.
-- Each `getSecret` is bounded by `secretTimeoutMs`, default 10 s. On timeout or a missing key, the construction rejects with `provider/secret-unavailable` or `secrets/missing`, naming the provider and the reference. The rejection is **not** cached, so the next call retries. `GrantCache` already follows the same rule.
-- Callers are unchanged: `ensureInstanceInitialized` catches and logs, and never rejects (K1). A request that needs the provider fails with 500.
-- Operators who want no round trip can mount secrets as environment variables (Cloud Run and Lambda both support this natively) and write `env()`.
-
-### 6.5 Caching and rotation
-
-Resolved values are cached for the life of the process. A constructed client holds its credential no
-matter what the cache does, so rotation means reconstructing the provider, and the honest unit of
-reconstruction is the process. On serverless platforms the next cold start reads the new version.
-A long-running Node server applies rotation on restart, and a deploy restarts it anyway. No TTL, no
-reload endpoint, no admin socket.
-
-### 6.6 Development store
-
-`@genoacms/adapter-secrets-env`:
-- Its descriptor is `developmentOnly: true`, so a production build refuses it (R6).
-- Its runtime requires `ctx.projectRoot`, which exists in the dev server, the CLI and development builds.
-- The default path is `<projectRoot>/.genoacms/secrets.env`, not `.env`. Vite does not watch it, so `envDir: false` and `viteConfig.test.ts` go away (F11).
-- Reads check, in order: this instance's own writes, then `process.env`, then the file. Writes update the instance's overlay. Today's adapter writes `process.env` to get the same effect, and without an overlay a shell variable would hide every later write, including a key rotation.
-- Nothing is written into `process.env`.
-- Cross-process `setSecretIfAbsent` keeps its lock file. File mode stays `0600`.
-
-`.genoacms/` is added to `.gitignore`.
-
----
-
-## 7. Build and deployment
-
-### 7.1 The artifact
-
-```
-<project>/.genoacms/
-  build/                    SvelteKit adapter output (adapter `out`, set by svelte.config.js)
-    package.json            generated: { type: "module", dependencies: core deps ∪ adapter packages, overrides: vendored }
-    vendor/                 generated: one npm-pack tarball per vendored package (D9)
-    …                       server bundle with the runtime manifest embedded; client assets
-  deploy/<target>/          workDir of a deploy procedure
-```
-
-`createRuntimePackage(manifest, buildDir, coreDir)` builds `package.json` from:
-- **the bundle's imports:** every bare specifier in a static or string-literal dynamic `import` in the server output, reduced to its package name. `node:` builtins are ignored. Anything bare left in the output is external by definition (R2), so it must be installed, and nothing else needs to be. Core's build tooling (`vite`, `vitest`, `tailwindcss`) never appears there.
-- **the adapter packages:** the package of every runtime specifier in `manifest.adapters`. The host imports these with a non-literal specifier (D4), so no scan can see them.
-- **versions** read from each package's installed `package.json`, resolved from `coreDir`.
-- **vendored packages** (D9): each one's entry becomes `file:vendor/<tarball>`, and `overrides` maps every vendored name to its tarball, so a vendored package's own dependency on another vendored one resolves to the tarball as well. `overrides` is required: without it a nested `@genoacms/contracts@^0.0.1` goes to the registry (S-8).
-
-It contains no workspace protocols and no dev dependencies. A tarball may still declare
-`workspace:` dependencies, because `npm pack` does not rewrite them. `overrides` replaces those
-specs before npm parses them (S-8). A dependency with a protocol npm cannot parse whose name is
-**not** vendored fails the build. Core's own `package.json` is not changed.
-
-**Measured on real core** (S-6, adapter-node build of `9592593`): the server imports 12 of core's 45
-`dependencies`. They are `@exodus/schemasafe`, `@noble/hashes`, `@noble/post-quantum`, `@sveltejs/kit`,
-`canonicalize`, `deep-diff`, `dompurify`, `flatted`, `highland`, `jose`, `jsdom` and `marked`, and the
-generated `package.json` installs 126 packages (67 MB). `vite`, `vitest`, the tailwind packages,
-`typescript`, codemirror and every `@types/*` are absent. The only non-literal imports in the output are
-Svelte's `obfuscated_import('node:crypto')` (a builtin) and today's config loader, which this design
-removes. There are no `require()` or `createRequire` calls.
-
-Two properties of the output the RFCs must not trip over:
-- **The scan is per build.** In the monorepo, Vite inlines symlinked workspace packages such as `@genoacms/internal`. In a user install the same packages are external. The scan reads whichever output exists, so it is correct in both cases, but the two lists differ.
-- **Rollup tree-shakes manifest properties the server never reads.** The embedded manifest is not a complete copy and must not be treated as one, for example when auditing an artifact for `inline()` values. Audit the manifest the loader produced instead.
-
-**Constraint:** every listed package that is **not vendored** must be installable from the registry
-where the target installs dependencies. Vendored packages (D9) need no registry. Deploying from the
-monorepo therefore needs no published `@genoacms/*` version.
-
-SvelteKit's intermediate `.svelte-kit/` stays inside the installed core package. Moving it would
-break core's `tsconfig.json`, which extends `./.svelte-kit/tsconfig.json`. The build only creates new
-files there and never modifies installed ones.
-
-### 7.2 Targets
-
-| Target | SvelteKit adapter | Procedure |
-| :-- | :-- | :-- |
-| `@genoacms/adapter-node` | `@sveltejs/adapter-node` | Copies `buildDir` to `options.outDir` (default `<project>/build`). The operator runs `npm install --omit=dev` there, as with any adapter-node output. |
-| `@genoacms/adapter-gcp/deployment` | `@genoacms/sveltekit-adapter-cloud-run-functions` | Archives `buildDir`. Adds a generated `function.js` that exports `genoacms` from the build's handler, and sets `"main": "function.js"` in the archived `package.json`. Uploads, then creates or updates the function. Buildpacks install the dependencies (R4). **No project source and no config leave the machine** (fixes F9, F15). GCP specifics, findings and IAM: [`adapter-gcp/deployment.md`](adapter-gcp/deployment.md). |
-| `@genoacms/adapter-aws/deployment` | `@sveltejs/adapter-node` + the Lambda wrapper | Ported (F14). Lambda does not install dependencies, so the procedure runs `npm install --omit=dev` in its `workDir` before zipping. |
-
----
-
-## 8. Config files per environment (U1)
+## Config files per environment
 
 A project holds one config file per environment, all in one directory, `genoa.config/` (U12). Shared
 parts are ordinary TypeScript modules beside them:
@@ -790,7 +288,7 @@ genoa.config/
 
 A project with a single config may use one root file, `genoa.config.ts`, instead.
 
-Every CLI command accepts `--config <file>`, which defaults to the lookup in S5.5. Choosing the wrong
+Every CLI command accepts `--config <file>`, which defaults to the lookup in *Types: the config and the manifest*. Choosing the wrong
 file for a production build is caught at build time, because the dev config's secrets store is
 `developmentOnly`. `GENOA_CONFIG_PATH` is removed. Its two users, the test fixtures in
 `language-adapter-ts` and `sdk`, construct their adapter directly and no longer need a config.
@@ -810,56 +308,7 @@ therefore still cannot run either without the credential files, exactly as today
 cost of U7, not a property of the architecture: a config that uses `secret()` loads with no credential
 present.
 
----
-
-## 9. Lifecycle
-
-```
-DEVELOPMENT   genoa dev [--config f] [--mode m]            (monorepo: pnpm dev in packages/core)
-  cli    root = cwd; spawn `vite dev`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG
-  vite   genoa(): loadConfig(mode = config.mode = 'development') → manifest (with source)
-                  virtual:genoa/manifest; watch source.dependencies
-         svelte.config.js: resolveKitAdapter() → target's SvelteKit adapter, or none if no targets
-  core   host.server.ts: createHost({ manifest, load })          no I/O
-         hooks: ensureInstanceInitialized() → host.secrets() (secrets-env) → root seed → default bucket
-  edit   config or any file it imports → reload manifest → server.restart()
-
-BUILD         genoa build [target] [--config f] [--no-inline] [--mode m]
-  cli    loadConfig(mode = --mode, default production) → refuse on any error
-         target = arg ?? deployment.default ?? first key
-         spawn `vite build`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG, GENOA_TARGET, GENOA_MODE
-  kit    svelte.config.js: descriptor(target) → (await descriptor.svelteKitAdapter()).default(svelteKitOptions + out)
-  vite   genoa(): embeds the RuntimeManifest; adapter runtimes stay external (D4)
-  cli    write .genoacms/build/package.json (S7.1)
-
-DEPLOY        genoa deploy [target] [--config f] [--no-inline] [--mode m]
-  cli    run BUILD
-         host = createHost({ manifest, load, projectRoot })
-         options = host.resolve(target.options, descriptor.secretOptions, `deployment.targets.${target}`)
-         (await descriptor.procedure()).default(options, { projectRoot, buildDir, workDir, target })
-         host.close()
-
-PRODUCTION    cold start of the artifact
-  module eval   createHost(runtime manifest, import)                 no I/O, no cwd, no fs
-  bootstrap     host.secrets() → root seed → host.storageForBucket(defaultBucket)
-  first use     host.databaseForCollection(c), host.language(l): resolve, then construct
-  failure       construction rejects → request 500 → next call retries
-```
-
-The CLI's commands, flags and messages are specified in [`cli.md`](cli.md).
-
-**Mode** is `GENOA_MODE` (D7), never Vite's `mode`. `genoa build --mode development` sets it to
-`development` and produces a development artifact: its manifest carries `source.root` and it may use `developmentOnly` adapters. Core's
-Playwright suite uses this (`build && preview` against the dev store), replacing today's
-`deploy --dev`.
-
-`scripts/rotate-root.ts` keeps running under `vite-node` with core's Vite config, so it gets the same
-plugin, manifest and host. `genoa rotate-root` spawns it with `GENOA_PROJECT` and `GENOA_CONFIG`,
-without `npm explore` and without `GENOA_BUILD`.
-
----
-
-## 10. Preserved functionality
+## Preserved functionality
 
 | Id | Capability today | After |
 | :-- | :-- | :-- |
@@ -904,26 +353,14 @@ without `npm explore` and without `GENOA_BUILD`.
 **Dropped by decision (U5):** `database.defaultDatabase`. It is written in every example config and
 read by nothing.
 
----
-
-## 11. Rejected alternatives
+## Rejected alternatives
 
 | Alternative | Why rejected |
 | :-- | :-- |
-| **A generated table of literal `import()`s** (the external proposal's D3) | Under R3, a literal import is bundled by the SvelteKit adapter's rollup pass together with its cloud SDK, because adapter packages are not in core's `dependencies`. The proposal claimed the plugin resolves adapters from the project; its code did not, and resolution was not what mattered. |
-| **Remote build on GCP** (today's intent) | It uploads the project source, including the config directory and credentials (F9), and it needs the config and a build script at the remote end. Building locally also lets CI verify exactly what ships. |
-| **Runtime `package.json` = core's `dependencies`** | Would install `vite`, `vitest` and the tailwind toolchain on every function. Moving them to `devDependencies` breaks users, who build core from their own install (U6). |
-| **Fully self-contained bundle, no install** | Would bundle `typescript`, `ts-morph`, `jsdom` and gRPC SDKs through rollup, which is the most fragile option. |
-| **Adapter `validate` inside the runtime module** (external proposal) | Loads SDKs at build time and brings F7 back. Solved by the descriptor split (D2). |
-| **`secret.json()` or sniffing a value's first character** | Ambiguous. JSON decoding is declared per option in the descriptor. |
 | **Environment overlays in one config file** | The author chose separate files (U1). Composition across files is plain TypeScript imports. |
-| **Several secrets providers** | A write would have no defensible target. `env()` covers read-only platform secrets. |
-| **Baking resolved secrets into the build** | The artifact would be a credential. `inline()` is the explicit, warned version of this, for operators who accept the trade. |
-| **Eager resolution of every provider at cold start** | Pays for providers a request never uses, and makes readiness depend on every key existing. |
-| **TTL-based live rotation, reload socket** | Reconstructing live clients under load is a source of bugs, it adds an attack surface, and every target restarts on deploy. Non-goal. |
-| **Generic `Config<Extension>` typing** | One type parameter cannot type heterogeneous provider collections (F8). Module augmentation keyed by specifier scales without coupling. |
 | **Config as JSON or YAML** | Collection definitions use schema helpers, and configs share modules. "A module that evaluates to data" keeps composition and gets every property of a static format through the manifest. |
-| **Three packages (contracts, loader, host)** | No consumer wants the loader without the host's types, or the reverse. Subpath exports keep Vite out of `./host`. |
+
+The other rejected alternatives moved with their subjects.
 
 **Corrections to the external proposal** (for the reviewer's traceability):
 - Its F6 ("the bundle is dead") and F2 ("a root import for `PreconditionFailedError`") were factually wrong. See the corrected F6 and F2 above.
@@ -931,14 +368,12 @@ read by nothing.
 - Its GCP procedure shipped the build without a `package.json` and with a snippet path that would not exist.
 - Its `Resolved` type left optional secret fields unresolved, and its `NoSecretRefs` guard accepted `Secret<T>` fields. Both are verified and replaced here.
 - It had dev config loading use `ssrLoadModule` before any dev server exists. Replaced by `runnerImport`.
-- Its `secrets-env` rewrite let a shell variable hide later writes (S6.6).
-- Its minimal config paired a Node production target with the development-only store (S8).
-- It said host construction should be memoized without saying the promise, not the instance, is what gets cached (S5.6).
+- Its `secrets-env` rewrite let a shell variable hide later writes ([`secrets.md`](secrets.md) *Development store*).
+- Its minimal config paired a Node production target with the development-only store (*Config files per environment*).
+- It said host construction should be memoized without saying the promise, not the instance, is what gets cached ([`host.md`](host.md) *Types: the host*).
 - Its TTL rotation and reload socket are dropped as non-goals.
 
----
-
-## 12. Open questions
+## Open questions
 
 Q1 to Q3 are recorded as U5 to U8, and Q4 as U9.
 
@@ -947,9 +382,7 @@ Q1 to Q3 are recorded as U5 to U8, and Q4 as U9.
 | Q5 | Where are failed sign-ins limited (F20)? | In core, before any provider is called, per normalized email and per client address, with the counters in the database service. It then covers every adapter, and a managed provider's per-IP protection stops seeing the server as one abusive client. Needs its own decision: the client address depends on the hosting layer's forwarding header. |
 | Q6 | When a self-owned identity store comes (U13), how are users created? | An optional management capability on the authentication contract (`createIdentity`, `setPassword`, `disable`), shown in the CMS only for providers that offer it, plus a CLI command for the first user, who cannot sign in to create themselves. |
 
----
-
-## 13. Verification before any RFC is written
+## Verification before any RFC was written
 
 Each item is an assumption the design depends on. Per the discovery rule, a failure changes this
 document before any RFC exists. Run on 2026-09-26 with Node 24.21, Vite 7.3.6, SvelteKit 2.70.2,
@@ -964,11 +397,11 @@ S-6 used a real build of `packages/core` at `9592593`. No repository file was ch
 | Spike | Assumption | Result |
 | :-- | :-- | :-- |
 | S-1 | A runtime-string `import(/* @vite-ignore */ s)` in core survives `vite build` and both SvelteKit adapters' rollup passes, and resolves from `<artifact>/node_modules` after install. | **Pass.** The SDK marker is absent from both outputs, and the loader is emitted verbatim. After `npm install` of the generated `package.json` into an empty directory, both artifacts served the route. Two providers on one adapter produced two instances (`instance: 1`, `instance: 2`). |
-| S-2 | `runnerImport` loads a TypeScript config with imports, from a script, from `svelte.config.js` and from a Vite plugin. | **Pass, with two corrections.** TypeScript, JSON (`with { type: 'json' }`), `.js` credential modules and nested imports all load in 66–80 ms. A type-only adapter import is erased and loads nothing. `dependencies` is transitive but **excludes the config file itself**. The plugin's `configResolved` fires eight times per SvelteKit build, **with inconsistent `mode`**. That led to `GENOA_MODE` (D7) and loader memoization (S5.5 rule 1). |
+| S-2 | `runnerImport` loads a TypeScript config with imports, from a script, from `svelte.config.js` and from a Vite plugin. | **Pass, with two corrections.** TypeScript, JSON (`with { type: 'json' }`), `.js` credential modules and nested imports all load in 66–80 ms. A type-only adapter import is erased and loads nothing. `dependencies` is transitive but **excludes the config file itself**. The plugin's `configResolved` fires eight times per SvelteKit build, **with inconsistent `mode`**. That led to `GENOA_MODE` (D7) and loader memoization (*Types: the config and the manifest* rule 1). |
 | S-3 | An absolute `out` outside core works for both SvelteKit adapters. | **Pass** for adapter-node and cloud-run-functions. SvelteKit still writes `.svelte-kit/` inside core, and Vite writes `node_modules/.vite-temp/` there when bundling `vite.config`. Both are new files inside the installed package, and both worked inside the pnpm virtual store. |
 | S-4 | A Cloud Run function runs from `build/` plus a generated `package.json` with `"main": "function.js"`. | **Local pass; live deploy not run.** `npm install` of the generated file followed by Google's Functions Framework 3 (`--target=genoacms`) served the route. Buildpacks and the real platform are untested. That needs a deploy to a GCP project, and the author has to authorize it. |
-| S-5 | In a pnpm project, core resolves the project's adapter packages in Vite dev and in the build. | **Pass**, both with default hoisting and with `hoist: false`. **Found a design flaw on the way:** importing `@sveltejs/adapter-node` by name from core fails under `hoist: false` (`ERR_MODULE_NOT_FOUND`), because it is a dependency of the deployment adapter package, not of core or the project. Loading it through a function in the descriptor works in both layouts. That led to the `DeploymentDescriptor` change (S5.4). |
-| S-6 | A bare-specifier scan of the server output finds every external. | **Pass** on real core: 12 externals, no `require`/`createRequire`, and only known non-literal imports (S7.1). The generated `package.json` installs cleanly (126 packages, 67 MB). **Partial:** real core was not booted from the installed artifact, because today's core reads its config from `cwd` at runtime, which this design replaces. The boot-and-exercise check moves into the deploy RFC's verification. |
+| S-5 | In a pnpm project, core resolves the project's adapter packages in Vite dev and in the build. | **Pass**, both with default hoisting and with `hoist: false`. **Found a design flaw on the way:** importing `@sveltejs/adapter-node` by name from core fails under `hoist: false` (`ERR_MODULE_NOT_FOUND`), because it is a dependency of the deployment adapter package, not of core or the project. Loading it through a function in the descriptor works in both layouts. That led to the `DeploymentDescriptor` change ([`contracts/adapter-model.md`](contracts/adapter-model.md) *Types: adapters*). |
+| S-6 | A bare-specifier scan of the server output finds every external. | **Pass** on real core: 12 externals, no `require`/`createRequire`, and only known non-literal imports ([`build.md`](build.md) *The artifact*). The generated `package.json` installs cleanly (126 packages, 67 MB). **Partial:** real core was not booted from the installed artifact, because today's core reads its config from `cwd` at runtime, which this design replaces. The boot-and-exercise check moves into the deploy RFC's verification. |
 | S-7 | Descriptors and deploy-time modules load **from the project root** even when the loading code lives in another package, as `@genoacms/config` and the CLI do in the monorepo. | **Pass with `import-meta-resolve`**, under strict pnpm, from an unrelated directory: descriptor, the SvelteKit adapter through the descriptor's loader, and the adapter runtime. **`runnerImport` was rejected for this:** it resolves from `root` correctly but closes its module runner afterwards, so a descriptor's lazy `import()` then fails with "Vite module runner has been closed". |
 
 **S-8, run on 2026-09-27 for D9 (F19).** Artifact: the real production build of `packages/core`
@@ -994,9 +427,7 @@ vendored unconditionally (D9).
 **S-4 live deploy: skipped by decision (U10)** until `genoa.config/production.ts` existed. Since run:
 the author deployed core to GCP on 2026-09-28 and it serves (`adapter-gcp/README.md` §5).
 
----
-
-## 14. RFCs
+## RFCs
 
 The implementation specifications are in [`docs/rfcs/`](../rfcs/README.md): 17 RFCs in dependency
 order, each with exact files, contracts, non-goals and verification commands.
@@ -1007,12 +438,10 @@ order, each with exact files, contracts, non-goals and verification commands.
 - RFC-0020 implements D9 (vendoring). It was written after RFC-0015 was implemented, when the first production deploy hit F19.
 
 Findings made while writing the RFCs were folded back into this document:
-- `LanguageAdapter` stays in `internal` (§5.1);
-- project-rooted descriptor loading, spike S-7 (§5.5);
-- `inline()` under deployment targets does not warn (§6.2);
+- `LanguageAdapter` stays in `internal` ([`contracts/adapter-model.md`](contracts/adapter-model.md) *Packages and dependency direction*);
+- project-rooted descriptor loading, spike S-7 (*Types: the config and the manifest*);
+- `inline()` under deployment targets does not warn ([`secrets.md`](secrets.md) *`inline()`*);
 - U11, the one-time move of core's dev store.
-
----
 
 ## Critique & architectural sanity check
 
@@ -1026,7 +455,7 @@ Findings made while writing the RFCs were folded back into this document:
 
 **Cons & trade-offs**
 - Two modules per adapter service (descriptor and runtime), plus a registry augmentation. More files for adapter authors.
-- Every target must install dependencies. Deploys from the monorepo need published packages (S7.1).
+- Every target must install dependencies. Deploys from the monorepo need published packages ([`build.md`](build.md) *The artifact*).
 - The config is loaded three times per build (CLI, `svelte.config.js`, Vite plugin). It is cheap because it is data, but it is three evaluations of user code.
 - The first use of each provider costs a secret round trip on cold start, unless `env()` or ADC is used.
 - Core's own CI still cannot build or run unit tests, because core's dev config imports gitignored credential files (U7). The architecture allows a credential-free build; this repository's config opts out of it.
@@ -1041,9 +470,7 @@ Findings made while writing the RFCs were folded back into this document:
 - **Third-party SvelteKit adapters that trace dependencies** (for example Vercel's nft) may treat a non-analyzable `import()` differently from rollup externals. D4 is verified only for the two adapters in the repository.
 - **Integer-like provider keys** silently reorder authentication trials. Loader rule 9 catches this, but only if that rule is implemented.
 - **Secrets used by several providers** are fetched once, thanks to the per-key cache, but a timeout fails every provider waiting on that key at the same moment. That is acceptable, but it looks like correlated failures in logs.
-- **`authentication-adapter-array` credentials** become a JSON secret with plain-text passwords. Moving them out of the config is an improvement, but they remain plain text in the store (S3 non-goal).
-
----
+- **`authentication-adapter-array` credentials** become a JSON secret with plain-text passwords. Moving them out of the config is an improvement, but they remain plain text in the store (*Goals and non-goals* non-goal).
 
 ## Critique & architectural sanity check: U12 (one config directory)
 
@@ -1064,8 +491,6 @@ Findings made while writing the RFCs were folded back into this document:
 - **Production configs without `developmentOnly` providers.** The guard in U9 only works when the development config contains a `developmentOnly` adapter. A development config built from cloud providers only would be built for production without complaint, and naming it `development.ts` does not change that.
 - **`.npmignore` in core.** `/genoa.config` now covers every config file. Anything moved out of that directory later has to be listed again, or core's configs and credential imports get published.
 
----
-
 ## Critique & architectural sanity check: P1 (`init` scaffolds the whole directory)
 
 **Pros**
@@ -1083,51 +508,6 @@ Findings made while writing the RFCs were folded back into this document:
 - **A `TODO` specifier in `production.ts`** is invisible to `genoa dev`, because the default lookup never loads that file. It surfaces at the first `genoa build --config genoa.config/production.ts`, which is the intended point, but possibly long after `init`.
 - **The collection example** uses schema helpers from `@genoacms/contracts/schemas`, so `init` must install `@genoacms/contracts` directly. Under strict pnpm, the helper import fails without it.
 
----
-
-## Critique & architectural sanity check: D8 (nothing constructed while building)
-
-**Pros**
-- A build no longer reads or writes the instance it is built for. Before, every build bootstrapped the configured instance, and the old Cloud Build flow did so for production.
-- The production config builds with no credential present, which goal 6 always claimed and never delivered.
-- The loader check makes the invariant enforced rather than remembered: new module-scope I/O fails the build by name.
-
-**Cons & trade-offs**
-- Core now depends on `$app/environment` in two service modules and in `host.server.ts`. Those modules are only ever evaluated by SvelteKit, but unit tests have to provide the flag (Vitest resolves it to `false` through SvelteKit's plugin).
-- The collection listing reads as empty during analysis. Nothing prerenders, so nothing observes it. A prerendered page that listed collections would be built empty.
-
-**Blindspots & missed edge cases**
-- **Module-scope I/O outside these two sites.** The loader check catches provider construction, but not direct `fetch` or file I/O at import time. A module that reads a remote resource without the host would still run during the build.
-- **Runtime failures that bypass promises.** The build crash surfaced as an uncaught exception thrown by the GCP auth library outside the promise chain. K1's "never rejects" guarantee therefore does not cover every provider failure. On a real instance, missing ADC could crash the process instead of degrading. That is not addressed here.
-- **Prerendering.** `building` is also true while prerendering. If a page is ever prerendered, it cannot reach a provider, by design. That is correct for this CMS, but it has to be known.
-
----
-
-## Critique & architectural sanity check: D9 (local packages travel inside the artifact)
-
-**Pros**
-- The deployed adapter code is byte-for-byte what the developer's machine loaded. F19's silent case, a registry package with the same version and different code, cannot happen.
-- Users can deploy adapters that exist only in their repository, from npm, pnpm or yarn projects, with no registry and no publish step.
-- The monorepo deploys without a release, so a deploy no longer has to follow a publish.
-- No deploy procedure changes. GCP, AWS and Node all copy `buildDir`, and both procedures that rewrite `package.json` spread the existing object, so `overrides` survives.
-- Only npm is required, and it ships with Node.
-
-**Cons & trade-offs**
-- Adapters are repacked even when they came from the registry. The packed files are the installed ones, which the project's lockfile integrity already covered, but registry provenance is not carried into the artifact.
-- The build now runs a child process per vendored package. A cold `npm pack` takes about a second, which is small next to `vite build`.
-- The artifact is installed with npm only. A target whose operator insists on pnpm or yarn inside the artifact would need `pnpm.overrides` or `resolutions` as well. That is not specified.
-- A vendored package's own dependencies still resolve by range at install time, as every transitive dependency does today. D9 pins nothing new.
-
-**Blindspots & missed edge cases**
-- **yarn v1 `file:` packages that are not adapters.** A local helper library that an adapter depends on, installed by yarn v1's copy, looks like a registry package. It is not vendored, and the artifact install fails with `E404` for it. Adapters themselves are covered by the unconditional rule.
-- **Protocols other than `workspace:`.** pnpm `catalog:`, yarn `patch:` and `portal:` in a vendored package's dependencies, on a name that is not vendored, fail the build by rule. The build does not rewrite them.
-- **Unbuilt packages.** `npm pack --ignore-scripts` packs whatever is on disk. A package whose `exports` target a `dist/` that was never built is refused by name. A stale `dist/` from an older source is not detected.
-- **Secrets in a package directory.** `npm pack` includes whatever `files` or `.npmignore` let through. A deny-list of the repository's known secret filenames refuses the obvious cases. A credential under any other name ships.
-- **Yarn Plug'n'Play.** There is no `node_modules`, so version lookup already fails with `build/not-installed`. D9 does not change that.
-- **Native binaries in vendored packages** are packed as they are on the build machine. None of the packages vendored today has one. The AWS procedure's `--os`/`--cpu` question applies to registry dependencies and is separate.
-
----
-
 ## Critique & architectural sanity check: U13, U14, F20 (authentication scope)
 
 The GCP side of U13, Identity Platform, is decided and critiqued in
@@ -1139,9 +519,9 @@ The GCP side of U13, Identity Platform, is decided and critiqued in
 - F20 records the missing sign-in throttling as a core concern, so no adapter is expected to solve it alone.
 
 **Cons & trade-offs**
-- Without a management capability (Q6), every provider's users are managed outside the CMS. For the array adapter that means editing a JSON secret, and a new user takes effect only after the next cold start (§6.5).
+- Without a management capability (Q6), every provider's users are managed outside the CMS. For the array adapter that means editing a JSON secret, and a new user takes effect only after the next cold start ([`secrets.md`](secrets.md) *Caching and rotation*).
 - U14 is a rename across templates, the config README and core's configs. Existing development stores holding `GENOACMS_ADMIN_CREDENTIALS` stop authenticating until the key is renamed in them.
 
 **Blindspots & missed edge cases**
 - Until Q5 is decided, every deployed instance, on any stack, accepts unlimited password guesses.
-- Deferring the self-owned identity store leaves AWS and self-hosted stacks with only the plain-text array adapter for production (§3 non-goal).
+- Deferring the self-owned identity store leaves AWS and self-hosted stacks with only the plain-text array adapter for production (*Goals and non-goals* non-goal).
