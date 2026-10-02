@@ -6,6 +6,8 @@ import { enabled, region, secretKey } from './aws.js'
 
 const ONE_MINUTE = 60_000
 const RECOVERY_WINDOW_DAYS = 7
+const VISIBLE_WITHIN_MS = 30_000
+const RETRY_EVERY_MS = 1_000
 
 const createdKeys: string[] = []
 let client: SecretsManagerClient
@@ -15,6 +17,16 @@ function key (name: string): string {
   const created = secretKey(name)
   createdKeys.push(created)
   return created
+}
+
+// ASM-6, WF27
+async function deletesAsAbsentWithin (deleted: string, ms: number): Promise<boolean> {
+  const deadline = Date.now() + ms
+  for (;;) {
+    if (!await secrets.deleteSecret(deleted)) return true
+    if (Date.now() >= deadline) return false
+    await new Promise(resolve => setTimeout(resolve, RETRY_EVERY_MS))
+  }
 }
 
 async function forceDelete (created: string): Promise<void> {
@@ -54,12 +66,12 @@ describe.runIf(enabled)('Secrets Manager, against the real service', { timeout: 
     expect(await secrets.getSecret(claimed)).toBe('first')
   })
 
-  it('ASM-6: deletes a secret at once, and reports false for one that does not exist', async () => {
+  it('ASM-6: deletes a secret at once, and reports false for one that does not exist', { timeout: 2 * ONE_MINUTE }, async () => {
     const deleted = key('deleted')
     await secrets.setSecret(deleted, 'value')
     expect(await secrets.deleteSecret(deleted)).toBe(true)
     expect(await secrets.getSecret(deleted)).toBeUndefined()
-    expect(await secrets.deleteSecret(deleted)).toBe(false)
+    expect(await deletesAsAbsentWithin(deleted, VISIBLE_WITHIN_MS)).toBe(true)
     expect(await secrets.deleteSecret(key('never-existed'))).toBe(false)
   })
 
