@@ -224,7 +224,7 @@ describe('the trial, after CS2', () => {
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'a', identity: mixedCase })
   })
 
-  it.fails('AUTHN-5: an answer that is neither an identity nor a rejection counts as a failure', async () => {
+  it('AUTHN-5: an answer that is neither an identity nor a rejection counts as a failure', async () => {
     configured.providers = { a: { authenticate: async () => null as unknown as Identity }, b: rejecting('credentials') }
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
     expect(errors).toEqual(['[genoacms:auth] provider a failed: authentication/invalid-answer'])
@@ -313,7 +313,7 @@ describe('revalidating a session', () => {
     expect(await revalidate(ada.subject, 'b')).toEqual(mixedCase)
   })
 
-  it.fails('AUTHN-7: an answer of getIdentity that is neither an identity nor null fails the revalidation', async () => {
+  it('AUTHN-7: an answer of getIdentity that is neither an identity nor null fails the revalidation', async () => {
     configured.providers = { b: { getIdentity: async () => undefined as unknown as Identity } }
 
     await expect(revalidate(ada.subject, 'b')).rejects.toThrow('session/revalidation-failed: b: authentication/invalid-answer')

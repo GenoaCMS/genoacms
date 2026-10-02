@@ -437,7 +437,7 @@ describe('the provider and revalidation', () => {
     expect(subjects).toEqual([SUBJECT, SUBJECT, SUBJECT, SUBJECT, SUBJECT])
   })
 
-  it.fails('AUTHN-7: a lost race carries the email revalidation returned', async () => {
+  it('AUTHN-7: a lost race carries the email revalidation returned', async () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
     const storage = await import('$lib/script/storage/storage.server')
     vi.spyOn(storage, 'uploadObject').mockImplementationOnce(async () => { throw new PreconditionFailed('lost the race') })

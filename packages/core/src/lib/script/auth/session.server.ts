@@ -169,7 +169,7 @@ async function refreshSession (familyId: string, token: string, revalidate: Reva
     return {
       outcome: 'concurrent',
       subject: loaded.family.subject,
-      email: loaded.family.email,
+      email: identity.email, // AUTHN-7
       expiresAt: loaded.family.expiresAt
     }
   }

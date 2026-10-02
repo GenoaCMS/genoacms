@@ -15,6 +15,13 @@ type Answer =
   | { kind: 'threw', error: unknown }
 
 const THROTTLED = 'authentication/throttled'
+const INVALID_ANSWER = 'authentication/invalid-answer'
+
+function isIdentity (answer: unknown): answer is Identity {
+  if (typeof answer !== 'object' || answer === null) return false
+  const { subject, email } = answer as Record<string, unknown>
+  return typeof subject === 'string' && subject.length > 0 && typeof email === 'string'
+}
 
 function messageOf (error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -23,8 +30,10 @@ function messageOf (error: unknown): string {
 async function ask (key: string, email: string, password: string): Promise<Answer> {
   try {
     const adapter: Adapter = await host.authentication(key)
-    const result = await adapter.authenticate(email, password)
-    return isRejection(result) ? { kind: 'rejected', rejection: result } : { kind: 'identity', identity: result }
+    const result: unknown = await adapter.authenticate(email, password)
+    if (isIdentity(result)) return { kind: 'identity', identity: result }
+    if (typeof result === 'object' && result !== null && isRejection(result as Rejection)) return { kind: 'rejected', rejection: result as Rejection }
+    throw new Error(INVALID_ANSWER) // AUTHN-5
   } catch (error) {
     return { kind: 'threw', error }
   }
@@ -64,7 +73,9 @@ async function signIn (email: string, password: string): Promise<SignInResult> {
 
 async function lookUp (key: string, subject: string): Promise<Identity | null> {
   try {
-    return await (await host.authentication(key)).getIdentity(subject)
+    const answer: unknown = await (await host.authentication(key)).getIdentity(subject)
+    if (answer === null || isIdentity(answer)) return answer
+    throw new Error(INVALID_ANSWER) // AUTHN-7
   } catch (error) {
     throw new Error(`session/revalidation-failed: ${key}: ${messageOf(error)}`)
   }
