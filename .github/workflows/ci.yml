@@ -96,7 +96,7 @@ jobs:
         env:
           GENOACMS_TEST_GCP: ${{ steps.gcp.outcome == 'success' && '1' || '' }}
           GENOACMS_TEST_GCP_PROJECT: ${{ vars.GCP_TEST_PROJECT }}
-          GENOACMS_TEST_GCP_BUCKET: ${{ vars.GCP_TEST_BUCKET }}
+          GENOACMS_TEST_GCP_BUCKET: ${{ vars.GCP_CORE_E2E_BUCKET }}
 
       - name: Authenticate to AWS
         if: github.event_name == 'push' && vars.AWS_TEST_ROLE_ARN != ''
@@ -112,6 +112,7 @@ jobs:
         run: node scripts/test-level.mjs contract
         env:
           GENOACMS_TEST_GCP: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && '1' || '' }}
+          GENOACMS_TEST_GCP_IDENTITY: '1'
           GENOACMS_TEST_GCP_PROJECT: ${{ vars.GCP_TEST_PROJECT }}
           GENOACMS_TEST_GCP_BUCKET: ${{ vars.GCP_TEST_BUCKET }}
           GENOACMS_TEST_GCP_REGION: ${{ vars.GCP_TEST_REGION }}
