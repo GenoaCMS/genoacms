@@ -4,6 +4,7 @@ import { isCancel, select } from '@clack/prompts'
 import { parseCliArgs } from './args.js'
 import { COMMANDS, findCommand } from './commands.js'
 import { usage, commandUsage, version } from './help.js'
+import { productionConfigHint } from './hint.js'
 import { resolveProject } from './project.js'
 
 async function selectCommand () {
@@ -40,10 +41,27 @@ async function commandFromMenu () {
 
 const chooseCommand = async (name) => name === undefined ? await commandFromMenu() : knownCommand(name)
 
+const HINTED_COMMANDS = ['build', 'deploy']
+
+/** CLI-19, LD4 */
+function hintFor (command, context, args, error) {
+    if (!HINTED_COMMANDS.includes(command.name) || context.mode !== 'production' || args.config !== undefined) return []
+    return productionConfigHint({ root: context.root, command: command.name, target: args.target, error }) ?? []
+}
+
+async function runInProject (command, run, args) {
+    const context = commandContext(command, args)
+    try {
+        await run(context)
+    } catch (error) {
+        fail(error, hintFor(command, context, args, error))
+    }
+}
+
 async function runCommand (command, args) {
     const run = await command.load()
     if (command.name === 'init') return await run()
-    await run(commandContext(command, args))
+    await runInProject(command, run, args)
 }
 
 /** CLI-14, CLI-15 */
@@ -52,8 +70,9 @@ function helpText (name) {
 }
 
 /** A ConfigError's message already lists every issue, so every error prints the same way. */
-function fail (error) {
+function fail (error, hint = []) {
     console.error(error.message)
+    for (const line of hint) console.error(line)
     process.exit(1)
 }
 

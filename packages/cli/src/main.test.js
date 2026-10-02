@@ -158,7 +158,7 @@ describe('genoa', () => {
     assert.deepEqual(genoa(cwd, 'build'), { status: 1, stdout: '', stderr: `cli/core-not-installed: install @genoacms/core in ${cwd}\n` })
   }, 30000)
 
-  test.fails('CLI-19: a production build of the default development config names it and the production config', () => {
+  test('CLI-19: a production build of the default development config names it and the production config', () => {
     const cwd = developmentOnlyProject()
     assert.deepEqual(genoa(cwd, 'build'), {
       status: 1,

@@ -25,7 +25,7 @@ const developmentOnly = () => new ConfigError('config/invalid', [
 ])
 
 describe('productionConfigHint', () => {
-  test.fails('CLI-19: names the default-found file and the production command', async () => {
+  test('CLI-19: names the default-found file and the production command', async () => {
     const { productionConfigHint } = await import('./hint.js')
     const root = project(['genoa.config/development.ts', 'genoa.config/production.ts'])
     assert.deepEqual(productionConfigHint({ root, command: 'deploy', target: 'gcp', error: developmentOnly() }), [
@@ -34,7 +34,7 @@ describe('productionConfigHint', () => {
     ])
   })
 
-  test.fails('CLI-19: omits the Run line without genoa.config/production.ts, and the target when none was given', async () => {
+  test('CLI-19: omits the Run line without genoa.config/production.ts, and the target when none was given', async () => {
     const { productionConfigHint } = await import('./hint.js')
     const single = project(['genoa.config.ts'])
     assert.deepEqual(productionConfigHint({ root: single, command: 'build', target: 'gcp', error: developmentOnly() }), [
@@ -51,7 +51,7 @@ describe('productionConfigHint', () => {
     ])
   })
 
-  test.fails('CLI-19: gives no hint for other errors', async () => {
+  test('CLI-19: gives no hint for other errors', async () => {
     const { productionConfigHint } = await import('./hint.js')
     const root = project(['genoa.config/development.ts', 'genoa.config/production.ts'])
     const others = [
