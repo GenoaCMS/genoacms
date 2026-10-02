@@ -143,12 +143,12 @@ describe('genoa', () => {
     assert.deepEqual(genoa(cwd, '-v', 'deploy', '-h'), { status: 0, stdout: `${DEPLOY_USAGE}\n`, stderr: '' })
   }, 30000)
 
-  test.fails('CLI-17: fails on an unknown command with the usage on standard error', () => {
+  test('CLI-17: fails on an unknown command with the usage on standard error', () => {
     const cwd = directory()
     assert.deepEqual(genoa(cwd, 'deplyo'), { status: 1, stdout: '', stderr: `cli/unknown-command: deplyo\n${USAGE}\n` })
   }, 30000)
 
-  test.fails('CLI-18: fails without a command when not in a terminal', () => {
+  test('CLI-18: fails without a command when not in a terminal', () => {
     const cwd = directory()
     assert.deepEqual(genoa(cwd), { status: 1, stdout: '', stderr: `cli/no-command\n${USAGE}\n` })
   }, 30000)

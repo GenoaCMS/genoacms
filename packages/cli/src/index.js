@@ -22,10 +22,25 @@ function commandContext (command, args) {
     return { ...project, target: args.target, mode: args.mode ?? command.mode, noInline: args.noInline }
 }
 
-async function runCommand (name, args) {
-    if (name === 'exit' || isCancel(name)) return
+const inTerminal = () => Boolean(process.stdin.isTTY && process.stdout.isTTY)
+
+/** CLI-17 */
+function knownCommand (name) {
     const command = findCommand(name)
-    if (command === undefined) return await runCommand(await selectCommand(), args)
+    if (command === undefined) throw new Error(`cli/unknown-command: ${name}\n${usage()}`)
+    return command
+}
+
+/** CLI-18, LD3 */
+async function commandFromMenu () {
+    if (!inTerminal()) throw new Error(`cli/no-command\n${usage()}`)
+    const chosen = await selectCommand()
+    return chosen === 'exit' || isCancel(chosen) ? undefined : findCommand(chosen)
+}
+
+const chooseCommand = async (name) => name === undefined ? await commandFromMenu() : knownCommand(name)
+
+async function runCommand (command, args) {
     const run = await command.load()
     if (command.name === 'init') return await run()
     await run(commandContext(command, args))
@@ -46,7 +61,8 @@ async function main () {
     const args = parseCliArgs(process.argv.slice(2))
     if (args.help) return console.log(helpText(args.command))
     if (args.version) return console.log(version())
-    await runCommand(args.command, args)
+    const command = await chooseCommand(args.command)
+    if (command !== undefined) await runCommand(command, args)
 }
 
 main().catch(fail)
