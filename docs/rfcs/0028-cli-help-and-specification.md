@@ -6,7 +6,7 @@ status: draft
 commits: []
 depends: [15]
 architecture: [architecture/cli.md, architecture/configuration.md]
-changes: [CLI-1 added, CLI-11 added, CLI-13 added, CLI-14 added, CLI-15 added, CLI-16 added, CLI-17 added, CLI-18 added, CLI-19 added]
+changes: [CLI-1 added, CLI-5 compatible, CLI-7 editorial, CLI-8 compatible, CLI-11 added, CLI-13 added, CLI-14 added, CLI-15 added, CLI-16 added, CLI-17 added, CLI-18 added, CLI-19 added]
 commit-subject: "feat(cli): help, version and guidance, to its Specification"
 ---
 
@@ -28,7 +28,10 @@ The CLI gains a Specification (`cli.md`, LU1). This RFC brings the code to it:
 5. **Two fixes** found by the drift audit (LS1): `init`'s AWS suite scaffolds
    `@genoacms/adapter-aws/secrets` (CLI-13, LF5), and `roles` offers the declared roles for an
    assignment (CLI-11, LF6).
-6. **The CLI's tests run** (LF8): they move to Vitest under `src/`, carry statement IDs, and run at
+6. **The falsification audit's findings** (LS2): `roles` and `rotate-root` list `--mode` in their help
+   (LF9), an empty `--config` is refused (LF10), a failed deploy step says so (LF11), Vite never
+   inherits the shell's `GENOA_*` variables (LF12), and help imports no config loader (LF13).
+7. **The CLI's tests run** (LF8): they move to Vitest under `src/`, carry statement IDs, and run at
    `unit` and `integration`. Every current statement of `cli.md` gets a test, except CLI-6.
 
 LF7 (`database`'s empty "Add a collection") is not addressed: what it should do is undecided. All
@@ -43,10 +46,12 @@ All paths are under `packages/cli/` unless they start with `/`.
 | `src/commands.js` | create: the command table (§The command table) |
 | `src/help.js` | create: `usage()`, `commandUsage(name)`, `version()` (§Help text) |
 | `src/hint.js` | create: `productionConfigHint(...)` (§The hint) |
-| `src/args.js` | modify: `short: 'c'` for `config` and `short: 'm'` for `mode`; `-h`/`--help`, `-v`/`--version` booleans; `MODE_ALIASES = { dev: 'development', prod: 'production' }` applied in `checkMode`; returns `help`, `version` |
-| `src/index.js` | modify: §Entry point; the menu and dispatch read `src/commands.js` |
+| `src/args.js` | modify: `short: 'c'` for `config` and `short: 'm'` for `mode`; `-h`/`--help`, `-v`/`--version` booleans; `MODE_ALIASES = { dev: 'development', prod: 'production' }` applied in `checkMode`; an empty `config` throws `cli/invalid-config: --config must name a file`; returns `help`, `version` |
+| `src/index.js` | modify: §Entry point; the menu and dispatch read `src/commands.js`; `./project.js` and `./hint.js` imported dynamically, once a command runs (LF13) |
+| `src/deploy.js` | modify: each phase's spinner stops with `<its start message> failed` and code 2 when the phase throws, then rethrows (LF11) |
+| `src/vite.js` | modify: `spawnVite` and `runCoreScript` remove every `GENOA_*` key of `process.env` that the given environment does not set (LF12) |
 | `src/init.js` | modify: AWS suite `secrets: '@genoacms/adapter-aws/secrets'`; drop its comment |
-| `src/roles.js` | modify: `loadCatalog` adds `roles: Object.keys(manifest.config.authorization?.roles ?? {})` |
+| `src/roles.js` | modify: `loadCatalog` adds `roles: Object.keys(manifest.config.authorization?.roles ?? {})`, and `roles: []` when the config cannot be loaded; `composeAssignment` lists `catalog.roles` |
 | `test/*.test.js` | move to `src/*.test.js`, `node:test` imports replaced by Vitest's (`after` → `afterAll`); `node:assert` stays |
 | `src/*.test.js`, `src/main.test.js` | create or extend: §Tests |
 | `package.json` | `"test": "vitest run"`; drop `test:init` and `test:unit`; devDependency `vitest` `^3.2.7` |
@@ -56,13 +61,14 @@ All paths are under `packages/cli/` unless they start with `/`.
 
 ## Specification
 
-CLI-1, CLI-11, CLI-13 and CLI-14 to CLI-19 become current. No other statement changes.
+CLI-1, CLI-11, CLI-13 and CLI-14 to CLI-19 become current. CLI-5 (LF12) and CLI-8 (LF11) gain a
+sentence each, and CLI-7 states its errors in the form `ConfigError` prints them.
 
 ### The command table
 
 `src/commands.js` exports `COMMANDS`, an array in this order, each entry
 `{ name, summary, usage, flags, mode, examples, load }`; `load` is the lazy import `index.js` uses
-today, and `init`'s is `init` itself. `flags` names entries of `FLAGS`.
+today, `init`'s included, so that help loads no command module (LD2). `flags` names entries of `FLAGS`.
 
 | name | summary | usage | flags | mode | examples |
 | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -71,8 +77,8 @@ today, and `init`'s is `init` itself. `flags` names entries of `FLAGS`.
 | `build` | Build GenoaCMS for a deployment target | `genoa build [target] [--config <file>] [--mode <mode>] [--no-inline]` | config, mode, no-inline | production | `genoa build gcp --config genoa.config/production.ts`; `genoa build --mode development` |
 | `deploy` | Build, then deploy to a deployment target | `genoa deploy [target] [--config <file>] [--mode <mode>] [--no-inline]` | config, mode, no-inline | production | `genoa deploy gcp --config genoa.config/production.ts`; `genoa deploy gcp -c genoa.config/production.ts -m prod` |
 | `database` | Delete dynamic collections | `genoa database [--config <file>] [--mode <mode>]` | config, mode | development | `genoa database` |
-| `roles` | Compose a role or an assignment to paste into the config | `genoa roles [--config <file>]` | config | development | `genoa roles` |
-| `rotate-root` | Rotate the root trust anchor (asks to confirm) | `genoa rotate-root [--config <file>]` | config | development | `genoa rotate-root --config genoa.config/production.ts` |
+| `roles` | Compose a role or an assignment to paste into the config | `genoa roles [--config <file>] [--mode <mode>]` | config, mode | development | `genoa roles` |
+| `rotate-root` | Rotate the root trust anchor (asks to confirm) | `genoa rotate-root [--config <file>] [--mode <mode>]` | config, mode | development | `genoa rotate-root --config genoa.config/production.ts` |
 
 `FLAGS`:
 
@@ -131,10 +137,10 @@ and likewise for every command; `init` has no `Default mode:` line and lists onl
 
 ### The hint
 
-`productionConfigHint({ root, command, target, error })` returns the two lines of CLI-19 when
+`productionConfigHint({ root, command, target, error })` returns the lines of CLI-19, an array of strings, when
 `error` is a `ConfigError` whose `issues` include the code `config/development-only`, else
 `undefined`. The loaded path is `relative(root, locateConfigFile(root))` (`@genoacms/config/load`);
-the second line appears only when `genoa.config/production.ts` exists under `root`, and reads
+the second line appears only when `genoa.config/production.ts` is a file under `root`, and reads
 `Run: genoa <command> <target> --config genoa.config/production.ts`, without `<target> ` when no
 target was given. `index.js` calls it only for `build` and `deploy`, in `production` mode, without
 `--config`, and prints its lines to standard error after the error's message.
@@ -142,7 +148,7 @@ target was given. `index.js` calls it only for `build` and `deploy`, in `product
 ### Entry point
 
 ```pseudo
-args = parse(argv)                                  // CLI-1, errors per CLI-4
+args = parse(argv)                                  // CLI-1, errors per CLI-4; parse errors win over help and version
 if args.help: print(command known ? commandUsage(command) : usage()); exit 0   // CLI-14, CLI-15
 if args.version: print(version()); exit 0           // CLI-16
 if command undefined:
@@ -201,7 +207,7 @@ and the exit code.
 
 `src/roles.test.js` (unit): `CLI-11: offers the declared roles for an assignment` (LF6), `CLI-11: offers the declared buckets and *, or free text without a config`, and the existing `declaration` tests retitled `CLI-11: …`.
 
-`src/init.test.js` (unit; existing, retitled), plus `CLI-13: the AWS suite scaffolds @genoacms/adapter-aws/secrets` (LF5), `CLI-12: refuses with cli/config-exists before writing anything`, `CLI-12: appends .genoacms/ to .gitignore once`.
+`src/init.test.js` (unit; existing, retitled; the test asserting LF5's `TODO: secrets adapter` is replaced), plus `CLI-13: the AWS suite scaffolds @genoacms/adapter-aws/secrets` (LF5), `CLI-12: refuses with cli/config-exists before writing anything`, `CLI-12: appends .genoacms/ to .gitignore once`.
 
 `src/hint.test.js` (unit): `CLI-19: names the default-found file and the production command`, `CLI-19: omits the Run line without genoa.config/production.ts, and the target when none was given`, `CLI-19: gives no hint for other errors`.
 
@@ -214,6 +220,24 @@ and the exit code.
 - `CLI-4: prints a command's error alone and exits 1`: `genoa build` in a directory without core, then exactly `cli/core-not-installed: install @genoacms/core in <dir>`.
 - `CLI-19: a production build of the default development config names it and the production config`: a project whose `package.json` is named `@genoacms/core` (so no core install is needed), with `genoa.config/development.ts` using a descriptor marked `developmentOnly` (a local fixture package) and an empty `genoa.config/production.ts`; `genoa build` exits 1 with the loader's message and both hint lines.
 
+### Tests for the falsification audit (LS2)
+
+Each kills a mutation LS2 found surviving, or fails on LF9 to LF13 today:
+
+- `src/args.test.js`: `CLI-1: refuses an empty --config` (`-c ''` and `--config=`, the exact message); `CLI-1: ignores further positionals`.
+- `src/vite.test.js`: `CLI-5: removes the shell's GENOA_* variables that it does not set`, for `spawnVite` (the spawned environment) and `runCoreScript` (`process.env` during the script).
+- `src/deploy.test.js`: `CLI-8: a failed phase ends its progress line as failed`: given a build that throws, the spinner stops with `Building CMS code failed` and code 2, and the error is rethrown.
+- `src/roles.test.js`: `CLI-11: a config without roles still offers its buckets`.
+- `src/init.test.js`: `CLI-13: renders every value of the suites' table`: every suite's `storage`, `database`, `secrets`, `deployment` and `target`, and `authentication` for the array adapter and none.
+- `src/main.test.js`:
+  - `CLI-14: help and version import neither a command nor the config loader`: run with a module hook that fails on importing a command module or `@genoacms/config/load`, `-h`, `deploy -h` and `-v` still exit 0.
+  - `CLI-15: prints every command's usage as the table gives it`: the exact text for each of the seven commands.
+  - `CLI-16: prints the version of the CLI's package.json`: the output matches `^\d+\.\d+\.\d+`, and equals the `version` read from the file.
+  - `CLI-17: fails on an unknown command in a terminal`: under a pseudo-terminal (`script -qec`, skipped where `script` is missing), `genoa deplyo` exits 1 with `cli/unknown-command: deplyo`.
+  - `CLI-18: opens the menu only when both standard input and output are terminals`: stdin a terminal with stdout piped, and the reverse, give `cli/no-command` and exit 1.
+  - `CLI-19: names the command and target of a refused deploy, with nothing on standard output but its progress`: `genoa deploy local` in the fixture gives `Run: genoa deploy local --config genoa.config/production.ts`, and standard output has no `Canceled`.
+  - `CLI-19: gives no hint with --config, or for a command other than build and deploy`: `build --config genoa.config/development.ts` and `database -m prod` in the fixture print no hint line.
+
 ## Steps
 
 1. The architecture change (`cli.md`, `configuration.md`, `docs/README.md`) and this RFC.
@@ -221,6 +245,8 @@ and the exit code.
 3. Tests, written from `cli.md` and this RFC by an agent session that has not seen the new code, each one the code does not meet yet marked `it.fails`. One commit.
 4. The code: the command table and help; the entry point; the hint; the two fixes. One commit each.
 5. §Verification; a falsification audit of CLI-1 and CLI-14 to CLI-19 by an agent that wrote none of it.
+   Its findings (LS2) amend this RFC, then get their tests (§Tests for the falsification audit) and
+   a fix each, one commit each.
 6. `cli.md` updated to current: markers removed, test files named, LF2 to LF6 and LF8 fixed, `verified` updated; this RFC implemented.
 
 ## Verification
@@ -251,5 +277,6 @@ node packages/cli/src/index.js --help
 - Aliases are case-sensitive: `-m Prod` is refused, which is stricter than some users expect.
 - The hint covers only `config/development-only`. A development config with no development-only adapter but other production errors (inline values, a missing target) gets no hint.
 - A project with only `genoa.config.ts` gets the first line of the hint, never the second.
+- A deploy step's progress line still goes to standard output, before the error on standard error.
 - `process.stdin.isTTY` is `undefined` in some terminals on Windows under certain shells; such a user gets `cli/no-command` instead of the menu.
 - LF7 stays: the menu still offers an "Add a collection" that does nothing.

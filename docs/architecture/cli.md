@@ -45,9 +45,11 @@ help is only worth having if it says what the dispatch does.
 *Cost:* help text lives in code, next to the command it describes, rather than in a README.
 
 **LD2. Help and version need no project (LU2; CLI-14, CLI-16).** They are answered right after
-parsing, before the project is resolved and before any command module loads.
+parsing, before the project is resolved and before any command module or the config loader is
+imported (LF13).
 *Why:* `genoa --help` is what someone types before a project exists, and in a directory where
-`@genoacms/core` is not installed every other path fails with `cli/core-not-installed`.
+`@genoacms/core` is not installed every other path fails with `cli/core-not-installed`. The config
+loader brings Vite and esbuild, and help must work while either is broken.
 *Cost:* none beyond a branch in the entry point.
 
 **LD3. Without a terminal, no command is an error (LU2; CLI-17, CLI-18).** The interactive menu
@@ -78,6 +80,11 @@ carry no hint.
 | LF5 | **`init`'s AWS suite has no secrets adapter** (CLI-13). It scaffolds `TODO: secrets adapter`, although `@genoacms/adapter-aws/secrets` exists since RFC-0026. | open, RFC-0028 |
 | LF6 | **`roles` never offers the declared roles for an assignment** (CLI-11). It reads the roles from the catalog, which never contains them, so the prompt never lists any. | open, RFC-0028 |
 | LF7 | **`database`'s "Add a collection" does nothing** (CLI-10). It clears the console and returns to nothing; adding a dynamic collection was never implemented. | open: what it should do is undecided |
+| LF9 | **`roles` and `rotate-root` hide `--mode` from their help** (CLI-15). RFC-0028's command table gave them only `--config`, while both use the mode: `roles` loads the config in it and `rotate-root` hands it to Vite. Found by LS2. | open, RFC-0028 |
+| LF10 | **An empty `--config` is accepted** (CLI-1). `genoa build -c ''` resolves to the project directory itself and fails in the loader with `config/evaluation-failed`. Found by LS2. | open, RFC-0028 |
+| LF11 | **A failed deploy step prints `Canceled`** (CLI-8). The step's progress line is still running when the CLI exits, and its library ends it as cancelled, which reads as if the operator had cancelled. Found by LS2. | open, RFC-0028 |
+| LF12 | **The shell's `GENOA_*` variables reach Vite** (CLI-5). Vite inherits the CLI's environment, so an exported `GENOA_CONFIG` or `GENOA_TARGET` makes Vite build another config or target than the one the CLI loaded and checked. Found by LS2. | open, RFC-0028 |
+| LF13 | **Help imports the config loader** (CLI-14, CLI-16). `index.js` imports the project resolution and the hint statically, and with them `@genoacms/config/load`, Vite and esbuild, so a broken install of either breaks `--help`. Found by LS2. | open, RFC-0028 |
 | LF8 | **No test level runs the CLI's tests.** They use `node --test` under a `test:unit` script, and the package's `test` script runs the CLI itself, so `scripts/test-level.mjs`, which runs packages whose `test` script is Vitest, skips the package. | open, RFC-0028 |
 
 ### History
@@ -90,6 +97,7 @@ code at `7174f7f`.
 ### Verification
 
 - **LS1, drift audit of the CLI against RFC-0015 and `configuration.md`, at `7174f7f`, 2026-10-02.** Every module of `packages/cli/src` was read against both. The mismatches are LF1, LF2 and LF5 to LF8; the rest of the behavior below is the code's, stated as found.
+- **LS2, falsification audit of CLI-1, CLI-11, CLI-13 and CLI-14 to CLI-19, at `69f955d`, 2026-10-02.** An agent that wrote none of RFC-0028's code ran the CLI against each statement and mutated a copy of the code under its tests. It found LF9 to LF13, and fourteen mutations that broke a statement while every test passed, in CLI-1, CLI-11, CLI-13 to CLI-15, CLI-17 to CLI-19; RFC-0028 adds the tests that catch them.
 
 ## Specification
 
@@ -97,7 +105,7 @@ code at `7174f7f`.
 
 #### CLI-1 · Arguments
 
-`genoa [command] [target] [flags]`. The first positional is the command, the second the target; further positionals are ignored. Flags: `-c`/`--config <file>`, `-m`/`--mode <mode>`, `--no-inline`, `-h`/`--help`, `-v`/`--version`. Parsing is strict: an unknown flag, or `--config` or `--mode` without a value, fails with the parser's message. A mode is `development` or `production`, or their aliases `dev` and `prod`, which are replaced by the full name before anything else reads the mode, so `GENOA_MODE` and every message carry the full name (LU4). Any other mode fails with `cli/invalid-mode: --mode must be development (dev) or production (prod), not <mode>`. `run` is an alias of `dev`. Every command accepts every flag; a flag a command does not use is ignored.
+`genoa [command] [target] [flags]`. The first positional is the command, the second the target; further positionals are ignored. Flags: `-c`/`--config <file>`, `-m`/`--mode <mode>`, `--no-inline`, `-h`/`--help`, `-v`/`--version`. Parsing is strict: an unknown flag, or `--config` or `--mode` without a value, fails with the parser's message, and an empty `--config` fails with `cli/invalid-config: --config must name a file` (LF10). A mode is `development` or `production`, or their aliases `dev` and `prod`, which are replaced by the full name before anything else reads the mode, so `GENOA_MODE` and every message carry the full name (LU4). Any other mode fails with `cli/invalid-mode: --mode must be development (dev) or production (prod), not <mode>`. `run` is an alias of `dev`. Every command accepts every flag; a flag a command does not use is ignored.
 
 - Test: none yet
 - Level: unit
@@ -126,7 +134,7 @@ Any error of a command is printed to standard error as its message alone, and th
 
 #### CLI-5 · Environment for Vite
 
-`dev`, `build` and `rotate-root` hand Vite `GENOA_PROJECT` (the root) and `GENOA_MODE`, plus `GENOA_CONFIG` (the resolved `--config`) only when `--config` is given and `GENOA_TARGET` only for `build`; an unset value is never an empty string (`configuration.md` D7). Vite runs from core's own installation, with core as its working directory; a non-zero exit fails with `cli/vite-failed: vite <arguments> exited with <code>`.
+`dev`, `build` and `rotate-root` hand Vite `GENOA_PROJECT` (the root) and `GENOA_MODE`, plus `GENOA_CONFIG` (the resolved `--config`) only when `--config` is given and `GENOA_TARGET` only for `build`; an unset value is never an empty string (`configuration.md` D7). No `GENOA_*` variable of the CLI's own environment reaches Vite: those it does not set are removed (LF12). Vite runs from core's own installation, with core as its working directory; a non-zero exit fails with `cli/vite-failed: vite <arguments> exited with <code>`.
 
 - Test: unverified (no test yet; RFC-0028 adds one)
 - Level: unit
@@ -142,14 +150,14 @@ Runs `vite dev --host` in core.
 
 #### CLI-7 · build
 
-Loads the config with the mode, refusing inline values with `--no-inline` (`configuration.md` §5.5). The target is the positional target, else `deployment.default`, else the first declared target. A config without targets fails with `config/no-deployment-target`, and an undeclared target with `config/unknown-target: <target> is not a deployment target; known: <names>`. It runs `vite build` in core, then writes the artifact's `package.json` into `<root>/.genoacms/build` (`configuration.md` D9), warning about every import the dependency scan cannot see and listing the packages packed into the artifact.
+Loads the config with the mode, refusing inline values with `--no-inline` (`configuration.md` §5.5). The target is the positional target, else `deployment.default`, else the first declared target. A config without targets fails with the `ConfigError` `config/no-deployment-target`, and an undeclared target with `config/unknown-target`, whose issue at `deployment.targets` reads `<target> is not a deployment target; known: <names>`. It runs `vite build` in core, then writes the artifact's `package.json` into `<root>/.genoacms/build` (`configuration.md` D9), warning about every import the dependency scan cannot see and listing the packages packed into the artifact.
 
 - Test: unverified (no test yet; RFC-0028 adds one)
 - Level: unit
 
 #### CLI-8 · deploy
 
-Runs `build`, then resolves the target's options on the operator's machine through a host over the built manifest, at the path `deployment.targets.<target>.options` and with the descriptor's `secretOptions`, and runs the target's procedure with `{ projectRoot, buildDir, workDir, target }`. `workDir` is `<root>/.genoacms/deploy/<target>`, emptied first. The host is closed whether the procedure succeeds or fails.
+Runs `build`, then resolves the target's options on the operator's machine through a host over the built manifest, at the path `deployment.targets.<target>.options` and with the descriptor's `secretOptions`, and runs the target's procedure with `{ projectRoot, buildDir, workDir, target }`. `workDir` is `<root>/.genoacms/deploy/<target>`, emptied first. The host is closed whether the procedure succeeds or fails. Each phase (building, resolving, deploying) shows a progress line; a phase that fails ends it as `<phase> failed` (`Building CMS code failed`, `Resolving deployment options failed`, `Deploying code failed`), never as cancelled (LF11).
 
 - Test: unverified (no test yet; RFC-0028 adds one)
 - Level: unit
@@ -203,7 +211,7 @@ Scaffolds a project in the working directory and needs none: runs `<package mana
 
 #### CLI-14 · Usage
 
-`genoa -h` or `genoa --help`, with no command, prints to standard output the usage line, every command with its summary, the flags with their meaning and defaults, and the line `Run genoa <command> --help for a command's usage.`, and exits 0. It needs no project and loads no command (LD2).
+`genoa -h` or `genoa --help`, with no command, prints to standard output the usage line, every command with its summary, the flags with their meaning and defaults, and the line `Run genoa <command> --help for a command's usage.`, and exits 0, once the arguments parse (CLI-1). It needs no project and imports neither a command nor the config loader (LD2).
 
 - Test: none yet
 - Level: integration
@@ -219,7 +227,7 @@ Scaffolds a project in the working directory and needs none: runs `<package mana
 
 #### CLI-16 · Version
 
-`genoa -v` or `genoa --version` prints the CLI's version from its `package.json`, alone on one line, and exits 0. It needs no project. With both, help wins.
+`genoa -v` or `genoa --version` prints the CLI's version from its `package.json`, alone on one line, and exits 0, once the arguments parse (CLI-1). It needs no project and imports neither a command nor the config loader (LD2). With both, help wins.
 
 - Test: none yet
 - Level: integration
@@ -227,7 +235,7 @@ Scaffolds a project in the working directory and needs none: runs `<package mana
 
 #### CLI-17 · Unknown command
 
-A command that is not one of CLI-2's, nor `run`, fails with `cli/unknown-command: <command>` followed by the usage of CLI-14 on standard error, and exits 1, in a terminal or not.
+A command that is not one of CLI-2's, nor `run`, the empty string included, fails with `cli/unknown-command: <command>` followed by the usage of CLI-14 on standard error, and exits 1, in a terminal or not.
 
 - Test: none yet
 - Level: integration
@@ -243,7 +251,7 @@ Without a command, when standard input and standard output are both terminals, t
 
 #### CLI-19 · Naming the production config
 
-When `build` or `deploy` runs in `production` mode without `--config`, and loading the config fails with an issue `config/development-only`, the CLI prints after the error: `The config loaded was <path>, found by default; a production config is named explicitly.` with `<path>` relative to the root, and, when `genoa.config/production.ts` exists under the root, `Run: genoa <command> [target] --config genoa.config/production.ts` with the command and target as given. It exits 1 as CLI-4.
+When `build` or `deploy` runs in `production` mode without `--config`, and loading the config fails with an issue `config/development-only`, the CLI prints after the error: `The config loaded was <path>, found by default; a production config is named explicitly.` with `<path>` relative to the root, and, when `genoa.config/production.ts` is a file under the root, `Run: genoa <command> [target] --config genoa.config/production.ts` with the command and target as given. It exits 1 as CLI-4.
 
 - Test: none yet
 - Level: integration
