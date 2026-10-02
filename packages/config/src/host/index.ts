@@ -35,8 +35,8 @@ interface Host {
 
   storageForBucket: (bucket: string) => Promise<StorageAdapter>
   databaseForCollection: (collection: string) => Promise<DatabaseAdapter>
-  /** Every authentication provider, in config key order. Rejects if any construction fails. */
-  authenticationProviders: () => Promise<AuthenticationAdapter[]>
+  /** Authentication provider keys, in config key order. Constructs nothing: `authentication(key)` does. */
+  readonly authenticationProviderKeys: readonly string[]
 
   /** Read from the manifest on every access, never copied: authority is re-read. */
   readonly authorization: AuthorizationConfig
@@ -155,9 +155,7 @@ function createHost (options: HostOptions): Host {
     secrets,
     storageForBucket,
     databaseForCollection,
-    authenticationProviders: async () => await Promise.all(
-      Object.keys(providersOf('authentication')).map(async name => await construct<AuthenticationAdapter>('authentication', name))
-    ),
+    get authenticationProviderKeys () { return Object.keys(providersOf('authentication')) },
     get authorization () { return config.authorization },
     get security () { return config.security },
     get cookieName () { return config.authentication.cookieName },

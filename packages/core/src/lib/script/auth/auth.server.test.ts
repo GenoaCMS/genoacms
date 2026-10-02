@@ -40,10 +40,13 @@ vi.mock('$lib/script/securityPolicy/policy.server', () => ({
 }))
 
 const identity = { subject: 'subject-1', email: 'admin@example.com' }
-const credentials: { valid: boolean } = { valid: true }
+const credentials: { valid: boolean, failure: 'invalid-credentials' | 'too-many-attempts' | 'sign-in-unavailable' } = { valid: true, failure: 'invalid-credentials' }
 
 vi.mock('./providers.server', () => ({
-  authenticate: async () => credentials.valid ? identity : null
+  signIn: async () => credentials.valid
+    ? { outcome: 'signed-in', provider: 'array', identity }
+    : { outcome: 'failed', failure: credentials.failure },
+  revalidate: async () => identity
 }))
 
 const principal: { known: boolean } = { known: true }
@@ -55,11 +58,12 @@ vi.mock('../authorization/resolution.server', () => ({
 const EXPIRY = Date.now() + 14 * 24 * 60 * 60 * 1_000
 
 const started = { familyId: 'family-1', token: 'refresh-token-1', expiresAt: EXPIRY }
+const startedWith: unknown[][] = []
 const refreshOutcome: { value: unknown } = { value: undefined }
 const revoked: string[] = []
 
 vi.mock('./session.server', () => ({
-  startSession: async () => started,
+  startSession: async (...args: unknown[]) => { startedWith.push(args); return started },
   refreshSession: async () => refreshOutcome.value,
   revokeSession: async (familyId: string) => { revoked.push(familyId) }
 }))
@@ -94,6 +98,8 @@ async function sessionIn (jar: Map<string, string>) {
 
 beforeEach(() => {
   credentials.valid = true
+  credentials.failure = 'invalid-credentials'
+  startedWith.length = 0
   principal.known = true
   refreshOutcome.value = undefined
   revoked.length = 0
@@ -132,13 +138,38 @@ describe('login', () => {
     expect(jar.size).toBe(0)
   })
 
-  it('refuses an authenticated identity that is not a principal of this instance', async () => {
+  it('AUTHN-5: a sign-in authorization does not know fails as invalid credentials', async () => {
     principal.known = false
-    const { login } = await authModule()
+    const { login, SignInError } = await authModule()
     const { cookies, jar } = cookieJar()
 
-    await expect(login(identity.email, 'password', cookies)).rejects.toThrow('invalid-credentials')
+    const refusal = login(identity.email, 'password', cookies)
+    await expect(refusal).rejects.toBeInstanceOf(SignInError)
+    await expect(refusal).rejects.toMatchObject({ code: 'invalid-credentials' })
     expect(jar.size).toBe(0)
+  })
+
+  it('AUTHN-5: each failure reaches the caller as its code', async () => {
+    const { login, SignInError } = await authModule()
+    for (const failure of ['invalid-credentials', 'too-many-attempts', 'sign-in-unavailable'] as const) {
+      credentials.valid = false
+      credentials.failure = failure
+      const { cookies, jar } = cookieJar()
+
+      const refusal = login(identity.email, 'password', cookies)
+      await expect(refusal).rejects.toBeInstanceOf(SignInError)
+      await expect(refusal).rejects.toMatchObject({ code: failure, message: failure })
+      expect(jar.size).toBe(0)
+    }
+  })
+
+  it('AUTHN-6: a session records the provider that signed it in', async () => {
+    const { login } = await authModule()
+    const { cookies } = cookieJar()
+
+    await login(identity.email, 'password', cookies)
+
+    expect(startedWith).toEqual([[identity, 'array']])
   })
 })
 

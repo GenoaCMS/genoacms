@@ -53,7 +53,8 @@ const RUNS = {
   ],
   conformance: () => [
     { dir: 'packages/conformance', args: [] },
-    { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] }
+    { dir: 'packages/adapter-postgres', args: ['test/conformance.test.js'] },
+    { dir: 'packages/authentication-adapter-array', args: ['test/conformance.test.js'] }
   ],
   contract: () => [
     { dir: 'packages/adapter-gcp', args: ['test/conformance.test.ts', 'test/contract'] },

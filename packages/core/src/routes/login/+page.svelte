@@ -1,14 +1,26 @@
 <script lang="ts">
   import { Button, Input, } from '$lib/components/ui/index'
   import { applyAction, enhance } from '$app/forms'
+  import type { ActionResult } from '@sveltejs/kit'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+
+  const MESSAGES: Record<string, string> = {
+    'invalid-credentials': 'Wrong email or password',
+    'too-many-attempts': 'Too many attempts. Try again later',
+    'sign-in-unavailable': 'Sign-in is unavailable right now. Try again later'
+  }
+
+  const messageFor = (result: ActionResult): string =>
+    result.type === 'failure' && typeof result.data?.reason === 'string'
+      ? MESSAGES[result.data.reason] ?? 'Login failed'
+      : 'Login failed'
 
   const enhanceLogin = () => {
     const pending = alertPending('Logging in')
-    return async ({ result }) => {
+    return async ({ result }: { result: ActionResult }) => {
       pending.close()
       if (result.type !== 'redirect') {
-        toastError('Login failed')
+        toastError(messageFor(result))
         return
       }
       toastSuccess('Logged in')

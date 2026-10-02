@@ -85,6 +85,9 @@ vi.mock('$lib/script/utils.server', () => ({
 
 const SUBJECT = 'subject-1'
 const EMAIL = 'admin@example.com'
+const PROVIDER = 'array'
+const IDENTITY = { subject: SUBJECT, email: EMAIL }
+const stillKnown = async (family: { subject: string, email: string }) => ({ subject: family.subject, email: family.email })
 
 type SessionModule = typeof import('./session.server')
 
@@ -121,7 +124,7 @@ const storedRecord = (familyId: string): Record<string, unknown> => {
 
 describe('starting a session', () => {
   it('stores a signed envelope of the session document type', async () => {
-    const { familyId } = await sessions.startSession(SUBJECT, EMAIL)
+    const { familyId } = await sessions.startSession(IDENTITY, PROVIDER)
     const envelope = storedRecord(familyId)
 
     expect(envelope.type).toBe('genoacms.session.v1')
@@ -130,7 +133,7 @@ describe('starting a session', () => {
   })
 
   it('records the subject and email, and no token', async () => {
-    const { familyId, token } = await sessions.startSession(SUBJECT, EMAIL)
+    const { familyId, token } = await sessions.startSession(IDENTITY, PROVIDER)
     const raw = objects.get(`${sessions.sessionsDirectory}/${familyId}.json`)?.data as string
 
     expect(storedRecord(familyId).payload).toMatchObject({ subject: SUBJECT, email: EMAIL })
@@ -139,7 +142,7 @@ describe('starting a session', () => {
   })
 
   it('reports the family expiry, so the cookie can outlive the browser session', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
     const { expiresAt } = storedRecord(started.familyId).payload as { expiresAt: number }
 
     // Without this the refresh cookie would last until the browser closed, and the configured
@@ -149,8 +152,8 @@ describe('starting a session', () => {
   })
 
   it('gives each session its own family', async () => {
-    const first = await sessions.startSession(SUBJECT, EMAIL)
-    const second = await sessions.startSession(SUBJECT, EMAIL)
+    const first = await sessions.startSession(IDENTITY, PROVIDER)
+    const second = await sessions.startSession(IDENTITY, PROVIDER)
 
     expect(first.familyId).not.toBe(second.familyId)
     expect(first.token).not.toBe(second.token)
@@ -159,8 +162,8 @@ describe('starting a session', () => {
 
 describe('refreshing', () => {
   it('exchanges the current token for a successor', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    const result = await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect(result).toMatchObject({ outcome: 'refreshed', subject: SUBJECT, email: EMAIL })
     if (result.outcome !== 'refreshed') throw new Error('unreachable')
@@ -170,10 +173,10 @@ describe('refreshing', () => {
   })
 
   it('advances the generation and keeps the record signed', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
     expect((storedRecord(started.familyId).payload as { generation: number }).generation).toBe(1)
 
-    await sessions.refreshSession(started.familyId, started.token)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     const envelope = storedRecord(started.familyId)
     expect((envelope.payload as { generation: number }).generation).toBe(2)
@@ -181,23 +184,23 @@ describe('refreshing', () => {
   })
 
   it('accepts the successor on the next refresh', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    const first = await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const first = await sessions.refreshSession(started.familyId, started.token, stillKnown)
     if (first.outcome !== 'refreshed') throw new Error('unreachable')
 
-    expect((await sessions.refreshSession(started.familyId, first.token)).outcome).toBe('refreshed')
+    expect((await sessions.refreshSession(started.familyId, first.token, stillKnown)).outcome).toBe('refreshed')
   })
 
   it('rejects an unknown family', async () => {
-    expect(await sessions.refreshSession('no-such-family', 'whatever'))
+    expect(await sessions.refreshSession('no-such-family', 'whatever', stillKnown))
       .toMatchObject({ outcome: 'rejected', reason: 'unknown-session' })
   })
 
   it('rejects a token that never belonged to the family', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    const other = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const other = await sessions.startSession(IDENTITY, PROVIDER)
 
-    expect((await sessions.refreshSession(started.familyId, other.token)).outcome).toBe('rejected')
+    expect((await sessions.refreshSession(started.familyId, other.token, stillKnown)).outcome).toBe('rejected')
   })
 })
 
@@ -213,34 +216,34 @@ describe('reuse', () => {
   }
 
   it('revokes the family when a superseded token comes back later', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     afterGraceWindow()
-    const result = await sessions.refreshSession(started.familyId, started.token)
+    const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect(result).toMatchObject({ outcome: 'rejected', reason: 'token-reused' })
   })
 
   it('ends the session for the legitimate holder too', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    const rotated = await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const rotated = await sessions.refreshSession(started.familyId, started.token, stillKnown)
     if (rotated.outcome !== 'refreshed') throw new Error('unreachable')
 
     afterGraceWindow()
-    await sessions.refreshSession(started.familyId, started.token)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     // The whole point: the thief and the user cannot be told apart, so neither keeps the session.
     expect(await sessions.loadFamily(started.familyId)).toBeUndefined()
-    expect((await sessions.refreshSession(started.familyId, rotated.token)).outcome).toBe('rejected')
+    expect((await sessions.refreshSession(started.familyId, rotated.token, stillKnown)).outcome).toBe('rejected')
   })
 
   it('accepts the immediately superseded token inside the window', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     // A page's second request, still carrying the cookie the first one replaced.
-    const result = await sessions.refreshSession(started.familyId, started.token)
+    const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect(result).toMatchObject({ outcome: 'concurrent', subject: SUBJECT, email: EMAIL })
     expect(await sessions.loadFamily(started.familyId)).toBeDefined()
@@ -250,9 +253,9 @@ describe('reuse', () => {
   })
 
   it('does not rotate again on a concurrent presentation', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
-    await sessions.refreshSession(started.familyId, started.token)
-    await sessions.refreshSession(started.familyId, started.token)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect((storedRecord(started.familyId).payload as { generation: number }).generation).toBe(2)
   })
@@ -260,14 +263,14 @@ describe('reuse', () => {
 
 describe('a lost write race', () => {
   it('continues the session rather than revoking it', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
 
     // Both requests read the same version; the second one's conditional write finds it superseded.
     const storage = await import('$lib/script/storage/storage.server')
     const upload = vi.spyOn(storage, 'uploadObject')
     upload.mockImplementationOnce(async () => { throw new PreconditionFailed('lost the race') })
 
-    const result = await sessions.refreshSession(started.familyId, started.token)
+    const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect(result).toMatchObject({ outcome: 'concurrent', subject: SUBJECT })
     // Nothing was written, so the token the winner issued remains the current one.
@@ -277,11 +280,11 @@ describe('a lost write race', () => {
 
 describe('an expired family', () => {
   it('is rejected and removed', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
     const { expiresAt } = storedRecord(started.familyId).payload as { expiresAt: number }
     vi.spyOn(Date, 'now').mockReturnValue(expiresAt + 1)
 
-    expect(await sessions.refreshSession(started.familyId, started.token))
+    expect(await sessions.refreshSession(started.familyId, started.token, stillKnown))
       .toMatchObject({ outcome: 'rejected', reason: 'expired' })
     expect(objects.has(`${sessions.sessionsDirectory}/${started.familyId}.json`)).toBe(false)
   })
@@ -289,7 +292,7 @@ describe('an expired family', () => {
 
 describe('a tampered record', () => {
   it('is treated as no session at all', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
     const path = `${sessions.sessionsDirectory}/${started.familyId}.json`
     const envelope = JSON.parse(objects.get(path)?.data as string)
 
@@ -298,11 +301,11 @@ describe('a tampered record', () => {
     objects.set(path, { data: JSON.stringify(envelope), version: 'tampered' })
 
     expect(await sessions.loadFamily(started.familyId)).toBeUndefined()
-    expect((await sessions.refreshSession(started.familyId, started.token)).outcome).toBe('rejected')
+    expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('rejected')
   })
 
   it('is not accepted merely because it parses', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
     const path = `${sessions.sessionsDirectory}/${started.familyId}.json`
 
     // An unsigned record of the right shape — the shortcut an attacker would reach for first.
@@ -325,16 +328,81 @@ describe('a tampered record', () => {
 
 describe('revoking', () => {
   it('removes the family and refuses later refreshes', async () => {
-    const started = await sessions.startSession(SUBJECT, EMAIL)
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
 
     await sessions.revokeSession(started.familyId)
 
     expect(objects.has(`${sessions.sessionsDirectory}/${started.familyId}.json`)).toBe(false)
-    expect((await sessions.refreshSession(started.familyId, started.token)).outcome).toBe('rejected')
+    expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('rejected')
   })
 
   it('treats an already-absent family as success', async () => {
     // Signing out twice, or signing out of a session that expired, must not fail.
     await expect(sessions.revokeSession('no-such-family')).resolves.toBeUndefined()
+  })
+})
+
+describe('the provider and revalidation', () => {
+  it('AUTHN-6: records the provider in the family', async () => {
+    const { familyId } = await sessions.startSession(IDENTITY, 'b')
+
+    expect((storedRecord(familyId).payload as { provider: string }).provider).toBe('b')
+  })
+
+  it('AUTHN-6: reads a family written without a provider', async () => {
+    const { sign } = await import('$lib/script/signing/envelope')
+    const { getCurrentSigningKey } = await import('$lib/script/signing/keyResolution.server')
+    const { newFamily } = await import('./session')
+    const { provider: _dropped, ...older } = newFamily('family-older', SUBJECT, EMAIL, 'unused', 'token-older', Date.now(), 14)
+    const envelope = sign(sessions.SESSION_DOCUMENT, older, await getCurrentSigningKey())
+    objects.set(`${sessions.sessionsDirectory}/family-older.json`, { data: JSON.stringify(envelope), version: 'v-older' })
+    const providers: Array<string | undefined> = []
+
+    const result = await sessions.refreshSession('family-older', 'token-older', async family => {
+      providers.push(family.provider)
+      return IDENTITY
+    })
+
+    expect(result.outcome).toBe('refreshed')
+    expect(providers).toEqual([undefined])
+  })
+
+  it('AUTHN-7: a gone identity ends the session', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+
+    expect(await sessions.refreshSession(started.familyId, started.token, async () => null))
+      .toEqual({ outcome: 'rejected', reason: 'identity-gone' })
+    expect(await sessions.loadFamily(started.familyId)).toBeUndefined()
+    expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('rejected')
+  })
+
+  it('AUTHN-7: an unavailable provider keeps the session as it was', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    const before = objects.get(`${sessions.sessionsDirectory}/${started.familyId}.json`)
+
+    await expect(sessions.refreshSession(started.familyId, started.token, async () => { throw new Error('session/revalidation-failed: array: down') }))
+      .rejects.toThrow('session/revalidation-failed')
+    expect(objects.get(`${sessions.sessionsDirectory}/${started.familyId}.json`)).toEqual(before)
+    expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('refreshed')
+  })
+
+  it('AUTHN-7: the renewed session carries the current email', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+
+    const result = await sessions.refreshSession(started.familyId, started.token, async () => ({ subject: SUBJECT, email: 'ada@new.example.com' }))
+
+    expect(result).toMatchObject({ outcome: 'refreshed', email: 'ada@new.example.com' })
+    expect((storedRecord(started.familyId).payload as { email: string }).email).toBe('ada@new.example.com')
+  })
+
+  it('AUTHN-7: a concurrent presentation calls no provider', async () => {
+    const started = await sessions.startSession(IDENTITY, PROVIDER)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
+    const revalidate = vi.fn(stillKnown)
+
+    const result = await sessions.refreshSession(started.familyId, started.token, revalidate)
+
+    expect(result.outcome).toBe('concurrent')
+    expect(revalidate).not.toHaveBeenCalled()
   })
 })

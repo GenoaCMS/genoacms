@@ -11,7 +11,7 @@ import {
 } from './session'
 
 const NOW = 1_700_000_000_000
-const family = (): SessionFamily => newFamily('fam-1', 'subject-1', 'admin@example.com', 'token-a', NOW, 14)
+const family = (): SessionFamily => newFamily('fam-1', 'subject-1', 'admin@example.com', 'array', 'token-a', NOW, 14)
 
 describe('hashToken', () => {
   it('stores a digest, not the token', () => {
@@ -47,7 +47,7 @@ describe('the current token', () => {
 
 describe('rotation', () => {
   it('makes the successor current and retains its predecessor', () => {
-    const next = rotated(family(), 'token-b', NOW + 1_000)
+    const next = rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com')
     expect(assessToken(next, 'token-b', NOW + 1_000)).toEqual({ outcome: 'current' })
     expect(next.previousHash).toBe(hashToken('token-a'))
     expect(next.generation).toBe(2)
@@ -55,7 +55,7 @@ describe('rotation', () => {
 
   it('does not reset the expiry, so a session cannot be extended indefinitely', () => {
     // Otherwise refreshing forever would make a "14 day" session unbounded.
-    const next = rotated(family(), 'token-b', NOW + 1_000)
+    const next = rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com')
     expect(next.expiresAt).toBe(family().expiresAt)
   })
 })
@@ -63,7 +63,7 @@ describe('rotation', () => {
 describe('concurrent requests are not theft', () => {
   // A page load issues several requests at once; if the access token has just expired they all
   // present the same refresh token. Strict single-use would revoke the family on every navigation.
-  const afterRotation = () => rotated(family(), 'token-b', NOW + 1_000)
+  const afterRotation = () => rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com')
 
   it('accepts the immediately previous token inside the grace window', () => {
     expect(assessToken(afterRotation(), 'token-a', NOW + 2_000))
@@ -89,7 +89,7 @@ describe('concurrent requests are not theft', () => {
 describe('reuse detection', () => {
   it('flags a token two generations old, whatever the window', () => {
     // Retained across a rotation: no concurrency explains this.
-    const twice = rotated(rotated(family(), 'token-b', NOW + 1_000), 'token-c', NOW + 2_000)
+    const twice = rotated(rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com'), 'token-c', NOW + 2_000, 'admin@example.com')
     expect(assessToken(twice, 'token-a', NOW + 2_100)).toEqual({ outcome: 'reused' })
   })
 
@@ -98,15 +98,15 @@ describe('reuse detection', () => {
   })
 
   it('checks expiry before reuse, so an old token in a dead family reads as expired', () => {
-    const expired = { ...rotated(family(), 'token-b', NOW + 1_000), expiresAt: NOW - 1 }
+    const expired = { ...rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com'), expiresAt: NOW - 1 }
     expect(assessToken(expired, 'token-a', NOW)).toEqual({ outcome: 'expired' })
   })
 })
 
 describe('parseSessionFamily', () => {
   it('round-trips a family through JSON', () => {
-    const stored = JSON.parse(JSON.stringify(rotated(family(), 'token-b', NOW + 1_000)))
-    expect(parseSessionFamily(stored)).toEqual(rotated(family(), 'token-b', NOW + 1_000))
+    const stored = JSON.parse(JSON.stringify(rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com')))
+    expect(parseSessionFamily(stored)).toEqual(rotated(family(), 'token-b', NOW + 1_000, 'admin@example.com'))
   })
 
   it('omits the optional fields on a fresh family rather than setting them null', () => {
@@ -124,5 +124,17 @@ describe('parseSessionFamily', () => {
     ['missing subject', { ...family(), subject: undefined }]
   ])('rejects %s', (_label, payload) => {
     expect(parseSessionFamily(payload)).toBeUndefined()
+  })
+})
+
+describe('the recorded provider', () => {
+  it('AUTHN-6: refuses a provider that is not a non-empty string', () => {
+    const stored = (): Record<string, unknown> => JSON.parse(JSON.stringify(family()))
+    for (const provider of ['', 1, null]) {
+      expect(parseSessionFamily({ ...stored(), provider })).toBeUndefined()
+    }
+    const { provider: _dropped, ...withoutProvider } = stored()
+    expect(parseSessionFamily(withoutProvider)).toBeDefined()
+    expect(parseSessionFamily(stored())).toEqual(family())
   })
 })

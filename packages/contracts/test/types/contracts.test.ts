@@ -48,7 +48,11 @@ export const wronglyTyped: OptionsOf<StorageAdapters, 'x/storage'> = { a: 'one' 
 export const unregistered: OptionsOf<StorageAdapters, 'y'> = { anything: true }
 
 // 8. The authentication instance interface merges with its namespace of method types.
-export const authentication: AuthenticationAdapter = { authenticate: async () => null }
+export const authentication: AuthenticationAdapter = { authenticate: async () => ({ rejected: 'credentials' }), getIdentity: async () => null }
+// @ts-expect-error a rejection is a Rejection, not null (AUTHN-2)
+export const nullRejecting: AuthenticationAdapter = { authenticate: async () => null, getIdentity: async () => null }
+// @ts-expect-error every adapter implements getIdentity (AUTHN-4)
+export const withoutLookup: AuthenticationAdapter = { authenticate: async () => ({ rejected: 'credentials' }) }
 export const authenticate: AuthenticationAdapter.authenticate = authentication.authenticate
 
 // 9. A real SvelteKit adapter, whose adapt takes SvelteKit's Builder, satisfies the factory type.

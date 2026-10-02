@@ -15,6 +15,17 @@ function assertEverySubjectDeclared (credentialsArray) {
     throw new Error(`missing-subject: ${emails}`)
 }
 
+/** @type {import('@genoacms/contracts/authentication').Rejection} */
+const CREDENTIALS_REJECTED = Object.freeze({ rejected: 'credentials' })
+
+/**
+ * @param {import('./config').Credentials} credentials
+ * @returns {import('@genoacms/contracts/authentication').Identity}
+ */
+function identityOf (credentials) {
+    return { subject: credentials.subject, email: credentials.email }
+}
+
 /**
  * Authenticates against a fixed list of credentials, resolved from the provider's `credentials`
  * option: a JSON secret, an environment variable holding JSON, or an inline array.
@@ -32,16 +43,16 @@ export default defineRuntime({
              * @type {import('@genoacms/contracts/authentication').Adapter['authenticate']}
              */
             async authenticate (email, password) {
-                /**
-                 * @type {import('./config').Credentials | undefined}
-                 */
                 const credentials = credentialsArray.find(c => c.email === email)
-                if (!credentials) return null
-                if (credentials.password !== password) return null
-                return {
-                    subject: credentials.subject,
-                    email: credentials.email
-                }
+                if (!credentials || credentials.password !== password) return CREDENTIALS_REJECTED
+                return identityOf(credentials)
+            },
+            /**
+             * @type {import('@genoacms/contracts/authentication').Adapter['getIdentity']}
+             */
+            async getIdentity (subject) {
+                const credentials = credentialsArray.find(c => c.subject === subject)
+                return credentials ? identityOf(credentials) : null
             }
         }
     }

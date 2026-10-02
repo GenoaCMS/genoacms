@@ -1,9 +1,9 @@
 import { host } from '$lib/script/host.server'
-import type { Identity } from '@genoacms/contracts/authentication'
 import { type Cookies } from '@sveltejs/kit'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 import { randomUUID } from 'node:crypto'
-import { authenticate } from './providers.server'
+import { signIn, revalidate } from './providers.server'
+import type { SignInFailure } from './providers.server'
 import { resolvePrincipal } from '../authorization/resolution.server'
 import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
 import { getSessionKey } from '$lib/script/signing/rootKey.server'
@@ -53,32 +53,32 @@ async function issueAccessToken (subject: string, email: string): Promise<string
     .sign(await getSessionKey())
 }
 
-async function authenticateAndAuthorize (email: string, password: string): Promise<Identity | null> {
-  let identity = null
-  try {
-    identity = await authenticate(email, password)
-  } catch {
-    return null
+/** A sign-in that did not succeed, with the one message the user sees (AUTHN-5). */
+class SignInError extends Error {
+  readonly code: SignInFailure
+
+  constructor (code: SignInFailure) {
+    super(code)
+    this.name = 'SignInError'
+    this.code = code
   }
-  if (!identity) return null
-  // Valid credentials are not admission: the identity must also be a principal of this instance,
-  // which is the seed administrator or a user the authorization data names. A known user holding
-  // no roles may sign in and will simply be denied every operation.
-  const { known } = await resolvePrincipal(identity.subject)
-  if (!known) return null
-  return identity
 }
 
 async function login (email: string, password: string, cookies: Cookies) {
-  const identity = await authenticateAndAuthorize(email, password)
-  if (!identity) throw new Error('invalid-credentials')
+  const result = await signIn(email, password)
+  if (result.outcome === 'failed') throw new SignInError(result.failure)
+  // Valid credentials are not admission: the identity must also be a principal of this instance,
+  // which is the seed administrator or a user the authorization data names. A known user holding
+  // no roles may sign in and will simply be denied every operation.
+  const { known } = await resolvePrincipal(result.identity.subject)
+  if (!known) throw new SignInError('invalid-credentials')
 
   // Identity only. Grants are resolved per request and cached, so the cookie stays a few hundred
   // bytes however many permissions the principal holds — and a revoked permission stops being
   // honored at the cache window rather than at token expiry.
-  const session = await startSession(identity.subject, identity.email)
+  const session = await startSession(result.identity, result.provider)
   writeSessionCookie(cookies, {
-    accessToken: await issueAccessToken(identity.subject, identity.email),
+    accessToken: await issueAccessToken(result.identity.subject, result.identity.email),
     refreshToken: session.token,
     familyId: session.familyId
   }, session.expiresAt)
@@ -108,7 +108,7 @@ async function renewSession (cookies: Cookies): Promise<string | undefined> {
   const presented = readSessionCookie(cookies)
   if (presented?.refreshToken === undefined || presented.familyId === undefined) return undefined
 
-  const result = await refreshSession(presented.familyId, presented.refreshToken)
+  const result = await refreshSession(presented.familyId, presented.refreshToken, async family => await revalidate(family.subject, family.provider))
   if (result.outcome === 'rejected') {
     clearSession(cookies)
     return undefined
@@ -175,6 +175,7 @@ async function logout (cookies: Cookies) {
 }
 
 export {
+  SignInError,
   cookieName,
   authenticateRequest,
   login,

@@ -19,6 +19,7 @@ import {
   type SessionFamily
 } from './session'
 import type { JsonValue } from '$lib/script/signing/canonical'
+import type { Identity } from '@genoacms/contracts/authentication'
 
 /**
  * Refresh token families in storage: one signed object each.
@@ -100,15 +101,18 @@ interface IssuedSession {
   expiresAt: number
 }
 
-/** Starts a family. Called once per sign-in. */
-async function startSession (subject: string, email: string): Promise<IssuedSession> {
+/** Starts a family for the identity a provider admitted. Called once per sign-in. */
+async function startSession (identity: Identity, provider: string): Promise<IssuedSession> {
   const { refreshTokenDays } = await loadSecurityPolicy()
   const familyId = randomUUID()
   const token = generateToken()
-  const family = newFamily(familyId, subject, email, token, Date.now(), refreshTokenDays)
+  const family = newFamily(familyId, identity.subject, identity.email, provider, token, Date.now(), refreshTokenDays)
   await writeFamily(family)
   return { familyId, token, expiresAt: family.expiresAt }
 }
+
+/** Whether a family's subject may continue, and under which email (AUTHN-7). A throw keeps the family as it is. */
+type Revalidate = (family: SessionFamily) => Promise<Identity | null>
 
 type RefreshResult =
   | { outcome: 'refreshed', subject: string, email: string, token: string, expiresAt: number }
@@ -124,7 +128,7 @@ type RefreshResult =
  * been superseded means a copy was kept, and the honest and the dishonest holder cannot be told
  * apart — so neither keeps the session.
  */
-async function refreshSession (familyId: string, token: string): Promise<RefreshResult> {
+async function refreshSession (familyId: string, token: string, revalidate: Revalidate): Promise<RefreshResult> {
   const loaded = await loadFamily(familyId)
   if (loaded === undefined) return { outcome: 'rejected', reason: 'unknown-session' }
 
@@ -150,9 +154,15 @@ async function refreshSession (familyId: string, token: string): Promise<Refresh
     return { outcome: 'rejected', reason: verdict.outcome }
   }
 
+  const identity = await revalidate(loaded.family)
+  if (identity === null) {
+    await revokeSession(familyId)
+    return { outcome: 'rejected', reason: 'identity-gone' }
+  }
+
   const next = generateToken()
   try {
-    await writeFamily(rotated(loaded.family, next, Date.now()), loaded.version)
+    await writeFamily(rotated(loaded.family, next, Date.now(), identity.email), loaded.version)
   } catch {
     // Another request rotated first. Its token is now current, and this client will present the
     // superseded one on its next attempt — which the grace window accepts.
@@ -166,7 +176,7 @@ async function refreshSession (familyId: string, token: string): Promise<Refresh
   return {
     outcome: 'refreshed',
     subject: loaded.family.subject,
-    email: loaded.family.email,
+    email: identity.email,
     token: next,
     expiresAt: loaded.family.expiresAt
   }
@@ -192,5 +202,6 @@ export {
 
 export type {
   RefreshResult,
+  Revalidate,
   IssuedSession
 }
