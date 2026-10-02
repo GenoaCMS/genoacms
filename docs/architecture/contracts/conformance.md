@@ -159,7 +159,8 @@ property with `runs` generated cases (default 50).
 - Any password other than the right one returns `{ rejected: 'credentials' }`, for the fixture and,
   with `disabled`, for the disabled identity. The passwords are generated at random, and as near
   misses of the right one: a character inserted, removed or replaced, the case of one character
-  changed, or whitespace before, after or around it.
+  changed, or whitespace before, after or around it. Every near miss of these kinds at the first,
+  middle and last position is also tried, as an example.
 - Any email that is neither the fixture's nor the disabled identity's, ignoring case, returns
   `{ rejected: 'credentials' }` with any password, the right ones included. The emails are
   generated at random, and as near misses of the fixture's.
@@ -170,8 +171,9 @@ property with `runs` generated cases (default 50).
 - In any generated sequence of these calls, wrong ones included, the answers to the right
   credentials and to `getIdentity` for both subjects are the ones above, every time.
 
-In a property, an error whose message starts with `authentication/throttled` is also an accepted
-answer: an adapter that refuses to answer throws it (AUTHN-3). Each test carries the IDs it checks
+For a wrong password or an unknown email, and anywhere in a property, an error whose message starts
+with `authentication/throttled` is also an accepted answer: an adapter that refuses to answer throws
+it (AUTHN-3), and a provider may lock an account after many wrong passwords. Each test carries the IDs it checks
 (CD4). The fixture's identities exist before the suite runs; the suite creates none, because the
 contract cannot.
 

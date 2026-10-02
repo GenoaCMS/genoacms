@@ -2,7 +2,7 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: implemented
+status: draft
 commits: [fe9d371, 4bce5b2, 60635dc, b122128, 18017e1]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
@@ -46,6 +46,15 @@ amendment* below changes three behaviors:
 - when an identity is gone and its family cannot be removed, the refresh fails (CF21).
 
 It also adds the tests CS2 showed missing (CF16 to CF20).
+
+**Amended a third time 2026-10-02, after CS3.** The *Third amendment* below:
+- fixes CF24: a lost write race carries the email `getIdentity` returned;
+- fixes CF25: a malformed answer from a provider is a failure;
+- passes the admitted identity on unchanged;
+- makes the logging rule observable;
+- tests the whole renewal chain;
+- turns CONF-4's input checks into enumerated near misses and properties over generated inputs, with
+  `fast-check` (WORKFLOW §6.5).
 
 The limits on failed sign-ins (AUTHN-8 to AUTHN-11) are RFC-0031. AUTHN-5's text here omits them;
 RFC-0031 adds them.
@@ -207,6 +216,17 @@ for a `SignInError` and rethrows anything else. The login page shows:
   cookie. The family was just read, so a failed delete is a failure, not an absence. `revokeSession`,
   used by sign-out and on reuse, still swallows errors.
 
+*Third amendment.*
+- `ask` and `lookUp` check the answer. An `Identity` is an object whose `subject` is a non-empty
+  string and whose `email` is a string. `authenticate` answering anything else that is not a
+  `Rejection`, or `getIdentity` answering anything else that is not `null`, is treated as a throw of
+  `Error('authentication/invalid-answer')`. The message carries nothing of the answer, so no email
+  is logged.
+- `refreshSession`'s lost-race branch answers `concurrent` with `identity.email`, the email
+  `getIdentity` returned, in place of the stored one.
+- Nothing else changes: `login` already passes the identity on unchanged, and every rotation already
+  revalidates.
+
 ### The conformance suite (CONF-4)
 
 `runAuthenticationConformance(adapter, fixture)` as CONF-4 states, registered as
@@ -227,6 +247,31 @@ and the `getIdentity` checks, for the fixture and for the disabled identity, ask
 its subject without its last character, and its subject with the case of its letters swapped, when
 that differs from the subject. The empty subject is not tried: an adapter MAY treat it as a malformed
 request.
+
+*Third amendment.* `runAuthenticationConformance(adapter, fixture, { runs = 50 } = {})`.
+`fast-check` becomes a dependency of `@genoacms/conformance`. The tests keep their titles:
+
+- `the fixture's credentials return its identity`, `getIdentity returns the fixture's identity` and
+  `getIdentity returns null for a disabled subject` ask once.
+- `a wrong password is rejected for credentials` and `a disabled identity's wrong password is
+  rejected for credentials` try the examples `-wrong` appended, the empty password, and every near
+  miss at positions first, middle and last: `x` inserted (also after the last), a character removed,
+  a character's code point changed by one, a character's case changed. They also try a space and a
+  tab before, after and around the password. Then a property runs over `fc.string()` and generated
+  near misses.
+- `an unknown email is rejected for credentials` tries a random unknown email, and near misses of the
+  fixture's email that differ other than in case, each with the fixture's password, the disabled
+  identity's and `wrong`, then a property over `fc.emailAddress()` and near misses.
+- `getIdentity returns null for an unknown subject` tries a random subject, the near misses of the
+  fixture's subject, its case swap and both emails, then a property over non-empty strings and near
+  misses.
+- A new test, `AUTHN-2, AUTHN-4: the right answers do not change across calls`, runs a property over
+  sequences of up to 12 calls: right and wrong sign-ins of both identities, and `getIdentity` of both
+  subjects. Each answer to a right sign-in, or to a `getIdentity`, equals the first answer to that
+  call in the run.
+
+Wrong inputs accept a thrown `authentication/throttled` as well as their rejection. A property runs
+with `numRuns: runs`. `adapter-gcp`'s contract test passes `{ runs: 5 }`.
 
 ## Non-goals
 
@@ -356,6 +401,27 @@ And in the same file, `CONF-4: each assertion fails against its mutant`: *given*
 
 Not tested, by decision: an empty email from `getIdentity`, which no adapter has a reason to return, and a lockout after wrong passwords, which AUTHN-3 requires to throw, so the suite cannot tell it from an outage.
 
+**Third amendment (CS3).** Written from CF22 to CF25. Where an existing test changes, its title stays.
+
+`packages/core/src/lib/script/auth/providers.server.test.ts` (unit). Every line written to any `console` method, `process.stdout` or `process.stderr` is captured.
+- `AUTHN-5: only a message starting authentication/throttled is throttled`: also *given* `x authentication/throttled`, *then* `sign-in-unavailable`.
+- `AUTHN-5: an answer that is neither an identity nor a rejection counts as a failure`: *given* `a` answering `null` and `b` rejecting `credentials`, *then* `sign-in-unavailable` and an error naming `a` with `authentication/invalid-answer`; *and given* `a` answering `{ subject: '' }` and `b` returning `ada`, *then* signed in with `b`.
+- `AUTHN-5: logs rejections and failures without the email or password`: no captured line, on any channel, contains either.
+- `AUTHN-7: an answer of getIdentity that is neither an identity nor null fails the revalidation`: *given* the recorded provider `b` answering `undefined`, *then* `revalidate` rejects with `session/revalidation-failed: b: authentication/invalid-answer`.
+- `AUTHN-7: with no provider configured, a family without one revalidates as null`.
+
+`packages/core/src/lib/script/auth/auth.server.test.ts` (unit). The admitted identity is configurable.
+- `AUTHN-5: login logs neither the email nor the password`: *given* a successful sign-in, each of the three failures and an unknown principal, *then* no captured line, on any channel, contains either.
+- `AUTHN-5: the session and the access token carry the identity as the provider returned it`: *given* an identity with the email ` Ada@Example.COM `, *then* `startSession` receives it as given, and the access token's `email` is ` Ada@Example.COM `.
+- `AUTHN-7: the renewed access token carries the email revalidation returned`: the email is now ` Ada@New.Example.com `, with the spaces.
+
+`packages/core/src/lib/script/auth/session.server.test.ts` (unit). The host is the real one, with `authenticationProviderKeys` and `authentication` replaced.
+- `AUTHN-7: every rotation is revalidated`: *given* five refreshes in a row, *then* `revalidate` was called five times, each with the family's subject.
+- `AUTHN-7: a lost race carries the email revalidation returned`: *given* `revalidate` returning a new email and the conditional write failing once, *then* the result is `concurrent` with the new email.
+- `AUTHN-7: a renewal asks the recorded provider about the family's subject`: *given* providers `a` and `b`, a session started with `b`, and a cookie with an expired access token, *when* `authenticateRequest` runs through the real `renewSession`, `refreshSession` and `revalidate`, *then* only `b.getIdentity` was called, with the family's subject, and the request's payload carries `b`'s email.
+
+`packages/conformance/test/mutants/authentication.js`. The mutants `the fixture signs in only once` and `a disabled subject is found from the second time` now expect the new test. New mutants, each failing only its test: a trailing space ignored (`a wrong password...`); an unknown email signing in with a password other than the fixture's (`an unknown email...`); `getIdentity` accepting the subject with a suffix (`getIdentity returns null for an unknown subject`).
+
 No test of this RFC carries AUTHN-3: the array adapter has no service that can fail. It stays unverified until an adapter with a service tests it by fault injection (RFC-0032).
 
 Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, but core has no end-to-end tests that run in CI (`docs/README.md`, known gaps). Step 6 changes their level to `unit`, which these tests are; the author confirms or keeps `e2e`, which would leave `main` not releasable.
@@ -386,6 +452,14 @@ Levels: AUTHN-5 to AUTHN-7 are declared `e2e` in `contracts/authentication.md`, 
 16. Documents: CF16 to CF21 fixed; `verified`; this RFC `implemented` with all its commits.
 17. A falsification audit of AUTHN-5, AUTHN-7 and CONF-4 by an agent that wrote neither the code nor these tests, recorded as a `CS` entry.
 
+*Third amendment*, after CS3:
+
+18. Documents: AUTHN-2, AUTHN-5, AUTHN-7 and CONF-4 as amended; CF22 to CF25 open, fixed by this RFC; this RFC `draft`.
+19. Tests, marked `it.fails` where they do not yet pass, committed separately. The suite's restructuring is a test change, and lands here with its mutants.
+20. Code: `ask`, `lookUp` and the lost-race branch; then remove the `it.fails` markers without changing an assertion.
+21. Documents: CF22 to CF25 fixed; `verified`; this RFC `implemented` with all its commits.
+22. A falsification audit of AUTHN-5, AUTHN-7 and CONF-4 by an agent that wrote neither the code nor these tests, recorded as a `CS` entry.
+
 ## Verification
 
 ```bash
@@ -406,6 +480,9 @@ test. The 5 adapters CS1 found passing CONF-4 now fail it.
 
 *Second amendment.* The 37 mutations and adapters CS2 found passing, minus those §Tests leaves untested by decision (an empty email; a lockout after wrong passwords), now fail a test. The mutations CS2 wrote against the lookup in order and the removal on `identity-gone` were rewritten for the new code, and fail a test too.
 
+*Third amendment.* The mutations and adapters CS3 found passing now fail a test, except those in
+the areas left untested by decision.
+
 ## Critique
 
 **Pros**
@@ -418,6 +495,7 @@ test. The 5 adapters CS1 found passing CONF-4 now fail it.
 - Every refresh calls a provider; during a provider outage, users whose access token expires get a 500 until it returns.
 - Trying providers in order makes a sign-in to the last provider as slow as all earlier calls together.
 - *Second amendment.* A family without a provider can be revalidated by a later provider while an earlier one is down. Where two providers hold the same subject (`identities.md` ID4), that may be the wrong one; it already was for an earlier provider returning `null`.
+- *Third amendment.* The suite costs the real provider about 40 failed sign-ins per identity per run, plus the properties' `runs`. A provider that locks accounts may lock the fixture's; the suite accepts `authentication/throttled` for wrong inputs, but a lockout that outlasts the run fails the next one.
 - *Second amendment.* A logout in another tab while the identity is gone can make the delete fail once; that request fails, and the next finds no family.
 
 **Blindspots & missed edge cases**
