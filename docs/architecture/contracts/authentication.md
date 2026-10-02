@@ -95,6 +95,11 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 | CF12 | *History.* **Parts of the sign-in trial that no test checks.** Each of these passes every test. (1) A stopping rejection after an earlier provider threw fails as `sign-in-unavailable`; AUTHN-5's table says `invalid-credentials`. (2) `too-many-attempts` only when every provider that threw was throttled, rather than any. (3) Any message containing `throttled` read as throttled, for example `authentication/provider-failed: 429 throttled`. (4) Rejections other than `credentials` not logged, which are the reasons CD3 logs for operators. (5) Only the last provider's failure logged. (6) The host's `authenticationProviderKeys` sorted, because host test 13's keys, `first` and `second`, are already in sorted order; RFC-0030 described them as `b`, `a`. Shown 2026-10-02 by CS1. AUTHN-5. | fixed, RFC-0030 |
 | CF13 | *History.* **Revalidation of a family without a provider is checked with one answering provider and no failure.** A lookup that skips a provider that throws and goes on to the next passes every test. It ends a session because of an outage when the later providers return `null`, which AUTHN-7 forbids. A lookup that takes the last `Identity` in key order also passes. Shown 2026-10-02 by CS1. AUTHN-7. | fixed, RFC-0030 |
 | CF14 | *History.* **The array adapter's `getIdentity` is tested only with its own subject and an unknown one.** A `getIdentity` that also matches an entry's email, returning that entry for a subject that does not exist, passes every test and the suite, whose unknown subject cannot be an email. Shown 2026-10-02 by CS1. AUTHN-4. | fixed, RFC-0030 |
+| CF16 | **Parts of the sign-in trial that CS2 found untested.** Each of these passes every test. (1) The providers tried in sorted key order, because the trial's ordering tests use keys already sorted. (2) A `second-factor-required` rejection not stopping the trial, or not logged. (3) A message that does not start with `authentication/throttled`, such as `authentication/rate-limited`, read as throttled. (4) Two failures, neither throttled, answering `invalid-credentials`. (5) A throttled failure before a stopping rejection answering `too-many-attempts`, where AUTHN-5 says `invalid-credentials`. (6) A provider that fails to construct logged nowhere. (7) The email or password logged through `console.info` or `console.log`, which the tests do not watch. (8) The provider's `Identity` altered, its email lowercased, before `login` sees it. Shown 2026-10-02 by CS2. AUTHN-5. | open |
+| CF17 | **`login`'s joins to authorization and to the session are tested with one scenario each.** `login` asking authorization about the email in place of the subject passes, because the mocked `resolvePrincipal` ignores its argument. Starting a session family before the authorization check, and leaving it behind when the check fails, passes the test of that case, which checks only the cookie. Recording the last configured key in place of the admitting provider passes, because the mocked `signIn` always admits `b`, the last key. Shown 2026-10-02 by CS2. AUTHN-5, AUTHN-6. | open |
+| CF18 | **Parts of revalidation that CS2 found untested.** Each of these passes every test. (1) When the recorded provider returns `null`, the other providers asked and the session kept. (2) `renewSession` passing the last configured key in place of the family's provider, or, for a family without one, the first key in place of every provider: the test family's provider is `b`, the last key. (3) The lookup in order using sorted keys. (4) A throw from an earlier provider swallowed when a later one returns an `Identity`, and a failure whose message contains `throttled` read as `null`, which ends the session because of an outage. (5) The renewed token carrying the old email when `getIdentity` returns an empty one, or a lowercased email. Shown 2026-10-02 by CS2. AUTHN-7. | open |
+| CF19 | **Host test 13 cannot see late construction or a cut list.** Reading `authenticationProviderKeys` may start constructing every provider in the background, because the test checks what was loaded synchronously. Returning only the first two keys passes, because the manifest has two providers. Shown 2026-10-02 by CS2. AUTHN-5. | open |
+| CF21 | **A gone identity's family can stay in storage.** When `getIdentity` returns `null`, `refreshSession` calls `revokeSession`, which swallows every failure of the delete, and answers `identity-gone`; core clears the cookie. If the delete failed, the family and its current token remain valid, and a copy of the token refreshes again once the provider knows the subject again. AUTHN-7 says core revokes the family. No test covers a failing delete. Found 2026-10-02 by CS2. | open |
 
 ### Open questions
 
@@ -131,6 +136,19 @@ reading AUTHN-5 leaves open: the table's first two rows both hold when one provi
 `authentication/throttled` with a suffix. The code answers `too-many-attempts` in both cases. AUTHN-3 was not audited, because
 no test carries it. The login route and page were not audited, because AUTHN-5 already records them as
 unverified (no `e2e` test).
+
+**CS2, falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended (RFC-0030, step 12), at
+`f7294c4`, 2026-10-02.** An agent on a different model, which wrote neither the code nor the tests
+and was asked to form its mutations before reading CF10 to CF15 and CS1, made 47 mutations of core
+and the host; 23 failed a test. It ran 14 adapters that violate AUTHN-2 or AUTHN-4 against the suite;
+one failed it. The survivors are CF16 to CF19 and CF20 (in [`conformance.md`](conformance.md)). It
+found one defect, CF21. It also reported that integer-like provider keys would break key order; they
+cannot, because configuration rule 9 refuses them. Readings the statements leave open: whether the
+lookup in order of a family without a provider stops at the first `Identity`, and whether a throw
+from one provider fails it when another returned an `Identity` (the code stops at the first
+`Identity`, and fails at the first throw it reaches); what sign-in answers with no provider
+configured (the code: `invalid-credentials`); and on which channels "logs neither the email nor the
+password" holds.
 
 ## Specification
 
