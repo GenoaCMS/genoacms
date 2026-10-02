@@ -105,6 +105,9 @@ importers:
       archiver:
         specifier: ^7.0.0
         version: 7.0.1
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1
     devDependencies:
       '@genoacms/conformance':
         specifier: workspace:^
