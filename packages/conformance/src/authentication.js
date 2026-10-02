@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import fc from 'fast-check'
 
 const THROTTLED = 'authentication/throttled'
+/** A real provider answers each call over the network (CONF-4). */
+const TEST_TIMEOUT = 120_000
 
 /** @param {string} text */
 const swapCase = text => [...text].map(c => c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()).join('')
@@ -101,11 +103,11 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
 
     it('AUTHN-2: the fixture\'s credentials return its identity', async () => {
       expect(await adapter.authenticate(identity.email, identity.password)).toEqual({ subject: identity.subject, email: identity.email })
-    })
+    }, TEST_TIMEOUT)
 
     it('AUTHN-2: a wrong password is rejected for credentials', async () => {
       await wrongPasswordsAreRejected(identity)
-    })
+    }, TEST_TIMEOUT)
 
     it('AUTHN-2: an unknown email is rejected for credentials', async () => {
       const passwords = [...known.map(({ password }) => password), 'wrong']
@@ -118,20 +120,20 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
         fc.oneof(fc.constantFrom(...passwords), fc.string()),
         async (email, password) => { await answersOrThrottles(() => adapter.authenticate(email, password), credentialsRejected) }
       ), property)
-    })
+    }, TEST_TIMEOUT)
 
     it.skipIf(disabled === undefined)('AUTHN-2: a disabled identity\'s correct password is rejected', async () => {
       const result = await adapter.authenticate(disabled.email, disabled.password)
       expect([{ rejected: 'disabled' }, credentialsRejected]).toContainEqual(result)
-    })
+    }, TEST_TIMEOUT)
 
     it.skipIf(disabled === undefined)('AUTHN-2: a disabled identity\'s wrong password is rejected for credentials', async () => {
       await wrongPasswordsAreRejected(disabled)
-    })
+    }, TEST_TIMEOUT)
 
     it('AUTHN-4: getIdentity returns the fixture\'s identity', async () => {
       expect(await adapter.getIdentity(identity.subject)).toEqual({ subject: identity.subject, email: identity.email })
-    })
+    }, TEST_TIMEOUT)
 
     it('AUTHN-4: getIdentity returns null for an unknown subject', async () => {
       const subjects = [unknownSubject, swapCase(identity.subject), ...nearMissesOf(identity.subject), ...known.map(({ email }) => email)]
@@ -142,11 +144,11 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
         fc.oneof(fc.string({ minLength: 1 }), nearMiss(identity.subject)).filter(subject => subject !== identity.subject && subject !== ''),
         async subject => { expect(await adapter.getIdentity(subject)).toBeNull() }
       ), property)
-    })
+    }, TEST_TIMEOUT)
 
     it.skipIf(disabled === undefined)('AUTHN-4: getIdentity returns null for a disabled subject', async () => {
       expect(await adapter.getIdentity(disabled.subject)).toBeNull()
-    })
+    }, TEST_TIMEOUT)
 
     it('AUTHN-2, AUTHN-4: the right answers do not change across calls', async () => {
       const asIdentity = { subject: identity.subject, email: identity.email }
@@ -183,7 +185,7 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
           else first.set(step.key, answer)
         }
       }), property)
-    })
+    }, TEST_TIMEOUT)
   })
 }
 

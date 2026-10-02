@@ -17,6 +17,12 @@ type Answer =
 const THROTTLED = 'authentication/throttled'
 const INVALID_ANSWER = 'authentication/invalid-answer'
 
+const REJECTION_REASONS: readonly unknown[] = ['credentials', 'disabled', 'second-factor-required']
+
+function isValidRejection (answer: unknown): answer is Rejection {
+  return typeof answer === 'object' && answer !== null && isRejection(answer as Rejection) && REJECTION_REASONS.includes((answer as Rejection).rejected)
+}
+
 function isIdentity (answer: unknown): answer is Identity {
   if (typeof answer !== 'object' || answer === null) return false
   const { subject, email } = answer as Record<string, unknown>
@@ -32,7 +38,7 @@ async function ask (key: string, email: string, password: string): Promise<Answe
     const adapter: Adapter = await host.authentication(key)
     const result: unknown = await adapter.authenticate(email, password)
     if (isIdentity(result)) return { kind: 'identity', identity: result }
-    if (typeof result === 'object' && result !== null && isRejection(result as Rejection)) return { kind: 'rejected', rejection: result as Rejection }
+    if (isValidRejection(result)) return { kind: 'rejected', rejection: result }
     throw new Error(INVALID_ANSWER) // AUTHN-5
   } catch (error) {
     return { kind: 'threw', error }

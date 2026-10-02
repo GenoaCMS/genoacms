@@ -233,7 +233,7 @@ describe('the trial, after CS2', () => {
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'b', identity: ada })
   })
 
-  it.fails('AUTHN-5: a rejection with an unknown reason counts as a failure', async () => {
+  it('AUTHN-5: a rejection with an unknown reason counts as a failure', async () => {
     configured.providers = { a: { authenticate: async () => ({ rejected: 'bogus' }) as unknown as Identity }, b: returning(ada) }
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'b', identity: ada })
 
