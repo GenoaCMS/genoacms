@@ -83,6 +83,10 @@ const MUTANTS = {
     tests: ['AUTHN-4: getIdentity returns null for an unknown subject'],
     adapter: () => ({ ...correct(), getIdentity: async (subject) => subject.startsWith(identity.subject) ? identityOf(identity) : correct().getIdentity(subject) })
   },
+  'the other identity\'s password signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === disabled.password ? identityOf(identity) : correct().authenticate(email, password) })
+  },
   'getIdentity returns a stale email': {
     tests: ['AUTHN-4: getIdentity returns the fixture\'s identity', 'AUTHN-2, AUTHN-4: the right answers do not change across calls'],
     adapter: () => ({ ...correct(), getIdentity: async (subject) => subject === identity.subject ? { subject, email: 'stale@example.com' } : correct().getIdentity(subject) })

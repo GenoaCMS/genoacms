@@ -90,7 +90,8 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
 
     /** @param {{ email: string, password: string }} who */
     async function wrongPasswordsAreRejected (who) {
-      for (const password of [`${who.password}-wrong`, '', ...nearMissesOf(who.password)].filter(wrong => wrong !== who.password)) {
+      const others = known.filter(other => other !== who).map(({ password }) => password)
+      for (const password of [`${who.password}-wrong`, '', ...nearMissesOf(who.password), ...others].filter(wrong => wrong !== who.password)) {
         await answersOrThrottles(() => adapter.authenticate(who.email, password), credentialsRejected)
       }
       await fc.assert(fc.asyncProperty(fc.oneof(fc.string(), nearMiss(who.password)).filter(wrong => wrong !== who.password), async password => {
