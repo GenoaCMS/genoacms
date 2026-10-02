@@ -2,8 +2,8 @@
 type: rfc
 number: 29
 title: A second delete of a secret just deleted may resolve true
-status: draft
-commits: []
+status: implemented
+commits: [1796b78]
 depends: [26]
 architecture: [architecture/adapter-aws/secrets.md, architecture/adapter-aws/README.md]
 changes: [ASM-6 compatible]

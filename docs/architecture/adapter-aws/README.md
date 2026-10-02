@@ -187,7 +187,7 @@ Every `W` ID, where it lives, and its state.
 | WF24 | A deleted secret is not gone at once; deleting a missing one succeeds | fixed, RFC-0026 | [`secrets.md`](secrets.md) |
 | WF25 | The client address can be forged behind a function URL | fixed, RFC-0026 | [`deployment.md`](deployment.md) |
 | WF26 | The amendment's tests miss parts of LMB-15 and ASM-3 | fixed, RFC-0026 | README |
-| WF27 | Deleting a secret just deleted can resolve `true` | open, RFC-0029 | [`secrets.md`](secrets.md) |
+| WF27 | Deleting a secret just deleted can resolve `true` | fixed, RFC-0029 | [`secrets.md`](secrets.md) |
 | WS1 | The Lambda Web Adapter layer's ARN and version | automated, RFC-0026 | [`deployment.md`](deployment.md) |
 | WS2 | What reaches adapter-node through a function URL | automated, RFC-0026; finding WF25 | [`deployment.md`](deployment.md) |
 | WS3 | The permissions a public function URL needs | automated, RFC-0026 | [`deployment.md`](deployment.md) |

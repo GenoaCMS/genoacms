@@ -2,7 +2,7 @@
 type: architecture
 title: AWS secrets: Secrets Manager
 codes: [ASM]
-verified: 624ce2e
+verified: 1796b78
 ---
 
 # AWS secrets: Secrets Manager
@@ -61,7 +61,7 @@ window, also reads as absent.
 | # | Finding | State |
 | :-- | :-- | :-- |
 | WF14 | **No secrets provider.** An AWS stack must take its secrets from another provider, such as the environment, which cannot claim atomically, so two instances starting together can each mint a root seed. `configuration.md` notes that the AWS suite's `production.ts` names a secrets adapter that does not exist. | fixed, RFC-0026 |
-| WF27 | **Deleting a secret just deleted can resolve `true`** (ASM-6, WS8). In CI run 36985809717 on `main` (2026-10-02), the contract test deleted a secret, read it as `undefined`, then deleted it again and got `true`: the `DescribeSecret` of the second delete showed the secret live, although the read before it had seen it deleted. ASM-6 said `false`. | open, RFC-0029 |
+| WF27 | *History.* **Deleting a secret just deleted can resolve `true`** (ASM-6, WS8). In CI run 36985809717 on `main` (2026-10-02), the contract test deleted a secret, read it as `undefined`, then deleted it again and got `true`: the `DescribeSecret` of the second delete showed the secret live, although the read before it had seen it deleted. ASM-6 said `false`. | fixed, RFC-0029 |
 | WF24 | **A deleted secret is not gone at once, and deleting a missing one succeeds** (ASM-3, ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. Once the delete had completed, a second forced delete resolved, so `deleteSecret` reported `true` where ASM-6 says `false`. | fixed, RFC-0026 |
 
 ### History
