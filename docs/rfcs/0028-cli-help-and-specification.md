@@ -2,8 +2,8 @@
 type: rfc
 number: 28
 title: CLI help, guidance and its Specification
-status: draft
-commits: []
+status: implemented
+commits: [8252f29, 0ccbb54, 102ba06, 5693b88, 3340e9d, 9df0cbe, 69f955d, e9abc68, 9caa906, 313d34b, fb76e76, 137be66, 45bc5c1]
 depends: [15]
 architecture: [architecture/cli.md, architecture/configuration.md]
 changes: [CLI-1 added, CLI-5 compatible, CLI-7 editorial, CLI-8 compatible, CLI-11 added, CLI-13 added, CLI-14 added, CLI-15 added, CLI-16 added, CLI-17 added, CLI-18 added, CLI-19 added]
