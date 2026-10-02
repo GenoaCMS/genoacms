@@ -65,7 +65,7 @@ it fails too; the suite reports the first failure.
 | CF9 | **The storage suite writes a fixed name, `GenoaCMS/test.txt`, and cleans up only by its own delete step.** On GCP it runs in the production project's bucket (GU6). Two concurrent runs collide, and a run that fails before the delete leaves the object behind. `adapter-aws` avoids this by wrapping the adapter under a per-run prefix; `adapter-gcp` does not. | open (CD6) |
 | CF15 | *History.* **The authentication suite does not check the identity's email, nor when `disabled` may be reported.** Its identity checks accept any string as the email (`expect.any(String)`), so an adapter whose `authenticate` or `getIdentity` returns an empty or stale email passes; AUTHN-2 requires the identity the credentials belong to, and AUTHN-4 the current email. No test sends the disabled identity a wrong password, so an adapter that answers `disabled` before checking the password passes. That adapter tells an existing account from a missing one, which AUTHN-2 and CD3 forbid. The suite tries one wrong password, the right one with `-wrong` appended, so an adapter that accepts the empty password, or any prefix of the right one, passes too. Shown 2026-10-02 by CS1 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
 | CF20 | *History.* **The authentication suite tries few inputs, once each.** Each of these adapters passes. (1) A wrong password accepted when it differs from the right one only in case, in its first character, or in surrounding whitespace: the suite's three wrong passwords are fixed. (2) The disabled identity answering `disabled` to an empty or truncated password, which tells an existing account from a missing one: only `-wrong` appended is tried for it. (3) `getIdentity` returning an identity for the fixture's email, a case variant or a prefix of its subject, or `''`: the unknown subject is a random string. (4) An adapter that answers correctly only on the first call, or locks the account after a few wrong passwords: the suite calls each method once per input, in a fixed order. Shown 2026-10-02 by CS2 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
-| CF23 | **The authentication suite still samples few inputs.** Each of these adapters passes. (1) A password compared ignoring only leading or only trailing whitespace, the case of its first character, its last or a middle character, or everything but its length and ends. (2) An unknown email that signs in, answers `disabled`, or throws, for a password other than the fixture's: the unknown email is tried once. (3) The disabled identity's password signing the active identity in, and the disabled identity answering `disabled` to its password with a trailing space. (4) Answers that change from the third call on: each input is presented twice. (5) `getIdentity` accepting the subject with a suffix or surrounding whitespace, or answering the disabled identity's email. Shown 2026-10-02 by CS3 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | open |
+| CF23 | **The authentication suite still samples few inputs.** Each of these adapters passes. (1) A password compared ignoring only leading or only trailing whitespace, the case of its first character, its last or a middle character, or everything but its length and ends. (2) An unknown email that signs in, answers `disabled`, or throws, for a password other than the fixture's: the unknown email is tried once. (3) The disabled identity's password signing the active identity in, and the disabled identity answering `disabled` to its password with a trailing space. (4) Answers that change from the third call on: each input is presented twice. (5) `getIdentity` accepting the subject with a suffix or surrounding whitespace, or answering the disabled identity's email. Shown 2026-10-02 by CS3 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | open, fixed by RFC-0030 |
 
 ### History
 
@@ -146,22 +146,34 @@ declare function runAuthenticationConformance (
   fixture: {
     identity: { email: string, password: string, subject: string }
     disabled?: { email: string, password: string, subject: string }
-  }
+  },
+  options?: { runs?: number }
 ): void
 ```
 
-The suite checks AUTHN-2 and AUTHN-4: the fixture's credentials return its `Identity`, the
-fixture's subject and email, each time they are presented; the wrong passwords and an unknown email
-all return `{ rejected: 'credentials' }`; `getIdentity` returns the fixture's `Identity` for its
-subject, each time, and `null` for an unknown subject, for the fixture's email, for its subject
-without its last character, and for its subject with the case of its letters swapped. The wrong
-passwords are the right one with `-wrong` appended, the empty one, the right one without its last
-character, the right one with its first character changed, with the case of its letters swapped,
-and with a space before and after it; each one that differs from the right password is tried. With
-`disabled`, its correct password returns `{ rejected: 'disabled' }` or `{ rejected: 'credentials' }`,
-each of its wrong passwords returns `{ rejected: 'credentials' }`, and `getIdentity` returns `null`
-for its subject, each time. Each test carries the IDs it checks (CD4). The fixture's identities
-exist before the suite runs; the suite creates none, because the contract cannot.
+The suite checks AUTHN-2 and AUTHN-4 by examples and by properties over generated inputs, each
+property with `runs` generated cases (default 50).
+
+- The fixture's credentials return its `Identity`, the fixture's subject and email, and
+  `getIdentity` returns it for its subject.
+- Any password other than the right one returns `{ rejected: 'credentials' }`, for the fixture and,
+  with `disabled`, for the disabled identity. The passwords are generated at random, and as near
+  misses of the right one: a character inserted, removed or replaced, the case of one character
+  changed, or whitespace before, after or around it.
+- Any email that is neither the fixture's nor the disabled identity's, ignoring case, returns
+  `{ rejected: 'credentials' }` with any password, the right ones included. The emails are
+  generated at random, and as near misses of the fixture's.
+- `getIdentity` returns `null` for any non-empty string other than the fixture's subject: generated at
+  random, as near misses of the fixture's subject, and the two emails.
+- With `disabled`, its correct password returns `{ rejected: 'disabled' }` or
+  `{ rejected: 'credentials' }`, and `getIdentity` returns `null` for its subject.
+- In any generated sequence of these calls, wrong ones included, the answers to the right
+  credentials and to `getIdentity` for both subjects are the ones above, every time.
+
+In a property, an error whose message starts with `authentication/throttled` is also an accepted
+answer: an adapter that refuses to answer throws it (AUTHN-3). Each test carries the IDs it checks
+(CD4). The fixture's identities exist before the suite runs; the suite creates none, because the
+contract cannot.
 
 - Test: `packages/conformance/test/authentication.test.js`, `packages/authentication-adapter-array/test/conformance.test.js`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: conformance

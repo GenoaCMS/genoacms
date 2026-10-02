@@ -100,9 +100,9 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 | CF18 | *History.* **Parts of revalidation that CS2 found untested.** Each of these passes every test. (1) When the recorded provider returns `null`, the other providers asked and the session kept. (2) `renewSession` passing the last configured key in place of the family's provider, or, for a family without one, the first key in place of every provider: the test family's provider is `b`, the last key. (3) The lookup in order using sorted keys. (4) A throw from an earlier provider swallowed when a later one returns an `Identity`, and a failure whose message contains `throttled` read as `null`, which ends the session because of an outage. (5) The renewed token carrying the old email when `getIdentity` returns an empty one, or a lowercased email. Shown 2026-10-02 by CS2. AUTHN-7. | fixed, RFC-0030 |
 | CF19 | *History.* **Host test 13 cannot see late construction or a cut list.** Reading `authenticationProviderKeys` may start constructing every provider in the background, because the test checks what was loaded synchronously. Returning only the first two keys passes, because the manifest has two providers. Shown 2026-10-02 by CS2. AUTHN-5. | fixed, RFC-0030 |
 | CF21 | *History.* **A gone identity's family can stay in storage.** When `getIdentity` returns `null`, `refreshSession` calls `revokeSession`, which swallows every failure of the delete, and answers `identity-gone`; core clears the cookie. If the delete failed, the family and its current token remain valid, and a copy of the token refreshes again once the provider knows the subject again. AUTHN-7 says core revokes the family. No test covers a failing delete. Found 2026-10-02 by CS2. | fixed, RFC-0030 |
-| CF22 | **Parts of sign-in and revalidation that CS3 found untested.** Each of these passes every test. (1) A message that contains `authentication/throttled` without starting with it read as throttled. (2) The email or password written to `process.stdout` or `process.stderr`, or through `console.dir` or `console.table`, or logged by `login`, which the tests do not watch at all. (3) `login` lowercasing the admitted identity's email before the token, and the renewed token's email trimmed. (4) `refreshSession` handing the revalidation another family, or another subject, than the one it read: core's tests replace either `refreshSession` or `revalidate`, so the whole chain is never run. (5) Revalidation skipped after a few rotations: only the first two are tested. (6) With no provider configured, a family without a provider failing instead of revalidating as `null`. Shown 2026-10-02 by CS3. AUTHN-5, AUTHN-7. | open |
-| CF24 | **A refresh that loses its write race carries the old email.** After `revalidate` returned an `Identity`, a conditional write that fails makes `refreshSession` answer `concurrent` with the email of the family it read, not the one `getIdentity` returned; the renewed access token carries that email until the next refresh. AUTHN-7 says the renewed token carries the email `getIdentity` returned. No test makes the write fail after a successful revalidation. Found 2026-10-02 by CS3. | open |
-| CF25 | **A provider that answers `null` to `authenticate` crashes the sign-in.** `isRejection(null)` is false, so `signIn` reports `signed-in` with no identity, and `login` throws a `TypeError` reading its subject: the user sees `Login failed`, not one of AUTHN-5's three messages. The provider violates AUTHN-2, and a provider written before RFC-0030 does exactly this. Found 2026-10-02 by CS3, by reading. | open |
+| CF22 | **Parts of sign-in and revalidation that CS3 found untested.** Each of these passes every test. (1) A message that contains `authentication/throttled` without starting with it read as throttled. (2) The email or password written to `process.stdout` or `process.stderr`, or through `console.dir` or `console.table`, or logged by `login`, which the tests do not watch at all. (3) `login` lowercasing the admitted identity's email before the token, and the renewed token's email trimmed. (4) `refreshSession` handing the revalidation another family, or another subject, than the one it read: core's tests replace either `refreshSession` or `revalidate`, so the whole chain is never run. (5) Revalidation skipped after a few rotations: only the first two are tested. (6) With no provider configured, a family without a provider failing instead of revalidating as `null`. Shown 2026-10-02 by CS3. AUTHN-5, AUTHN-7. | open, fixed by RFC-0030 |
+| CF24 | **A refresh that loses its write race carries the old email.** After `revalidate` returned an `Identity`, a conditional write that fails makes `refreshSession` answer `concurrent` with the email of the family it read, not the one `getIdentity` returned; the renewed access token carries that email until the next refresh. AUTHN-7 says the renewed token carries the email `getIdentity` returned. No test makes the write fail after a successful revalidation. Found 2026-10-02 by CS3. | open, fixed by RFC-0030 |
+| CF25 | **A provider that answers `null` to `authenticate` crashes the sign-in.** `isRejection(null)` is false, so `signIn` reports `signed-in` with no identity, and `login` throws a `TypeError` reading its subject: the user sees `Login failed`, not one of AUTHN-5's three messages. The provider violates AUTHN-2, and a provider written before RFC-0030 does exactly this. Found 2026-10-02 by CS3, by reading. | open, fixed by RFC-0030 |
 
 ### Open questions
 
@@ -205,7 +205,7 @@ interface Adapter {
 `authenticate` returns the `Identity` the credentials belong to, or a `Rejection`. `credentials`
 covers an unknown email and a wrong password alike, and is the reason whenever the adapter cannot
 tell. `disabled` and `second-factor-required` are reported only when the password is known to be
-right.
+right. Whether two emails that differ only in case belong to one identity is the adapter's to decide.
 
 - Test: `packages/contracts/test/authentication.test.js`, `packages/authentication-adapter-array/src/runtime.test.js`, `packages/conformance/src/authentication.js`
 - Level: unit, conformance
@@ -233,7 +233,8 @@ current email, and `null` for a subject that is unknown, deleted or disabled.
 #### AUTHN-5 · Sign-in
 
 Core calls `authenticate` on the providers one at a time, in key
-order. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
+order. An answer that is neither an `Identity`, an object with a non-empty string `subject` and a
+string `email`, nor a `Rejection` counts as a thrown failure. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
 a `credentials` rejection or a thrown failure moves on to the next provider. An `Identity` is admitted
 only if the authorization data knows its subject. Otherwise the sign-in fails with one of three
 messages, the only ones the user sees:
@@ -247,7 +248,11 @@ messages, the only ones the user sees:
 A `Rejection` that stops the trial fails as `invalid-credentials`, whatever earlier providers threw.
 Core logs each `Rejection`, whatever its reason, with the provider's key and the reason, and each failure with the
 provider's key and its message; a provider that cannot be constructed is a failure. With no provider
-configured, it logs an error saying so. It logs neither the email nor the password, on any channel.
+configured, it logs an error saying so. No line core writes during a sign-in, to the console or to
+the process's standard output or error, contains the email or the password.
+
+Core passes the admitted `Identity` on as the provider returned it: the session family and the access
+token carry its subject and its email unchanged.
 
 - Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts` (unverified: no e2e test yet)
 - Level: unit, e2e
@@ -265,13 +270,18 @@ Before it rotates a refresh token, core calls `getIdentity` with the family's su
 the family records, and on no other: its `null` is the result. A family whose provider the config no
 longer holds revalidates as `null`. For a family that records none, core calls `getIdentity` on the
 providers one at a time, in key order, and stops at the first that returns an `Identity`; a provider
-that throws moves on to the next. The result is that `Identity`; when there is none, it is a failure
+that throws moves on to the next. An answer that is neither an `Identity` nor `null` counts as a
+thrown failure. Every rotation is revalidated, however many came before. The result is that `Identity`; when there is none, it is a failure
 if a provider threw, and `null` otherwise.
 
 When the result is `null`, core revokes the family and clears the cookie, and the user signs in
 again. When the result is a failure, or the family cannot be removed, the request fails and the family
 and the cookie are left unchanged. Otherwise the renewed access token carries the email `getIdentity`
-returned, as returned.
+returned, as returned, also when another request rotated the family first and the rotation is not
+written.
+
+A request presenting the token that was just superseded, within the grace window, rotates nothing:
+it is not revalidated, and its access token carries the email the family holds.
 
 - Test: `packages/core/src/lib/script/auth/providers.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts` (unverified: no e2e test yet)
 - Level: unit, e2e
