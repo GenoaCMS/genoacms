@@ -159,7 +159,7 @@ character, the right one with its first character changed, with the case of its 
 and with a space before and after it; each one that differs from the right password is tried. With
 `disabled`, its correct password returns `{ rejected: 'disabled' }` or `{ rejected: 'credentials' }`,
 each of its wrong passwords returns `{ rejected: 'credentials' }`, and `getIdentity` returns `null`
-for its subject. Each test carries the IDs it checks (CD4). The fixture's identities
+for its subject, each time. Each test carries the IDs it checks (CD4). The fixture's identities
 exist before the suite runs; the suite creates none, because the contract cannot.
 
 - Test: `packages/conformance/test/authentication.test.js`, `packages/authentication-adapter-array/test/conformance.test.js`, `packages/adapter-gcp/test/contract/authentication.test.ts`

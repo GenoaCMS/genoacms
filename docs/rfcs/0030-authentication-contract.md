@@ -223,7 +223,7 @@ with `disabled.password + '-wrong'` and expects `{ rejected: 'credentials' }`.
 the password with its first character's code point changed by one (`^ 1`), the password with the case
 of each letter swapped, and `` ` ${password} ` ``. Any that equals the right password is left out. The
 disabled identity gets the same set. The identity check presents the fixture's credentials twice,
-and the `getIdentity` check asks twice. The unknown-subject check also asks for the fixture's email,
+and the `getIdentity` checks, for the fixture and for the disabled identity, ask twice. The unknown-subject check also asks for the fixture's email,
 its subject without its last character, and its subject with the case of its letters swapped, when
 that differs from the subject. The empty subject is not tried: an adapter MAY treat it as a malformed
 request.
