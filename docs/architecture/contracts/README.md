@@ -27,6 +27,7 @@ redesign ([`configuration.md`](../configuration.md)).
 | :-- | :-- | :-- | :-- |
 | [`adapter-model.md`](adapter-model.md) | — | descriptors and runtimes, references, registries, packages and their dependency direction | not restructured (`conforms: false`) |
 | [`authentication.md`](authentication.md) | AUTHN | `authenticate`, `getIdentity`, and what core does with them: sign-in, session revalidation | conforming |
+| [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
 | storage, database, secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
 
 ### Decisions
@@ -49,7 +50,7 @@ capability needs its own conformance suite.
 *History.* The contracts lived in `@genoacms/cloudabstraction`, beside a config loader and a build tool,
 until the 2026-09 redesign moved them into `@genoacms/contracts` with their signatures unchanged
 (RFC-0001, [`configuration.md`](../configuration.md) A1 to A6). On 2026-10-02 the adapter model moved
-out of `configuration.md` into this directory, and the authentication contract got a Specification.
+out of `configuration.md` into this directory, and the authentication contract and the conformance suites got a Specification.
 
 ### Register
 
@@ -63,11 +64,18 @@ Every `C` ID, where it lives, and its state.
 | CD1 | What only some adapters can do is an optional capability | decided, none yet | README |
 | CD2 | Sessions are revalidated with `getIdentity` at each refresh | new | [`authentication.md`](authentication.md) |
 | CD3 | A rejection carries its reason; users see one message | new | [`authentication.md`](authentication.md) |
+| CD4 | A suite test checks only contract statements, and carries their IDs | new | [`conformance.md`](conformance.md) |
+| CD5 | Each suite assertion is shown to fail against a mutant | new | [`conformance.md`](conformance.md) |
+| CD6 | Suites use per-run names and clean up | new | [`conformance.md`](conformance.md) |
 | CF1 | Nothing limits failed sign-ins | open | [`authentication.md`](authentication.md) |
 | CF2 | The array adapter compares plain-text passwords, not in constant time | open | [`authentication.md`](authentication.md) |
 | CF3 | Every password is sent to every provider | open | [`authentication.md`](authentication.md) |
 | CF4 | A provider failure reads as a wrong password | open | [`authentication.md`](authentication.md) |
 | CF5 | A disabled user keeps an open session until its family expires | open, fixed by CD2 | [`authentication.md`](authentication.md) |
+| CF6 | The storage suite's read check could not fail its test | fixed, `f22136c` | [`conformance.md`](conformance.md) |
+| CF7 | The database suite never checks the update or the listing | open | [`conformance.md`](conformance.md) |
+| CF8 | Nothing checks that a suite fails a non-conforming adapter | open (CD5) | [`conformance.md`](conformance.md) |
+| CF9 | The storage suite writes a fixed name and may leave it behind | open (CD6) | [`conformance.md`](conformance.md) |
 | CQ1 | Where are failed sign-ins limited? | recommendation: in core | [`authentication.md`](authentication.md) |
 | CQ2 | How are users created and changed from the CMS? | recommendation: an optional capability | [`authentication.md`](authentication.md) |
 

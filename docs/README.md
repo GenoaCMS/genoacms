@@ -22,7 +22,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/host.md`](architecture/host.md) | none (as `configuration.md`) | — | the host: provider construction and caching | **no**: split from `configuration.md` unchanged |
 | [`architecture/secrets.md`](architecture/secrets.md) | none (as `configuration.md`) | — | secret references, their resolution, the bootstrap, the development store | **no**: split from `configuration.md` unchanged |
 | [`architecture/build.md`](architecture/build.md) | none (as `configuration.md`) | — | the build, the artifact, vendoring, deployment targets, the lifecycle | **no**: split from `configuration.md` unchanged |
-| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN` | the adapter model and the service contracts | partly: the index and `authentication.md` conform (1 current statement, unverified, a type; 6 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md` and `conformance.md` conform (2 current statements, both unverified; 11 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
 | [`architecture/identities.md`](architecture/identities.md) | `I` | `PWH`, `IDS` | self-owned identity stores: password hashing, the identity record, sign-in | yes. 12 statements, all **New** (no RFC yet). |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements: 54 name a test, 1 of them partly verified (STO-8), and 1 is unverified (COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements: 42 name a test, and 1 is unverified (AWS-1, a type). |
@@ -37,9 +37,10 @@ What the Specifications cover, measured against the reproducibility principle
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, host, secrets, build, artifact | `config` | `configuration.md`, `host.md`, `secrets.md`, `build.md` | covered, not restructured |
-| Adapter model and service contracts | `contracts`, `conformance` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage, database, secrets, language and deployment contracts: none, their types are the only description |
+| Adapter model and service contracts | `contracts` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage, database, secrets, language and deployment contracts: none, their types are the only description |
+| Conformance suites | `conformance` | `contracts/conformance.md` | covered; open findings CF7 to CF9: the database suite's update and listing checks cannot fail, so GCP DB-5 and DB-7 are effectively unverified at `contract` (GF31) |
 | CLI | `cli` | `cli.md` | specified; open findings LF2 to LF8, all but LF7 in RFC-0028 |
-| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open finding: GF9 (needs paging in the contract first) |
+| GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF9 (needs paging in the contract first), GF31 (the database conformance suite, CF7) |
 | AWS | `adapter-aws` | `adapter-aws/` | covered; no open findings (WF1 to WF26 fixed, RFC-0026) |
 | Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `contracts/adapter-model.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
@@ -70,7 +71,7 @@ Known gaps in the test runs, recorded 2026-09-28 when the project adopted workfl
 - **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
 - **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
 - **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
-- The only GCP finding still open is GF9, in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
+- The GCP findings still open are GF9 and GF31, in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
 
 ## History
 

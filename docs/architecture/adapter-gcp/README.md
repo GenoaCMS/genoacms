@@ -221,6 +221,7 @@ Every `G` ID, where it lives, and its state.
 | GF26 | The deploy and SvelteKit adapter tests miss parts of their statements | fixed, RFC-0027 | [`deployment.md`](deployment.md) |
 | GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
 | GF28 | DB-3's reasoning assumes CMS users define collections | fixed: the reason corrected | [`database.md`](database.md) |
+| GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
 | GS1 | Identity Platform behavior | not run | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |

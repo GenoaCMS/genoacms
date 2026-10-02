@@ -87,9 +87,10 @@ cannot inherit its previous holder's permissions. Until 2026-10-02 the contract 
 
 ### Verification
 
-No authentication conformance suite exists. **New:** `@genoacms/conformance` gains one, run against
-each adapter with a fixture of a valid credential, an unknown email and, where the adapter can hold
-one, a disabled identity. It checks AUTHN-2 to AUTHN-4. Core's part (AUTHN-5 to AUTHN-7) is tested at
+No authentication conformance suite exists. **New:** `@genoacms/conformance` gains one (CONF-4), run
+against each adapter with a fixture of a valid credential and, where the adapter can hold one, a
+disabled identity. It checks AUTHN-2 and AUTHN-4; AUTHN-3 needs a failing service, so each adapter
+checks it by fault injection in its own tests. Core's part (AUTHN-5 to AUTHN-7) is tested at
 `e2e`, which needs core's tests in CI first (`docs/README.md`, known gaps).
 
 ## Specification

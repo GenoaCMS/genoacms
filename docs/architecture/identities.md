@@ -106,8 +106,8 @@ None: nothing is implemented yet.
 **Test vectors (PWH-6), computed 2026-10-02** with Node 24.21 `crypto.scryptSync` and cross-checked
 with `openssl kdf … SCRYPT` (OpenSSL 3) for vector A.
 
-**Testing every store with one suite.** `@genoacms/conformance` gains an identity-store suite that
-checks PWH-1 to PWH-6 and IDS-1 to IDS-6 against any store, given a function that writes identity
+**Testing every store with one suite.** `@genoacms/conformance` gains an identity-store suite
+([`contracts/conformance.md`](contracts/conformance.md) CONF-5) that checks PWH-1 to PWH-6 and IDS-1 to IDS-6 against any store, given a function that writes identity
 records into it through the store's own layout. Each first-party store runs it at `conformance` against a local instance, or at `contract`
 against the real service; a third-party store runs the same suite. The parser of PWH-4 and the
 normalizations of IDS-1 are tested with property-based tests and fuzzing (`WORKFLOW.md` §6.5).
