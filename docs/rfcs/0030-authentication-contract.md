@@ -257,7 +257,7 @@ request.
   rejected for credentials` try the examples `-wrong` appended, the empty password, and every near
   miss at positions first, middle and last: `x` inserted (also after the last), a character removed,
   a character's code point changed by one, a character's case changed. They also try a space and a
-  tab before, after and around the password. Then a property runs over `fc.string()` and generated
+  tab before, after and around the password. They also try the other identity's password. Then a property runs over `fc.string()` and generated
   near misses.
 - `an unknown email is rejected for credentials` tries a random unknown email, and near misses of the
   fixture's email that differ other than in case, each with the fixture's password, the disabled

@@ -160,7 +160,7 @@ property with `runs` generated cases (default 50).
   with `disabled`, for the disabled identity. The passwords are generated at random, and as near
   misses of the right one: a character inserted, removed or replaced, the case of one character
   changed, or whitespace before, after or around it. Every near miss of these kinds at the first,
-  middle and last position is also tried, as an example.
+  middle and last position is also tried, as an example, and so is the other identity's password.
 - Any email that is neither the fixture's nor the disabled identity's, ignoring case, returns
   `{ rejected: 'credentials' }` with any password, the right ones included. The emails are
   generated at random, and as near misses of the fixture's.
