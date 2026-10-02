@@ -135,7 +135,7 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 `200` with `mfaPendingCredential` returns `{ rejected: 'second-factor-required' }`. The contract has no second step.
 
 - Test: none yet
-- Level: unit, contract
+- Level: unit
 - State: new (RFC-0032)
 
 #### AUTH-5 · Rejected credentials
@@ -151,7 +151,7 @@ A `400` response's **error code** is its `error.message`, up to the first ` : ` 
 `400` with the error code `TOO_MANY_ATTEMPTS_TRY_LATER` throws `authentication/throttled`.
 
 - Test: none yet
-- Level: unit, contract
+- Level: unit
 - State: new (RFC-0032)
 
 #### AUTH-7 · Provider failure

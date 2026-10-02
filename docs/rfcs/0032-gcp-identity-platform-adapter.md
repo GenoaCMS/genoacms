@@ -97,7 +97,7 @@ AUTH-1 to AUTH-10 stand as written in `authentication-identity-platform.md`. The
 
 AUTH-4 (a second factor) and AUTH-6 (throttling) cannot be provoked against the real service without
 enrolling a factor or tripping the project's abuse protection for every user. As GU5 did for SEC-9 and
-SEC-10, this RFC proposes their level as `unit` only; the author decides.
+SEC-10, their level is `unit` only (GU12, decided by the author).
 
 ## Steps
 
