@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const CLI = fileURLToPath(new URL('./index.js', import.meta.url))
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
@@ -45,6 +45,36 @@ Examples:
   genoa deploy gcp --config genoa.config/production.ts
   genoa deploy gcp -c genoa.config/production.ts -m prod`
 
+const FLAG_LINES = {
+  config: '-c, --config <file>  The config file, relative to this directory. Default: genoa.config.ts, else genoa.config/development.ts; a production config is always named.',
+  mode: '-m, --mode <mode>    development (dev) or production (prod). Default: the command\'s.',
+  'no-inline': '    --no-inline      Refuse inline() values in the build.',
+  help: '-h, --help           Show this help.'
+}
+
+const COMMAND_TABLE = [
+  { name: 'init', summary: 'Scaffold a GenoaCMS project in this directory', usage: 'genoa init', flags: [], examples: ['genoa init'] },
+  { name: 'dev', summary: 'Run GenoaCMS locally (alias: run)', usage: 'genoa dev [--config <file>] [--mode <mode>]', flags: ['config', 'mode'], mode: 'development', examples: ['genoa dev'] },
+  { name: 'build', summary: 'Build GenoaCMS for a deployment target', usage: 'genoa build [target] [--config <file>] [--mode <mode>] [--no-inline]', flags: ['config', 'mode', 'no-inline'], mode: 'production', examples: ['genoa build gcp --config genoa.config/production.ts', 'genoa build --mode development'] },
+  { name: 'deploy', summary: 'Build, then deploy to a deployment target', usage: 'genoa deploy [target] [--config <file>] [--mode <mode>] [--no-inline]', flags: ['config', 'mode', 'no-inline'], mode: 'production', examples: ['genoa deploy gcp --config genoa.config/production.ts', 'genoa deploy gcp -c genoa.config/production.ts -m prod'] },
+  { name: 'database', summary: 'Delete dynamic collections', usage: 'genoa database [--config <file>] [--mode <mode>]', flags: ['config', 'mode'], mode: 'development', examples: ['genoa database'] },
+  { name: 'roles', summary: 'Compose a role or an assignment to paste into the config', usage: 'genoa roles [--config <file>] [--mode <mode>]', flags: ['config', 'mode'], mode: 'development', examples: ['genoa roles'] },
+  { name: 'rotate-root', summary: 'Rotate the root trust anchor (asks to confirm)', usage: 'genoa rotate-root [--config <file>] [--mode <mode>]', flags: ['config', 'mode'], mode: 'development', examples: ['genoa rotate-root --config genoa.config/production.ts'] }
+]
+
+const commandUsageText = ({ usage, summary, flags, mode, examples }) => [
+  `Usage: ${usage}`,
+  '',
+  `${summary}.`,
+  '',
+  'Flags:',
+  ...[...flags, 'help'].map(flag => `  ${FLAG_LINES[flag]}`),
+  '',
+  ...(mode === undefined ? [] : [`Default mode: ${mode}`, '']),
+  'Examples:',
+  ...examples.map(example => `  ${example}`)
+].join('\n')
+
 const roots = []
 afterAll(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }) })
 
@@ -63,6 +93,53 @@ function genoa (cwd, ...args) {
     cwd, input: '', encoding: 'utf-8', timeout: 20000, stdio: 'pipe'
   })
   return { status, stdout, stderr }
+}
+
+function genoaUnder (cwd, nodeOptions, ...args) {
+  const { status, stdout, stderr } = spawnSync(process.execPath, [...nodeOptions, CLI, ...args], {
+    cwd, input: '', encoding: 'utf-8', timeout: 20000, stdio: 'pipe'
+  })
+  return { status, stdout, stderr }
+}
+
+const COMMAND_MODULES = ['init', 'dev', 'build', 'deploy', 'database', 'roles', 'rotateRoot']
+  .map(name => new URL(`./${name}.js`, import.meta.url).href)
+
+const FORBIDDING_HOOKS = `const FORBIDDEN = new Set(${JSON.stringify(COMMAND_MODULES)})
+const refuse = (what) => { throw new Error('forbidden import: ' + what) }
+export async function resolve (specifier, context, nextResolve) {
+  if (specifier === '@genoacms/config/load') refuse(specifier)
+  const resolved = await nextResolve(specifier, context)
+  if (FORBIDDEN.has(resolved.url)) refuse(resolved.url)
+  return resolved
+}
+export async function load (url, context, nextLoad) {
+  if (FORBIDDEN.has(url)) refuse(url)
+  return await nextLoad(url, context)
+}
+`
+
+function forbiddingImports () {
+  const hooks = directory({
+    'hooks.mjs': FORBIDDING_HOOKS,
+    'register.mjs': "import { register } from 'node:module'\nregister('./hooks.mjs', import.meta.url)\n"
+  })
+  return ['--import', pathToFileURL(join(hooks, 'register.mjs')).href]
+}
+
+const hasScript = spawnSync('script', ['--version'], { stdio: 'ignore' }).status === 0
+
+const shellQuote = (word) => `'${word.replaceAll('\'', '\'\\\'\'')}'`
+
+const genoaLine = (...args) => [process.execPath, CLI, ...args].map(shellQuote).join(' ')
+
+const TTY_PROBE = [process.execPath, '-e', 'process.exit(10 + (process.stdin.isTTY ? 1 : 0) + (process.stdout.isTTY ? 2 : 0))'].map(shellQuote).join(' ')
+
+function inTerminal (cwd, commandLine) {
+  const { status, stdout } = spawnSync('script', ['-qec', commandLine, '/dev/null'], {
+    cwd, input: '', encoding: 'utf-8', timeout: 20000
+  })
+  return { status, output: stdout }
 }
 
 const fakePackage = (name, descriptor) => ({
@@ -171,5 +248,81 @@ describe('genoa', () => {
         ''
       ].join('\n')
     })
+  }, 30000)
+
+  test.fails('CLI-14: help and version import neither a command nor the config loader', () => {
+    const cwd = directory()
+    const hooks = forbiddingImports()
+    const build = genoaUnder(cwd, hooks, 'build')
+    assert.equal(build.status, 1)
+    assert.match(build.stderr, /forbidden import/)
+    assert.deepEqual(genoaUnder(cwd, hooks, '-h'), { status: 0, stdout: `${USAGE}\n`, stderr: '' })
+    assert.deepEqual(genoaUnder(cwd, hooks, 'deploy', '-h'), { status: 0, stdout: `${DEPLOY_USAGE}\n`, stderr: '' })
+    assert.deepEqual(genoaUnder(cwd, hooks, '-v'), { status: 0, stdout: `${version}\n`, stderr: '' })
+  }, 30000)
+
+  test.fails('CLI-15: prints every command\'s usage as the table gives it', () => {
+    const cwd = directory()
+    assert.equal(commandUsageText(COMMAND_TABLE.find(command => command.name === 'deploy')), DEPLOY_USAGE)
+    for (const command of COMMAND_TABLE) {
+      assert.deepEqual(genoa(cwd, command.name, '--help'), { status: 0, stdout: `${commandUsageText(command)}\n`, stderr: '' }, command.name)
+    }
+    assert.deepEqual(readdirSync(cwd), [])
+  }, 30000)
+
+  test('CLI-16: prints the version of the CLI\'s package.json', () => {
+    const cwd = directory()
+    const fromFile = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8')).version
+    const printed = genoa(cwd, '--version')
+    assert.equal(printed.status, 0)
+    assert.match(printed.stdout, /^\d+\.\d+\.\d+/)
+    assert.equal(printed.stdout, `${fromFile}\n`)
+  }, 30000)
+
+  test.skipIf(!hasScript)('CLI-17: fails on an unknown command in a terminal', () => {
+    const cwd = directory()
+    assert.equal(inTerminal(cwd, TTY_PROBE).status, 13)
+    const { status, output } = inTerminal(cwd, genoaLine('deplyo'))
+    assert.equal(status, 1)
+    assert.match(output, /cli\/unknown-command: deplyo/)
+  }, 30000)
+
+  test.skipIf(!hasScript)('CLI-18: opens the menu only when both standard input and output are terminals', () => {
+    const cwd = directory()
+    assert.equal(inTerminal(cwd, `${TTY_PROBE} > probe.txt`).status, 11)
+    assert.equal(inTerminal(cwd, `${TTY_PROBE} < /dev/null`).status, 12)
+
+    const piped = inTerminal(cwd, `${genoaLine()} > stdout.txt`)
+    assert.equal(piped.status, 1)
+    assert.match(piped.output, /cli\/no-command/)
+    assert.equal(readFileSync(join(cwd, 'stdout.txt'), 'utf-8'), '')
+
+    const noInput = inTerminal(cwd, `${genoaLine()} < /dev/null`)
+    assert.equal(noInput.status, 1)
+    assert.match(noInput.output, /cli\/no-command/)
+  }, 30000)
+
+  test.fails('CLI-19: names the command and target of a refused deploy, with nothing on standard output but its progress', () => {
+    const cwd = developmentOnlyProject()
+    const { status, stdout, stderr } = genoa(cwd, 'deploy', 'local')
+    assert.equal(status, 1)
+    assert.equal(stderr, [
+      'config/invalid:',
+      '  - secrets.providers.local.adapter: dev-only-adapter is for development only; a production build cannot use it',
+      'The config loaded was genoa.config/development.ts, found by default; a production config is named explicitly.',
+      'Run: genoa deploy local --config genoa.config/production.ts',
+      ''
+    ].join('\n'))
+    assert.doesNotMatch(stdout, /Canceled/)
+  }, 30000)
+
+  test('CLI-19: gives no hint with --config, or for a command other than build and deploy', () => {
+    const cwd = developmentOnlyProject()
+    for (const args of [['build', '--config', 'genoa.config/development.ts'], ['database', '-m', 'prod']]) {
+      const { status, stderr } = genoa(cwd, ...args)
+      assert.equal(status, 1, args.join(' '))
+      assert.match(stderr, /dev-only-adapter is for development only/, args.join(' '))
+      assert.doesNotMatch(stderr, /The config loaded was|Run: genoa/, args.join(' '))
+    }
   }, 30000)
 })

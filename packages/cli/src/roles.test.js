@@ -90,4 +90,24 @@ describe('roles', () => {
     assert.equal(promptCall(select, 'Which bucket?'), undefined)
     assert.match(note.mock.calls[0][0], /id: "uploads"/)
   })
+
+  test('CLI-11: a config without roles still offers its buckets', async () => {
+    const withoutRoles = { ...manifest.config }
+    delete withoutRoles.authorization
+    loadConfig.mockResolvedValue({ config: withoutRoles })
+    answering({
+      'What would you like to compose?': 'role',
+      'Role name': 'Reader',
+      'Which permission?': 'storage:bucket:read',
+      'Which bucket?': 'assets',
+      'Add another grant?': false
+    })
+
+    await roles(ctx)
+
+    assert.equal(log.warn.mock.calls.length, 0)
+    assert.deepEqual(promptCall(select, 'Which bucket?').options.map(option => option.value), ['media', 'assets', '*'])
+    assert.equal(promptCall(text, 'Which bucket? (its name, or * for every bucket)'), undefined)
+    assert.match(note.mock.calls[0][0], /id: "assets"/)
+  })
 })

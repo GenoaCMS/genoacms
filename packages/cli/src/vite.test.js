@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
-import { spawnVite } from './vite.js'
+import { spawnVite, runCoreScript } from './vite.js'
 
 vi.mock('node:child_process', async (importOriginal) => ({ ...await importOriginal(), spawn: vi.fn() }))
 
@@ -21,6 +21,31 @@ function coreWithVite () {
   writeFileSync(join(coreDir, 'node_modules', 'vite', 'bin', 'vite.js'), '')
   return coreDir
 }
+
+function coreWithViteServer () {
+  const coreDir = coreWithVite()
+  writeFileSync(join(coreDir, 'node_modules', 'vite', 'package.json'), JSON.stringify({ name: 'vite', version: '6.0.0', type: 'module', exports: './index.js' }))
+  writeFileSync(join(coreDir, 'node_modules', 'vite', 'index.js'), `export async function createServer () {
+  return {
+    ssrLoadModule: async () => { globalThis.genoaScriptEnvironment = { ...process.env } },
+    close: async () => {}
+  }
+}
+`)
+  return coreDir
+}
+
+function withShellEnvironment (shell, run) {
+  const saved = { ...process.env }
+  Object.assign(process.env, shell)
+  const restore = () => {
+    for (const key of Object.keys(process.env)) if (!Object.hasOwn(saved, key)) delete process.env[key]
+    Object.assign(process.env, saved)
+  }
+  return Promise.resolve().then(run).finally(restore)
+}
+
+const SHELL_GENOA = { GENOA_CONFIG: '/shell/genoa.config.ts', GENOA_TARGET: 'aws', GENOA_STRAY: 'x' }
 
 function exitingWith (code) {
   spawn.mockImplementationOnce(() => {
@@ -47,5 +72,27 @@ describe('spawnVite', () => {
 
     exitingWith(2)
     await assert.rejects(spawnVite(coreDir, ['dev', '--host'], env), { message: 'cli/vite-failed: vite dev --host exited with 2' })
+  })
+
+  test.fails('CLI-5: removes the shell\'s GENOA_* variables that it does not set', async () => {
+    const env = { GENOA_PROJECT: '/p', GENOA_MODE: 'development' }
+
+    const coreDir = coreWithVite()
+    spawn.mockClear()
+    exitingWith(0)
+    await withShellEnvironment(SHELL_GENOA, () => spawnVite(coreDir, ['dev', '--host'], env))
+    const spawned = spawn.mock.calls[0][2].env
+    for (const key of Object.keys(SHELL_GENOA)) assert.equal(Object.hasOwn(spawned, key), false, key)
+    assert.equal(spawned.GENOA_PROJECT, '/p')
+    assert.equal(spawned.GENOA_MODE, 'development')
+    assert.equal(spawned.PATH, process.env.PATH)
+
+    const serverCore = coreWithViteServer()
+    delete globalThis.genoaScriptEnvironment
+    await withShellEnvironment(SHELL_GENOA, () => runCoreScript(serverCore, 'scripts/rotate-root.ts', env))
+    const during = globalThis.genoaScriptEnvironment
+    for (const key of Object.keys(SHELL_GENOA)) assert.equal(Object.hasOwn(during, key), false, key)
+    assert.equal(during.GENOA_PROJECT, '/p')
+    assert.equal(during.GENOA_MODE, 'development')
   })
 })

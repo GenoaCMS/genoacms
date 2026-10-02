@@ -49,6 +49,23 @@ describe('the rendered templates', () => {
     assert.match(development, /'TODO: storage adapter'/)
     assert.match(development, /'TODO: database adapter'/)
   })
+
+  test('CLI-13: renders every value of the suites\' table', () => {
+    const SUITE_VALUES = [
+      ['gcp', { storage: '@genoacms/adapter-gcp/storage', database: '@genoacms/adapter-gcp/database', secrets: '@genoacms/adapter-gcp/secrets', deployment: '@genoacms/adapter-gcp/deployment', target: 'gcp' }],
+      ['aws', { storage: '@genoacms/adapter-aws/storage', database: '@genoacms/adapter-aws/database', secrets: '@genoacms/adapter-aws/secrets', deployment: '@genoacms/adapter-aws/deployment', target: 'aws' }],
+      [null, { storage: 'TODO: storage adapter', database: 'TODO: database adapter', secrets: 'TODO: secrets adapter', deployment: 'TODO: deployment adapter', target: 'cloud' }]
+    ]
+    const AUTHENTICATION_VALUES = [['array', '@genoacms/authentication-adapter-array'], [null, 'TODO: authentication adapter']]
+    for (const [suite, values] of SUITE_VALUES) {
+      for (const [authentication, adapter] of AUTHENTICATION_VALUES) {
+        const expected = { ...values, authentication: adapter }
+        assert.deepEqual(initTemplateValues(suite, authentication), expected, `${suite} ${authentication}`)
+        const production = renderTemplate(template('production.ts'), initTemplateValues(suite, authentication))
+        for (const value of Object.values(expected)) assert.ok(production.includes(`'${value}'`), `${suite} ${authentication}: ${value}`)
+      }
+    }
+  })
 })
 
 describe('prepareConfig', () => {

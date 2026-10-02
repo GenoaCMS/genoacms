@@ -9,10 +9,16 @@ import { createHost } from '@genoacms/config/host'
 import { spawnVite } from './vite.js'
 import deploy from './deploy.js'
 
+const { spinners } = vi.hoisted(() => ({ spinners: [] }))
+
 vi.mock('@clack/prompts', async (importOriginal) => ({
   ...await importOriginal(),
   log: { warn: vi.fn(), info: vi.fn(), message: vi.fn() },
-  spinner: () => ({ start: vi.fn(), stop: vi.fn(), message: vi.fn() })
+  spinner: () => {
+    const progress = { start: vi.fn(), stop: vi.fn(), message: vi.fn() }
+    spinners.push(progress)
+    return progress
+  }
 }))
 vi.mock('@genoacms/config/load', async (importOriginal) => ({ ...await importOriginal(), loadConfig: vi.fn(), importFromProject: vi.fn() }))
 vi.mock('@genoacms/config/build', () => ({ createRuntimePackage: vi.fn() }))
@@ -61,5 +67,23 @@ describe('deploy', () => {
     }])
     assert.deepEqual(seen.workDirContents, [])
     assert.equal(host.close.mock.calls.length, 1)
+  })
+
+  test.fails('CLI-8: a failed phase ends its progress line as failed', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'genoa-cli-deploy-'))
+    roots.push(root)
+    const failure = new Error('build failed')
+    loadConfig.mockRejectedValue(failure)
+    spawnVite.mockClear()
+    createHost.mockClear()
+    spinners.length = 0
+
+    await assert.rejects(deploy({ root, file: join(root, 'genoa.config', 'production.ts'), coreDir: '/core', target: 'gcp', mode: 'production', noInline: false }), (error) => error === failure)
+
+    assert.equal(spinners.length, 1)
+    assert.deepEqual(spinners[0].start.mock.calls, [['Building CMS code']])
+    assert.deepEqual(spinners[0].stop.mock.calls, [['Building CMS code failed', 2]])
+    assert.equal(spawnVite.mock.calls.length, 0)
+    assert.equal(createHost.mock.calls.length, 0)
   })
 })
