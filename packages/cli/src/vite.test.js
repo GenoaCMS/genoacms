@@ -74,7 +74,7 @@ describe('spawnVite', () => {
     await assert.rejects(spawnVite(coreDir, ['dev', '--host'], env), { message: 'cli/vite-failed: vite dev --host exited with 2' })
   })
 
-  test.fails('CLI-5: removes the shell\'s GENOA_* variables that it does not set', async () => {
+  test('CLI-5: removes the shell\'s GENOA_* variables that it does not set', async () => {
     const env = { GENOA_PROJECT: '/p', GENOA_MODE: 'development' }
 
     const coreDir = coreWithVite()
