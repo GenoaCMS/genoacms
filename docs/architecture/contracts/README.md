@@ -71,13 +71,20 @@ Every `C` ID, where it lives, and its state.
 | CD6 | Suites use per-run names and clean up | new | [`conformance.md`](conformance.md) |
 | CF1 | Nothing limits failed sign-ins | open, fixed by CD7 | [`authentication.md`](authentication.md) |
 | CF2 | The array adapter compares plain-text passwords, not in constant time | open | [`authentication.md`](authentication.md) |
-| CF3 | Every password is sent to every provider | open, mitigated by AUTHN-5 | [`authentication.md`](authentication.md) |
-| CF4 | A provider failure reads as a wrong password | open, fixed by AUTHN-5 | [`authentication.md`](authentication.md) |
-| CF5 | A disabled user keeps an open session until its family expires | open, fixed by CD2 | [`authentication.md`](authentication.md) |
+| CF3 | Every password is sent to every provider | mitigated, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF4 | A provider failure reads as a wrong password | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF5 | A disabled user keeps an open session until its family expires | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF6 | The storage suite's read check could not fail its test | fixed, `f22136c` | [`conformance.md`](conformance.md) |
 | CF7 | The database suite never checks the update or the listing | open | [`conformance.md`](conformance.md) |
 | CF8 | Nothing checks that a suite fails a non-conforming adapter | open (CD5) | [`conformance.md`](conformance.md) |
 | CF9 | The storage suite writes a fixed name and may leave it behind | open (CD6) | [`conformance.md`](conformance.md) |
+| CF10 | A refresh can skip revalidation and every test still passes | open | [`authentication.md`](authentication.md) |
+| CF11 | The recorded provider is tested only at sign-in, and against the conventional key | open | [`authentication.md`](authentication.md) |
+| CF12 | Parts of the sign-in trial that no test checks | open | [`authentication.md`](authentication.md) |
+| CF13 | Revalidation of a family without a provider is checked with no failure | open | [`authentication.md`](authentication.md) |
+| CF14 | The array adapter's `getIdentity` is tested only with its own subject and an unknown one | open | [`authentication.md`](authentication.md) |
+| CF15 | The authentication suite checks neither the email nor when `disabled` may be reported | open | [`conformance.md`](conformance.md) |
+| CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CQ1 | Where are failed sign-ins limited? | answered by CU4, CD7 | [`authentication.md`](authentication.md) |
 | CQ2 | How are users created and changed from the CMS? | recommendation: an optional capability | [`authentication.md`](authentication.md) |
 

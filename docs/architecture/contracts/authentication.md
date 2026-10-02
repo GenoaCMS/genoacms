@@ -90,6 +90,11 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 | CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. AUTHN-5 tries the providers one at a time and stops at the first that knows the user, so a user of a later provider still reaches every earlier one. | mitigated, RFC-0030 |
 | CF4 | *History.* **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | fixed, RFC-0030 |
 | CF5 | *History.* **A disabled or deleted user keeps an open session until its family expires.** A refresh does not ask the provider (`core/src/lib/script/auth/session.server.ts`, `refreshSession`). The only immediate revocation is removing the user's role assignments. | fixed, RFC-0030 |
+| CF10 | **A refresh can skip revalidation and every test still passes.** Core's tests of `renewSession` replace both `refreshSession` and `revalidate`, and `refreshSession`'s tests pass their own callback, so nothing checks how the two are joined. A refresh that never calls `getIdentity`, which brings CF5 back; one that asks every provider in place of the recorded one; one that catches a provider failure, clears the cookie and treats the request as anonymous; and one whose renewed access token carries no email all pass every test. Shown 2026-10-02 by CS1. AUTHN-7. | open |
+| CF11 | **The recorded provider is tested only at sign-in, and against the conventional key.** A rotation that drops `provider` from the family passes every test, so after the first refresh the family is revalidated against every provider. `login` passing the fixed key `array` in place of the key `signIn` returned passes too, because the test's provider is named `array` (CU2). Shown 2026-10-02 by CS1. AUTHN-6, AUTHN-7. | open |
+| CF12 | **Parts of the sign-in trial that no test checks.** Each of these passes every test. (1) A stopping rejection after an earlier provider threw fails as `sign-in-unavailable`; AUTHN-5's table says `invalid-credentials`. (2) `too-many-attempts` only when every provider that threw was throttled, rather than any. (3) Any message containing `throttled` read as throttled, for example `authentication/provider-failed: 429 throttled`. (4) Rejections other than `credentials` not logged, which are the reasons CD3 logs for operators. (5) Only the last provider's failure logged. (6) The host's `authenticationProviderKeys` sorted, because host test 13's keys, `first` and `second`, are already in sorted order; RFC-0030 described them as `b`, `a`. Shown 2026-10-02 by CS1. AUTHN-5. | open |
+| CF13 | **Revalidation of a family without a provider is checked with one answering provider and no failure.** A lookup that skips a provider that throws and goes on to the next passes every test. It ends a session because of an outage when the later providers return `null`, which AUTHN-7 forbids. A lookup that takes the last `Identity` in key order also passes. Shown 2026-10-02 by CS1. AUTHN-7. | open |
+| CF14 | **The array adapter's `getIdentity` is tested only with its own subject and an unknown one.** A `getIdentity` that also matches an entry's email, returning that entry for a subject that does not exist, passes every test and the suite, whose unknown subject cannot be an email. Shown 2026-10-02 by CS1. AUTHN-4. | open |
 
 ### Open questions
 
@@ -114,6 +119,18 @@ credential and, where the adapter can hold one, a disabled identity. It checks A
 AUTHN-3 needs a failing service, so each adapter checks it by fault injection in its own tests, and the
 array adapter has none. Core's part (AUTHN-5 to AUTHN-7) is tested at `unit`, with the host and the
 storage replaced; no `e2e` test signs in through the login page yet.
+
+**CS1, falsification audit of RFC-0030's statements (WORKFLOW §6.3), AUTHN-2 to AUTHN-7 and CONF-4,
+at `5dcc69f`, 2026-10-02.** An agent that wrote neither the code nor the tests, in a separate
+session, made 30 mutations of `providers.server.ts`, `session.ts`, `session.server.ts`,
+`auth.server.ts`, the array adapter and the host while their unit tests ran; 14 failed a test. The 16
+that passed are CF10 to CF14. Against the suite it ran six adapters that violate AUTHN-2 or AUTHN-4;
+five passed it (CF15, in [`conformance.md`](conformance.md)). It found no defect in the code, and one
+reading AUTHN-5 leaves open: the table's first two rows both hold when one provider throws
+`authentication/throttled` and another fails otherwise, and when a throttled message is
+`authentication/throttled` with a suffix. The code answers `too-many-attempts` in both cases. AUTHN-3 was not audited, because
+no test carries it. The login route and page were not audited, because AUTHN-5 already records them as
+unverified (no `e2e` test).
 
 ## Specification
 
