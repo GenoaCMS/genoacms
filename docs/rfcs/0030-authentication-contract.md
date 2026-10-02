@@ -2,7 +2,7 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: implemented
+status: draft
 commits: [fe9d371, 4bce5b2, 60635dc, b122128, 18017e1, 31b4de1, 3b2e47e, e964159, 9cf5f46]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
@@ -55,6 +55,15 @@ It also adds the tests CS2 showed missing (CF16 to CF20).
 - tests the whole renewal chain;
 - turns CONF-4's input checks into enumerated near misses and properties over generated inputs, with
   `fast-check` (WORKFLOW §6.5).
+
+**Fixed after CS4, 2026-10-02.** Only the two defects CS4 found, by the author's decision; its test
+gaps, CF27 and CF28, are left to a later RFC.
+- CF26: `ask` accepts a `Rejection` only when `rejected` is `credentials`, `disabled` or
+  `second-factor-required`; anything else is `authentication/invalid-answer`. Test, in
+  `providers.server.test.ts`: `AUTHN-5: a rejection with an unknown reason counts as a failure`:
+  *given* `a` answering `{ rejected: 'bogus' }` and `b` returning `ada`, *then* signed in with `b`;
+  *given* `a` alone answering `{ rejected: undefined }`, *then* `sign-in-unavailable`.
+- CF29: every test of the authentication suite allows 120 000 ms.
 
 The limits on failed sign-ins (AUTHN-8 to AUTHN-11) are RFC-0031. AUTHN-5's text here omits them;
 RFC-0031 adds them.
