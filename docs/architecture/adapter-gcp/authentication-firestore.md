@@ -10,7 +10,8 @@ verified: 7174f7f
 Part of the [GCP adapter architecture](README.md). Markers, IDs and test references as defined there.
 
 **Everything in this document is New.** No Firestore identity store exists. No RFC yet: its RFC
-depends on the RFC that limits failed sign-ins in core (`identities.md` IU5).
+depends on the RFC that limits failed sign-ins in core (`identities.md` IU5), and on the
+management capability that creates its users (`identities.md` IU6, CQ2).
 
 ## Design
 

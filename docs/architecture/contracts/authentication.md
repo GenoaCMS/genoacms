@@ -38,6 +38,7 @@ sign-in, and password reset by email (CU1: not every adapter can).
 | :-- | :-- | :-- |
 | CU2 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. Moved from `configuration.md` U14. | the CLI templates, the config README, core's configs |
 | CU3 | 2026-10-02: every adapter implements `getIdentity`, and a rejected sign-in carries its reason. Both are within CU1: every adapter can implement them. | CD2, CD3 |
+| CU4 | 2026-10-02: core tries providers one at a time and tells an outage from a wrong password (CF3, CF4). It limits failed sign-ins itself (CQ1): counters in the default bucket, keyed on the pair of email and client address and on the address alone, 5 failures per pair and 50 per address within 15 minutes, as security-policy defaults. | AUTHN-5, CD7 |
 
 **CD2. Core revalidates a session with `getIdentity` at each refresh (CF5).** AUTHN-4, AUTHN-6,
 AUTHN-7.
@@ -60,21 +61,41 @@ included. A reason other than `credentials` is reported only once the password i
 so it never helps someone guessing passwords; for managed providers that depends on what the
 provider checks first (`adapter-gcp/authentication-identity-platform.md` GS1b).
 
+**CD7. Core limits failed sign-ins per email and address, and per address, before any provider (CF1).**
+AUTHN-8 to AUTHN-11.
+*Why:* a limit in core covers every adapter, the array adapter and self-owned stores included, which
+have no abuse protection of their own (`identities.md` IU5). Keying on the pair of email and address
+stops guessing one account from one place without letting a stranger lock its owner out from
+elsewhere, which a limit per email alone would. The looser limit per address stops one client
+spraying many accounts. A refused attempt reaches no provider, so a managed provider's own
+protection stops seeing the server as one abusive client. The counters live beside the session
+families in the default bucket, written with generation preconditions, which every storage adapter
+offers; the database contract is not specified, and core's database service addresses only the
+operator's collections.
+*Cost:* a guess spread over many addresses against one account is bounded only by the per-address
+limit of each, the provider and the hash cost. Clients behind one address (an office's NAT) share its
+50 failures. Where the platform yields no client address, every client shares the key `unknown`. Each
+sign-in costs two reads, and a failed one up to two writes. Concurrent attempts are checked before
+any is recorded, so a burst can exceed a limit by its own size. The counters are not signed: whoever
+can write the bucket can reset them, but can already do far more. A counter object outlives its
+window until a successful sign-in deletes it, so they accumulate, one per failed pair; an operator
+**SHOULD** set a lifecycle rule deleting objects under `.genoacms/security/sign-in/` after a day.
+
 ### Findings
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| CF1 | **Nothing limits failed sign-ins.** Core calls every authentication provider for every attempt, with no count per email or per client. Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication-identity-platform.md` GS1c). Moved from `configuration.md` F20. | open (CQ1) |
+| CF1 | **Nothing limits failed sign-ins.** Core calls every authentication provider for every attempt, with no count per email or per client. Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication-identity-platform.md` GS1c). Moved from `configuration.md` F20. | open, fixed by CD7 |
 | CF2 | **The array adapter compares plain-text passwords, not in constant time.** Its credentials are a JSON secret with passwords in clear (`authentication-adapter-array/src/runtime.js`). Recorded as a non-goal of the 2026-09 redesign. | open |
-| CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. | open |
-| CF4 | **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | open |
+| CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. AUTHN-5 tries the providers one at a time and stops at the first that knows the user, so a user of a later provider still reaches every earlier one. | open, mitigated by AUTHN-5 |
+| CF4 | **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | open, fixed by AUTHN-5 |
 | CF5 | **A disabled or deleted user keeps an open session until its family expires.** A refresh does not ask the provider (`core/src/lib/script/auth/session.server.ts`, `refreshSession`). The only immediate revocation is removing the user's role assignments. | open, fixed by CD2 |
 
 ### Open questions
 
 | # | Question | Recommendation |
 | :-- | :-- | :-- |
-| CQ1 | Where are failed sign-ins limited (CF1)? Moved from `configuration.md` Q5. A prerequisite of every self-owned identity store in production (`identities.md` IU5). | In core, before any provider is called, per normalized email and per client address, with the counters in the database service. It then covers every adapter, and a managed provider's per-IP protection stops seeing the server as one abusive client. Needs its own decision: the client address depends on the hosting layer's forwarding header. |
+| CQ1 | Where are failed sign-ins limited (CF1)? Moved from `configuration.md` Q5. A prerequisite of every self-owned identity store in production (`identities.md` IU5). | In core, before any provider is called, per normalized email and per client address, with the counters in the database service. It then covers every adapter, and a managed provider's per-IP protection stops seeing the server as one abusive client. Needs its own decision: the client address depends on the hosting layer's forwarding header. *Answered 2026-10-02 by CU4 and CD7: in core, but per pair of email and address and per address, with the counters in the default bucket.* |
 | CQ2 | How are users created and changed from the CMS? Moved from `configuration.md` Q6. | When core has user management screens: an optional capability (CD1) with create, set password, change email, disable and delete, which the array adapter does not offer; plus a CLI command for the first user, who cannot sign in to create themselves. |
 
 ### History
@@ -162,11 +183,20 @@ current email, and `null` for a subject that is unknown, deleted or disabled.
 
 #### AUTHN-5 · Sign-in
 
-Core calls `authenticate` on every configured provider and uses the `Identity` of the first provider,
-in key order, that returned one. A provider that threw counts as no result (CF3, CF4). The `Identity`
-is admitted only if the authorization data knows its subject. Any other outcome fails the sign-in with
-`invalid-credentials`, the only message the user sees. Core logs each `Rejection` with the provider's
-key and its reason, and logs neither the email nor the password.
+After the limits allow it (AUTHN-8), core calls `authenticate` on the providers one at a time, in key
+order. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
+a `credentials` rejection or a thrown failure moves on to the next provider. An `Identity` is admitted
+only if the authorization data knows its subject. Otherwise the sign-in fails with one of three
+messages, the only ones the user sees:
+
+| Message | When |
+| :-- | :-- |
+| `sign-in-unavailable` | no provider returned an `Identity` or stopped the trial with a `Rejection`, and at least one threw something other than `authentication/throttled` |
+| `too-many-attempts` | as above, but a provider threw `authentication/throttled`; or the limits refused the attempt (AUTHN-8) |
+| `invalid-credentials` | every other failure: rejections only, or an `Identity` the authorization data does not know |
+
+Core logs each `Rejection` with the provider's key and its reason, and each failure with the
+provider's key and its message. It logs neither the email nor the password.
 
 - Test: none yet
 - Level: e2e
@@ -190,4 +220,59 @@ left unchanged. Otherwise the renewed access token carries the email `getIdentit
 
 - Test: none yet
 - Level: e2e
+- State: new (no RFC yet)
+
+#### AUTHN-8 · Limits before any provider
+
+Before it calls any provider, core reads the failures recorded for the **pair**, the email normalized
+as `identities.md` IDS-1 together with the client address, and for the **address** alone. When the
+pair holds at least `signInFailuresPerPair` failures within the last `signInWindowMinutes`, or the
+address at least `signInFailuresPerAddress`, the sign-in fails with `too-many-attempts`: no provider
+is called and nothing is recorded. When the failures cannot be read, the sign-in fails with
+`sign-in-unavailable`.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (no RFC yet)
+
+#### AUTHN-9 · Recording failures
+
+A sign-in that fails with `invalid-credentials` records its time as a failure of the pair and of the
+address. A successful sign-in removes the pair's failures; the address's stay. A sign-in that fails
+with `too-many-attempts` or `sign-in-unavailable` records nothing. A failure to record is logged and
+does not change the sign-in's outcome.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (no RFC yet)
+
+#### AUTHN-10 · The counter objects
+
+Failures are kept in the default bucket, one object per key:
+
+| Key | Object name |
+| :-- | :-- |
+| pair | `.genoacms/security/sign-in/pair-<h>.json`, `<h>` the lowercase hexadecimal SHA-256 of the UTF-8 bytes of `<normalized email>\n<address>` |
+| address | `.genoacms/security/sign-in/address-<h>.json`, `<h>` the lowercase hexadecimal SHA-256 of the address's UTF-8 bytes |
+
+The address is what the hosting layer reports as the client address, or `unknown` when it reports
+none. An object holds `{ "failures": [<milliseconds since the epoch>, …] }`, oldest first, keeping only
+failures within the window and at most as many as the key's limit. A write is conditional on the
+object's version as read, or on its absence; on a precondition failure the object is read again and
+the write retried, at most three times in all. The objects are not signed.
+
+- Test: none yet
+- Level: unit, integration
+- State: new (no RFC yet)
+
+#### AUTHN-11 · The limits are security policy
+
+The security policy carries `signInFailuresPerPair` (default 5, an integer from 1 to 100),
+`signInFailuresPerAddress` (default 50, from 1 to 10,000) and `signInWindowMinutes` (default 15, from
+1 to 1,440). The `security` stanza of the config seeds them like the policy's other values. A stored
+policy without them is valid, and takes them from the stanza or the defaults; a value outside its
+range is refused as the policy's other values are.
+
+- Test: none yet
+- Level: unit
 - State: new (no RFC yet)

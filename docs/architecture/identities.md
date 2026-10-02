@@ -44,6 +44,7 @@ it.
 | IU3 | 2026-10-02: the shared specification covers the identity record, not only the hash. | IDS-2 |
 | IU4 | 2026-10-02: managing users is not part of this change. The authentication contract gains no management methods until core can use them, and then only as CU1 allows. | CQ2 |
 | IU5 | 2026-10-02: a self-owned store is not used in production before core limits failed sign-ins (CF1, CQ1). The RFC of every first-party self-owned store depends on the RFC that implements that limit. | ID5 |
+| IU6 | 2026-10-02: no self-owned store is implemented before the authentication contract can create and change its users (CQ2): without that, nothing creates a store's first user. | CQ2 |
 
 **ID1. The hash is scrypt in a PHC string, its parameters inside it.** PWH-1 to PWH-4, PWH-6.
 *Why:* scrypt is in Node's `node:crypto` and in OpenSSL, Go's `x/crypto`, Rust, Java's Bouncy Castle

@@ -47,8 +47,15 @@ format (`identities.md` ID1). Further costs, to settle in the GD2 RFC:
 - without `tenantId`, users of the project's pool from other applications can sign in if their UID has role assignments; authorization bounds the exposure;
 - the seed administrator's subject becomes an Identity Platform UID, so switching core's production config without updating `authorization.ts` leaves nobody able to sign in.
 
+**Firebase Authentication or Identity Platform (GU10).** Identity Platform is Firebase Authentication
+upgraded: one service, one user pool, one API (`identitytoolkit.googleapis.com`). The adapter calls
+the same endpoints either way, so it has no option to choose between them. A project with Firebase
+Authentication needs no upgrade; only `tenantId` does, because tenants exist only in Identity
+Platform. The upgrade also moves the project to Identity Platform's pricing per monthly active user,
+and Google documents no way back.
+
 What the operator sets up, once per project (not automated):
-- enable Identity Platform, or Firebase Authentication, with the email/password provider;
+- enable Firebase Authentication, or Identity Platform, with the email/password provider;
 - a first user, created in the console. Its UID goes into `authorization.ts` `assignments`, and that is the seed administrator;
 - reCAPTCHA password protection off or in audit mode. In enforce mode, a server call without `captchaResponse` is refused;
 - per GS1a, either an IAM grant on the runtime identity that permits `signInWithPassword` (README, IAM), or an API key restricted to the Identity Toolkit API and stored with `secret()`, for example `secret('GENOACMS_IDENTITY_API_KEY')`.
