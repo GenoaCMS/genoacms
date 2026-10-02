@@ -20,12 +20,12 @@ function directory (files) {
 }
 
 describe('resolveProject', () => {
-  test('takes the project itself as core in the monorepo', () => {
+  test('CLI-3: takes the project itself as core in the monorepo', () => {
     const root = directory({ 'package.json': { name: '@genoacms/core' } })
     assert.equal(resolveProject({ cwd: root }).coreDir, root)
   })
 
-  test('finds the core a project has installed', () => {
+  test('CLI-3: finds the core a project has installed', () => {
     const root = directory({
       'package.json': { name: 'site' },
       'node_modules/@genoacms/core/package.json': { name: '@genoacms/core', version: '1.0.0' }
@@ -33,12 +33,12 @@ describe('resolveProject', () => {
     assert.equal(resolveProject({ cwd: root }).coreDir, join(root, 'node_modules', '@genoacms', 'core'))
   })
 
-  test('says to install core when neither is true', () => {
+  test('CLI-3: says to install core when neither is true', () => {
     const root = directory({ 'package.json': { name: 'site' } })
     assert.throws(() => resolveProject({ cwd: root }), /^Error: cli\/core-not-installed/)
   })
 
-  test('resolves --config against the working directory', () => {
+  test('CLI-3: resolves --config against the working directory', () => {
     const root = directory({ 'package.json': { name: '@genoacms/core' } })
     const { root: projectRoot, file } = resolveProject({ cwd: root, config: 'genoa.config/production.ts' })
     assert.equal(projectRoot, root)

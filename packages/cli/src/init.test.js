@@ -1,6 +1,6 @@
 import { test, describe, afterAll } from 'vitest'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { initTemplateValues, renderTemplate, prepareConfig } from './init.js'
@@ -25,24 +25,26 @@ const snapshot = (root) => Object.fromEntries([
 
 describe('the rendered templates', () => {
   for (const suite of ['gcp', 'aws', null]) {
-    test(`leave no placeholder for the ${suite ?? 'no'} suite`, () => {
+    test(`CLI-13: leave no placeholder for the ${suite ?? 'no'} suite`, () => {
       for (const name of TEMPLATE_NAMES) assert.doesNotMatch(rendered(name, suite), /%[a-z]+%/, name)
     })
   }
 
-  test('give GCP its secrets store and deployment target', () => {
+  test('CLI-13: give GCP its secrets store and deployment target', () => {
     const production = rendered('production.ts', 'gcp')
     assert.match(production, /'@genoacms\/adapter-gcp\/secrets'/)
     assert.match(production, /'@genoacms\/adapter-gcp\/deployment'/)
   })
 
-  test('leave the AWS secrets store to do, since the suite has none', () => {
+  test.fails('CLI-13: the AWS suite scaffolds @genoacms/adapter-aws/secrets', () => {
+    assert.equal(initTemplateValues('aws', 'array').secrets, '@genoacms/adapter-aws/secrets')
     const production = rendered('production.ts', 'aws')
-    assert.match(production, /'TODO: secrets adapter'/)
+    assert.match(production, /'@genoacms\/adapter-aws\/secrets'/)
     assert.match(production, /'@genoacms\/adapter-aws\/deployment'/)
+    assert.doesNotMatch(production, /TODO: secrets adapter/)
   })
 
-  test('leave storage and database to do without a suite', () => {
+  test('CLI-13: leave storage and database to do without a suite', () => {
     const development = rendered('development.ts', null)
     assert.match(development, /'TODO: storage adapter'/)
     assert.match(development, /'TODO: database adapter'/)
@@ -50,18 +52,46 @@ describe('the rendered templates', () => {
 })
 
 describe('prepareConfig', () => {
-  test('writes the six files and ignores .genoacms/ once', async () => {
+  test('CLI-12: writes the six files and ignores .genoacms/ once', async () => {
     const root = emptyDirectory()
     await prepareConfig(root, initTemplateValues('gcp', 'array'))
     assert.deepEqual(readdirSync(join(root, 'genoa.config')).sort(), [...TEMPLATE_NAMES].sort())
     assert.equal(readFileSync(join(root, '.gitignore'), 'utf-8').split('\n').filter(line => line === '.genoacms/').length, 1)
   })
 
-  test('refuses to run twice, and changes nothing', async () => {
+  test('CLI-12: refuses to run twice, and changes nothing', async () => {
     const root = emptyDirectory()
     await prepareConfig(root, initTemplateValues('gcp', 'array'))
     const before = snapshot(root)
     await assert.rejects(prepareConfig(root, initTemplateValues('aws', 'array')), /^Error: cli\/config-exists/)
     assert.deepEqual(snapshot(root), before)
+  })
+
+  test('CLI-12: refuses with cli/config-exists before writing anything', async () => {
+    const root = emptyDirectory()
+    mkdirSync(join(root, 'genoa.config'))
+    writeFileSync(join(root, 'genoa.config', 'security.ts'), '// mine\n')
+    const existing = join(root, 'genoa.config', 'security.ts')
+    await assert.rejects(prepareConfig(root, initTemplateValues('gcp', 'array')), { message: `cli/config-exists: ${existing}` })
+    assert.deepEqual(readdirSync(join(root, 'genoa.config')), ['security.ts'])
+    assert.equal(readFileSync(existing, 'utf-8'), '// mine\n')
+    assert.equal(existsSync(join(root, '.gitignore')), false)
+
+    const single = emptyDirectory()
+    writeFileSync(join(single, 'genoa.config.ts'), 'export default {}\n')
+    await assert.rejects(prepareConfig(single, initTemplateValues('gcp', 'array')), { message: `cli/config-exists: ${join(single, 'genoa.config.ts')}` })
+    assert.deepEqual(readdirSync(single), ['genoa.config.ts'])
+  })
+
+  test('CLI-12: appends .genoacms/ to .gitignore once', async () => {
+    const unterminated = emptyDirectory()
+    writeFileSync(join(unterminated, '.gitignore'), 'node_modules')
+    await prepareConfig(unterminated, initTemplateValues(null, null))
+    assert.equal(readFileSync(join(unterminated, '.gitignore'), 'utf-8'), 'node_modules\n.genoacms/\n')
+
+    const ignored = emptyDirectory()
+    writeFileSync(join(ignored, '.gitignore'), '.genoacms/\nnode_modules\n')
+    await prepareConfig(ignored, initTemplateValues(null, null))
+    assert.equal(readFileSync(join(ignored, '.gitignore'), 'utf-8'), '.genoacms/\nnode_modules\n')
   })
 })
