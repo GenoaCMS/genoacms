@@ -16,13 +16,14 @@
   "bin": "src/index.js",
   "type": "module",
   "scripts": {
-    "test": "node src/index.js",
-    "test:init": "node src/index.js init",
-    "test:unit": "node --test test/*.test.js"
+    "test": "vitest run"
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
     "@genoacms/config": "workspace:^",
     "@genoacms/internal": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
   }
 }

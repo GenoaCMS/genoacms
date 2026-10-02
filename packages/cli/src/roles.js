@@ -29,12 +29,13 @@ async function loadCatalog ({ root, file, mode }) {
       bucket: Object.keys(manifest.config.storage.buckets),
       collection: Object.values(manifest.config.database.databases)
         .flatMap(database => database.collections)
-        .map(collection => collection.name)
+        .map(collection => collection.name),
+      roles: Object.keys(manifest.config.authorization?.roles ?? {})
     }
   } catch (error) {
     // Composing roles is otherwise an offline, local editing task. A project that cannot load its
     // config yet — no credentials, first run — should still be able to write a declaration.
-    return { available: false, reason: error.message, bucket: [], collection: [] }
+    return { available: false, reason: error.message, bucket: [], collection: [], roles: [] }
   }
 }
 
@@ -155,7 +156,7 @@ async function composeAssignment (catalog) {
   })
   if (canceled(subject)) return
 
-  const declared = catalog.available ? Object.keys(catalog.roles ?? {}) : []
+  const declared = catalog.roles
   const roles = await text({
     message: declared.length > 0
       ? `Which roles? (comma separated; declared today: ${declared.join(', ')})`

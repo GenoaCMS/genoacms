@@ -14,7 +14,8 @@ const REAL_SERVICE_TESTS = 'test/**'
 const END_TO_END_TESTS = 'e2e/**'
 const GCP_ARCHIVE_TESTS = 'src/deployment/archive.test.ts'
 const AWS_STAGE_TESTS = 'src/deployment/stage.test.ts'
-const INTEGRATION_TESTS = { '@genoacms/adapter-gcp': GCP_ARCHIVE_TESTS, '@genoacms/adapter-aws': AWS_STAGE_TESTS }
+const CLI_MAIN_TESTS = 'src/main.test.js'
+const INTEGRATION_TESTS = { '@genoacms/adapter-gcp': GCP_ARCHIVE_TESTS, '@genoacms/adapter-aws': AWS_STAGE_TESTS, '@genoacms/cli': CLI_MAIN_TESTS }
 const EXCLUDED_FROM_UNIT = new Set(['@genoacms/core', '@genoacms/conformance'])
 
 const runsVitest = (manifest) => /\bvitest\b/.test(manifest.scripts?.test ?? '')
@@ -45,7 +46,8 @@ const RUNS = {
   unit: unitRuns,
   integration: () => [
     { dir: 'packages/adapter-gcp', args: [GCP_ARCHIVE_TESTS] },
-    { dir: 'packages/adapter-aws', args: [AWS_STAGE_TESTS] }
+    { dir: 'packages/adapter-aws', args: [AWS_STAGE_TESTS] },
+    { dir: 'packages/cli', args: [CLI_MAIN_TESTS] }
   ],
   conformance: () => [
     { dir: 'packages/conformance', args: [] },

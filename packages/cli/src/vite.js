@@ -11,13 +11,23 @@ function viteBin (coreDir) {
   return join(dirname(packageJson), typeof bin === 'string' ? bin : bin.vite)
 }
 
+const isGenoaVariable = (name) => name.startsWith('GENOA_')
+
+/** The process's environment without its `GENOA_*` variables (CLI-5, LF12). */
+const inheritedEnvironment = () => Object.fromEntries(Object.entries(process.env).filter(([name]) => !isGenoaVariable(name)))
+
+function replaceGenoaVariables (env) {
+  for (const name of Object.keys(process.env).filter(isGenoaVariable)) delete process.env[name]
+  Object.assign(process.env, env)
+}
+
 /**
  * Runs core's Vite CLI with `cwd` = core. Never core's npm scripts: they build the monorepo's
  * adapters first and exist for development of core itself (R8).
  */
 function spawnVite (coreDir, args, env) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [viteBin(coreDir), ...args], { cwd: coreDir, env: { ...process.env, ...env }, stdio: 'inherit' })
+    const child = spawn(process.execPath, [viteBin(coreDir), ...args], { cwd: coreDir, env: { ...inheritedEnvironment(), ...env }, stdio: 'inherit' })
     child.on('error', reject)
     child.on('exit', code => code === 0
       ? resolve()
@@ -30,7 +40,7 @@ function spawnVite (coreDir, args, env) {
  * `vite-node` did. `vite-node` is a devDependency of core, so user installs do not have it.
  */
 async function runCoreScript (coreDir, script, env) {
-  Object.assign(process.env, env)
+  replaceGenoaVariables(env)
   const { createServer } = await import(pathToFileURL(resolveFromProject('vite', coreDir)).href)
   const server = await createServer({
     root: coreDir,

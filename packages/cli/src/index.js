@@ -1,86 +1,87 @@
 #!/usr/bin/env node
 
 import { isCancel, select } from '@clack/prompts'
-import { init } from './init.js'
 import { parseCliArgs } from './args.js'
-import { resolveProject } from './project.js'
+import { COMMANDS, findCommand } from './commands.js'
+import { usage, commandUsage, version } from './help.js'
 
-/** `build` and `deploy` default to production; everything that works on a local instance does not. */
-const DEFAULT_MODES = {
-    dev: 'development',
-    build: 'production',
-    deploy: 'production',
-    database: 'development',
-    roles: 'development',
-    'rotate-root': 'development'
-}
-
-const COMMANDS = {
-    dev: async () => (await import('./dev.js')).default,
-    build: async () => (await import('./build.js')).build,
-    deploy: async () => (await import('./deploy.js')).default,
-    database: async () => (await import('./database.js')).default,
-    roles: async () => (await import('./roles.js')).default,
-    'rotate-root': async () => (await import('./rotateRoot.js')).default
-}
-
-async function selectMode () {
+async function selectCommand () {
     return await select({
-        message: 'Select a mode',
-        options: [{
-            value: 'init',
-            label: 'Initialize a GenoaCMS project'
-        }, {
-            value: 'dev',
-            label: 'dev',
-            hint: 'run GenoaCMS locally'
-        }, {
-            value: 'build',
-            label: 'build',
-            hint: 'build GenoaCMS for a deployment target'
-        }, {
-            value: 'deploy',
-            label: 'Deploy GenoaCMS'
-        }, {
-            value: 'database',
-            label: 'Configure database'
-        }, {
-            value: 'roles',
-            label: 'Compose a role declaration'
-        }, {
-            value: 'rotate-root',
-            label: 'Rotate the root trust anchor'
-        }, {
-            value: 'exit',
-            label: 'Exit'
-        }]
+        message: 'Select a command',
+        options: [
+            ...COMMANDS.map(command => ({ value: command.name, label: command.name, hint: command.summary })),
+            { value: 'exit', label: 'Exit' }
+        ]
     })
 }
 
 /** Everything a command receives. Resolved only once the command is known: `init` needs no project. */
-function commandContext (command, args) {
+async function commandContext (command, args) {
+    const { resolveProject } = await import('./project.js')
     const project = resolveProject({ cwd: process.cwd(), config: args.config })
-    return { ...project, target: args.target, mode: args.mode ?? DEFAULT_MODES[command], noInline: args.noInline }
+    return { ...project, target: args.target, mode: args.mode ?? command.mode, noInline: args.noInline }
 }
 
-async function runMode (command, args) {
-    if (command === 'init') return await init()
-    if (command === 'exit' || isCancel(command)) return
-    const load = COMMANDS[command]
-    if (load === undefined) return await runMode(await selectMode(), args)
-    const run = await load()
-    await run(commandContext(command, args))
+const inTerminal = () => Boolean(process.stdin.isTTY && process.stdout.isTTY)
+
+/** CLI-17 */
+function knownCommand (name) {
+    const command = findCommand(name)
+    if (command === undefined) throw new Error(`cli/unknown-command: ${name}\n${usage()}`)
+    return command
+}
+
+/** CLI-18, LD3 */
+async function commandFromMenu () {
+    if (!inTerminal()) throw new Error(`cli/no-command\n${usage()}`)
+    const chosen = await selectCommand()
+    return chosen === 'exit' || isCancel(chosen) ? undefined : findCommand(chosen)
+}
+
+const chooseCommand = async (name) => name === undefined ? await commandFromMenu() : knownCommand(name)
+
+const HINTED_COMMANDS = ['build', 'deploy']
+
+/** CLI-19, LD4 */
+async function hintFor (command, context, args, error) {
+    if (!HINTED_COMMANDS.includes(command.name) || context.mode !== 'production' || args.config !== undefined) return []
+    const { productionConfigHint } = await import('./hint.js')
+    return productionConfigHint({ root: context.root, command: command.name, target: args.target, error }) ?? []
+}
+
+async function runInProject (command, run, args) {
+    const context = await commandContext(command, args)
+    try {
+        await run(context)
+    } catch (error) {
+        fail(error, await hintFor(command, context, args, error))
+    }
+}
+
+async function runCommand (command, args) {
+    const run = await command.load()
+    if (command.name === 'init') return await run()
+    await runInProject(command, run, args)
+}
+
+/** CLI-14, CLI-15 */
+function helpText (name) {
+    return findCommand(name) === undefined ? usage() : commandUsage(name)
 }
 
 /** A ConfigError's message already lists every issue, so every error prints the same way. */
-function fail (error) {
+function fail (error, hint = []) {
     console.error(error.message)
+    for (const line of hint) console.error(line)
     process.exit(1)
 }
 
 async function main () {
     const args = parseCliArgs(process.argv.slice(2))
-    await runMode(args.command, args)
+    if (args.help) return console.log(helpText(args.command))
+    if (args.version) return console.log(version())
+    const command = await chooseCommand(args.command)
+    if (command !== undefined) await runCommand(command, args)
 }
 
 main().catch(fail)
