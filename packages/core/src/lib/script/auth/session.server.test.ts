@@ -390,7 +390,7 @@ describe('the provider and revalidation', () => {
     expect((await sessions.refreshSession(started.familyId, started.token, stillKnown)).outcome).toBe('rejected')
   })
 
-  it.fails('AUTHN-7: a gone identity whose family cannot be removed fails the refresh', async () => {
+  it('AUTHN-7: a gone identity whose family cannot be removed fails the refresh', async () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
     const storage = await import('$lib/script/storage/storage.server')
     vi.spyOn(storage, 'deleteInternalObject').mockImplementationOnce(async () => { throw new Error('storage/unavailable') })

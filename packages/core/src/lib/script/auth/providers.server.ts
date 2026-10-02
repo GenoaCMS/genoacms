@@ -47,6 +47,10 @@ function failureAfter (failures: unknown[]): SignInFailure {
  * when the authorization data does not know its subject.
  */
 async function signIn (email: string, password: string): Promise<SignInResult> {
+  if (host.authenticationProviderKeys.length === 0) {
+    console.error('[genoacms:auth] no authentication provider is configured')
+    return { outcome: 'failed', failure: 'sign-in-unavailable' }
+  }
   const failures: unknown[] = []
   for (const key of host.authenticationProviderKeys) {
     const answer = await ask(key, email, password)
@@ -67,10 +71,16 @@ async function lookUp (key: string, subject: string): Promise<Identity | null> {
 }
 
 async function lookUpInOrder (subject: string): Promise<Identity | null> {
+  let firstFailure: unknown
   for (const key of host.authenticationProviderKeys) {
-    const identity = await lookUp(key, subject)
-    if (identity !== null) return identity
+    try {
+      const identity = await lookUp(key, subject)
+      if (identity !== null) return identity
+    } catch (error) {
+      firstFailure ??= error
+    }
   }
+  if (firstFailure !== undefined) throw firstFailure
   return null
 }
 

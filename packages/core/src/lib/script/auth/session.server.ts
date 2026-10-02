@@ -156,7 +156,7 @@ async function refreshSession (familyId: string, token: string, revalidate: Reva
 
   const identity = await revalidate(loaded.family)
   if (identity === null) {
-    await revokeSession(familyId)
+    await deleteInternalObject(familyPath(familyId)) // AUTHN-7
     return { outcome: 'rejected', reason: 'identity-gone' }
   }
 

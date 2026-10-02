@@ -217,7 +217,7 @@ describe('the trial, after CS2', () => {
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'signed-in', provider: 'a', identity: mixedCase })
   })
 
-  it.fails('AUTHN-5: no provider configured reads as unavailable', async () => {
+  it('AUTHN-5: no provider configured reads as unavailable', async () => {
     configured.providers = {}
 
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
@@ -278,7 +278,7 @@ describe('revalidating a session', () => {
     expect(await revalidate(ada.subject, undefined)).toEqual(ada)
   })
 
-  it.fails('AUTHN-7: a failure in the lookup in order moves on to the next provider', async () => {
+  it('AUTHN-7: a failure in the lookup in order moves on to the next provider', async () => {
     configured.providers = { a: throwing('authentication/provider-failed: 503 down'), b: knowing(ada) }
 
     expect(await revalidate(ada.subject, undefined)).toEqual(ada)
