@@ -2,8 +2,8 @@
 type: rfc
 number: 30
 title: The authentication contract, sign-in across providers, and session revalidation
-status: draft
-commits: [fe9d371, 4bce5b2, 60635dc, b122128, 18017e1]
+status: implemented
+commits: [fe9d371, 4bce5b2, 60635dc, b122128, 18017e1, 31b4de1, 3b2e47e, e964159, 9cf5f46]
 depends: []
 architecture: [architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/contracts/README.md, architecture/host.md]
 changes: [AUTHN-2 breaking, AUTHN-4 breaking, AUTHN-3 added, AUTHN-5 added, AUTHN-6 added, AUTHN-7 added, CONF-4 added]
@@ -480,8 +480,11 @@ test. The 5 adapters CS1 found passing CONF-4 now fail it.
 
 *Second amendment.* The 37 mutations and adapters CS2 found passing, minus those §Tests leaves untested by decision (an empty email; a lockout after wrong passwords), now fail a test. The mutations CS2 wrote against the lookup in order and the removal on `identity-gone` were rewritten for the new code, and fail a test too.
 
-*Third amendment.* The mutations and adapters CS3 found passing now fail a test, except those in
-the areas left untested by decision.
+*Third amendment.* The mutations and adapters CS3 found passing now fail a test, except: the empty
+email (V56, untested by decision); a draft of C21 that leaked nothing; and a case-swapped email
+signing in (M8), which AUTHN-2 now leaves to the adapter. The lockout that answers `credentials`
+(M18) is now caught, because the suite accepts only `authentication/throttled` from a refusing
+adapter.
 
 ## Critique
 

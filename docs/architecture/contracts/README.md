@@ -90,10 +90,10 @@ Every `C` ID, where it lives, and its state.
 | CF19 | Host test 13 cannot see late construction or a cut list | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF20 | The authentication suite tries few inputs, once each | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
 | CF21 | A gone identity's family can stay in storage | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
-| CF22 | Parts of sign-in and revalidation that CS3 found untested | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF23 | The authentication suite still samples few inputs | open, fixed by RFC-0030 | [`conformance.md`](conformance.md) |
-| CF24 | A refresh that loses its write race carries the old email | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
-| CF25 | A provider that answers `null` to `authenticate` crashes the sign-in | open, fixed by RFC-0030 | [`authentication.md`](authentication.md) |
+| CF22 | Parts of sign-in and revalidation that CS3 found untested | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF23 | The authentication suite still samples few inputs | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
+| CF24 | A refresh that loses its write race carries the old email | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF25 | A provider that answers `null` to `authenticate` crashes the sign-in | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
 | CS3 | Falsification audit of AUTHN-5, AUTHN-7 and CONF-4 as amended again, at `eea34d9` | recorded | [`authentication.md`](authentication.md) |
