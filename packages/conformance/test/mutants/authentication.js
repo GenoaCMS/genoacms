@@ -64,6 +64,13 @@ const MUTANTS = {
       }
     }
   },
+  'a disabled subject is found from the second time': {
+    test: 'AUTHN-4: getIdentity returns null for a disabled subject',
+    adapter: () => {
+      let asked = false
+      return { ...correct(), getIdentity: async (subject) => { if (subject !== disabled.subject) return correct().getIdentity(subject); const found = asked; asked = true; return found ? identityOf(disabled) : null } }
+    }
+  },
   'getIdentity returns a stale email': {
     test: 'AUTHN-4: getIdentity returns the fixture\'s identity',
     adapter: () => ({ ...correct(), getIdentity: async (subject) => subject === identity.subject ? { subject, email: 'stale@example.com' } : correct().getIdentity(subject) })

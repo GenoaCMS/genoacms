@@ -77,7 +77,9 @@ function runAuthenticationConformance (adapter, { identity, disabled }) {
     })
 
     it.skipIf(disabled === undefined)('AUTHN-4: getIdentity returns null for a disabled subject', async () => {
-      expect(await adapter.getIdentity(disabled.subject)).toBeNull()
+      for (let asked = 0; asked < 2; asked++) {
+        expect(await adapter.getIdentity(disabled.subject)).toBeNull()
+      }
     })
   })
 }
