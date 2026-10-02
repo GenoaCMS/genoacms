@@ -33,7 +33,7 @@ server of its own to start: the Functions Framework calls an exported handler.
 
 **GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).** DEP-9 to DEP-12.
 *Why:* a deploy that reports success when the platform rejected it is worse than no report, and a
-buildpack install failure (`build.md` D9 critique) is exactly the case that must surface.
+buildpack install failure (`build.md` D9, its *Cost:*) is exactly the case that must surface.
 *Cost:* `genoa deploy` takes as long as Cloud Build, a few minutes, instead of returning after the upload.
 An interrupted CLI leaves the operation running on Google's side, and a deploy started meanwhile may
 fail with a conflict until it ends. The client library's polling timeout bounds how long a build may

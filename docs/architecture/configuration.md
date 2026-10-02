@@ -52,7 +52,7 @@ moved ID keeps a pointer in its old place.
 | U9 | `--config` is optional on every command, `genoa deploy` included. | Without it, the default lookup applies (*Types: the config and the manifest*). A development config chosen by mistake for a production build fails the `developmentOnly` check (*Config files per environment*). |
 | U10 | *Moved* to [`build.md`](build.md). | |
 | U11 | *Moved* to [`secrets.md`](secrets.md). | |
-| U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (*Types: the config and the manifest*). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (*Config files per environment*). |
+| U12 | A project's configuration lives in **one place**: a single root file `genoa.config.ts`, or one directory `genoa.config/` holding every config file, the modules they share and local credential files. In the directory form the files are named after their environment: `development.ts` and `production.ts`. | Default lookup: `genoa.config.{ts,mts,js,mjs}`, then `genoa.config/development.{ts,mts,js,mjs}` (*Types: the config and the manifest*). `genoa.config/index.*` is not looked up. A production config is always named explicitly, `--config genoa.config/production.ts` (U1, U9). Core and `genoa init` use the directory form (*Config files per environment*). *Cost:* `genoa.config/index.ts` is no longer a config; two layouts stay supported, and the docs teach the directory; the symmetric names suggest a mode-based default that does not exist. When both forms exist the root file wins silently, and no `config/ambiguous` error is specified. Any `genoa.config/development.ts` is read as the config. The U9 guard works only when the development config holds a `developmentOnly` adapter. Core's `.npmignore` covers `/genoa.config`, so anything moved out of it must be listed again. |
 | U13 | *Moved* to [`adapter-gcp/README.md`](adapter-gcp/README.md) GU1 (Identity Platform) and [`identities.md`](identities.md) IU1 (self-owned stores), 2026-10-02. | |
 | U14 | *Moved* to [`contracts/authentication.md`](contracts/authentication.md) CU2. | |
 
@@ -164,7 +164,10 @@ and it may not contain credential values except through `inline()`. The loader e
 developer machine or CI runner and produces a **manifest**. Every later phase reads the manifest,
 never the module.
 *Why:* removes the cycle (F2), the bundling step (F6) and SDK loading at build time (F7).
-*Cost:* the config cannot compute anything at runtime. Nothing needs to today.
+*Cost:* the config cannot compute anything at runtime. Nothing needs to today. It is evaluated three
+times per build (the CLI, `svelte.config.js`, the Vite plugin): cheap because it is data, but three
+evaluations of user code. `runnerImport` is experimental in Vite 7, so a breaking change there hits
+the loader; it is isolated behind `loadConfig`, and a fallback such as `jiti` is a one-module swap.
 
 **D2.** *Moved* to [`contracts/adapter-model.md`](contracts/adapter-model.md).
 
@@ -336,7 +339,7 @@ present.
 | K4 | Bucket and collection catalogs for the grant editor | `host.buckets`, `host.collections` |
 | K5 | Unit tests mock the config package | Tests mock `$lib/script/host.server` with a host over in-memory runtimes |
 | K6 | Root rotation with explicit confirmation | `genoa rotate-root`, same confirmation |
-| P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts`, `security.ts` and `languages.ts` both import; installs secrets-env and language-adapter-ts |
+| P1 | `init` scaffolds a project | Scaffolds `genoa.config/`: `development.ts` and `production.ts`, plus the shared `collections.ts`, `authorization.ts`, `security.ts` and `languages.ts` both import; installs secrets-env and language-adapter-ts. *Cost:* six files where a small project needs one, and `buckets` and `databases` repeated per environment. Re-running `init`, `TODO` specifiers and the `@genoacms/contracts` install: [`cli.md`](cli.md) CLI-12, CLI-13 |
 | P2 | `run` (dev server) | `genoa dev`; `run` kept as an alias |
 | P3 | `deploy [provider] [--dev]` | `genoa deploy [target]`; `--dev` becomes `genoa build --mode development` (RFC-0015; `cli.md`) |
 | P4 | `database`: list and delete dynamic collections | Over `host.storageForBucket(host.defaultBucket)`; fixes F8's `config.storage.adapter` |
@@ -416,6 +419,9 @@ specifiers import.
 | Locality by real path | pnpm workspace package: outside `node_modules` (local). npm `file:` directory: symlink, local. **yarn v1 `file:` directory: copied into `node_modules`, indistinguishable from a registry install.** Registry packages under pnpm and npm: inside `node_modules`. |
 | `esbuild` native binary after install | Works on the same platform, although npm 11 reports its `postinstall` as not covered by `allowScripts`. The binary comes from the optional platform package. |
 
+S-1 to S-5 used a fake core with the real toolchain. A leftover `node_modules` symlink once masked
+the S-5 failure until it was removed and the spike rerun.
+
 B is the design, because npm is the one packer every user has. The yarn v1 row is why adapters are
 vendored unconditionally (D9).
 
@@ -437,68 +443,3 @@ Findings made while writing the RFCs were folded back into this document:
 - project-rooted descriptor loading, spike S-7 (*Types: the config and the manifest*);
 - `inline()` under deployment targets does not warn ([`secrets.md`](secrets.md) *`inline()`*);
 - U11, the one-time move of core's dev store.
-
-## Critique & architectural sanity check
-
-**Pros**
-- The cycle, path inference, config bundling and SDK loading at build time are removed by construction rather than by convention. A build never constructs a client or resolves a secret.
-- The runtime `package.json` is derived from the bundle, so functions install what the server loads and nothing else, while core keeps the build tooling users need (U6).
-- Two instances of one adapter work, because identity is the provider key and no module-level state exists.
-- The bootstrap rule and the credential fields are enforced three times (types, descriptor, loader), and `tsc` checks the type half.
-- The GCP deploy stops uploading source and credentials, and the artifact can be built and inspected locally before it ships.
-- Adapters depend on `contracts` alone. A third-party adapter needs no knowledge of the loader.
-
-**Cons & trade-offs**
-- Two modules per adapter service (descriptor and runtime), plus a registry augmentation. More files for adapter authors.
-- Every target must install dependencies. Deploys from the monorepo need published packages ([`build.md`](build.md) *The artifact*).
-- The config is loaded three times per build (CLI, `svelte.config.js`, Vite plugin). It is cheap because it is data, but it is three evaluations of user code.
-- The first use of each provider costs a secret round trip on cold start, unless `env()` or ADC is used.
-- Core's own CI still cannot build or run unit tests, because core's dev config imports gitignored credential files (U7). The architecture allows a credential-free build; this repository's config opts out of it.
-- `runnerImport` is experimental in Vite 7. A breaking change there hits the loader. It is isolated behind `loadConfig`, so a fallback such as `jiti` is a one-module swap.
-
-**Blindspots & missed edge cases**
-- **The bundle scan sees only ESM `import` syntax.** A `require()` left dynamic by rollup's CommonJS plugin, a `createRequire` call, or a non-literal `import()` inside a bundled dependency loads a package the scan cannot find. The failure is `ERR_MODULE_NOT_FOUND` at runtime, not at build. S-6 has to prove the set is complete for today's code, and a later dependency can quietly break it again. A smoke test that installs the generated `package.json` into an empty directory and boots the server belongs in the deploy RFC's verification.
-- **Generated `package.json` without a lockfile.** Transitive versions are resolved at install time, so two deploys of one build can differ. A generated lockfile is possible but not designed here.
-- **Adapter resolution relies on Node walk-up from core.** S-5 showed it holds under npm, under pnpm's default hoisting and under `hoist: false`, for packages the project depends on *directly*. It does not hold for transitive packages, which is why the SvelteKit adapter is loaded through the descriptor. Any future bare-name import from core of something the project does not list directly will fail the same way under strict pnpm. Yarn PnP and a linked core are untested; linked core is a declared non-goal.
-- **Writes inside the installed core package.** `.svelte-kit/` and `node_modules/.vite-temp/` are created inside core, and in pnpm that means inside the virtual store. It worked in S-3 and S-5, but a read-only store (a Nix-style or container-baked `node_modules`) would fail the build.
-- **Spike fidelity.** S-1 to S-5 used a fake core with the real toolchain, not the real core. A leftover `node_modules` symlink once masked the S-5 failure until it was removed and the spike rerun. The RFCs' verification must repeat S-1 and S-5 against the real packages.
-- **Third-party SvelteKit adapters that trace dependencies** (for example Vercel's nft) may treat a non-analyzable `import()` differently from rollup externals. D4 is verified only for the two adapters in the repository.
-- **Integer-like provider keys** silently reorder authentication trials. Loader rule 9 catches this, but only if that rule is implemented.
-- **Secrets used by several providers** are fetched once, thanks to the per-key cache, but a timeout fails every provider waiting on that key at the same moment. That is acceptable, but it looks like correlated failures in logs.
-- **`authentication-adapter-array` credentials** become a JSON secret with plain-text passwords. Moving them out of the config is an improvement, but they remain plain text in the store (*Goals and non-goals* non-goal).
-
-## Critique & architectural sanity check: U12 (one config directory)
-
-**Pros**
-- A project's configuration has one location. Everything a reviewer or a `.npmignore` needs to know about is under `genoa.config/`, and the project root holds no `genoa/` sibling.
-- Environment names are the file names, so `--config genoa.config/production.ts` reads as what it does.
-- Core's credential files were already in `genoa.config/gcp/`. The configs now import them as `./gcp/…`, beside themselves, instead of reaching into a sibling directory.
-- The loader change is one line of candidates. Everything that resolves the project root (the CLI, `GENOA_PROJECT`, the host) is unaffected, because the root never depended on where the config file sits.
-
-**Cons & trade-offs**
-- `genoa.config/index.ts` is no longer a config. Tooling habits (an editor jumping to `index.ts`, a reader expecting the directory's entry point there) do not apply.
-- Two layouts remain supported: the root file and the directory. Documentation has to teach the directory and mention the file.
-- The names suggest a mode-based default (`production.ts` for a production build) that does not exist. `genoa build` without `--config` still finds `development.ts` and then fails the `developmentOnly` check (U9). That failure is the intended guard, but the symmetric names make it more surprising.
-
-**Blindspots & missed edge cases**
-- **Both forms present.** The root file wins silently. A project that moves to the directory and forgets the old root file keeps loading the old one. A `config/ambiguous` error would catch it, but it is not specified.
-- **A `development.ts` that is not a config.** Anything named `genoa.config/development.ts` is now evaluated as the config. A project that already keeps an unrelated module under that name is misread. That is unlikely for a directory named `genoa.config`.
-- **Production configs without `developmentOnly` providers.** The guard in U9 only works when the development config contains a `developmentOnly` adapter. A development config built from cloud providers only would be built for production without complaint, and naming it `development.ts` does not change that.
-- **`.npmignore` in core.** `/genoa.config` now covers every config file. Anything moved out of that directory later has to be listed again, or core's configs and credential imports get published.
-
-## Critique & architectural sanity check: P1 (`init` scaffolds the whole directory)
-
-**Pros**
-- Roles, security seeds, collections and languages have one definition from a project's first commit. The failure this prevents is two authorization stanzas that differ, which is silent and security-relevant.
-- `collections.ts` is part of the scaffold, because describing data that already exists is the reason to add GenoaCMS to a project.
-- The production config exists from the start, so deploying means filling in `TODO`s, not writing a file from scratch.
-
-**Cons & trade-offs**
-- Six files instead of one. A small project sees more structure than it needs.
-- `buckets` and `databases` stay per environment, so they are duplicated when both environments use the same ones.
-- For the AWS suite, `production.ts` names a secrets adapter that does not exist yet.
-
-**Blindspots & missed edge cases**
-- **Re-running `init`.** It refuses when any target file exists, so it cannot be used to add a missing file later. The user copies from the template instead.
-- **A `TODO` specifier in `production.ts`** is invisible to `genoa dev`, because the default lookup never loads that file. It surfaces at the first `genoa build --config genoa.config/production.ts`, which is the intended point, but possibly long after `init`.
-- **The collection example** uses schema helpers from `@genoacms/contracts/schemas`, so `init` must install `@genoacms/contracts` directly. Under strict pnpm, the helper import fails without it.

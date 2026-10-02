@@ -28,7 +28,7 @@ validator, and the bare specifier of its runtime module. The *runtime* exports a
 *Why:* the loader and the build can validate every provider, and choose a SvelteKit adapter, without
 loading a single SDK. That is D1 applied to adapters. The external proposal ran validators inside the
 adapter module, which brought F7 back.
-*Cost:* an adapter ships two entry points per service.
+*Cost:* an adapter ships two entry points per service, plus a registry augmentation.
 
 **D4. Adapter runtimes are loaded by bare specifier at runtime, not bundled.** The host's loader is a
 dynamic `import()` whose argument rollup cannot analyze. Adapter packages therefore stay external in
@@ -37,7 +37,13 @@ own externals (D6).
 *Why:* bundling cloud SDKs through a SvelteKit adapter's rollup pass is fragile (for example, gRPC
 clients loading proto files by path) and outside our control for third-party SvelteKit adapters.
 *Cost:* the deployment must install dependencies. Every target already has to, for core's own
-externals.
+externals. Resolution relies on Node's walk-up from the installed core: S-5 showed it holds under npm,
+pnpm's default hoisting and `hoist: false` for packages the project depends on directly, not for
+transitive ones, which is why the SvelteKit adapter is loaded through the descriptor. A future
+bare-name import from core of anything the project does not list directly fails the same way under
+strict pnpm. Yarn PnP is untested. D4 is verified only for the two SvelteKit adapters in the
+repository; one that traces dependencies (such as Vercel's nft) may treat a non-analyzable `import()`
+differently from a rollup external.
 
 ## Packages and dependency direction
 

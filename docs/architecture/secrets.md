@@ -24,6 +24,9 @@ development store.
 adapter's option types say which fields are credentials, and its descriptor says the same at runtime.
 The secrets provider's own options admit `env()` and `inline()` only: the bootstrap rule, enforced by
 the type and by the loader.
+*Cost:* the first use of each provider costs a secret round trip at cold start, unless `env()` or
+ADC is used. A secret several providers use is fetched once, but its timeout fails every provider
+waiting on it at the same moment, which reads as correlated failures in the logs.
 
 ## Secret references
 

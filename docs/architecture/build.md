@@ -28,6 +28,11 @@ dependencies in their own way (R4).
 *Why derived from the bundle:* core's `dependencies` must keep build tooling such as `vite`, because a
 user installs core as a package and builds it (U6). Copying that list would install the build
 toolchain on every function. The bundle's imports are the exact set the running server needs.
+*Cost:* the scan sees only ESM `import` syntax. A `require()` left dynamic by rollup's CommonJS
+plugin, a `createRequire` call, or a non-literal `import()` inside a bundled dependency loads a
+package the scan cannot find, and fails at runtime with `ERR_MODULE_NOT_FOUND`, not at build; a later
+dependency can bring one in quietly. The `package.json` has no lockfile, so transitive versions are
+resolved at install time and two deploys of one build can differ.
 
 **D7. Explicit facts cross the process boundary, as absolute paths or names.** The CLI is the only
 entry point. It spawns Vite with `cwd` = core (R1) and passes `GENOA_PROJECT` (absolute project
@@ -39,6 +44,9 @@ calls reported `production` (S-2 result, [`configuration.md`](configuration.md) 
 the Vite config while loading its own config. When `GENOA_MODE` is unset (monorepo `pnpm dev` or
 `pnpm build`), the plugin falls back to `development` for `vite dev` and `production` for `vite build`.
 That fallback depends only on `command`, which was consistent across every call.
+*Cost:* with Vite running in core, SvelteKit writes `.svelte-kit/` and Vite writes
+`node_modules/.vite-temp/` inside the installed core package, in pnpm's virtual store too. It worked
+in S-3 and S-5, but a read-only `node_modules` (Nix-style, or baked into a container) fails the build.
 
 **D8. No provider is constructed while SvelteKit analyses the build (F18).** Core reads `building`
 from `$app/environment`, which SvelteKit sets exactly while it runs the app during `vite build`. It
@@ -50,7 +58,14 @@ is enforced twice:
 code that runs at import time runs during the build. The guard reads a flag that SvelteKit defines for
 exactly this purpose, rather than inferring build time from the environment.
 *Cost:* two call sites must remember the flag. The loader check turns forgetting it into a build
-failure, not a silent write.
+failure, not a silent write. Core depends on `$app/environment` in two service modules and in
+`host.server.ts`, so unit tests have to provide the flag (Vitest resolves it to `false` through
+SvelteKit's plugin). The collection listing reads as empty while SvelteKit analyses the build, and
+`building` is also true while prerendering: a prerendered page cannot reach a provider, and one that
+listed collections would be built empty. The loader check catches provider construction only, not a
+direct `fetch` or file read at import time, which would still run during the build. A provider
+failure thrown outside the promise chain, as the GCP auth library's was during the build, crashes the
+process instead of degrading, so K1's "never rejects" does not cover every failure.
 
 **D9. Local packages travel inside the artifact (F19).** `createRuntimePackage` packs some packages
 with `npm pack` into `<buildDir>/vendor/`. The runtime `package.json` points each of them at its
@@ -65,9 +80,17 @@ works in npm, pnpm and yarn (node-modules linker) projects. The artifact is alwa
 *Why:* the artifact then installs exactly the adapter code that was loaded and tested on the
 developer's machine, published or not, and a version collision with the registry (F19) cannot occur.
 A user can deploy an adapter that exists only in their repository.
-*Cost:* the build needs `npm` on `PATH` and runs it once per vendored package. Vendored packages lose
-registry provenance, and their own dependencies still resolve by range, as all transitive
-dependencies already do.
+*Cost:* the build needs `npm` on `PATH` and runs it once per vendored package, about a second each.
+Adapters are repacked even when they came from the registry, so vendored packages lose registry
+provenance, and their own dependencies still resolve by range, as all transitive dependencies already
+do. The artifact is installed with npm only; pnpm or yarn inside it would also need `pnpm.overrides`
+or `resolutions`. What D9 does not cover:
+- a local helper library that an adapter depends on, installed by yarn v1's copy, looks like a registry package, is not vendored, and fails the install with `E404`;
+- pnpm `catalog:`, yarn `patch:` and `portal:` in a vendored package's dependencies, on a name that is not vendored, fail the build; they are not rewritten;
+- `npm pack --ignore-scripts` packs what is on disk: a package whose `exports` target a `dist/` never built is refused by name, but a stale `dist/` is not detected;
+- a deny-list refuses the repository's known secret file names, but a credential under any other name inside a package directory ships;
+- Yarn Plug'n'Play has no `node_modules`, and fails earlier with `build/not-installed`;
+- native binaries are packed as built on the build machine; none of today's vendored packages has one.
 
 ## The artifact
 
@@ -175,42 +198,3 @@ without `npm explore` and without `GENOA_BUILD`.
 | **Remote build on GCP** (today's intent) | It uploads the project source, including the config directory and credentials (F9), and it needs the config and a build script at the remote end. Building locally also lets CI verify exactly what ships. |
 | **Runtime `package.json` = core's `dependencies`** | Would install `vite`, `vitest` and the tailwind toolchain on every function. Moving them to `devDependencies` breaks users, who build core from their own install (U6). |
 | **Fully self-contained bundle, no install** | Would bundle `typescript`, `ts-morph`, `jsdom` and gRPC SDKs through rollup, which is the most fragile option. |
-
-## Critique & architectural sanity check: D8 (nothing constructed while building)
-
-**Pros**
-- A build no longer reads or writes the instance it is built for. Before, every build bootstrapped the configured instance, and the old Cloud Build flow did so for production.
-- The production config builds with no credential present, which goal 6 always claimed and never delivered.
-- The loader check makes the invariant enforced rather than remembered: new module-scope I/O fails the build by name.
-
-**Cons & trade-offs**
-- Core now depends on `$app/environment` in two service modules and in `host.server.ts`. Those modules are only ever evaluated by SvelteKit, but unit tests have to provide the flag (Vitest resolves it to `false` through SvelteKit's plugin).
-- The collection listing reads as empty during analysis. Nothing prerenders, so nothing observes it. A prerendered page that listed collections would be built empty.
-
-**Blindspots & missed edge cases**
-- **Module-scope I/O outside these two sites.** The loader check catches provider construction, but not direct `fetch` or file I/O at import time. A module that reads a remote resource without the host would still run during the build.
-- **Runtime failures that bypass promises.** The build crash surfaced as an uncaught exception thrown by the GCP auth library outside the promise chain. K1's "never rejects" guarantee therefore does not cover every provider failure. On a real instance, missing ADC could crash the process instead of degrading. That is not addressed here.
-- **Prerendering.** `building` is also true while prerendering. If a page is ever prerendered, it cannot reach a provider, by design. That is correct for this CMS, but it has to be known.
-
-## Critique & architectural sanity check: D9 (local packages travel inside the artifact)
-
-**Pros**
-- The deployed adapter code is byte-for-byte what the developer's machine loaded. F19's silent case, a registry package with the same version and different code, cannot happen.
-- Users can deploy adapters that exist only in their repository, from npm, pnpm or yarn projects, with no registry and no publish step.
-- The monorepo deploys without a release, so a deploy no longer has to follow a publish.
-- No deploy procedure changes. GCP, AWS and Node all copy `buildDir`, and both procedures that rewrite `package.json` spread the existing object, so `overrides` survives.
-- Only npm is required, and it ships with Node.
-
-**Cons & trade-offs**
-- Adapters are repacked even when they came from the registry. The packed files are the installed ones, which the project's lockfile integrity already covered, but registry provenance is not carried into the artifact.
-- The build now runs a child process per vendored package. A cold `npm pack` takes about a second, which is small next to `vite build`.
-- The artifact is installed with npm only. A target whose operator insists on pnpm or yarn inside the artifact would need `pnpm.overrides` or `resolutions` as well. That is not specified.
-- A vendored package's own dependencies still resolve by range at install time, as every transitive dependency does today. D9 pins nothing new.
-
-**Blindspots & missed edge cases**
-- **yarn v1 `file:` packages that are not adapters.** A local helper library that an adapter depends on, installed by yarn v1's copy, looks like a registry package. It is not vendored, and the artifact install fails with `E404` for it. Adapters themselves are covered by the unconditional rule.
-- **Protocols other than `workspace:`.** pnpm `catalog:`, yarn `patch:` and `portal:` in a vendored package's dependencies, on a name that is not vendored, fail the build by rule. The build does not rewrite them.
-- **Unbuilt packages.** `npm pack --ignore-scripts` packs whatever is on disk. A package whose `exports` target a `dist/` that was never built is refused by name. A stale `dist/` from an older source is not detected.
-- **Secrets in a package directory.** `npm pack` includes whatever `files` or `.npmignore` let through. A deny-list of the repository's known secret filenames refuses the obvious cases. A credential under any other name ships.
-- **Yarn Plug'n'Play.** There is no `node_modules`, so version lookup already fails with `build/not-installed`. D9 does not change that.
-- **Native binaries in vendored packages** are packed as they are on the build machine. None of the packages vendored today has one. The AWS procedure's `--os`/`--cpu` question applies to registry dependencies and is separate.
