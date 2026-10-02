@@ -63,7 +63,7 @@ it fails too; the suite reports the first failure.
 | CF7 | **The database suite uses the second document for every step, and checks neither the update nor the listing.** `documentData = testDocuments[1]` runs while vitest collects the tests, before any of them, so `createDocument` receives `testDocuments[1]` and the update writes what is already there. An update that does nothing passes, and so does a listing that returns no document: `lists collection` checks only that the result is an array. Shown 2026-10-02 with a mutant adapter. The contract-level verification of GCP DB-5 and DB-7 rests on this suite alone (GF31); AWS DDB-5 and DDB-7 also have their own contract tests. | open |
 | CF8 | **Nothing checks that a suite fails a non-conforming adapter.** The package's tests run each suite only against in-memory adapters that conform, which is how CF6 and CF7 went unnoticed, and why CF6's fix has no regression test. | open (CD5) |
 | CF9 | **The storage suite writes a fixed name, `GenoaCMS/test.txt`, and cleans up only by its own delete step.** On GCP it runs in the production project's bucket (GU6). Two concurrent runs collide, and a run that fails before the delete leaves the object behind. `adapter-aws` avoids this by wrapping the adapter under a per-run prefix; `adapter-gcp` does not. | open (CD6) |
-| CF15 | **The authentication suite does not check the identity's email, nor when `disabled` may be reported.** Its identity checks accept any string as the email (`expect.any(String)`), so an adapter whose `authenticate` or `getIdentity` returns an empty or stale email passes; AUTHN-2 requires the identity the credentials belong to, and AUTHN-4 the current email. No test sends the disabled identity a wrong password, so an adapter that answers `disabled` before checking the password passes. That adapter tells an existing account from a missing one, which AUTHN-2 and CD3 forbid. The suite tries one wrong password, the right one with `-wrong` appended, so an adapter that accepts the empty password, or any prefix of the right one, passes too. Shown 2026-10-02 by CS1 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | open |
+| CF15 | **The authentication suite does not check the identity's email, nor when `disabled` may be reported.** Its identity checks accept any string as the email (`expect.any(String)`), so an adapter whose `authenticate` or `getIdentity` returns an empty or stale email passes; AUTHN-2 requires the identity the credentials belong to, and AUTHN-4 the current email. No test sends the disabled identity a wrong password, so an adapter that answers `disabled` before checking the password passes. That adapter tells an existing account from a missing one, which AUTHN-2 and CD3 forbid. The suite tries one wrong password, the right one with `-wrong` appended, so an adapter that accepts the empty password, or any prefix of the right one, passes too. Shown 2026-10-02 by CS1 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | open, fixed by RFC-0030 |
 
 ### History
 
@@ -148,11 +148,13 @@ declare function runAuthenticationConformance (
 ): void
 ```
 
-The suite checks AUTHN-2 and AUTHN-4: the fixture's credentials return its `Identity`; a wrong
-password and an unknown email both return `{ rejected: 'credentials' }`; `getIdentity` returns the
-`Identity` for the fixture's subject and `null` for an unknown one. With `disabled`, its correct
-password returns `{ rejected: 'disabled' }` or `{ rejected: 'credentials' }`, and `getIdentity`
-returns `null` for its subject. Each test carries the IDs it checks (CD4). The fixture's identities
+The suite checks AUTHN-2 and AUTHN-4: the fixture's credentials return its `Identity`, the
+fixture's subject and email; three wrong passwords, the right one with `-wrong` appended, the empty
+one and the right one without its last character, and an unknown email all return
+`{ rejected: 'credentials' }`; `getIdentity` returns the fixture's `Identity` for its subject and
+`null` for an unknown one. With `disabled`, its correct password returns `{ rejected: 'disabled' }`
+or `{ rejected: 'credentials' }`, a wrong password returns `{ rejected: 'credentials' }`, and
+`getIdentity` returns `null` for its subject. Each test carries the IDs it checks (CD4). The fixture's identities
 exist before the suite runs; the suite creates none, because the contract cannot.
 
 - Test: `packages/conformance/test/authentication.test.js`, `packages/authentication-adapter-array/test/conformance.test.js`, `packages/adapter-gcp/test/contract/authentication.test.ts`
