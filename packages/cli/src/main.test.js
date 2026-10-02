@@ -302,7 +302,7 @@ describe('genoa', () => {
     assert.match(noInput.output, /cli\/no-command/)
   }, 30000)
 
-  test.fails('CLI-19: names the command and target of a refused deploy, with nothing on standard output but its progress', () => {
+  test('CLI-19: names the command and target of a refused deploy, with nothing on standard output but its progress', () => {
     const cwd = developmentOnlyProject()
     const { status, stdout, stderr } = genoa(cwd, 'deploy', 'local')
     assert.equal(status, 1)

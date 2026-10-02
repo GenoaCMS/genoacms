@@ -12,34 +12,40 @@ async function freshDirectory (path) {
   return path
 }
 
-async function buildPhase (ctx) {
-  const building = spinner()
-  building.start('Building CMS code')
-  const built = await build(ctx)
-  building.stop('CMS code built')
-  return built
+const FAILED = 2
+
+/** CLI-8, LF11 */
+async function phase (started, done, work) {
+  const progress = spinner()
+  progress.start(started)
+  try {
+    const result = await work()
+    progress.stop(done)
+    return result
+  } catch (error) {
+    progress.stop(`${started} failed`, FAILED)
+    throw error
+  }
 }
+
+const buildPhase = (ctx) => phase('Building CMS code', 'CMS code built', () => build(ctx))
 
 /**
  * Target options are resolved on the operator's machine through the configured secrets store, as
  * the runtime would resolve provider options. They never enter the build.
  */
-async function resolvePhase (host, built, descriptor) {
-  const resolving = spinner()
-  resolving.start('Resolving deployment options')
+function resolvePhase (host, built, descriptor) {
   const entry = built.manifest.config.deployment.targets[built.target]
-  const options = await host.resolve(entry.options, descriptor.secretOptions ?? {}, `deployment.targets.${built.target}.options`)
-  resolving.stop('Deployment options resolved')
-  return options
+  return phase('Resolving deployment options', 'Deployment options resolved', () =>
+    host.resolve(entry.options, descriptor.secretOptions ?? {}, `deployment.targets.${built.target}.options`))
 }
 
-async function deployPhase (root, built, descriptor, options) {
-  const deploying = spinner()
-  deploying.start('Deploying code')
-  const workDir = await freshDirectory(join(root, '.genoacms', 'deploy', built.target))
-  const procedure = (await descriptor.procedure()).default
-  await procedure(options, { projectRoot: root, buildDir: built.buildDir, workDir, target: built.target })
-  deploying.stop('Code deployed')
+function deployPhase (root, built, descriptor, options) {
+  return phase('Deploying code', 'Code deployed', async () => {
+    const workDir = await freshDirectory(join(root, '.genoacms', 'deploy', built.target))
+    const procedure = (await descriptor.procedure()).default
+    await procedure(options, { projectRoot: root, buildDir: built.buildDir, workDir, target: built.target })
+  })
 }
 
 async function deploy (ctx) {

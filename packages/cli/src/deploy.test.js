@@ -69,7 +69,7 @@ describe('deploy', () => {
     assert.equal(host.close.mock.calls.length, 1)
   })
 
-  test.fails('CLI-8: a failed phase ends its progress line as failed', async () => {
+  test('CLI-8: a failed phase ends its progress line as failed', async () => {
     const root = mkdtempSync(join(tmpdir(), 'genoa-cli-deploy-'))
     roots.push(root)
     const failure = new Error('build failed')
