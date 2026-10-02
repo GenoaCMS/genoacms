@@ -48,7 +48,10 @@ subordinate seed and later expects `getSecret` of it to resolve `undefined`, and
 delete's result. Waiting in the delete could outlast a request on a function with the default
 30-second timeout. A forced delete of a name that does not exist succeeds (WS6), so `false` needs
 the `DescribeSecret` before it.
-*Cost:* a write or claim of the same name fails with `InvalidRequestException` until the delete
+*Cost:* Secrets Manager's reads are eventually consistent: in a rare moment right after a forced
+delete, `DescribeSecret` can still show the secret live, and deleting it again then resolves `true`
+(WF27). Its result is exact for a name that never existed, and for one deleted earlier only once
+the delete is visible. A write or claim of the same name fails with `InvalidRequestException` until the delete
 completes; core never reuses a seed's name. A read of a secret scheduled for deletion costs a second
 call, and so does every delete. A secret scheduled for deletion outside GenoaCMS, with a recovery
 window, also reads as absent.
@@ -58,16 +61,18 @@ window, also reads as absent.
 | # | Finding | State |
 | :-- | :-- | :-- |
 | WF14 | **No secrets provider.** An AWS stack must take its secrets from another provider, such as the environment, which cannot claim atomically, so two instances starting together can each mint a root seed. `configuration.md` notes that the AWS suite's `production.ts` names a secrets adapter that does not exist. | fixed, RFC-0026 |
+| WF27 | **Deleting a secret just deleted can resolve `true`** (ASM-6, WS8). In CI run 36985809717 on `main` (2026-10-02), the contract test deleted a secret, read it as `undefined`, then deleted it again and got `true`: the `DescribeSecret` of the second delete showed the secret live, although the read before it had seen it deleted. ASM-6 said `false`. | open, RFC-0029 |
 | WF24 | **A deleted secret is not gone at once, and deleting a missing one succeeds** (ASM-3, ASM-6, WS6). RFC-0026's contract test read a secret right after its forced delete and got `InvalidRequestException`, "marked for deletion", instead of `undefined`. Once the delete had completed, a second forced delete resolved, so `deleteSecret` reported `true` where ASM-6 says `false`. | fixed, RFC-0026 |
 
 ### History
 
-*History.* RFC-0026 (2026-10-01) added the provider (WF14), and its first contract run changed how a deleted secret reads (WD6, WF24).
+*History.* RFC-0026 (2026-10-01) added the provider (WF14), and its first contract run changed how a deleted secret reads (WD6, WF24). A contract run on `main` the next day showed that a second delete can still see the secret (WF27).
 
 ### Verification
 
 - **Established from AWS's documentation, not by experiment:** `CreateSecret` of an existing name fails with `ResourceExistsException`; `GetSecretValue` of a missing secret fails with `ResourceNotFoundException`, and of a secret scheduled for deletion with `InvalidRequestException`; storage is billed per secret per month, prorated by the hour, plus per 10,000 API calls.
 - **WS6, for ASM-3 and ASM-6: run 2026-10-01, `eu-central-1`.** Create a secret, delete it with `ForceDeleteWithoutRecovery: true`, then read, describe and write it every 0.25 to 0.5 s. Until the delete completes, `GetSecretValue` and `PutSecretValue` fail with `InvalidRequestException` and `DescribeSecret` shows a `DeletedDate`; from then on all answer `ResourceNotFoundException`, and `CreateSecret` of the same name succeeds. The delete completed after about 0.7 s in three runs, and after 29.5, 27.5 and 15.6 s in three runs an hour later. A forced `DeleteSecret` of a name that never existed, or whose delete had completed, resolves with a `DeletionDate`; with a recovery window it fails with `ResourceNotFoundException`.
+- **WS8, for ASM-6: run 2026-10-02, `eu-central-1`.** Create a secret, delete it with `ForceDeleteWithoutRecovery: true`, then describe it in a tight loop until `ResourceNotFoundException`. In 30 runs `DescribeSecret` went from a `DeletedDate` to `ResourceNotFoundException` within about 1 s and never showed the secret live again; together with `GetSecretValue`, 6 more runs showed the same order. The stale read of WF27 is therefore rare, seen once in CI and not reproduced.
 - **WS4, for ASM-4: not run.** Overwrite one secret many times within minutes and read the number of its versions. It establishes whether core's key-registry sequence, overwritten on every key issuance, can reach Secrets Manager's version limit.
 
 ## Specification
@@ -116,7 +121,7 @@ A key is used as the secret's `SecretId` and `Name` unchanged. A key Secrets Man
 
 #### ASM-6 · Deleting
 
-`deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Any other error of the `DescribeSecret` propagates, and no `DeleteSecret` is sent. Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete.
+`deleteSecret(key)` sends `DescribeSecret` of the key, and resolves `false` when it fails with `ResourceNotFoundException` or shows a `DeletedDate` (WD6). Any other error of the `DescribeSecret` propagates, and no `DeleteSecret` is sent. Otherwise it sends `DeleteSecret` with `ForceDeleteWithoutRecovery: true` and resolves `true`; `ResourceNotFoundException` from it resolves `false`. It does not wait for the delete to complete. For a secret deleted moments before, `DescribeSecret` can still show it live, and the delete then resolves `true` (WF27); once the delete is visible it resolves `false`.
 
 - Test: `packages/adapter-aws/src/secrets/runtime.test.ts`, `packages/adapter-aws/test/contract/secrets.test.ts`
 - Level: unit, contract

@@ -50,6 +50,7 @@ own before starting the next.
 | [0026](0026-aws-adapter-to-specification.md) | Bring the AWS adapter to its Specification (`adapter-aws/` WF1 to WF19) | `packages/adapter-aws`, `scripts/`, CI |
 | [0027](0027-gcp-open-findings.md) | Fix the open GCP findings (`adapter-gcp/` GF10, GF20 to GF26) | `packages/adapter-gcp`, `packages/sveltekit-adapter-cloud-run-functions` |
 | [0028](0028-cli-help-and-specification.md) | CLI help, guidance and its Specification (`cli.md` LF2 to LF6, LF8 to LF13) | `packages/cli`, `scripts/` |
+| [0029](0029-aws-secret-delete-eventual.md) | A second delete of a secret just deleted may resolve `true` (`adapter-aws/` WF27) | `packages/adapter-aws` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
 
