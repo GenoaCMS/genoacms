@@ -42,7 +42,7 @@ const promptCall = (prompt, message) => prompt.mock.calls.find(([options]) => op
 beforeEach(() => { vi.clearAllMocks() })
 
 describe('roles', () => {
-  test.fails('CLI-11: offers the declared roles for an assignment', async () => {
+  test('CLI-11: offers the declared roles for an assignment', async () => {
     loadConfig.mockResolvedValue(manifest)
     const rolesPrompt = 'Which roles? (comma separated; declared today: Editor, Administrator)'
     answering({
