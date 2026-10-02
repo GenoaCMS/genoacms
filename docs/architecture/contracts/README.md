@@ -90,8 +90,13 @@ Every `C` ID, where it lives, and its state.
 | CF19 | Host test 13 cannot see late construction or a cut list | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF20 | The authentication suite tries few inputs, once each | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
 | CF21 | A gone identity's family can stay in storage | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CF22 | Parts of sign-in and revalidation that CS3 found untested | open | [`authentication.md`](authentication.md) |
+| CF23 | The authentication suite still samples few inputs | open | [`conformance.md`](conformance.md) |
+| CF24 | A refresh that loses its write race carries the old email | open | [`authentication.md`](authentication.md) |
+| CF25 | A provider that answers `null` to `authenticate` crashes the sign-in | open | [`authentication.md`](authentication.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
+| CS3 | Falsification audit of AUTHN-5, AUTHN-7 and CONF-4 as amended again, at `eea34d9` | recorded | [`authentication.md`](authentication.md) |
 | CQ1 | Where are failed sign-ins limited? | answered by CU4, CD7 | [`authentication.md`](authentication.md) |
 | CQ2 | How are users created and changed from the CMS? | recommendation: an optional capability | [`authentication.md`](authentication.md) |
 
