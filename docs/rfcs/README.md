@@ -51,6 +51,9 @@ own before starting the next.
 | [0027](0027-gcp-open-findings.md) | Fix the open GCP findings (`adapter-gcp/` GF10, GF20 to GF26) | `packages/adapter-gcp`, `packages/sveltekit-adapter-cloud-run-functions` |
 | [0028](0028-cli-help-and-specification.md) | CLI help, guidance and its Specification (`cli.md` LF2 to LF6, LF8 to LF13) | `packages/cli`, `scripts/` |
 | [0029](0029-aws-secret-delete-eventual.md) | A second delete of a secret just deleted may resolve `true` (`adapter-aws/` WF27) | `packages/adapter-aws` |
+| [0030](0030-authentication-contract.md) | The authentication contract, sign-in across providers, session revalidation (`contracts/authentication.md` CU3, CU4, CD2, CD3) | `packages/contracts`, `packages/authentication-adapter-array`, `packages/conformance`, `packages/config`, `packages/core`, `scripts/` |
+| [0031](0031-sign-in-limits.md) | Core limits failed sign-ins (`contracts/authentication.md` CD7, CF1) | `packages/config`, `packages/core` |
+| [0032](0032-gcp-identity-platform-adapter.md) | The Identity Platform authentication adapter (`adapter-gcp/authentication-identity-platform.md` GD2, GU10, GU11). Implemented after 0030, before 0031. | `packages/adapter-gcp`, CI |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
 
