@@ -1,6 +1,6 @@
-import { test, describe } from 'node:test'
+import { test, describe } from 'vitest'
 import assert from 'node:assert/strict'
-import { permissionOptions, render } from '../src/declaration.js'
+import { permissionOptions, render } from './declaration.js'
 import { permissions, isPermission } from '@genoacms/internal/authorization'
 
 /**
@@ -9,8 +9,6 @@ import { permissions, isPermission } from '@genoacms/internal/authorization'
  * The command's entire output is a snippet an operator pastes into `genoa.config`, so the property
  * worth asserting is that the snippet is valid JavaScript meaning exactly what was chosen. A printer
  * that emitted JSON-ish text would look right in a terminal and fail at import time.
- *
- * Uses `node:test` rather than a runner, so the CLI keeps no test dependency.
  */
 
 /** Evaluates a printed snippet the way pasting it into an object literal would. */

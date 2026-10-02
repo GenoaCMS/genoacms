@@ -1,6 +1,6 @@
-import { test, describe } from 'node:test'
+import { test, describe } from 'vitest'
 import assert from 'node:assert/strict'
-import { genoaEnvironment } from '../src/environment.js'
+import { genoaEnvironment } from './environment.js'
 
 describe('genoaEnvironment', () => {
   test('sets only the facts that are defined', () => {

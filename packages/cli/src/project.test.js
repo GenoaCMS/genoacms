@@ -1,12 +1,12 @@
-import { test, describe, after } from 'node:test'
+import { test, describe, afterAll } from 'vitest'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resolveProject } from '../src/project.js'
+import { resolveProject } from './project.js'
 
 const roots = []
-after(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }) })
+afterAll(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }) })
 
 /** A throwaway directory holding the given files, each written as JSON. */
 function directory (files) {

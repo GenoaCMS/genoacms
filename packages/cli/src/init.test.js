@@ -1,16 +1,16 @@
-import { test, describe, after } from 'node:test'
+import { test, describe, afterAll } from 'vitest'
 import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { initTemplateValues, renderTemplate, prepareConfig } from '../src/init.js'
+import { initTemplateValues, renderTemplate, prepareConfig } from './init.js'
 
 const TEMPLATE_NAMES = ['development.ts', 'production.ts', 'collections.ts', 'authorization.ts', 'security.ts', 'languages.ts']
-const template = (name) => readFileSync(new URL(`../src/templates/${name}`, import.meta.url), 'utf-8')
+const template = (name) => readFileSync(new URL(`./templates/${name}`, import.meta.url), 'utf-8')
 const rendered = (name, suite) => renderTemplate(template(name), initTemplateValues(suite, 'array'))
 
 const roots = []
-after(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }) })
+afterAll(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }) })
 
 function emptyDirectory () {
   const root = mkdtempSync(join(tmpdir(), 'genoa-cli-init-'))

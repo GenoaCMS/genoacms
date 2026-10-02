@@ -1,6 +1,6 @@
-import { test, describe } from 'node:test'
+import { test, describe } from 'vitest'
 import assert from 'node:assert/strict'
-import { parseCliArgs } from '../src/args.js'
+import { parseCliArgs } from './args.js'
 
 describe('parseCliArgs', () => {
   test('reads the command, the target and every flag', () => {
