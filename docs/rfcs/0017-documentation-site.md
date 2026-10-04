@@ -2,8 +2,8 @@
 type: rfc
 number: 17
 title: Documentation site
-status: draft
-commits: []
+status: implemented
+commits: [4cf1e0b, d7a12f0]
 depends: [16, 28, 30, 32]
 architecture: []
 changes: []
