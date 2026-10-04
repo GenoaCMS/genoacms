@@ -9,5 +9,5 @@
 		"skipLibCheck": true,
 		"noEmit": true
 	},
-	"files": ["test.ts", "e2e.ts"]
+	"files": ["test.ts", "e2e.ts", "gcp.ts", "aws.ts", "self-hosted.ts"]
 }

@@ -443,12 +443,21 @@ importers:
       '@eslint/js':
         specifier: ^9.22.0
         version: 9.39.5
+      '@genoacms/adapter-aws':
+        specifier: workspace:^
+        version: link:../adapter-aws
       '@genoacms/adapter-gcp':
         specifier: workspace:^
         version: link:../adapter-gcp
+      '@genoacms/adapter-minio':
+        specifier: workspace:^
+        version: link:../adapter-minio
       '@genoacms/adapter-node':
         specifier: workspace:^
         version: link:../adapter-node
+      '@genoacms/adapter-postgres':
+        specifier: workspace:^
+        version: link:../adapter-postgres
       '@genoacms/adapter-secrets-env':
         specifier: workspace:^
         version: link:../adapter-secrets-env
