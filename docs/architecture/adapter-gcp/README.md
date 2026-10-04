@@ -83,7 +83,7 @@ per provider (`contracts/adapter-model.md` D2, `host.md` D3).
 | `./database`, `./database/runtime` | Firestore (native mode) | [`database.md`](database.md) |
 | `./secrets`, `./secrets/runtime` | Secret Manager | [`secrets.md`](secrets.md) |
 | `./deployment` (descriptor and procedure; no runtime) | Cloud Run functions (2nd gen) | [`deployment.md`](deployment.md) |
-| **New** `./authentication/identity-platform`, `./authentication/identity-platform/runtime` | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| `./authentication/identity-platform`, `./authentication/identity-platform/runtime` | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | **New** `./authentication/firestore`, `./authentication/firestore/runtime` | Firestore (native mode), its own database | [`authentication-firestore.md`](authentication-firestore.md) |
 
 What every service shares is specified once, in COM-1 to COM-4 at the end of this README.
@@ -121,7 +121,7 @@ nowhere, and the broad default compute service account hid them.
 | Runtime | read and write documents | the configured Firestore database | [`database.md`](database.md) |
 | Runtime | get and create secrets, add and access versions | the project's Secret Manager | core creates its signing seeds on first start ([`secrets.md`](secrets.md)) |
 | Runtime | list and destroy secret versions | the project's Secret Manager | superseded versions are destroyed (GD4). Without it, overwrites warn and versions accumulate. |
-| Runtime | **New** (GD2): sign users in, as an IAM grant or an API key (GS1a) | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| Runtime | sign users in and look them up (GD2): an IAM grant, or an API key for signing in (GS1a, GS1f) | Identity Platform | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | Runtime | **New** (GD9): read and write documents | the identity database (GD10) | [`authentication-firestore.md`](authentication-firestore.md) |
 | Operator | create, get and update functions; generate upload URLs; wait on operations | the project and region | [`deployment.md`](deployment.md) |
 | Operator | act as the runtime service account (`iam.serviceAccounts.actAs`) | the runtime service account | a function can only be deployed to run as an account its deployer may use |
@@ -130,7 +130,7 @@ Predefined roles that cover these, as a starting point for operators:
 
 | Identity | Roles |
 | :-- | :-- |
-| Runtime | `roles/storage.objectAdmin` on each bucket; `roles/datastore.user`; `roles/secretmanager.admin` (narrower: a custom role with `secretmanager.secrets.get`, `.create`, `secretmanager.versions.add`, `.access`, `.list`, `.destroy`); `roles/iam.serviceAccountTokenCreator` on itself |
+| Runtime | `roles/storage.objectAdmin` on each bucket; `roles/datastore.user`; `roles/secretmanager.admin` (narrower: a custom role with `secretmanager.secrets.get`, `.create`, `secretmanager.versions.add`, `.access`, `.list`, `.destroy`); `roles/iam.serviceAccountTokenCreator` on itself; with Identity Platform, `roles/firebaseauth.viewer` (GS1a and GS1f decide whether it suffices) |
 | Operator | `roles/cloudfunctions.developer`; `roles/iam.serviceAccountUser` on the runtime service account |
 
 A missing runtime grant fails loudly at runtime: storage reports unreachable storage, and the
@@ -151,6 +151,8 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 **GS6, falsification audit of RFC-0025's statements (WORKFLOW §6.3), at `28107d2`, 2026-09-30.** An agent that did not write the tests (a different model, Sonnet 5) tried to break COM-3, STO-4, STO-6 to STO-12, SEC-3 to SEC-8, SEC-11, DEP-8 to DEP-13 and ADP-1 to ADP-7 by changing the code while the unit, integration and end-to-end tests still passed; it reasoned about the contract tests without running them. STO-4, STO-10, SEC-7, SEC-11 and DEP-13 held. The counterexamples are GF22 (a defect), GF23 (a clause nothing implements) and GF24 to GF26 (tests that miss parts of their statements).
 
 **GS8, falsification audit of RFC-0027's statements, at `63891bd`, 2026-10-01.** An agent that wrote neither the code nor the tests made 44 mutations of STO-9, STO-11, STO-12, DEP-10 and ADP-5; 31 failed a test. Of the 13 that passed, GF30 records the gaps; three were not: `IGNORED_ROUTES` as the last key, and the prerendered middleware before the client one, which no observer can tell apart, and a `static/` middleware put back, which serves nothing (GF23). Reading the client library, it found GF29, and that STO-9's page was one item short after `startAfter`, which STO-9 now settles.
+
+**GS11, falsification audit of RFC-0032's statements, at `580767a`, 2026-10-04.** An agent that wrote neither the code nor the tests made 76 mutations of AUTH-1 to AUTH-10; 32 failed a unit test. It reasoned about the contract tests without running them: they catch three of the other 44. No statement held completely. Of the 44, the mutations no observer of Google's service can tell apart were not gaps; GF33 records the rest. Reading the code, it found GF32.
 
 **GS9, falsification audit of STO-9 and STO-11 as amended, at `f771062`, 2026-10-01.** The same method, 32 mutations, 23 failed a test. Of the rest, two only lowered the delete bound, which STO-11 allows. Six were gaps, now in GF30: the last error instead of the first, a later page's listing error swallowed, a short page's deletes overlapping the next page's, an empty page ending the delete, the entries kept by `limit` chosen out of order, and `limit: 0` read as no limit. It found one defect, the order of names compared in UTF-16 rather than UTF-8 bytes (GF30), and STO-9 and STO-11 now state the page order, the stop after a failed delete and which entries `limit` keeps.
 
@@ -187,7 +189,7 @@ Every `G` ID, where it lives, and its state.
 | GU11 | Identity Platform implemented before GS1, which confirms it | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU12 | AUTH-4 and AUTH-6 at `unit` only | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
-| GD2 | Identity Platform authentication adapter | new, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GD2 | Identity Platform authentication adapter | new, RFC-0032, amended after GS11 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
@@ -228,7 +230,9 @@ Every `G` ID, where it lives, and its state.
 | GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
 | GF28 | DB-3's reasoning assumes CMS users define collections | fixed: the reason corrected | [`database.md`](database.md) |
 | GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
-| GS1 | Identity Platform behavior | not run | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF32 | A `200` without a usable body is read as a success | open, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF33 | The AUTH tests miss parts of their statements | open, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
 | GS4 | Version destruction and its recovery window (live) | automated, RFC-0025 | [`secrets.md`](secrets.md) |
@@ -238,6 +242,7 @@ Every `G` ID, where it lives, and its state.
 | GS8 | Falsification audit of RFC-0027's statements | run at `63891bd`; findings GF29, GF30 | README |
 | GS9 | Falsification audit of STO-9 and STO-11 as amended | run at `f771062`; finding GF30 | README |
 | GS10 | 32 MiB per hash fits beside core on default memory (live) | not run | [`authentication-firestore.md`](authentication-firestore.md) |
+| GS11 | Falsification audit of RFC-0032's statements | run at `580767a`; findings GF32, GF33 | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 
