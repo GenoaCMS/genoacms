@@ -2,8 +2,8 @@
 type: rfc
 number: 32
 title: The Identity Platform authentication adapter
-status: draft
-commits: []
+status: implemented
+commits: [51475a5, e97641d, 7448d92, f9f652b, ce0ab39]
 depends: [30]
 architecture: [architecture/adapter-gcp/authentication-identity-platform.md, architecture/adapter-gcp/README.md]
 changes: [AUTH-1 added, AUTH-2 added, AUTH-3 added, AUTH-4 added, AUTH-5 added, AUTH-6 added, AUTH-7 added, AUTH-8 added, AUTH-9 added, AUTH-10 added]

@@ -2,17 +2,15 @@
 type: architecture
 title: GCP authentication: Identity Platform
 codes: [AUTH]
-verified: b050b3b
+verified: ce0ab39
 ---
 
 # GCP authentication: Identity Platform
 
 Part of the [GCP adapter architecture](README.md). Markers, IDs and test references as defined there.
 
-RFC-0032 implements this document from Google's reference documentation, and GS1 confirms it
-afterwards (GU11). AUTH-1 to AUTH-10 are implemented since `51475a5`. GS11 found that a `200`
-without a usable body is read as a success (GF32); AUTH-2, AUTH-3, AUTH-7 and AUTH-10 are amended
-by RFC-0032 before it is marked implemented.
+RFC-0032 implemented this document from Google's reference documentation, and GS1 confirms it
+afterwards (GU11).
 
 ## Design
 
@@ -65,14 +63,16 @@ What the operator sets up, once per project (not automated):
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| GF32 | **A `200` without a usable body is read as a success** (GS11). The runtime reads a body that is not JSON, or that fails mid-read, as `{}`, and builds the identity with `String()`. So `authenticate` returns `{ subject: 'undefined', email: 'undefined' }` for an HTML body, an empty object, or a timeout that fires after the headers, which AUTH-2 says fails as AUTH-7, and the identity breaks AUTHN-1. `getIdentity` returns `null` for the same bodies, so an outage ends the session (AUTHN-3, AUTHN-7). A lookup entry without `localId` returns `{ subject: 'undefined', email }`. AUTH-3 and AUTH-10 do not say what a `200` without `localId` or `email` means. The ADC token fetch is outside AUTH-2's 10-second limit, which covers only the Identity Toolkit call. | open, RFC-0032 |
-| GF33 | **The AUTH tests miss parts of their statements** (GS11). They pass when: other unknown option keys or a `null` `tenantId` are accepted, or the export or the `AuthenticationAdapters` key is renamed (AUTH-1); the timeout signal is created but not passed, the lookup has no limit, a network error or `5xx` is retried, or `content-type` is dropped (AUTH-2, AUTH-10); the email comes from the request rather than the response (AUTH-3); a second factor is keyed on `mfaInfo` (AUTH-4); the code is split on a space or on `:`, matched by prefix, or `OPERATION_NOT_ALLOWED` or any `INVALID_` code reads as `credentials` (AUTH-5, AUTH-7); the message is `undefined`, has text appended, or lacks the `authentication/` prefix, since `toThrow` matches substrings (AUTH-7); a token is returned as a non-enumerable property, written to `process.stderr` or `console.dir` (AUTH-8); `management` is on the prototype (AUTH-9); a lookup `400`, `404`, network or ADC failure returns `null` (AUTH-10). The contract tests catch three of these. | open, RFC-0032 |
+| GF32 | **A `200` without a usable body is read as a success** (GS11). The runtime reads a body that is not JSON, or that fails mid-read, as `{}`, and builds the identity with `String()`. So `authenticate` returns `{ subject: 'undefined', email: 'undefined' }` for an HTML body, an empty object, or a timeout that fires after the headers, which AUTH-2 says fails as AUTH-7, and the identity breaks AUTHN-1. `getIdentity` returns `null` for the same bodies, so an outage ends the session (AUTHN-3, AUTHN-7). A lookup entry without `localId` returns `{ subject: 'undefined', email }`. AUTH-3 and AUTH-10 do not say what a `200` without `localId` or `email` means. The ADC token fetch is outside AUTH-2's 10-second limit, which covers only the Identity Toolkit call. | fixed, RFC-0032 |
+| GF33 | **The AUTH tests miss parts of their statements** (GS11). They pass when: other unknown option keys or a `null` `tenantId` are accepted, or the export or the `AuthenticationAdapters` key is renamed (AUTH-1); the timeout signal is created but not passed, the lookup has no limit, a network error or `5xx` is retried, or `content-type` is dropped (AUTH-2, AUTH-10); the email comes from the request rather than the response (AUTH-3); a second factor is keyed on `mfaInfo` (AUTH-4); the code is split on a space or on `:`, matched by prefix, or `OPERATION_NOT_ALLOWED` or any `INVALID_` code reads as `credentials` (AUTH-5, AUTH-7); the message is `undefined`, has text appended, or lacks the `authentication/` prefix, since `toThrow` matches substrings (AUTH-7); a token is returned as a non-enumerable property, written to `process.stderr` or `console.dir` (AUTH-8); `management` is on the prototype (AUTH-9); a lookup `400`, `404`, network or ADC failure returns `null` (AUTH-10). The contract tests catch three of these. | fixed, RFC-0032 |
 
 ### History
 
 *History.* Until 2026-10-04, core's production config authenticated with
 `@genoacms/authentication-adapter-array` and a JSON secret, `GENOACMS_ADMIN_CREDENTIALS`, in Secret
 Manager. RFC-0032 added this adapter (`51475a5`), and its contract tests run in CI since `e97641d`.
+GS11 found that a `200` without a usable body was read as a success (GF32), and RFC-0032 was
+amended to fix it (`f9f652b`) before it was marked implemented.
 
 ### Verification
 
@@ -129,7 +129,6 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
-- State: new (RFC-0032)
 
 #### AUTH-3 · Success
 
@@ -137,7 +136,6 @@ A `200` whose body is a JSON object without `mfaPendingCredential`, with `localI
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
-- State: new (RFC-0032)
 
 #### AUTH-4 · Second factor required
 
@@ -145,7 +143,6 @@ A `200` whose body holds `mfaPendingCredential`, whatever its value, `null` incl
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`
 - Level: unit
-- State: new (RFC-0032)
 
 #### AUTH-5 · Rejected credentials
 
@@ -167,7 +164,6 @@ Any other outcome (network error, timeout, `403`, `5xx`, an invalid key, reCAPTC
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
-- State: new (RFC-0032)
 
 #### AUTH-8 · Tokens are discarded
 
@@ -182,4 +178,3 @@ The response's `idToken` and `refreshToken` are discarded: never stored, never l
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
-- State: new (RFC-0032)

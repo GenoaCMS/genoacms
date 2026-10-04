@@ -191,7 +191,7 @@ Every `G` ID, where it lives, and its state.
 | GU11 | Identity Platform implemented before GS1, which confirms it | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU12 | AUTH-4 and AUTH-6 at `unit` only | decided | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD1 | The deploy waits for the platform and fails when it fails | current, RFC-0021 | [`deployment.md`](deployment.md) |
-| GD2 | Identity Platform authentication adapter | new, RFC-0032, amended after GS11 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GD2 | Identity Platform authentication adapter | current, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
 | GD5 | The SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH`; the target sets them | current, RFC-0023 | [`deployment.md`](deployment.md) |
@@ -232,8 +232,8 @@ Every `G` ID, where it lives, and its state.
 | GF27 | Disabling a secret version takes effect after a delay | documented | [`secrets.md`](secrets.md) |
 | GF28 | DB-3's reasoning assumes CMS users define collections | fixed: the reason corrected | [`database.md`](database.md) |
 | GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
-| GF32 | A `200` without a usable body is read as a success | open, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
-| GF33 | The AUTH tests miss parts of their statements | open, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF32 | A `200` without a usable body is read as a success | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF33 | The AUTH tests miss parts of their statements | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
