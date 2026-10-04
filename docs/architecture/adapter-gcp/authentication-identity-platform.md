@@ -125,7 +125,7 @@ The runtime offers no `management` (`identities.md` IDM-1). Users are managed in
 
 #### AUTH-2 · One sign-in call
 
-`authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. The JSON body is sent with `content-type: application/json`. A call is never retried. The call, from obtaining the ADC token to reading the whole response, is abandoned after 10 seconds and fails as AUTH-7.
+`authenticate(email, password)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword` with the JSON body `{ email, password, returnSecureToken: true }`, plus `tenantId` when configured. With `apiKey`, it is sent as the `key` query parameter. Without it, the call carries an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. The JSON body is sent with `content-type: application/json`. The Identity Toolkit request is never retried; the ADC token request may be retried inside `google-auth-library`, within the 10 seconds. The call, from obtaining the ADC token to reading the whole response, is abandoned after 10 seconds and fails as AUTH-7.
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
@@ -141,10 +141,11 @@ A `200` whose body is a JSON object without `mfaPendingCredential`, with `localI
 
 #### AUTH-4 · Second factor required
 
-`200` with `mfaPendingCredential` returns `{ rejected: 'second-factor-required' }`. The contract has no second step.
+A `200` whose body holds `mfaPendingCredential`, whatever its value, `null` included, returns `{ rejected: 'second-factor-required' }`. The contract has no second step (`contracts/authentication.md` CF30).
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`
 - Level: unit
+- State: new (RFC-0032)
 
 #### AUTH-5 · Rejected credentials
 
@@ -177,7 +178,7 @@ The response's `idToken` and `refreshToken` are discarded: never stored, never l
 
 #### AUTH-10 · getIdentity
 
-`getIdentity(subject)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup` with the JSON body `{ localId: [subject], targetProjectId: projectId }`, plus `tenantId` when configured, carrying an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. A `200` whose body is a JSON object is read by its first `users` entry. An entry with a non-empty string `localId`, `disabled` not `true` and a string `email` returns `{ subject: localId, email }` from it. No `users`, an empty `users`, a disabled entry, or one without an email returns `null`. A `200` whose body is not a JSON object, whose `users` is not an array, or whose first entry lacks a non-empty string `localId`, fails as AUTH-7 with the message `malformed response`. AUTH-2's 10-second limit and its "never retried" apply. Any other outcome, a `400` or `404` included, throws as AUTH-7: a failed lookup never returns `null`, so an outage does not end a session (`contracts/authentication.md` AUTHN-3). The permission it needs is decided by GS1f.
+`getIdentity(subject)` makes one call: `POST https://identitytoolkit.googleapis.com/v1/accounts:lookup` with the JSON body `{ localId: [subject], targetProjectId: projectId }`, plus `tenantId` when configured, carrying an ADC access token with the `https://www.googleapis.com/auth/identitytoolkit` scope. A `200` whose body is a JSON object is read by its first `users` entry. An entry with a non-empty string `localId`, `disabled` not `true` and a string `email` returns `{ subject: localId, email }` from it. An absent `users`, an empty `users`, a disabled entry, or one without an email returns `null`. A `200` whose body is not a JSON object, whose `users` is present but not an array (`null` included), or whose first entry lacks a non-empty string `localId`, disabled or not, fails as AUTH-7 with the message `malformed response`. AUTH-2's content type, its 10-second limit and its "never retried" apply. Any other outcome, a `400`, `404` or `5xx` included, throws as AUTH-7: a failed lookup never returns `null`, so an outage does not end a session (`contracts/authentication.md` AUTHN-3). The permission it needs is decided by GS1f.
 
 - Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`, `packages/adapter-gcp/test/contract/authentication.test.ts`
 - Level: unit, contract
