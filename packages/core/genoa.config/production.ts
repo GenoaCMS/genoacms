@@ -1,12 +1,12 @@
 import {
   defineConfig, storageProvider, databaseProvider, authenticationProvider,
-  secretsProvider, deploymentTarget, secret, inline
+  secretsProvider, deploymentTarget, inline
 } from '@genoacms/config'
 import type {} from '@genoacms/adapter-gcp/storage'
 import type {} from '@genoacms/adapter-gcp/database'
 import type {} from '@genoacms/adapter-gcp/secrets'
 import type {} from '@genoacms/adapter-gcp/deployment'
-import type {} from '@genoacms/authentication-adapter-array'
+import type {} from '@genoacms/adapter-gcp/authentication/identity-platform'
 // Gitignored. Used only by the gcp target, on the operator's machine: deployment options never
 // enter the build.
 import serviceAccount from './gcp/serviceAccount.json' with { type: 'json' }
@@ -16,15 +16,15 @@ import { security } from './security.js'
 import { languages } from './languages.js'
 
 /**
- * Production on GCP. Storage, Firestore and Secret Manager authenticate as the function's own
- * service account (Application Default Credentials), so no credential ships with the build; the
- * administrators' credentials live in Secret Manager.
+ * Production on GCP. Storage, Firestore, Secret Manager and Identity Platform authenticate as the
+ * function's own service account (Application Default Credentials), so no credential ships with the
+ * build; users are managed in Identity Platform.
  */
 export default defineConfig({
   authentication: {
     cookieName: '__session',
     providers: {
-      array: authenticationProvider('@genoacms/authentication-adapter-array', { credentials: secret('GENOACMS_ADMIN_CREDENTIALS') })
+      'identity-platform': authenticationProvider('@genoacms/adapter-gcp/authentication/identity-platform', { projectId: 'genoacms' })
     }
   },
   secrets: {
