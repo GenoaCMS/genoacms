@@ -46,7 +46,8 @@ This RFC:
 | `packages/core/genoa.config/tsconfig.json` | add the three to `files`; it type-checks `test.ts` and `e2e.ts` in CI's build step since `9aa4277` |
 | `packages/core/package.json`, `pnpm-lock.yaml` | dev dependencies `@genoacms/adapter-aws`, `@genoacms/adapter-minio`, `@genoacms/adapter-postgres`, each `workspace:^` |
 | `packages/core/src/lib/config/exampleConfigs.test.ts` | create (§Tests) |
-| `packages/docs/vite.config.ts` | the include plugin; the navbar, the sidebar and `github` |
+| `packages/docs/vite.config.ts` | the include plugin; the navbar, the sidebar and `github`; the highlighter's languages |
+| `packages/docs/src/routes/+page.md` | its GitHub link points at `GenoaCMS/genoacms` |
 | `.github/workflows/docs.yml` | `packages/core/genoa.config/**` added to the push `paths` |
 | `guide/getting-started/+page.md`, `guide/config/structure/+page.md`, `guide/config/providers/+page.md`, `guide/config/services/+page.md`, `guide/adapters/+page.md`, `guide/cli/+page.md` | rewrite (§Specification, *Pages*) |
 | `guide/config/secrets/+page.md`, `guide/config/examples/+page.md` | create |
@@ -96,6 +97,13 @@ renders the block like a written one.
 
 The site therefore shows a config only by including it, and never copies one into a page.
 
+*Amended 2026-10-04, found implementing this RFC.* sveltepress has an import of its own,
+`@code(<path>)`, but it renders nothing for a missing file, so a renamed config would vanish from a
+page without failing the build; the plugin stays. The highlighter loads only `svelte`, `sh`, `js`,
+`html`, `ts`, `md`, `css` and `scss` by default, and a block in another language reaches Svelte
+unescaped, so a `json` block with braces fails the build: the theme's `highlighter.languages` adds
+`bash` and `json`. Prerendering already fails on a link or an anchor that does not resolve.
+
 ### Pages
 
 Each page's code examples are included example configs, or fragments of a config that are consistent
@@ -113,7 +121,7 @@ with them. No page names `cloudabstraction`, `adapterPath`, `getProvider`, `geno
 8. **cli.** Every command of CLI-2 with its default mode; `-c`/`--config`, `-m`/`--mode` with `dev` and `prod`, `--no-inline`, `-h`/`--help`, `-v`/`--version`; `genoa build [target]` and what it writes (`.genoacms/build`, its `package.json`); `genoa deploy [target]`, which resolves the target's secrets on the operator's machine through the configured store; `database` deletes dynamic collections (CLI-10). The "Composing roles" and "Key rotation" sections stay, with `npx @genoacms/cli rotate-root` replaced by `genoa rotate-root --config genoa.config/production.ts`. The CLI's link points at the `packages/cli` directory of `GenoaCMS/genoacms`.
 9. **sessions.** A section on signing in across providers (AUTHN-5: one at a time, in key order; what moves on to the next; the three messages a user sees) and one on revalidation (AUTHN-6, AUTHN-7: each refresh asks the provider that admitted the session; a user deleted or disabled there is signed out at the next refresh; a provider that fails leaves the session as it is). Nothing else changes.
 10. **language-adapters.** "Registering one" shows the `languages` stanza with `languageProvider('@genoacms/language-adapter-ts', { target: 'es2020' })`, keyed by language, and its explanation of the dynamic import is removed. The first paragraph's `@genoacms/cloudabstraction` becomes `@genoacms/contracts`.
-11. **reference/contracts/***. Each page gives the adapter interface of its contract as `@genoacms/contracts` declares it: authentication with `Rejection`, `RejectionReason` and `getIdentity` (AUTHN-2 to AUTHN-4); storage with all ten methods, `moveObject`, `deleteDirectory` and `moveDirectory` among them, and `isPreconditionFailed` from `@genoacms/contracts/storage`; database, with `JsonSchema` for a collection's `schema` and `primaryKey.schema`; secrets, with key names and `assertValidSecretKey` from `@genoacms/contracts/secrets`, the GCP row saying superseded versions are destroyed (`adapter-gcp/secrets.md`), and credentials optional under Application Default Credentials; deployment as `DeploymentDescriptor`, `DeployContext` and `DeployProcedure`. Every `declare module '@genoacms/adapter-*/…'` block and every `*Provider` type is removed, and each page links the adapters guide.
+11. **reference/contracts/***. Each page gives the adapter interface of its contract as `@genoacms/contracts` declares it, by including the contract's own declaration files (`packages/contracts/src/<service>/*.d.ts`, and `adapter.d.ts` for deployment); the moved pages had retyped them and drifted, a `QueryParams.order` the contract does not have among them: authentication with `Rejection`, `RejectionReason` and `getIdentity` (AUTHN-2 to AUTHN-4); storage with all ten methods, `moveObject`, `deleteDirectory` and `moveDirectory` among them, and `isPreconditionFailed` from `@genoacms/contracts/storage`; database, with `JsonSchema` for a collection's `schema` and `primaryKey.schema`; secrets, with key names and `assertValidSecretKey` from `@genoacms/contracts/secrets`, the GCP row saying superseded versions are destroyed (`adapter-gcp/secrets.md`), and credentials optional under Application Default Credentials; deployment as `DeploymentDescriptor`, `DeployContext` and `DeployProcedure`. Every `declare module '@genoacms/adapter-*/…'` block and every `*Provider` type is removed, and each page links the adapters guide.
 12. **reference/config.** `defineConfig`, the helpers and references, `Config`, `AuthorizationConfig`, `SecurityConfig`, `LoadOptions`, `Manifest` and `RuntimeManifest`; `createHost` in one paragraph, for tooling authors; the `genoa()` Vite plugin and the `GENOA_*` environment (`build.md`).
 13. **reference/sdk/attributes.** `@genoacms/cloudabstraction` becomes `@genoacms/contracts`.
 
@@ -127,7 +135,7 @@ as it is, then **Contracts** (Authentication, Database, Deployment, Secrets, Sto
 ## Non-goals
 
 - No change to `guide/authorization`, `guide/signing-keys`, `guide/storage-layout`, `guide/consumer`, `guide/introduction` or `reference/sdk/documents`.
-- No theme change and no new dependency. `src/lib/ExternalFile.md`, which no page uses, stays.
+- No theme change and no new dependency; the highlighter's language list is configuration of the existing theme. `src/lib/ExternalFile.md`, which no page uses, stays.
 - No internal mechanism on the site: scanner internals, host caching, the vendoring of local packages.
 - No change to `development.ts`, `production.ts`, `test.ts` or `e2e.ts`, and no redirect from the old `/reference/cloudabstraction/*` routes.
 
