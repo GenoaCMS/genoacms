@@ -10,7 +10,7 @@ import type { GuardBudgets } from './guards'
  * parameters, their types and their order — is emitted from the component's header, which is
  * authored in the registrar. Assembling that, checking the result against safety rules, and
  * compiling it to something a consumer can run are all language-specific, and none of them is a
- * cloud service, so they plug in here rather than through `@genoacms/cloudabstraction`.
+ * cloud service, so they plug in here rather than through `@genoacms/contracts`.
  *
  * An adapter is registered in `genoa.config` like any other, and a component records which language
  * it is written in, so the CMS resolves the adapter from the component rather than from a global

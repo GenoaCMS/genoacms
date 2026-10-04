@@ -1,12 +1,14 @@
+/** @typedef {import('@genoacms/contracts/database').CollectionReference} CollectionReference */
 import {
   storageResource,
   nullableStorageResource,
   reference
 } from '@genoacms/contracts/schemas'
 
+/** @type {CollectionReference} */
 const testCollection = {
   name: 'test',
-  primaryKey: 'id',
+  primaryKey: { key: 'id', schema: { type: 'string' } },
   schema: {
     type: 'object',
     properties: {
@@ -28,9 +30,10 @@ const testCollection = {
   }
 }
 
+/** @type {CollectionReference} */
 const authors = {
   name: 'authors',
-  primaryKey: 'id',
+  primaryKey: { key: 'id', schema: { type: 'string' } },
   schema: {
     type: 'object',
     properties: {
@@ -150,9 +153,10 @@ const richTextSection = {
   }
 }
 
+/** @type {CollectionReference} */
 const articles = {
   name: 'articles',
-  primaryKey: 'id',
+  primaryKey: { key: 'id', schema: { type: 'string' } },
   schema: {
     type: 'object',
     properties: {

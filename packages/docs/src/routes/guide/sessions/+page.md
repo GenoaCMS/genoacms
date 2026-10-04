@@ -16,6 +16,28 @@ reassigned, and a permission that rested on one would move with it.
 So the key in `authorization.assignments` is a subject, the key in `users.json` is a subject, and the
 email beside it is there to render a name on screen.
 
+## Signing in across providers
+
+A config may name several [authentication providers](/guide/config/services#Authentication). At
+sign-in GenoaCMS tries them **one at a time, in the order of their keys**:
+
+- a provider that recognizes the email and password returns an identity, and the trial stops;
+- a provider that does not know the user, or finds the password wrong, passes to the next;
+- a provider that knows the user and refuses them — a disabled account, a second factor GenoaCMS cannot ask for — stops the trial;
+- a provider that fails — unreachable, throttled, misconfigured — is logged, and passes to the next.
+
+An identity is admitted only if the authorization data knows its subject. A user sees one of three
+messages, and never which provider answered or why:
+
+| Message | When |
+| :--- | :--- |
+| invalid credentials | every provider refused, or the authorization data does not know the identity |
+| too many attempts | no provider decided, and at least one was throttled |
+| sign-in unavailable | no provider decided, and at least one failed; or none is configured |
+
+Each refusal and each failure is logged with the provider's key and the reason. No log line holds
+the email or the password.
+
 ## Two tokens, one cookie
 
 A session is made of two things with very different lifetimes:
@@ -58,6 +80,19 @@ window is short and applies only to the *previous* token, so a replay outside it
 :::
 
 Signing out deletes the family, which is why it takes effect everywhere that sign-in reached.
+
+## Every refresh asks the provider again
+
+The session remembers which provider admitted it. Each time it refreshes, before a new access token
+is issued, GenoaCMS asks **that** provider whether the subject still exists and may still sign in:
+
+- the provider answers with the identity: the session continues, and the new token carries the email the provider returned, so an address changed there reaches the session at the next refresh;
+- the provider no longer knows the subject, or it is disabled there: the session is revoked and the cookie cleared, and the user signs in again;
+- the provider fails: the refresh fails, and the session is left as it is, to try again on the next request.
+
+A session whose provider has been removed from the config ends at its next refresh. Deleting or
+disabling a user in the identity platform therefore signs them out within `accessTokenMinutes`,
+without touching GenoaCMS.
 
 ## Revocation is bounded, not instant
 

@@ -7,7 +7,7 @@ actions:
     type: primary
     to: /guide/introduction
   - label: View on github
-    to: https://github.com/GenoaCMS/core
+    to: https://github.com/GenoaCMS/genoacms
     external: true
 features:
   - title: Platform-agnostic

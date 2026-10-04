@@ -44,7 +44,8 @@ shape of the file says which is which:
   resolution, merged over stored state rather than written into it, and deleting a line *removes*
   what it granted.
 - **`security`** — `accessTokenMinutes`, `refreshTokenDays`, `grantCacheSeconds`,
-  `subordinateKeyRotationDays` — supplies the values a new instance starts from. After first start
+  `subordinateKeyRotationDays`, `maxFuel`, `maxDepth`, `maxAllocation`, `fetchOrigins` — supplies the
+  values a new instance starts from. After first start
   the live values live in the signed security policy document, and editing `genoa.config` no longer
   moves them.
 
@@ -62,78 +63,58 @@ answers. *"What may you do here?"* is not: permissions are defined over GenoaCMS
 buckets, collections, components, pages — which no external system can enumerate or evaluate. See
 [roles and permissions](/guide/authorization).
 
-## Where the file goes
+## One file per environment
 
-The entry file is `{projectRoot}/genoa.config/index.js`, exporting a default object typed as
-`genoaConfig` from `@genoacms/cloudabstraction`. Each service has its own object naming
-[its adapter and settings](/guide/config/services).
+A project keeps its configuration in one directory, `genoa.config/`:
 
-## Example structure
-
-```js
-/**
- * @type {import('@genoacms/cloudabstraction').genoaConfig}
- */
-const config = {
-  authentication: {
-    providers: [
-      { adapter: import('package'), ... }
-    ],
-    cookieName: '__session'
-  },
-  database: {
-    databases: [
-      {
-        name: 'myDb',
-        providerName: 'myDbProvider',
-        collections: [{ ... }]
-      }
-    ],
-    providers: [
-      { name: 'myDbProvider', adapter: import('package'), ... }
-    ]
-  },
-  deployment: {
-    adapter: import('package'),
-    ...
-  },
-  storage: {
-    defaultBucket: 'myBucket',
-    buckets: [
-      {
-        name: 'myBucket',
-        providerName: 'myStorageProvider'
-      }
-    ],
-    providers: [
-      { name: 'myStorageProvider', adapter: import('package'), ... }
-    ]
-  },
-  secrets: {
-    providers: [
-      { name: 'local', adapter: import('@genoacms/adapter-secrets-env') }
-    ]
-  },
-  authorization: {
-    // Authority: immutable at runtime, and removing a line revokes what it granted.
-    roles: {
-      Administrator: [{ permission: '*', resource: '*' }]
-    },
-    assignments: {
-      'the-subject-of-your-first-administrator': ['Administrator']
-    }
-  },
-  security: {
-    // Seeds: the values a new instance starts from.
-    accessTokenMinutes: 15,
-    refreshTokenDays: 14,
-    grantCacheSeconds: 30,
-    subordinateKeyRotationDays: 90
-  }
-}
-
-export default config
+```
+genoa.config/
+├── development.ts     the config genoa dev finds on its own
+├── production.ts      named on the command line, always
+├── collections.ts     modules both configs import
+├── authorization.ts
+├── security.ts
+└── languages.ts
 ```
 
-A new instance needs at least one assignment, or nobody can administer it. The key is a **subject**,
-not an email address — see [identity and sessions](/guide/sessions).
+`genoa init` writes exactly this layout. Each environment gets its own complete config rather than a
+base with overrides, so what runs in production is what `production.ts` says, read top to bottom.
+
+A project with a single config may use one root file, `genoa.config.ts`, instead of the directory.
+
+### Which file is read
+
+Without `--config`, GenoaCMS looks for, in order:
+
+1. `genoa.config.ts`, `.mts`, `.js` or `.mjs` at the project root;
+2. `genoa.config/development.ts`, `.mts`, `.js` or `.mjs`.
+
+`genoa.config/index.*` is not looked up. **A production config is never found by default**: it is
+always named, as in `genoa deploy --config genoa.config/production.ts`. A production build of the
+development config fails on its development-only secrets store, and the CLI then says which file it
+loaded and how to name the production one.
+
+## Config is data
+
+A config file default-exports a plain object. It may import anything that evaluates to data — shared
+modules, JSON, constants — and is evaluated once, when the CLI or the dev server loads it.
+
+Adapters are **named, never imported**. A provider entry says which adapter by its package specifier,
+as a string, and GenoaCMS loads the adapter itself: an SDK-free descriptor while building, the runtime
+only where it runs. The `import type {}` lines at the top of a config load nothing at runtime; they
+register each adapter's option types, so a misspelled option is a type error in your editor.
+
+`defineConfig` returns its argument unchanged. It exists so TypeScript can infer the provider names
+and check every reference to them; see [providers](/guide/config/providers).
+
+## A complete config
+
+The self-hosted example, one of the [example configs](/guide/config/examples):
+
+@include ../../../../../../core/genoa.config/self-hosted.ts
+
+Every stanza is described under [services](/guide/config/services), and every `secret()` under
+[secrets](/guide/config/secrets).
+
+A new instance needs at least one assignment in `authorization`, or nobody can administer it. The key
+is a **subject**, not an email address — see [identity and sessions](/guide/sessions).

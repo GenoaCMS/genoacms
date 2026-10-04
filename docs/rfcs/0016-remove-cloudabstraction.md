@@ -2,8 +2,8 @@
 type: rfc
 number: 16
 title: Delete `@genoacms/cloudabstraction`
-status: draft
-commits: []
+status: implemented
+commits: [f045d43]
 depends: [15]
 architecture: [configuration.md]
 commit-subject: refactor!: remove @genoacms/cloudabstraction
@@ -31,7 +31,14 @@ After RFC-0015 nothing imports `@genoacms/cloudabstraction`. This RFC:
 
 **Create:** `packages/internal/src/authorization/permissions.test.js`. Its content is
 `packages/cloudAbstraction/test/permissions.test.js`, with the import path changed from
-`'../src/authorization/permissions.js'` to `'./permissions.js'`. Nothing else changes.
+`'../src/authorization/permissions.js'` to `'./permissions.js'`, and with the three duplicate entries of its
+`declared` list removed: the second `'components:register'` and the second and third
+`'components:code'`. Nothing else changes.
+
+*Amended 2026-10-04, found implementing this RFC.* `d7de0d77` collapsed seven component permissions into
+four and renamed the test's entries one for one, which left the duplicates. The test never ran, so
+nothing caught them: with them, `is exactly the declared vocabulary` expects 23 permissions where the
+vocabulary has 20. The set the test pins is unchanged.
 
 **Modify:**
 
@@ -57,7 +64,7 @@ After RFC-0015 nothing imports `@genoacms/cloudabstraction`. This RFC:
 
 ```bash
 grep -rn "@genoacms/cloudabstraction\|cloudAbstraction" --include=*.ts --include=*.js --include=*.svelte --include=*.json --include=*.md . \
-  | grep -v node_modules | grep -v "/dist/" | grep -v "^./docs/" | grep -v "^./packages/docs/" | grep -v pnpm-lock.yaml
+  | grep -v node_modules | grep -v "/dist/" | grep -v "^\(\./\)\?docs/" | grep -v "^\(\./\)\?packages/docs/" | grep -v pnpm-lock.yaml
 ```
 
 **Expected:** no output. `docs/` (architecture and RFCs) and `packages/docs` (RFC-0017) are excluded.
@@ -69,7 +76,8 @@ pnpm -r --no-bail run test 2>&1 | tail -20
 ```
 
 **Expected:**
-- `internal`'s tests pass, including the moved permission test. It **failed before this RFC** because its import pointed at a path that did not exist in `cloudAbstraction`; record that in the commit body.
+- `internal`'s tests pass, including the moved permission test. It **failed before this RFC** because its import pointed at a path that did not exist in `cloudAbstraction`, and its duplicate entries (§2) would have failed it
+  too; record both in the commit body.
 - The workspace test run has no failures beyond the baseline recorded in RFC-0014 step 1.
 
 ## 6. Critique

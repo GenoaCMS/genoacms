@@ -16,7 +16,7 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 ## Order
 
 Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
-frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0016 and RFC-0017 are the only drafts. RFC-0001 to RFC-0024
+frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 is the only draft. RFC-0001 to RFC-0024
 predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 
 Each RFC depends only on RFCs above it. Implement strictly in this order, and commit each RFC on its
@@ -55,7 +55,7 @@ own before starting the next.
 | [0031](0031-sign-in-limits.md) | Core limits failed sign-ins (`contracts/authentication.md` CD7, CF1). Deferred by the author, 2026-10-02. | `packages/config`, `packages/core` |
 | [0032](0032-gcp-identity-platform-adapter.md) | The Identity Platform authentication adapter (`adapter-gcp/authentication-identity-platform.md` GD2, GU10, GU11). Implemented after 0030, before 0031. | `packages/adapter-gcp`, CI |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
-| [0017](0017-documentation-site.md) | Documentation site | `packages/docs` |
+| [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04. | `packages/docs`, `packages/core` (example configs), CI |
 
 ### Why the adapters do not change their `exports` before RFC-0014
 

@@ -5,7 +5,7 @@ title: Adding a language
 Components written in the CMS are authored in some language, checked against that language's safety
 rules, and compiled into something a consumer can run. All three are language-specific, and none of
 them is a cloud service — so they plug in through a **`LanguageAdapter`** rather than through
-`@genoacms/cloudabstraction`.
+`@genoacms/contracts`.
 
 An adapter is registered in `genoa.config` like any other, and a component records which language it
 is written in, so the CMS resolves the adapter **from the component** rather than from a global
@@ -141,19 +141,20 @@ locate is a refusal without a reason, and the commit it blocks is then a guess.
 
 ## Registering one
 
-```js
-// genoa.config
-languageAdapters: {
-  typescript: {
-    module: '@genoacms/language-adapter-ts',
-    import: import('@genoacms/language-adapter-ts')
+```ts
+// genoa.config/languages.ts
+import { languageProvider } from '@genoacms/config'
+import type {} from '@genoacms/language-adapter-ts'
+
+export const languages = {
+  providers: {
+    typescript: languageProvider('@genoacms/language-adapter-ts', { target: 'es2020' })
   }
 }
 ```
 
-The same shape every other adapter uses: a module path, and a dynamic import of it. The import is a
-promise because the config declares it with `import(...)` rather than loading it, so nothing is
-pulled in until something asks for that language.
+The `languages` stanza is keyed by language: the key is the `language` the adapter reports, and the
+name a component records. A second language is a second key.
 
 ## How much work this is
 

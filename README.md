@@ -7,7 +7,9 @@ that implement that abstraction for individual providers.
 
 | Package                                                                                   | Published as                                       | Role                                                          |
 | ----------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
-| [`packages/cloudAbstraction`](packages/cloudAbstraction)                                     | `@genoacms/cloudabstraction`                        | Provider-agnostic contracts for storage, database, auth, deployment. Every adapter implements these. |
+| [`packages/contracts`](packages/contracts)                                                  | `@genoacms/contracts`                              | Provider-agnostic service contracts and adapter descriptor types. Every adapter implements these. |
+| [`packages/config`](packages/config)                                                        | `@genoacms/config`                                 | Config authoring helpers, loader, host and build integration |
+| [`packages/conformance`](packages/conformance)                                              | `@genoacms/conformance`                            | Test suites an adapter runs to prove it meets its service contract |
 | [`packages/core`](packages/core)                                                             | `@genoacms/core`                                    | The SvelteKit CMS application                                  |
 | [`packages/cli`](packages/cli)                                                               | `@genoacms/cli`                                     | Project scaffolding and setup                                  |
 | [`packages/adapter-gcp`](packages/adapter-gcp)                                               | `@genoacms/adapter-gcp`                             | Storage / database / auth / deployment on Google Cloud         |
@@ -43,10 +45,10 @@ pnpm --filter @genoacms/core... run build   # the package and everything it depe
 Packages depend on each other through the `workspace:^` protocol, e.g.:
 
 ```json
-"@genoacms/cloudabstraction": "workspace:^"
+"@genoacms/contracts": "workspace:^"
 ```
 
-pnpm links these to the local source, so a change in `cloudAbstraction` is visible
+pnpm links these to the local source, so a change in `contracts` is visible
 to every adapter immediately — no publish, no version bump, no drift between what
 an adapter is developed against and what it declares. At publish time pnpm rewrites
 `workspace:^` to the real caret range (`^0.8.11`), so consumers on npm see a normal
