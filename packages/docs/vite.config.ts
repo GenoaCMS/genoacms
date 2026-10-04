@@ -1,34 +1,58 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, extname, relative, resolve } from 'node:path'
 import { defaultTheme } from '@sveltepress/theme-default'
 import { sveltepress } from '@sveltepress/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
+
+const INCLUDE_LINE = /^@include (\S+)$/gm
+
+function fencedFile (path: string, page: string): string {
+  const file = resolve(dirname(page), path)
+  if (!existsSync(file)) throw new Error(`include: ${path} not found (in ${relative(process.cwd(), page)})`)
+  const contents = readFileSync(file, 'utf-8').replace(/\n$/, '')
+  return `\`\`\`${extname(file).slice(1)}\n${contents}\n\`\`\``
+}
+
+/** Replaces each `@include <path>` line of a page with the file, as a fenced code block. */
+function include (): Plugin {
+  return {
+    name: 'genoacms-docs-include',
+    enforce: 'pre',
+    transform (src, id) {
+      if (!id.endsWith('+page.md')) return
+      return src.replace(INCLUDE_LINE, (_line, path: string) => fencedFile(path, id))
+    }
+  }
+}
 
 const config = defineConfig({
-	plugins: [
-		sveltepress({
-			theme: defaultTheme({
-				navbar: [
+  plugins: [
+    include(),
+    sveltepress({
+      theme: defaultTheme({
+        navbar: [
           {
             title: 'Guide',
-            to: '/guide/introduction',
+            to: '/guide/introduction'
           },
           {
             title: 'Reference',
-            to: '/reference/cloudabstraction/config/',
+            to: '/reference/config/'
           }
-				],
-				sidebar: {
+        ],
+        sidebar: {
           '/guide/': [
             {
               title: 'Introduction',
               items: [
                 {
                   title: 'What is GenoaCMS?',
-                  to: '/guide/introduction/',
+                  to: '/guide/introduction/'
                 },
                 {
                   title: 'Getting Started',
-                  to: '/guide/getting-started/',
-                },
+                  to: '/guide/getting-started/'
+                }
               ]
             },
             {
@@ -36,56 +60,67 @@ const config = defineConfig({
               items: [
                 {
                   title: 'Config structure',
-                  to: '/guide/config/structure/',
+                  to: '/guide/config/structure/'
                 },
                 {
-                  title: 'Providers API',
-                  to: '/guide/config/providers/',
+                  title: 'Providers',
+                  to: '/guide/config/providers/'
                 },
                 {
                   title: 'Services',
-                  to: '/guide/config/services/',
+                  to: '/guide/config/services/'
+                },
+                {
+                  title: 'Secrets',
+                  to: '/guide/config/secrets/'
+                },
+                {
+                  title: 'Examples',
+                  to: '/guide/config/examples/'
                 },
                 {
                   title: 'Adapters',
-                  to: '/guide/adapters/',
-                }]
+                  to: '/guide/adapters/'
+                }
+              ]
             },
             {
               title: 'Operations',
               items: [
                 {
                   title: 'Roles and permissions',
-                  to: '/guide/authorization/',
+                  to: '/guide/authorization/'
                 },
                 {
                   title: 'Identity and sessions',
-                  to: '/guide/sessions/',
+                  to: '/guide/sessions/'
                 },
                 {
                   title: 'Signing keys',
-                  to: '/guide/signing-keys/',
+                  to: '/guide/signing-keys/'
                 },
                 {
                   title: 'What GenoaCMS stores',
-                  to: '/guide/storage-layout/',
+                  to: '/guide/storage-layout/'
                 },
                 {
                   title: 'CLI',
-                  to: '/guide/cli/',
-                }]
+                  to: '/guide/cli/'
+                }
+              ]
             },
             {
               title: 'Consumers',
               items: [
                 {
                   title: 'Rendering pages in your app',
-                  to: '/guide/consumer/',
+                  to: '/guide/consumer/'
                 },
                 {
                   title: 'Adding a language',
-                  to: '/guide/language-adapters/',
-                }]
+                  to: '/guide/language-adapters/'
+                }
+              ]
             }
           ],
           '/reference/': [
@@ -94,62 +129,69 @@ const config = defineConfig({
               items: [
                 {
                   title: 'Documents a consumer receives',
-                  to: '/reference/sdk/documents/',
+                  to: '/reference/sdk/documents/'
                 },
                 {
                   title: 'The attribute vocabulary',
-                  to: '/reference/sdk/attributes/',
+                  to: '/reference/sdk/attributes/'
                 }
               ]
             },
             {
-              title: 'Cloud Abstraction',
+              title: 'Contracts',
               items: [
                 {
-                  title: 'Config',
-                  to: '/reference/cloudabstraction/config/',
-                },
-                {
                   title: 'Authentication',
-                  to: '/reference/cloudabstraction/authentication/',
+                  to: '/reference/contracts/authentication/'
                 },
                 {
                   title: 'Database',
-                  to: '/reference/cloudabstraction/database/',
+                  to: '/reference/contracts/database/'
                 },
                 {
                   title: 'Deployment',
-                  to: '/reference/cloudabstraction/deployment/',
+                  to: '/reference/contracts/deployment/'
                 },
                 {
                   title: 'Secrets',
-                  to: '/reference/cloudabstraction/secrets/',
+                  to: '/reference/contracts/secrets/'
                 },
                 {
                   title: 'Storage',
-                  to: '/reference/cloudabstraction/storage/',
+                  to: '/reference/contracts/storage/'
+                }
+              ]
+            },
+            {
+              title: 'Config',
+              items: [
+                {
+                  title: '@genoacms/config',
+                  to: '/reference/config/'
                 }
               ]
             }
           ]
-				},
-				github: 'https://github.com/GenoaCMS/core',
+        },
+        highlighter: {
+          languages: ['svelte', 'sh', 'bash', 'js', 'html', 'ts', 'md', 'css', 'scss', 'json']
+        },
+        github: 'https://github.com/GenoaCMS/genoacms',
         logo: '/sail.png',
         preBuildIconifyIcons: {
-          'bi': ['boxes'],
+          bi: ['boxes'],
           'vscode-icons': ['file-type-json', 'typescript-icon', 'file-type-vite'],
           'game-icons': ['swiss-army-knife'],
-          'tabler': ['cloud-network', 'code-off'],
-          'si': ['json-fill'],
-        },
-      },
-      ),
+          tabler: ['cloud-network', 'code-off'],
+          si: ['json-fill']
+        }
+      }),
       siteConfig: {
         title: 'GenoaCMS',
-				description: 'Platform-agnostic headless CMS',
-      },
-    }),
-	],
+        description: 'Platform-agnostic headless CMS'
+      }
+    })
+  ]
 })
 
 export default config

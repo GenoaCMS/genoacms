@@ -2,20 +2,68 @@
 title: CLI
 ---
 
-For initializing, running and deploying GenoaCMS projects there is a [CLI tool](https://github.com/GenoaCMS/cli). It is a npm script executable by running `npx @genoacms/cli <command>`.
+`genoa`, the [`@genoacms/cli`](https://github.com/GenoaCMS/genoacms/tree/main/packages/cli) package,
+sets a project up, runs it, builds it and deploys it. Add it to a project with
+`npm install -D @genoacms/cli` (or `pnpm add -D @genoacms/cli`), or run it without installing as
+`npx @genoacms/cli <command>` (or `pnpm dlx @genoacms/cli <command>`).
 
-Run it with no command for an interactive menu.
+```
+genoa <command> [target] [flags]
+```
+
+Run in a terminal with no command, it opens a menu. `genoa --help` lists the commands,
+`genoa <command> --help` shows one command's usage, and `genoa --version` prints the version.
 
 ## Commands
 
-| Command | |
+| Command | Does | Default mode |
+| :--- | :--- | :--- |
+| `init` | Scaffolds a project in this directory: asks for an adapter suite and an authentication adapter, installs the packages, writes `genoa.config/` | — |
+| `dev` | Runs GenoaCMS locally, reloading when the config or anything it imports changes. `run` is an alias | development |
+| `build [target]` | Builds GenoaCMS for a deployment target | production |
+| `deploy [target]` | Builds, then deploys to a deployment target | production |
+| `database` | Deletes dynamic collections from the default bucket | development |
+| `roles` | Composes a role or an assignment to paste into the config | development |
+| `rotate-root` | Rotates the root trust anchor, after asking to confirm. **See below before running it** | development |
+
+An unknown command is an error that prints the usage; it never opens the menu.
+
+## Flags
+
+| Flag | |
 | :--- | :--- |
-| `init` | Create a project: install the adapters you choose and write `genoa.config`. |
-| `run` | Run the CMS locally. |
-| `deploy` | Deploy through the configured deployment adapter. |
-| `database` | Configure the database. |
-| `roles` | Compose a role or an assignment to paste into `genoa.config`. |
-| `rotate-root` | Replace the root trust anchor. **See below before running this.** |
+| `-c`, `--config <file>` | The config file, relative to the current directory. Default: `genoa.config.ts`, else `genoa.config/development.ts`. A production config is always named |
+| `-m`, `--mode <mode>` | `development` (`dev`) or `production` (`prod`). Default: the command's, in the table above |
+| `--no-inline` | `build` and `deploy`: refuse `inline()` values in the build instead of warning |
+| `-h`, `--help` | Show the usage |
+| `-v`, `--version` | Show the CLI's version |
+
+The mode decides which adapters are allowed: a production run refuses development-only adapters, such
+as the `.genoacms/secrets.env` store. When a production `build` or `deploy` without `--config` is
+refused for that reason, the CLI names the file it loaded and how to name the production config.
+
+## Building
+
+```bash
+genoa build gcp --config genoa.config/production.ts
+```
+
+`build` loads the config and refuses on any error, then builds for the target: the one named, else
+`deployment.default`, else the first key of `deployment.targets`. It writes the artifact to
+`.genoacms/build/`: the target's SvelteKit build with the config embedded — without any target
+option — and a generated `package.json` listing exactly the packages the server imports, pinned to
+the installed versions. No project source and no config file are part of it.
+
+## Deploying
+
+```bash
+genoa deploy gcp --config genoa.config/production.ts
+```
+
+`deploy` runs `build`, then hands the artifact to the target's adapter, which publishes it: a Cloud
+Run function, a Lambda function, a directory for a Node server. The target's options are resolved
+**on your machine**, through the config's secrets store: its credentials are used to deploy and never
+enter the build. A failed step says which one failed.
 
 ## Composing roles
 
@@ -59,7 +107,7 @@ the entire reason the hierarchy has two levels.
 ### The root — manual, and disruptive
 
 ```bash
-npx @genoacms/cli rotate-root
+genoa rotate-root --config genoa.config/production.ts
 ```
 
 This is the **root** only. Rotating and revoking the subordinate keys that sign your content is

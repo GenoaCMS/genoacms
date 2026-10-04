@@ -1,21 +1,26 @@
 ---
-Services
+title: Services
 ---
 
-GenoaCMS splits its responsibilities into services. 
+A config has one stanza per service, plus `authorization` and `security`, which configure GenoaCMS
+itself. Every stanza except `deployment` is required. The [example configs](/guide/config/examples)
+show each of them filled in.
 
 ## Authentication
 
-This service is responsible for checking whether the user is who they claim to be. Additionally, it is responsible for creating and managing user sessions. GenoaCMS uses JWT tokens transported in cookies to manage sessions. 
+Checks that users are who they claim to be. GenoaCMS keeps the session itself, as signed tokens in
+one cookie; see [identity and sessions](/guide/sessions).
 
-### Config type
-
-```ts 
+```ts
 authentication: {
-    providers: AuthenticationProvider[]
-    cookieName: string
+  providers: Record<string, AuthenticationProvider>
+  cookieName: string
 }
 ```
+
+At sign-in the providers are tried **one at a time, in key order**, until one recognizes the user.
+Several providers can therefore serve one instance — an identity platform for editors and a fixed
+list for a break-glass administrator, for example.
 
 :::info[Ensure cookie name is valid]
 Some cloud hosting services strip cookies from requests and allow only specific ones. To avoid
@@ -56,85 +61,84 @@ answers *"what may you do in this application?"*, so it is a core module of Geno
 adapters and no configuration stanza.
 :::
 
-## Security
+## Database
 
-Not a service — a plain configuration stanza. It declares the roles and role assignments the
-instance starts from, and the identities that can administer it.
-
-### Config type
+The databases GenoaCMS edits, and the collections in each.
 
 ```ts
-authorization: {
-    roles?: Record<string, Grant[]>
-    assignments?: Record<string, string[]>
-    lockRoles?: boolean
-}
-
-security: {
-    accessTokenMinutes?: number           // default 15
-    refreshTokenDays?: number             // default 14
-    grantCacheSeconds?: number            // default 30
-    subordinateKeyRotationDays?: number   // default 90
+database: {
+  providers: Record<string, DatabaseProvider>
+  databases: Record<string, { provider: string, collections: CollectionReference[] }>
 }
 ```
 
-Two stanzas rather than one, because they behave oppositely: everything in `authorization` is
-**authority**, re-read on every resolution, while everything in `security` is a **seed** consumed
-once at first start.
-
-`roles` declares roles by name; `assignments` maps a **subject** to the roles it holds. A subject is
-the provider-issued identifier from the authentication service, never an email address.
-
-A new instance needs at least one assignment, or nobody can administer it:
+Each database names its provider by key. Collections describe data that **already exists** in your
+database, so GenoaCMS can edit it in place: `genoa init` puts them in `genoa.config/collections.ts`,
+which every config imports.
 
 ```ts
-authorization: {
-  roles: {
-    Administrator: [{ permission: '*', resource: '*' }]
-  },
-  assignments: {
-    'the-subject-of-your-first-administrator': ['Administrator']
+import type { CollectionReference } from '@genoacms/contracts/database'
+import { storageResource } from '@genoacms/contracts/schemas'
+
+export const collections: CollectionReference[] = [
+  {
+    name: 'authors',
+    primaryKey: { key: 'id', schema: { type: 'string' } },
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        photo: storageResource
+      }
+    }
   }
-}
+]
 ```
 
-:::caution[Declarations are authoritative and immutable]
-What `genoa.config` declares cannot be changed through the CMS. Editing or deleting a declared role
-or assignment at runtime is **refused**, not silently reverted later.
+- `name` is the collection's or table's name in the database.
+- `primaryKey.key` is the field that identifies a document, and `primaryKey.schema` its type. The AWS adapter accepts only string keys.
+- `schema` is a [JSON Schema](https://json-schema.org/) object describing a document; the contract types it as `JsonSchema`.
 
-Both are resolved **without reading storage**, so they still apply on an instance whose stored
-authorization data is missing or cannot be trusted — which is what makes them the way back in.
+`@genoacms/contracts/schemas` adds fields that point outside the document: `storageResource` and
+`nullableStorageResource` for an object in a bucket, and `reference({ collection })` for a document
+of another collection.
 
-Removing a declaration removes it from the instance. Deleting a line here revokes the access it
-granted; it does not leave an editable copy behind.
+:::note[Composed key]
+Composed keys are not supported.
 :::
 
-Runtime administration remains free to create roles and assignments that `genoa.config` does not
-name. Set `authorization.lockRoles` to `true` to disable runtime administration entirely, for an
-instance whose authorization should be fixed at deployment — it sits beside the declarations because
-it governs exactly them.
+## Storage
 
-`security.subordinateKeyRotationDays` sets how long a signing key stays current — see
-[key rotation](/guide/cli).
+The buckets GenoaCMS reads and writes, one of which holds its own data.
 
-:::note[These are seed values, not the live ones]
-The `security` stanza supplies the values a new instance starts from. They are then held in a signed document
-in the bucket ([`security/policy.json`](/guide/storage-layout)), which is what a running instance
-reads and what an administrator changes at runtime.
+```ts
+storage: {
+  providers: Record<string, StorageProvider>
+  buckets: Record<string, { provider: string }>
+  defaultBucket: string
+  pathDelimiter?: string   // default '|->'
+}
+```
 
-Editing `genoa.config` afterwards therefore has no effect on an instance that has already started.
+Each key of `buckets` is the name of a bucket that already exists, bound to the provider that serves
+it. `defaultBucket` names the bucket where GenoaCMS keeps its own data under `.genoacms/` — see
+[what GenoaCMS stores](/guide/storage-layout). `pathDelimiter` separates path segments in the storage
+browser's URLs.
+
+:::caution[Default bucket should be private]
+The default bucket holds authorization data and signed documents. Keep it private, and put public
+assets in a second bucket.
 :::
 
 ## Secrets
 
-Service responsible for holding credentials that must not live in the primary storage bucket or in
-`genoa.config` — signing keys, the JWT secret, database and storage credentials.
-
-### Config type
+Holds what must live neither in the bucket nor in the config: GenoaCMS's signing seeds, and every
+credential a config refers to with `secret()`.
 
 ```ts
 secrets: {
-    providers: SecretProvider[]
+  providers: Record<string, SecretsProvider>   // exactly one
 }
 ```
 
@@ -144,9 +148,10 @@ no defensible target, and a key present in one but not the other would make beha
 lookup order.
 :::
 
-:::warning[The .env adapter is for development]
-`@genoacms/adapter-secrets-env` keeps secrets in plaintext in your project directory. Use a real
-secret manager in a deployment; the contract is identical, so only the configuration changes.
+:::warning[The local store is for development]
+`@genoacms/adapter-secrets-env` keeps secrets in plaintext in `.genoacms/secrets.env`, and a
+production build refuses it. Use a secret manager in production; the contract is identical, so only
+the configuration changes. How a config refers to a secret is under [secrets](/guide/config/secrets).
 :::
 
 ### What GenoaCMS stores here
@@ -204,98 +209,151 @@ To provision the key yourself instead of letting it be generated — for a multi
 to keep the anchor under existing key management — write the seed to the secret store before first
 start. GenoaCMS generates one only when none is present.
 
-## Database
 
-Service responsible for managing data storage. It is possible to define multiple databases and multiple providers.
+## Languages
 
-### Config type
+The languages components may be authored in, keyed by the language a component records.
 
-```ts 
-database: {
-    databases: DatabaseInit[]
-    providers: DatabaseProvider[]
+```ts
+languages: {
+  providers: Record<string, LanguageProvider>
+}
+```
+
+```ts
+languages: {
+  providers: {
+    typescript: languageProvider('@genoacms/language-adapter-ts', { target: 'es2020' })
   }
-```
-In order to manage a database, at least one provider, database and collection must be registered.
-
-### DatabaseInit
-
-```ts
-interface DatabaseInit {
-  providerName: string
-  collections: CollectionReference[]
-  testDocuments?: [Document, Document]
 }
 ```
 
-This structure is used for registering a database and its collections.
-
-Field `testDocuments` is only used when developing storage adapter for unit testing.
-
-### CollectionReference
-
-```ts
-interface CollectionReference {
-  name: string
-  primaryKey: {
-    key: string,
-    schema: JSONSchemaType<any>
-  },
-  schema: JSONSchemaType<any>
-}
-```
-
-This structure is used for registering a collection in a database. The `name` should reflect the name of the collection/table in the database. The `primaryKey` is used to declare which field of the document/row is used for its identification. The `schema` is used to define the structure of the collection.
-
-The schema is defined using [JSON Schema](https://json-schema.org/). GenoaCMS additionally defines a few custom types in the `@genoacms/cloudabstraction` package. Those schemas are:
-
-- `storageResource` - used to define a reference to a storage resource
-- `nullableStorageResource` - used to define a nullable reference to a storage resource
-- `reference` - used to define a reference to a document in another collection or database
-
-:::note[Composed key]
-Composed keys are currently not supported.
-:::
+A component records its language, and GenoaCMS resolves the adapter from it, so several languages can
+coexist. See [adding a language](/guide/language-adapters).
 
 ## Deployment
 
-Service responsible for deploying GenoaCMS to compute solution. No special configuration is required, just the adapter.
-
-### Config type
+Where `genoa build` and `genoa deploy` send GenoaCMS.
 
 ```ts
-deployment: {
-    adapter: Promise<DeploymentAdapter>
+deployment?: {
+  targets: Record<string, DeploymentTarget>
+  default?: string
 }
 ```
 
-## Storage
+A target is an adapter that knows how to build for and publish to one platform. `genoa deploy gcp`
+picks the target by key; without one it takes `default`, else the first key. A config used only by
+`genoa dev` may leave the stanza out; a build requires it.
 
-Service responsible for managing file storage. It is possible to define multiple buckets and multiple providers. It is required to define at least one bucket and one provider. GenoaCMS uses it to store its internal data.
+A target's options — credentials included — are read only on the machine running `genoa deploy`.
+They never enter the build.
 
-### Config type
+## Authorization and security
+
+Neither is a service: they configure GenoaCMS itself.
 
 ```ts
-  storage: {
-    defaultBucket: string
-    buckets: BucketInit[]
-    providers: StorageProvider[]
-  }
+authorization: {
+  roles?: Record<string, Grant[]>
+  assignments?: Record<string, string[]>
+  lockRoles?: boolean
+}
+
+security: {
+  accessTokenMinutes?: number           // default 15
+  refreshTokenDays?: number             // default 14
+  grantCacheSeconds?: number            // default 30
+  subordinateKeyRotationDays?: number   // default 90
+  maxFuel?: number                      // default 1 000 000
+  maxDepth?: number                     // default 100
+  maxAllocation?: number                // default 10 000 000
+  fetchOrigins?: string[]               // default [], which permits nothing
+}
 ```
 
-Field `defaultBucket` is used to designate the bucket where GenoaCMS stores its internal data.
+`maxFuel`, `maxDepth` and `maxAllocation` are the ceilings a dynamic component runs under: loop
+iterations and recursive branches per render, call depth, and elements and bytes allocated per render.
+They are compiled into each published component and covered by its signature, so a consumer may run
+below them but never above. `fetchOrigins` lists the origins — scheme, host and optional port — a
+dynamic component's data bridge may reach.
 
-:::caution[Default bucket should be private]
-For security reasons, the default bucket should not be publicly accessible. There is a recommendation to have at least two buckets: one for public data and one for private data.
+Two stanzas rather than one, because they behave oppositely: everything in `authorization` is
+**authority**, re-read on every resolution, while everything in `security` is a **seed** consumed
+once at first start.
+
+`roles` declares roles by name; `assignments` maps a **subject** to the roles it holds. A subject is
+the provider-issued identifier from the authentication service, never an email address.
+
+A new instance needs at least one assignment, or nobody can administer it:
+
+```ts
+authorization: {
+  roles: {
+    Administrator: [{ permission: '*', resource: '*' }]
+  },
+  assignments: {
+    'the-subject-of-your-first-administrator': ['Administrator']
+  }
+}
+```
+
+:::caution[Declarations are authoritative and immutable]
+What `genoa.config` declares cannot be changed through the CMS. Editing or deleting a declared role
+or assignment at runtime is **refused**, not silently reverted later.
+
+Both are resolved **without reading storage**, so they still apply on an instance whose stored
+authorization data is missing or cannot be trusted — which is what makes them the way back in.
+
+Removing a declaration removes it from the instance. Deleting a line here revokes the access it
+granted; it does not leave an editable copy behind.
 :::
 
-### BucketInit
+Runtime administration remains free to create roles and assignments that `genoa.config` does not
+name. Set `authorization.lockRoles` to `true` to disable runtime administration entirely, for an
+instance whose authorization should be fixed at deployment — it sits beside the declarations because
+it governs exactly them.
 
-```ts
-interface BucketInit {
-  name: string
-  providerName: string
-}
-```
+`security.subordinateKeyRotationDays` sets how long a signing key stays current — see
+[key rotation](/guide/cli).
 
-Structure for registering a bucket, the `name` shall match the name of existing bucket.
+:::note[These are seed values, not the live ones]
+The `security` stanza supplies the values a new instance starts from. They are then held in a signed document
+in the bucket ([`security/policy.json`](/guide/storage-layout)), which is what a running instance
+reads and what an administrator changes at runtime.
+
+Editing `genoa.config` afterwards therefore has no effect on an instance that has already started.
+:::
+
+## When a config does not load
+
+The loader reports every problem at once, each with the path of the offending field, under
+`config/invalid`. Each problem has one of these codes:
+
+| Code | Raised when |
+| :--- | :--- |
+| `config/not-found` | no config file exists where it was looked for |
+| `config/evaluation-failed` | the file throws while it is evaluated, or imports something missing |
+| `config/not-an-object` | the default export is not a plain object |
+| `config/missing-stanza` | a required stanza is absent or not an object |
+| `config/invalid-provider-entry` | a provider entry is not `{ adapter, options }`; use the helpers |
+| `config/descriptor-not-found` | the adapter specifier cannot be loaded; is the package installed? |
+| `config/descriptor-invalid` | the module at the specifier is not an adapter descriptor |
+| `config/kind-mismatch` | an adapter is used in the wrong stanza, such as a storage adapter under `database` |
+| `config/invalid-options` | the adapter's own validation refused the options; the message gives its reason |
+| `config/not-serializable` | an option holds something that is not data, such as a function or a class instance |
+| `config/bare-secret` | a credential option holds a plain value; wrap it in `secret()`, `env()` or `inline()` |
+| `config/misplaced-reference` | a reference sits in an option the adapter does not declare as a credential |
+| `config/bootstrap-secret` | the secrets provider's own options use `secret()` |
+| `config/invalid-secret-key` | a `secret()` key does not match `[A-Za-z_][A-Za-z0-9_]*` |
+| `config/secrets-provider-count` | `secrets.providers` holds no provider, or more than one |
+| `config/unknown-provider` | a bucket, database or `deployment.default` names a key that does not exist |
+| `config/unknown-bucket` | `defaultBucket` is not a key of `buckets` |
+| `config/integer-key` | a provider, bucket or database key is an integer, which JavaScript reorders |
+| `config/development-only` | a production build uses a development-only adapter |
+| `config/inline` | a warning, in production: an `inline()` value is written into the build |
+| `config/inline-forbidden` | `--no-inline` was given and the config uses `inline()` |
+
+At build time, `config/unknown-target` means the target named on the command line is not a key of
+`deployment.targets`, and `config/no-deployment-target` that a target was requested from a config
+that declares none.

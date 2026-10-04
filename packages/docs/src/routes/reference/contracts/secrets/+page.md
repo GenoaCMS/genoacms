@@ -1,9 +1,9 @@
 ---
-title: Secrets types
+title: Secrets contract
 ---
 
 The secrets service holds credentials that must not live in the primary storage bucket or in
-`genoa.config`: signing keys, the JWT secret, database and storage credentials, third-party tokens.
+`genoa.config`: GenoaCMS's signing seeds, and the credentials a config refers to with `secret()`.
 
 A bucket is the wrong place for them — it is exposed to permission misconfiguration, appears in
 backups, and is administered by more people than a key store is. `genoa.config` is the wrong place
@@ -14,14 +14,7 @@ equivalent, which is precisely the property authorization lacks.
 
 ## Adapter
 
-```ts
-export declare namespace Adapter {
-  type getSecret = (key: string) => Promise<string | undefined>
-  type setSecret = (key: string, value: string) => Promise<boolean>
-  type deleteSecret = (key: string) => Promise<boolean>
-  type setSecretIfAbsent = (key: string, value: string) => Promise<boolean>
-}
-```
+@include ../../../../../../contracts/src/secrets/adapter.d.ts
 
 `setSecretIfAbsent` writes only if the key does not exist, **atomically**. Exactly one of any number
 of racing callers resolves `true`. It exists so that instances starting concurrently cannot each
@@ -45,35 +38,11 @@ behavior would defeat the abstraction.
 
 | Platform | `getSecret` | `setSecret` | `deleteSecret` |
 | :--- | :--- | :--- | :--- |
-| GCP Secret Manager | `accessSecretVersion('.../latest')` | `addSecretVersion` | `deleteSecret` |
+| GCP Secret Manager | `accessSecretVersion('.../latest')` | `addSecretVersion`, then destroy the superseded versions | `deleteSecret` |
 | AWS Secrets Manager | `GetSecretValueCommand` | `PutSecretValueCommand` | `DeleteSecretCommand` |
 | Azure Key Vault | `getSecret` | `setSecret` | `beginDeleteSecret` |
 | HashiCorp Vault | `read('secret/data/…')` | `write('secret/data/…')` | `delete('secret/data/…')` |
-| Local `.env` emulator | `process.env[key]`, then the file | write the key to `.env` | remove the key from `.env` |
-
-## Module
-
-```ts
-declare module '@genoacms/adapter-*/secrets' {
-  import type { Adapter } from './adapter.d'
-
-  const getSecret: Adapter.getSecret
-  const setSecret: Adapter.setSecret
-  const deleteSecret: Adapter.deleteSecret
-
-  export {
-    getSecret,
-    setSecret,
-    deleteSecret
-  }
-}
-
-type SecretProvider<Extension extends object = object> = Extension & {
-  name: string
-  adapterPath: string
-  adapter: Promise<typeof Adapter>
-}
-```
+| `.genoacms/secrets.env` (development) | this process's writes, then `process.env[key]`, then the file | write the key to the file | remove the key from the file |
 
 :::caution[Exactly one provider]
 Unlike storage and database, only one secret store may be configured. A secret store is a single
@@ -87,24 +56,28 @@ Keys must match `[A-Za-z_][A-Za-z0-9_]*`.
 
 This is the **intersection** of what the secret managers accept, not the limit of any one of them:
 GCP allows `-`, AWS allows `/` and `.`, and an environment variable allows neither. Fixing the
-intersection is what makes a key that works against the `.env` emulator in development still work
+intersection is what makes a key that works against the development store still work
 against a cloud secret manager in production.
 
-The rule is exported from `@genoacms/cloudabstraction/secrets` so every adapter enforces the same
+The rule is exported from `@genoacms/contracts/secrets` so every adapter enforces the same
 one, and an invalid key throws rather than being normalized — folding `a-b` and `a_b` onto a single
 name would silently merge two distinct secrets.
+
+@include ../../../../../../contracts/src/secrets/index.d.ts
 
 ## Available adapters
 
 | Adapter | Notes |
 | :--- | :--- |
-| `@genoacms/adapter-secrets-env` | Development only. Plaintext `.env` file. |
-| `@genoacms/adapter-gcp/secrets` | GCP Secret Manager. Requires `projectId` and `credentials`. |
+| `@genoacms/adapter-secrets-env` | Development only. Plaintext `.genoacms/secrets.env`. |
+| `@genoacms/adapter-gcp/secrets` | GCP Secret Manager. `projectId`; `credentials` only outside GCP, Application Default Credentials otherwise. |
+| `@genoacms/adapter-aws/secrets` | AWS Secrets Manager. `region`; `credentials` only outside AWS, the SDK's default chain otherwise. |
 
 :::note[Versioning is not part of the contract]
-Secret Manager is versioned; this contract is not. A write adds a version and a read always takes
-`latest`, so superseded versions accumulate — invisible to GenoaCMS, but still billed and still
-readable by anyone with project access. Set a retention policy at the project level if that matters.
+Secret Manager is versioned; this contract is not. A read always takes the latest version, and after a
+write the GCP adapter destroys the versions it superseded, so old values do not stay readable or
+billed. That needs the runtime's permission to list and destroy versions; without it the write still
+succeeds, warns, and the versions accumulate.
 
 Building the contract on version history would have left it unimplementable against stores that have
 none.

@@ -132,7 +132,7 @@ interface StorageResourceValue {
 }
 ```
 
-Declared structurally rather than imported from `@genoacms/cloudabstraction`, which depends on this
+Declared structurally rather than imported from `@genoacms/contracts`, which depends on this
 package — importing back would be a cycle.
 
 ### Components

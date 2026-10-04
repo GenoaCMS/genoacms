@@ -1,6 +1,9 @@
 ---
-title: Storage types
+title: Storage contract
 ---
+
+What a storage adapter implements, as `@genoacms/contracts/storage` declares it. How an adapter is
+shaped and registered is under [adapters](/guide/adapters).
 
 ## Concurrent writes
 
@@ -26,7 +29,7 @@ create something while exactly one succeeds.
 A refused write raises `PreconditionFailedError`:
 
 ```ts
-import { isPreconditionFailed } from '@genoacms/cloudabstraction/storage'
+import { isPreconditionFailed } from '@genoacms/contracts/storage'
 
 try {
   await uploadObject(reference, updated, { ifVersion: version })
@@ -62,119 +65,17 @@ provide is worse than its absence, because callers rely on the name. Where sever
 change together, design so that each write is independently valid, and use `ifVersion` to detect
 that the world moved underneath you.
 
-## Core
+## Types
 
-```ts
-interface ObjectReference {
-  bucket: string
-  name: string
-}
-
-interface StorageObject {
-  name: string
-  size: number
-  lastModified: Date
-}
-
-type ObjectPayload = string | Buffer | NodeJS.ReadableStream
-
-type ObjectVersion = string
-
-interface UploadOptions {
-  gzip?: boolean
-  ifVersion?: ObjectVersion
-  ifAbsent?: boolean
-}
-
-interface ObjectData {
-  data: NodeJS.ReadableStream
-  version?: ObjectVersion
-}
-
-interface DirectoryListingParams {
-  startAfter?: string
-  limit?: number
-}
-
-interface DirectoryContents {
-  files: StorageObject[]
-  directories: string[]
-}
-```
+@include ../../../../../../contracts/src/storage/types.d.ts
 
 ## Adapter
 
-```ts
-import type {
-  ObjectReference,
-  ObjectPayload,
-  ObjectData,
-  DirectoryListingParams,
-  DirectoryContents,
-  UploadOptions
-} from './types.d.ts'
+@include ../../../../../../contracts/src/storage/adapter.d.ts
 
-/** Returns the object together with a version token for conditional writes. */
-type getObject = (reference: ObjectReference) => Promise<ObjectData>
-type getSignedURL = (reference: ObjectReference, expires: Date) => Promise<string>
-type getPublicURL = (reference: ObjectReference) => Promise<string>
-/** Rejects with PreconditionFailedError when `ifVersion` or `ifAbsent` is not satisfied. */
-type uploadObject = (reference: ObjectReference, data: ObjectPayload, options: UploadOptions) => Promise<void>
-type deleteObject = (reference: ObjectReference) => Promise<void>
-type listDirectory = (reference: ObjectReference, params?: DirectoryListingParams) => Promise<DirectoryContents>
-type createDirectory = (reference: ObjectReference) => Promise<void>
+`create` receives the buckets bound to the provider as `ctx.resources`; a call naming any other
+bucket is refused.
 
-interface Adapter {
-  getObject: getObject
-  getSignedURL: getSignedURL
-  getPublicURL: getPublicURL
-  uploadObject: uploadObject
-  deleteObject: deleteObject
-  listDirectory: listDirectory
-  createDirectory: createDirectory
-}
+## Errors
 
-export default Adapter
-```
-
-## Module
-
-```ts
-import type Adapter from './adapter.d.ts'
-
-declare module '@genoacms/adapter-*/storage' {
-  import type Adapter from './adapter.d.ts'
-  const getObject: Adapter.getObject
-  const getSignedURL: Adapter.getSignedURL
-  const getPublicURL: Adapter.getPublicURL
-  const uploadObject: Adapter.uploadObject
-  const deleteObject: Adapter.deleteObject
-  const listDirectory: Adapter.listDirectory
-  const createDirectory: Adapter.createDirectory
-  export {
-    getObject,
-    getSignedURL,
-    getPublicURL,
-    uploadObject,
-    deleteObject,
-    listDirectory,
-    createDirectory
-  }
-}
-
-type StorageProvider<Extension extends object = object> = Extension & {
-  name: string
-  adapter: Promise<typeof Adapter>
-}
-
-interface BucketInit {
-  name: string
-  providerName: string
-}
-
-export type {
-  Adapter,
-  StorageProvider,
-  BucketInit
-}
-```
+@include ../../../../../../contracts/src/storage/index.d.ts

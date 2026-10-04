@@ -1,64 +1,28 @@
 ---
-title: Authentication types
+title: Authentication contract
 ---
 
-Authentication answers *"who are you?"*. It is a genuinely delegable question, so it remains a
-cloud abstraction service with pluggable adapters.
+Authentication answers *"who are you?"*. It is a delegable question, so it is served by adapters;
+*"what may you do?"* is not, and has none — see [adapters](/guide/adapters).
 
-An adapter returns an `Identity` rather than a boolean, because the rest of GenoaCMS needs a stable
-subject to attach permissions to.
+## Identity and rejection
 
-## Identity
+@include ../../../../../../contracts/src/authentication/types.d.ts
 
-```ts
-interface Identity {
-  subject: string
-  email: string
-}
-```
-
-`subject` is a stable, immutable, provider-issued identifier and is the **only** value that may
-participate in an authorization decision. `email` is display metadata — email addresses are mutable
-and reassignable, so a recycled corporate address would otherwise silently inherit the permissions
-of its previous holder.
+`subject` is a stable, provider-issued identifier, and the **only** value that takes part in an
+authorization decision. `email` is shown to the user and carried in the session: addresses change
+hands, and a recycled address must not inherit its previous holder's permissions.
 
 ## Adapter
 
-```ts
-interface Adapter {
-  authenticate: (email: string, password: string) => Promise<Identity | null>
-}
+@include ../../../../../../contracts/src/authentication/adapter.d.ts
 
-export default Adapter
-```
+- `authenticate` returns the `Identity` the credentials belong to, or a `Rejection`. `credentials` covers an unknown email and a wrong password alike, and is the reason whenever the adapter cannot tell. `disabled` and `second-factor-required` are reported only when the password is known to be right.
+- `getIdentity` returns the `Identity` of a subject that exists and could sign in now, with its current email, and `null` for one that is unknown, deleted or disabled. GenoaCMS calls it on every session refresh.
+- An adapter that **cannot decide** — its service failed, refused to answer, or is misconfigured — throws an `Error` whose message starts with `authentication/`, such as `authentication/provider-failed: …`. A throttled service throws `authentication/throttled…`. A failure is never reported as a `Rejection`, or as `null`.
 
-`authenticate` resolves to `null` for invalid credentials. Rejecting is reserved for a provider
-that could not answer at all — an unreachable identity platform, for instance — so that a failed
-login is not indistinguishable from an outage.
+How GenoaCMS combines several providers is under [identity and sessions](/guide/sessions).
 
-## Module
+@include ../../../../../../contracts/src/authentication/index.d.ts
 
-```ts
-import type Adapter from './adapter.d'
-
-declare module '@genoacms/adapter-*/authentication' {
-  import type Adapter from './adapter.d'
-
-  const authenticate: Adapter.authenticate
-
-  export {
-    authenticate
-  }
-}
-
-type AuthenticationProvider<Extension extends object = object> = Extension & {
-  name: string
-  adapter: Promise<typeof Adapter>
-}
-
-export type {
-  Adapter,
-  AuthenticationProvider,
-  Identity
-}
-```
+`runAuthenticationConformance` in `@genoacms/conformance` checks an adapter against this contract.
