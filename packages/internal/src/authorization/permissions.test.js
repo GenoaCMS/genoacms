@@ -8,7 +8,7 @@ import {
   isResourceScoped,
   getResourceScope,
   getPermissionsByDomain
-} from '../src/authorization/permissions.js'
+} from './permissions.js'
 
 /**
  * The permission vocabulary.
@@ -30,9 +30,6 @@ const declared = [
   'components:read',
   'components:register',
   'components:modify',
-  'components:register',
-  'components:code',
-  'components:code',
   'components:code',
   'pages:read',
   'pages:content_edit',

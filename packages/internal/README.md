@@ -7,7 +7,7 @@ It is empty on creation. Modules arrive here as the packages that need them are 
 
 ## Why it exists
 
-`@genoacms/cloudabstraction` means one thing: **what an adapter must implement** in order to put
+`@genoacms/contracts` means one thing: **what an adapter must implement** in order to put
 GenoaCMS on a storage provider, a database, a secret store. That is the promise its name makes, and
 it is the promise a person writing an adapter reads it for.
 
@@ -35,7 +35,7 @@ which someone adding Kotlin or Swift support must depend on without depending on
 
 | If it is… | it goes to |
 | :--- | :--- |
-| implemented by an adapter for a platform | `@genoacms/cloudabstraction` |
+| implemented by an adapter for a platform | `@genoacms/contracts` |
 | used only by the CMS application | `@genoacms/core` |
 | a language's parser, analyzer or compiler | that language's adapter package |
 | consumed only by a client application | `@genoacms/sdk` |
@@ -53,5 +53,5 @@ those use `@genoacms/sdk`.
 
 ## Layout
 
-Plain ESM with a hand-written `.d.ts` beside each module, matching `@genoacms/cloudabstraction`.
+Plain ESM with a hand-written `.d.ts` beside each module, matching `@genoacms/contracts`.
 There is no build step anywhere outside `@genoacms/core`, and this package does not introduce one.

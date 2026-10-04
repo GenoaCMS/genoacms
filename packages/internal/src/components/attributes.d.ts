@@ -138,7 +138,7 @@ interface LinksMetaSchema {
 /**
  * A stored object, as an attribute value names one.
  *
- * Declared structurally rather than imported from `@genoacms/cloudabstraction`, which depends on
+ * Declared structurally rather than imported from `@genoacms/contracts`, which depends on
  * this package — importing back would be a cycle. The two fields are the same two the meta-schema
  * below requires, so the shape is stated once here and matched by any storage reference.
  *

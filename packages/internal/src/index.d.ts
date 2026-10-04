@@ -1,7 +1,7 @@
 /**
  * Type declarations for the package entry point.
  *
- * Hand-written and kept beside the module it describes, matching `@genoacms/cloudabstraction`.
+ * Hand-written and kept beside the module it describes, matching `@genoacms/contracts`.
  * There is no compile step, so this file is the type contract rather than a generated artifact.
  */
 
