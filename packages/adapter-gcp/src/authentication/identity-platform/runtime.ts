@@ -18,53 +18,68 @@ const CREDENTIAL_CODES = new Set(['INVALID_LOGIN_CREDENTIALS', 'EMAIL_NOT_FOUND'
 const THROTTLED_CODE = 'TOO_MANY_ATTEMPTS_TRY_LATER'
 const CREDENTIALS_REJECTED: Rejection = Object.freeze({ rejected: 'credentials' })
 const SECOND_FACTOR_REQUIRED: Rejection = Object.freeze({ rejected: 'second-factor-required' })
+// AUTH-3, AUTH-10, GF32
+const MALFORMED = 'malformed response'
 
-interface ToolkitError { error?: { message?: unknown } }
-interface SignInResponse extends ToolkitError { localId?: string, email?: string, mfaPendingCredential?: unknown }
-interface LookupResponse extends ToolkitError { users?: Array<{ localId?: string, email?: unknown, disabled?: unknown }> }
-interface Answer<B> { status: number, body: B }
+type JsonObject = Record<string, unknown>
+interface Answer { status: number, body: unknown }
 
 const messageOf = (error: unknown): string => error instanceof Error ? error.message : String(error)
+const isObject = (value: unknown): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
+const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value !== ''
 
 // AUTH-7
 function providerFailed (status: number | 'network', message: string): Error {
   return new Error(`authentication/provider-failed: ${status} ${message}`)
 }
 
-function errorMessage (body: ToolkitError): string {
-  return typeof body.error?.message === 'string' ? body.error.message : ''
+function errorMessage (body: unknown): string {
+  return isObject(body) && isObject(body.error) && typeof body.error.message === 'string' ? body.error.message : ''
 }
 
 // AUTH-5
-function errorCode (body: ToolkitError): string {
+function errorCode (body: unknown): string {
   return errorMessage(body).split(' : ')[0]
 }
 
-async function readJson (response: Response): Promise<unknown> {
+function parsed (text: string): unknown {
   try {
-    return await response.json()
+    return JSON.parse(text)
   } catch {
-    return {}
+    return undefined
   }
 }
 
-async function send<B> (url: URL, headers: Record<string, string>, body: object): Promise<Answer<B>> {
+// AUTH-2
+async function untilAborted<T> (work: Promise<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted()
+  return await new Promise<T>((resolve, reject) => {
+    const abort = (): void => { reject(signal.reason) }
+    signal.addEventListener('abort', abort, { once: true })
+    work.then(resolve, reject).finally(() => { signal.removeEventListener('abort', abort) })
+  })
+}
+
+// AUTH-2, AUTH-7
+async function send (url: URL, headers: Record<string, string>, body: object, signal: AbortSignal): Promise<Answer> {
   try {
-    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT_MS) })
-    return { status: response.status, body: await readJson(response) as B }
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal })
+    return { status: response.status, body: parsed(await response.text()) }
   } catch (error) {
     throw providerFailed('network', messageOf(error))
   }
 }
 
 // AUTH-3, AUTH-4, AUTH-8
-function signedIn (body: SignInResponse): Identity | Rejection {
+function signedIn (body: unknown): Identity | Rejection {
+  if (!isObject(body)) throw providerFailed(200, MALFORMED)
   if (body.mfaPendingCredential !== undefined) return SECOND_FACTOR_REQUIRED
-  return { subject: String(body.localId), email: String(body.email) }
+  if (!isNonEmptyString(body.localId) || !isNonEmptyString(body.email)) throw providerFailed(200, MALFORMED)
+  return { subject: body.localId, email: body.email }
 }
 
 // AUTH-5, AUTH-6, AUTH-7
-function refused ({ status, body }: Answer<ToolkitError>): Rejection {
+function refused ({ status, body }: Answer): Rejection {
   const code = errorCode(body)
   if (status === 400 && CREDENTIAL_CODES.has(code)) return CREDENTIALS_REJECTED
   if (status === 400 && code === THROTTLED_CODE) throw new Error('authentication/throttled')
@@ -72,10 +87,15 @@ function refused ({ status, body }: Answer<ToolkitError>): Rejection {
 }
 
 // AUTH-10
-function foundIn (body: LookupResponse): Identity | null {
-  const user = body.users?.[0]
-  if (user === undefined || user.disabled === true || typeof user.email !== 'string') return null
-  return { subject: String(user.localId), email: user.email }
+function foundIn (body: unknown): Identity | null {
+  if (!isObject(body)) throw providerFailed(200, MALFORMED)
+  if (body.users === undefined) return null
+  if (!Array.isArray(body.users)) throw providerFailed(200, MALFORMED)
+  const user: unknown = body.users[0]
+  if (user === undefined) return null
+  if (!isObject(user) || !isNonEmptyString(user.localId)) throw providerFailed(200, MALFORMED)
+  if (user.disabled === true || typeof user.email !== 'string') return null
+  return { subject: user.localId, email: user.email }
 }
 
 export default defineRuntime<GcpIdentityPlatformOptions, Adapter>({
@@ -84,9 +104,9 @@ export default defineRuntime<GcpIdentityPlatformOptions, Adapter>({
     const tenant = tenantId === undefined ? {} : { tenantId }
 
     // AUTH-7
-    async function accessToken (): Promise<string> {
+    async function accessToken (signal: AbortSignal): Promise<string> {
       try {
-        const token = await auth.getAccessToken()
+        const token = await untilAborted(auth.getAccessToken(), signal)
         if (typeof token !== 'string' || token === '') throw new Error('no access token')
         return token
       } catch (error) {
@@ -94,28 +114,30 @@ export default defineRuntime<GcpIdentityPlatformOptions, Adapter>({
       }
     }
 
-    async function withToken (): Promise<Record<string, string>> {
-      return { 'content-type': 'application/json', authorization: `Bearer ${await accessToken()}` }
+    async function withToken (signal: AbortSignal): Promise<Record<string, string>> {
+      return { 'content-type': 'application/json', authorization: `Bearer ${await accessToken(signal)}` }
     }
 
     // AUTH-2
-    async function signInRequest (): Promise<{ url: URL, headers: Record<string, string> }> {
+    async function signInRequest (signal: AbortSignal): Promise<{ url: URL, headers: Record<string, string> }> {
       const url = new URL(`${ENDPOINT}:signInWithPassword`)
-      if (apiKey === undefined) return { url, headers: await withToken() }
+      if (apiKey === undefined) return { url, headers: await withToken(signal) }
       url.searchParams.set('key', apiKey)
       return { url, headers: { 'content-type': 'application/json' } }
     }
 
     return {
       async authenticate (email, password) {
-        const { url, headers } = await signInRequest()
-        const answer = await send<SignInResponse>(url, headers, { email, password, returnSecureToken: true, ...tenant })
+        const signal = AbortSignal.timeout(TIMEOUT_MS)
+        const { url, headers } = await signInRequest(signal)
+        const answer = await send(url, headers, { email, password, returnSecureToken: true, ...tenant }, signal)
         return answer.status === 200 ? signedIn(answer.body) : refused(answer)
       },
 
       // AUTH-10
       async getIdentity (subject) {
-        const answer = await send<LookupResponse>(new URL(`${ENDPOINT}:lookup`), await withToken(), { localId: [subject], targetProjectId: projectId, ...tenant })
+        const signal = AbortSignal.timeout(TIMEOUT_MS)
+        const answer = await send(new URL(`${ENDPOINT}:lookup`), await withToken(signal), { localId: [subject], targetProjectId: projectId, ...tenant }, signal)
         if (answer.status !== 200) throw providerFailed(answer.status, errorMessage(answer.body))
         return foundIn(answer.body)
       }
