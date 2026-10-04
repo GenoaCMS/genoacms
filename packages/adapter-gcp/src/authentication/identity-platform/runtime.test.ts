@@ -271,6 +271,59 @@ describe('signing in', () => {
     expect(calls).toEqual(written.map(() => 0))
     expect(heldValues(result).filter(value => /id-token|refresh-token/.test(value))).toEqual([])
   })
+
+  it('AUTH-2, AUTH-10: a call that times out is not sent again', async () => {
+    const error = timeoutError()
+    reply = async () => { throw error }
+    const calls = [
+      async () => await provider().authenticate('ada@example.com', 'lovelace'),
+      async () => await provider().getIdentity('uid-ada')
+    ]
+    for (const call of calls) {
+      sent = []
+      expect(await outcome(call())).toBe(`authentication/provider-failed: network ${error.message}`)
+      expect(sent).toHaveLength(1)
+    }
+  })
+
+  it('AUTH-7: the message is the error\'s own, without its cause', async () => {
+    reply = async () => { throw new TypeError('fetch failed', { cause: new Error('ECONNREFUSED') }) }
+
+    expect(await outcome(provider().authenticate('ada@example.com', 'lovelace'))).toBe('authentication/provider-failed: network fetch failed')
+  })
+
+  it('AUTH-7: a provider failure keeps the whole response message', async () => {
+    reply = toolkitError(400, 'OPERATION_NOT_ALLOWED : Password sign-in is disabled')
+
+    expect(await outcome(provider().authenticate('ada@example.com', 'lovelace'))).toBe('authentication/provider-failed: 400 OPERATION_NOT_ALLOWED : Password sign-in is disabled')
+  })
+
+  it('AUTH-3, AUTH-7: an empty localId or a non-string email is malformed', async () => {
+    for (const answer of [json(200, { localId: '', email: 'ada@example.com' }), json(200, { localId: 'uid-ada', email: 7 })]) {
+      reply = answer
+      expect(await outcome(provider().authenticate('ada@example.com', 'lovelace'))).toBe('authentication/provider-failed: 200 malformed response')
+    }
+  })
+
+  it('AUTH-3: the email is the response\'s, as it is', async () => {
+    reply = json(200, { localId: 'uid-ada', email: 'Ada.Lovelace@Example.org' })
+
+    expect(await provider().authenticate('ada@example.com', 'lovelace')).toEqual({ subject: 'uid-ada', email: 'Ada.Lovelace@Example.org' })
+  })
+
+  it('AUTH-4: a null mfaPendingCredential still requires the second factor', async () => {
+    reply = json(200, { localId: 'uid-ada', email: 'ada@example.com', mfaPendingCredential: null })
+
+    expect(await provider().authenticate('ada@example.com', 'lovelace')).toEqual({ rejected: 'second-factor-required' })
+  })
+
+  it('AUTH-2, AUTH-7: an ADC token that resolves empty is a provider failure, and nothing is sent', async () => {
+    for (const token of [null, undefined, '']) {
+      auth.token = Promise.resolve(token as never)
+      expect(await outcome(provider().authenticate('ada@example.com', 'lovelace'))).toBe('authentication/provider-failed: network no access token')
+    }
+    expect(sent).toHaveLength(0)
+  })
 })
 
 describe('the provider', () => {
@@ -338,6 +391,29 @@ describe('looking a subject up', () => {
       arrange()
       expect(await outcome(provider().getIdentity('uid-ada'))).toBe(message)
       expect(sent.length).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('AUTH-10, AUTH-7: a 5xx lookup is a provider failure with its status, sent once', async () => {
+    reply = toolkitError(503, 'UNAVAILABLE')
+
+    expect(await outcome(provider().getIdentity('uid-ada'))).toBe('authentication/provider-failed: 503 UNAVAILABLE')
+    expect(sent).toHaveLength(1)
+  })
+
+  it('AUTH-10: the lookup has the 10-second limit and the JSON content type', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    reply = json(200, { users: [] })
+    await provider().getIdentity('uid-ada')
+
+    expect(timeout).toHaveBeenCalledWith(10_000)
+    expect(new Headers(sent[0].init.headers).get('content-type')).toBe('application/json')
+  })
+
+  it('AUTH-10, AUTH-7: a null users, a null entry, or a disabled entry without localId is malformed', async () => {
+    for (const answer of [json(200, { users: null }), json(200, { users: [null] }), json(200, { users: [{ disabled: true, email: 'ada@example.com' }] })]) {
+      reply = answer
+      expect(await outcome(provider().getIdentity('uid-ada'))).toBe('authentication/provider-failed: 200 malformed response')
     }
   })
 })
