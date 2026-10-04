@@ -2,8 +2,8 @@
 type: rfc
 number: 16
 title: Delete `@genoacms/cloudabstraction`
-status: draft
-commits: []
+status: implemented
+commits: [f045d43]
 depends: [15]
 architecture: [configuration.md]
 commit-subject: refactor!: remove @genoacms/cloudabstraction
