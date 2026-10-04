@@ -47,6 +47,7 @@ AUTH-1 to AUTH-10 stand as written in `authentication-identity-platform.md`. The
 - **Descriptor.** `secretOptions: { apiKey: 'string', credentials: 'json' }`. `validate` returns COM-2's reasons, COM-3's for `projectId`, then `tenantId must be a non-empty string` for a present `tenantId` that is not one. The options type registers in `AuthenticationAdapters` under the specifier.
 - **Construction.** One `GoogleAuth` per provider (COM-4): `{ scopes: ['https://www.googleapis.com/auth/identitytoolkit'], projectId }`, plus `credentials` when given. Nothing is fetched at construction.
 - **Requests.** One `AbortSignal.timeout(10_000)` per call, created before the ADC token is requested. The token request races it, and `fetch` (`method: 'POST'`, `content-type: application/json`, the JSON body of AUTH-2 or AUTH-10) and reading the body take it as `signal`. A request with a token carries `authorization: Bearer <token>`. Nothing is retried.
+- **Token.** A token that resolves to anything but a non-empty string fails with `authentication/provider-failed: network no access token`.
 - **Bodies.** The body is read as text, then parsed. A read that fails is `network` with the error's message. A `200` body that does not parse to a JSON object (not `null`, not an array) fails with `authentication/provider-failed: 200 malformed response`. Any other status reads a body that does not parse as having no `error.message`, so the message is empty: `authentication/provider-failed: 502 `.
 - **Responses.** As AUTH-3 to AUTH-7 and AUTH-10. A `200` sign-in without a non-empty string `localId` and `email` is `200 malformed response` (AUTH-3), and so is a lookup whose `users` is present but not an array, or whose first entry lacks a non-empty string `localId` (AUTH-10). The identity is built from the strings as they are, never with `String()`. The error code is `error.message` split on ` : `, first part. `USER_DISABLED` is `credentials` (AUTH-5, until GS1b). `<status>` is the HTTP status, or `network` for a rejected `fetch` and for a token `GoogleAuth` cannot provide.
 - **Tokens.** The response's `idToken` and `refreshToken` are never read (AUTH-8). The adapter logs nothing.
@@ -111,6 +112,18 @@ never a substring.
 - `AUTH-10, AUTH-7: a 200 without a usable body is a provider failure`: *given* `200` bodies of HTML, `null`, `[]`, `{ users: {} }`, an entry without `localId` and one with `localId: ''`, *then* each rejects with exactly `authentication/provider-failed: 200 malformed response`; *given* `{}` and `{ users: [] }`, *then* `null`.
 - `AUTH-10, AUTH-7: a failed lookup never returns null`: *given* a `400`, a `404`, a rejected fetch and an ADC token that cannot be obtained, *then* each rejects with a provider failure, after at most one request.
 
+**Added after GS12**, unit, in `runtime.test.ts`, asserting whole messages as above:
+- `AUTH-10, AUTH-7: a 5xx lookup is a provider failure with its status, sent once`: *given* `503 UNAVAILABLE`, *then* exactly `authentication/provider-failed: 503 UNAVAILABLE`, after one request.
+- `AUTH-2, AUTH-10: a call that times out is not sent again`: *given* a fetch that rejects with a `TimeoutError`, *then* each method rejects with `authentication/provider-failed: network <its message>` after exactly one request.
+- `AUTH-10: the lookup has the 10-second limit and the JSON content type`: *then* `AbortSignal.timeout` was called with `10000` and the request carries `content-type: application/json`.
+- `AUTH-7: the message is the error's own, without its cause`: *given* a fetch that rejects with `TypeError('fetch failed', { cause: Error('ECONNREFUSED') })`, *then* exactly `authentication/provider-failed: network fetch failed`.
+- `AUTH-7: a provider failure keeps the whole response message`: *given* `400` with `OPERATION_NOT_ALLOWED : Password sign-in is disabled`, *then* exactly `authentication/provider-failed: 400 OPERATION_NOT_ALLOWED : Password sign-in is disabled`.
+- `AUTH-3, AUTH-7: an empty localId or a non-string email is malformed`: *given* `200` with `localId: ''`, then with `email: 7`, *then* each rejects with exactly `authentication/provider-failed: 200 malformed response`.
+- `AUTH-3: the email is the response's, as it is`: *given* `ada@example.com` in the request and `Ada.Lovelace@Example.org` in the response, *then* the identity's email is `Ada.Lovelace@Example.org`.
+- `AUTH-2, AUTH-7: an ADC token that resolves empty is a provider failure, and nothing is sent`: *given* `getAccessToken` resolving `null`, `undefined` and `''`, *then* each sign-in without an API key rejects with exactly `authentication/provider-failed: network no access token`, and no request was sent.
+- `AUTH-10, AUTH-7: a null users, a null entry, or a disabled entry without localId is malformed`: *given* `{ users: null }`, `{ users: [null] }` and `{ users: [{ disabled: true, email: 'ada@example.com' }] }`, *then* each rejects with exactly `authentication/provider-failed: 200 malformed response`.
+- `AUTH-4: a null mfaPendingCredential still requires the second factor`: *given* a `200` with `localId`, `email` and `mfaPendingCredential: null`, *then* `{ rejected: 'second-factor-required' }`.
+
 **`test/contract/authentication.test.ts`** (contract), only with `GENOACMS_TEST_GCP=1` and `GENOACMS_TEST_GCP_IDENTITY=1`. At load it creates two throwaway users in `GENOACMS_TEST_GCP_PROJECT` (`<name>-<run id>@genoacms-contract.example.com`, random passwords), the second disabled, through `projects/<project>/accounts`; it deletes both afterwards.
 - `AUTH-2, AUTH-3: signs a user in with the runtime identity`.
 - `AUTH-5: a wrong password, an unknown email and a disabled user are rejected for credentials`.
@@ -135,6 +148,7 @@ SEC-10, their level is `unit` only (GU12, decided by the author).
 9. GS11's tests (§Tests, *Added after GS11*), marked `it.fails`, committed: `test(adapter-gcp): GS11's regression tests for the Identity Platform adapter, expected to fail until fixed (RFC-0032)`. A test that already passes keeps no marker.
 10. The fix: remove the markers; run §Verification. `fix(adapter-gcp): a 200 without a usable body is a provider failure, and the 10-second limit covers the ADC token (GF32, GF33)`.
 11. A falsification audit of AUTH-2, AUTH-3, AUTH-7 and AUTH-10 as amended, recorded as a `GS` entry; then step 7, with GF32 and GF33 fixed, RFC-0032.
+12. *Done:* GS12 found no defect, and test gaps and three ambiguities in AUTH-10 and AUTH-4, which the author settled. AUTH-2, AUTH-4 and AUTH-10 were clarified and the tests *Added after GS12* added, passing without markers: `test(adapter-gcp): GS12's regression tests for the Identity Platform adapter (RFC-0032)`. No further audit: what passes is unobservable from Google's service.
 
 ## Verification
 
