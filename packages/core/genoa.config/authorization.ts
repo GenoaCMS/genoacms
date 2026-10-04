@@ -7,6 +7,6 @@ export const authorization: AuthorizationConfig = {
     Administrator: [{ permission: '*', resource: '*' }]
   },
   assignments: {
-    'e0d5a1c4-5a0f-4a4e-9b3a-6d1c8f2b7a01': ['Administrator']
+    cc0Xb1senAPCfF7oKfErZjXSeT03: ['Administrator']
   }
 }
