@@ -1,12 +1,20 @@
-import type { JSONSchemaType } from 'ajv'
+/**
+ * A JSON Schema object. The contract carries schemas and never validates them, so it names the
+ * keywords code reads and admits every other.
+ */
+interface JsonSchema {
+  type?: string | string[]
+  properties?: Record<string, JsonSchema>
+  [keyword: string]: unknown
+}
 
 interface CollectionReference {
   name: string
   primaryKey: {
     key: string,
-    schema: JSONSchemaType<any>
+    schema: JsonSchema
   },
-  schema: JSONSchemaType<any>
+  schema: JsonSchema
 }
 interface DocumentReference<C extends CollectionReference> {
   collection: C
@@ -35,6 +43,7 @@ interface UpdateSnapshot<C extends CollectionReference> extends Omit<DocumentSna
 type CollectionSnapshot<C extends CollectionReference> = Array<DocumentSnapshot<C>> // TODO: make class, method docs()
 
 export type {
+  JsonSchema,
   CollectionReference,
   DocumentReference,
   QueryParams,

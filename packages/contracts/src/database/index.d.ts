@@ -4,6 +4,7 @@ export type {
   Adapter
 }
 export type {
+  JsonSchema,
   CollectionReference,
   DocumentReference,
   QueryParams,

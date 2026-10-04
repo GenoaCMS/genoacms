@@ -21,7 +21,7 @@
   {#each properties as property (property.name)}
     <Prop
       name={property.name}
-      schema={collectionReference.schema.properties[property.name]}
+      schema={collectionReference.schema.properties?.[property.name]}
       value={value[property.name]}
       onvalue={(value) => updateProperty(property.name, value)}
     />
