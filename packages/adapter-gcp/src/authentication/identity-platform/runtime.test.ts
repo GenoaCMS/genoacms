@@ -179,7 +179,7 @@ describe('signing in', () => {
     }
   })
 
-  it.fails('AUTH-2, AUTH-7: the 10-second limit covers the ADC token', async () => {
+  it('AUTH-2, AUTH-7: the 10-second limit covers the ADC token', async () => {
     const controllers = replaceTimeout()
     auth.token = new Promise<string>(() => {})
     const calls = [
@@ -197,7 +197,7 @@ describe('signing in', () => {
     expect(sent).toHaveLength(0)
   })
 
-  it.fails('AUTH-2, AUTH-7: the request and the body read share the 10-second signal', async () => {
+  it('AUTH-2, AUTH-7: the request and the body read share the 10-second signal', async () => {
     const controllers = replaceTimeout()
     await provider().authenticate('ada@example.com', 'lovelace')
 
@@ -216,7 +216,7 @@ describe('signing in', () => {
     expect(await provider().authenticate('Ada@Example.com', 'lovelace')).toEqual({ subject: 'uid-ada', email: 'ada@example.com' })
   })
 
-  it.fails('AUTH-3, AUTH-7: a 200 without a usable body is a provider failure', async () => {
+  it('AUTH-3, AUTH-7: a 200 without a usable body is a provider failure', async () => {
     const answers = [
       text(200, '<html>OK</html>'),
       json(200, {}),
@@ -307,7 +307,7 @@ describe('looking a subject up', () => {
     await expect(provider().getIdentity('uid-ada')).rejects.toThrow('authentication/provider-failed: 403 CONFIGURATION_NOT_FOUND')
   })
 
-  it.fails('AUTH-10, AUTH-7: a 200 without a usable body is a provider failure', async () => {
+  it('AUTH-10, AUTH-7: a 200 without a usable body is a provider failure', async () => {
     const malformed = [
       text(200, '<html>OK</html>'),
       json(200, null),
