@@ -11,7 +11,7 @@ import type { CollectionReference } from '@genoacms/contracts/database'
 export const collections: CollectionReference[] = [
   // {
   //   name: 'authors',
-  //   primaryKey: 'id',
+  //   primaryKey: { key: 'id', schema: { type: 'string' } },
   //   schema: {
   //     type: 'object',
   //     properties: {
