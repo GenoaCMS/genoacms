@@ -3,7 +3,7 @@ type: rfc
 number: 17
 title: Documentation site
 status: implemented
-commits: [4cf1e0b, d7a12f0]
+commits: [4cf1e0b, d7a12f0, dff84fc]
 depends: [16, 28, 30, 32]
 architecture: []
 changes: []
@@ -28,6 +28,13 @@ critique named the cause of the drift: nothing checks that the site's code examp
 author chose example configs beside core's own, checked in CI, over a harness that extracts code
 blocks (author, 2026-10-04): GCP, AWS and self-hosted.
 
+*Amended 2026-10-05.* The site was built with `@sveltepress/vite` 1.2.0 and
+`@sveltepress/theme-default` 6.0.0 on Vite 5, a year behind core's Vite 7. The author asked to move it
+to the latest sveltepress (author, 2026-10-05): `@sveltepress/vite` 1.8.3 and
+`@sveltepress/theme-default` 8.9.0, which require Vite 8, `@sveltejs/vite-plugin-svelte` 7 and
+`@sveltejs/kit` 2.65.1 or later below 3. The pages, the include plugin and the navigation are
+unchanged.
+
 This RFC:
 
 1. adds three example configs to `packages/core/genoa.config/`, `gcp.ts`, `aws.ts` and `self-hosted.ts`, type-checked in CI's build step and loaded through the real loader in core's unit tests;
@@ -46,6 +53,8 @@ This RFC:
 | `packages/core/genoa.config/tsconfig.json` | add the three to `files`; it type-checks `test.ts` and `e2e.ts` in CI's build step since `9aa4277` |
 | `packages/core/package.json`, `pnpm-lock.yaml` | dev dependencies `@genoacms/adapter-aws`, `@genoacms/adapter-minio`, `@genoacms/adapter-postgres`, each `workspace:^` |
 | `packages/core/src/lib/config/exampleConfigs.test.ts` | create (§Tests) |
+| `packages/docs/package.json`, `pnpm-lock.yaml` | *Amended 2026-10-05.* `@sveltepress/vite` `1.8.3`, `@sveltepress/theme-default` `8.9.0`, `vite` `^8.3.2`, `@sveltejs/vite-plugin-svelte` `^7.3.1`, `@sveltejs/kit` `^2.70.3`, `@sveltejs/adapter-static` `^3.0.10`, `svelte` `^5.57.1` (§Specification, *Dependencies*) |
+| `package.json`, `patches/@sveltepress__theme-default@8.9.0.patch` | *Amended 2026-10-05.* `pnpm.patchedDependencies` and the patch (§Specification, *Dependencies*) |
 | `packages/docs/vite.config.ts` | the include plugin; the navbar, the sidebar and `github`; the highlighter's languages |
 | `packages/docs/src/routes/+page.md` | its GitHub link points at `GenoaCMS/genoacms` |
 | `.github/workflows/docs.yml` | `packages/core/genoa.config/**` added to the push `paths` |
@@ -104,6 +113,24 @@ page without failing the build; the plugin stays. The highlighter loads only `sv
 unescaped, so a `json` block with braces fails the build: the theme's `highlighter.languages` adds
 `bash` and `json`. Prerendering already fails on a link or an anchor that does not resolve.
 
+### Dependencies
+
+*Amended 2026-10-05.* `packages/docs` pins `@sveltepress/vite` `1.8.3` and
+`@sveltepress/theme-default` `8.9.0` exactly, as it pinned the versions before, and takes the ranges
+their peers require: `vite` `^8.3.2`, `@sveltejs/vite-plugin-svelte` `^7.3.1`, `@sveltejs/kit`
+`^2.70.3` (kit 3 is outside the theme's `>=2.65.1 <3`, so `@sveltejs/adapter-static` stays on 3,
+`^3.0.10`), `svelte` `^5.57.1`. `@types/node` stays on `^20.11.20`, locked at 20.19.43, inside Vite 8's peer range; moving it
+would re-resolve the peers of every package. The other packages stay on Vite 7.
+
+Theme 8.9.0 has a defect that fails every page. On a site without versioned docs, a pre-transform
+(`dist/vite-plugins/strip-versioning.js`) rewrites the theme's components to drop the versioning
+code; for `Link.svelte` it removes the `$app/state` import together with the versioning import, but
+the rewritten component still reads `page.url.pathname`, so prerendering throws
+`ReferenceError: page is not defined` on every route. 8.7.0 and 8.8.0 carry the same transform. The
+repository patches the transform with `pnpm patch`: its first replacement keeps
+`import { page } from '$app/state'`. Nothing else in the theme changes. The patch is dropped when a
+release fixes the transform.
+
 ### Pages
 
 Each page's code examples are included example configs, or fragments of a config that are consistent
@@ -135,7 +162,7 @@ as it is, then **Contracts** (Authentication, Database, Deployment, Secrets, Sto
 ## Non-goals
 
 - No change to `guide/authorization`, `guide/signing-keys`, `guide/storage-layout`, `guide/consumer`, `guide/introduction` or `reference/sdk/documents`.
-- No theme change and no new dependency; the highlighter's language list is configuration of the existing theme. `src/lib/ExternalFile.md`, which no page uses, stays.
+- No theme change and no new dependency; the highlighter's language list is configuration of the existing theme. *Amended 2026-10-05:* the theme and sveltepress move to their latest versions (§Specification, *Dependencies*), with no change to the site's configuration and no new dependency. `src/lib/ExternalFile.md`, which no page uses, stays.
 - No internal mechanism on the site: scanner internals, host caching, the vendoring of local packages.
 - No change to `development.ts`, `production.ts`, `test.ts` or `e2e.ts`, and no redirect from the old `/reference/cloudabstraction/*` routes.
 
@@ -156,6 +183,7 @@ check (`9aa4277`) checks them against the registry's types.
 3. Add the include plugin and the navigation to `vite.config.ts`. Move the reference pages with `git mv`.
 4. Write the pages, in the order of §Specification, *Pages*.
 5. Run §Verification. Commit the site with this RFC's `commit-subject`.
+6. *Amended 2026-10-05.* Update the dependencies of §Specification, *Dependencies*, apply the patch with `pnpm patch @sveltepress/theme-default@8.9.0` and `pnpm patch-commit`, and run §Verification. Commit: `build(docs): update sveltepress to vite 1.8.3 and theme-default 8.9.0`.
 
 ## Verification
 
@@ -183,6 +211,14 @@ git checkout packages/docs/src/routes/guide/config/examples/+page.md
 
 Expected: the build fails with `include: ./missing.ts not found`.
 
+*Amended 2026-10-05.* After the dependency update, the build also prints no `page is not defined`:
+
+```bash
+pnpm --filter @genoacms/docs run build 2>&1 | grep -c 'page is not defined'
+```
+
+Expected: `0`.
+
 A reviewer reads each rewritten page against its source of truth in §Specification and records any
 mismatch; there is no automated check of prose.
 
@@ -204,4 +240,5 @@ mismatch; there is no automated check of prose.
 - The include plugin acts on `+page.md` only; an `@include` in a layout or a component stays literal.
 - The Pages workflow republishes on a change under `packages/core/genoa.config/`, but not when an adapter's option types change; the example then fails CI first, and the fix republishes.
 - Self-hosting has no production secret store; the examples page states the limit and no RFC addresses it.
+- *Amended 2026-10-05.* The theme patch is pinned to 8.9.0. A theme update that changes `strip-versioning.js` fails `pnpm install` until the patch is regenerated or dropped; one that keeps the defect but renames the file would need the patch rewritten.
 - The loader checks providers, not collections: a project's plain-JavaScript `collections.js` with a malformed collection still loads. A general config checker is left to a later RFC.
