@@ -32,5 +32,10 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@sveltepress/theme-default@8.9.0": "patches/@sveltepress__theme-default@8.9.0.patch"
+    }
   }
 }

@@ -1,0 +1,13 @@
+diff --git a/dist/vite-plugins/strip-versioning.js b/dist/vite-plugins/strip-versioning.js
+index aebdbfe5773f0a968fa7885ce85b9de238800c5b..920066e4e5cd32d9bbee06f1aecbfee579627efe 100644
+--- a/dist/vite-plugins/strip-versioning.js
++++ b/dist/vite-plugins/strip-versioning.js
+@@ -32,7 +32,7 @@ var transforms = {
+         return replaceRequired(result, "    {#if resolveVersionManifest(page.url.pathname)}\n      <VersionFallbackNotice />\n    {/if}\n");
+     },
+     'Link.svelte': function (source) {
+-        var result = replaceRequired(source, "  import { page } from '$app/state'\n  import {\n    resolveVersionContext,\n    resolveVersionedPath,\n  } from 'virtual:sveltepress/versions'\n");
++        var result = replaceRequired(source, "  import { page } from '$app/state'\n  import {\n    resolveVersionContext,\n    resolveVersionedPath,\n  } from 'virtual:sveltepress/versions'\n", "  import { page } from '$app/state'\n");
+         result = replaceRequired(result, '   * @property {boolean} [withVersion] - Whether the active documentation version should be applied\n');
+         result = replaceRequired(result, '    withVersion = true,\n');
+         result = replaceRequired(result, "  let versionContext = $derived(resolveVersionContext(page.url.pathname))\n  let localizedTo = $derived(\n    withLocale ? resolveLocaleLink(to, page.url.pathname) : to,\n  )\n  let versionedTo = $derived(\n    withVersion\n      ? resolveVersionedPath(localizedTo, versionContext)\n      : localizedTo,\n  )\n  let toWithBase = $derived(isExternal ? to : getPathFromBase(versionedTo))", '  let toWithBase = $derived(isExternal ? to : getPathFromBase(withLocale ? resolveLocaleLink(to, page.url.pathname) : to))');

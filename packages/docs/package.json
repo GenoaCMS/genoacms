@@ -14,14 +14,14 @@
     "@iconify-json/si": "^1.2.3",
     "@iconify-json/tabler": "^1.2.16",
     "@iconify-json/vscode-icons": "^1.2.15",
-    "@sveltejs/adapter-static": "^3.0.1",
-    "@sveltejs/kit": "^2.8.1",
-    "@sveltejs/vite-plugin-svelte": "^4.0.1",
-    "@sveltepress/theme-default": "6.0.0",
-    "@sveltepress/vite": "1.2.0",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@sveltepress/theme-default": "8.9.0",
+    "@sveltepress/vite": "1.8.3",
     "@types/node": "^20.11.20",
-    "svelte": "^5.0.0",
+    "svelte": "^5.57.1",
     "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "vite": "^8.3.2"
   }
 }
