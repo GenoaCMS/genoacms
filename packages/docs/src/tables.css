@@ -1,0 +1,31 @@
+/* The theme draws tables with --svp-divider and shades only a few levels
+   apart from the page, which leaves dark-mode tables with no visible edge
+   or header. */
+html.dark .theme-default--page-layout .content table {
+  border-color: #ffffff2e;
+}
+
+html.dark .theme-default--page-layout .content th,
+html.dark .theme-default--page-layout .content td {
+  border-color: #ffffff1f;
+}
+
+html.dark .theme-default--page-layout .content th {
+  background-color: #27272a;
+}
+
+html.dark .theme-default--page-layout .content tr:nth-child(2n) {
+  background-color: #1f1f23;
+}
+
+html.dark .theme-default--page-layout .content tbody tr:hover {
+  background-color: #27272a;
+}
+
+/* An identifier split across lines breaks its code box in two. A phone has
+   no room to keep it whole, so there it still wraps. */
+@media (min-width: 720px) {
+  .theme-default--page-layout .content td > code {
+    white-space: nowrap;
+  }
+}

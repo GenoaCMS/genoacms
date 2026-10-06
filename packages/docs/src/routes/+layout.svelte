@@ -1,4 +1,6 @@
 <script>
+  import '../tables.css'
+
   const { children } = $props()
 </script>
 
