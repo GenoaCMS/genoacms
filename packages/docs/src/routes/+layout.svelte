@@ -1,4 +1,6 @@
 <script>
+  import '../theme.css'
+
   const { children } = $props()
 </script>
 

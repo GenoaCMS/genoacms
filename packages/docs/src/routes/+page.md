@@ -1,5 +1,4 @@
 ---
-title: Welcome to Sveltepress
 heroImage: /genoacms.png
 tagline: New generation of content management system
 actions: 
