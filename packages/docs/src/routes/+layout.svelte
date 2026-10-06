@@ -1,5 +1,5 @@
 <script>
-  import '../tables.css'
+  import '../theme.css'
 
   const { children } = $props()
 </script>
