@@ -1,3 +1,16 @@
+diff --git a/dist/components/utils.js b/dist/components/utils.js
+index ac0662201566fdb7c1f0fac9055c5437f49b7c62..a00d3a89c3543af7963a37032caa94ae1a48a7a3 100644
+--- a/dist/components/utils.js
++++ b/dist/components/utils.js
+@@ -32,5 +32,8 @@ export function isLinkActive(link, routeId) {
+     // Normalize both by removing trailing slashes for comparison
+     var normalizedLink = (link === null || link === void 0 ? void 0 : link.replace(/\/$/, '')) || '';
+     var normalizedRouteId = (routeId === null || routeId === void 0 ? void 0 : routeId.replace(/\/$/, '')) || '';
++    // An unmatched URL has no route: every link would start with "/".
++    if (!normalizedRouteId)
++        return false;
+     return normalizedLink === normalizedRouteId || (link === null || link === void 0 ? void 0 : link.startsWith("".concat(normalizedRouteId, "/")));
+ }
 diff --git a/dist/vite-plugins/strip-versioning.js b/dist/vite-plugins/strip-versioning.js
 index aebdbfe5773f0a968fa7885ce85b9de238800c5b..920066e4e5cd32d9bbee06f1aecbfee579627efe 100644
 --- a/dist/vite-plugins/strip-versioning.js
