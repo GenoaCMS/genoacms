@@ -3,7 +3,7 @@ type: rfc
 number: 17
 title: Documentation site
 status: implemented
-commits: [4cf1e0b, d7a12f0, dff84fc]
+commits: [4cf1e0b, d7a12f0, dff84fc, 1f31d51, 28630cf, 7c26532]
 depends: [16, 28, 30, 32]
 architecture: []
 changes: []
@@ -55,6 +55,7 @@ This RFC:
 | `packages/core/src/lib/config/exampleConfigs.test.ts` | create (§Tests) |
 | `packages/docs/package.json`, `pnpm-lock.yaml` | *Amended 2026-10-05.* `@sveltepress/vite` `1.8.3`, `@sveltepress/theme-default` `8.9.0`, `vite` `^8.3.2`, `@sveltejs/vite-plugin-svelte` `^7.3.1`, `@sveltejs/kit` `^2.70.3`, `@sveltejs/adapter-static` `^3.0.10`, `svelte` `^5.57.1` (§Specification, *Dependencies*) |
 | `package.json`, `patches/@sveltepress__theme-default@8.9.0.patch` | *Amended 2026-10-05.* `pnpm.patchedDependencies` and the patch (§Specification, *Dependencies*) |
+| `packages/docs/src/theme.css`, `src/routes/+layout.svelte`, `src/routes/+layout.ts`, `src/routes/+page.md` | *Amended 2026-10-06.* the site's stylesheet, `trailingSlash`, the home page's title (§Specification, *Dependencies*) |
 | `packages/docs/vite.config.ts` | the include plugin; the navbar, the sidebar and `github`; the highlighter's languages |
 | `packages/docs/src/routes/+page.md` | its GitHub link points at `GenoaCMS/genoacms` |
 | `.github/workflows/docs.yml` | `packages/core/genoa.config/**` added to the push `paths` |
@@ -128,8 +129,26 @@ code; for `Link.svelte` it removes the `$app/state` import together with the ver
 the rewritten component still reads `page.url.pathname`, so prerendering throws
 `ReferenceError: page is not defined` on every route. 8.7.0 and 8.8.0 carry the same transform. The
 repository patches the transform with `pnpm patch`: its first replacement keeps
-`import { page } from '$app/state'`. Nothing else in the theme changes. The patch is dropped when a
-release fixes the transform.
+`import { page } from '$app/state'`. The patch is dropped when a release fixes the transform.
+
+*Amended 2026-10-06.* A second defect, found reviewing the updated site: `isLinkActive` in `dist/components/utils.js`
+compares each sidebar link with the current route, and on a URL the router does not match the route
+is empty, so every link, starting with `/`, shows as active. The same patch makes an empty route
+activate no link. Nothing else in the theme changes.
+
+Search results linked to such URLs: the site was written as `<route>.html`, which Pagefind indexes
+as is, while the sidebar links to `<route>/`. `src/routes/+layout.ts` sets
+`trailingSlash = 'always'`, so every page is written as `<route>/index.html` and search, sidebar and
+links share one URL per page.
+
+Updating the theme also showed two display faults, fixed in the site's own stylesheet,
+`src/theme.css`, imported by `src/routes/+layout.svelte`. The theme applies its dark palette on
+`html[data-theme='dark']` as well as on its toggle's `html.dark`, so a host page or a browser
+extension setting the attribute turned headings and tables dark on a light page; the stylesheet
+restores the light palette unless the toggle says dark. In dark mode a table's edge, header and stripes
+were a few shades from the page; the stylesheet strengthens them, and keeps inline code in a cell on
+one line from 720px up. The home page's front matter loses the starter's `title: Welcome to
+Sveltepress`, so its heading and tab show the site title.
 
 ### Pages
 
@@ -197,11 +216,12 @@ Expected: both exit 0; three tests pass.
 ```bash
 pnpm --filter @genoacms/docs run build
 grep -rn "cloudabstraction\|adapterPath\|getProvider\|genoaConfig\|languageAdapters\|GENOA_BUILD\|GENOA_CONFIG_PATH\|DEPLOYMENT_PROVIDER\|npx @genoacms/cli run\|GenoaCMS/core\|GenoaCMS/cli" packages/docs/src packages/docs/vite.config.ts || echo "no stale names: ok"
-grep -c 'shiki' packages/docs/dist/guide/config/examples.html
+grep -c 'shiki' packages/docs/dist/guide/config/examples/index.html
 ```
 
 Expected: the build succeeds; the grep prints `no stale names: ok`; the examples page holds at least
-three highlighted blocks.
+three highlighted blocks. *Amended 2026-10-06:* the page is `examples/index.html` since
+`trailingSlash = 'always'`.
 
 ```bash
 echo '@include ./missing.ts' >> packages/docs/src/routes/guide/config/examples/+page.md
