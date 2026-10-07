@@ -7,7 +7,7 @@ sets a project up, runs it, builds it and deploys it. Add it to a project with
 `npm install -D @genoacms/cli` (or `pnpm add -D @genoacms/cli`), or run it without installing as
 `npx @genoacms/cli <command>` (or `pnpm dlx @genoacms/cli <command>`).
 
-```
+```text
 genoa <command> [target] [flags]
 ```
 

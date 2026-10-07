@@ -6,7 +6,7 @@ GenoaCMS keeps its own state in the **default bucket**, under a single `.genoacm
 page describes what appears there, so that an operator inspecting the bucket can tell expected
 files from unexpected ones.
 
-```
+```text
 .genoacms/
 ├── keys/
 │   └── public.json            registry of signing keys
@@ -67,7 +67,7 @@ first roles.
 
 One object per signed-in session, named for its family identifier:
 
-```
+```text
 .genoacms/security/sessions/8f14e45f-ceea-467a-9b1e-7a12c0e7a1d4.json
 ```
 
@@ -88,7 +88,7 @@ out; nothing else is lost.
 **This directory only exists if something went wrong.** When a document fails verification, GenoaCMS
 copies it here with a timestamp before replacing it, so the evidence survives:
 
-```
+```text
 .genoacms/security/rejected/roles-1755950000000.json
 ```
 

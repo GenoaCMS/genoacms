@@ -174,7 +174,7 @@ const config = defineConfig({
           ]
         },
         highlighter: {
-          languages: ['svelte', 'sh', 'bash', 'js', 'html', 'ts', 'md', 'css', 'scss', 'json']
+          languages: ['svelte', 'sh', 'bash', 'js', 'html', 'ts', 'md', 'css', 'scss', 'json', 'dotenv']
         },
         github: 'https://github.com/GenoaCMS/genoacms',
         logo: '/sail.png',

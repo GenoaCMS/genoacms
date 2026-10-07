@@ -67,7 +67,7 @@ buckets, collections, components, pages — which no external system can enumera
 
 A project keeps its configuration in one directory, `genoa.config/`:
 
-```
+```text
 genoa.config/
 ├── development.ts     the config genoa dev finds on its own
 ├── production.ts      named on the command line, always

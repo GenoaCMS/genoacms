@@ -178,7 +178,7 @@ On first start GenoaCMS generates a **root trust anchor** — the key at the top
 — and stores its seed as `GENOACMS_ROOT_KEY_SEED`. A line naming the new key's id is written to the
 log when this happens:
 
-```
+```text
 [genoacms:signing] generated a new root trust anchor, keyId 9f2c41ab8d7e0355.
 ```
 

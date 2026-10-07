@@ -24,7 +24,7 @@ It then installs `@genoacms/core`, `@genoacms/config`, `@genoacms/contracts`,
 `@genoacms/adapter-secrets-env`, `@genoacms/adapter-node`, `@genoacms/language-adapter-ts` and the
 packages you chose, writes `genoa.config/`, and adds `.genoacms/` to `.gitignore`:
 
-```
+```text
 project/
 ├── genoa.config/
 │   ├── development.ts
@@ -77,7 +77,7 @@ export const collections: CollectionReference[] = [
 The development config signs administrators in from `GENOACMS_ADMIN_CREDENTIALS`, which it reads
 from the development secrets store, `.genoacms/secrets.env`. Put one line of JSON there:
 
-```
+```dotenv
 GENOACMS_ADMIN_CREDENTIALS=[{"email":"admin@example.com","password":"…","subject":"admin"}]
 ```
 
