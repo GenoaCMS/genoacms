@@ -1,6 +1,6 @@
 ---
 heroImage: /genoacms.png
-tagline: New generation of content management system
+tagline: A headless CMS for the infrastructure you already run
 actions: 
   - label: Get started
     type: primary
@@ -9,6 +9,12 @@ actions:
     to: https://github.com/GenoaCMS/genoacms
     external: true
 features:
+  - title: Your existing data
+    description: Edit the database and storage your project already has, in place. Nothing to migrate.
+    icon:
+      type: iconify
+      collection: tabler
+      name: database-edit
   - title: Platform-agnostic
     description: Adaptable to work with any database, storage, auth and compute solution.
     icon:
@@ -21,22 +27,22 @@ features:
       type: iconify
       collection: tabler
       name: cloud-network
-  - title: Component API
-    description: Option to define components and compose pages.
-    icon:
-      type: iconify
-      collection: bi
-      name: boxes
-  - title: Streamlined configuration
-    description: Configure your site with a single configuration file.
-    icon:
-      type: iconify
-      collection: si
-      name: json-fill
   - title: No tech stack requirements
     description: The CMS adapts, not the rest of the system.
     icon:
       type: iconify
       collection: tabler
       name: code-off
+  - title: Typed configuration
+    description: One config per environment, checked by TypeScript. Credentials stay in your secret manager.
+    icon:
+      type: iconify
+      collection: tabler
+      name: brand-typescript
+  - title: Signed components
+    description: Compose pages from components in your codebase or written in the CMS, in any language. Your app verifies every page before rendering it.
+    icon:
+      type: iconify
+      collection: tabler
+      name: shield-check
 ---
