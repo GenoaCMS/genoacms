@@ -50,6 +50,10 @@ const config = defineConfig({
                   to: '/guide/introduction/'
                 },
                 {
+                  title: 'Concepts',
+                  to: '/guide/concepts/'
+                },
+                {
                   title: 'Getting Started',
                   to: '/guide/getting-started/'
                 }

@@ -115,6 +115,7 @@ existing data is the first thing you do with it.
 
 ## Next steps
 
+- [Concepts](/guide/concepts/): the terms these docs use, defined.
 - [Getting started](/guide/getting-started/): set a project up with `genoa init`, and run it.
 - [Configuration](/guide/config/structure/): what a config holds.
 - [Adapters](/guide/adapters/): the adapters that ship, and how to write one.

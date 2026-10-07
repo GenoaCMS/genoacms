@@ -17,7 +17,7 @@ run them as `npx genoa …` (or `pnpm genoa …`), or keep running them through 
 
 It asks two questions:
 
-- **An adapter suite**: GCP, AWS, or none. The suite decides the storage, database, secrets and deployment adapters of the production config.
+- **An [adapter suite](/guide/concepts/#Adapter-suite)**: GCP, AWS, or none. The suite decides the storage, database, secrets and deployment adapters of the production config.
 - **An authentication adapter**: the array adapter, a list of users held as a secret, or none.
 
 It then installs `@genoacms/core`, `@genoacms/config`, `@genoacms/contracts`,
