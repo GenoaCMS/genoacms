@@ -179,11 +179,9 @@ const config = defineConfig({
         github: 'https://github.com/GenoaCMS/genoacms',
         logo: '/sail.png',
         preBuildIconifyIcons: {
-          bi: ['boxes'],
           'vscode-icons': ['file-type-json', 'typescript-icon', 'file-type-vite'],
           'game-icons': ['swiss-army-knife'],
-          tabler: ['cloud-network', 'code-off'],
-          si: ['json-fill']
+          tabler: ['cloud-network', 'code-off', 'database-edit', 'brand-typescript', 'shield-check']
         }
       }),
       siteConfig: {
