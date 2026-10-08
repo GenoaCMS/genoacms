@@ -37,7 +37,6 @@
   bind:open={isModalOpen}
   title="Edit {data.name}"
   size="xl"
-  bodyClass="p-0"
 >
   <div class="h-[80vh] w-full flex">
     <div class="w-1/2 border-e">

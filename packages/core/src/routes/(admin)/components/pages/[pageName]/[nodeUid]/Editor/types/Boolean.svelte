@@ -11,8 +11,8 @@
   }
   const { data, onvalue }: Props = $props()
 
-  function onchange (e: CustomEvent<boolean>) {
-    data.value = e.target.checked
+  function onchange (e: Event) {
+    data.value = (e.target as HTMLInputElement).checked
     onvalue(data.value)
   }
 </script>

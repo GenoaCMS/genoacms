@@ -11,8 +11,8 @@
   }
   const { data, onvalue }: Props = $props()
 
-  function oninput (e: InputEvent) {
-    onvalue(e.target.value)
+  function oninput (e: Event) {
+    onvalue((e.target as HTMLTextAreaElement).value)
   }
 </script>
 

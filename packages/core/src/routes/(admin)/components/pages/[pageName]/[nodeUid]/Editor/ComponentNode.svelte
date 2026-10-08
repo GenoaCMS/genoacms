@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { AttributeData, ComponentNode } from '$lib/script/components/page/entry/types'
+  import type { ComponentNode } from '$lib/script/components/page/entry/types'
+  import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
   import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
@@ -8,10 +9,10 @@
 
   interface Props {
     node: ComponentNode,
-    onupdate: (uid: string, val: AttributeData<never>['value']) => void
+    onupdate: (uid: string, val: AttributeValue) => void
   }
   let { node = $bindable(), onupdate }: Props = $props()
-  const componentHeader: ComponentHeader = $derived(page.data.componentSchemas.find(i => i.uid === node.entryReference))
+  const componentHeader: ComponentHeader = $derived(page.data.componentSchemas.find((i: ComponentHeader) => i.uid === node.entryReference))
   const componentHeaderURL = $derived(componentHeader.type === 'dynamic' ? `/components/editor/${componentHeader.uid}` : `/components/registrar/${componentHeader.uid}`)
 </script>
 

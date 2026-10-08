@@ -7,12 +7,12 @@
 
   interface Props {
     data: AttributeData<NumberAttributeType>
-    onvalue: (v: number) => void
+    onvalue: (v: string) => void
   }
   const { data, onvalue }: Props = $props()
 
-  function oninput (e: InputEvent) {
-    onvalue(e.target.value)
+  function oninput (e: Event) {
+    onvalue((e.target as HTMLInputElement).value)
   }
 </script>
 

@@ -2,7 +2,7 @@
   import { Checkbox, Label } from '$lib/components/ui/index'
 
   interface Props {
-    default: boolean
+    default?: boolean
   }
   let { default: d = $bindable() }: Props = $props()
 </script>
