@@ -199,7 +199,7 @@ interface Identity {
 `subject` is the only value that takes part in an authorization decision. `email` is shown to the
 user and carried in the session, never used to authorize.
 
-- Test: unverified (a type only)
+- Test: `packages/contracts/src/authentication/types.test-d.ts` (unverified: that `subject` is the only value taking part in an authorization decision)
 - Level: unit
 
 ### The adapter
@@ -234,7 +234,7 @@ throws an `Error` whose message starts with `authentication/`, such as
 `authentication/provider-failed: <message>`. It never reports a failure as a `Rejection`, or as `null`
 from `getIdentity`.
 
-- Test: unverified (the array adapter has no service that can fail; `adapter-gcp` AUTH-7 tests the Identity Platform adapter by fault injection)
+- Test: `packages/adapter-gcp/src/authentication/identity-platform/runtime.test.ts`
 - Level: unit
 
 #### AUTHN-4 · getIdentity

@@ -105,7 +105,7 @@ declare function runDatabaseConformance (
 ): void
 ```
 
-- Test: unverified (the package's tests call both functions, but carry no ID)
+- Test: `packages/conformance/test/package.test.js`
 - Level: conformance
 
 ### Storage
