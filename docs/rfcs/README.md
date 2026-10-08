@@ -16,7 +16,7 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 ## Order
 
 Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
-frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 is the only draft. RFC-0001 to RFC-0024
+frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 and RFC-0033 are the only drafts. RFC-0001 to RFC-0024
 predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 
 Each RFC depends only on RFCs above it. Implement strictly in this order, and commit each RFC on its
@@ -54,6 +54,7 @@ own before starting the next.
 | [0030](0030-authentication-contract.md) | The authentication contract, sign-in across providers, session revalidation (`contracts/authentication.md` CU3, CU4, CD2, CD3) | `packages/contracts`, `packages/authentication-adapter-array`, `packages/conformance`, `packages/config`, `packages/core`, `scripts/` |
 | [0031](0031-sign-in-limits.md) | Core limits failed sign-ins (`contracts/authentication.md` CD7, CF1). Deferred by the author, 2026-10-02. | `packages/config`, `packages/core` |
 | [0032](0032-gcp-identity-platform-adapter.md) | The Identity Platform authentication adapter (`adapter-gcp/authentication-identity-platform.md` GD2, GU10, GU11). Implemented after 0030, before 0031. | `packages/adapter-gcp`, CI |
+| [0033](0033-audit-findings.md) | Close the most important findings of the 2026-10-08 audits (`adapter-gcp/` GF34 to GF37, `contracts/` CF31 to CF33, CF37, CF42, CF43, `cli.md` LF14, LF15) | `packages/sveltekit-adapter-cloud-run-functions`, `packages/authentication-adapter-array`, `packages/conformance`, `packages/cli`, `packages/contracts`, CI; tests only in `packages/adapter-gcp`, `packages/core` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 
