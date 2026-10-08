@@ -158,6 +158,10 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 
 **GS9, falsification audit of STO-9 and STO-11 as amended, at `f771062`, 2026-10-01.** The same method, 32 mutations, 23 failed a test. Of the rest, two only lowered the delete bound, which STO-11 allows. Six were gaps, now in GF30: the last error instead of the first, a later page's listing error swallowed, a short page's deletes overlapping the next page's, an empty page ending the delete, the entries kept by `limit` chosen out of order, and `limit: 0` read as no limit. It found one defect, the order of names compared in UTF-16 rather than UTF-8 bytes (GF30), and STO-9 and STO-11 now state the page order, the stop after a failed delete and which entries `limit` keeps.
 
+**GS13, falsification audit of AUTH-1 to AUTH-10, at `9f43931`, 2026-10-08.** An agent that wrote neither the code nor the tests made 24 mutations of the Identity Platform runtime; 3 failed a unit test, and 1 changed no behavior. Of the 20 that passed, 11 cannot be seen from Google's service. The other 9 are GF34. The contract tests were not run. The full report is `docs-audit/falsification-rfc-0030-0032.md`.
+
+**GS14, drift audit of every document here against `packages/adapter-gcp` and `packages/sveltekit-adapter-cloud-run-functions`, at `9f43931`, 2026-10-08.** Read-only. Each statement was read against its code and the tests it names, and some behavior was probed locally; the contract and conformance tests were not run. It reports D1 to D20 in `docs-audit/drift-adapter-gcp.md`: 10 of behavior, 6 test gaps and 4 editorial. GF35 to GF37 record the ones RFC-0033 fixes; the others are recorded only in the report, by the author's choice (2026-10-09), until a later RFC takes them up. Every finding recorded here was rechecked, and its state holds.
+
 ### History
 
 *History.* In brief, oldest first:
@@ -234,6 +238,10 @@ Every `G` ID, where it lives, and its state.
 | GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
 | GF32 | A `200` without a usable body is read as a success | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GF33 | The AUTH tests miss parts of their statements | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF34 | The AUTH tests miss parts of their statements | open, RFC-0033 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF35 | A request path starting with `//` replaces the request URL's host | open, RFC-0033 | [`deployment.md`](deployment.md) |
+| GF36 | An empty `X-Forwarded-For` returns the socket address | open, RFC-0033 | [`deployment.md`](deployment.md) |
+| GF37 | STO-3 is tested through `getObject` only | open, RFC-0033 | [`storage.md`](storage.md) |
 | GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
@@ -246,6 +254,8 @@ Every `G` ID, where it lives, and its state.
 | GS10 | 32 MiB per hash fits beside core on default memory (live) | not run | [`authentication-firestore.md`](authentication-firestore.md) |
 | GS11 | Falsification audit of RFC-0032's statements | run at `580767a`; findings GF32, GF33 | README |
 | GS12 | Falsification audit of AUTH-2, AUTH-3, AUTH-7 and AUTH-10 as amended | run at `f9f652b`; test gaps, closed by RFC-0032 | README |
+| GS13 | Falsification audit of AUTH-1 to AUTH-10 | run at `9f43931`; finding GF34 | README |
+| GS14 | Drift audit of the GCP documents | run at `9f43931`; findings GF35 to GF37, the rest in its report | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

@@ -131,6 +131,7 @@ not check grants, as on GCP (`adapter-gcp/deployment.md` GQ2).
 - **The contract tests (WU4)** will run against the author's account, confined to names unique to each run and removed after it, as the GCP ones are (`adapter-gcp/README.md` GU6): objects under `genoacms-contract/<runId>/` in a test bucket, a table and secrets named for the run, and a function `genoacms-contract-<runId>`.
 - **WS5, falsification audit of RFC-0026's statements (WORKFLOW §6.3), at `34ef76f`, 2026-09-30.** An agent that wrote neither the code nor the tests (Sonnet 5) made about 270 mutations of the code while the unit and integration tests ran; it reasoned about the contract tests without running them. AWS-3, OBJ-1, OBJ-4, DDB-1, DDB-5, DDB-6, ASM-1, LMB-4, LMB-5 and LMB-10 held. The counterexamples are WF20 to WF22 (defects) and WF23 (tests that miss parts of their statements). Clauses nothing can observe: DDB-5's order, and OBJ-5's expiry with the role's session.
 - **WS7, falsification audit of the statements RFC-0026's amendment changed (ASM-3, ASM-6, LMB-4, LMB-10, LMB-15), at `e307fcc`, 2026-10-01.** An agent that wrote neither the code nor the tests made 35 mutations; 29 failed a test. The 6 that passed are WF26, except one: binding the entry to `127.0.0.1` violated the clause "on all interfaces", which the Web Adapter, connecting over loopback, does not observe, so the clause was removed. It found no defect, and three readings the statements left open: a `DescribeSecret` error in ASM-6, a repeated context header and the consequence of a missing context in LMB-15; the statements and WD7 now settle them.
+- **WS9, drift audit of every document here against `packages/adapter-aws`, at `9f43931`, 2026-10-08.** Read-only. The unit and integration tests were run; the contract tests were read, not run. It reports D1 to D11 and T1 to T7 in `docs-audit/drift-adapter-aws.md`, recorded only there, by the author's choice (2026-10-09), until a later RFC takes them up. WF1 to WF27 still hold.
 - The opt-in conformance suite (`GENOACMS_TEST_AWS=1`, with `GENOACMS_TEST_AWS_REGION`, `GENOACMS_TEST_AWS_BUCKET`, `GENOACMS_TEST_AWS_TABLE`) runs `@genoacms/conformance`'s storage and database cases against real AWS. It has never run in CI.
 
 ### History
@@ -198,6 +199,7 @@ Every `W` ID, where it lives, and its state.
 | WS7 | Falsification audit of RFC-0026's amended statements | run at `e307fcc`; finding WF26 | README |
 | WS6 | How a forced secret delete completes | run 2026-10-01; finding WF24 | [`secrets.md`](secrets.md) |
 | WS8 | Whether a forced delete can be read as live again | run 2026-10-02; finding WF27 | [`secrets.md`](secrets.md) |
+| WS9 | Drift audit of the AWS documents | run at `9f43931`; findings in its report | README |
 
 ---
 
