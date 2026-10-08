@@ -99,10 +99,22 @@ Every `C` ID, where it lives, and its state.
 | CF28 | The authentication suite catches some faults only by chance, and others not at all | open | [`conformance.md`](conformance.md) |
 | CF29 | The authentication suite's tests outlast vitest's default timeout against a real provider | fixed, RFC-0030 | [`conformance.md`](conformance.md) |
 | CF30 | A user with a second factor enrolled cannot sign in | open | [`authentication.md`](authentication.md) |
+| CF31 | The array adapter's construction errors carry no `authentication/` prefix, and one names emails | open | [`authentication.md`](authentication.md) |
+| CF32 | The array adapter's `getIdentity` finds an entry that cannot sign in | open | [`authentication.md`](authentication.md) |
+| CF33 | `@genoacms/contracts`' tests and type checks do not run in CI | open | [`authentication.md`](authentication.md) |
+| CF34 | `isRejection` is exported, unspecified, and accepts any `rejected` value | open | [`authentication.md`](authentication.md) |
+| CF35 | No test checks that `second-factor-required` is reported only for the right password | open | [`authentication.md`](authentication.md) |
+| CF36 | The array adapter's behavior that no statement covers | open | [`authentication.md`](authentication.md) |
+| CF37 | The authentication suite refuses a throttled `getIdentity` | open | [`conformance.md`](conformance.md) |
+| CF38 | The authentication suite requires the same answer on every call | open | [`conformance.md`](conformance.md) |
+| CF39 | The mutant test is titled CONF-4, whose text does not state it | open | [`conformance.md`](conformance.md) |
+| CF40 | The mutant test can fail its run with an unhandled vitest timeout | open | [`conformance.md`](conformance.md) |
+| CF41 | The conformance package's behavior that no statement covers, and a stale README | open | [`conformance.md`](conformance.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
 | CS3 | Falsification audit of AUTHN-5, AUTHN-7 and CONF-4 as amended again, at `eea34d9` | recorded | [`authentication.md`](authentication.md) |
 | CS4 | Falsification audit of the third amendment's clauses, at `0c20ed9` | recorded | [`authentication.md`](authentication.md) |
+| CS5 | Drift audit of AUTHN-1 to AUTHN-7, CONF-1 and CONF-4 at `9f43931` | recorded | [`authentication.md`](authentication.md) |
 | CQ1 | Where are failed sign-ins limited? | answered by CU4, CD7 | [`authentication.md`](authentication.md) |
 | CQ2 | How are users created and changed from the CMS? | recommendation: an optional capability | [`authentication.md`](authentication.md) |
 
