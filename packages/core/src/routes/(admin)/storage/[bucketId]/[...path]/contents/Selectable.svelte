@@ -10,9 +10,9 @@
       children: Snippet,
       isDirectory?: boolean
     }
-    export const { name, children, isDirectory = false }: Props = $props()
+    const { name, children, isDirectory = false }: Props = $props()
     const reference: ObjectReference = $derived({
-      bucket: page.params.bucketId,
+      bucket: page.params.bucketId!,
       name
     })
 </script>

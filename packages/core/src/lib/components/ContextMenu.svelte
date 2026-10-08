@@ -12,7 +12,7 @@
   let screenWidth: number = $state(0)
   let menuWidth: number = $state(0)
   let isOpening = $state(false)
-  let closeTimer
+  let closeTimer: ReturnType<typeof setTimeout> | undefined
 
   function open (event: MouseEvent | null) {
     if (!event) return

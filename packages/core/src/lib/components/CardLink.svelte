@@ -8,6 +8,8 @@
     text: string
     href?: string,
     noscale?: boolean,
+    type?: 'button' | 'submit' | 'reset',
+    target?: string,
     oncontextmenu?: (event: MouseEvent) => void,
     onclick?: (event: MouseEvent) => void
   }

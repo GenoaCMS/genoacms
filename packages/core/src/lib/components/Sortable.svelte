@@ -1,23 +1,23 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import type { Snippet } from 'svelte'
   import { dragHandleZone } from 'svelte-dnd-action'
 
   interface Props {
-    data: Array<unknown>,
-    item: Snippet<unknown>,
+    data: Array<T>,
+    item: Snippet<[T]>,
     isId?: boolean,
-    idField?: string,
-    onorder: (d: Array<unknown>) => void
+    onorder: (d: Array<T>) => void
   }
+  type SortableItem = { id: T | string, data: T }
   const flipDurationMs = 300
-  const { data, item, isId, idField, onorder }: Props = $props()
-  let items = $state([])
+  const { data, item, isId, onorder }: Props = $props()
+  let items: Array<SortableItem> = $state([])
   let isSorting = $state(false)
 
-  function getItems (data) {
+  function getItems (data: Array<T>): Array<SortableItem> {
     return data.map((item) => {
       return {
-        id: isId ? item : idField ? data[idField] : crypto.randomUUID(),
+        id: isId ? item : crypto.randomUUID(),
         data: item
       }
     })
@@ -31,7 +31,7 @@
     items = e.detail.items
     onorder(extractData(items))
   }
-  function extractData (items: Array<{ id: string, data: unknown }>) {
+  function extractData (items: Array<SortableItem>) {
     return items.map(i => i.data)
   }
   $effect(() => {

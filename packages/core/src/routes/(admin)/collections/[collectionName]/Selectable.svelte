@@ -7,7 +7,7 @@
       id: string | number,
       children: Snippet
     }
-    export const { id, children }: Props = $props()
+    const { id, children }: Props = $props()
     // Selectable on an ordinary visit as well as inside a picker, matching the storage browser: the
     // listing has a bulk deletion of its own, so a selection made here leads somewhere.
     //
