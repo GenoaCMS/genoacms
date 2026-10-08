@@ -9,6 +9,37 @@ const getCollection = (name: string) => {
   return collection
 }
 
+type StorageReference = { bucket: string, name: string }
+
+type Section = {
+  type: string
+  headline?: string
+  subheadline?: string
+  coverImage?: StorageReference | null
+  cta?: { label: string, url: string, style: string }
+  title?: string
+  columns?: number
+  images?: Array<StorageReference>
+  features?: Array<{ icon: string, heading: string, body: string }>
+  body?: string
+  callout?: { enabled: boolean, note: string }
+}
+
+type Article = {
+  id: string
+  title: string
+  slug: string
+  isPublished: boolean
+  author: string
+  contributors: Array<string>
+  metadata: {
+    readingTimeMinutes: number
+    tags: Array<string>
+    seo: { metaTitle: string, metaDescription: string, socialShareImage: StorageReference | null }
+  }
+  sections: Array<Section>
+}
+
 describe('complex nested collections schema validation', () => {
   const articles = getCollection('articles')
   const authors = getCollection('authors')
@@ -25,7 +56,7 @@ describe('complex nested collections schema validation', () => {
     }
   }
 
-  const createValidArticle = () => ({
+  const createValidArticle = (): Article => ({
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     title: 'Architecting Scalable Systems',
     slug: 'architecting-scalable-systems',
