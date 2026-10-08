@@ -259,7 +259,7 @@ Every `G` ID, where it lives, and its state.
 
 `ServiceAccount` has the fields of a Google key file the client libraries read: `type`, `project_id`, `private_key_id`, `private_key`, `client_email`, `client_id`, and optionally `auth_uri`, `token_uri`, `auth_provider_x509_cert_url`, `client_x509_cert_url`, `universe_domain`. It is passed to the client libraries unchanged.
 
-- Test: unverified (a type only)
+- Test: `packages/adapter-gcp/src/shared/serviceAccount.test-d.ts` (unverified: that it is passed to the client libraries unchanged, which COM-4's tests check)
 - Level: unit
 
 #### COM-2 · Unknown options are refused

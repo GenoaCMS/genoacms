@@ -209,7 +209,7 @@ Every `W` ID, where it lives, and its state.
 
 `AwsCredentials` is `{ accessKeyId: string, secretAccessKey: string, sessionToken?: string }`, the SDK's static credentials. It is passed to the clients unchanged.
 
-- Test: unverified (a type only)
+- Test: `packages/adapter-aws/src/shared.test-d.ts` (unverified: that it is passed to the clients unchanged, which AWS-4's tests check)
 - Level: unit
 
 #### AWS-2 · Unknown options are refused

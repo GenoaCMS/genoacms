@@ -14,7 +14,8 @@
     "directory": "packages/contracts"
   },
   "files": [
-    "src"
+    "src",
+    "!src/**/*.test-d.ts"
   ],
   "exports": {
     ".": {

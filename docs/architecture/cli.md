@@ -145,7 +145,7 @@ Any error of a command is printed to standard error as its message alone, and th
 
 Runs `vite dev --host` in core.
 
-- Test: unverified (spawns Vite only)
+- Test: `packages/cli/src/dev.test.js`
 - Level: unit
 
 #### CLI-7 · build
