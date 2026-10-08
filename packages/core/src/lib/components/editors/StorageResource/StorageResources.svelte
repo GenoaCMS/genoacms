@@ -57,7 +57,7 @@
 </script>
 
 <div class="flex flex-col">
-  {#each resources as resource, index ((resources, index))}
+  {#each resources as resource, index (index)}
     <StorageObject {resource} {deleteResource} />
   {:else}
     <div class="text-center text-xl w-auto m-auto pb-3 pt-2">

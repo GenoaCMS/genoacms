@@ -4,12 +4,12 @@
 
   type Props = {
     resource: ObjectReference
-    deleteResource: (i: number) => void
+    deleteResource: (resource: ObjectReference) => void
   }
   const { resource, deleteResource }: Props = $props()
 </script>
 
-<Card target="_top" class="min-w-full mb-2 p-4" onclick={(e) => e.preventDefault()}>
+<Card target="_top" class="min-w-full mb-2 p-4" onclick={(e: MouseEvent) => e.preventDefault()}>
   <div class="flex">
     <div class="flex-grow">
       <div class="flex justify-center items-center">
