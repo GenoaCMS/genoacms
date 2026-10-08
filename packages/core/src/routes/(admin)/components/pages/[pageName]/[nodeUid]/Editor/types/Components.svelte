@@ -15,6 +15,7 @@
   import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
   import NothingToCompose from '$lib/components/components/NothingToCompose.svelte'
   import Sortable from '$lib/components/Sortable.svelte'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
   interface Props {
     data: AttributeData<ComponentsAttributeType>
@@ -42,7 +43,7 @@
     if (!Array.isArray(allowed) || allowed.length === 0) return components
     return components.filter((component) => allowed.includes(component.name))
   }
-  const addComponent = () => {
+  const addComponent: SubmitFunction = () => {
     isModalOpen = false
     return ({ result }) => {
       if (result.type !== 'success') {

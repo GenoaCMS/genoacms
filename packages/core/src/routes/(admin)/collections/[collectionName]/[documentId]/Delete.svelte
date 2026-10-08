@@ -1,8 +1,9 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { toastSuccess, toastError, confirmationModal } from '$lib/script/alert.svelte'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
-  const enhanceDelete = async ({ cancel }) => {
+  const enhanceDelete: SubmitFunction = async ({ cancel }) => {
     const result = await confirmationModal('This document will be deleted permanently.')
     if (!result.isConfirmed) cancel()
     return async ({ result }) => {

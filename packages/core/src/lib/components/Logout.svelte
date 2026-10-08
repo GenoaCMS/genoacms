@@ -1,8 +1,9 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
-  function enhanceLogout () {
+  const enhanceLogout: SubmitFunction = () => {
     const processing = alertPending('Logging out')
     return async function ({ result }) {
       processing.close()

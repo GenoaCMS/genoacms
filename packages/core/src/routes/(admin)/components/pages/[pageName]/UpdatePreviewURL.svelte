@@ -13,7 +13,7 @@
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const enhanceEdit = ({ formData }): SubmitFunction => {
+  const enhanceEdit: SubmitFunction = ({ formData }) => {
     const alert = alertPending('Editing')
     return async ({ result }) => {
       alert.close()
@@ -23,7 +23,8 @@
       }
       toastSuccess('Edit successful')
       isModalOpen = false
-      value = formData.get('value')
+      const nextValue = formData.get('value')
+      if (typeof nextValue === 'string') value = nextValue
     }
   }
 </script>

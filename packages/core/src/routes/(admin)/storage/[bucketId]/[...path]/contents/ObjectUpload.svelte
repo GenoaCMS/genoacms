@@ -3,12 +3,13 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
   import { Button, Input, Modal } from '$lib/components/ui/index'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
   let isModalOpen = $state(false)
   function toggleModal () {
     isModalOpen = !isModalOpen
   }
-  function enhanceUpload () {
+  const enhanceUpload: SubmitFunction = () => {
     const alert = alertPending('Uploading')
     isModalOpen = false
     return async ({ result }) => {

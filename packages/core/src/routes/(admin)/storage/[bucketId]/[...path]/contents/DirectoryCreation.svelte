@@ -3,12 +3,13 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { invalidateAll } from '$app/navigation'
   import { Button, Input, Label, Modal } from '$lib/components/ui/index'
+  import type { SubmitFunction } from '@sveltejs/kit'
 
   let isDirectoryCreationModalOpen = $state(false)
   function toggleDirectoryCreationModal () {
     isDirectoryCreationModalOpen = !isDirectoryCreationModalOpen
   }
-  function enhanceCreation () {
+  const enhanceCreation: SubmitFunction = () => {
     const alert = alertPending('Creating')
     isDirectoryCreationModalOpen = false
     return async ({ result }) => {
