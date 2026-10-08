@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { StringValue } from './types'
+  import type { StringValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Input } from '$lib/components/ui/index'
 

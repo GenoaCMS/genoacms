@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InputValue } from './types'
+  import type { InputValue } from '$lib/components/editors/types'
 
   type Props = {
     constValue: InputValue

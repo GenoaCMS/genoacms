@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InputValue } from './types'
+  import type { InputValue } from '$lib/components/editors/types'
   import type { SchemaObject } from '$lib/script/schema'
   import { Combobox } from '$lib/components/ui/index'
 

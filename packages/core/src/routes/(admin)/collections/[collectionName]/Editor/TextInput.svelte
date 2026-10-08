@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TextValue } from './types'
+  import type { TextValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Textarea } from '$lib/components/ui/index'
 

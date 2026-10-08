@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ObjectValue } from './types'
+  import type { ObjectValue } from '$lib/components/editors/types'
   import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import {

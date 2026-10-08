@@ -1,5 +1,5 @@
 <script lang="ts" generics>
-  import type { ArrayValue, InputValue } from './types'
+  import type { ArrayValue, InputValue } from '$lib/components/editors/types'
   import type { SchemaObject } from '$lib/script/schema'
   import { Button } from '$lib/components/ui/index'
   import Input from './Input.svelte'

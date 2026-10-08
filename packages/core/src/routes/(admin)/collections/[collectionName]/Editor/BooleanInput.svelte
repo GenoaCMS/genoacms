@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { BooleanValue } from './types'
+  import type { BooleanValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Checkbox } from '$lib/components/ui/index'
 

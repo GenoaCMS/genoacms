@@ -2,7 +2,7 @@
   import type { SchemaObject } from '$lib/script/schema'
   import { Label } from '$lib/components/ui/index'
   import Input from './Input.svelte'
-  import type { InputValue } from './types'
+  import type { InputValue } from '$lib/components/editors/types'
 
   interface Props {
     name: string
