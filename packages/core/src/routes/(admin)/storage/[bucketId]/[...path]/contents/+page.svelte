@@ -12,10 +12,11 @@
   import Grid from '$lib/components/Grid.svelte'
   import Delete from './Delete.svelte'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import type { PageData } from './$types'
 
   const { data } = $props()
   const sessionId = page.url.searchParams.get('sessionId') || crypto.randomUUID()
-  function trackActivity ({ bucketId, navigationPath }) {
+  function trackActivity ({ bucketId, navigationPath }: Pick<PageData, 'bucketId' | 'navigationPath'>) {
     activityTracker.add({
       type: 'storage',
       timestamp: Date.now(),
