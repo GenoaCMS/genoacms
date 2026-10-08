@@ -417,3 +417,38 @@ describe('looking a subject up', () => {
     }
   })
 })
+
+describe('the authentication contract', () => {
+  const failures: Array<[string, () => void]> = [
+    ['a network error', () => { reply = async () => { throw new TypeError('fetch failed') } }],
+    ['a timeout', () => { reply = async () => { throw timeoutError() } }],
+    ['a 5xx', () => { reply = toolkitError(503, 'UNAVAILABLE') }],
+    ['a refusal', () => { reply = toolkitError(403, 'PERMISSION_DENIED') }],
+    ['a misconfiguration', () => { reply = toolkitError(400, 'CONFIGURATION_NOT_FOUND') }],
+    ['a malformed answer', () => { reply = text(200, '<html>OK</html>') }],
+    ['an ADC token that cannot be obtained', () => { auth.token = new Error('Could not load the default credentials') }]
+  ]
+
+  const failureOf = async (promise: Promise<unknown>): Promise<unknown> =>
+    await promise.then(value => ({ resolved: value }), (error: unknown) => error)
+
+  it('AUTHN-3: authenticate throws an Error starting with authentication/ when its service fails, never a Rejection', async () => {
+    for (const [name, arrange] of failures) {
+      auth.token = 'adc-token'
+      arrange()
+      const failure = await failureOf(provider().authenticate('ada@example.com', 'lovelace'))
+      expect(failure, name).toBeInstanceOf(Error)
+      expect((failure as Error).message, name).toMatch(/^authentication\//)
+    }
+  })
+
+  it('AUTHN-3: getIdentity throws an Error starting with authentication/ when its service fails, never null', async () => {
+    for (const [name, arrange] of failures) {
+      auth.token = 'adc-token'
+      arrange()
+      const failure = await failureOf(provider().getIdentity('uid-ada'))
+      expect(failure, name).toBeInstanceOf(Error)
+      expect((failure as Error).message, name).toMatch(/^authentication\//)
+    }
+  })
+})
