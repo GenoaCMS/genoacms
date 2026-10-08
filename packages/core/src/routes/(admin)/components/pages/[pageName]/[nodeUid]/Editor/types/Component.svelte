@@ -2,7 +2,10 @@
     import CardLink from '$lib/components/CardLink.svelte'
     import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
 
-    export let schema: ComponentHeader
+    interface Props {
+      schema: ComponentHeader
+    }
+    const { schema }: Props = $props()
 </script>
 
 <input type="hidden" name="schema" value={JSON.stringify(schema)}>

@@ -1,12 +1,14 @@
 <script lang="ts">
     import dompurify from 'dompurify'
-    import { parse } from 'marked'
+    import { lexer, parser } from 'marked'
     import 'github-markdown-css/github-markdown-light.css'
 
-    export let markdown = ''
-    let html = ''
+    interface Props {
+      markdown?: string
+    }
+    const { markdown = '' }: Props = $props()
 
-    $: if (dompurify.sanitize) html = dompurify.sanitize(parse(markdown || ''))
+    const html = $derived(dompurify.sanitize ? dompurify.sanitize(parser(lexer(markdown || ''))) : '')
 </script>
 
 <div class="markdown-body">
