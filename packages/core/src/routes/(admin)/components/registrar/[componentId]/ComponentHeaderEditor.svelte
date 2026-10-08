@@ -20,7 +20,7 @@
   import PermissionGate from '$lib/components/PermissionGate.svelte'
   import { updateComponent } from './update.remote.js'
   import { toastError, toastSuccess } from '$lib/script/alert.svelte'
-  import { tick } from 'svelte'
+  import { tick, untrack } from 'svelte'
 
   /**
    * Editing one component's description, of either kind.
@@ -40,7 +40,7 @@
   }
   const { id, entry, historyLength, futureLength, publishedAt }: Props = $props()
 
-  const form = $state(entry)
+  const form = $state(untrack(() => entry))
 
   /**
    * When the component was last published, advanced by publishing rather than by reloading.
@@ -49,7 +49,7 @@
    * and redo navigate and re-create this component, which reseeds it — the same arrangement `depth`
    * uses one field below, and for the same reason.
    */
-  let lastPublishedAt = $state(publishedAt)
+  let lastPublishedAt = $state(untrack(() => publishedAt))
 
   /**
    * How deep the history runs, kept locally because saving does not reload the page.
@@ -58,7 +58,7 @@
    * navigate, so the component is re-created and this is seeded afresh — which is why it is only
    * ever written here.
    */
-  let depth = $state({ historyLength, futureLength })
+  let depth = $state(untrack(() => ({ historyLength, futureLength })))
 
   async function submit () {
     const result = await updateComponent(form)
@@ -84,12 +84,12 @@
   function reorder (newOrder: Array<AttributeReference>) {
     form.attributeOrder = newOrder
   }
-  activityTracker.add({
+  untrack(() => activityTracker.add({
     type: 'componentHeader',
     timestamp: Date.now(),
     componentId: id,
     componentName: form.name,
-  })
+  }))
 </script>
 
 <TopPanel>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { BooleanValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Checkbox } from '$lib/components/ui/index'
@@ -14,7 +15,9 @@
     const element = event.currentTarget as HTMLInputElement
     onvalue(Boolean(element.checked))
   }
-  if (value === undefined) onvalue(false)
+  untrack(() => {
+    if (value === undefined) onvalue(false)
+  })
 </script>
 
 <Checkbox checked={value} {onchange} />

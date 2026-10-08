@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { SubmitFunction } from '@sveltejs/kit'
   import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
   import type { ComponentNode as Node } from '$lib/script/components/page/entry/types'
@@ -21,7 +22,7 @@
    */
   const { node }: { node: Node } = $props()
 
-  const currentNode = $state(node)
+  const currentNode = $state(untrack(() => node))
 
   /**
    * Runs a page action behind the pending alert, and **always takes the alert down again**.

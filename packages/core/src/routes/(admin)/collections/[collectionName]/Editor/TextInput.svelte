@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { TextValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Textarea } from '$lib/components/ui/index'
@@ -13,7 +14,9 @@
   const oninput = (e: Event) => {
     onvalue((e.currentTarget as HTMLTextAreaElement).value)
   }
-  if (value === undefined) onvalue('')
+  untrack(() => {
+    if (value === undefined) onvalue('')
+  })
 </script>
 
 <Textarea {value} {oninput} />

@@ -1,9 +1,9 @@
 <script lang="ts">
   import SelectActionRune from '$lib/script/storage/SelectActionRune.svelte'
-  import { setContext } from 'svelte'
+  import { setContext, untrack } from 'svelte'
 
   const { data, children } = $props()
-  const select = new SelectActionRune(data.selectionId)
+  const select = new SelectActionRune(untrack(() => data.selectionId))
   setContext('select', select)
 </script>
 

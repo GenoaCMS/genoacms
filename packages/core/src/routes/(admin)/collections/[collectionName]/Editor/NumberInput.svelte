@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { NumberValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
   import { Input } from '$lib/components/ui/index'
@@ -14,7 +15,9 @@
     const element = event.currentTarget as HTMLInputElement
     onvalue(Number(element.value))
   }
-  if (value === undefined) onvalue(0)
+  untrack(() => {
+    if (value === undefined) onvalue(0)
+  })
 </script>
 
 <Input type="number" {value} {oninput} />

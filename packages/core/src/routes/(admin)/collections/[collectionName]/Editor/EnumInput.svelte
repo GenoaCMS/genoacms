@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { InputValue } from '$lib/components/editors/types'
   import type { SchemaObject } from '$lib/script/schema'
   import { Combobox } from '$lib/components/ui/index'
@@ -48,9 +49,11 @@
     onvalue(castValue(next))
   }
 
-  if (value === undefined && schema.default !== undefined) {
-    onvalue(schema.default as InputValue)
-  }
+  untrack(() => {
+    if (value === undefined && schema.default !== undefined) {
+      onvalue(schema.default as InputValue)
+    }
+  })
 </script>
 
 <Combobox

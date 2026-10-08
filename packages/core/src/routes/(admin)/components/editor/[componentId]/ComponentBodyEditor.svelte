@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { ComponentDefinition } from '$lib/script/components/editor/types'
   import type { SignaturePreview } from '@genoacms/internal/languageAdapter'
   import { activityTracker } from '$lib/script/activity/client'
@@ -40,12 +41,12 @@
   }
   const { component, definition, signature, historyLength, futureLength }: Props = $props()
 
-  activityTracker.add({
+  untrack(() => activityTracker.add({
     type: 'componentCode',
     timestamp: Date.now(),
     componentId: component.uid,
     componentName: component.name,
-  })
+  }))
 
   /**
    * The draft on screen, and the state it was loaded or last saved at.
@@ -54,8 +55,8 @@
    * and typing it back again, which a flag set on every keystroke would not — and that matters here
    * because the comparison also decides whether undo is allowed to run.
    */
-  let body = $state(definition.body)
-  let saved = $state(definition.body)
+  let body = $state(untrack(() => definition.body))
+  let saved = $state(untrack(() => definition.body))
 
   /**
    * How deep the history runs, kept locally because saving does not reload the page.
@@ -64,7 +65,7 @@
    * revalidate, so this component is re-created and this is seeded afresh — which is why it is only
    * ever written here.
    */
-  let depth = $state({ historyLength, futureLength })
+  let depth = $state(untrack(() => ({ historyLength, futureLength })))
 
   const unsaved = $derived(body !== saved)
 </script>

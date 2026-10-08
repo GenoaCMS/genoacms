@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { InputValue } from '$lib/components/editors/types'
 
   type Props = {
@@ -7,5 +8,5 @@
   }
   const { constValue, onvalue }: Props = $props()
 
-  onvalue(constValue)
+  untrack(() => onvalue(constValue))
 </script>
