@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PreconditionFailedError, isPreconditionFailed } from '../src/storage/index.js'
+import { PreconditionFailedError, isPreconditionFailed } from './storage/index.js'
 
 describe('PreconditionFailedError', () => {
   const error = new PreconditionFailedError({ bucket: 'b', name: 'n' }, 'r')

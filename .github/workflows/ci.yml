@@ -58,6 +58,12 @@ jobs:
         continue-on-error: true
         run: pnpm -r --no-bail --filter '!@genoacms/core' run build && pnpm --filter @genoacms/core run check:config
 
+      # CF33
+      - name: Contracts type checks
+        id: typecheck
+        continue-on-error: true
+        run: pnpm --filter @genoacms/contracts run check
+
       - name: Unit tests
         id: unit
         continue-on-error: true
@@ -147,6 +153,7 @@ jobs:
 
       - name: Fail when a test run failed, also outside its JUnit report
         if: >-
+          steps.typecheck.outcome == 'failure' ||
           steps.unit.outcome == 'failure' || steps.integration.outcome == 'failure' ||
           steps.conformance.outcome == 'failure' || steps.e2e.outcome == 'failure' ||
           steps.contract.outcome == 'failure'

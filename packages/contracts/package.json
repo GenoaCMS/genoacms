@@ -15,7 +15,8 @@
   },
   "files": [
     "src",
-    "!src/**/*.test-d.ts"
+    "!src/**/*.test-d.ts",
+    "!src/**/*.test.js"
   ],
   "exports": {
     ".": {

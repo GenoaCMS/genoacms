@@ -8,7 +8,7 @@ import {
   defineDeploymentTarget,
   defineRuntime,
   defineDeployProcedure
-} from '../src/index.js'
+} from './index.js'
 
 const stamps = [
   [defineStorageAdapter, 'storage'],
