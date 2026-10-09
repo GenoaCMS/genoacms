@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: 45bc5c1
+verified: a830c48
 ---
 
 # Command-line interface
@@ -87,8 +87,8 @@ carry no hint.
 | LF12 | *History.* **The shell's `GENOA_*` variables reach Vite** (CLI-5). Vite inherits the CLI's environment, so an exported `GENOA_CONFIG` or `GENOA_TARGET` makes Vite build another config or target than the one the CLI loaded and checked. Found by LS2. | fixed, RFC-0028 |
 | LF13 | *History.* **Help imports the config loader** (CLI-14, CLI-16). `index.js` imports the project resolution and the hint statically, and with them `@genoacms/config/load`, Vite and esbuild, so a broken install of either breaks `--help`. Found by LS2. | fixed, RFC-0028 |
 | LF8 | *History.* **No test level runs the CLI's tests.** They use `node --test` under a `test:unit` script, and the package's `test` script runs the CLI itself, so `scripts/test-level.mjs`, which runs packages whose `test` script is Vitest, skips the package. | fixed, RFC-0028 |
-| LF14 | **`init` refuses an existing config only after initializing the project and installing every package** (CLI-12, LS3). It runs `<package manager> init -y` and the installs first, and looks for an existing config only when it writes it, so "before writing anything" holds only for `genoa.config/` and `.gitignore`. The test calls the check directly, so it cannot see the order. | open, RFC-0033 |
-| LF15 | **`roles` prints invalid JavaScript for a role name that is not an identifier** (CLI-11, LS3). The name is printed bare, so `Content editor` prints `Content editor: [...]`. Keys inside the grants are quoted; the role name is not. | open, RFC-0033 |
+| LF14 | *History.* **`init` refuses an existing config only after initializing the project and installing every package** (CLI-12, LS3). It runs `<package manager> init -y` and the installs first, and looks for an existing config only when it writes it, so "before writing anything" holds only for `genoa.config/` and `.gitignore`. The test calls the check directly, so it cannot see the order. || fixed, RFC-0033 |
+| LF15 | *History.* **`roles` prints invalid JavaScript for a role name that is not an identifier** (CLI-11, LS3). The name is printed bare, so `Content editor` prints `Content editor: [...]`. Keys inside the grants are quoted; the role name is not. || fixed, RFC-0033 |
 
 ### History
 
@@ -102,6 +102,7 @@ code at `7174f7f`.
 - **LS1, drift audit of the CLI against RFC-0015 and `configuration.md`, at `7174f7f`, 2026-10-02.** Every module of `packages/cli/src` was read against both. The mismatches are LF1, LF2 and LF5 to LF8; the rest of the behavior below is the code's, stated as found.
 - **LS2, falsification audit of CLI-1, CLI-11, CLI-13 and CLI-14 to CLI-19, at `69f955d`, 2026-10-02.** An agent that wrote none of RFC-0028's code ran the CLI against each statement and mutated a copy of the code under its tests. It found LF9 to LF13, and fourteen mutations that broke a statement while every test passed, in CLI-1, CLI-11, CLI-13 to CLI-15, CLI-17 to CLI-19; RFC-0028 adds the tests that catch them.
 - **LS3, drift audit of this document, `configuration.md`, `build.md`, `host.md`, `secrets.md` and `identities.md` against their code, at `9f43931`, 2026-10-08.** Read-only; the packages' unit tests were run. It reports D1 to D26 and T1 to T6 in `docs-audit/drift-cli-config.md`. LF14 and LF15 record the ones RFC-0033 fixes; the others are recorded only in the report, by the author's choice (2026-10-09), until a later RFC takes them up. `identities.md` has no code yet; its PWH-6 vectors were recomputed and hold.
+- **LS4, review and falsification audit of CLI-11 and CLI-12 as changed by RFC-0033, by an agent on another model (Sonnet) that wrote neither the code nor the tests, of the uncommitted implementation of RFC-0033, 2026-10-09.** 18 mutations; 7 passed every test: a role name quoted without escaping, or bare when it starts with a digit or holds a hyphen, a name not trimmed, and the early check skipping the first or last template. RFC-0033 added the tests that catch them before `c357deb`, and a re-check killed each.
 
 ## Specification
 

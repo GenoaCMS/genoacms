@@ -2,7 +2,7 @@
 type: architecture
 title: GCP storage: Cloud Storage
 codes: [STO]
-verified: aa17eb9
+verified: a830c48
 ---
 
 # GCP storage: Cloud Storage
@@ -58,7 +58,7 @@ partly deleted or partly moved, now up to the failing object, and the operation 
 | GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | fixed, RFC-0027 |
 | GF29 | **The client library's `deleteFiles` does not stop at the first failure** (STO-11, GS8). RFC-0027 first used `bucket.deleteFiles({ prefix })` of `@google-cloud/storage` 7.21 for GD7. It queues up to 1000 deletes before awaiting any, so a failed delete leaves the queued ones running; and while the listing is still streaming it rejects with `Premature close` and leaves the delete's own error as an unhandled rejection, which ends a Node process. Found before release; the runtime lists and deletes page by page itself. | fixed, RFC-0027 |
 | GF24 | **The storage tests miss parts of their statements** (GS6). Tests pass when: a non-string `projectId` is accepted (COM-3); `ifVersion` wins over `ifAbsent`, or a non-412 error on a conditional write becomes `PreconditionFailedError` (STO-6); `deleteObject` swallows its errors (STO-7); the URL is signed for `write` (STO-8, unit level); any name containing `.folderPlaceholder` is hidden (STO-9); one failed delete or move is ignored (STO-11, STO-12). STO-11 and STO-12 also said "in parallel", which no test and no user can observe; GD7 replaced it. | fixed, RFC-0027 |
-| GF37 | **STO-3 is tested through `getObject` only** (GS14). A runtime in which any of the other nine methods skips the bucket check, or checks after its first request, passes every test. Found 2026-10-08 by GS14. | open, RFC-0033 |
+| GF37 | *History.* **STO-3 is tested through `getObject` only** (GS14). A runtime in which any of the other nine methods skips the bucket check, or checks after its first request, passes every test. Found 2026-10-08 by GS14. || fixed, RFC-0033 |
 
 ### History
 

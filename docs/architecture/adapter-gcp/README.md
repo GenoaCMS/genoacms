@@ -3,7 +3,7 @@ type: architecture-index
 title: GCP adapter architecture
 prefix: G
 codes: [COM]
-verified: aa17eb9
+verified: a830c48
 ---
 
 # GCP adapter architecture
@@ -162,6 +162,8 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 
 **GS14, drift audit of every document here against `packages/adapter-gcp` and `packages/sveltekit-adapter-cloud-run-functions`, at `9f43931`, 2026-10-08.** Read-only. Each statement was read against its code and the tests it names, and some behavior was probed locally; the contract and conformance tests were not run. It reports D1 to D20 in `docs-audit/drift-adapter-gcp.md`: 10 of behavior, 6 test gaps and 4 editorial. GF35 to GF37 record the ones RFC-0033 fixes; the others are recorded only in the report, by the author's choice (2026-10-09), until a later RFC takes them up. Every finding recorded here was rechecked, and its state holds.
 
+**GS15, review and falsification audit of ADP-5 and ADP-6 as changed by RFC-0033, by an agent on another model (Sonnet) that wrote neither the code nor the tests, of the uncommitted implementation of RFC-0033, 2026-10-09.** 18 mutations; 9 passed every test: an `ORIGIN` with a trailing `/` or a base path, an empty `ORIGIN` read as unset, `Host` preferred over `X-Forwarded-Host`, and an `X-Forwarded-For` of commas, whitespace or an empty array falling back to the socket. RFC-0033 added the tests that catch them before `c357deb`, and a re-check killed each. Stripping every trailing `/` of `ORIGIN`, rather than one, is accepted unpinned.
+
 ### History
 
 *History.* In brief, oldest first:
@@ -238,10 +240,10 @@ Every `G` ID, where it lives, and its state.
 | GF31 | DB-5 and DB-7 are effectively unverified at `contract` | open, fixed with CF7 | [`database.md`](database.md) |
 | GF32 | A `200` without a usable body is read as a success | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GF33 | The AUTH tests miss parts of their statements | fixed, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
-| GF34 | The AUTH tests miss parts of their statements | open, RFC-0033 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
-| GF35 | A request path starting with `//` replaces the request URL's host | open, RFC-0033 | [`deployment.md`](deployment.md) |
-| GF36 | An empty `X-Forwarded-For` returns the socket address | open, RFC-0033 | [`deployment.md`](deployment.md) |
-| GF37 | STO-3 is tested through `getObject` only | open, RFC-0033 | [`storage.md`](storage.md) |
+| GF34 | The AUTH tests miss parts of their statements | partly fixed, RFC-0033; open: AUTH-8's "never stored" | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
+| GF35 | A request path starting with `//` replaces the request URL's host | fixed, RFC-0033 | [`deployment.md`](deployment.md) |
+| GF36 | An empty `X-Forwarded-For` returns the socket address | fixed, RFC-0033 | [`deployment.md`](deployment.md) |
+| GF37 | STO-3 is tested through `getObject` only | fixed, RFC-0033 | [`storage.md`](storage.md) |
 | GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
@@ -256,6 +258,7 @@ Every `G` ID, where it lives, and its state.
 | GS12 | Falsification audit of AUTH-2, AUTH-3, AUTH-7 and AUTH-10 as amended | run at `f9f652b`; test gaps, closed by RFC-0032 | README |
 | GS13 | Falsification audit of AUTH-1 to AUTH-10 | run at `9f43931`; finding GF34 | README |
 | GS14 | Drift audit of the GCP documents | run at `9f43931`; findings GF35 to GF37, the rest in its report | README |
+| GS15 | Review and falsification audit of ADP-5 and ADP-6 as changed by RFC-0033 | run 2026-10-09; gaps closed before `c357deb` | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
 

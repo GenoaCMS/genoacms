@@ -2,8 +2,8 @@
 type: rfc
 number: 33
 title: Close the most important findings of the 2026-10-08 audits
-status: draft
-commits: []
+status: implemented
+commits: [c357deb, a830c48]
 depends: [30, 32]
 architecture: [architecture/adapter-gcp/deployment.md, architecture/adapter-gcp/storage.md, architecture/adapter-gcp/authentication-identity-platform.md, architecture/contracts/authentication.md, architecture/contracts/conformance.md, architecture/cli.md]
 changes: [ADP-5 compatible, ADP-6 compatible, AUTHN-3 compatible, CONF-4 compatible, CLI-11 compatible, CLI-12 compatible]

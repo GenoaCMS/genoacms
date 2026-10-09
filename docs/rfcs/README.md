@@ -16,7 +16,7 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 ## Order
 
 Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
-frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 and RFC-0033 are the only drafts. RFC-0001 to RFC-0024
+frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 is the only draft. RFC-0001 to RFC-0024
 predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 
 Each RFC depends only on RFCs above it. Implement strictly in this order, and commit each RFC on its
