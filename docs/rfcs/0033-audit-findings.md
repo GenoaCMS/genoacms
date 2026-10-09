@@ -88,7 +88,7 @@ throws at the first that fails:
 | Check | Message |
 | :-- | :-- |
 | `credentials` is an array | `authentication/missing-credentials` |
-| every entry's `subject` is truthy | `authentication/missing-subject: at index <i>[, <j>…]` |
+| every entry is an object with a truthy `subject`; an entry that is not an object counts as one without (amended, author 2026-10-09) | `authentication/missing-subject: at index <i>[, <j>…]` |
 | every entry's `password` is a string | `authentication/missing-password: at index <i>[, <j>…]` |
 
 Indexes are zero-based positions in the resolved array, in ascending order, joined with `, `.
@@ -175,6 +175,12 @@ shows a defect: stop and record it (discovery rule).
     `'a fullwidth subject is found'` (compares NFKC forms), failing
     `AUTHN-4: getIdentity returns null for an unknown subject`.
 
+  *Amended during implementation (discovery rule).* Once the sequence checks wrong passwords, two
+  existing mutants also fail `AUTHN-2, AUTHN-4: the right answers do not change across calls`,
+  because their wrong answers now reach it: `'any password signs in'` and
+  `'disabled is answered before the password'`. Their `tests` lists gain that title. The test's
+  assertion, that each mutant fails exactly its listed tests, is unchanged; the lists are its data.
+
 `packages/cli/src/init.test.js` (unit):
 - `CLI-12: init refuses an existing config before any prompt or install` **(xfail)**: given a
   directory with no `package.json` and an existing `genoa.config/security.ts`, as the working
@@ -229,6 +235,20 @@ shows a defect: stop and record it (discovery rule).
 - `AUTHN-5: the throttled prefix is matched with its case`: given a single provider throwing
   `Authentication/Throttled: slow down`, and in a second case `AUTHENTICATION/THROTTLED`, when
   `signIn` runs, then the result is `sign-in-unavailable`.
+
+### Added after the independent review
+
+A review and falsification audit by a separate session on another model (2026-10-09) found one
+defect and gaps that let mutations survive. The author chose to treat an entry that is not an object as
+one without a subject. These tests were added, all expected to pass with the code as amended:
+
+- `packages/authentication-adapter-array/src/runtime.test.js`: `AUTHN-3: an entry that is not an object, or whose subject is empty, has no subject` (`[ada, null, 'ada@example.com', 5, { subject: '' }]` throws `… at index 1, 2, 3, 4`); `AUTHN-3: an entry without a subject or a password is reported for its subject first`; `AUTHN-4: an empty password is a string, and is accepted`.
+- `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`: `ADP-5: ORIGIN is joined with the path as text, without a doubled slash` (a trailing `/`, a base path, an empty `req.url`); `ADP-5: an empty ORIGIN is set, and cannot be parsed`; `ADP-5: X-Forwarded-Host is preferred over Host`. `ADP-6: an empty X-Forwarded-For has no entries` also covers `[]`, `,`, ` , ,` and ` `.
+- `packages/cli/src/declaration.test.js`: `CLI-11: a key is bare only when it is an identifier, and is otherwise a JSON string`, with quotes, a backslash, a newline, a leading digit, a hyphen and the empty string. The `roles` test also checks that the name is trimmed. The `init()` test moves to its own `describe`, and tries every template name.
+- `MUTANTS` gains `'the password cut at the start signs in'`, `'… cut at the end …'`, `'… followed by NUL …'`, `'… followed by the other one …'` and `'a combining mark finds the subject'`.
+
+Accepted as is: stripping every trailing `/` of `ORIGIN` instead of one is not pinned, since no real
+origin ends in `//`.
 
 ## Steps
 
