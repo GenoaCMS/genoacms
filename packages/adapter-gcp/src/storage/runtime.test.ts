@@ -463,3 +463,30 @@ describe('the GCP storage runtime', () => {
     await expect(storage.moveObject({ bucket: 'b', name: 'n' }, 'new')).rejects.toBe(moveFailure)
   })
 })
+
+describe('the bucket check (GS14)', () => {
+  it('STO-3: every method refuses an unregistered bucket before any request', async () => {
+    const storage = await create()
+    bucket.file.mockClear()
+    const other = { bucket: 'other', name: 'dir/n' }
+    const calls: Record<string, () => Promise<unknown>> = {
+      getObject: async () => await storage.getObject(other),
+      getPublicURL: async () => await storage.getPublicURL(other),
+      uploadObject: async () => await storage.uploadObject(other, stream(), {}),
+      moveObject: async () => await storage.moveObject(other, 'dir/m'),
+      deleteObject: async () => await storage.deleteObject(other),
+      getSignedURL: async () => await storage.getSignedURL(other, new Date(Date.now() + 60_000)),
+      listDirectory: async () => await storage.listDirectory(other),
+      createDirectory: async () => await storage.createDirectory(other),
+      deleteDirectory: async () => await storage.deleteDirectory(other),
+      moveDirectory: async () => await storage.moveDirectory(other, 'dir2')
+    }
+    for (const [method, call] of Object.entries(calls)) {
+      await expect(call(), method).rejects.toThrow('bucket-unregistered')
+      expect(instances[0].bucket, method).not.toHaveBeenCalled()
+      expect(bucket.file, method).not.toHaveBeenCalled()
+      expect(bucket.getFiles, method).not.toHaveBeenCalled()
+    }
+    expect(Object.keys(calls).sort()).toEqual(Object.keys(storage).sort())
+  })
+})

@@ -36,6 +36,41 @@ function nearMissesOf (text) {
 }
 
 /**
+ * Transforms of a password: reversed, doubled, cut at either end, and followed by NUL or by another password (CONF-4).
+ *
+ * @param {string} password
+ * @param {string[]} others
+ */
+function transformsOf (password, others) {
+  const characters = [...password]
+  return [
+    characters.toReversed().join(''),
+    password.repeat(2),
+    characters.slice(1).join(''),
+    characters.slice(0, -1).join(''),
+    `${password}\0`,
+    ...others.map(other => password + other)
+  ]
+}
+
+const FULLWIDTH_OFFSET = 0xFEE0
+
+/**
+ * Variants of a subject that look like it, or normalize to it: an invisible prefix, a combining mark, a fullwidth letter (CONF-4).
+ *
+ * @param {string} subject
+ */
+function lookalikesOf (subject) {
+  const characters = [...subject]
+  const letter = characters.findIndex(character => /[A-Za-z]/.test(character))
+  return [
+    `\u200b${subject}`,
+    [characters[0] ?? '', '\u0301', ...characters.slice(1)].join(''),
+    ...(letter === -1 ? [] : [editAt(characters, letter, character => [String.fromCodePoint(character.codePointAt(0) + FULLWIDTH_OFFSET)])])
+  ]
+}
+
+/**
  * Generated near misses of a text: one character inserted, removed, replaced or with its case changed, or whitespace around it.
  *
  * @param {string} text
@@ -93,7 +128,7 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
     /** @param {{ email: string, password: string }} who */
     async function wrongPasswordsAreRejected (who) {
       const others = known.filter(other => other !== who).map(({ password }) => password)
-      for (const password of [`${who.password}-wrong`, '', ...nearMissesOf(who.password), ...others].filter(wrong => wrong !== who.password)) {
+      for (const password of [`${who.password}-wrong`, '', ...nearMissesOf(who.password), ...transformsOf(who.password, others), ...others].filter(wrong => wrong !== who.password)) {
         await answersOrThrottles(() => adapter.authenticate(who.email, password), credentialsRejected)
       }
       await fc.assert(fc.asyncProperty(fc.oneof(fc.string(), nearMiss(who.password)).filter(wrong => wrong !== who.password), async password => {
@@ -136,13 +171,13 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
     }, TEST_TIMEOUT)
 
     it('AUTHN-4: getIdentity returns null for an unknown subject', async () => {
-      const subjects = [unknownSubject, swapCase(identity.subject), ...nearMissesOf(identity.subject), ...known.map(({ email }) => email)]
+      const subjects = [unknownSubject, swapCase(identity.subject), ...nearMissesOf(identity.subject), ...lookalikesOf(identity.subject), ...known.map(({ email }) => email)]
       for (const subject of subjects.filter(subject => subject !== identity.subject && subject !== '')) {
-        expect(await adapter.getIdentity(subject)).toBeNull()
+        await answersOrThrottles(() => adapter.getIdentity(subject), null)
       }
       await fc.assert(fc.asyncProperty(
         fc.oneof(fc.string({ minLength: 1 }), nearMiss(identity.subject)).filter(subject => subject !== identity.subject && subject !== ''),
-        async subject => { expect(await adapter.getIdentity(subject)).toBeNull() }
+        async subject => { await answersOrThrottles(() => adapter.getIdentity(subject), null) }
       ), property)
     }, TEST_TIMEOUT)
 
@@ -170,7 +205,7 @@ function runAuthenticationConformance (adapter, { identity, disabled }, { runs =
         const first = new Map()
         for (const step of sequence) {
           if ('wrong' in step) {
-            await step.wrong().catch(() => undefined)
+            await answersOrThrottles(step.wrong, credentialsRejected)
             continue
           }
           let answer

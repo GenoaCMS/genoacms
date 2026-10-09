@@ -160,6 +160,13 @@ describe('the trial\'s mixed failures and logs (CS1)', () => {
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
   })
 
+  it('AUTHN-5: the throttled prefix is matched with its case', async () => {
+    for (const message of ['Authentication/Throttled: slow down', 'AUTHENTICATION/THROTTLED']) {
+      configured.providers = { a: throwing(message) }
+      expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'sign-in-unavailable' })
+    }
+  })
+
   it('AUTHN-5: logs every rejection and every failure', async () => {
     configured.providers = {
       a: rejecting('credentials'),

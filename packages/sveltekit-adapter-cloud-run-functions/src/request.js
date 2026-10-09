@@ -18,10 +18,25 @@ export function parseXffDepth(value) {
  * @returns {string}
  */
 export function requestUrl(req, origin) {
-	if (typeof origin === 'string') return new URL(req.url || '', origin).href;
+	return new URL(withoutTrailingSlash(origin ?? forwardedOrigin(req)) + (req.url || '/')).href;
+}
+
+/**
+ * @param {import('http').IncomingMessage} req
+ * @returns {string}
+ */
+function forwardedOrigin(req) {
 	const protocol = req.headers['x-forwarded-proto'] || 'http';
 	const hostname = req.headers['x-forwarded-host'] || req.headers['host'];
-	return new URL(req.url || '', `${protocol}://${hostname}`).href;
+	return `${protocol}://${hostname}`;
+}
+
+/**
+ * @param {string} origin
+ * @returns {string}
+ */
+function withoutTrailingSlash(origin) {
+	return origin.endsWith('/') ? origin.slice(0, -1) : origin;
 }
 
 // ADP-6
@@ -33,7 +48,7 @@ export function requestUrl(req, origin) {
 export function clientAddress(req, depth) {
 	const header = req.headers['x-forwarded-for'];
 	const joined = Array.isArray(header) ? header.join(',') : header;
-	if (!joined) return req.socket?.remoteAddress;
+	if (joined === undefined) return req.socket?.remoteAddress;
 	const entries = joined
 		.split(',')
 		.map((entry) => entry.trim())

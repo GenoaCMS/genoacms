@@ -452,3 +452,58 @@ describe('the authentication contract', () => {
     }
   })
 })
+
+describe('the cases GS13 found untested', () => {
+  const statuses = (from: number, to: number): number[] => Array.from({ length: to - from + 1 }, (_, index) => from + index)
+
+  it('AUTH-10, AUTH-7: any non-200 lookup status throws and is sent once', async () => {
+    for (const status of statuses(400, 599)) {
+      sent = []
+      reply = toolkitError(status, 'FAILURE')
+      expect(await outcome(provider().getIdentity('uid-ada'))).toBe(`authentication/provider-failed: ${status} FAILURE`)
+      expect(sent).toHaveLength(1)
+    }
+  })
+
+  it('AUTH-2, AUTH-7: any sign-in status other than the mapped ones is sent once', async () => {
+    const answers: Array<[number, string]> = [[400, 'OPERATION_NOT_ALLOWED'], ...statuses(401, 599).map((status): [number, string] => [status, 'FAILURE'])]
+    for (const [status, message] of answers) {
+      sent = []
+      reply = toolkitError(status, message)
+      expect(await outcome(provider({ apiKey: 'k' }).authenticate('ada@example.com', 'lovelace'))).toBe(`authentication/provider-failed: ${status} ${message}`)
+      expect(sent).toHaveLength(1)
+    }
+  })
+
+  it('AUTH-2, AUTH-10: the tenant is sent on both calls, with and without an API key', async () => {
+    for (const apiKey of ['api-key', undefined]) {
+      sent = []
+      const tenantProvider = provider(apiKey === undefined ? { tenantId: 'cms-tenant' } : { tenantId: 'cms-tenant', apiKey })
+      reply = json(200, { localId: 'uid-ada', email: 'ada@example.com', idToken: 'id-token', refreshToken: 'refresh-token' })
+      await tenantProvider.authenticate('ada@example.com', 'lovelace')
+      reply = json(200, { users: [{ localId: 'uid-ada', email: 'ada@example.com' }] })
+      await tenantProvider.getIdentity('uid-ada')
+
+      expect(sent).toHaveLength(2)
+      expect(body(0).tenantId).toBe('cms-tenant')
+      expect(body(1).tenantId).toBe('cms-tenant')
+    }
+  })
+
+  it('AUTH-2: the password is sent exactly as given', async () => {
+    await provider().authenticate('ada@example.com', '  pass word\t')
+
+    expect(body().password).toBe('  pass word\t')
+  })
+
+  it('AUTH-6, AUTH-7: only a 400 with TOO_MANY_ATTEMPTS_TRY_LATER is throttled', async () => {
+    const cases: Array<[() => Promise<Response>, string]> = [
+      [toolkitError(429, 'RESOURCE_EXHAUSTED'), 'authentication/provider-failed: 429 RESOURCE_EXHAUSTED'],
+      [toolkitError(503, 'TOO_MANY_ATTEMPTS_TRY_LATER'), 'authentication/provider-failed: 503 TOO_MANY_ATTEMPTS_TRY_LATER']
+    ]
+    for (const [answer, message] of cases) {
+      reply = answer
+      expect(await outcome(provider().authenticate('ada@example.com', 'lovelace'))).toBe(message)
+    }
+  })
+})

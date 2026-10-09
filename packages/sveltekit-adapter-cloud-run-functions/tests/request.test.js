@@ -82,6 +82,40 @@ describe('request', () => {
 		);
 	});
 
+	it('ADP-5: a path starting with // keeps the request\'s host', () => {
+		const path = '//evil.example/x?y=1';
+		expect(requestUrl(request({}, path), 'https://cms.example.com')).toBe(
+			'https://cms.example.com//evil.example/x?y=1'
+		);
+		expect(requestUrl(request({ host: 'cms.example.com' }, path), undefined)).toBe(
+			'http://cms.example.com//evil.example/x?y=1'
+		);
+	});
+
+	it('ADP-5: ORIGIN is joined with the path as text, without a doubled slash', () => {
+		expect(requestUrl(request({}), 'https://cms.example.com/')).toBe('https://cms.example.com/a?b=1');
+		expect(requestUrl(request({}), 'https://cms.example.com/base')).toBe('https://cms.example.com/base/a?b=1');
+		expect(requestUrl(request({}, ''), 'https://cms.example.com')).toBe('https://cms.example.com/');
+	});
+
+	it('ADP-5: an empty ORIGIN is set, and cannot be parsed', () => {
+		expect(() => requestUrl(request({ host: 'fn.example' }), '')).toThrow();
+	});
+
+	it('ADP-5: X-Forwarded-Host is preferred over Host', () => {
+		expect(requestUrl(request({ 'x-forwarded-host': 'cms.example.com', host: 'fn.example' }), undefined)).toBe(
+			'http://cms.example.com/a?b=1'
+		);
+	});
+
+	it('ADP-6: an empty X-Forwarded-For has no entries', () => {
+		for (const header of ['', [''], [], ',', ' , ,', ' ']) {
+			expect(() => clientAddress(request({ 'x-forwarded-for': header }), 1)).toThrow(
+				'XFF_DEPTH is 1, but X-Forwarded-For has 0 entries'
+			);
+		}
+	});
+
 	describe('under envPrefix', () => {
 		const globals = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis));
 

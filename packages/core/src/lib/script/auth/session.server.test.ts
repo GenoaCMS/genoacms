@@ -497,3 +497,33 @@ describe('the provider and revalidation', () => {
     expect(revalidate).not.toHaveBeenCalled()
   })
 })
+
+describe('the cases CS6 found untested', () => {
+  it('AUTHN-6, AUTHN-7: the family keeps its provider across rotations, also when the email changes', async () => {
+    const started = await sessions.startSession(IDENTITY, 'b')
+    const providers: Array<string | undefined> = []
+    let token = started.token
+
+    for (let rotation = 0; rotation < 8; rotation++) {
+      const result = await sessions.refreshSession(started.familyId, token, async family => {
+        providers.push(family.provider)
+        return { subject: family.subject, email: `ada+${rotation}@example.com` }
+      })
+      if (result.outcome !== 'refreshed') throw new Error('unreachable')
+      expect((storedRecord(started.familyId).payload as { provider: string }).provider).toBe('b')
+      token = result.token
+    }
+
+    expect(providers).toEqual(Array(8).fill('b'))
+  })
+
+  it('AUTHN-7: the grace window carries the family\'s email unchanged', async () => {
+    const email = ' Ada@Example.com '
+    const started = await sessions.startSession({ subject: SUBJECT, email }, PROVIDER)
+    await sessions.refreshSession(started.familyId, started.token, stillKnown)
+
+    const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
+
+    expect(result).toMatchObject({ outcome: 'concurrent', email })
+  })
+})

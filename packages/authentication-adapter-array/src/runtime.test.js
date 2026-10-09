@@ -5,12 +5,35 @@ const ctx = { name: 'array', resources: [] }
 const ada = { subject: 's-ada', email: 'ada@example.com', password: 'lovelace' }
 
 describe('the array authentication runtime', () => {
-    it('refuses a value that is not a list', () => {
-        expect(() => runtime.create({ credentials: { ada } }, ctx)).toThrow('missing-credentials')
+    it('AUTHN-3: a value that is not a list is refused with an authentication/ error', () => {
+        expect(() => runtime.create({ credentials: { ada } }, ctx)).toThrow(/^authentication\/missing-credentials$/)
     })
 
-    it('refuses an entry without a subject, naming its email', () => {
-        expect(() => runtime.create({ credentials: [ada, { email: 'no@subject', password: 'x' }] }, ctx)).toThrow('missing-subject: no@subject')
+    it('AUTHN-3: entries without a subject are named by index, never by email', () => {
+        const credentials = [ada, { email: 'one@x', password: 'x' }, { ...ada, subject: 's-two', email: 'two@x' }, { email: 'three@x', password: 'x' }]
+        expect(() => runtime.create({ credentials }, ctx)).toThrow(/^authentication\/missing-subject: at index 1, 3$/)
+    })
+
+    it('AUTHN-3: an entry that is not an object, or whose subject is empty, has no subject', () => {
+        const credentials = [ada, null, 'ada@example.com', 5, { ...ada, subject: '', email: 'four@x' }]
+        expect(() => runtime.create({ credentials }, ctx)).toThrow(/^authentication\/missing-subject: at index 1, 2, 3, 4$/)
+    })
+
+    it('AUTHN-3: an entry without a subject or a password is reported for its subject first', () => {
+        expect(() => runtime.create({ credentials: [ada, { email: 'one@x' }] }, ctx)).toThrow(/^authentication\/missing-subject: at index 1$/)
+    })
+
+    it('AUTHN-4: an empty password is a string, and is accepted', async () => {
+        const provider = runtime.create({ credentials: [{ ...ada, password: '' }] }, ctx)
+        expect(await provider.authenticate(ada.email, '')).toEqual({ subject: ada.subject, email: ada.email })
+    })
+
+    it('AUTHN-3, AUTHN-4: an entry without a string password is refused', () => {
+        const { password, ...withoutPassword } = ada
+        expect(() => runtime.create({ credentials: [ada, { ...withoutPassword, subject: 's-1', email: 'one@x' }] }, ctx))
+            .toThrow(/^authentication\/missing-password: at index 1$/)
+        const nonStrings = [ada, { ...ada, subject: 's-1', email: 'one@x', password: 123 }, { ...ada, subject: 's-2', email: 'two@x', password: null }]
+        expect(() => runtime.create({ credentials: nonStrings }, ctx)).toThrow(/^authentication\/missing-password: at index 1, 2$/)
     })
 
     it('AUTHN-2: authenticates a matching email and password to its subject', async () => {

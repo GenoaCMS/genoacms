@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runAuthenticationConformance } from '../src/index.js'
-import { MUTANTS, fixture, correct } from './mutants/authentication.js'
+import { MUTANTS, CONFORMING, fixture, correct } from './mutants/authentication.js'
 
 runAuthenticationConformance(correct(), fixture)
 
@@ -28,6 +28,12 @@ describe('the authentication suite', () => {
   it('CONF-4: each assertion fails against its mutant', () => {
     for (const [mutant, { tests }] of Object.entries(MUTANTS)) {
       expect({ mutant, failed: failedTests(mutant).sort() }).toEqual({ mutant, failed: [...tests].sort() })
+    }
+  }, 300_000)
+
+  it('CONF-4: an adapter that only throttles where the statement allows it passes the suite', () => {
+    for (const name of Object.keys(CONFORMING)) {
+      expect({ name, failed: failedTests(name) }).toEqual({ name, failed: [] })
     }
   }, 300_000)
 })

@@ -9,7 +9,7 @@ const identityOf = ({ subject, email }) => ({ subject, email })
 /** One adapter per suite test, each violating exactly that test's assertion (CONF-4). */
 const MUTANTS = {
   'any password signs in': {
-    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    tests: ['AUTHN-2: a wrong password is rejected for credentials', 'AUTHN-2, AUTHN-4: the right answers do not change across calls'],
     adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email ? identityOf(identity) : correct().authenticate(email, password) })
   },
   'the fixture cannot sign in': {
@@ -33,7 +33,7 @@ const MUTANTS = {
     adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === '' ? identityOf(identity) : correct().authenticate(email, password) })
   },
   'disabled is answered before the password': {
-    tests: ['AUTHN-2: a disabled identity\'s wrong password is rejected for credentials'],
+    tests: ['AUTHN-2: a disabled identity\'s wrong password is rejected for credentials', 'AUTHN-2, AUTHN-4: the right answers do not change across calls'],
     adapter: () => ({ ...correct(), authenticate: async (email, password) => email === disabled.email ? { rejected: 'disabled' } : correct().authenticate(email, password) })
   },
   'a password compared without case': {
@@ -102,7 +102,70 @@ const MUTANTS = {
   'a disabled subject is found': {
     tests: ['AUTHN-4: getIdentity returns null for a disabled subject', 'AUTHN-2, AUTHN-4: the right answers do not change across calls'],
     adapter: () => ({ ...correct(), getIdentity: async (subject) => subject === disabled.subject ? identityOf(disabled) : correct().getIdentity(subject) })
+  },
+  'a wrong password after a lookup is disabled': {
+    tests: ['AUTHN-2, AUTHN-4: the right answers do not change across calls'],
+    adapter: () => {
+      let lookedUp = false
+      return {
+        ...correct(),
+        getIdentity: async (subject) => { lookedUp = true; return correct().getIdentity(subject) },
+        authenticate: async (email, password) => {
+          const known = [identity, disabled].find(who => who.email === email)
+          return lookedUp && known !== undefined && password !== known.password ? { rejected: 'disabled' } : correct().authenticate(email, password)
+        }
+      }
+    }
+  },
+  'the reversed password signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === [...identity.password].reverse().join('') ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'the doubled password signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === identity.password.repeat(2) ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'the password cut at the start signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === identity.password.slice(1) ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'the password cut at the end signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === identity.password.slice(0, -1) ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'the password followed by NUL signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === `${identity.password}\0` ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'the password followed by the other one signs in': {
+    tests: ['AUTHN-2: a wrong password is rejected for credentials'],
+    adapter: () => ({ ...correct(), authenticate: async (email, password) => email === identity.email && password === identity.password + disabled.password ? identityOf(identity) : correct().authenticate(email, password) })
+  },
+  'a combining mark finds the subject': {
+    tests: ['AUTHN-4: getIdentity returns null for an unknown subject'],
+    adapter: () => ({ ...correct(), getIdentity: async (subject) => correct().getIdentity(subject.replaceAll('\u0301', '')) })
+  },
+  'an invisible prefix finds the subject': {
+    tests: ['AUTHN-4: getIdentity returns null for an unknown subject'],
+    adapter: () => ({ ...correct(), getIdentity: async (subject) => correct().getIdentity(subject.replace(/^\u200b/, '')) })
+  },
+  'a fullwidth subject is found': {
+    tests: ['AUTHN-4: getIdentity returns null for an unknown subject'],
+    adapter: () => ({ ...correct(), getIdentity: async (subject) => correct().getIdentity(subject.normalize('NFKC')) })
   }
 }
 
-export { MUTANTS, fixture, correct }
+/** Adapters that conform, each answering in a way CONF-4 allows and a strict reading might refuse. */
+const CONFORMING = {
+  'getIdentity throttles': {
+    adapter: () => ({
+      ...correct(),
+      getIdentity: async (subject) => {
+        if ([identity.subject, disabled.subject].includes(subject)) return correct().getIdentity(subject)
+        throw new Error('authentication/throttled')
+      }
+    })
+  }
+}
+
+export { MUTANTS, CONFORMING, fixture, correct }

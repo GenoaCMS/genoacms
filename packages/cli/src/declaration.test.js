@@ -1,6 +1,6 @@
 import { test, describe } from 'vitest'
 import assert from 'node:assert/strict'
-import { permissionOptions, render } from './declaration.js'
+import { permissionOptions, render, renderKey } from './declaration.js'
 import { permissions, isPermission } from '@genoacms/internal/authorization'
 
 /**
@@ -82,5 +82,13 @@ describe('the printed declaration', () => {
 
   test('CLI-11: renders an empty grant list without breaking', () => {
     assert.equal(render([]), '[]')
+  })
+
+  test('CLI-11: a key is bare only when it is an identifier, and is otherwise a JSON string', () => {
+    for (const key of ['Copywriter', '_editor', '$admin', 'Editor2']) assert.equal(renderKey(key), key)
+    for (const key of ['2nd', '2nd-line', 'content-editor', 'Content editor', 'say "hi"', 'back\\slash', 'line\nbreak', '']) {
+      assert.equal(renderKey(key), JSON.stringify(key))
+      assert.deepEqual(new Function(`return ({ ${renderKey(key)}: 1 })`)(), { [key]: 1 })
+    }
   })
 })

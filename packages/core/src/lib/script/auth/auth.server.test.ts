@@ -53,11 +53,11 @@ vi.mock('./providers.server', () => ({
   revalidate: async (...args: unknown[]) => { revalidated.push(args); return await revalidation.answer() }
 }))
 
-const principal: { known: boolean } = { known: true }
+const principal: { known: boolean, failure?: Error } = { known: true }
 const askedAbout: string[] = []
 
 vi.mock('../authorization/resolution.server', () => ({
-  resolvePrincipal: async (subject: string) => { askedAbout.push(subject); return { known: principal.known, warnings: [] } }
+  resolvePrincipal: async (subject: string) => { askedAbout.push(subject); if (principal.failure !== undefined) throw principal.failure; return { known: principal.known, warnings: [] } }
 }))
 
 const EXPIRY = Date.now() + 14 * 24 * 60 * 60 * 1_000
@@ -119,6 +119,7 @@ beforeEach(() => {
   credentials.failure = 'invalid-credentials'
   startedWith.length = 0
   principal.known = true
+  principal.failure = undefined
   refreshOutcome.value = undefined
   revoked.length = 0
   revalidated.length = 0
@@ -171,6 +172,16 @@ describe('login', () => {
     await expect(refusal).rejects.toMatchObject({ code: 'invalid-credentials' })
     expect(jar.size).toBe(0)
     expect(startedWith).toEqual([])
+  })
+
+  it('AUTHN-5: a failing authorization check admits nobody', async () => {
+    principal.failure = new Error('storage/unavailable')
+    const { login } = await authModule()
+    const { cookies, jar } = cookieJar()
+
+    await expect(login(identity.email, 'password', cookies)).rejects.toThrow()
+    expect(startedWith).toEqual([])
+    expect(jar.size).toBe(0)
   })
 
   it('AUTHN-5: login logs neither the email nor the password', async () => {

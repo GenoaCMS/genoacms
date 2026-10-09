@@ -110,4 +110,30 @@ describe('roles', () => {
     assert.equal(promptCall(text, 'Which bucket? (its name, or * for every bucket)'), undefined)
     assert.match(note.mock.calls[0][0], /id: "assets"/)
   })
+
+  test('CLI-11: a role name that is not an identifier is printed quoted', async () => {
+    const compose = async (name) => {
+      vi.clearAllMocks()
+      loadConfig.mockResolvedValue(manifest)
+      answering({
+        'What would you like to compose?': 'role',
+        'Role name': name,
+        'Which permission?': 'storage:bucket:read',
+        'Which bucket?': 'media',
+        'Add another grant?': false
+      })
+      await roles(ctx)
+      return note.mock.calls[0][0]
+    }
+
+    const quoted = await compose('Content editor')
+    assert.ok(quoted.includes('"Content editor": ['), quoted)
+    assert.doesNotThrow(() => new Function(`return ({ ${quoted} })`))
+
+    const plain = await compose('Copywriter')
+    assert.ok(plain.includes('Copywriter: ['), plain)
+
+    const padded = await compose('  Copywriter  ')
+    assert.ok(padded.includes('\n  Copywriter: ['), padded)
+  })
 })

@@ -26,6 +26,11 @@ function permissionOptions () {
   )
 }
 
+/** A key as JavaScript: bare when it is an identifier, quoted otherwise. */
+function renderKey (key) {
+  return /^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key)
+}
+
 /** Renders a value as the JavaScript an operator pastes, rather than as JSON. */
 function render (value, indent = 0) {
   const pad = ' '.repeat(indent)
@@ -36,7 +41,7 @@ function render (value, indent = 0) {
   }
   if (value !== null && typeof value === 'object') {
     const entries = Object.entries(value).map(([key, item]) =>
-      `${pad}  ${/^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key)}: ${render(item, indent + 2)}`)
+      `${pad}  ${renderKey(key)}: ${render(item, indent + 2)}`)
     return `{\n${entries.join(',\n')}\n${pad}}`
   }
   return JSON.stringify(value)
@@ -44,5 +49,6 @@ function render (value, indent = 0) {
 
 export {
   permissionOptions,
-  render
+  render,
+  renderKey
 }

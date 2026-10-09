@@ -1,9 +1,21 @@
-import { test, describe, afterAll } from 'vitest'
+import { test, describe, afterAll, vi } from 'vitest'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { initTemplateValues, renderTemplate, prepareConfig } from './init.js'
+import { exec } from 'node:child_process'
+import { select } from '@clack/prompts'
+import { init, initTemplateValues, renderTemplate, prepareConfig } from './init.js'
+
+vi.mock('node:child_process', async (importOriginal) => ({ ...await importOriginal(), exec: vi.fn() }))
+vi.mock('@clack/prompts', async (importOriginal) => ({
+  ...await importOriginal(),
+  select: vi.fn(async () => 'npm'),
+  spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
+  intro: vi.fn(),
+  outro: vi.fn(),
+  log: { message: vi.fn(), info: vi.fn(), warn: vi.fn() }
+}))
 
 const TEMPLATE_NAMES = ['development.ts', 'production.ts', 'collections.ts', 'authorization.ts', 'security.ts', 'languages.ts']
 const template = (name) => readFileSync(new URL(`./templates/${name}`, import.meta.url), 'utf-8')
@@ -110,5 +122,28 @@ describe('prepareConfig', () => {
     writeFileSync(join(ignored, '.gitignore'), '.genoacms/\nnode_modules\n')
     await prepareConfig(ignored, initTemplateValues(null, null))
     assert.equal(readFileSync(join(ignored, '.gitignore'), 'utf-8'), '.genoacms/\nnode_modules\n')
+  })
+})
+
+describe('init', () => {
+  test('CLI-12: init refuses an existing config before any prompt or install', async () => {
+    exec.mockImplementation((command, options, callback) => (callback ?? options)(null, '', ''))
+    for (const name of TEMPLATE_NAMES) {
+      const root = emptyDirectory()
+      mkdirSync(join(root, 'genoa.config'))
+      const existing = join(root, 'genoa.config', name)
+      writeFileSync(existing, '// mine\n')
+      const working = process.cwd()
+      process.chdir(root)
+      try {
+        await assert.rejects(init(), { message: `cli/config-exists: ${existing}` })
+      } finally {
+        process.chdir(working)
+      }
+      assert.equal(select.mock.calls.length, 0, name)
+      assert.equal(exec.mock.calls.length, 0, name)
+      assert.deepEqual(readdirSync(root), ['genoa.config'], name)
+      assert.deepEqual(readdirSync(join(root, 'genoa.config')), [name], name)
+    }
   })
 })

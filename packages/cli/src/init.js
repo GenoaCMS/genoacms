@@ -165,9 +165,14 @@ async function ignoreGenoaDirectory (cwd) {
     await appendFile(path, `${separator}.genoacms/\n`, 'utf-8')
 }
 
-async function prepareConfig (cwd, values) {
+// CLI-12
+function refuseExistingConfig (cwd) {
     const existing = existingConfigFile(cwd)
     if (existing !== undefined) throw new Error(`cli/config-exists: ${existing}`)
+}
+
+async function prepareConfig (cwd, values) {
+    refuseExistingConfig(cwd)
     await writeConfigFiles(cwd, values)
     await ignoreGenoaDirectory(cwd)
 }
@@ -203,6 +208,7 @@ function printNextSteps () {
 
 async function init () {
     intro('Init GenoaCMS')
+    refuseExistingConfig(process.cwd())
     const isNpmPackage = existsSync('package.json')
     if (!isNpmPackage) await initNpmProject()
     const suite = await selectAdapterSuite()

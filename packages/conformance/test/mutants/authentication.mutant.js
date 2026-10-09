@@ -1,4 +1,4 @@
 import { runAuthenticationConformance } from '../../src/index.js'
-import { MUTANTS, fixture } from './authentication.js'
+import { MUTANTS, CONFORMING, fixture } from './authentication.js'
 
-runAuthenticationConformance(MUTANTS[process.env.GENOACMS_MUTANT].adapter(), fixture)
+runAuthenticationConformance((MUTANTS[process.env.GENOACMS_MUTANT] ?? CONFORMING[process.env.GENOACMS_MUTANT]).adapter(), fixture)

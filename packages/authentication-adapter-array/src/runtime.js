@@ -1,18 +1,30 @@
 import { defineRuntime } from '@genoacms/contracts'
 
+// AUTHN-3
+/**
+ * @param {import('./config').credentialsArray} credentialsArray
+ * @param {string} code
+ * @param {(credentials: import('./config').Credentials) => boolean} isValid
+ */
+function assertEveryEntry (credentialsArray, code, isValid) {
+    const invalid = credentialsArray.flatMap((credentials, index) => isValid(credentials) ? [] : [index])
+    if (invalid.length === 0) return
+    throw new Error(`authentication/${code}: at index ${invalid.join(', ')}`)
+}
+
 /**
  * This adapter has no provider-issued identifier to derive a subject from, so each entry
  * must declare one. Deriving it from the email would reintroduce the mutable-key problem
  * that `Identity.subject` exists to avoid, so an entry without a subject is a
- * configuration error rather than something to paper over at login time.
+ * configuration error rather than something to paper over at login time. AUTHN-4
  *
- * @param {import('./config').credentialsArray} credentialsArray
+ * @param {unknown} credentialsArray
+ * @returns {asserts credentialsArray is import('./config').credentialsArray}
  */
-function assertEverySubjectDeclared (credentialsArray) {
-    const withoutSubject = credentialsArray.filter(c => !c.subject)
-    if (withoutSubject.length === 0) return
-    const emails = withoutSubject.map(c => c.email).join(', ')
-    throw new Error(`missing-subject: ${emails}`)
+function assertValidCredentials (credentialsArray) {
+    if (!Array.isArray(credentialsArray)) throw new Error('authentication/missing-credentials')
+    assertEveryEntry(credentialsArray, 'missing-subject', credentials => Boolean(credentials?.subject))
+    assertEveryEntry(credentialsArray, 'missing-password', credentials => typeof credentials.password === 'string')
 }
 
 /** @type {import('@genoacms/contracts/authentication').Rejection} */
@@ -35,8 +47,7 @@ function identityOf (credentials) {
  */
 export default defineRuntime({
     create ({ credentials: credentialsArray }) {
-        if (!Array.isArray(credentialsArray)) throw new Error('missing-credentials')
-        assertEverySubjectDeclared(credentialsArray)
+        assertValidCredentials(credentialsArray)
 
         return {
             /**

@@ -1,7 +1,7 @@
 import { select, text, confirm, isCancel, note, intro, outro, log } from '@clack/prompts'
 import { isResourceScoped, getPermissionScope } from '@genoacms/internal/authorization'
 import { loadConfig } from '@genoacms/config/load'
-import { permissionOptions, render } from './declaration.js'
+import { permissionOptions, render, renderKey } from './declaration.js'
 
 /**
  * Composes Tier-1 role declarations and prints them to paste into `genoa.config`.
@@ -141,7 +141,7 @@ async function composeRole (catalog) {
   }
 
   note(
-    `roles: {\n  ${name.trim()}: ${render(grants, 2)}\n}`,
+    `roles: {\n  ${renderKey(name.trim())}: ${render(grants, 2)}\n}`,
     'Paste into authorization in genoa.config'
   )
   log.info('Declared roles are authoritative: immutable at runtime, and removed from the instance when removed from here.')
