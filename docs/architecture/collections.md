@@ -157,7 +157,11 @@ a `<button>` handle does.
 
 ### Verification
 
-COL-4, COL-5 and DOC-1 to DOC-4 are verified at `unit`. DOC-1 to DOC-4 are tested through the
+COL-4, COL-5, DOC-1 to DOC-4, EDT-5, EDT-7 to EDT-9 and PCK-3 are verified at `unit`. EDT-5, EDT-7 to EDT-9
+and PCK-3 are tested on the mounted editor in Chromium (Vitest browser mode), through real input
+events and, for PCK-3, a real `BroadcastChannel` on which the test plays the picker tab; on
+2026-10-10 three mutants of the reference, file and editor components each failed a test, again a
+self-check, not an audit. DOC-1 to DOC-4 are tested through the
 service with only the adapter stubbed; on 2026-10-10 each test of DOC-2 to DOC-4 was checked against
 mutants of the service that skip the projection, the merge or the dropping of fields, and every
 mutant failed a test. That was a self-check by the agent that wrote the tests, not a falsification
@@ -464,7 +468,7 @@ When a control mounts with no value, it sets: `''` for string, text and markdown
 An object field, and an object item of a list, takes as its value an object of what its own fields set,
 as soon as one of them sets something. Other kinds set nothing.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`
 - Level: unit
 
 #### EDT-6 · Labels and hints
@@ -493,7 +497,7 @@ A nested object's fields are framed together under its label.
 A number field stores `Number` of its input on every input; an empty input stores `0`. Any decimal is
 accepted.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`
 - Level: unit
 
 #### EDT-8 · Choices
@@ -501,7 +505,7 @@ accepted.
 An enum field offers `String(option)` for each option, and stores the chosen option itself, of its
 original type: `2` for the option `2`, `false` for the option `false`.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`
 - Level: unit
 
 #### EDT-9 · The editor's document
@@ -509,7 +513,7 @@ original type: `2` for the option `2`, `false` for the option `false`.
 The editor starts from the stored document and replaces one field at a time; fields the schema does
 not declare keep their stored values. Every change is reported as the whole document.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`
 - Level: unit
 
 #### EDT-10 · Markdown
@@ -581,7 +585,7 @@ picker closes its tab
 A non-empty `selectionDone` replaces the field's value: with its first item for a reference or a file,
 with the whole array otherwise. An empty one changes nothing.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/pickers.browser.test.ts`
 - Level: unit
 
 #### PCK-4 · Picked values
