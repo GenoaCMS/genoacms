@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/config",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GenoaCMS configuration: authoring helpers, loader, host and build integration",
   "type": "module",
   "author": {

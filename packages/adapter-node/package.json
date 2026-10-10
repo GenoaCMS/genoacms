@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-node",
-  "version": "0.8.10",
+  "version": "0.9.0",
   "type": "module",
   "description": "Deployment adapter for nodejs",
   "main": "src/descriptor.js",
