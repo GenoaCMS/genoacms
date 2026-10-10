@@ -55,6 +55,7 @@ own before starting the next.
 | [0031](0031-sign-in-limits.md) | Core limits failed sign-ins (`contracts/authentication.md` CD7, CF1). Deferred by the author, 2026-10-02. | `packages/config`, `packages/core` |
 | [0032](0032-gcp-identity-platform-adapter.md) | The Identity Platform authentication adapter (`adapter-gcp/authentication-identity-platform.md` GD2, GU10, GU11). Implemented after 0030, before 0031. | `packages/adapter-gcp`, CI |
 | [0033](0033-audit-findings.md) | Close the most important findings of the 2026-10-08 audits (`adapter-gcp/` GF34 to GF37, `contracts/` CF31 to CF33, CF37, CF42, CF43, `cli.md` LF14, LF15) | `packages/sveltekit-adapter-cloud-run-functions`, `packages/authentication-adapter-array`, `packages/conformance`, `packages/cli`, `packages/contracts`, CI; tests only in `packages/adapter-gcp`, `packages/core` |
+| [0034](0034-genoa-command.md) | The installed command is `genoa` (`cli.md` LF16) | `packages/cli` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 
