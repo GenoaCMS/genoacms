@@ -415,8 +415,9 @@ selection is not empty, Confirm selection sends it and closes the tab.
 
 New document opens the dialog `New document` with the editor (EDT-4) for an empty document and a
 `Create` button, which reads `Creating...` and is disabled while creating. On success the dialog
-closes, the result's text is reported, and the page moves to the new document. On failure the result's
-text is reported, or `Failed to create document`.
+closes, the result's text is reported, and the page moves to the new document. On a failed result its
+text is reported, or `Failed to create document`; when the request itself fails, the error's message,
+or `An error occurred`.
 
 - Test: `packages/core/e2e/collections.test.ts` (unverified: `Creating...` and the failure report)
 - Level: e2e
@@ -438,7 +439,8 @@ with the collection, the document id and the time.
 
 Save, and Ctrl+S or ⌘+S anywhere on the page, submits the editor's document to `updateDoc` (DOC-5).
 While it runs, Save reads `Saving…` and is disabled. On success the result's text is reported; on
-failure the result's text, or `Failed to update document`. The page shows `Unsaved changes` while the
+a failed result its text, or `Failed to update document`; when the request itself fails, the error's
+message, or `An error occurred`. The page shows `Unsaved changes` while the
 editor's document differs from the saved one, compared as JSON, and `Saved` otherwise, and Save is
 emphasized while there are unsaved changes. The saved document is the editor's document once its
 fields have mounted (EDT-5), and again after each successful save.
@@ -495,15 +497,15 @@ as soon as one of them sets something. Other kinds set nothing.
 
 Every field but const and unsupported is labelled with its name. A field with a single input (uuid,
 text, string, number, boolean) is that input's label; any other is a group named by it. Beside the
-label, a hint:
+label, a hint, whose noun is plural unless the number before it is 1:
 
 | Kind | Hint |
 | :-- | :-- |
 | reference | `→ <collection>` |
-| references | `<n> document(s) · <collection>`, or `<n> of <max> documents · <collection>` with `maxItems` |
-| files | `<n> file(s)`, or `<n> of <max> files` |
+| references | `<n> document(s) · <collection>`, or `<n> of <max> document(s) · <collection>` with `maxItems` |
+| files | `<n> file(s)`, or `<n> of <max> file(s)` |
 | file | `file` |
-| list | `<n> item(s)`, or `<n> of <max> items` |
+| list | `<n> item(s)`, or `<n> of <max> item(s)` |
 | uuid, text, markdown, enum, number | `UUID`, `long text`, `markdown`, `choice`, `number` |
 | string, boolean, object | none |
 
