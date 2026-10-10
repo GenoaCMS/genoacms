@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: a830c48
+verified: 1168253
 ---
 
 # Command-line interface
@@ -89,7 +89,7 @@ carry no hint.
 | LF8 | *History.* **No test level runs the CLI's tests.** They use `node --test` under a `test:unit` script, and the package's `test` script runs the CLI itself, so `scripts/test-level.mjs`, which runs packages whose `test` script is Vitest, skips the package. | fixed, RFC-0028 |
 | LF14 | *History.* **`init` refuses an existing config only after initializing the project and installing every package** (CLI-12, LS3). It runs `<package manager> init -y` and the installs first, and looks for an existing config only when it writes it, so "before writing anything" holds only for `genoa.config/` and `.gitignore`. The test calls the check directly, so it cannot see the order. || fixed, RFC-0033 |
 | LF15 | *History.* **`roles` prints invalid JavaScript for a role name that is not an identifier** (CLI-11, LS3). The name is printed bare, so `Content editor` prints `Content editor: [...]`. Keys inside the grants are quoted; the role name is not. || fixed, RFC-0033 |
-| LF16 | **The installed command is `cli`, not `genoa`** (CLI-20). `package.json` gives `bin` as a bare path, which npm and pnpm link under the unscoped package name, so after `npm install -D @genoacms/cli` the project has `node_modules/.bin/cli` and `npx genoa` fails with `could not determine executable to run`. The getting-started guide and this document name the command `genoa`. Found by a smoke install of packed tarballs (author, 2026-10-09). | open, RFC-0034 |
+| LF16 | *History.* **The installed command is `cli`, not `genoa`** (CLI-20). `package.json` gives `bin` as a bare path, which npm and pnpm link under the unscoped package name, so after `npm install -D @genoacms/cli` the project has `node_modules/.bin/cli` and `npx genoa` fails with `could not determine executable to run`. The getting-started guide and this document name the command `genoa`. Found by a smoke install of packed tarballs (author, 2026-10-09). || fixed, RFC-0034 |
 
 ### History
 
@@ -259,8 +259,7 @@ When `build` or `deploy` runs in `production` mode without `--config`, and loadi
 
 #### CLI-20 · The `genoa` command
 
-Installing `@genoacms/cli` puts one command on the project's path, named `genoa`, which runs the CLI.
+Installing `@genoacms/cli` puts one command of its own on the project's path, named `genoa`, which runs the CLI.
 
-- Test: none yet
+- Test: `packages/cli/src/main.test.js`
 - Level: integration
-- State: new (RFC-0034)

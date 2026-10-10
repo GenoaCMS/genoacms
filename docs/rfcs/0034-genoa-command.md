@@ -2,8 +2,8 @@
 type: rfc
 number: 34
 title: The installed command is `genoa`
-status: draft
-commits: []
+status: implemented
+commits: [54b23b1, 1168253]
 depends: [28]
 architecture: [architecture/cli.md]
 changes: [CLI-20 added]
