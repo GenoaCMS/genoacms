@@ -64,6 +64,10 @@ jobs:
         continue-on-error: true
         run: pnpm --filter @genoacms/contracts run check
 
+      # core's component tests run in Vitest browser mode
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @genoacms/core exec playwright install --with-deps chromium
+
       - name: Unit tests
         id: unit
         continue-on-error: true
