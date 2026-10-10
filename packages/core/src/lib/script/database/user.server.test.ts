@@ -71,26 +71,26 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 }
 
 describe('reading', () => {
-  it('is denied without the read permission', async () => {
+  it('DOC-1: is denied without the read permission', async () => {
     await expectDenied(() => database.getUserCollection(nobody(), articles))
     await expectDenied(() => database.getUserDocument(nobody(), articleDocument))
     await expectDenied(() => database.getUserCollectionReference(nobody(), 'articles'))
   })
 
-  it('is allowed with it', async () => {
+  it('DOC-1: is allowed with it', async () => {
     await database.getUserCollection(reader(), articles)
     await database.getUserDocument(reader(), articleDocument)
     expect(calls).toEqual(['getCollection:articles', 'getDocument:articles/doc-1'])
   })
 
-  it('does not carry from one collection to another', async () => {
+  it('DOC-1: does not carry from one collection to another', async () => {
     // The grant names `articles`. Reading `users` with it would make the scope decorative.
     await expectDenied(() => database.getUserCollection(reader(), { name: 'users' } as never))
     await expectDenied(() =>
       database.getUserDocument(reader(), { collection: { name: 'users' }, id: 'doc-1' } as never))
   })
 
-  it('resolves the collection from a document reference, not only a collection one', async () => {
+  it('DOC-1: resolves the collection from a document reference, not only a collection one', async () => {
     // The two shapes carry the name in different places; reading the wrong one would check the
     // wrong resource, or nothing at all.
     await expectDenied(() =>
@@ -99,29 +99,29 @@ describe('reading', () => {
 })
 
 describe('writing', () => {
-  it('is denied to a reader', async () => {
+  it('DOC-1: is denied to a reader', async () => {
     await expectDenied(() => database.createUserDocument(reader(), articles, {}))
     await expectDenied(() => database.updateUserDocument(reader(), articleDocument, {}))
   })
 
-  it('is allowed with the write permission', async () => {
+  it('DOC-1: is allowed with the write permission', async () => {
     await database.createUserDocument(writer(), articles, {})
     await database.updateUserDocument(writer(), articleDocument, {})
     expect(calls).toEqual(['createDocument:articles', 'updateDocument:articles/doc-1'])
   })
 
-  it('does not imply reading', async () => {
+  it('DOC-1: does not imply reading', async () => {
     await expectDenied(() => database.getUserCollection(writer(), articles))
   })
 })
 
 describe('deleting', () => {
-  it('is denied to a writer', async () => {
+  it('DOC-1: is denied to a writer', async () => {
     // Otherwise write access would silently include destruction.
     await expectDenied(() => database.deleteUserDocument(writer(), articleDocument))
   })
 
-  it('is allowed with the delete permission', async () => {
+  it('DOC-1: is allowed with the delete permission', async () => {
     await database.deleteUserDocument(deleter(), articleDocument)
     expect(calls).toEqual(['deleteDocument:articles/doc-1'])
   })
