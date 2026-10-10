@@ -3,9 +3,10 @@
   import type { ObjectReference } from '@genoacms/contracts/storage'
   import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
+  import { resolve } from '$app/paths'
   import { ITC } from '$lib/script/utils'
   import StorageObject from './StorageObject.svelte'
-  import EditSelection from './EditSelection.svelte'
+  import PickerButton from '../PickerButton.svelte'
   import { Helper } from '$lib/components/ui/index'
 
   type Props = {
@@ -18,6 +19,8 @@
   let resources: ResourcesValue = $state(value || [])
   const maxItems = $derived(schema.maxItems || 0)
   const selectionId = crypto.randomUUID()
+  const pickerHref = `${resolve('/storage')}?selectionId=${selectionId}`
+  const pickerLabel = $derived(resources.length === 0 ? 'Choose files from storage' : 'Edit selection')
   const itc = new ITC(selectionId)
 
   function deleteResource (resource: ObjectReference) {
@@ -40,7 +43,6 @@
       parameters,
       defaultValue: $state.snapshot(resources),
     }
-    console.log(selectionInitData)
     itc.send('selectionInitData', selectionInitData)
     const selection = (await itc.once(
       'selectionDone'
@@ -56,20 +58,18 @@
   })
 </script>
 
-<div class="flex flex-col">
+<div class="flex flex-col gap-2">
   {#each resources as resource, index (index)}
     <StorageObject {resource} {deleteResource} />
-  {:else}
-    <div class="text-center text-xl w-auto m-auto pb-3 pt-2">
-      No files selected yet
-    </div>
   {/each}
-  <EditSelection {selectionId} clear={clearResources} />
-  <div class="pt-1">
-    {resources.length} / {maxItems || '∞'}
-  </div>
+  <PickerButton
+    href={pickerHref}
+    label={pickerLabel}
+    icon="bi-folder2-open"
+    onclear={resources.length > 0 ? clearResources : undefined}
+  />
 
   {#if errors}
-    <Helper color="red">Invalid</Helper>
+    <Helper class="text-error-500">Invalid</Helper>
   {/if}
 </div>

@@ -1,7 +1,9 @@
 <script lang="ts" generics="T extends object">
   import type { CollectionReference } from '@genoacms/contracts/database'
+  import type { InputValue } from '$lib/components/editors/types'
+  import { asSchemaObject } from '$lib/script/schema'
   import { extractDocumentProperties } from '../utils'
-  import Prop from './Prop.svelte'
+  import Fields from './Fields.svelte'
 
   interface Props {
     collectionReference: CollectionReference;
@@ -9,21 +11,17 @@
     onvalue?: (value: T) => T
   }
   const { collectionReference, value = {}, onvalue }: Props = $props()
-  const properties = $derived(extractDocumentProperties(collectionReference))
+  const fields = $derived(
+    extractDocumentProperties(collectionReference).flatMap((property) => {
+      const schema = asSchemaObject(collectionReference.schema.properties?.[property.name])
+      return schema ? [{ name: property.name, schema }] : []
+    })
+  )
 
-  function updateProperty (name: string, propValue: unknown) {
+  function updateProperty (name: string, propValue: InputValue) {
     value[name] = propValue
     onvalue(value)
   }
 </script>
 
-<div class="">
-  {#each properties as property (property.name)}
-    <Prop
-      name={property.name}
-      schema={collectionReference.schema.properties?.[property.name]}
-      value={value[property.name]}
-      onvalue={(value) => updateProperty(property.name, value)}
-    />
-  {/each}
-</div>
+<Fields {fields} value={value as Record<string, InputValue>} onfieldvalue={updateProperty} />

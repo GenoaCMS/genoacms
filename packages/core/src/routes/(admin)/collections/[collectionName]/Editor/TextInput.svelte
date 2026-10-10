@@ -8,8 +8,9 @@
     schema: Schema
     value: TextValue
     onvalue: (e: TextValue) => void
+    id?: string
   }
-  const { value, onvalue }: Props = $props()
+  const { value, onvalue, id }: Props = $props()
 
   const oninput = (e: Event) => {
     onvalue((e.currentTarget as HTMLTextAreaElement).value)
@@ -19,4 +20,4 @@
   })
 </script>
 
-<Textarea {value} {oninput} />
+<Textarea {id} rows="4" {value} {oninput} />

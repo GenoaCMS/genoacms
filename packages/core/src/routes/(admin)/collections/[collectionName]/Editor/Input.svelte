@@ -15,12 +15,13 @@
   import BooleanInput from './BooleanInput.svelte'
   import TextInput from './TextInput.svelte'
   import EnumInput from './EnumInput.svelte'
+  import { fieldKindOf } from './fieldKind'
 
   interface Props {
     schema: SchemaObject
     value: InputValue
     onvalue: (e: InputValue) => void
-    ondelete?: () => void
+    id?: string
   }
   let {
     schema,
@@ -28,40 +29,41 @@
     onvalue = (v) => {
       value = v
     },
-    ondelete = () => {},
+    id,
   }: Props = $props()
 
+  const kind = $derived(fieldKindOf(schema))
   // `items` may be absent or a tuple in JSON Schema; the editor only handles
   // the single-schema form
   const items = $derived(asSchemaObject(schema.items))
 </script>
 
-{#if schema.title === 'reference'}
+{#if kind === 'reference'}
   <Reference {schema} {value} {onvalue} />
-{:else if schema.type === 'string' && schema.format === 'uuid'}
-  <UuidInput {value} {onvalue} />
-{:else if schema.type === 'string' && schema.format === 'text'}
-  <TextInput {schema} {value} {onvalue} />
-{:else if schema.type === 'string' && schema.format === 'markdown'}
+{:else if kind === 'uuid'}
+  <UuidInput {id} {value} {onvalue} />
+{:else if kind === 'text'}
+  <TextInput {id} {schema} {value} {onvalue} />
+{:else if kind === 'markdown'}
   <MarkdownInput {value} {onvalue} />
-{:else if schema.enum && Array.isArray(schema.enum)}
+{:else if kind === 'enum'}
   <EnumInput {schema} {value} {onvalue} />
-{:else if schema.type === 'string'}
-  <StringInput {schema} {value} {onvalue} />
-{:else if schema.type === 'number'}
-  <NumberInput {schema} {value} {onvalue} />
-{:else if schema.type === 'boolean'}
-  <BooleanInput {schema} {value} {onvalue} />
-{:else if schema.type === 'array' && items?.title === 'reference'}
+{:else if kind === 'string'}
+  <StringInput {id} {schema} {value} {onvalue} />
+{:else if kind === 'number'}
+  <NumberInput {id} {schema} {value} {onvalue} />
+{:else if kind === 'boolean'}
+  <BooleanInput {id} {schema} {value} {onvalue} />
+{:else if kind === 'references' && items}
   <References schema={items} {value} {onvalue} />
-{:else if schema.type === 'array' && items?.title === 'storageResource'}
+{:else if kind === 'files'}
   <StorageResources {schema} {value} {onvalue} />
-{:else if schema.title === 'storageResource'}
+{:else if kind === 'file'}
   <StorageResource {value} {onvalue} />
-{:else if schema.type === 'array'}
+{:else if kind === 'list'}
   <ArrayInput {schema} {value} {onvalue} />
-{:else if schema.type === 'object'}
-  <ObjectInput {schema} {value} {onvalue} {ondelete} />
-{:else if schema.const}
+{:else if kind === 'object'}
+  <ObjectInput {schema} {value} {onvalue} />
+{:else if kind === 'const'}
   <Const constValue={schema.const as InputValue} {onvalue} />
 {/if}

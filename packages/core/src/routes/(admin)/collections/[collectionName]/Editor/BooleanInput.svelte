@@ -2,14 +2,14 @@
   import { untrack } from 'svelte'
   import type { BooleanValue } from '$lib/components/editors/types'
   import type { Schema } from '@exodus/schemasafe'
-  import { Checkbox } from '$lib/components/ui/index'
 
   interface Props {
     schema: Schema;
     value: BooleanValue;
     onvalue: (e: BooleanValue) => void;
+    id?: string
   }
-  const { value, onvalue }: Props = $props()
+  const { value, onvalue, id }: Props = $props()
 
   const onchange = (event: Event) => {
     const element = event.currentTarget as HTMLInputElement
@@ -20,4 +20,4 @@
   })
 </script>
 
-<Checkbox checked={value} {onchange} />
+<input {id} type="checkbox" class="checkbox" checked={value} {onchange} />

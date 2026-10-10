@@ -51,19 +51,19 @@ test.describe('a document', () => {
     // Reloaded rather than trusted: the editor is seeded from the loaded document, and the point is
     // that the value was really stored.
     await page.reload()
-    await expect(page.getByLabel('name:', { exact: true })).toHaveValue(name)
+    await expect(page.getByLabel('name', { exact: true })).toHaveValue(name)
   })
 
   test('keeps an edited value after saving', async ({ page }) => {
     await createDocument(page, name)
 
     const edited = `${name}-edited`
-    await page.getByLabel('name:', { exact: true }).fill(edited)
+    await page.getByLabel('name', { exact: true }).fill(edited)
     await page.getByRole('button', { name: 'Update' }).click()
     await reported(page, 'Document updated')
 
     await page.reload()
-    await expect(page.getByLabel('name:', { exact: true })).toHaveValue(edited)
+    await expect(page.getByLabel('name', { exact: true })).toHaveValue(edited)
 
     name = edited
   })
