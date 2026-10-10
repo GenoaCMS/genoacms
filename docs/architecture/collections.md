@@ -164,8 +164,8 @@ a `<button>` handle does.
 
 ### Verification
 
-32 of the 34 statements name tests. COL-1 and EDT-10 do not: their tests could only fail until OF17
-and OF16 are fixed.
+32 of the 34 statements name tests, each verified in full. COL-1 and EDT-10 do not: their tests
+could only fail until OF17 and OF16 are fixed.
 
 - **`unit`, in Node.** DOC-1 to DOC-4 are tested through the document service with only the adapter
   stubbed, DOC-5 through `createDoc` and `updateDoc` with the service stubbed and validation real,
@@ -177,7 +177,9 @@ and OF16 are fixed.
 - **`e2e`.** `packages/core/e2e/collections.test.ts` builds core with `genoa.config/e2e.ts`, serves it
   with an administrator and a principal who may only read `test`, and drives it in Chromium through
   Playwright. Fixtures are written to Firestore through the GCP adapter, not through the CMS, and
-  removed afterwards; a dynamic definition replacing `test` is written to the bucket before the
+  removed afterwards, and two files are written to the root of the bucket for the files picker;
+  failures are injected by answering the remote commands and form actions in the browser, never by
+  breaking the server; a dynamic definition replacing `test` is written to the bucket before the
   server starts. It needs GCP: `GENOACMS_TEST_GCP=1`, Application Default Credentials (or
   `GOOGLE_APPLICATION_CREDENTIALS`), `GENOACMS_TEST_GCP_PROJECT` and `GENOACMS_TEST_GCP_BUCKET`,
   defaulting to `genoacms` and `genoacms-tests`; run it with
@@ -222,7 +224,7 @@ A collection name resolves to the JSON object stored at `.genoacms/collections/<
 bucket. When that object cannot be read, it resolves to the first configured collection of that name.
 When there is none, resolution fails with the error `collection/not-found`.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the failure `collection/not-found`)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### COL-3 · The catalog a principal sees
@@ -380,7 +382,7 @@ From left to right: Confirm selection (LST-5), Delete, Select all or Unselect al
 Delete is shown only while the selection is not empty and only to a principal with `delete` on the
 collection; New document only to one with `write`. Each is an icon button named by its label.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the position of Confirm selection)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### LST-3 · Selecting documents
@@ -390,7 +392,7 @@ selection with a cap (LST-5) hides the checkboxes of unselected rows when full; 
 always be deselected. Select all adds every listed id, and is shown while the selection is empty;
 Unselect all clears it otherwise.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: hiding the checkboxes of a full selection, which LST-5's test checks)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### LST-4 · Deleting the selection
@@ -399,7 +401,7 @@ Delete asks `Do you want to delete one document?`, or `Do you want to delete <n>
 submits the selection to DOC-7 while showing `Deleting`. On success it clears the selection, reports
 `Deleted` and reloads the listing; otherwise it reports `Deletion failed`.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the pending `Deleting` and the failure report)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### LST-5 · The listing as a picker
@@ -419,7 +421,7 @@ closes, the result's text is reported, and the page moves to the new document. O
 text is reported, or `Failed to create document`; when the request itself fails, the error's message,
 or `An error occurred`.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: `Creating...` and the failure report)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 ### Document page and editor
@@ -432,7 +434,7 @@ toolbar holds Delete, for a principal with `delete`, and the save state with Sav
 `Document deleted`, or `Document deletion failed`. Opening the page records a `collections` activity
 with the collection, the document id and the time.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the report `Document deletion failed`)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-2 · Saving
@@ -445,7 +447,7 @@ editor's document differs from the saved one, compared as JSON, and `Saved` othe
 emphasized while there are unsaved changes. The saved document is the editor's document once its
 fields have mounted (EDT-5), and again after each successful save.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: `Saving…`, ⌘+S and the failure report)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-3 · Leaving with unsaved changes
@@ -455,7 +457,7 @@ While there are unsaved changes, navigating within the CMS asks
 the page (closing, reloading, an external link) triggers the browser's `beforeunload` prompt. After
 the document is deleted, nothing is asked.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the `beforeunload` prompt)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-4 · The control for each field
@@ -511,7 +513,7 @@ label, a hint, whose noun is plural unless the number before it is 1:
 
 A nested object's fields are framed together under its label.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the hints of files, file, uuid, text, markdown, enum and number)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-7 · Numbers
@@ -558,7 +560,7 @@ the value of its discriminator when the schema has one, and the first field of t
 the discriminator, whose value is a non-empty string, or `Untitled`. Any other item is its control in
 a row.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: reordering by keyboard)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-12 · Objects and variants
@@ -599,7 +601,7 @@ picker closes its tab
 `maxItems` is `1` for a reference and a file, `0` (no limit) for references, and the schema's
 `maxItems`, or `0`, for files. The opener closes its channel when the field unmounts.
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: the files picker's `maxItems`, and closing the channel on unmount)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### PCK-3 · Applying a selection
@@ -623,5 +625,5 @@ bucket and an icon of its type; a document by its id, with its collection and a 
 | references | `Choose from <collection>` | `Edit selection` |
 | reference | `Choose from <collection>` | none |
 
-- Test: `packages/core/e2e/collections.test.ts` (unverified: `Edit selection` and `Clear all` of a files field)
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
