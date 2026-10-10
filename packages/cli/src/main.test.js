@@ -96,10 +96,35 @@ function genoa (cwd, ...args) {
   return { status, stdout, stderr }
 }
 
-function installWithNpm (cwd) {
-  return spawnSync('npm', ['install', '--offline', '--no-save', '--no-audit', '--no-fund', '--ignore-scripts', PACKAGE], {
+function packCli () {
+  const destination = directory()
+  const pack = spawnSync('pnpm', ['pack', '--pack-destination', destination], { cwd: PACKAGE, encoding: 'utf-8', timeout: 60000 })
+  assert.equal(pack.status, 0, pack.stderr)
+  return join(destination, readdirSync(destination).find(name => name.endsWith('.tgz')))
+}
+
+function packedManifest (tarball) {
+  return JSON.parse(spawnSync('tar', ['-xzOf', tarball, 'package/package.json'], { encoding: 'utf-8' }).stdout)
+}
+
+function workspaceCopies (dependencies) {
+  return Object.fromEntries(Object.keys(dependencies ?? {})
+    .map(name => [name, `file:${realpathSync(join(PACKAGE, 'node_modules', name))}`]))
+}
+
+function projectInstalling (tarball) {
+  const overrides = workspaceCopies(packedManifest(tarball).dependencies)
+  const cwd = directory({ 'package.json': JSON.stringify({ name: 'project', private: true, overrides }) })
+  const install = spawnSync('npm', ['install', '--offline', '--no-save', '--no-audit', '--no-fund', '--ignore-scripts', tarball], {
     cwd, encoding: 'utf-8', timeout: 60000, stdio: 'pipe'
   })
+  assert.equal(install.status, 0, install.stderr)
+  return cwd
+}
+
+function installedGenoa (cwd, ...args) {
+  const { status, stdout, stderr } = spawnSync(join(cwd, 'node_modules/.bin/genoa'), args, { cwd, encoding: 'utf-8', timeout: 20000 })
+  return { status, stdout, stderr }
 }
 
 function genoaUnder (cwd, nodeOptions, ...args) {
@@ -333,12 +358,10 @@ describe('genoa', () => {
     }
   }, 30000)
 
-  test('CLI-20: an npm install of the package links genoa, and genoa runs the CLI', () => {
-    const cwd = directory({ 'package.json': JSON.stringify({ name: 'project', private: true }) })
-    const install = installWithNpm(cwd)
-    assert.equal(install.status, 0, install.stderr)
+  test('CLI-20: an npm install of the packed package links genoa alone, and genoa runs the CLI with its declared dependencies', () => {
+    const cwd = projectInstalling(packCli())
     assert.deepEqual(readdirSync(join(cwd, 'node_modules/.bin')), ['genoa'])
-    const run = spawnSync(join(cwd, 'node_modules/.bin/genoa'), ['--version'], { cwd, encoding: 'utf-8', timeout: 20000 })
-    assert.deepEqual({ status: run.status, stdout: run.stdout }, { status: 0, stdout: `${version}\n` })
-  }, 60000)
+    assert.deepEqual(installedGenoa(cwd, '--version'), { status: 0, stdout: `${version}\n`, stderr: '' })
+    assert.deepEqual(installedGenoa(cwd, 'build'), { status: 1, stdout: '', stderr: `cli/core-not-installed: install @genoacms/core in ${cwd}\n` })
+  }, 120000)
 })
