@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { randomBytes } from 'node:crypto'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
+import { randomBytes, randomUUID } from 'node:crypto'
 import type { Dialog, Locator, Page } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
-import { enabled, removeInstance, writeCollectionDefinition } from './bucket'
+import { enabled, removeInstance, writeCollectionDefinition, writeObject, deleteObjects } from './bucket'
 import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
 import { createDocument, readDocument, deleteDocuments } from './database'
 
@@ -15,6 +15,7 @@ const carol: User = { subject: 'e2e-carol', email: 'carol@e2e.test', password: p
 const SETUP_TIMEOUT_MS = 120_000
 const TEST_TIMEOUT_MS = 60_000
 const BUCKET = process.env.GENOACMS_TEST_GCP_BUCKET ?? 'genoacms-tests'
+const FILES = [`e2e-${run}-a.png`, `e2e-${run}-b.png`]
 
 /** A dynamic definition with the name of a configured collection: it replaces it (COL-2). */
 const shadowOfTest = {
@@ -26,7 +27,8 @@ const shadowOfTest = {
       name: { type: 'string' },
       shadowField: { type: 'string' },
       hiddenInListing: { type: 'string' },
-      limited: { type: 'array', maxItems: 1, items: { type: 'string' } }
+      limited: { type: 'array', maxItems: 1, items: { type: 'string' } },
+      gallery: { type: 'array', maxItems: 1, items: { type: 'object', title: 'storageResource', properties: { bucket: { type: 'string' }, name: { type: 'string' } } } }
     }
   },
   uiSchema: { hiddenInListing: { showPreview: false } }
@@ -72,15 +74,53 @@ async function confirmWith (page: Page, question: string): Promise<void> {
   await button(page, 'Yes').click()
 }
 
+/** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
+async function visit (page: Page, url: string): Promise<void> {
+  await page.goto(url)
+  await page.waitForLoadState('networkidle')
+}
+
+const pause = async (ms: number): Promise<void> => { await new Promise(resolve => setTimeout(resolve, ms)) }
+
+interface CommandAnswer { result?: { status: string, text: string }, error?: true, delayMs?: number }
+
+/** The body SvelteKit answers a remote command with: devalue of `{ _: result }`. */
+const commandResult = (result: { status: string, text: string }): string =>
+  JSON.stringify({ type: 'result', data: `[{"_":1},{"status":2,"text":3},${JSON.stringify(result.status)},${JSON.stringify(result.text)}]` })
+
+/** Answers the remote command `name` instead of the server, or delays the server's answer. */
+async function answerCommand (page: Page, name: string, answer: CommandAnswer): Promise<void> {
+  await page.route(url => url.pathname.startsWith('/_app/remote/') && url.pathname.endsWith(`/${name}`), async route => {
+    if (answer.delayMs !== undefined) await pause(answer.delayMs)
+    if (answer.error === true) {
+      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ type: 'error', status: 500, error: {} }) })
+      return
+    }
+    if (answer.result !== undefined) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: commandResult(answer.result) })
+      return
+    }
+    await route.continue()
+  })
+}
+
+/** Fails the form action `?/delete` posted from `pathname`, after a delay. */
+async function failDeletion (page: Page, pathname: string): Promise<void> {
+  await page.route(url => url.pathname === pathname && url.search === '?/delete', async route => {
+    await pause(1500)
+    await route.fulfill({ status: 500, contentType: 'text/plain', body: 'failed by the test' })
+  })
+}
+
 async function catalog (page: Page): Promise<string[]> {
-  await page.goto('/collections')
+  await visit(page, '/collections')
   await shown(page.locator('a[href="/collections/test"]'))
   const hrefs = await page.locator('a[href^="/collections/"]').evaluateAll(links => links.map(link => link.getAttribute('href') ?? ''))
   return hrefs.map(href => href.replace('/collections/', ''))
 }
 
 async function openDocument (page: Page, collection: string, id: string): Promise<void> {
-  await page.goto(`/collections/${collection}/${id}`)
+  await visit(page, `/collections/${collection}/${id}`)
   await shown(page.getByRole('heading', { level: 1 }))
 }
 
@@ -111,6 +151,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
   beforeAll(async () => {
     await removeInstance()
     await writeCollectionDefinition(shadowOfTest)
+    await Promise.all(FILES.map(async name => { await writeObject(name, name) }))
     server = await startServer({ primary: [ada, carol] })
     await launchBrowser()
     adaSession = await signedInSession(server, ada)
@@ -127,12 +168,17 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
     await timed('stop', async () => await server?.stop())
     await timed('deleteDocuments', async () => await Promise.all(Object.entries(created).map(async ([collection, ids]) => { await deleteDocuments(collection, ids) })))
     await timed('removeInstance', removeInstance)
+    await timed('deleteObjects', async () => { await deleteObjects(FILES) })
   }, SETUP_TIMEOUT_MS)
+
+  afterEach(async () => {
+    await adaSession?.page.unrouteAll({ behavior: 'ignoreErrors' })
+  })
 
   describe('the catalog', () => {
     it('COL-2: a dynamic definition replaces the configured one of its name', async () => {
       const { page } = adaSession
-      await page.goto('/collections/test')
+      await visit(page, '/collections/test')
       await shown(page.getByText('shadowField', { exact: true }))
 
       expect(await page.getByText('isA', { exact: true }).count()).toBe(0)
@@ -140,6 +186,13 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('COL-3: lists only the collections the principal holds a grant on', async () => {
       expect(new Set(await catalog(carolSession.page))).toEqual(new Set(['test']))
+    })
+
+    it('COL-2: a name that resolves to nothing fails with collection/not-found', async () => {
+      const response = await adaSession.page.goto(`/collections/missing-${run}`)
+
+      expect(response?.status()).toBe(500)
+      expect(server.output()).toContain('collection/not-found')
     })
   })
 
@@ -154,7 +207,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('LST-1: shows a header of field names and a row per document linking to it', async () => {
       const { page } = adaSession
-      await page.goto('/collections/authors')
+      await visit(page, '/collections/authors')
       await shown(page.getByRole('heading', { name: 'Collection: authors' }))
       for (const field of ['id', 'name', 'role', 'avatar']) await shown(page.getByText(field, { exact: true }))
 
@@ -166,11 +219,11 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
       const { page } = adaSession
-      await page.goto('/collections/test')
+      await visit(page, '/collections/test')
       await shown(page.getByText('shadowField', { exact: true }))
       expect(await page.getByText('hiddenInListing', { exact: true }).count()).toBe(0)
 
-      await page.goto('/collections/articles')
+      await visit(page, '/collections/articles')
       const row = page.getByRole('link').filter({ hasText: `${run} article` })
       await shown(row)
       expect(await row.innerText()).toContain('2 items')
@@ -179,7 +232,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('LST-2, LST-3: Delete appears before the selection control once something is selected', async () => {
       const { page } = adaSession
-      await page.goto('/collections/authors')
+      await visit(page, '/collections/authors')
       await shown(checkbox(page, authorId))
       expect(await button(page, 'Delete').count()).toBe(0)
       expect(await left(button(page, 'Select all'))).toBeLessThan(await left(button(page, 'New document')))
@@ -195,7 +248,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('LST-3: Select all selects every row, and Unselect all clears them', async () => {
       const { page } = adaSession
-      await page.goto('/collections/authors')
+      await visit(page, '/collections/authors')
       await shown(checkbox(page, authorId))
       await button(page, 'Select all').click()
       const pressed = await page.locator('button[aria-label^="Select "]').evaluateAll(boxes => boxes.map(box => box.getAttribute('aria-pressed')))
@@ -208,7 +261,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
     it('LST-2: a principal without write or delete is offered neither', async () => {
       const id = await fixture('test', { name: `${run} readable` })
       const { page } = carolSession
-      await page.goto('/collections/test')
+      await visit(page, '/collections/test')
       await shown(checkbox(page, id))
       await checkbox(page, id).click()
 
@@ -220,7 +273,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       const first = await author('doomed one')
       const second = await author('doomed two')
       const { page } = adaSession
-      await page.goto('/collections/authors')
+      await visit(page, '/collections/authors')
       await checkbox(page, first).click()
       await checkbox(page, second).click()
       await button(page, 'Delete').click()
@@ -234,7 +287,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
     it('LST-6, DOC-5: New document creates the document and opens it', async () => {
       const { page } = adaSession
-      await page.goto('/collections/authors')
+      await visit(page, '/collections/authors')
       await button(page, 'New document').click()
       const dialog = page.getByRole('dialog', { name: 'New document' })
       await dialog.getByLabel('name', { exact: true }).fill(`${run} created`)
@@ -267,6 +320,69 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
       expect(dialogs).toEqual([])
       expect(await readDocument('authors', id)).toBeUndefined()
+    })
+
+    it('LST-2: in a picker, Confirm selection stands before every other control', async () => {
+      const { page } = adaSession
+      await visit(page, `/collections/authors?selectionId=${randomUUID()}`)
+      await checkbox(page, authorId).click()
+
+      expect(await left(button(page, 'Confirm selection'))).toBeLessThan(await left(button(page, 'Delete')))
+      expect(await left(button(page, 'Delete'))).toBeLessThan(await left(button(page, 'Unselect all')))
+    })
+
+    it('LST-4: shows Deleting while deleting, and a failed deletion reports Deletion failed and keeps the documents', async () => {
+      const id = await author('kept on failure')
+      const { page } = adaSession
+      await failDeletion(page, '/collections/authors')
+      await visit(page, '/collections/authors')
+      await checkbox(page, id).click()
+      await button(page, 'Delete').click()
+      await confirmWith(page, 'Do you want to delete one document?')
+      await shown(page.getByText('Deleting', { exact: true }))
+      await shown(page.getByText('Deletion failed', { exact: true }))
+
+      expect(await readDocument('authors', id)).toBeDefined()
+    })
+
+    async function openNewDocument (page: Page): Promise<Locator> {
+      await visit(page, '/collections/authors')
+      await button(page, 'New document').click()
+      const dialog = page.getByRole('dialog', { name: 'New document' })
+      await dialog.getByLabel('name', { exact: true }).fill(`${run} attempted`)
+      return dialog
+    }
+
+    it('LST-6: Create reads Creating... and is disabled while creating', async () => {
+      const { page } = adaSession
+      await answerCommand(page, 'createDoc', { delayMs: 1500 })
+      const dialog = await openNewDocument(page)
+      await dialog.getByRole('button', { name: 'Create', exact: true }).click()
+      const creating = dialog.getByRole('button', { name: 'Creating...', exact: true })
+      await shown(creating)
+
+      expect(await creating.isDisabled()).toBe(true)
+      await page.waitForURL(/\/collections\/authors\/[^/]+$/)
+      created.authors.push(page.url().split('/').pop() ?? '')
+    })
+
+    it('LST-6: a failed result reports its text, or Failed to create document, and a failed request An error occurred', async () => {
+      const { page } = adaSession
+      await answerCommand(page, 'createDoc', { result: { status: 'fail', text: 'Refused by the test' } })
+      const dialog = await openNewDocument(page)
+      await dialog.getByRole('button', { name: 'Create', exact: true }).click()
+      await shown(page.getByText('Refused by the test', { exact: true }))
+
+      await page.unrouteAll({ behavior: 'ignoreErrors' })
+      await answerCommand(page, 'createDoc', { result: { status: 'fail', text: '' } })
+      await dialog.getByRole('button', { name: 'Create', exact: true }).click()
+      await shown(page.getByText('Failed to create document', { exact: true }))
+
+      await page.unrouteAll({ behavior: 'ignoreErrors' })
+      await answerCommand(page, 'createDoc', { error: true })
+      await dialog.getByRole('button', { name: 'Create', exact: true }).click()
+      await shown(page.getByText('An error occurred', { exact: true }))
+      expect(page.url()).toMatch(/\/collections\/authors\/?$/)
     })
   })
 
@@ -426,7 +542,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(contributors.getByText(authorId, { exact: true }))
     })
 
-    it('LST-5, PCK-4: a single reference is picked alone, shown with a link to it, and removed', async () => {
+    it('LST-3, LST-5, PCK-4: a single reference is picked alone, shown with a link to it, and removed', async () => {
       const { context, page } = adaSession
       await openDocument(page, 'articles', articleId)
       const field = page.getByRole('group', { name: /^author\b/ })
@@ -458,6 +574,131 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await field.getByRole('button', { name: 'Remove e2e/cover.png' }).click()
       const choose = field.getByRole('link', { name: 'Choose a file from storage' })
       expect(await choose.getAttribute('href')).toMatch(/^\/storage\?selectionId=[0-9a-f-]{36}$/)
+    })
+
+    it('EDT-1: a failed deletion reports Document deletion failed and keeps the document', async () => {
+      const id = await author('kept on page failure')
+      const { page } = adaSession
+      await failDeletion(page, `/collections/authors/${id}`)
+      await openDocument(page, 'authors', id)
+      await button(page, 'Delete').click()
+      await confirmWith(page, 'This document will be deleted permanently.')
+      await shown(page.getByText('Document deletion failed', { exact: true }))
+
+      expect(await readDocument('authors', id)).toBeDefined()
+    })
+
+    it('EDT-2: Save reads Saving… and is disabled while saving, and ⌘+S saves too', async () => {
+      const { page } = adaSession
+      await answerCommand(page, 'updateDoc', { delayMs: 1500 })
+      await openDocument(page, 'articles', articleId)
+      await page.getByLabel('slug', { exact: true }).fill(`${run}-meta`)
+      await page.keyboard.press('Meta+s')
+      const saving = page.getByRole('button', { name: 'Saving…' })
+      await shown(saving)
+
+      expect(await saving.isDisabled()).toBe(true)
+      await shown(page.getByText('Document updated', { exact: true }))
+      expect(await readDocument('articles', articleId)).toMatchObject({ slug: `${run}-meta` })
+    })
+
+    it('EDT-2: a failed result reports its text, or Failed to update document, and a failed request An error occurred', async () => {
+      const { page } = adaSession
+      await openDocument(page, 'articles', articleId)
+      await page.getByLabel('slug', { exact: true }).fill(`${run}-refused`)
+      for (const [answer, report] of [
+        [{ result: { status: 'fail', text: 'Refused by the test' } }, 'Refused by the test'],
+        [{ result: { status: 'fail', text: '' } }, 'Failed to update document'],
+        [{ error: true }, 'An error occurred']
+      ] as Array<[CommandAnswer, string]>) {
+        await page.unrouteAll({ behavior: 'ignoreErrors' })
+        await answerCommand(page, 'updateDoc', answer)
+        await page.getByRole('button', { name: 'Save' }).click()
+        await shown(page.getByText(report, { exact: true }))
+      }
+
+      await shown(page.getByText('Unsaved changes', { exact: true }))
+      expect(await readDocument('articles', articleId)).not.toMatchObject({ slug: `${run}-refused` })
+    })
+
+    it('EDT-3: leaving the page with unsaved changes asks the browser to prompt', async () => {
+      const page = await adaSession.context.newPage()
+      await openDocument(page, 'articles', articleId)
+      await page.getByLabel('slug', { exact: true }).fill(`${run}-abandoned`)
+      const asked = page.waitForEvent('dialog')
+      const closing = page.close({ runBeforeUnload: true })
+      const dialog = await asked
+
+      expect(dialog.type()).toBe('beforeunload')
+      await dialog.accept()
+      await closing
+    })
+
+    it('EDT-6: uuid, text, markdown, enum, number, file and files fields carry their hints', async () => {
+      const { page } = adaSession
+      await openDocument(page, 'articles', await article(authorId, authorId))
+      for (const hint of ['UUID', 'long text', 'markdown', 'choice', 'number', 'file']) await shown(page.getByText(hint, { exact: true }))
+
+      const id = await fixture('test', { name: `${run} hinted`, gallery: [{ bucket: BUCKET, name: FILES[0] }] })
+      await openDocument(page, 'test', id)
+      await shown(page.getByRole('group', { name: /^gallery\s+1 of 1 file$/ }))
+    })
+
+    it('EDT-11: an item is reordered by keyboard', async () => {
+      const { page } = adaSession
+      await openDocument(page, 'articles', await article(authorId, authorId))
+      const sections = page.getByRole('group', { name: /^sections\b/ })
+      await sections.getByRole('button', { name: 'Drag item 1 to reorder' }).focus()
+      await page.keyboard.press('Enter')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Enter')
+
+      await shown(sections.getByRole('button', { name: '#1 richText' }))
+      await shown(sections.getByRole('button', { name: '#2 hero' }))
+    })
+
+    async function openStoragePicker (page: Page, field: Locator, linkName: string): Promise<Page> {
+      const opened = adaSession.context.waitForEvent('page')
+      await field.getByRole('link', { name: linkName }).click()
+      const picker = await opened
+      await picker.locator(`a[href^="storage/${BUCKET}/contents"]`).click()
+      await shown(picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }))
+      return picker
+    }
+
+    it('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
+      const id = await fixture('test', { name: `${run} gallery`, gallery: [] })
+      const { page } = adaSession
+      await openDocument(page, 'test', id)
+      const gallery = page.getByRole('group', { name: /^gallery\b/ })
+      const picker = await openStoragePicker(page, gallery, 'Choose files from storage')
+      await picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }).click()
+      const second = picker.getByRole('button', { name: `select-${FILES[1]}`, exact: true })
+      await second.click()
+
+      expect(await second.getAttribute('aria-pressed')).toBe('false')
+      const closed = picker.waitForEvent('close')
+      await picker.getByRole('button', { name: 'Select all', exact: true }).click()
+      await closed
+
+      await shown(gallery.getByText(FILES[0], { exact: true }))
+      await shown(gallery.getByRole('link', { name: 'Edit selection' }))
+      await gallery.getByRole('button', { name: 'Clear all', exact: true }).click()
+      await shown(gallery.getByRole('link', { name: 'Choose files from storage' }))
+    })
+
+    it('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
+      const id = await fixture('test', { name: `${run} abandoned picker`, gallery: [] })
+      const { page } = adaSession
+      await openDocument(page, 'test', id)
+      const picker = await openStoragePicker(page, page.getByRole('group', { name: /^gallery\b/ }), 'Choose files from storage')
+      await visit(page, '/collections/test')
+      await picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }).click()
+      await picker.getByRole('button', { name: 'Select all', exact: true }).click()
+      await pause(2000)
+
+      expect(picker.isClosed()).toBe(false)
+      await picker.close()
     })
   })
 })

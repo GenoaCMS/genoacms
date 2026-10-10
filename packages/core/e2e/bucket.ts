@@ -15,3 +15,14 @@ export async function writeCollectionDefinition (definition: { name: string }): 
   const storage = await runtime.create({ projectId }, { name: 'e2e', resources: [bucket] })
   await storage.uploadObject({ bucket, name: `.genoacms/collections/${definition.name}` }, JSON.stringify(definition), {})
 }
+
+/** Stores a fixture object at the root of the test bucket. */
+export async function writeObject (name: string, data: string): Promise<void> {
+  const storage = await runtime.create({ projectId }, { name: 'e2e', resources: [bucket] })
+  await storage.uploadObject({ bucket, name }, data, {})
+}
+
+export async function deleteObjects (names: string[]): Promise<void> {
+  const storage = await runtime.create({ projectId }, { name: 'e2e', resources: [bucket] })
+  await Promise.all(names.map(async name => { await storage.deleteObject({ bucket, name }) }))
+}
