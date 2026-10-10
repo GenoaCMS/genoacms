@@ -156,15 +156,17 @@ a `<button>` handle does.
 
 ### Verification
 
-No statement is verified by a test that carries its ID yet. Existing tests that check some of them
-without carrying IDs:
+DOC-1 is verified at `unit`, through the service with the adapter stubbed. Existing tests that check
+other statements without carrying their IDs, and why they do not yet:
 
-- `packages/core/src/lib/script/database/user.server.test.ts` (unit): the permission per operation
-  and the catalog filter (DOC-1, COL-3).
+- `packages/core/src/lib/script/database/user.server.test.ts` (unit): the catalog filter of COL-3,
+  which is also `e2e` and has no end-to-end test.
 - `packages/core/src/lib/script/authorization/fields.test.ts` (unit): the field rules behind DOC-2 to
-  DOC-4, on the pure functions rather than through the service.
+  DOC-4, as pure functions. Nothing checks that the service applies them, so the service could stop
+  projecting and merging while every test passed.
 - `packages/core/src/lib/script/database/collections.test.ts` (unit): schemasafe with core's formats
-  against the example collections (DOC-5).
+  against the example collections, a part of DOC-5; neither command nor its results is tested, and
+  DOC-5 is also `e2e`.
 - `packages/core/tests/collections.spec.ts`, `tests/selection.spec.ts` (Playwright): creating,
   reopening, saving, deleting and bulk-deleting documents. They need GCP credentials, do not run in
   CI, and are not a level of `docs/README.md`.
@@ -264,7 +266,7 @@ and fails with a permission denial without calling it otherwise:
 
 A grant on one collection does not satisfy a demand on another, and `write` does not imply `read`.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/user.server.test.ts`
 - Level: unit
 
 #### DOC-2 · Reads return only readable fields
