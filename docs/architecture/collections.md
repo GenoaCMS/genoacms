@@ -127,13 +127,13 @@ it.
 
 ### Findings
 
-All found on 2026-10-10 by reading the code at `2fc5670`; none was reproduced.
+Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless the row says otherwise.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
 | OF1 | **The document selection outlives the collection it was made in.** It is one module-level instance (`database/SelectionRune.svelte.ts`) shared by every listing and never cleared on navigation. Selecting documents in one collection and opening another keeps them selected: the second listing shows Delete, and confirming it posts the first collection's ids to the second collection's delete action (DOC-7), which deletes any documents there with the same ids. | open |
 | OF2 | **A principal who may write a field but not read it erases it by saving.** The field is projected away on read (DOC-2), the editor fills the missing value with its default (EDT-5), and the update writes that default over the stored value, because the field is writable (DOC-3). | open |
-| OF3 | **The editor writes defaults into every document it opens (EDT-5).** A field missing from a stored document gets `''`, `0` or `false` as soon as the editor mounts, and the next save stores it. A document saved once can no longer be told apart from one whose author entered those values. | open |
+| OF3 | **The editor writes defaults into every document it opens (EDT-5).** A field missing from a stored document gets `''`, `0` or `false`, and a missing object an object of those, as soon as the editor mounts, and the next save stores it. A document saved once can no longer be told apart from one whose author entered those values. | open |
 | OF4 | **Some schemas render no control.** `type: 'integer'`, a type list such as `['string', 'null']`, and any schema matching no kind of EDT-4 render nothing, not even their label, and their value is kept unchanged. | open |
 | OF5 | **`primaryKey` is declared but not used by core.** Documents are addressed by the id the adapter assigns (DOC-6). A property named like `primaryKey.key` is an ordinary editable field, although the end-to-end helper `tests/support/collections.ts` says the primary key is not editable. | open |
 | OF6 | **`uiSchema` is read but not declared.** The listing hides columns marked `uiSchema[<field>].showPreview === false` (LST-1), but `CollectionReference` has no `uiSchema`, so the option is invisible to a config author's types and is a type error in core. | open |
@@ -144,6 +144,7 @@ All found on 2026-10-10 by reading the code at `2fc5670`; none was reproduced.
 | OF11 | **Clearing a number field stores `0` (EDT-7).** An empty input is read as `Number('')`. | open |
 | OF12 | **The collections page title is not a heading.** It is written as an `<hi>` element, so it has no heading role. | open |
 | OF13 | **The save shortcut ignores the write permission.** Ctrl+S or ⌘+S submits an update (EDT-2) on a page whose Save button is hidden from the principal; the service refuses it (DOC-1), and the page reports the refusal as a failed save. | open |
+| OF14 | **A choice cannot be unset.** Once an option of an enum field is chosen, choosing it again, clearing the text or typing something else keeps it (EDT-8), so an optional choice cannot be returned to no value. Shown on 2026-10-10 in Chromium. | open |
 
 ### History
 
@@ -189,7 +190,7 @@ of the default bucket, named by the file name. The directory is listed once, whe
 starts, and created when missing. Nothing is listed or created while SvelteKit analyses the build.
 
 - Test: unverified
-- Level: integration
+- Level: e2e
 
 #### COL-2 · Resolving a definition
 
@@ -198,7 +199,7 @@ bucket. When that object cannot be read, it resolves to the first configured col
 When there is none, resolution fails with the error `collection/not-found`.
 
 - Test: unverified
-- Level: integration
+- Level: e2e
 
 #### COL-3 · The catalog a principal sees
 
@@ -458,9 +459,10 @@ Each field of the schema gets the control of the first matching row:
 
 #### EDT-5 · Defaults on mount
 
-When a control mounts with no value, it sets: `''` for string and text, `0` for number, `false` for
-boolean, the schema's `default` for an enum that has one, and the constant for const. Other kinds set
-nothing.
+When a control mounts with no value, it sets: `''` for string, text and markdown, `0` for number,
+`false` for boolean, the schema's `default` for an enum that has one, and the constant for const.
+An object field, and an object item of a list, takes as its value an object of what its own fields set,
+as soon as one of them sets something. Other kinds set nothing.
 
 - Test: unverified
 - Level: unit
@@ -496,10 +498,8 @@ accepted.
 
 #### EDT-8 · Choices
 
-An enum field offers `String(option)` for each option, and stores the option of the original type
-whose string was chosen; a string matching no option is stored as a number for a numeric schema, as
-`raw === 'true'` for a boolean one, and as the string otherwise. Clearing the choice stores
-`undefined`, unless `''` is an option.
+An enum field offers `String(option)` for each option, and stores the chosen option itself, of its
+original type: `2` for the option `2`, `false` for the option `false`.
 
 - Test: unverified
 - Level: unit

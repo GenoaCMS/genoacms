@@ -49,7 +49,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
-| Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; COL-4, COL-5, DOC-1 to DOC-4 verified, the rest `unverified`; open findings OF1 to OF13 |
+| Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; COL-4, COL-5, DOC-1 to DOC-4 verified, the rest `unverified`; open findings OF1 to OF14 |
 | Core: storage browser | `core` (`storage/`, routes) | none | none |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
