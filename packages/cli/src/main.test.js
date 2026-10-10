@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const CLI = fileURLToPath(new URL('./index.js', import.meta.url))
+const PACKAGE = fileURLToPath(new URL('..', import.meta.url))
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
 
 const USAGE = `Usage: genoa <command> [target] [flags]
@@ -93,6 +94,12 @@ function genoa (cwd, ...args) {
     cwd, input: '', encoding: 'utf-8', timeout: 20000, stdio: 'pipe'
   })
   return { status, stdout, stderr }
+}
+
+function installWithNpm (cwd) {
+  return spawnSync('npm', ['install', '--offline', '--no-save', '--no-audit', '--no-fund', '--ignore-scripts', PACKAGE], {
+    cwd, encoding: 'utf-8', timeout: 60000, stdio: 'pipe'
+  })
 }
 
 function genoaUnder (cwd, nodeOptions, ...args) {
@@ -325,4 +332,13 @@ describe('genoa', () => {
       assert.doesNotMatch(stderr, /The config loaded was|Run: genoa/, args.join(' '))
     }
   }, 30000)
+
+  test.fails('CLI-20: an npm install of the package links genoa, and genoa runs the CLI', () => {
+    const cwd = directory({ 'package.json': JSON.stringify({ name: 'project', private: true }) })
+    const install = installWithNpm(cwd)
+    assert.equal(install.status, 0, install.stderr)
+    assert.deepEqual(readdirSync(join(cwd, 'node_modules/.bin')), ['genoa'])
+    const run = spawnSync(join(cwd, 'node_modules/.bin/genoa'), ['--version'], { cwd, encoding: 'utf-8', timeout: 20000 })
+    assert.deepEqual({ status: run.status, stdout: run.stdout }, { status: 0, stdout: `${version}\n` })
+  }, 60000)
 })
