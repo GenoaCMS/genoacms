@@ -140,11 +140,18 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF7 | **A reference field keeps its target collection in the JSON Schema `description`** (COL-5). An author who documents the field with a description changes what it references. | open |
 | OF8 | **The listing reads the whole collection.** No query parameters reach the adapter (LST-1). The select-all control's comment says the listing is paginated; it is not. | open |
 | OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open |
-| OF10 | **A failed validation tells the user nothing about the field.** The service returns schemasafe's errors (DOC-5); the page shows only "Invalid document data" and logs the errors to the console. | open |
+| OF10 | **A failed validation tells nobody which field failed.** schemasafe is created without `includeErrors`, so the result's `errors` is always `undefined` (DOC-5); the page shows only "Invalid document data" and logs nothing useful. Shown on 2026-10-10 by the unit tests. | open |
 | OF11 | **Clearing a number field stores `0` (EDT-7).** An empty input is read as `Number('')`. | open |
 | OF12 | **The collections page title is not a heading.** It is written as an `<hi>` element, so it has no heading role. | open |
 | OF13 | **The save shortcut ignores the write permission.** Ctrl+S or ⌘+S submits an update (EDT-2) on a page whose Save button is hidden from the principal; the service refuses it (DOC-1), and the page reports the refusal as a failed save. | open |
 | OF14 | **A choice cannot be unset.** Once an option of an enum field is chosen, choosing it again, clearing the text or typing something else keeps it (EDT-8), so an optional choice cannot be returned to no value. Shown on 2026-10-10 in Chromium. | open |
+| OF15 | **A collection that exists only as a dynamic definition cannot hold documents.** The host routes a collection to a database by the names its configuration declares, so every document operation on a dynamic-only collection fails with `database/not-found`, although its definition resolves (COL-2). Only a dynamic definition that shares the name of a configured collection works, by replacing its schema. Found by reading `config/src/host/routing.ts` on 2026-10-10. | open |
+| OF16 | **The markdown preview is empty until the field is edited (EDT-10).** The preview is rendered on the server without DOMPurify, which needs a browser, so the server sends an empty preview, and Svelte does not repair `{@html}` content when it hydrates. Shown on 2026-10-10 in the built core in Chromium. | open |
+| OF17 | **Dynamic collections are never listed with the GCP adapter (COL-1).** Core lists the directory `.genoacms/collections` without a trailing `/`; Cloud Storage, listing with the delimiter `/`, then answers with that directory as one prefix rather than the files in it. Shown on 2026-10-10 against a real bucket. | open |
+| OF18 | **Icons are part of accessible names.** Bootstrap Icons draw their glyph with CSS `::before`, and Chromium includes it in the accessible name, so a list item's header is announced as a private-use character followed by `#1 …`, and a catalog card as one followed by its name. Shown on 2026-10-10 in Chromium. | open |
+| OF19 | **A tall list item can hardly be dragged past its neighbour (EDT-11).** svelte-dnd-action places the dragged item by its centre, and while dragging it renders the item's placeholder as a new card, which is open even when the item was collapsed. An open card taller than the window must be carried past the centre of the next one, beyond the window's edge. Shown on 2026-10-10 in the built core in Chromium: a hero section 627 px tall moved only when the window was 2400 px tall. | open |
+| OF20 | **Core does not exit on SIGTERM once it has used Firestore.** The Firestore client keeps the Node process alive after the server closes, so the end-to-end harness kills it after 5 s; a platform that sends SIGTERM before SIGKILL waits its whole grace period. Shown on 2026-10-10 by the end-to-end run. | open |
+| OF21 | **The `storageResource` format checks nothing a storage field holds (DOC-5).** schemasafe applies formats to strings only, so the format refuses every string and accepts any object, including one without `name`; the schemas of COL-5 do not use the format at all. Shown on 2026-10-10 with schemasafe. | open |
 
 ### History
 
@@ -308,14 +315,14 @@ submission when every field is writable. An unwritable field is dropped, not ref
 
 The editor creates a document with the remote command `createDoc({ collectionName, documentData })`
 and updates one with `updateDoc({ collectionName, documentId, documentData })`. Each validates
-`documentData` against the collection's schema with `@exodus/schemasafe`, with these formats:
-`reference`, `markdown` and `text` accept any value, and `storageResource` accepts an object whose
-`bucket` and `name` are truthy. Each returns:
+`documentData` against the collection's schema with `@exodus/schemasafe`, which applies formats to
+strings only, with these formats: `reference`, `markdown` and `text` accept any string, and
+`storageResource` refuses every string. Each returns:
 
 | Case | Result |
 | :-- | :-- |
 | a missing argument | `{ status: 'fail', text: 'Invalid data format' }` |
-| invalid data | `{ status: 'fail', text: 'Invalid document data', errors }`, schemasafe's errors |
+| invalid data | `{ status: 'fail', text: 'Invalid document data', errors: undefined }` |
 | created | `{ status: 'success', text: 'Document created', id }`, the new document's id |
 | updated | `{ status: 'success', text: 'Document updated' }` |
 | a permission denial | thrown, not returned |
