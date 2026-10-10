@@ -141,7 +141,7 @@ describe('deleting', () => {
 })
 
 describe('getUserCollectionReferences', () => {
-  it('returns only collections the principal holds a grant on', () => {
+  it('COL-3: returns only collections the principal holds a grant on', () => {
     const context = contextWith([
       collectionGrant('db:collection:read', 'articles'),
       collectionGrant('db:collection:read', 'products')
@@ -150,17 +150,17 @@ describe('getUserCollectionReferences', () => {
     expect(database.getUserCollectionReferences(context)).toEqual(['articles', 'products'])
   })
 
-  it('returns nothing to a principal with no grants', () => {
+  it('COL-3: returns nothing to a principal with no grants', () => {
     expect(database.getUserCollectionReferences(nobody())).toEqual([])
   })
 
-  it('shows a collection the principal may write but not read', () => {
+  it('COL-3: shows a collection the principal may write but not read', () => {
     // Matches the bucket catalog: a principal who may write a collection must still see where
     // their writes go. Every operation on it is demanded separately when it is attempted.
     expect(database.getUserCollectionReferences(writer())).toEqual(['articles'])
   })
 
-  it('returns every collection to a wildcard grant', () => {
+  it('COL-3: returns every collection to a wildcard grant', () => {
     const superAdmin = contextWith([{ permission: WILDCARD, resource: WILDCARD }])
     expect(database.getUserCollectionReferences(superAdmin)).toEqual(['articles', 'users', 'products'])
   })
