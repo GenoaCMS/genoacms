@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-minio",
-  "version": "0.8.10",
+  "version": "0.9.0",
   "description": "GenoaCMS storage adapter for minio",
   "type": "module",
   "main": "src/descriptor.js",

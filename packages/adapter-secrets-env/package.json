@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-secrets-env",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Development secrets adapter for GenoaCMS, backed by a .env file",
   "main": "src/descriptor.js",
   "type": "module",
