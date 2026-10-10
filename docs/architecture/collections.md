@@ -156,14 +156,16 @@ a `<button>` handle does.
 
 ### Verification
 
-DOC-1 is verified at `unit`, through the service with the adapter stubbed. Existing tests that check
-other statements without carrying their IDs, and why they do not yet:
+COL-4, COL-5 and DOC-1 to DOC-4 are verified at `unit`. DOC-1 to DOC-4 are tested through the
+service with only the adapter stubbed; on 2026-10-10 each test of DOC-2 to DOC-4 was checked against
+mutants of the service that skip the projection, the merge or the dropping of fields, and every
+mutant failed a test. That was a self-check by the agent that wrote the tests, not a falsification
+audit. Existing tests that check other statements without carrying their IDs, and why they do not yet:
 
 - `packages/core/src/lib/script/database/user.server.test.ts` (unit): the catalog filter of COL-3,
   which is also `e2e` and has no end-to-end test.
 - `packages/core/src/lib/script/authorization/fields.test.ts` (unit): the field rules behind DOC-2 to
-  DOC-4, as pure functions. Nothing checks that the service applies them, so the service could stop
-  projecting and merging while every test passed.
+  DOC-4, as pure functions; the statements are verified through the service instead.
 - `packages/core/src/lib/script/database/collections.test.ts` (unit): schemasafe with core's formats
   against the example collections, a part of DOC-5; neither command nor its results is tested, and
   DOC-5 is also `e2e`.
@@ -223,7 +225,7 @@ interface CollectionDefinition {
 The fields of a collection are the keys of `schema.properties`, in their declared order. A schema
 without `properties` has no fields.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/fields.test.ts`, `packages/core/src/routes/(admin)/collections/[collectionName]/utils.test.ts`
 - Level: unit
 
 #### COL-5 · Schema helpers for references and files
@@ -248,7 +250,7 @@ function reference ({ type = 'string', format, collection }) {
 
 A field `{ type: 'array', items: <one of these> }` holds several.
 
-- Test: unverified
+- Test: `packages/contracts/src/schemas.test.js`
 - Level: unit
 
 ### Document service
@@ -276,7 +278,7 @@ every field when a satisfying grant names no fields or the wildcard, otherwise t
 named by every grant satisfying `db:collection:read` on the collection. A named field the document
 does not have is absent.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/user.server.test.ts`
 - Level: unit
 
 #### DOC-3 · Updates keep what the writer may not write
@@ -286,7 +288,7 @@ other update reads the stored document and stores it with only the writable fiel
 submission, those the submission has; every other field keeps its stored value. When no document is
 stored, only the writable fields of the submission are stored.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/user.server.test.ts`
 - Level: unit
 
 #### DOC-4 · Creation drops what the writer may not write
@@ -294,7 +296,7 @@ stored, only the writable fields of the submission are stored.
 A created document contains only the fields of the submission the principal may write, or the whole
 submission when every field is writable. An unwritable field is dropped, not refused.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/user.server.test.ts`
 - Level: unit
 
 #### DOC-5 · Creating and updating from the editor
