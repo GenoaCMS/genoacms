@@ -164,26 +164,39 @@ a `<button>` handle does.
 
 ### Verification
 
-COL-4, COL-5, DOC-1 to DOC-4, EDT-5, EDT-7 to EDT-9 and PCK-3 are verified at `unit`. EDT-5, EDT-7 to EDT-9
-and PCK-3 are tested on the mounted editor in Chromium (Vitest browser mode), through real input
-events and, for PCK-3, a real `BroadcastChannel` on which the test plays the picker tab; on
-2026-10-10 three mutants of the reference, file and editor components each failed a test, again a
-self-check, not an audit. DOC-1 to DOC-4 are tested through the
-service with only the adapter stubbed; on 2026-10-10 each test of DOC-2 to DOC-4 was checked against
-mutants of the service that skip the projection, the merge or the dropping of fields, and every
-mutant failed a test. That was a self-check by the agent that wrote the tests, not a falsification
-audit. Existing tests that check other statements without carrying their IDs, and why they do not yet:
+32 of the 34 statements name tests. COL-1 and EDT-10 do not: their tests could only fail until OF17
+and OF16 are fixed.
 
-- `packages/core/src/lib/script/database/user.server.test.ts` (unit): the catalog filter of COL-3,
-  which is also `e2e` and has no end-to-end test.
+- **`unit`, in Node.** DOC-1 to DOC-4 are tested through the document service with only the adapter
+  stubbed, DOC-5 through `createDoc` and `updateDoc` with the service stubbed and validation real,
+  DOC-7 through the listing's action, COL-3 and COL-4 on the functions core reads definitions with,
+  COL-5 on `@genoacms/contracts/schemas`.
+- **`unit`, in Chromium.** EDT-4, EDT-5, EDT-7 to EDT-9, EDT-12 and PCK-3 are tested on the mounted
+  editor through Vitest browser mode, with real input events and, for PCK-3, a real
+  `BroadcastChannel` on which the test plays the picker tab.
+- **`e2e`.** `packages/core/e2e/collections.test.ts` builds core with `genoa.config/e2e.ts`, serves it
+  with an administrator and a principal who may only read `test`, and drives it in Chromium through
+  Playwright. Fixtures are written to Firestore through the GCP adapter, not through the CMS, and
+  removed afterwards; a dynamic definition replacing `test` is written to the bucket before the
+  server starts. It needs GCP: `GENOACMS_TEST_GCP=1`, Application Default Credentials (or
+  `GOOGLE_APPLICATION_CREDENTIALS`), `GENOACMS_TEST_GCP_PROJECT` and `GENOACMS_TEST_GCP_BUCKET`,
+  defaulting to `genoacms` and `genoacms-tests`; run it with
+  `pnpm --filter @genoacms/core exec vitest run --mode e2e e2e`. It was first run on 2026-10-10,
+  locally, against `genoacms-tests`.
+
+Self-checks, by the agent that wrote the tests, not falsification audits: on 2026-10-10, mutants of
+the service that skip the projection, the merge or the dropping of fields (DOC-2 to DOC-4), and
+mutants of the reference, file and editor components (PCK-3, EDT-9), each failed a test.
+
+Older tests that check statements without carrying their IDs:
+
 - `packages/core/src/lib/script/authorization/fields.test.ts` (unit): the field rules behind DOC-2 to
   DOC-4, as pure functions; the statements are verified through the service instead.
 - `packages/core/src/lib/script/database/collections.test.ts` (unit): schemasafe with core's formats
-  against the example collections, a part of DOC-5; neither command nor its results is tested, and
-  DOC-5 is also `e2e`.
+  against the example collections.
 - `packages/core/tests/collections.spec.ts`, `tests/selection.spec.ts` (Playwright): creating,
-  reopening, saving, deleting and bulk-deleting documents. They need GCP credentials, do not run in
-  CI, and are not a level of `docs/README.md`.
+  reopening, saving, deleting and bulk-deleting documents. They need the development credentials, do
+  not run in CI, and are not a level of `docs/README.md`.
 
 The editor redesign was checked on 2026-10-10 in a throwaway Vite page rendering the editor with a
 mock schema: rendering of every kind, collapsing, adding and removing items, reordering by
@@ -209,7 +222,7 @@ A collection name resolves to the JSON object stored at `.genoacms/collections/<
 bucket. When that object cannot be read, it resolves to the first configured collection of that name.
 When there is none, resolution fails with the error `collection/not-found`.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the failure `collection/not-found`)
 - Level: e2e
 
 #### COL-3 · The catalog a principal sees
@@ -217,7 +230,7 @@ When there is none, resolution fails with the error `collection/not-found`.
 `/collections` lists, as links to `/collections/<name>`, the names of the catalog on which the
 principal holds any grant whose resource is that collection, whatever its permission.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/database/user.server.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
 
 #### COL-4 · A collection definition
@@ -328,7 +341,7 @@ strings only, with these formats: `reference`, `markdown` and `text` accept any 
 | a permission denial | thrown, not returned |
 | any other failure | `{ status: 'fail', text: 'Error creating document' }`, or `'Error updating document'` |
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/documents.remote.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
 
 #### DOC-6 · Deleting one document
@@ -336,7 +349,7 @@ strings only, with these formats: `reference`, `markdown` and `text` accept any 
 The document page's form action `delete` deletes the document of the route, requiring `read` on the
 collection and `delete`, and answers with a 307 redirect to the collection's listing.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### DOC-7 · Deleting several documents
@@ -346,7 +359,7 @@ numbers. Each id, as a string, is deleted from the collection of the route, with
 for each. A missing field fails with status 400 and `{ reason: 'missing-documents' }`. The action does
 not redirect.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/page.server.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
 
 ### Listing
@@ -358,7 +371,7 @@ per document of the collection, read without query parameters. A field whose
 `uiSchema[<field>].showPreview` is `false` has no column. A cell shows `<n> items` for an array field
 and the value otherwise, or nothing when absent. Each row links to `/collections/<name>/<id>`.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### LST-2 · The toolbar
@@ -367,7 +380,7 @@ From left to right: Confirm selection (LST-5), Delete, Select all or Unselect al
 Delete is shown only while the selection is not empty and only to a principal with `delete` on the
 collection; New document only to one with `write`. Each is an icon button named by its label.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the position of Confirm selection)
 - Level: e2e
 
 #### LST-3 · Selecting documents
@@ -377,7 +390,7 @@ selection with a cap (LST-5) hides the checkboxes of unselected rows when full; 
 always be deselected. Select all adds every listed id, and is shown while the selection is empty;
 Unselect all clears it otherwise.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: hiding the checkboxes of a full selection, which LST-5's test checks)
 - Level: e2e
 
 #### LST-4 · Deleting the selection
@@ -386,7 +399,7 @@ Delete asks `Do you want to delete one document?`, or `Do you want to delete <n>
 submits the selection to DOC-7 while showing `Deleting`. On success it clears the selection, reports
 `Deleted` and reloads the listing; otherwise it reports `Deletion failed`.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the pending `Deleting` and the failure report)
 - Level: e2e
 
 #### LST-5 · The listing as a picker
@@ -395,7 +408,7 @@ Opened with `?selectionId=<id>`, the listing joins the picker protocol of PCK-2:
 `maxItems` as the selection's cap (`0` for none) and preselects the opener's current value. While the
 selection is not empty, Confirm selection sends it and closes the tab.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### LST-6 · Creating a document
@@ -405,7 +418,7 @@ New document opens the dialog `New document` with the editor (EDT-4) for an empt
 closes, the result's text is reported, and the page moves to the new document. On failure the result's
 text is reported, or `Failed to create document`.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: `Creating...` and the failure report)
 - Level: e2e
 
 ### Document page and editor
@@ -418,7 +431,7 @@ toolbar holds Delete, for a principal with `delete`, and the save state with Sav
 `Document deleted`, or `Document deletion failed`. Opening the page records a `collections` activity
 with the collection, the document id and the time.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the report `Document deletion failed`)
 - Level: e2e
 
 #### EDT-2 · Saving
@@ -430,7 +443,7 @@ editor's document differs from the saved one, compared as JSON, and `Saved` othe
 emphasized while there are unsaved changes. The saved document is the editor's document once its
 fields have mounted (EDT-5), and again after each successful save.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: `Saving…`, ⌘+S and the failure report)
 - Level: e2e
 
 #### EDT-3 · Leaving with unsaved changes
@@ -440,7 +453,7 @@ While there are unsaved changes, navigating within the CMS asks
 the page (closing, reloading, an external link) triggers the browser's `beforeunload` prompt. After
 the document is deleted, nothing is asked.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the `beforeunload` prompt)
 - Level: e2e
 
 #### EDT-4 · The control for each field
@@ -465,7 +478,7 @@ Each field of the schema gets the control of the first matching row:
 | 14 | `const` is set | const | none: the value is set to the constant |
 | — | anything else | unsupported | none, and the value is left as it is |
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
 
 #### EDT-5 · Defaults on mount
@@ -496,7 +509,7 @@ label, a hint:
 
 A nested object's fields are framed together under its label.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the hints of files, file, uuid, text, markdown, enum and number)
 - Level: e2e
 
 #### EDT-7 · Numbers
@@ -543,7 +556,7 @@ the value of its discriminator when the schema has one, and the first field of t
 the discriminator, whose value is a non-empty string, or `Untitled`. Any other item is its control in
 a row.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: reordering by keyboard)
 - Level: e2e
 
 #### EDT-12 · Objects and variants
@@ -554,7 +567,7 @@ its discriminator property, or by its index when it has none. The variant shown 
 constant equals the value's discriminator, or the first. Choosing a variant removes from the value
 every field the new variant does not declare and sets the discriminator to its constant.
 
-- Test: unverified
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/Editor/Editor.browser.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
 
 ### Pickers
@@ -565,7 +578,7 @@ A reference, references, file or files field opens its picker in a new tab: `/st
 for files, `/collections/<collection>?selectionId=<id>` for references, where `<id>` is a random UUID
 of that field, fixed while the field is mounted.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### PCK-2 · The picker protocol
@@ -584,7 +597,7 @@ picker closes its tab
 `maxItems` is `1` for a reference and a file, `0` (no limit) for references, and the schema's
 `maxItems`, or `0`, for files. The opener closes its channel when the field unmounts.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: the files picker's `maxItems`, and closing the channel on unmount)
 - Level: e2e
 
 #### PCK-3 · Applying a selection
@@ -608,5 +621,5 @@ bucket and an icon of its type; a document by its id, with its collection and a 
 | references | `Choose from <collection>` | `Edit selection` |
 | reference | `Choose from <collection>` | none |
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts` (unverified: `Edit selection` and `Clear all` of a files field)
 - Level: e2e
