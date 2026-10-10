@@ -21,8 +21,8 @@ packed tarballs of the current packages into an empty project, before releasing 
 config format.
 
 1. `bin` names the command: `{ "genoa": "src/index.js" }`.
-2. CLI-20 states it, and an integration test installs the package with npm and runs the linked
-   command.
+2. CLI-20 states it, and an integration test installs the packed package with npm and runs the
+   linked command.
 
 ## Files
 
@@ -38,8 +38,8 @@ config format.
 
 **CLI-20 · The `genoa` command** (added):
 
-> Installing `@genoacms/cli` puts one command on the project's path, named `genoa`, which runs the
-> CLI.
+> Installing `@genoacms/cli` puts one command of its own on the project's path, named `genoa`,
+> which runs the CLI.
 >
 > - Test: `packages/cli/src/main.test.js`
 > - Level: integration
@@ -53,6 +53,9 @@ config format.
 `src/index.js` keeps its `#!/usr/bin/env node` line. No other command is linked: `cli` is gone, and no
 alias keeps it.
 
+*Amended after the falsification audit (LS5).* "One command of its own": the commands of the
+packages it depends on, such as Vite's, are not the CLI's, and a real install links them too.
+
 ## Non-goals
 
 - Keeping `cli` as an alias. 0.0.19, the only version that links it, was published before the
@@ -62,11 +65,20 @@ alias keeps it.
 
 ## Tests
 
-- `packages/cli/src/main.test.js` (integration) › `CLI-20: an npm install of the package links genoa, and genoa runs the CLI`:
-  given an empty project directory with a `package.json`, when
-  `npm install --offline --no-save --no-audit --no-fund --ignore-scripts <packages/cli>` runs in it,
-  then `node_modules/.bin` holds exactly one entry, `genoa`, and running `node_modules/.bin/genoa --version`
-  exits 0 and prints the version of `packages/cli/package.json`.
+- `packages/cli/src/main.test.js` (integration) › `CLI-20: an npm install of the packed package links genoa alone, and genoa runs the CLI with its declared dependencies`:
+  given the tarball `pnpm pack` makes of `packages/cli`, and an empty project whose `package.json`
+  overrides each dependency the packed manifest declares with `file:` the workspace's installed copy
+  of it, when `npm install --offline --no-save --no-audit --no-fund --ignore-scripts <tarball>` runs
+  in it, then `node_modules/.bin` holds exactly one entry, `genoa`; `genoa --version` exits 0 and
+  prints the version of `packages/cli/package.json`; and `genoa build` exits 1 with
+  `cli/core-not-installed: install @genoacms/core in <project>` (CLI-3), which loads
+  `@genoacms/config`.
+
+  *Amended after the falsification audit (LS5).* The test as first written installed the package
+  folder, which npm links without packing it or installing its dependencies, and ran only
+  `--version`. A dependency moved to `devDependencies`, or a `publishConfig.bin` that renames the
+  command, passed it; both fail this one. The `file:` overrides keep the install offline, and a
+  dependency the manifest does not declare is not installed at all.
 
 ## Steps
 
@@ -91,17 +103,16 @@ a Verification entry in `cli.md`.
 
 **Pros**
 - The command the documents name is the one installed; the fix is one manifest field.
-- The test goes through npm's own linking, the boundary the statement is about, rather than reading
-  `package.json`.
+- The test goes through `pnpm pack` and npm's own linking, the boundary the statement is about,
+  rather than reading `package.json`.
 
 **Cons & trade-offs**
-- The test needs `npm` on the path and installs a folder link; it is a few hundred milliseconds and
-  works offline, but it ties the CLI's tests to npm's linking rather than pnpm's. Both read `bin` the
-  same way.
+- The test needs `pnpm`, `npm` and `tar` on the path; it takes a few seconds and works offline.
+  It installs with npm, not pnpm; both read `bin` the same way.
+- Its dependencies are the workspace's copies, not the published ones: a dependency whose published
+  version lacks what the CLI imports passes it.
 - Anyone who scripted `npx cli` against 0.0.19 breaks. Nothing documented it.
 
 **Blindspots & missed edge cases**
-- A folder install links the package; it does not pack it. A `files` list that left out
-  `src/index.js` would pass this test and still publish no command. `files` is unset today, so the
-  whole package ships.
+- The packed package ships its `*.test.js` files, since `files` is unset (LS5).
 - Windows shims (`genoa.cmd`) are not exercised; CI runs on Linux.
