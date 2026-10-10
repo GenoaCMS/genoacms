@@ -18,6 +18,8 @@ export interface RunningServer {
 const CORE = fileURLToPath(new URL('..', import.meta.url))
 const SERVER_ENTRY = join(CORE, '.genoacms', 'build', 'index.js')
 const STARTUP_TIMEOUT_MS = 60_000
+// OF20
+const STOP_TIMEOUT_MS = 5_000
 
 function withoutVitest (environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return Object.fromEntries(Object.entries(environment).filter(([name]) => !name.startsWith('VITEST')))
@@ -91,7 +93,11 @@ export async function startServer (providers: Providers): Promise<RunningServer>
     stop: async () => {
       if (child.exitCode !== null) return
       await new Promise<void>(resolve => {
-        child.once('exit', () => { resolve() })
+        const kill = setTimeout(() => { child.kill('SIGKILL') }, STOP_TIMEOUT_MS)
+        child.once('exit', () => {
+          clearTimeout(kill)
+          resolve()
+        })
         child.kill('SIGTERM')
       })
     }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { randomBytes } from 'node:crypto'
-import { buildCore, startServer, type RunningServer, type User } from './server'
+import { startServer, type RunningServer, type User } from './server'
 import { signIn, openLoginPage, withExpiredAccessToken, accessClaims } from './client'
 import { enabled, removeInstance } from './bucket'
 
@@ -39,7 +39,6 @@ async function refreshed (cookie: string): Promise<Awaited<ReturnType<typeof ope
 describe.skipIf(!enabled).sequential('signing in and refreshing through the running server', { timeout: REQUEST_TIMEOUT_MS }, () => {
   beforeAll(async () => {
     await removeInstance()
-    buildCore()
   }, BUILD_TIMEOUT_MS)
 
   afterAll(async () => {

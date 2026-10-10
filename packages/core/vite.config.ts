@@ -12,7 +12,9 @@ if (process.env.VITEST !== undefined) {
 const BROWSER_TESTS = 'src/**/*.browser.test.ts'
 
 const endToEndTests: ViteUserConfig['test'] = {
-  include: ['e2e/**/*.test.ts']
+  include: ['e2e/**/*.test.ts'],
+  globalSetup: ['e2e/globalSetup.ts'],
+  fileParallelism: false
 }
 
 const unitTests: ViteUserConfig['test'] = {

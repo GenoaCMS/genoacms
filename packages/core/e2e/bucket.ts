@@ -9,3 +9,9 @@ export async function removeInstance (): Promise<void> {
   const storage = await runtime.create({ projectId }, { name: 'e2e', resources: [bucket] })
   await storage.deleteDirectory({ bucket, name: '.genoacms/' })
 }
+
+/** Stores a collection definition where core looks for dynamic collections. */
+export async function writeCollectionDefinition (definition: { name: string }): Promise<void> {
+  const storage = await runtime.create({ projectId }, { name: 'e2e', resources: [bucket] })
+  await storage.uploadObject({ bucket, name: `.genoacms/collections/${definition.name}` }, JSON.stringify(definition), {})
+}
