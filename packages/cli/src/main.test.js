@@ -333,7 +333,7 @@ describe('genoa', () => {
     }
   }, 30000)
 
-  test.fails('CLI-20: an npm install of the package links genoa, and genoa runs the CLI', () => {
+  test('CLI-20: an npm install of the package links genoa, and genoa runs the CLI', () => {
     const cwd = directory({ 'package.json': JSON.stringify({ name: 'project', private: true }) })
     const install = installWithNpm(cwd)
     assert.equal(install.status, 0, install.stderr)

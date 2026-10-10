@@ -13,7 +13,9 @@
   },
   "license": "ISC",
   "main": "src/index.js",
-  "bin": "src/index.js",
+  "bin": {
+    "genoa": "src/index.js"
+  },
   "type": "module",
   "scripts": {
     "test": "vitest run"
