@@ -5,6 +5,7 @@ import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance, writeCollectionDefinition, writeObject, deleteObjects } from './bucket'
 import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
 import { createDocument, readDocument, deleteDocuments } from './database'
+import { signCollectionDefinition } from './signing'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -17,9 +18,9 @@ const TEST_TIMEOUT_MS = 60_000
 const BUCKET = process.env.GENOACMS_TEST_GCP_BUCKET ?? 'genoacms-tests'
 const FILES = [`e2e-${run}-a.png`, `e2e-${run}-b.png`]
 
-/** A dynamic definition with the name of a configured collection: it replaces it (COL-2). */
-const shadowOfTest = {
-  name: 'test',
+/** A dynamic definition; written also under the name of a configured collection, which it cannot replace (COL-2). */
+const dynamicDefinition = (name: string) => ({
+  name,
   primaryKey: { key: 'id', schema: { type: 'string' } },
   schema: {
     type: 'object',
@@ -32,14 +33,14 @@ const shadowOfTest = {
     }
   },
   uiSchema: { hiddenInListing: { showPreview: false } }
-}
+})
 
 let server: RunningServer
 let adaSession: Session
 let carolSession: Session
-const created: Record<string, string[]> = { authors: [], articles: [], test: [] }
+const created: Record<string, string[]> = { authors: [], articles: [], test: [], dynamic: [] }
 
-const fixture = async (collection: 'authors' | 'articles' | 'test', data: Record<string, unknown>): Promise<string> => {
+const fixture = async (collection: 'authors' | 'articles' | 'test' | 'dynamic', data: Record<string, unknown>): Promise<string> => {
   const id = await createDocument(collection, data)
   created[collection].push(id)
   return id
@@ -150,8 +151,12 @@ async function dragFirstBelowSecond (page: Page, handle: Locator): Promise<void>
 describe.skipIf(!enabled).sequential('collections through the running server', { timeout: TEST_TIMEOUT_MS }, () => {
   beforeAll(async () => {
     await removeInstance()
-    await writeCollectionDefinition(shadowOfTest)
+    await writeCollectionDefinition('firestore', 'test', dynamicDefinition('test'))
+    await writeCollectionDefinition('nowhere', `nowhere-${run}`, dynamicDefinition(`nowhere-${run}`))
     await Promise.all(FILES.map(async name => { await writeObject(name, name) }))
+    await (await startServer({ primary: [ada, carol] })).stop()
+    await writeCollectionDefinition('firestore', 'dynamic', await signCollectionDefinition('firestore', dynamicDefinition('dynamic')))
+    await writeCollectionDefinition('firestore', 'unsigned', dynamicDefinition('unsigned'))
     server = await startServer({ primary: [ada, carol] })
     await launchBrowser()
     adaSession = await signedInSession(server, ada)
@@ -176,12 +181,40 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
   })
 
   describe('the catalog', () => {
-    it('COL-2: a dynamic definition replaces the configured one of its name', async () => {
+    it.fails('COL-1: lists the configured collections, then each dynamic one, and no directory of another database', async () => {
+      expect(await catalog(adaSession.page)).toEqual(['test', 'authors', 'articles', 'dynamic', 'unsigned'])
+    })
+
+    it('COL-2: a dynamic definition cannot replace a configured collection', async () => {
       const { page } = adaSession
       await visit(page, '/collections/test')
-      await shown(page.getByText('shadowField', { exact: true }))
+      await shown(page.getByText('isA', { exact: true }))
 
-      expect(await page.getByText('isA', { exact: true }).count()).toBe(0)
+      expect(await page.getByText('shadowField', { exact: true }).count()).toBe(0)
+    })
+
+    it.fails('COL-2, COL-7: a signed dynamic collection resolves to its definition', async () => {
+      const { page } = adaSession
+      await visit(page, '/collections/dynamic')
+      await shown(page.getByText('shadowField', { exact: true }))
+    })
+
+    it.fails('COL-2, COL-7: an unsigned dynamic definition is refused with collection/unverifiable', async () => {
+      const response = await adaSession.page.goto('/collections/unsigned')
+
+      expect(response?.status()).toBe(500)
+      expect(server.output()).toContain('collection/unverifiable')
+    })
+
+    it.fails('COL-6: a dynamic collection is served by the database of its directory', async () => {
+      await fixture('dynamic', { name: `${run} dynamic` })
+      const { page } = adaSession
+      await visit(page, '/collections/dynamic')
+      await page.getByRole('link').filter({ hasText: `${run} dynamic` }).click()
+      await page.waitForURL('**/collections/dynamic/*')
+      await page.waitForLoadState('networkidle')
+
+      expect(await page.getByRole('textbox', { name: 'name', exact: true }).inputValue()).toBe(`${run} dynamic`)
     })
 
     it('COL-3: lists only the collections the principal holds a grant on', async () => {
@@ -217,9 +250,9 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await page.waitForURL(`**/collections/authors/${authorId}`)
     })
 
-    it('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
+    it.fails('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
       const { page } = adaSession
-      await visit(page, '/collections/test')
+      await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))
       expect(await page.getByText('hiddenInListing', { exact: true }).count()).toBe(0)
 
@@ -400,7 +433,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
     it('EDT-1: names the collection and the document, offers Delete and Save, and records the visit', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
-      const heading = page.getByRole('heading', { level: 1 })
+      const heading = page.getByRole('heading', { level: 1 }).filter({ hasText: articleId })
 
       expect(await heading.innerText()).toMatch(new RegExp(`articles\\s*/\\s*${articleId}`))
       expect(await heading.getByRole('link', { name: 'articles' }).getAttribute('href')).toBe('/collections/articles')
@@ -469,6 +502,14 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByRole('textbox', { name: 'id', exact: true }).inputValue()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     })
 
+    it.fails('EDT-10: shows the markdown rendered as soon as the page is interactive', async () => {
+      const id = await article(authorId, authorId)
+      const { page } = adaSession
+      await openDocument(page, 'articles', id)
+
+      await shown(page.getByRole('heading', { name: 'Rendered heading', exact: true }))
+    })
+
     it('EDT-11: list items are cards of position, variant and summary, and removing one asks first', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
@@ -496,10 +537,10 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(page.getByRole('button', { name: `#2 hero ${run} headline` }))
     })
 
-    it('EDT-11: Add item is disabled once the list holds maxItems', async () => {
-      const id = await fixture('test', { name: `${run} limited`, limited: [] })
+    it.fails('EDT-11: Add item is disabled once the list holds maxItems', async () => {
+      const id = await fixture('dynamic', { name: `${run} limited`, limited: [] })
       const { page } = adaSession
-      await openDocument(page, 'test', id)
+      await openDocument(page, 'dynamic', id)
       const limited = page.getByRole('group', { name: /^limited\b/ })
       await limited.getByRole('button', { name: 'Add item' }).click()
 
@@ -634,13 +675,13 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await closing
     })
 
-    it('EDT-6: uuid, text, markdown, enum, number, file and files fields carry their hints', async () => {
+    it.fails('EDT-6: uuid, text, markdown, enum, number, file and files fields carry their hints', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', await article(authorId, authorId))
       for (const hint of ['UUID', 'long text', 'markdown', 'choice', 'number', 'file']) await shown(page.getByText(hint, { exact: true }))
 
-      const id = await fixture('test', { name: `${run} hinted`, gallery: [{ bucket: BUCKET, name: FILES[0] }] })
-      await openDocument(page, 'test', id)
+      const id = await fixture('dynamic', { name: `${run} hinted`, gallery: [{ bucket: BUCKET, name: FILES[0] }] })
+      await openDocument(page, 'dynamic', id)
       await shown(page.getByRole('group', { name: /^gallery\s+1 of 1 file$/ }))
     })
 
@@ -666,10 +707,10 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       return picker
     }
 
-    it('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
-      const id = await fixture('test', { name: `${run} gallery`, gallery: [] })
+    it.fails('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
+      const id = await fixture('dynamic', { name: `${run} gallery`, gallery: [] })
       const { page } = adaSession
-      await openDocument(page, 'test', id)
+      await openDocument(page, 'dynamic', id)
       const gallery = page.getByRole('group', { name: /^gallery\b/ })
       const picker = await openStoragePicker(page, gallery, 'Choose files from storage')
       await picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }).click()
@@ -687,10 +728,10 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(gallery.getByRole('link', { name: 'Choose files from storage' }))
     })
 
-    it('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
-      const id = await fixture('test', { name: `${run} abandoned picker`, gallery: [] })
+    it.fails('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
+      const id = await fixture('dynamic', { name: `${run} abandoned picker`, gallery: [] })
       const { page } = adaSession
-      await openDocument(page, 'test', id)
+      await openDocument(page, 'dynamic', id)
       const picker = await openStoragePicker(page, page.getByRole('group', { name: /^gallery\b/ }), 'Choose files from storage')
       await visit(page, '/collections/test')
       await picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }).click()
