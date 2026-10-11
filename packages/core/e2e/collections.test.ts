@@ -240,7 +240,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await fixture('articles', { title: longTitle, slug: `${run}-long`, isPublished: false, contributors: [], sections: [] })
     })
 
-    it.fails('LST-1: rows are one line high, cut short with their full text as title, under their field names', async () => {
+    it('LST-1: rows are one line high, cut short with their full text as title, under their field names', async () => {
       const { page } = adaSession
       await visit(page, '/collections/articles')
       const longRow = page.getByRole('link').filter({ hasText: `${run} long` })
@@ -258,7 +258,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(cellEdges).toEqual(labelEdges)
     })
 
-    it.fails('LST-8: an object shows its fields, never [object Object]', async () => {
+    it('LST-8: an object shows its fields, never [object Object]', async () => {
       const { page } = adaSession
       await visit(page, '/collections/articles')
       const row = page.getByRole('link').filter({ hasText: `${run} article` }).first()
@@ -268,7 +268,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByText('[object Object]').count()).toBe(0)
     })
 
-    it.fails('LST-7, LST-3: the filter narrows the rows, the count follows, Select all selects only the rows shown, and another collection opens unfiltered', async () => {
+    it('LST-7, LST-3: the filter narrows the rows, the count follows, Select all selects only the rows shown, and another collection opens unfiltered', async () => {
       const { page } = adaSession
       await visit(page, '/collections/authors')
       await shown(checkbox(page, authorId))
@@ -307,7 +307,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await page.waitForURL(`**/collections/authors/${authorId}`)
     })
 
-    it.fails('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
+    it('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))

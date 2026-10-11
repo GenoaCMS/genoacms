@@ -1,24 +1,19 @@
 <script lang="ts">
-  import type { CollectionReference } from '@genoacms/contracts/database'
-  import { extractDocumentProperties } from './utils'
   import { SELECTION_GUTTER } from '$lib/script/selection/gutter'
+  import { gridTemplate, isEndAligned, type Column } from './listing'
 
   interface Props {
-    collectionReference: CollectionReference
+    columns: Column[]
   }
-
-  const { collectionReference }: Props = $props()
-  const properties = $derived(extractDocumentProperties(collectionReference, { preview: true }))
+  const { columns }: Props = $props()
 </script>
 
-<div class="bg-surface-100-900/40 text-start flex border-b border-s border-surface-200-800 py-2 font-medium text-xs">
-    <!-- Matches the column each row keeps for its checkbox, so the labels sit over their values. -->
-    <div class="{SELECTION_GUTTER} shrink-0"></div>
-    {#each properties as property (property.name)}
-        <!-- The same padding a row's cell carries, for the same reason: only then does a label line
-             up with the values under it rather than with the column's edge. -->
-        <div class="flex-grow w-full px-4">
-            {property.name}
-        </div>
+<div class="flex bg-surface-100-900/40 border-b border-surface-200-800 font-medium text-xs">
+  <div class="{SELECTION_GUTTER} shrink-0"></div>
+  <!-- LST-1 -->
+  <div data-testid="listing-header" class="grid grow min-w-0" style:grid-template-columns={gridTemplate(columns)}>
+    {#each columns as column (column.name)}
+      <span class="truncate px-3 py-2 {isEndAligned(column) ? 'text-end' : ''}" title={column.name}>{column.name}</span>
     {/each}
+  </div>
 </div>
