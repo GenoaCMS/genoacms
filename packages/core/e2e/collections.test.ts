@@ -232,10 +232,67 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
   describe('the listing', () => {
     let authorId: string
     let articleId: string
+    const longTitle = `${run} long ${Array(200).fill('word').join(' ')}`
 
     beforeAll(async () => {
       authorId = await author('listed')
       articleId = await article(authorId, authorId)
+      await fixture('articles', { title: longTitle, slug: `${run}-long`, isPublished: false, contributors: [], sections: [] })
+    })
+
+    it.fails('LST-1: rows are one line high, cut short with their full text as title, under their field names', async () => {
+      const { page } = adaSession
+      await visit(page, '/collections/articles')
+      const longRow = page.getByRole('link').filter({ hasText: `${run} long` })
+      const shortRow = page.getByRole('link').filter({ hasText: `${run} article` }).first()
+      await shown(longRow)
+      const heightOf = async (row: Locator): Promise<number | undefined> => (await row.boundingBox())?.height
+
+      expect(await heightOf(longRow)).toBe(await heightOf(shortRow))
+      expect(await longRow.locator(`[title="${longTitle}"]`).count()).toBe(1)
+      const labels = page.getByTestId('listing-header').locator(':scope > *')
+      const cells = shortRow.locator(':scope > *')
+      expect((await labels.first().innerText()).trim()).toBe('title')
+      const labelEdges = await labels.evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().left)))
+      const cellEdges = await cells.evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().left)))
+      expect(cellEdges).toEqual(labelEdges)
+    })
+
+    it.fails('LST-8: an object shows its fields, never [object Object]', async () => {
+      const { page } = adaSession
+      await visit(page, '/collections/articles')
+      const row = page.getByRole('link').filter({ hasText: `${run} article` }).first()
+      await shown(row)
+
+      expect(await row.innerText()).toContain('readingTimeMinutes: 3')
+      expect(await page.getByText('[object Object]').count()).toBe(0)
+    })
+
+    it.fails('LST-7, LST-3: the filter narrows the rows, the count follows, Select all selects only the rows shown, and another collection opens unfiltered', async () => {
+      const { page } = adaSession
+      await visit(page, '/collections/authors')
+      await shown(checkbox(page, authorId))
+      await page.getByLabel('Filter documents').fill(`  ${run.toUpperCase()} LISTED `)
+
+      await shown(page.getByText(/^1 of \d+ documents$/))
+      expect(await page.locator('a[href^="authors/"]').count()).toBe(1)
+      await button(page, 'Select all').click()
+      await button(page, 'Delete').click()
+      await shown(page.getByText('Do you want to delete one document?', { exact: true }))
+      await button(page, 'No').click()
+      await button(page, 'Unselect all').click()
+      expect(await checkbox(page, authorId).getAttribute('aria-pressed')).toBe('false')
+
+      await page.evaluate(() => {
+        const link = document.createElement('a')
+        link.href = '/collections/articles'
+        link.textContent = 'to articles'
+        document.body.append(link)
+      })
+      await page.getByRole('link', { name: 'to articles', exact: true }).click()
+      await page.waitForURL('**/collections/articles')
+      await shown(page.getByText(/^\d+ documents$/))
+      expect(await page.getByLabel('Filter documents').inputValue()).toBe('')
     })
 
     it('LST-1: shows a header of field names and a row per document linking to it', async () => {
@@ -250,7 +307,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await page.waitForURL(`**/collections/authors/${authorId}`)
     })
 
-    it('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
+    it.fails('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))
@@ -259,7 +316,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await visit(page, '/collections/articles')
       const row = page.getByRole('link').filter({ hasText: `${run} article` })
       await shown(row)
-      expect(await row.innerText()).toContain('2 items')
+      expect(await row.locator('[title="2 items"]').innerText()).toBe('2')
       expect(articleId).not.toBe('')
     })
 
