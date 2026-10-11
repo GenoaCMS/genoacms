@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: 1168253
+verified: f52ec2c
 ---
 
 # Command-line interface
@@ -179,7 +179,12 @@ Warns what rotating the root trust anchor does and asks for confirmation, `No` b
 
 #### CLI-10 · database
 
-Loads the config, opens the default bucket's storage provider through a host, and offers a menu: delete a collection, which lists the objects under `.genoacms/collections` in that bucket and deletes the one chosen; continue, which shows the menu again; and exit. The host is closed when the command ends. Adding a collection is offered but does nothing (LF7).
+Loads the config, opens the default bucket's storage provider through a host, and offers a menu:
+delete a collection, which lists the objects in `.genoacms/databases/<database>/collections/` of
+that bucket for each database of the configuration, in key order, offers each as
+`<database>/<file name>`, and deletes the one chosen; continue, which shows the menu again; and
+exit. The host is closed when the command ends. Adding a collection is offered but does nothing
+(LF7).
 
 - Test: `packages/cli/src/database.test.js`
 - Level: unit

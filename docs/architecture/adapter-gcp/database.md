@@ -16,8 +16,8 @@ Part of the [GCP adapter architecture](README.md). Markers, IDs and test referen
 `@genoacms/adapter-gcp/database` serves GenoaCMS collections from Firestore in native mode. A
 project may hold several Firestore databases, and each provider names one.
 
-Collection definitions, static ones from the config and dynamic ones stored under
-`.genoacms/collections` in the default bucket, are core's concern. The adapter receives only a
+Collection definitions, static ones from the config and dynamic ones stored, signed, under
+`.genoacms/databases/<database>/collections/` in the default bucket, are core's concern. The adapter receives only a
 reference carrying a collection name.
 
 ### Decisions

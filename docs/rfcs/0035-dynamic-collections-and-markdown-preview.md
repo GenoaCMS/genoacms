@@ -2,8 +2,8 @@
 type: rfc
 number: 35
 title: Signed dynamic collections by database, and a markdown preview that renders on load
-status: draft
-commits: []
+status: implemented
+commits: [04cede9, f52ec2c]
 depends: []
 architecture: [architecture/collections.md, architecture/cli.md, architecture/host.md]
 changes: [COL-1 breaking, COL-2 breaking, COL-6 added, COL-7 added, CLI-10 breaking, EDT-10 compatible]

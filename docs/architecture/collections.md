@@ -3,7 +3,7 @@ type: architecture
 title: Collections
 prefix: O
 codes: [COL, DOC, LST, EDT, PCK]
-verified: 2fc5670
+verified: f52ec2c
 ---
 
 # Collections
@@ -20,10 +20,10 @@ the document page and its schema-driven editor, and the pickers through which a 
 references storage objects or other documents.
 
 ```
-genoa.config  ──collections──▶ host.collections ─┐
-default bucket .genoacms/collections/<name> ─────┴─▶ catalog (COL)
-                                                        │
-route  ──AuthContext──▶ document service (DOC) ──▶ host.databaseForCollection ──▶ adapter
+genoa.config  ──collections──▶ host.collections ────────────────────┐
+default bucket .genoacms/databases/<db>/collections/<name>, signed ─┴─▶ catalog (COL)
+                                                                    │
+route  ──AuthContext──▶ document service (DOC) ──▶ host.databaseForCollection / databaseNamed ──▶ adapter
                           read: project fields · write: merge fields · create: drop fields
                                                         │
 UI: /collections ─▶ /collections/<name> (LST) ─▶ /collections/<name>/<id> (EDT)
@@ -167,21 +167,21 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF6 | **`uiSchema` is read but not declared.** The listing hides columns marked `uiSchema[<field>].showPreview === false` (LST-1), but `CollectionReference` has no `uiSchema`, so the option is invisible to a config author's types and is a type error in core. | open |
 | OF7 | **A reference field keeps its target collection in the JSON Schema `description`** (COL-5). An author who documents the field with a description changes what it references. | open |
 | OF8 | **The listing reads the whole collection.** No query parameters reach the adapter (LST-1). The select-all control's comment says the listing is paginated; it is not. | open |
-| OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open; the replacement and the repeated name in RFC-0035 |
+| OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open; the replacement and the repeated name fixed, RFC-0035 |
 | OF10 | **A failed validation tells nobody which field failed.** schemasafe is created without `includeErrors`, so the result's `errors` is always `undefined` (DOC-5); the page shows only "Invalid document data" and logs nothing useful. Shown on 2026-10-10 by the unit tests. | open |
 | OF11 | **Clearing a number field stores `0` (EDT-7).** An empty input is read as `Number('')`. | open |
 | OF12 | **The collections page title is not a heading.** It is written as an `<hi>` element, so it has no heading role. | open |
 | OF13 | **The save shortcut ignores the write permission.** Ctrl+S or ⌘+S submits an update (EDT-2) on a page whose Save button is hidden from the principal; the service refuses it (DOC-1), and the page reports the refusal as a failed save. | open |
 | OF14 | **A choice cannot be unset.** Once an option of an enum field is chosen, choosing it again, clearing the text or typing something else keeps it (EDT-8), so an optional choice cannot be returned to no value. Shown on 2026-10-10 in Chromium. | open |
-| OF15 | **A collection that exists only as a dynamic definition cannot hold documents.** The host routes a collection to a database by the names its configuration declares, so every document operation on a dynamic-only collection fails with `database/not-found`, although its definition resolves (COL-2). Only a dynamic definition that shares the name of a configured collection works, by replacing its schema. Found by reading `config/src/host/routing.ts` on 2026-10-10. | open; RFC-0035 |
-| OF16 | **The markdown preview is empty until the field is edited (EDT-10).** The preview is rendered on the server without DOMPurify, which needs a browser, so the server sends an empty preview, and Svelte does not repair `{@html}` content when it hydrates. Shown on 2026-10-10 in the built core in Chromium. | open; RFC-0035 |
-| OF17 | **Dynamic collections are never listed with the GCP adapter (COL-1).** Core lists the directory `.genoacms/collections` without a trailing `/`; Cloud Storage, listing with the delimiter `/`, then answers with that directory as one prefix rather than the files in it. Shown on 2026-10-10 against a real bucket. | open; RFC-0035 |
+| OF15 | **A collection that exists only as a dynamic definition cannot hold documents.** The host routes a collection to a database by the names its configuration declares, so every document operation on a dynamic-only collection fails with `database/not-found`, although its definition resolves (COL-2). Only a dynamic definition that shares the name of a configured collection works, by replacing its schema. Found by reading `config/src/host/routing.ts` on 2026-10-10. | fixed, RFC-0035 |
+| OF16 | **The markdown preview is empty until the field is edited (EDT-10).** The preview is rendered on the server without DOMPurify, which needs a browser, so the server sends an empty preview, and Svelte does not repair `{@html}` content when it hydrates. Shown on 2026-10-10 in the built core in Chromium. | fixed, RFC-0035 |
+| OF17 | **Dynamic collections are never listed with the GCP adapter (COL-1).** Core lists the directory `.genoacms/collections` without a trailing `/`; Cloud Storage, listing with the delimiter `/`, then answers with that directory as one prefix rather than the files in it. Shown on 2026-10-10 against a real bucket. | fixed, RFC-0035 |
 | OF18 | **Icons are part of accessible names.** Bootstrap Icons draw their glyph with CSS `::before`, and Chromium includes it in the accessible name, so a list item's header is announced as a private-use character followed by `#1 …`, and a catalog card as one followed by its name. Shown on 2026-10-10 in Chromium. | open |
 | OF19 | **A tall list item can hardly be dragged past its neighbour (EDT-11).** svelte-dnd-action places the dragged item by its centre, and while dragging it renders the item's placeholder as a new card, which is open even when the item was collapsed. An open card taller than the window must be carried past the centre of the next one, beyond the window's edge. Shown on 2026-10-10 in the built core in Chromium: a hero section 627 px tall moved only when the window was 2400 px tall. | open |
 | OF20 | **Core does not exit on SIGTERM once it has used Firestore.** The Firestore client keeps the Node process alive after the server closes, so the end-to-end harness kills it after 5 s; a platform that sends SIGTERM before SIGKILL waits its whole grace period. Shown on 2026-10-10 by the end-to-end run. | open |
 | OF21 | **The `storageResource` format checks nothing a storage field holds (DOC-5).** schemasafe applies formats to strings only, so the format refuses every string and accepts any object, including one without `name`; the schemas of COL-5 do not use the format at all. Shown on 2026-10-10 with schemasafe. | open |
-| OF22 | **A dynamic definition can name another collection than its file (COL-1, COL-2).** The catalog and the route use the file name, but resolution returns the definition as stored, and every document operation, its permission check included, uses the `name` inside it. A file `foo` whose definition is named `articles` is listed as `foo` and reads and writes `articles`, configured or not, with the schema of `foo`, for a principal holding grants on both. Found by reading `database/database.server.ts` and `database/user.server.ts` on 2026-10-11. | open; RFC-0035 |
-| OF23 | **A missing directory is created with a double slash (COL-1).** `listOrCreateDirectory` hands `createDirectory` the name it listed, which ends in `/`, and the GCP and AWS adapters append `/.folderPlaceholder` to it, so `.genoacms/databases/<database>/collections//.folderPlaceholder` is written: a subdirectory with an empty name that the storage browser shows. The next listing then finds that subdirectory, so the directory counts as existing. Publications create their directories the same way. Shown on 2026-10-11 by the falsification audit of RFC-0035 with a mocked GCS bucket. | open; the collections directories in RFC-0035 |
+| OF22 | **A dynamic definition can name another collection than its file (COL-1, COL-2).** The catalog and the route use the file name, but resolution returns the definition as stored, and every document operation, its permission check included, uses the `name` inside it. A file `foo` whose definition is named `articles` is listed as `foo` and reads and writes `articles`, configured or not, with the schema of `foo`, for a principal holding grants on both. Found by reading `database/database.server.ts` and `database/user.server.ts` on 2026-10-11. | fixed, RFC-0035 |
+| OF23 | **A missing directory is created with a double slash (COL-1).** `listOrCreateDirectory` hands `createDirectory` the name it listed, which ends in `/`, and the GCP and AWS adapters append `/.folderPlaceholder` to it, so `.genoacms/databases/<database>/collections//.folderPlaceholder` is written: a subdirectory with an empty name that the storage browser shows. The next listing then finds that subdirectory, so the directory counts as existing. Publications create their directories the same way. Shown on 2026-10-11 by the falsification audit of RFC-0035 with a mocked GCS bucket. | open; the collections directories, no longer created, fixed, RFC-0035 |
 | OF24 | **Only the first page of a directory is listed (COL-1).** Neither the storage contract nor the GCP and AWS adapters page a listing, and Cloud Storage and S3 answer at most 1000 entries, so a database directory of more than 1000 definitions loses the rest from the catalog. `genoa database` lists the same way (CLI-10). Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
 | OF25 | **Some definition files are not listed as files, depending on the adapter (COL-1).** Every adapter hides an object whose name ends in `.folderPlaceholder`, so such a definition is never listed; the MinIO adapter lists an object named exactly `.../collections/`, the marker S3 tools create for a directory, as a file, which becomes a collection named `collections`. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
 | OF26 | **Key order puts integer-like keys first (COL-1, COL-6).** Database keys are taken in JavaScript property order, so with `databases: { main, '2024' }`, `2024` is listed first and wins a name both directories hold, against the order the configuration declares them in. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
@@ -200,13 +200,13 @@ a `<button>` handle does.
 
 ### Verification
 
-32 of the 34 statements name tests, each verified in full. COL-1 and EDT-10 do not: their tests
-could only fail until OF17 and OF16 are fixed.
+All 36 statements name tests, each verified in full.
 
 - **`unit`, in Node.** DOC-1 to DOC-4 are tested through the document service with only the adapter
   stubbed, DOC-5 through `createDoc` and `updateDoc` with the service stubbed and validation real,
   DOC-7 through the listing's action, COL-3 and COL-4 on the functions core reads definitions with,
-  COL-5 on `@genoacms/contracts/schemas`.
+  COL-5 on `@genoacms/contracts/schemas`. COL-1, COL-2, COL-6 and COL-7 are tested on the database
+  service with the storage, the key resolution and the host stubbed, and real ML-DSA-65 signatures.
 - **`unit`, in Chromium.** EDT-4, EDT-5, EDT-7 to EDT-9, EDT-12 and PCK-3 are tested on the mounted
   editor through Vitest browser mode, with real input events and, for PCK-3, a real
   `BroadcastChannel` on which the test plays the picker tab.
@@ -215,12 +215,22 @@ could only fail until OF17 and OF16 are fixed.
   Playwright. Fixtures are written to Firestore through the GCP adapter, not through the CMS, and
   removed afterwards, and two files are written to the root of the bucket for the files picker;
   failures are injected by answering the remote commands and form actions in the browser, never by
-  breaking the server; a dynamic definition replacing `test` is written to the bucket before the
-  server starts. It needs GCP: `GENOACMS_TEST_GCP=1`, Application Default Credentials (or
+  breaking the server. Dynamic definitions are written to the bucket around a first start of the
+  server, which creates the instance's keys: under a configured name and under a database the
+  configuration lacks before it, then one signed with the instance's current subordinate key, read
+  from the build's secrets file, and one unsigned; the server is then started again. It needs GCP: `GENOACMS_TEST_GCP=1`, Application Default Credentials (or
   `GOOGLE_APPLICATION_CREDENTIALS`), `GENOACMS_TEST_GCP_PROJECT` and `GENOACMS_TEST_GCP_BUCKET`,
   defaulting to `genoacms` and `genoacms-tests`; run it with
   `pnpm --filter @genoacms/core exec vitest run --mode e2e e2e`. It was first run on 2026-10-10,
   locally, against `genoacms-tests`.
+
+Falsification audits, by an agent that did not write the code, of COL-1, COL-2, COL-6, COL-7,
+CLI-10 and EDT-10 for RFC-0035, on 2026-10-11, twice: before signing, a definition that was not a
+JSON object resolved and a missing directory was created with a double slash; after signing, a
+payload with other fields verified. Each was fixed before the code was committed. Envelopes of
+another type, tampered, re-typed or re-keyed envelopes, and definitions replayed under another name
+or database were all refused, and no route reaches the document service for an unverifiable
+definition. What remains is recorded as OF23 to OF29, and `cli.md` LF17 and LF18.
 
 Self-checks, by the agent that wrote the tests, not falsification audits: on 2026-10-10, mutants of
 the service that skip the projection, the merge or the dropping of fields (DOC-2 to DOC-4), and
@@ -247,21 +257,29 @@ step-wise mouse events, the item summary, the save state, and a phone-width layo
 #### COL-1 · Where collections come from
 
 The catalog is the configured collections, in configuration order across every database
-(`host.collections`), followed by one collection per file in the directory `.genoacms/collections`
-of the default bucket, named by the file name. The directory is listed once, when the server process
-starts, and created when missing. Nothing is listed or created while SvelteKit analyses the build.
+(`host.collections`), followed by the dynamic collections: one per file in the directory
+`.genoacms/databases/<database>/collections/` of the default bucket, for each database of the
+configuration in key order, named by the file name, in the order the storage lists them, whether
+or not its definition verifies. A name the configuration declares, or that an earlier directory
+already gave, is left out. No other directory is listed, and none is created. The directories are
+listed once, when the server process starts, all at once. Nothing is listed while SvelteKit
+analyses the build.
 
-- Test: unverified
-- Level: e2e
+- Test: `packages/core/src/lib/script/database/database.server.test.ts`, `packages/core/e2e/collections.test.ts`
+- Level: unit, e2e
 
 #### COL-2 · Resolving a definition
 
-A collection name resolves to the JSON object stored at `.genoacms/collections/<name>` in the default
-bucket. When that object cannot be read, it resolves to the first configured collection of that name.
-When there is none, resolution fails with the error `collection/not-found`.
+A configured collection's name resolves to the first configured definition of that name, and the
+bucket is not read. A dynamic collection's name resolves to the definition in the file it was
+listed from, read and verified each time it is resolved (COL-7). When that file cannot be read or
+does not parse, or the name is neither configured nor dynamic, resolution fails with the error
+`collection/not-found`. When the file parses but is not a verified definition of that database
+and name, resolution fails with an error whose message starts with `collection/unverifiable`.
+When the key registry cannot be read, its error propagates.
 
-- Test: `packages/core/e2e/collections.test.ts`
-- Level: e2e
+- Test: `packages/core/src/lib/script/database/database.server.test.ts`, `packages/core/e2e/collections.test.ts`
+- Level: unit, e2e
 
 #### COL-3 · The catalog a principal sees
 
@@ -323,9 +341,8 @@ order, that declares it. A dynamic collection is read and written through the pr
 database whose directory it was listed from. Any other name fails the operation with the host
 error `database/not-found`, and no adapter is called.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/database/database.server.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0035)
 
 #### COL-7 · A signed dynamic definition
 
@@ -352,9 +369,8 @@ as core last read it, lists and has not revoked (OF27, OF28); the payload has ex
 and `payload.definition` is a JSON object whose `name` is the file name. Nothing else in the
 definition is checked when it is read: whoever signs it checks it against COL-4.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/database/database.server.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0035)
 
 ### Document service
 
@@ -618,10 +634,10 @@ not declare keep their stored values. Every change is reported as the whole docu
 
 #### EDT-10 · Markdown
 
-A markdown field edits its source in a code editor and shows it rendered beside it, or below it when
-the editor is narrower than 42rem.
+A markdown field edits its source in a code editor and shows it rendered beside it, or below it
+when the editor is narrower than 42rem, as soon as the page is interactive.
 
-- Test: unverified
+- Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
 
 #### EDT-11 · Lists
