@@ -40,7 +40,7 @@ const createDocument = async (page: Page, name: string): Promise<void> => {
 
   // The primary key is not an editable field, so the only value the test sets is `name`.
   const dialog = page.getByRole('dialog', { name: 'New document' })
-  await dialog.getByLabel('name:', { exact: true }).fill(name)
+  await dialog.getByLabel('name', { exact: true }).fill(name)
   await dialog.getByRole('button', { name: 'Create', exact: true }).click()
 
   await expect(page).toHaveURL(new RegExp(`/collections/${COLLECTION}/[^/]+$`), { timeout: SLOW })

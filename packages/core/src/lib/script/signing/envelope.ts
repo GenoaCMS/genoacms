@@ -21,7 +21,8 @@ const DOCUMENT_TYPES = [
   'genoacms.securityPolicy.v1',
   'genoacms.session.v1',
   'genoacms.componentPublication.v1',
-  'genoacms.pageTree.v1'
+  'genoacms.pageTree.v1',
+  'genoacms.collectionDefinition.v1'
 ] as const
 
 type DocumentType = typeof DOCUMENT_TYPES[number]

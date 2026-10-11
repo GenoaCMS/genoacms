@@ -27,6 +27,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements, all naming a test, 2 of them partly verified (STO-8, and COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
+| [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
 ## Coverage
@@ -48,7 +49,8 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
-| Core: storage browser, collections, database UI | `core` (`storage/`, `database/`, routes) | none | none |
+| Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
+| Core: storage browser | `core` (`storage/`, routes) | none | none |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
 
@@ -58,9 +60,9 @@ What the Specifications cover, measured against the reproducibility principle
 
 | Level | Meaning here | Runs in CI |
 | :-- | :-- | :-- |
-| `unit` | a package's vitest tests in `src/`, through its public interface, with external SDKs mocked | always |
+| `unit` | a package's vitest tests in `src/`, through its public interface, with external SDKs mocked. Core's component tests, `*.browser.test.ts`, mount components in Chromium through Vitest browser mode | always; CI installs Chromium first |
 | `integration` | tests with real collaborators: the file system, a local database or object store, the CLI run as a process (`packages/cli/src/main.test.js`) | always |
-| `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI, in the package's `e2e/` directory. Today the SvelteKit adapter's build served by the Functions Framework, and core's sign-in and session refresh (`packages/core/e2e/`): core built with `genoa.config/e2e.ts` and served by `@genoacms/adapter-node`, with its instance under `.genoacms/` in `GCP_CORE_E2E_BUCKET`, a bucket of its own, removed before and after each run | always. Core's tests need GCP: CI authenticates on pushes and on pull requests from this repository, not on a fork's, whose core tests are skipped and fail the results check |
+| `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI, in the package's `e2e/` directory. Today the SvelteKit adapter's build served by the Functions Framework, core's sign-in and session refresh, and its collection screens driven in Chromium through Playwright (`packages/core/e2e/`): core built with `genoa.config/e2e.ts` and served by `@genoacms/adapter-node`, with its instance under `.genoacms/` in `GCP_CORE_E2E_BUCKET`, a bucket of its own, removed before and after each run | always. Core's tests need GCP: CI authenticates on pushes and on pull requests from this repository, not on a fork's, whose core tests are skipped and fail the results check |
 | `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_LAMBDA_ROLE`; without them the tests are skipped. Deferred on pull requests. |
 | `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always, except MinIO |
 

@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
+  import { resolve } from '$app/paths'
   import { ITC } from '$lib/script/utils'
-  import EditSelection from './EditSelection.svelte'
+  import PickerButton from '$lib/components/editors/PickerButton.svelte'
   import DocumentReference from './DocumentReference.svelte'
 
   type T = string | number | boolean
@@ -16,13 +17,10 @@
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
   const collectionId = getReferenceCollectionId(schema)
+  const pickerHref = `${resolve(`/collections/${collectionId}`)}?selectionId=${selectionId}`
 
   function deleteReference (reference: T) {
     references = references.filter((item) => item !== reference)
-    updateValue()
-  }
-  function clearReferences () {
-    references = []
     updateValue()
   }
   function getReferenceCollectionId (schema: SchemaObject) {
@@ -55,18 +53,13 @@
   })
 </script>
 
-<div class="flex flex-col">
+<div class="flex flex-col gap-2">
   {#each references as reference, index (index)}
-    <DocumentReference {reference} {deleteReference} />
-  {:else}
-    <div class="text-center text-xl w-auto m-auto pb-3 pt-2">
-      No documents selected yet
-    </div>
+    <DocumentReference {reference} {collectionId} {deleteReference} />
   {/each}
-  <EditSelection
-    {selectionId}
-    {collectionId}
-    hideDeleteButton
-    clear={clearReferences}
+  <PickerButton
+    href={pickerHref}
+    label={references.length === 0 ? `Choose from ${collectionId}` : 'Edit selection'}
+    icon="bi-collection"
   />
 </div>

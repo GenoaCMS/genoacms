@@ -1,25 +1,17 @@
 <script lang="ts">
-  import type { ObjectValue } from '$lib/components/editors/types'
+  import type { InputValue, ObjectValue } from '$lib/components/editors/types'
   import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
-  import {
-    Button,
-    Card,
-    Dropdown,
-    Label,
-  } from '$lib/components/ui/index'
-  import Input from './Input.svelte'
+  import Fields from './Fields.svelte'
   import { extractProperties } from '../utils'
-  import { dragHandle } from 'svelte-dnd-action'
 
   interface Props {
     schema: SchemaObject
     value: ObjectValue
     onvalue: (e: ObjectValue) => void
-    ondelete: () => void
   }
 
-  let { schema, value = {}, onvalue, ondelete }: Props = $props()
+  let { schema, value = {}, onvalue }: Props = $props()
   const discriminator = $derived(schema.discriminator?.propertyName || null)
   // a discriminated schema lists its alternatives under oneOf
   const variants = $derived(
@@ -32,6 +24,12 @@
     discriminator ? variants[selectedSchema] ?? schema : schema
   )
   const properties = $derived(extractProperties(objectSchema))
+  const fields = $derived(
+    properties.flatMap((property) => {
+      const propertySchema = asSchemaObject(objectSchema.properties?.[property.name])
+      return propertySchema ? [{ name: property.name, schema: propertySchema }] : []
+    })
+  )
 
   function variantName (variant: SchemaObject, index: number): string {
     if (!discriminator) return String(index)
@@ -94,59 +92,33 @@
     return v
   }
 
-  function updateValue (name: string, newVal: ObjectValue) {
+  function updateValue (name: string, newVal: InputValue) {
     value[name] = newVal
     onvalue(value)
   }
 </script>
 
-<Card class="w-full p-4 sm:p-6" size="xl">
-  <div class="w-full flex">
-    <div class="flex">
-      <button aria-label="Dragger" type="button" use:dragHandle>
-        <i class="bi bi-arrow-down-up text-2xl m-auto"></i>
-      </button>
+<div class="flex flex-col gap-4">
+  {#if discriminator}
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-sm text-surface-500">Variant</span>
+      <SegmentedControl
+        value={selectedSegment}
+        onValueChange={(e) => handleSegmentChange(e.value)}
+      >
+        <SegmentedControl.Control>
+          <SegmentedControl.Indicator />
+          {#each variants as variant, index}
+            {@const itemValue = variantName(variant, index)}
+            <SegmentedControl.Item value={itemValue}>
+              <SegmentedControl.ItemText>{itemValue}</SegmentedControl.ItemText>
+              <SegmentedControl.ItemHiddenInput />
+            </SegmentedControl.Item>
+          {/each}
+        </SegmentedControl.Control>
+      </SegmentedControl>
     </div>
-    <div class="m-auto">
-      {#if discriminator}
-        <SegmentedControl
-          value={selectedSegment}
-          onValueChange={(e) => handleSegmentChange(e.value)}
-        >
-          <SegmentedControl.Control>
-            <SegmentedControl.Indicator />
-            {#each variants as variant, index}
-              {@const itemValue = variantName(variant, index)}
-              <SegmentedControl.Item value={itemValue}>
-                <SegmentedControl.ItemText>{itemValue}</SegmentedControl.ItemText>
-                <SegmentedControl.ItemHiddenInput />
-              </SegmentedControl.Item>
-            {/each}
-          </SegmentedControl.Control>
-        </SegmentedControl>
-      {/if}
-    </div>
-    <div class="flex">
-      <Dropdown>
-        <Button preset="filled" class="!bg-error-500 flex" onclick={ondelete}>
-          <span>Delete</span>
-          <i class="bi bi-trash ms-2"></i>
-        </Button>
-      </Dropdown>
-    </div>
-  </div>
+  {/if}
 
-  {#each properties as property (property.name)}
-    {@const schema = asSchemaObject(objectSchema.properties?.[property.name])}
-    {#if schema}
-      <Label>
-        {property.name}:
-        <Input
-          {schema}
-          value={value[property.name]}
-          onvalue={(v) => updateValue(property.name, v)}
-        />
-      </Label>
-    {/if}
-  {/each}
-</Card>
+  <Fields {fields} {value} onfieldvalue={updateValue} />
+</div>

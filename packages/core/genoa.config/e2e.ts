@@ -39,8 +39,11 @@ export default defineConfig({
   languages,
   deployment: { targets: { local: deploymentTarget('@genoacms/adapter-node', {}) } },
   authorization: {
-    roles: { Administrator: [{ permission: '*', resource: '*' }] },
-    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'] }
+    roles: {
+      Administrator: [{ permission: '*', resource: '*' }],
+      TestReader: [{ permission: 'db:collection:read', resource: { scope: 'collection', id: 'test' } }]
+    },
+    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'], 'e2e-carol': ['TestReader'] }
   },
   security
 })

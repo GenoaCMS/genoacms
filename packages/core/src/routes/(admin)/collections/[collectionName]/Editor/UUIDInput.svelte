@@ -2,8 +2,9 @@
   interface Props {
     value: string
     onvalue: (e: string) => void
+    id?: string
   }
-  let { value, onvalue }: Props = $props()
+  let { value, onvalue, id }: Props = $props()
 
   function generateUUID () {
     value = crypto.randomUUID()
@@ -11,22 +12,21 @@
   }
 </script>
 
-<div class="field-group grid-cols-[auto_1fr] w-full">
-  <label class="label label-text preset-tonal cursor-pointer">
-    <button
-      type="button"
-      onclick={generateUUID}
-      title="Generate UUID"
-      aria-label="Generate UUID"
-      class="flex items-center justify-center cursor-pointer hover:opacity-80"
-    >
-      <i class="bi bi-dice-5-fill text-lg"></i>
-    </button>
-  </label>
+<div class="field-group grid-cols-[1fr_auto]">
   <input
+    {id}
     type="text"
-    class="input"
+    class="input font-mono text-sm"
     {value}
     oninput={(e) => onvalue((e.target as HTMLInputElement).value)}
   />
+  <button
+    type="button"
+    onclick={generateUUID}
+    title="Generate a new UUID"
+    aria-label="Generate UUID"
+    class="btn preset-tonal"
+  >
+    <i class="bi bi-dice-5"></i>
+  </button>
 </div>

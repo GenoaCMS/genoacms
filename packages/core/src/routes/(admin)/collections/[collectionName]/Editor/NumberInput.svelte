@@ -8,8 +8,9 @@
     schema: Schema
     value: NumberValue
     onvalue: (e: NumberValue) => void
+    id?: string
   }
-  const { value, onvalue }: Props = $props()
+  const { value, onvalue, id }: Props = $props()
 
   const oninput = (event: Event) => {
     const element = event.currentTarget as HTMLInputElement
@@ -20,4 +21,4 @@
   })
 </script>
 
-<Input type="number" {value} {oninput} />
+<Input {id} type="number" step="any" {value} {oninput} />

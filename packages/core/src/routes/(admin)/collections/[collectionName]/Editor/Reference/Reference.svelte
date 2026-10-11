@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { SchemaObject } from '$lib/script/schema'
   import { onDestroy } from 'svelte'
+  import { resolve } from '$app/paths'
   import { ITC } from '$lib/script/utils'
-  import EditSelection from './EditSelection.svelte'
+  import PickerButton from '$lib/components/editors/PickerButton.svelte'
   import DocumentReference from './DocumentReference.svelte'
 
   type T = string | number | boolean
@@ -16,6 +17,7 @@
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
   const collectionId = getReferenceCollectionId(schema)
+  const pickerHref = `${resolve(`/collections/${collectionId}`)}?selectionId=${selectionId}`
 
   function deleteReference () {
     reference = null
@@ -51,10 +53,10 @@
   })
 </script>
 
-<div class="flex flex-col">
+<div class="flex flex-col gap-2">
   {#if reference}
-    <DocumentReference {reference} {deleteReference} />
+    <DocumentReference {reference} {collectionId} {deleteReference} />
   {:else}
-    <EditSelection {selectionId} {collectionId} hideDeleteButton />
+    <PickerButton href={pickerHref} label="Choose from {collectionId}" icon="bi-collection" />
   {/if}
 </div>

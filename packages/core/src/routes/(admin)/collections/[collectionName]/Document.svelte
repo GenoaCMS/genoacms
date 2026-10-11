@@ -1,28 +1,24 @@
 <script lang="ts">
   import type { CollectionReference, DocumentReference } from '@genoacms/contracts/database'
-  import { extractDocumentProperties } from './utils'
   import Selectable from './Selectable.svelte'
+  import Cell from './Cell.svelte'
+  import { gridTemplate, isEndAligned, type Cell as CellValue, type Column } from './listing'
 
   interface Props {
     reference: DocumentReference<CollectionReference>
-    data
+    columns: Column[]
+    cells: CellValue[]
   }
-  const { reference, data }: Props = $props()
-  const properties = $derived(extractDocumentProperties(reference.collection, { preview: true }))
+  const { reference, columns, cells }: Props = $props()
 </script>
 
 <Selectable id={reference.id}>
-  <a href="{reference.collection.name}/{reference.id}">
-    <div class="flex">
-      {#each properties as property (property.name)}
-        <div class="flex-grow w-full text-start py-2 border-b border-surface-200-800 px-4 text-sm">
-          {#if property.type === 'array'}
-            {(data[property.name] || []).length} items
-          {:else}
-            {data[property.name] ?? ''}
-          {/if}
-        </div>
-      {/each}
-    </div>
+  <!-- LST-1 -->
+  <a href="{reference.collection.name}/{reference.id}"
+    class="grid items-center border-b border-surface-200-800 text-sm hover:bg-surface-100-900/60"
+    style:grid-template-columns={gridTemplate(columns)}>
+    {#each columns as column, index (column.name)}
+      <Cell cell={cells[index]} isLead={column.isLead} isEndAligned={isEndAligned(column)} />
+    {/each}
   </a>
 </Selectable>

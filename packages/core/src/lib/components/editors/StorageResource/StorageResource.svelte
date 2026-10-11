@@ -2,9 +2,10 @@
   import type { ResourceValue, Errors } from '../types'
   import type { ObjectReference } from '@genoacms/contracts/storage'
   import { onDestroy } from 'svelte'
+  import { resolve } from '$app/paths'
   import { ITC } from '$lib/script/utils'
   import StorageObject from './StorageObject.svelte'
-  import EditSelection from './EditSelection.svelte'
+  import PickerButton from '../PickerButton.svelte'
   import { Helper } from '$lib/components/ui/index'
 
   type Props = {
@@ -15,6 +16,7 @@
   const { value, errors, onvalue }: Props = $props()
   let resource: ResourceValue = $state(value || null)
   const selectionId = crypto.randomUUID()
+  const pickerHref = `${resolve('/storage')}?selectionId=${selectionId}`
   const itc = new ITC(selectionId)
 
   function deleteResource () {
@@ -46,15 +48,13 @@
   })
 </script>
 
-<div class="flex flex-col">
+<div class="flex flex-col gap-2">
   {#if resource}
     <StorageObject {resource} {deleteResource}/>
   {:else}
-    <EditSelection {selectionId} hideDeleteButton/>
+    <PickerButton href={pickerHref} label="Choose a file from storage" icon="bi-folder2-open" />
   {/if}
   {#if errors}
-    <Helper color="red">
-      Invalid
-    </Helper>
+    <Helper class="text-error-500">Invalid</Helper>
   {/if}
 </div>

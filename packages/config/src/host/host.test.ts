@@ -181,6 +181,16 @@ describe('routing and reads', () => {
     await expect(host.databaseForCollection('nowhere')).rejects.toMatchObject({ code: 'database/not-found' })
   })
 
+  it('16: databaseNamed constructs the provider of the named database, and refuses a name the config lacks', async () => {
+    const { load, creates } = runtimes()
+    const host = createHost({ manifest: manifest(), load })
+    const adapter = await host.databaseNamed('archive')
+    expect((adapter as any).ctx.name).toBe('db')
+    expect(adapter).toBe(await host.database('db'))
+    await expect(host.databaseNamed('nowhere')).rejects.toMatchObject({ code: 'database/not-found' })
+    expect(creates.map(c => c.specifier)).toEqual(['mem/database/runtime'])
+  })
+
   it('11: explains an unconfigured language as core always has, and refuses a mismatch', async () => {
     const { load, modules } = runtimes()
     const host = createHost({ manifest: manifest(), load })

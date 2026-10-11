@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { confirm, fixtureName, signIn } from './support/session'
-import { SLOW, reported, openCollection, row, createDocument } from './support/collections'
+import { COLLECTION, SLOW, reported, openCollection, row, createDocument } from './support/collections'
 
 /**
  * The database screens: listing a collection, and the document round trip.
@@ -42,7 +42,7 @@ test.describe('a document', () => {
 
   test('is created from the collection screen', async ({ page }) => {
     await createDocument(page, name)
-    await expect(page.getByRole('heading', { name: /Update/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: new RegExp(`^${COLLECTION}`) })).toBeVisible()
   })
 
   test('shows its values when reopened', async ({ page }) => {
@@ -51,19 +51,19 @@ test.describe('a document', () => {
     // Reloaded rather than trusted: the editor is seeded from the loaded document, and the point is
     // that the value was really stored.
     await page.reload()
-    await expect(page.getByLabel('name:', { exact: true })).toHaveValue(name)
+    await expect(page.getByLabel('name', { exact: true })).toHaveValue(name)
   })
 
   test('keeps an edited value after saving', async ({ page }) => {
     await createDocument(page, name)
 
     const edited = `${name}-edited`
-    await page.getByLabel('name:', { exact: true }).fill(edited)
-    await page.getByRole('button', { name: 'Update' }).click()
+    await page.getByLabel('name', { exact: true }).fill(edited)
+    await page.getByRole('button', { name: 'Save' }).click()
     await reported(page, 'Document updated')
 
     await page.reload()
-    await expect(page.getByLabel('name:', { exact: true })).toHaveValue(edited)
+    await expect(page.getByLabel('name', { exact: true })).toHaveValue(edited)
 
     name = edited
   })
@@ -73,7 +73,7 @@ test.describe('a document', () => {
 
     const flag = page.getByRole('checkbox').first()
     await flag.check()
-    await page.getByRole('button', { name: 'Update' }).click()
+    await page.getByRole('button', { name: 'Save' }).click()
     await reported(page, 'Document updated')
 
     await page.reload()

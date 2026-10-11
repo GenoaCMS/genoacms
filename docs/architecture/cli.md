@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: 1168253
+verified: f52ec2c
 ---
 
 # Command-line interface
@@ -90,6 +90,8 @@ carry no hint.
 | LF14 | *History.* **`init` refuses an existing config only after initializing the project and installing every package** (CLI-12, LS3). It runs `<package manager> init -y` and the installs first, and looks for an existing config only when it writes it, so "before writing anything" holds only for `genoa.config/` and `.gitignore`. The test calls the check directly, so it cannot see the order. || fixed, RFC-0033 |
 | LF15 | *History.* **`roles` prints invalid JavaScript for a role name that is not an identifier** (CLI-11, LS3). The name is printed bare, so `Content editor` prints `Content editor: [...]`. Keys inside the grants are quoted; the role name is not. || fixed, RFC-0033 |
 | LF16 | *History.* **The installed command is `cli`, not `genoa`** (CLI-20). `package.json` gives `bin` as a bare path, which npm and pnpm link under the unscoped package name, so after `npm install -D @genoacms/cli` the project has `node_modules/.bin/cli` and `npx genoa` fails with `could not determine executable to run`. The getting-started guide and this document name the command `genoa`. Found by a smoke install of packed tarballs (author, 2026-10-09). || fixed, RFC-0034 |
+| LF17 | **`database` does not close the host when the storage cannot be opened** (CLI-10). The host is created and `storageForBucket` awaited before the `try` whose `finally` closes it, so a rejection leaves the host open. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
+| LF18 | **Cancelling a `database` menu is not handled** (CLI-10). Cancelling the mode menu shows it again, like continue; cancelling the collection menu passes clack's cancel symbol to `deleteObject` as a name. After a deletion the command ends instead of showing the menu again, which CLI-10 does not say. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
 
 ### History
 
@@ -177,7 +179,12 @@ Warns what rotating the root trust anchor does and asks for confirmation, `No` b
 
 #### CLI-10 · database
 
-Loads the config, opens the default bucket's storage provider through a host, and offers a menu: delete a collection, which lists the objects under `.genoacms/collections` in that bucket and deletes the one chosen; continue, which shows the menu again; and exit. The host is closed when the command ends. Adding a collection is offered but does nothing (LF7).
+Loads the config, opens the default bucket's storage provider through a host, and offers a menu:
+delete a collection, which lists the objects in `.genoacms/databases/<database>/collections/` of
+that bucket for each database of the configuration, in key order, offers each as
+`<database>/<file name>`, and deletes the one chosen; continue, which shows the menu again; and
+exit. The host is closed when the command ends. Adding a collection is offered but does nothing
+(LF7).
 
 - Test: `packages/cli/src/database.test.js`
 - Level: unit

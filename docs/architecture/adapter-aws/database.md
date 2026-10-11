@@ -14,8 +14,8 @@ Part of the [AWS adapter architecture](README.md). Markers, IDs and test referen
 ### Role
 
 `@genoacms/adapter-aws/database` serves GenoaCMS collections from DynamoDB. Collection definitions,
-static ones from the config and ones the operator stores under `.genoacms/collections` in the default
-bucket, are core's concern. The adapter receives a reference carrying the collection's name and its
+static ones from the config and signed ones stored under
+`.genoacms/databases/<database>/collections/` in the default bucket, are core's concern. The adapter receives a reference carrying the collection's name and its
 primary key.
 
 ### Decisions

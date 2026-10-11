@@ -46,6 +46,7 @@ interface Host {
 
   storageForBucket (bucket: string): Promise<StorageAdapter>
   databaseForCollection (collection: string): Promise<DatabaseAdapter>
+  databaseNamed (database: string): Promise<DatabaseAdapter>        // the provider of a key of database.databases; database/not-found otherwise
   readonly authenticationProviderKeys: readonly string[]          // in key order; constructed one at a time with authentication(key) (AUTHN-5)
 
   readonly authorization: AuthorizationConfig
