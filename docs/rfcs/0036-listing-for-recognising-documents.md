@@ -2,8 +2,8 @@
 type: rfc
 number: 36
 title: A collection listing for recognising documents
-status: draft
-commits: []
+status: implemented
+commits: [16439a8, 3d48988]
 depends: [35]
 architecture: [architecture/collections.md]
 changes: [LST-1 compatible, LST-3 compatible, LST-7 added, LST-8 added]

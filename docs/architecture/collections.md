@@ -3,7 +3,7 @@ type: architecture
 title: Collections
 prefix: O
 codes: [COL, DOC, LST, EDT, PCK]
-verified: f52ec2c
+verified: 3d48988
 ---
 
 # Collections
@@ -213,13 +213,14 @@ a `<button>` handle does.
 
 ### Verification
 
-All 36 statements name tests, each verified in full.
+All 38 statements name tests, each verified in full.
 
 - **`unit`, in Node.** DOC-1 to DOC-4 are tested through the document service with only the adapter
   stubbed, DOC-5 through `createDoc` and `updateDoc` with the service stubbed and validation real,
   DOC-7 through the listing's action, COL-3 and COL-4 on the functions core reads definitions with,
   COL-5 on `@genoacms/contracts/schemas`. COL-1, COL-2, COL-6 and COL-7 are tested on the database
   service with the storage, the key resolution and the host stubbed, and real ML-DSA-65 signatures.
+  LST-1, LST-7 and LST-8 on the listing's pure functions: columns, cells, filtering and the count.
 - **`unit`, in Chromium.** EDT-4, EDT-5, EDT-7 to EDT-9, EDT-12 and PCK-3 are tested on the mounted
   editor through Vitest browser mode, with real input events and, for PCK-3, a real
   `BroadcastChannel` on which the test plays the picker tab.
@@ -236,6 +237,14 @@ All 36 statements name tests, each verified in full.
   defaulting to `genoacms` and `genoacms-tests`; run it with
   `pnpm --filter @genoacms/core exec vitest run --mode e2e e2e`. It was first run on 2026-10-10,
   locally, against `genoacms-tests`.
+
+A falsification audit, by an agent that did not write the code, of LST-1, LST-3, LST-7 and LST-8 for
+RFC-0036, on 2026-10-11: markdown cells showed HTML entities, dropped tables and merged words across
+list items and line breaks, and the filter folded case only as far as `toLowerCase`; suspected, the
+filter outliving its collection, rows without columns, an unlabelled check mark and unbounded narrow
+columns. Each was fixed before the code was committed. That a selection outlives the filter, and
+that `true` or `item` match every row with a boolean or a count, conform and are named in the RFC's
+critique.
 
 Falsification audits, by an agent that did not write the code, of COL-1, COL-2, COL-6, COL-7,
 CLI-10 and EDT-10 for RFC-0035, on 2026-10-11, twice: before signing, a definition that was not a
@@ -473,13 +482,19 @@ not redirect.
 
 #### LST-1 · The listing
 
-`/collections/<name>` shows the heading `Collection: <name>`, a header row of field names and one row
-per document of the collection, read without query parameters. A field whose
-`uiSchema[<field>].showPreview` is `false` has no column. A cell shows `<n> items` for an array field
-and the value otherwise, or nothing when absent. Each row links to `/collections/<name>/<id>`.
+`/collections/<name>` shows the heading `Collection: <name>`, the count `<n> documents` (`1
+document`), a header row of field names and one row per document of the collection, read without
+query parameters. A field whose `uiSchema[<field>].showPreview` is `false` has no column. The lead
+field, the first field with a column of kind `string`, `text` or `markdown` (EDT-4), has the first
+column, and the other fields follow in the schema's order. A collection with no column shows a
+column `id` of each document's id instead. Every row is one line high: a cell shows what LST-8
+says, cut short with an ellipsis when it does not fit. The header and the rows share one grid, so
+each field name stands over its column; a column of kind `boolean`, `number`, `list`,
+`references` or `files` is narrow, at most `8rem`, and the listing scrolls sideways when the columns do not fit.
+Each row links to `/collections/<name>/<id>`.
 
-- Test: `packages/core/e2e/collections.test.ts`
-- Level: e2e
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/listing.test.ts`, `packages/core/e2e/collections.test.ts`
+- Level: unit, e2e
 
 #### LST-2 · The toolbar
 
@@ -494,8 +509,8 @@ collection; New document only to one with `write`. Each is an icon button named 
 
 Each row has a checkbox named `Select <id>`, which toggles the document's id in the selection. A
 selection with a cap (LST-5) hides the checkboxes of unselected rows when full; a selected row can
-always be deselected. Select all adds every listed id, and is shown while the selection is empty;
-Unselect all clears it otherwise.
+always be deselected. Select all adds the id of every row shown (LST-7), and is shown while the
+selection is empty; Unselect all clears it otherwise.
 
 - Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
@@ -538,9 +553,8 @@ While the field holds more than spaces, the count reads `<shown> of <n> document
 Filtering reads nothing from the server and leaves the selection as it is. Opening another
 collection empties the field.
 
-- Test: none yet
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/listing.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0036)
 
 #### LST-8 · What a cell shows
 
@@ -562,9 +576,8 @@ A value that is absent, `null`, a string of nothing but spaces, of another shape
 expects, or an object with nothing to show, shows a muted `—`. A cell's title is the text it shows; a count's is
 `<n> item` or `<n> items`, a boolean's `true` or `false`, and an empty cell's `empty`.
 
-- Test: none yet
+- Test: `packages/core/src/routes/(admin)/collections/[collectionName]/listing.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0036)
 
 ### Document page and editor
 
