@@ -44,6 +44,7 @@ answers the file pickers of PCK, has no document yet either.
 | :-- | :-- | :-- |
 | OU1 | 2026-10-10: collections get an architecture document of their own, written from the code as it is after the editor redesign (`d6bf7aa`, `2fc5670`). | this document |
 | OU2 | 2026-10-10: the document editor is redesigned: labelled fields with a type hint, compact fields sharing a row, list items as collapsible cards, labelled pickers, a save state on the document page, and a warning before leaving unsaved changes. | OD7 to OD10; EDT-1 to EDT-12, PCK-4 |
+| OU3 | 2026-10-11: dynamic collections mirror the configuration's `databases.<key>.collections`: a definition lives in a directory of the database that serves it, and dynamic collections only add collections; a configured collection cannot be redefined. They reach collections that already exist in a database, and are not a way to create them. | OD12; COL-1, COL-2, COL-6 |
 
 **OD1. Permissions are checked by the document service, per collection (DOC-1).** Every operation
 takes the principal's `AuthContext` and checks `db:collection:read`, `write` or `delete` on the
@@ -125,6 +126,18 @@ second, weaker browser. One protocol serves both kinds of picker.
 *Cost:* the picker is a separate tab, and a picker opened from a closed editor has no one to answer
 it.
 
+**OD12. A dynamic collection lives in the directory of its database, and only adds a collection
+(COL-1, COL-2, COL-6).** Its definition is the file
+`.genoacms/databases/<database>/collections/<name>` of the default bucket, for a database the
+configuration has. A name the configuration declares is defined there and nowhere else, and a file
+of that name is ignored.
+*Why:* the bucket takes the shape the configuration already has, `databases.<key>.collections`, so
+where a file lives says which database serves it, with no field to forget and no default to guess.
+A collection defined in one place cannot have a schema in one and a database in the other.
+*Cost:* a configured collection's schema cannot be adjusted without a deploy, and moving a dynamic
+collection to another database means moving its file. Each database's directory is listed at
+process start.
+
 ### Findings
 
 Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless the row says otherwise.
@@ -139,19 +152,20 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF6 | **`uiSchema` is read but not declared.** The listing hides columns marked `uiSchema[<field>].showPreview === false` (LST-1), but `CollectionReference` has no `uiSchema`, so the option is invisible to a config author's types and is a type error in core. | open |
 | OF7 | **A reference field keeps its target collection in the JSON Schema `description`** (COL-5). An author who documents the field with a description changes what it references. | open |
 | OF8 | **The listing reads the whole collection.** No query parameters reach the adapter (LST-1). The select-all control's comment says the listing is paginated; it is not. | open |
-| OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open |
+| OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open; the replacement and the repeated name in RFC-0035 |
 | OF10 | **A failed validation tells nobody which field failed.** schemasafe is created without `includeErrors`, so the result's `errors` is always `undefined` (DOC-5); the page shows only "Invalid document data" and logs nothing useful. Shown on 2026-10-10 by the unit tests. | open |
 | OF11 | **Clearing a number field stores `0` (EDT-7).** An empty input is read as `Number('')`. | open |
 | OF12 | **The collections page title is not a heading.** It is written as an `<hi>` element, so it has no heading role. | open |
 | OF13 | **The save shortcut ignores the write permission.** Ctrl+S or ⌘+S submits an update (EDT-2) on a page whose Save button is hidden from the principal; the service refuses it (DOC-1), and the page reports the refusal as a failed save. | open |
 | OF14 | **A choice cannot be unset.** Once an option of an enum field is chosen, choosing it again, clearing the text or typing something else keeps it (EDT-8), so an optional choice cannot be returned to no value. Shown on 2026-10-10 in Chromium. | open |
-| OF15 | **A collection that exists only as a dynamic definition cannot hold documents.** The host routes a collection to a database by the names its configuration declares, so every document operation on a dynamic-only collection fails with `database/not-found`, although its definition resolves (COL-2). Only a dynamic definition that shares the name of a configured collection works, by replacing its schema. Found by reading `config/src/host/routing.ts` on 2026-10-10. | open |
-| OF16 | **The markdown preview is empty until the field is edited (EDT-10).** The preview is rendered on the server without DOMPurify, which needs a browser, so the server sends an empty preview, and Svelte does not repair `{@html}` content when it hydrates. Shown on 2026-10-10 in the built core in Chromium. | open |
-| OF17 | **Dynamic collections are never listed with the GCP adapter (COL-1).** Core lists the directory `.genoacms/collections` without a trailing `/`; Cloud Storage, listing with the delimiter `/`, then answers with that directory as one prefix rather than the files in it. Shown on 2026-10-10 against a real bucket. | open |
+| OF15 | **A collection that exists only as a dynamic definition cannot hold documents.** The host routes a collection to a database by the names its configuration declares, so every document operation on a dynamic-only collection fails with `database/not-found`, although its definition resolves (COL-2). Only a dynamic definition that shares the name of a configured collection works, by replacing its schema. Found by reading `config/src/host/routing.ts` on 2026-10-10. | open; RFC-0035 |
+| OF16 | **The markdown preview is empty until the field is edited (EDT-10).** The preview is rendered on the server without DOMPurify, which needs a browser, so the server sends an empty preview, and Svelte does not repair `{@html}` content when it hydrates. Shown on 2026-10-10 in the built core in Chromium. | open; RFC-0035 |
+| OF17 | **Dynamic collections are never listed with the GCP adapter (COL-1).** Core lists the directory `.genoacms/collections` without a trailing `/`; Cloud Storage, listing with the delimiter `/`, then answers with that directory as one prefix rather than the files in it. Shown on 2026-10-10 against a real bucket. | open; RFC-0035 |
 | OF18 | **Icons are part of accessible names.** Bootstrap Icons draw their glyph with CSS `::before`, and Chromium includes it in the accessible name, so a list item's header is announced as a private-use character followed by `#1 …`, and a catalog card as one followed by its name. Shown on 2026-10-10 in Chromium. | open |
 | OF19 | **A tall list item can hardly be dragged past its neighbour (EDT-11).** svelte-dnd-action places the dragged item by its centre, and while dragging it renders the item's placeholder as a new card, which is open even when the item was collapsed. An open card taller than the window must be carried past the centre of the next one, beyond the window's edge. Shown on 2026-10-10 in the built core in Chromium: a hero section 627 px tall moved only when the window was 2400 px tall. | open |
 | OF20 | **Core does not exit on SIGTERM once it has used Firestore.** The Firestore client keeps the Node process alive after the server closes, so the end-to-end harness kills it after 5 s; a platform that sends SIGTERM before SIGKILL waits its whole grace period. Shown on 2026-10-10 by the end-to-end run. | open |
 | OF21 | **The `storageResource` format checks nothing a storage field holds (DOC-5).** schemasafe applies formats to strings only, so the format refuses every string and accepts any object, including one without `name`; the schemas of COL-5 do not use the format at all. Shown on 2026-10-10 with schemasafe. | open |
+| OF22 | **A dynamic definition can name another collection than its file (COL-1, COL-2).** The catalog and the route use the file name, but resolution returns the definition as stored, and every document operation, its permission check included, uses the `name` inside it. A file `foo` whose definition is named `articles` is listed as `foo` and reads and writes `articles`, configured or not, with the schema of `foo`, for a principal holding grants on both. Found by reading `database/database.server.ts` and `database/user.server.ts` on 2026-10-11. | open; RFC-0035 |
 
 ### History
 
@@ -279,6 +293,17 @@ A field `{ type: 'array', items: <one of these> }` holds several.
 
 - Test: `packages/contracts/src/schemas.test.js`
 - Level: unit
+
+#### COL-6 · The database of a collection
+
+A configured collection is read and written through the provider of the first database, in key
+order, that declares it. A dynamic collection is read and written through the provider of the
+database whose directory it was listed from. Any other name fails the operation with the host
+error `database/not-found`, and no adapter is called.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0035)
 
 ### Document service
 
