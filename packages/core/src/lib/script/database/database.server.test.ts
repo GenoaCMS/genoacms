@@ -115,7 +115,7 @@ beforeEach(() => {
 })
 
 describe('the catalog', () => {
-  it.fails('COL-1: lists the directory of every database, and catalogs configured names, then each dynamic name once', async () => {
+  it('COL-1: lists the directory of every database, and catalogs configured names, then each dynamic name once', async () => {
     const { getCollectionReferences } = await importModule()
 
     expect(bucket.listed).toEqual([
@@ -135,7 +135,7 @@ describe('the catalog', () => {
 })
 
 describe('resolving a definition', () => {
-  it.fails('COL-2: a configured name resolves to its configuration, without reading the bucket', async () => {
+  it('COL-2: a configured name resolves to its configuration, without reading the bucket', async () => {
     bucket.objects[`${mainDirectory}articles`] = signed('main', { ...articles, schema: { type: 'object', properties: { replaced: { type: 'string' } } } }, trusted.signing)
     const { getCollectionReference } = await importModule()
 
@@ -143,21 +143,21 @@ describe('resolving a definition', () => {
     expect(bucket.read).toEqual([])
   })
 
-  it.fails('COL-2, COL-7: a dynamic name resolves to the definition its file carries, signed for its database and name', async () => {
+  it('COL-2, COL-7: a dynamic name resolves to the definition its file carries, signed for its database and name', async () => {
     bucket.objects[logsPath] = signed('archive', logs, trusted.signing)
     const { getCollectionReference } = await importModule()
 
     expect(await getCollectionReference('logs')).toEqual(logs)
   })
 
-  it.fails('COL-2: an unreadable definition or an unknown name fails with collection/not-found', async () => {
+  it('COL-2: an unreadable definition or an unknown name fails with collection/not-found', async () => {
     const { getCollectionReference } = await importModule()
 
     await expect(getCollectionReference('legacy')).rejects.toThrow('collection/not-found')
     await expect(getCollectionReference('nowhere')).rejects.toThrow('collection/not-found')
   })
 
-  it.fails('COL-2, COL-7: a definition that does not verify fails with collection/unverifiable', async () => {
+  it('COL-2, COL-7: a definition that does not verify fails with collection/unverifiable', async () => {
     const tampered = signed('archive', logs, trusted.signing)
     ;(tampered.payload as { definition: { schema: unknown } }).definition.schema = { type: 'object' }
     const candidates = [
@@ -180,7 +180,7 @@ describe('resolving a definition', () => {
     }
   })
 
-  it.fails('COL-2: a registry that cannot be read is not a verdict', async () => {
+  it('COL-2: a registry that cannot be read is not a verdict', async () => {
     bucket.objects[logsPath] = signed('archive', logs, trusted.signing)
     registry.isUnreachable = true
     const { getCollectionReference } = await importModule()
@@ -190,7 +190,7 @@ describe('resolving a definition', () => {
 })
 
 describe('the database of a collection', () => {
-  it.fails('COL-6: a configured collection is served by the database that declares it, a dynamic one by the database of its directory', async () => {
+  it('COL-6: a configured collection is served by the database that declares it, a dynamic one by the database of its directory', async () => {
     const service = await importModule()
     const expected: Array<{ database: string, operation: string, reference: unknown }> = []
 
@@ -214,7 +214,7 @@ describe('the database of a collection', () => {
     expect(recorded).toEqual(expected)
   })
 
-  it.fails('COL-6: any other name fails with database/not-found, and no adapter is called', async () => {
+  it('COL-6: any other name fails with database/not-found, and no adapter is called', async () => {
     const { getCollection } = await importModule()
 
     await expect(getCollection({ ...articles, name: 'nowhere' })).rejects.toMatchObject({ code: 'database/not-found' })

@@ -181,7 +181,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
   })
 
   describe('the catalog', () => {
-    it.fails('COL-1: lists the configured collections, then each dynamic one, and no directory of another database', async () => {
+    it('COL-1: lists the configured collections, then each dynamic one, and no directory of another database', async () => {
       expect(await catalog(adaSession.page)).toEqual(['test', 'authors', 'articles', 'dynamic', 'unsigned'])
     })
 
@@ -193,20 +193,20 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByText('shadowField', { exact: true }).count()).toBe(0)
     })
 
-    it.fails('COL-2, COL-7: a signed dynamic collection resolves to its definition', async () => {
+    it('COL-2, COL-7: a signed dynamic collection resolves to its definition', async () => {
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))
     })
 
-    it.fails('COL-2, COL-7: an unsigned dynamic definition is refused with collection/unverifiable', async () => {
+    it('COL-2, COL-7: an unsigned dynamic definition is refused with collection/unverifiable', async () => {
       const response = await adaSession.page.goto('/collections/unsigned')
 
       expect(response?.status()).toBe(500)
       expect(server.output()).toContain('collection/unverifiable')
     })
 
-    it.fails('COL-6: a dynamic collection is served by the database of its directory', async () => {
+    it('COL-6: a dynamic collection is served by the database of its directory', async () => {
       await fixture('dynamic', { name: `${run} dynamic` })
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
@@ -250,7 +250,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await page.waitForURL(`**/collections/authors/${authorId}`)
     })
 
-    it.fails('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
+    it('LST-1: omits a field hidden from the preview, and counts the items of an array', async () => {
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))
@@ -502,7 +502,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByRole('textbox', { name: 'id', exact: true }).inputValue()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     })
 
-    it.fails('EDT-10: shows the markdown rendered as soon as the page is interactive', async () => {
+    it('EDT-10: shows the markdown rendered as soon as the page is interactive', async () => {
       const id = await article(authorId, authorId)
       const { page } = adaSession
       await openDocument(page, 'articles', id)
@@ -537,7 +537,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(page.getByRole('button', { name: `#2 hero ${run} headline` }))
     })
 
-    it.fails('EDT-11: Add item is disabled once the list holds maxItems', async () => {
+    it('EDT-11: Add item is disabled once the list holds maxItems', async () => {
       const id = await fixture('dynamic', { name: `${run} limited`, limited: [] })
       const { page } = adaSession
       await openDocument(page, 'dynamic', id)
@@ -675,7 +675,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await closing
     })
 
-    it.fails('EDT-6: uuid, text, markdown, enum, number, file and files fields carry their hints', async () => {
+    it('EDT-6: uuid, text, markdown, enum, number, file and files fields carry their hints', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', await article(authorId, authorId))
       for (const hint of ['UUID', 'long text', 'markdown', 'choice', 'number', 'file']) await shown(page.getByText(hint, { exact: true }))
@@ -707,7 +707,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       return picker
     }
 
-    it.fails('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
+    it('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
       const id = await fixture('dynamic', { name: `${run} gallery`, gallery: [] })
       const { page } = adaSession
       await openDocument(page, 'dynamic', id)
@@ -728,7 +728,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(gallery.getByRole('link', { name: 'Choose files from storage' }))
     })
 
-    it.fails('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
+    it('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
       const id = await fixture('dynamic', { name: `${run} abandoned picker`, gallery: [] })
       const { page } = adaSession
       await openDocument(page, 'dynamic', id)

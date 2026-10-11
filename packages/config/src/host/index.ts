@@ -35,6 +35,8 @@ interface Host {
 
   storageForBucket: (bucket: string) => Promise<StorageAdapter>
   databaseForCollection: (collection: string) => Promise<DatabaseAdapter>
+  /** The provider of the database named `database`, a key of `database.databases`. */
+  databaseNamed: (database: string) => Promise<DatabaseAdapter>
   /** Authentication provider keys, in config key order. Constructs nothing: `authentication(key)` does. */
   readonly authenticationProviderKeys: readonly string[]
 
@@ -147,6 +149,11 @@ function createHost (options: HostOptions): Host {
     return await construct<DatabaseAdapter>('database', provider)
   }
 
+  async function databaseNamed (database: string): Promise<DatabaseAdapter> {
+    if (!Object.hasOwn(config.database.databases, database)) throw new HostError('database/not-found', database)
+    return await construct<DatabaseAdapter>('database', config.database.databases[database].provider)
+  }
+
   return {
     storage: async provider => await construct<StorageAdapter>('storage', provider),
     database: async provider => await construct<DatabaseAdapter>('database', provider),
@@ -155,6 +162,7 @@ function createHost (options: HostOptions): Host {
     secrets,
     storageForBucket,
     databaseForCollection,
+    databaseNamed,
     get authenticationProviderKeys () { return Object.keys(providersOf('authentication')) },
     get authorization () { return config.authorization },
     get security () { return config.security },

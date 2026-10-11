@@ -8,37 +8,12 @@ function getDatabaseNames () {
   return [...host.databases]
 }
 
-const createDocument: Adapter['createDocument'] = async (reference, document) => {
-  const adapter = await host.databaseForCollection(reference.name)
-  return await adapter.createDocument(reference, document)
-}
-
-const getCollection: Adapter['getCollection'] = async (reference, queryParams) => {
-  const adapter = await host.databaseForCollection(reference.name)
-  return await adapter.getCollection(reference, queryParams)
-}
-
-const getDocument: Adapter['getDocument'] = async (reference) => {
-  const adapter = await host.databaseForCollection(reference.collection.name)
-  return await adapter.getDocument(reference)
-}
-
-const updateDocument: Adapter['updateDocument'] = async (reference, document) => {
-  const adapter = await host.databaseForCollection(reference.collection.name)
-  return await adapter.updateDocument(reference, document)
-}
-
-const deleteDocument: Adapter['deleteDocument'] = async (reference) => {
-  const adapter = await host.databaseForCollection(reference.collection.name)
-  return await adapter.deleteDocument(reference)
-}
+const adapterForCollection = async (collection: string): Promise<Adapter> => await host.databaseForCollection(collection)
+const adapterForDatabase = async (database: string): Promise<Adapter> => await host.databaseNamed(database)
 
 export {
   getCollections,
   getDatabaseNames,
-  createDocument,
-  getCollection,
-  getDocument,
-  updateDocument,
-  deleteDocument
+  adapterForCollection,
+  adapterForDatabase
 }

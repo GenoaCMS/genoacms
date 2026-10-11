@@ -10,7 +10,7 @@ vi.mock('@genoacms/config/load', async (importOriginal) => ({ ...await importOri
 vi.mock('@genoacms/config/host', () => ({ createHost: vi.fn() }))
 
 describe('database', () => {
-  test.fails('CLI-10: deletes the chosen collection object of any database from the default bucket, and closes the host', async () => {
+  test('CLI-10: deletes the chosen collection object of any database from the default bucket, and closes the host', async () => {
     const manifest = { config: {} }
     const listings = {
       '.genoacms/databases/main/collections/': ['.genoacms/databases/main/collections/articles.json'],

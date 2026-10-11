@@ -20,8 +20,8 @@ import {
  * Database operations performed **by a user**.
  *
  * `database.server` is the primary service and stays unprivileged, matching the storage split: the
- * CMS resolves collection definitions from `.genoacms/collections` at module scope, before any
- * request exists and so before any principal does.
+ * CMS lists collection definitions from `.genoacms/databases/<database>/collections/` at module
+ * scope, before any request exists and so before any principal does.
  *
  * Every export here takes an `AuthContext` first and checks a permission before delegating, so
  * omitting the context is a *type error* and the check lives with the operation rather than

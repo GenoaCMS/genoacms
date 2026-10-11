@@ -181,7 +181,7 @@ describe('routing and reads', () => {
     await expect(host.databaseForCollection('nowhere')).rejects.toMatchObject({ code: 'database/not-found' })
   })
 
-  it.fails('16: databaseNamed constructs the provider of the named database, and refuses a name the config lacks', async () => {
+  it('16: databaseNamed constructs the provider of the named database, and refuses a name the config lacks', async () => {
     const { load, creates } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     const adapter = await host.databaseNamed('archive')
