@@ -45,6 +45,7 @@ answers the file pickers of PCK, has no document yet either.
 | OU1 | 2026-10-10: collections get an architecture document of their own, written from the code as it is after the editor redesign (`d6bf7aa`, `2fc5670`). | this document |
 | OU2 | 2026-10-10: the document editor is redesigned: labelled fields with a type hint, compact fields sharing a row, list items as collapsible cards, labelled pickers, a save state on the document page, and a warning before leaving unsaved changes. | OD7 to OD10; EDT-1 to EDT-12, PCK-4 |
 | OU3 | 2026-10-11: dynamic collections mirror the configuration's `databases.<key>.collections`: a definition lives in a directory of the database that serves it, and dynamic collections only add collections; a configured collection cannot be redefined. They reach collections that already exist in a database, and are not a way to create them. | OD12; COL-1, COL-2, COL-6 |
+| OU4 | 2026-10-11: a dynamic definition is signed by core with a subordinate key, bound to its database and name, as the authorization manifests are; one that does not verify is listed and refused when opened. Core signs definitions through an administration screen that a later RFC adds. Core lists the collections directories and does not create them. | OD13; COL-1, COL-2, COL-7 |
 
 **OD1. Permissions are checked by the document service, per collection (DOC-1).** Every operation
 takes the principal's `AuthContext` and checks `db:collection:read`, `write` or `delete` on the
@@ -138,6 +139,20 @@ A collection defined in one place cannot have a schema in one and a database in 
 collection to another database means moving its file. Each database's directory is listed at
 process start.
 
+**OD13. A dynamic definition is signed, and verified when it is opened (COL-2, COL-7).** The file
+is an envelope signed by a subordinate key, whose payload names the database and carries the
+definition with its name. A file that does not verify keeps its name in the catalog, and opening it
+fails closed with `collection/unverifiable`.
+*Why:* a definition decides which collection of which database the CMS exposes, and with which
+schema: the authority the signed authorization manifests and page tree carry. Write access to the
+bucket should not grant it. Binding the database and the name stops a signed file from being moved
+or renamed into another meaning. Verifying on open keeps startup to one listing.
+*Cost:* only core can sign, so a definition is written through the CMS, not by hand; a revoked key
+leaves its definitions unverifiable until re-signed; the catalog can show a name that cannot be
+opened; each open verifies a signature. The signature binds the database and the name, not a
+version, so whoever can write the bucket can put back an older definition that core once signed
+under the same database and name.
+
 ### Findings
 
 Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless the row says otherwise.
@@ -166,6 +181,13 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF20 | **Core does not exit on SIGTERM once it has used Firestore.** The Firestore client keeps the Node process alive after the server closes, so the end-to-end harness kills it after 5 s; a platform that sends SIGTERM before SIGKILL waits its whole grace period. Shown on 2026-10-10 by the end-to-end run. | open |
 | OF21 | **The `storageResource` format checks nothing a storage field holds (DOC-5).** schemasafe applies formats to strings only, so the format refuses every string and accepts any object, including one without `name`; the schemas of COL-5 do not use the format at all. Shown on 2026-10-10 with schemasafe. | open |
 | OF22 | **A dynamic definition can name another collection than its file (COL-1, COL-2).** The catalog and the route use the file name, but resolution returns the definition as stored, and every document operation, its permission check included, uses the `name` inside it. A file `foo` whose definition is named `articles` is listed as `foo` and reads and writes `articles`, configured or not, with the schema of `foo`, for a principal holding grants on both. Found by reading `database/database.server.ts` and `database/user.server.ts` on 2026-10-11. | open; RFC-0035 |
+| OF23 | **A missing directory is created with a double slash (COL-1).** `listOrCreateDirectory` hands `createDirectory` the name it listed, which ends in `/`, and the GCP and AWS adapters append `/.folderPlaceholder` to it, so `.genoacms/databases/<database>/collections//.folderPlaceholder` is written: a subdirectory with an empty name that the storage browser shows. The next listing then finds that subdirectory, so the directory counts as existing. Publications create their directories the same way. Shown on 2026-10-11 by the falsification audit of RFC-0035 with a mocked GCS bucket. | open; the collections directories in RFC-0035 |
+| OF24 | **Only the first page of a directory is listed (COL-1).** Neither the storage contract nor the GCP and AWS adapters page a listing, and Cloud Storage and S3 answer at most 1000 entries, so a database directory of more than 1000 definitions loses the rest from the catalog. `genoa database` lists the same way (CLI-10). Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
+| OF25 | **Some definition files are not listed as files, depending on the adapter (COL-1).** Every adapter hides an object whose name ends in `.folderPlaceholder`, so such a definition is never listed; the MinIO adapter lists an object named exactly `.../collections/`, the marker S3 tools create for a directory, as a file, which becomes a collection named `collections`. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
+| OF26 | **Key order puts integer-like keys first (COL-1, COL-6).** Database keys are taken in JavaScript property order, so with `databases: { main, '2024' }`, `2024` is listed first and wins a name both directories hold, against the order the configuration declares them in. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
+| OF27 | **A key revoked by another process keeps verifying until a restart (COL-7).** The key cache re-reads the registry only for a key id it does not know, or after its own process revokes a key, so a revocation published by another instance is not seen by a running one, and definitions signed with that key keep resolving there. The same holds for every signed document. Shown on 2026-10-11 by the second falsification audit of RFC-0035 with a probe of `signing/keyResolver.ts`. | open |
+| OF28 | **A key the registry lists can be refused (COL-2, COL-7).** The key cache answers an unknown key id without reading the registry once its refresh budget (20 in 10 s) is spent, or for 60 s after it found the id absent; envelopes naming random key ids, which anyone who can write the bucket can place, spend the budget, and a definition signed by a key just rotated in elsewhere then fails as `collection/unverifiable`. Shown on 2026-10-11 by the second falsification audit of RFC-0035 with a probe of `signing/keyResolver.ts`. | open |
+| OF29 | **A storage outage reads as a missing definition (COL-2).** Any failure to read a dynamic definition becomes `collection/not-found`, a transient outage included, while a registry that cannot be read propagates its error. Telling the two apart needs the storage contract to distinguish a missing object. Found by the second falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
 
 ### History
 
@@ -300,6 +322,35 @@ A configured collection is read and written through the provider of the first da
 order, that declares it. A dynamic collection is read and written through the provider of the
 database whose directory it was listed from. Any other name fails the operation with the host
 error `database/not-found`, and no adapter is called.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0035)
+
+#### COL-7 · A signed dynamic definition
+
+The file of a dynamic collection is a signed envelope of the type
+`genoacms.collectionDefinition.v1`, signed by a subordinate key of the key registry, as the
+authorization manifests are:
+
+```ts
+interface SignedCollectionDefinition {
+  alg: string                 // the subordinate key's algorithm
+  keyId: string
+  type: 'genoacms.collectionDefinition.v1'
+  payload: {
+    database: string          // the key of the database whose directory holds the file
+    definition: CollectionDefinition   // COL-4; its name is the file name
+  }
+  signature: string           // over alg, keyId, type and payload
+}
+```
+
+A definition verifies when the envelope's signature verifies against a key that the key registry,
+as core last read it, lists and has not revoked (OF27, OF28); the payload has exactly the fields
+`database` and `definition`; `payload.database` is the database of the directory the file is in;
+and `payload.definition` is a JSON object whose `name` is the file name. Nothing else in the
+definition is checked when it is read: whoever signs it checks it against COL-4.
 
 - Test: none yet
 - Level: unit, e2e
