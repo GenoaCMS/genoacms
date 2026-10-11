@@ -46,6 +46,7 @@ answers the file pickers of PCK, has no document yet either.
 | OU2 | 2026-10-10: the document editor is redesigned: labelled fields with a type hint, compact fields sharing a row, list items as collapsible cards, labelled pickers, a save state on the document page, and a warning before leaving unsaved changes. | OD7 to OD10; EDT-1 to EDT-12, PCK-4 |
 | OU3 | 2026-10-11: dynamic collections mirror the configuration's `databases.<key>.collections`: a definition lives in a directory of the database that serves it, and dynamic collections only add collections; a configured collection cannot be redefined. They reach collections that already exist in a database, and are not a way to create them. | OD12; COL-1, COL-2, COL-6 |
 | OU4 | 2026-10-11: a dynamic definition is signed by core with a subordinate key, bound to its database and name, as the authorization manifests are; one that does not verify is listed and refused when opened. Core signs definitions through an administration screen that a later RFC adds. Core lists the collections directories and does not create them. | OD13; COL-1, COL-2, COL-7 |
+| OU5 | 2026-10-11: the listing is redesigned for recognising documents: one line per row, the lead field first, each cell shown by its field's kind, and a filter over the documents loaded. | OD14; LST-1, LST-3, LST-7, LST-8 |
 
 **OD1. Permissions are checked by the document service, per collection (DOC-1).** Every operation
 takes the principal's `AuthContext` and checks `db:collection:read`, `write` or `delete` on the
@@ -152,6 +153,18 @@ leaves its definitions unverifiable until re-signed; the catalog can show a name
 opened; each open verifies a signature. The signature binds the database and the name, not a
 version, so whoever can write the bucket can put back an older definition that core once signed
 under the same database and name.
+
+**OD14. The listing is for recognising a document, not reading it (LST-1, LST-7, LST-8).** Every
+row is one line high. Each cell shows a short form of its value, chosen by the field's kind, the
+same classification the editor uses (OD7). The lead field, the first text-like one, comes first and
+names the row. A filter narrows the rows already loaded.
+*Why:* a row's job is to be found and told apart from its neighbours; reading a value in full is the
+document page's job, one click away. A row as tall as its longest value pushes every other document
+off the screen, and a raw value such as `[object Object]` tells nothing. Rows of one height let the
+eye run down a column.
+*Cost:* long values are cut short, and seeing one whole needs a hover or opening the document. The
+summary of an object is a guess at what identifies it. The filter searches only what is loaded and
+shown, so its meaning changes once the listing pages (OF8).
 
 ### Findings
 
@@ -515,6 +528,43 @@ or `An error occurred`.
 
 - Test: `packages/core/e2e/collections.test.ts`
 - Level: e2e
+
+#### LST-7 · Filtering the listing
+
+A field labelled `Filter documents` above the listing shows only the rows in which the document's
+id, or the title of one of its cells that is not empty (LST-8), contains the field's text, trimmed,
+ignoring case and diacritics: both are compared decomposed, without combining marks, and upper-cased.
+While the field holds more than spaces, the count reads `<shown> of <n> documents` (`of 1 document`).
+Filtering reads nothing from the server and leaves the selection as it is. Opening another
+collection empties the field.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0036)
+
+#### LST-8 · What a cell shows
+
+A cell shows its field's value by the field's kind (EDT-4):
+
+| Kind | The cell shows |
+| :-- | :-- |
+| `string`, `text`, `enum`, `const` | the value as text |
+| `uuid`, `reference` | the value as text, in a monospace font |
+| `markdown` | the text the markdown reads as, without its syntax and with its entities decoded; its blocks, list items, table cells and line breaks separated by a space |
+| `number` | the number, aligned to the end |
+| `boolean` | a check mark for `true`, a muted `–` for `false` |
+| `list`, `references`, `files` | the number of items, aligned to the end |
+| `file` | the part of the file's `name` after its last `/` |
+| `object` | `<field>: <value>` for each of its own fields that holds a string of more than spaces, a number or a boolean, in the value's order, joined by ` · ` |
+| `unsupported` | a string, a number or a boolean as text |
+
+A value that is absent, `null`, a string of nothing but spaces, of another shape than its kind
+expects, or an object with nothing to show, shows a muted `—`. A cell's title is the text it shows; a count's is
+`<n> item` or `<n> items`, a boolean's `true` or `false`, and an empty cell's `empty`.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0036)
 
 ### Document page and editor
 
