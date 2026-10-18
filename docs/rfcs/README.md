@@ -58,6 +58,8 @@ own before starting the next.
 | [0034](0034-genoa-command.md) | The installed command is `genoa` (`cli.md` LF16) | `packages/cli` |
 | [0035](0035-dynamic-collections-and-markdown-preview.md) | Signed dynamic collections by database, and a markdown preview that renders on load (`collections.md` OF15, OF16, OF17, OF22, part of OF9 and OF23; `cli.md` CLI-10) | `packages/core`, `packages/config`, `packages/cli` |
 | [0036](0036-listing-for-recognising-documents.md) | A collection listing for recognising documents (`collections.md` OU5, OD14, LST-1, LST-3, LST-7, LST-8) | `packages/core` |
+| [0037](0037-storage-contract-conformance.md) | The storage contract, its suite, and adapters that conform (`contracts/storage.md` CU5 to CU10, CF44 to CF50; `adapter-minio.md`; `collections.md` OF23, OF24, OF29; `cli.md` CLI-10) | `packages/contracts`, `packages/conformance`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-minio`, `packages/core`, `packages/cli` |
+| [0038](0038-storage-browser-to-specification.md) | The storage browser to its Specification, with the CMS's state read-only (`storage.md` BU1 to BU5, BF1 to BF10) | `packages/core` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 

@@ -78,11 +78,25 @@ jobs:
         continue-on-error: true
         run: node scripts/test-level.mjs integration
 
+      # adapter-minio.md MF2, MS1
+      - name: Start RustFS
+        run: >-
+          docker run -d --name rustfs -p 127.0.0.1:9100:9000
+          -e RUSTFS_ACCESS_KEY=conformance -e RUSTFS_SECRET_KEY=conformance-secret
+          docker.io/rustfs/rustfs@sha256:128220dc9382bac81940a1a9616ee8c274a3f3b8f647eedbeb50df5bb8b49922 /data
+
       - name: Conformance tests
         id: conformance
         continue-on-error: true
         run: node scripts/test-level.mjs conformance
         env:
+          GENOACMS_TEST_MINIO: '1'
+          GENOACMS_TEST_MINIO_BUCKET: genoacms-conformance
+          MINIO_ENDPOINT: 127.0.0.1
+          MINIO_PORT: '9100'
+          MINIO_USE_SSL: 'false'
+          MINIO_ACCESS_KEY: conformance
+          MINIO_SECRET_KEY: conformance-secret
           GENOACMS_TEST_POSTGRES: '1'
           PGHOST: localhost
           PGPORT: '5432'

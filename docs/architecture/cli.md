@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: f52ec2c
+verified: 813d2b5
 ---
 
 # Command-line interface
@@ -181,7 +181,7 @@ Warns what rotating the root trust anchor does and asks for confirmation, `No` b
 
 Loads the config, opens the default bucket's storage provider through a host, and offers a menu:
 delete a collection, which lists the objects in `.genoacms/databases/<database>/collections/` of
-that bucket for each database of the configuration, in key order, offers each as
+that bucket, following every page, for each database of the configuration, in key order, offers each as
 `<database>/<file name>`, and deletes the one chosen; continue, which shows the menu again; and
 exit. The host is closed when the command ends. Adding a collection is offered but does nothing
 (LF7).

@@ -1,28 +1,45 @@
 import type {
   Adapter,
+  DirectoryListingParams,
   ObjectReference,
   StorageObject
 } from '@genoacms/contracts/storage'
 import { defineRuntime } from '@genoacms/contracts'
-import { PreconditionFailedError } from '@genoacms/contracts/storage'
+import { PreconditionFailedError, ObjectNotFoundError, NotADirectoryError, isDirectoryName } from '@genoacms/contracts/storage'
 import { type Bucket, type File, type GetFilesOptions, Storage } from '@google-cloud/storage'
 import type { GcpStorageOptions } from './descriptor.js'
 
 const HTTP_PRECONDITION_FAILED = 412
+const HTTP_NOT_FOUND = 404
 const DELETE_CONCURRENCY = 10
 
-// STO-9, GF21
-function requestedResults (limit?: number, startAfter?: string): number | undefined {
-  return limit !== undefined && startAfter !== undefined ? limit + 1 : limit
+const hasStatus = (error: unknown, status: number): boolean => (error as { code?: number })?.code === status
+
+// STO-4, STO-7, STOR-16
+async function rejectingMissing<T> (reference: ObjectReference, call: () => Promise<T>): Promise<T> {
+  try {
+    return await call()
+  } catch (error) {
+    if (hasStatus(error, HTTP_NOT_FOUND)) throw new ObjectNotFoundError(reference)
+    throw error
+  }
 }
 
 // STO-9
-const byUtf8Bytes = (a: string, b: string): number => Buffer.compare(Buffer.from(a), Buffer.from(b))
+function listingQuery (name: string, { limit, startAfter, pageToken }: DirectoryListingParams): GetFilesOptions {
+  return {
+    prefix: name,
+    delimiter: '/',
+    autoPaginate: false,
+    ...(limit === undefined ? {} : { maxResults: limit }),
+    ...(startAfter === undefined ? {} : { startOffset: startAfter }),
+    ...(pageToken === undefined ? {} : { pageToken })
+  }
+}
 
-// STO-9
-function firstByName (names: string[], limit?: number): Set<string> {
-  const sorted = [...names].sort(byUtf8Bytes)
-  return new Set(limit === undefined ? sorted : sorted.slice(0, limit))
+// STO-11, GF38
+function everyDepthPage (prefix: string, pageToken: string | undefined): GetFilesOptions {
+  return pageToken === undefined ? { prefix, autoPaginate: false } : { prefix, autoPaginate: false, pageToken }
 }
 
 // STO-11, GF29
@@ -57,6 +74,17 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       return storage.bucket(name)
     }
 
+    // STO-3, STOR-3
+    const requireDirectoryName = (reference: ObjectReference, { allowRoot }: { allowRoot: boolean }): void => {
+      if (!isDirectoryName(reference.name) || (!allowRoot && reference.name === '')) throw new NotADirectoryError(reference)
+    }
+
+    const getDirectoryBucket = (reference: ObjectReference, options: { allowRoot: boolean }): Bucket => {
+      const bucketInstance = getBucket(reference.bucket)
+      requireDirectoryName(reference, options)
+      return bucketInstance
+    }
+
     // STO-4
     const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
       const bucketInstance = getBucket(bucket)
@@ -66,7 +94,8 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       try {
         const [metadata] = await file.getMetadata()
         version = metadata.generation === undefined ? undefined : String(metadata.generation)
-      } catch {
+      } catch (error) {
+        if (hasStatus(error, HTTP_NOT_FOUND)) throw new ObjectNotFoundError({ bucket, name })
         version = undefined
       }
 
@@ -96,16 +125,16 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       const bucketInstance = getBucket(bucket)
       const file = bucketInstance.file(name)
 
-      const { ifVersion, ifAbsent, ...saveOptions } = options ?? {}
+      const { ifVersion, ifAbsent } = options ?? {}
       // STO-6
       const generation = ifAbsent === true ? 0 : ifVersion === undefined ? undefined : Number(ifVersion)
 
       try {
         await file.save(stream, generation === undefined
-          ? saveOptions
-          : { ...saveOptions, preconditionOpts: { ifGenerationMatch: generation } })
+          ? {}
+          : { preconditionOpts: { ifGenerationMatch: generation } })
       } catch (error) {
-        if ((error as { code?: number }).code === HTTP_PRECONDITION_FAILED) {
+        if (hasStatus(error, HTTP_PRECONDITION_FAILED)) {
           throw new PreconditionFailedError({ bucket, name }, ifAbsent === true
             ? 'object already exists'
             : 'object changed since it was read')
@@ -123,30 +152,24 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
     const deleteObject: Adapter['deleteObject'] = async ({ bucket, name }) => {
       const bucketInstance = getBucket(bucket)
       const file = bucketInstance.file(name)
-      await file.delete()
+      await rejectingMissing({ bucket, name }, async () => await file.delete())
     }
 
-    const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, listingParams = {}) => {
-      const bucketInstance = getBucket(bucket)
-      const options = {
-        autoPaginate: false,
-        prefix: name,
-        maxResults: requestedResults(listingParams?.limit, listingParams?.startAfter),
-        startOffset: listingParams?.startAfter,
-        delimiter: '/'
-
-      }
-      let [files, , apiResponse] =
-        (await bucketInstance.getFiles(options)) as [File[], object, { prefixes: string[] } | undefined]
-      files = files.filter((file) => !file.name.endsWith('.folderPlaceholder'))
-      // STO-9, GF21
-      const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams?.startAfter
-      files = files.filter(f => !skipped(f.name))
-      const prefixes = (apiResponse?.prefixes ?? []).filter((item) => !skipped(item))
-      const kept = firstByName([...files.map(f => f.name), ...prefixes], listingParams?.limit)
+    // STO-9, GF21
+    const listDirectory: Adapter['listDirectory'] = async (reference, listingParams = {}) => {
+      const bucketInstance = getDirectoryBucket(reference, { allowRoot: true })
+      const { bucket, name } = reference
+      if (listingParams.limit === 0) return { files: [], directories: [] }
+      const [listed, nextQuery, apiResponse] =
+        (await bucketInstance.getFiles(listingQuery(name, listingParams))) as [File[], GetFilesOptions | null, { prefixes?: string[] } | undefined]
+      const skipped = (itemName: string): boolean => itemName === name || itemName === listingParams.startAfter
+      const files = listed.filter(file => !file.name.endsWith('.folderPlaceholder') && !skipped(file.name))
+      const prefixes = (apiResponse?.prefixes ?? []).filter(item => !skipped(item))
+      const next = nextQuery?.pageToken
 
       return {
-        files: files.filter(f => kept.has(f.name)).map((file) => {
+        ...(next === undefined ? {} : { next }),
+        files: files.map((file) => {
           return {
             name: file.name,
             // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -154,7 +177,7 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
             lastModified: new Date(file.metadata.updated as string)
           } satisfies StorageObject
         }),
-        directories: prefixes.filter((item) => kept.has(item)).map(i => {
+        directories: prefixes.map(i => {
           const object: ObjectReference = {
             bucket,
             name: i
@@ -164,26 +187,30 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
       }
     }
 
-    const createDirectory: Adapter['createDirectory'] = async ({ bucket, name }) => {
-      const bucketInstance = getBucket(bucket)
-      const file = bucketInstance.file(`${name}/.folderPlaceholder`)
+    // STO-10, CD10
+    const createDirectory: Adapter['createDirectory'] = async (reference) => {
+      const bucketInstance = getDirectoryBucket(reference, { allowRoot: false })
+      const file = bucketInstance.file(`${reference.name}.folderPlaceholder`)
       await file.save('')
     }
 
     // STO-11, GD7, GF29
-    const deleteDirectory: Adapter['deleteDirectory'] = async ({ bucket, name }) => {
-      const bucketInstance = getBucket(bucket)
-      let query: GetFilesOptions | undefined = { prefix: name, autoPaginate: false }
-      while (query !== undefined) {
-        const [files, nextQuery]: [File[], GetFilesOptions | null, unknown] = await bucketInstance.getFiles(query)
+    const deleteDirectory: Adapter['deleteDirectory'] = async (reference) => {
+      const bucketInstance = getDirectoryBucket(reference, { allowRoot: false })
+      let pageToken: string | undefined
+      do {
+        const [files, nextQuery]: [File[], GetFilesOptions | null, unknown] = await bucketInstance.getFiles(everyDepthPage(reference.name, pageToken))
         await deleteAtMost(DELETE_CONCURRENCY, files)
-        query = nextQuery ?? undefined
-      }
+        pageToken = nextQuery?.pageToken
+      } while (pageToken !== undefined)
     }
 
     // STO-12, GD7, GF22
-    const moveDirectory: Adapter['moveDirectory'] = async ({ bucket, name }, newName) => {
-      const [files] = await getBucket(bucket).getFiles({ prefix: name })
+    const moveDirectory: Adapter['moveDirectory'] = async (reference, newName) => {
+      const bucketInstance = getDirectoryBucket(reference, { allowRoot: false })
+      requireDirectoryName({ bucket: reference.bucket, name: newName }, { allowRoot: false })
+      const { name } = reference
+      const [files] = await bucketInstance.getFiles({ prefix: name })
       for (const file of files) await file.move(newName + file.name.slice(name.length))
     }
 

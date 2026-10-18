@@ -22,11 +22,13 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/host.md`](architecture/host.md) | none (as `configuration.md`) | — | the host: provider construction and caching | **no**: split from `configuration.md` unchanged |
 | [`architecture/secrets.md`](architecture/secrets.md) | none (as `configuration.md`) | — | secret references, their resolution, the bootstrap, the development store | **no**: split from `configuration.md` unchanged |
 | [`architecture/build.md`](architecture/build.md) | none (as `configuration.md`) | — | the build, the artifact, vendoring, deployment targets, the lifecycle | **no**: split from `configuration.md` unchanged |
-| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md` and `conformance.md` conform (9 current statements, all naming a test, 1 of them partly verified (AUTHN-1, a type); 8 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `STOR`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md` and `conformance.md` conform (26 current statements, all naming a test: 9 of authentication and conformance, 1 of them partly verified (AUTHN-1, a type), the 16 of `storage.md` and CONF-2; 7 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
 | [`architecture/identities.md`](architecture/identities.md) | `I` | `PWH`, `IDS` | self-owned identity stores: password hashing, the identity record, sign-in | yes. 12 statements, all **New** (no RFC yet). |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements, all naming a test, 2 of them partly verified (STO-8, and COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
+| [`architecture/adapter-minio.md`](architecture/adapter-minio.md) | `M` | `MIO` | the S3-compatible storage adapter, `adapter-minio` | yes. 13 statements, all naming a test (RFC-0037). |
+| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 21 statements, all naming a test (RFC-0038). |
 | [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
@@ -38,19 +40,20 @@ What the Specifications cover, measured against the reproducibility principle
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, host, secrets, build, artifact | `config` | `configuration.md`, `host.md`, `secrets.md`, `build.md` | covered, not restructured |
-| Adapter model and service contracts | `contracts` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage, database, secrets, language and deployment contracts: none, their types are the only description |
+| Adapter model and service contracts | `contracts` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage specified, all 16 statements naming tests, CF44 to CF50 fixed (RFC-0037); database, secrets, language and deployment contracts: none, their types are the only description |
 | Conformance suites | `conformance` | `contracts/conformance.md` | covered; open findings CF7 to CF9: the database suite's update and listing checks cannot fail, so GCP DB-5 and DB-7 are effectively unverified at `contract` (GF31) |
 | CLI | `cli` | `cli.md` | specified; open findings LF2 to LF8, all but LF7 in RFC-0028 |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF9 (needs paging in the contract first), GF31 (the database conformance suite, CF7) |
 | AWS | `adapter-aws` | `adapter-aws/` | covered; no open findings (WF1 to WF26 fixed, RFC-0026) |
-| Other adapters | `adapter-minio`, `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `contracts/adapter-model.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
+| Other adapters | `adapter-node`, `adapter-postgres`, `adapter-secrets-env`, `authentication-adapter-array` | `contracts/adapter-model.md` (the adapter model only), RFC-0006 to RFC-0013 | partial: behavior per service is in RFCs only. |
 | Language adapter and script sandbox | `language-adapter-ts`, `internal` | RFC-0011 | partial |
 | Core: authentication and sessions | `core` (`auth/`) | `contracts/authentication.md`: sign-in and session revalidation (**New**); the session family, tokens and cookie: none | partial |
 | Core: authorization, roles, grants | `core` (`authorization/`) | none | none |
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
-| Core: storage browser | `core` (`storage/`, routes) | none | none |
+| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 21 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF7 mitigated |
+| MinIO | `adapter-minio` | `adapter-minio.md` | specified; conforms (RFC-0037), tested against RustFS, in CI too |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
 
@@ -64,14 +67,13 @@ What the Specifications cover, measured against the reproducibility principle
 | `integration` | tests with real collaborators: the file system, a local database or object store, the CLI run as a process (`packages/cli/src/main.test.js`) | always |
 | `e2e` | the running system as users meet it: the CLI, a deployed function, core's UI, in the package's `e2e/` directory. Today the SvelteKit adapter's build served by the Functions Framework, core's sign-in and session refresh, and its collection screens driven in Chromium through Playwright (`packages/core/e2e/`): core built with `genoa.config/e2e.ts` and served by `@genoacms/adapter-node`, with its instance under `.genoacms/` in `GCP_CORE_E2E_BUCKET`, a bucket of its own, removed before and after each run | always. Core's tests need GCP: CI authenticates on pushes and on pull requests from this repository, not on a fork's, whose core tests are skipped and fail the results check |
 | `contract` | tests against the real GCP and AWS services, the adapters' opt-in conformance runs among them | on `main`, with the credentials of the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TEST_SERVICE_ACCOUNT`, `GCP_TEST_PROJECT`, `GCP_TEST_BUCKET`, `GCP_TEST_REGION` and `AWS_TEST_ROLE_ARN`, `AWS_TEST_REGION`, `AWS_TEST_BUCKET`, `AWS_TEST_LAMBDA_ROLE`; without them the tests are skipped. Deferred on pull requests. |
-| `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always, except MinIO |
+| `conformance` | `@genoacms/conformance` run against a local implementation: in memory, Postgres, MinIO | always; the MinIO adapter against RustFS, which CI starts |
 
 Known gaps in the test runs, recorded 2026-09-28 when the project adopted workflow 3.0.0:
 
 - **Core's Playwright tests do not run in CI.** They build with `genoa.config/development.ts`, which imports gitignored credential files, and need a real GCP project. Core is built in CI only for its `e2e` tests, with `genoa.config/e2e.ts`, which reads users from the environment and reaches GCS through the runner's ADC. Two of these runs at once, such as a pull request's and `main`'s, share that bucket's `.genoacms/` and can fail each other; the contract tests, in `GCP_TEST_BUCKET`, are not affected. Locally, the `e2e` run overwrites `packages/core/.genoacms/build/`. Its unit tests do run: under Vitest, `vite.config.ts` points `GENOA_CONFIG` at the committed `genoa.config/test.ts`, whose credentials are `env()` references no test resolves, and no unit test reaches a real service.
 - **`@genoacms/sdk`** passes every test but exits non-zero on vitest's `Timeout calling "onTaskUpdate"`.
 - **`@genoacms/language-adapter-ts`** passes alone, but 16 tests exceed vitest's 5 s timeout when packages run in parallel. CI runs packages one at a time.
-- **MinIO's conformance run is not in CI.** The MinIO server images on Docker Hub and quay.io now require registry authentication, so no public image can be pinned.
 - **Comments that explain** (WORKFLOW §6.4) were reduced to ID references only in `adapter-gcp` and `sveltekit-adapter-cloud-run-functions`, the packages a conforming document covers. The other packages, about 14,000 comment lines, keep them until their components have architecture documents to hold the reasons.
 - The GCP findings still open are GF9 and GF31, in [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md).
 

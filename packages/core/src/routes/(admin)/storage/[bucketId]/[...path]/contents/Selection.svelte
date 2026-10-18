@@ -3,29 +3,16 @@
   import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
   import selection from '$lib/script/storage/SelectionRune.svelte'
   import { getContext } from 'svelte'
-  import { page } from '$app/state'
 
+  type Props = {
+    entries: ObjectReference[]
+  }
+  const { entries }: Props = $props()
   const selectAction: SelectActionRune = getContext('select')
   function selectAll () {
-    const selectionAddition: Array<ObjectReference> = []
-    const bucket = page.data.bucketId
-    for (const file of page.data.contents.files) {
-      const reference: ObjectReference = {
-        bucket,
-        name: file.name
-      }
-      selectionAddition.push(reference)
-    }
-    for (const directory of page.data.contents.directories) {
-      const reference: ObjectReference = {
-        bucket,
-        name: directory.name
-      }
-      selectionAddition.push(reference)
-    }
-    selection.selectAll(selectionAddition)
+    selection.selectAll(entries)
   }
-  function submitSelectAction () {
+  function confirmSelection () {
     selectAction.submit()
   }
   function clearSelection () {
@@ -33,8 +20,9 @@
   }
 </script>
 
+<!-- BRW-5, BRW-12 -->
 {#if selectAction.isActive && !selection.isEmpty}
-    <button type="button" aria-label="Select all" onclick={submitSelectAction}
+    <button type="button" aria-label="Confirm selection" onclick={confirmSelection}
     class="h-full flex items-center px-3">
      <i class="bi bi-check-all text-2xl hover:text-warning transition-all"></i>
     </button>

@@ -244,6 +244,7 @@ Every `G` ID, where it lives, and its state.
 | GF35 | A request path starting with `//` replaces the request URL's host | fixed, RFC-0033 | [`deployment.md`](deployment.md) |
 | GF36 | An empty `X-Forwarded-For` returns the socket address | fixed, RFC-0033 | [`deployment.md`](deployment.md) |
 | GF37 | STO-3 is tested through `getObject` only | fixed, RFC-0033 | [`storage.md`](storage.md) |
+| GF38 | Deleting a directory of more than one page never ends | fixed | [`storage.md`](storage.md) |
 | GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |

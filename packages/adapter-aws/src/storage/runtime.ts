@@ -1,6 +1,7 @@
 import type {
   Adapter,
   DirectoryContents,
+  DirectoryListingParams,
   ObjectReference,
   StorageObject
 } from '@genoacms/contracts/storage'
@@ -9,25 +10,48 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type _Object as S3Object,
-  type PutObjectCommandInput
+  type PutObjectCommandInput,
+  type ListObjectsV2CommandInput
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { defineRuntime } from '@genoacms/contracts'
-import { PreconditionFailedError } from '@genoacms/contracts/storage'
+import { PreconditionFailedError, ObjectNotFoundError, NotADirectoryError, isDirectoryName } from '@genoacms/contracts/storage'
 import { clientConfig, type AwsCredentials } from '../shared.js'
 import type { AwsStorageOptions } from './descriptor.js'
 
 const PLACEHOLDER = '.folderPlaceholder'
 const DELETE_BATCH = 1000
 const PRECONDITION_STATUSES = new Set([409, 412])
+const HTTP_NOT_FOUND = 404
 
 const httpStatus = (error: unknown): number | undefined =>
   (error as { $metadata?: { httpStatusCode?: number } } | undefined)?.$metadata?.httpStatusCode
+
+const errorName = (error: unknown): string | undefined => (error as { name?: string } | undefined)?.name
+
+// OBJ-3, STOR-16
+const isMissingKey = (error: unknown): boolean => errorName(error) === 'NoSuchKey'
+
+// OBJ-7, STOR-16
+const isMissingOnHead = (error: unknown): boolean => httpStatus(error) === HTTP_NOT_FOUND
+
+// OBJ-8
+function listingInput (bucket: string, name: string, params: DirectoryListingParams = {}): ListObjectsV2CommandInput {
+  return {
+    Bucket: bucket,
+    Prefix: name,
+    Delimiter: '/',
+    ...(params.limit === undefined ? {} : { MaxKeys: params.limit }),
+    ...(params.startAfter === undefined ? {} : { StartAfter: params.startAfter }),
+    ...(params.pageToken === undefined ? {} : { ContinuationToken: params.pageToken })
+  }
+}
 
 const isFile = (name: string) => (object: S3Object): boolean =>
   object.Key !== undefined && object.Key !== name && !object.Key.endsWith(PLACEHOLDER)
@@ -52,6 +76,12 @@ export default defineRuntime<AwsStorageOptions, Adapter>({
     // OBJ-2
     const requireRegistered = (bucket: string): void => {
       if (!registered.has(bucket)) throw new Error('bucket-unregistered')
+    }
+
+    // OBJ-2, STOR-3
+    const requireDirectory = (reference: ObjectReference, { allowRoot }: { allowRoot: boolean }): void => {
+      requireRegistered(reference.bucket)
+      if (!isDirectoryName(reference.name) || (!allowRoot && reference.name === '')) throw new NotADirectoryError(reference)
     }
 
     const keysUnder = async (bucket: string, prefix: string): Promise<string[]> => {
@@ -93,8 +123,13 @@ export default defineRuntime<AwsStorageOptions, Adapter>({
     // OBJ-3
     const getObject: Adapter['getObject'] = async ({ bucket, name }) => {
       requireRegistered(bucket)
-      const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: name }))
-      return { data: response.Body as never, version: response.ETag }
+      try {
+        const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: name }))
+        return { data: response.Body as never, version: response.ETag }
+      } catch (error) {
+        if (isMissingKey(error)) throw new ObjectNotFoundError({ bucket, name })
+        throw error
+      }
     }
 
     // OBJ-4
@@ -131,20 +166,23 @@ export default defineRuntime<AwsStorageOptions, Adapter>({
     // OBJ-7
     const deleteObject: Adapter['deleteObject'] = async ({ bucket, name }) => {
       requireRegistered(bucket)
+      try {
+        await client.send(new HeadObjectCommand({ Bucket: bucket, Key: name }))
+      } catch (error) {
+        if (isMissingOnHead(error)) throw new ObjectNotFoundError({ bucket, name })
+        throw error
+      }
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: name }))
     }
 
     // OBJ-8
-    const listDirectory: Adapter['listDirectory'] = async ({ bucket, name }, params) => {
-      requireRegistered(bucket)
-      const response = await client.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: name,
-        Delimiter: '/',
-        ...(params?.limit === undefined ? {} : { MaxKeys: params.limit }),
-        ...(params?.startAfter === undefined ? {} : { StartAfter: params.startAfter })
-      }))
+    const listDirectory: Adapter['listDirectory'] = async (reference, params) => {
+      requireDirectory(reference, { allowRoot: true })
+      const { bucket, name } = reference
+      const response = await client.send(new ListObjectsV2Command(listingInput(bucket, name, params)))
+      const next = response.IsTruncated === true ? response.NextContinuationToken : undefined
       const contents: DirectoryContents = {
+        ...(next === undefined ? {} : { next }),
         files: (response.Contents ?? []).filter(isFile(name)).map(toStorageObject),
         directories: (response.CommonPrefixes ?? [])
           .map(prefix => prefix.Prefix)
@@ -155,21 +193,24 @@ export default defineRuntime<AwsStorageOptions, Adapter>({
     }
 
     // OBJ-9
-    const createDirectory: Adapter['createDirectory'] = async ({ bucket, name }) => {
-      requireRegistered(bucket)
-      await client.send(new PutObjectCommand({ Bucket: bucket, Key: `${name}/${PLACEHOLDER}`, Body: '' }))
+    const createDirectory: Adapter['createDirectory'] = async (reference) => {
+      requireDirectory(reference, { allowRoot: false })
+      await client.send(new PutObjectCommand({ Bucket: reference.bucket, Key: `${reference.name}${PLACEHOLDER}`, Body: '' }))
     }
 
     // OBJ-10
-    const deleteDirectory: Adapter['deleteDirectory'] = async ({ bucket, name }) => {
-      requireRegistered(bucket)
+    const deleteDirectory: Adapter['deleteDirectory'] = async (reference) => {
+      requireDirectory(reference, { allowRoot: false })
+      const { bucket, name } = reference
       const keys = await keysUnder(bucket, name)
       for (const batch of batches(keys, DELETE_BATCH)) await deleteBatch(bucket, batch)
     }
 
     // OBJ-11
-    const moveDirectory: Adapter['moveDirectory'] = async ({ bucket, name }, destination) => {
-      requireRegistered(bucket)
+    const moveDirectory: Adapter['moveDirectory'] = async (reference, destination) => {
+      requireDirectory(reference, { allowRoot: false })
+      requireDirectory({ bucket: reference.bucket, name: destination }, { allowRoot: false })
+      const { bucket, name } = reference
       const keys = await keysUnder(bucket, name)
       for (const key of keys) await copyThenDelete(bucket, key, `${destination}${key.slice(name.length)}`)
     }

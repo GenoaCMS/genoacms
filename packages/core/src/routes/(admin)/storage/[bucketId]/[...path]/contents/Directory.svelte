@@ -14,9 +14,9 @@
     reference: ObjectReference,
   }
   const { path, navigationPath, reference }: Props = $props()
-  const searchParams = $derived('?' + page.url.searchParams.toString() || '')
-  const nameWithoutPrefix = $derived(reference.name.replace(path, ''))
-  const prettyName = $derived(nameWithoutPrefix.replace('/', '') || '/')
+  const searchParams = $derived(page.url.search)
+  const nameWithoutPrefix = $derived(reference.name.slice(path.length))
+  const prettyName = $derived(nameWithoutPrefix.slice(0, -1) || '/')
   let contextMenuEvent: MouseEvent | null = $state(null)
   let isRenameModalOpen = $state(false)
 
@@ -49,4 +49,4 @@
   </Selectable>
 </div>
 
-<RenameModal isDirectory={true} name={prettyName} bind:isModalOpen={isRenameModalOpen}/>
+<RenameModal name={nameWithoutPrefix} value={prettyName} bind:isModalOpen={isRenameModalOpen}/>

@@ -31,6 +31,7 @@ import type { Grant } from '$lib/script/authorization/grants'
 // ---------------------------------------------------------------------------------------------
 
 vi.mock('$lib/script/storage/storage.server', () => ({
+  defaultBucketId: 'media',
   getBucketReferences: () => [{ name: 'media' }],
   getObject: async () => ({ data: '' }),
   getObjectString: async () => '',
@@ -251,6 +252,8 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   moveUserDirectory: ctx => storage.moveUserDirectory(ctx, directoryRef, 'other/'),
   deleteUserObject: ctx => storage.deleteUserObject(ctx, objectRef),
   deleteUserDirectory: ctx => storage.deleteUserDirectory(ctx, directoryRef),
+  requireUserWrites: ctx => storage.requireUserWrites(ctx, [objectRef]),
+  requireUserDeletes: ctx => storage.requireUserDeletes(ctx, [objectRef]),
 
   // database
   getUserCollectionReferences: ctx => visible(database.getUserCollectionReferences(ctx)),

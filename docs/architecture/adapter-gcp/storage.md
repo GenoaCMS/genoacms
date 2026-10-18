@@ -2,7 +2,7 @@
 type: architecture
 title: GCP storage: Cloud Storage
 codes: [STO]
-verified: a830c48
+verified: 813d2b5
 ---
 
 # GCP storage: Cloud Storage
@@ -58,6 +58,7 @@ partly deleted or partly moved, now up to the failing object, and the operation 
 | GF22 | **A directory moved to a name containing `$` patterns gets wrong object names** (STO-12). The new name is used as a replacement string, so `$&`, `` $` ``, `$'` and `$$` are expanded: moving `d/` to `n$&/` names `d/x` as `nd//x`. Found by GS6. | fixed, RFC-0027 |
 | GF29 | **The client library's `deleteFiles` does not stop at the first failure** (STO-11, GS8). RFC-0027 first used `bucket.deleteFiles({ prefix })` of `@google-cloud/storage` 7.21 for GD7. It queues up to 1000 deletes before awaiting any, so a failed delete leaves the queued ones running; and while the listing is still streaming it rejects with `Premature close` and leaves the delete's own error as an unhandled rejection, which ends a Node process. Found before release; the runtime lists and deletes page by page itself. | fixed, RFC-0027 |
 | GF24 | **The storage tests miss parts of their statements** (GS6). Tests pass when: a non-string `projectId` is accepted (COM-3); `ifVersion` wins over `ifAbsent`, or a non-412 error on a conditional write becomes `PreconditionFailedError` (STO-6); `deleteObject` swallows its errors (STO-7); the URL is signed for `write` (STO-8, unit level); any name containing `.folderPlaceholder` is hidden (STO-9); one failed delete or move is ignored (STO-11, STO-12). STO-11 and STO-12 also said "in parallel", which no test and no user can observe; GD7 replaced it. | fixed, RFC-0027 |
+| GF38 | **Deleting a directory of more than one page never ends** (STO-11). With `autoPaginate: false`, `getFiles` of `@google-cloud/storage` 7.21 answers with a next query holding only `prefix` and `pageToken`. Passed back as it is, it lists with `autoPaginate` on, to the last page, and answers with its own query as the next one, so the runtime listed the same token forever. The unit tests passed because their mocked next query kept `autoPaginate: false`. Found 2026-10-18 by the storage e2e run's teardown, which deletes the 1001 objects of BRW-15. The runtime builds each page's query itself. | fixed |
 | GF37 | *History.* **STO-3 is tested through `getObject` only** (GS14). A runtime in which any of the other nine methods skips the bucket check, or checks after its first request, passes every test. Found 2026-10-08 by GS14. || fixed, RFC-0033 |
 
 ### History
@@ -99,16 +100,19 @@ Without `credentials`, the client is constructed with `{ projectId }` only.
 
 #### STO-3 · Only registered buckets
 
-Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request.
+Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request. The directory methods then check the name (`contracts/storage.md` STOR-3).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 - Level: unit
 
 #### STO-4 · Reads return the generation
 
-`getObject({ bucket, name })` returns `{ data, version }`: `data` is the object's read stream, and `version` is its generation as a decimal string. When the metadata call fails, `version` is `undefined` and the read still proceeds.
+`getObject({ bucket, name })` reads the object's metadata, then returns `{ data, version }`: `data`
+is the object's read stream, and `version` its generation as a decimal string. When the metadata
+call fails with 404, it rejects with `ObjectNotFoundError`; when it fails otherwise, `version` is
+`undefined` and the read still proceeds.
 
-- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-5 · Public URL
@@ -120,14 +124,14 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-6 · Conditional writes
 
-`uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. The remaining options pass to the client's `save`. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
+`uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. `save` receives only the precondition. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-7 · Moving and deleting an object
 
-`moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes. Errors propagate.
+`moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes; a delete answered with 404 rejects with `ObjectNotFoundError`. Errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
@@ -141,14 +145,21 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-9 · Listing one level
 
-`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together: when more come back, the first `limit` in GCS's order, by the UTF-8 bytes of the name, are kept, and `limit: 0` lists nothing. It starts after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
+`listDirectory({ bucket, name }, { limit?, startAfter?, pageToken? })` makes one `getFiles` request:
+prefix `name`, delimiter `/`, `autoPaginate: false`, `maxResults: limit`, `startOffset:
+startAfter` and `pageToken`, each only when given. An object or prefix named exactly `startAfter`
+is left out, so a page **MAY** hold one entry fewer than `limit` (GF21). `files` excludes objects
+whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`,
+`size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories`
+are the returned prefixes other than `name`, as `{ bucket, name }` references. `next` is the
+response's next page token, when there is one. `limit: 0` lists nothing and sends no request.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-10 · Creating a directory
 
-`createDirectory({ bucket, name })` writes an empty object `<name>/.folderPlaceholder`.
+`createDirectory({ bucket, name })` writes an empty object `<name>.folderPlaceholder` (`contracts/storage.md` CD10).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract

@@ -41,7 +41,63 @@ function isPreconditionFailed (error) {
     /** @type {{ name?: unknown }} */ (error).name === 'PreconditionFailedError'
 }
 
+/**
+ * Raised when `getObject` or `deleteObject` is given an object that does not exist (STOR-16).
+ */
+class ObjectNotFoundError extends Error {
+  /**
+   * @param {import('./types.d.ts').ObjectReference} reference
+   */
+  constructor (reference) {
+    super(`storage/not-found: ${reference.bucket}/${reference.name}`)
+    this.name = 'ObjectNotFoundError'
+    this.reference = reference
+  }
+}
+
+/**
+ * Raised when a directory method is given a name that is not a directory name (STOR-3).
+ */
+class NotADirectoryError extends Error {
+  /**
+   * @param {import('./types.d.ts').ObjectReference} reference
+   */
+  constructor (reference) {
+    super(`storage/not-a-directory: ${reference.bucket}/${reference.name}`)
+    this.name = 'NotADirectoryError'
+    this.reference = reference
+  }
+}
+
+/**
+ * @param {unknown} error
+ * @param {string} name
+ * @returns {boolean}
+ */
+const isErrorNamed = (error, name) =>
+  typeof error === 'object' && error !== null && /** @type {{ name?: unknown }} */ (error).name === name
+
+/**
+ * Matches on the name, as `isPreconditionFailed` does (CD11).
+ *
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+const isNotFound = (error) => isErrorNamed(error, 'ObjectNotFoundError')
+
+/**
+ * `''`, the root, or a name ending in `/` (STOR-3).
+ *
+ * @param {string} name
+ * @returns {boolean}
+ */
+const isDirectoryName = (name) => name === '' || name.endsWith('/')
+
 export {
   PreconditionFailedError,
-  isPreconditionFailed
+  isPreconditionFailed,
+  ObjectNotFoundError,
+  isNotFound,
+  NotADirectoryError,
+  isDirectoryName
 }

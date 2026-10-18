@@ -22,6 +22,25 @@ interface TypeCounts {
   files: number
 }
 
+const STORED_SELECTION = 'genoacms:storage-selection'
+
+// BRW-5
+function readStored (): ObjectReference[] {
+  try {
+    const stored = globalThis.sessionStorage?.getItem(STORED_SELECTION)
+    return stored === null || stored === undefined ? [] : JSON.parse(stored) as ObjectReference[]
+  } catch {
+    return []
+  }
+}
+
+// BRW-5
+function writeStored (references: ObjectReference[]): void {
+  try {
+    globalThis.sessionStorage?.setItem(STORED_SELECTION, JSON.stringify(references))
+  } catch {}
+}
+
 function isDirectory (reference: ObjectReference): boolean {
   return reference.name.endsWith('/')
 }
@@ -33,6 +52,14 @@ class StorageSelection {
     // always used.
     canSelect: reference => this.#allowDirectories || !isDirectory(reference)
   })
+
+  constructor () {
+    this.#selection.load(readStored())
+  }
+
+  #store (): void {
+    writeStored(this.value)
+  }
 
   setParameters (parameters: Partial<SelectionParameters>): void {
     if (parameters.maxItems !== undefined) this.#selection.setMaxItems(parameters.maxItems)
@@ -75,10 +102,12 @@ class StorageSelection {
   /** Selects, or deselects when already selected. */
   toggle (reference: ObjectReference): void {
     this.#selection.toggle(reference)
+    this.#store()
   }
 
   selectAll (references: ObjectReference[]): void {
     this.#selection.selectAll(references)
+    this.#store()
   }
 
   isSelected (reference: ObjectReference): boolean {
@@ -87,10 +116,22 @@ class StorageSelection {
 
   clear (): void {
     this.#selection.clear()
+    this.#store()
   }
 
+  /** Keeps only the selected items of these names: what an action on several items left undone (BRW-14). */
+  retainNamed (names: string[]): void {
+    const kept = this.value.filter(reference => names.includes(reference.name))
+    this.#selection.clear()
+    this.#selection.load(kept)
+    this.#store()
+  }
+
+  /** Seeds a picker's selection with the opener's value alone, not what the tab held before (BRW-12). */
   load (references: ObjectReference[] | undefined): void {
+    this.#selection.clear()
     this.#selection.load(references)
+    this.#store()
   }
 }
 

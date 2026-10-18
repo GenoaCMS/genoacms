@@ -28,7 +28,6 @@ type ObjectPayload = string | Buffer | NodeJS.ReadableStream
 type ObjectVersion = string
 
 interface UploadOptions {
-  gzip?: boolean
   /**
    * Write only if the object still has this version. A stale token is rejected rather than
    * overwriting, which is what prevents one writer silently erasing another's update.
@@ -50,11 +49,15 @@ interface ObjectData {
 interface DirectoryListingParams {
   startAfter?: string
   limit?: number
+  /** The `next` of the page before, to continue a listing. */
+  pageToken?: string
 }
 
 interface DirectoryContents {
   files: StorageObject[]
   directories: ObjectReference[]
+  /** Present while the store has more entries after this page; opaque, only passed back as `pageToken`. */
+  next?: string
 }
 
 export type {

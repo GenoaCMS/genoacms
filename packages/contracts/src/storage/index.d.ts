@@ -12,9 +12,31 @@ declare class PreconditionFailedError extends Error {
 
 declare function isPreconditionFailed (error: unknown): boolean
 
+/** Raised when `getObject` or `deleteObject` is given an object that does not exist. */
+declare class ObjectNotFoundError extends Error {
+  readonly name: 'ObjectNotFoundError'
+  readonly reference: import('./types.d.ts').ObjectReference
+  constructor (reference: import('./types.d.ts').ObjectReference)
+}
+
+declare function isNotFound (error: unknown): boolean
+
+/** Raised when a directory method is given a name that is neither `''` nor ends in `/`. */
+declare class NotADirectoryError extends Error {
+  readonly name: 'NotADirectoryError'
+  readonly reference: import('./types.d.ts').ObjectReference
+  constructor (reference: import('./types.d.ts').ObjectReference)
+}
+
+declare function isDirectoryName (name: string): boolean
+
 export {
   PreconditionFailedError,
-  isPreconditionFailed
+  isPreconditionFailed,
+  ObjectNotFoundError,
+  isNotFound,
+  NotADirectoryError,
+  isDirectoryName
 }
 
 export type {

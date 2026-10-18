@@ -776,7 +776,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
       expect(await second.getAttribute('aria-pressed')).toBe('false')
       const closed = picker.waitForEvent('close')
-      await picker.getByRole('button', { name: 'Select all', exact: true }).click()
+      await picker.getByRole('button', { name: 'Confirm selection', exact: true }).click()
       await closed
 
       await shown(gallery.getByText(FILES[0], { exact: true }))
@@ -792,7 +792,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       const picker = await openStoragePicker(page, page.getByRole('group', { name: /^gallery\b/ }), 'Choose files from storage')
       await visit(page, '/collections/test')
       await picker.getByRole('button', { name: `select-${FILES[0]}`, exact: true }).click()
-      await picker.getByRole('button', { name: 'Select all', exact: true }).click()
+      await picker.getByRole('button', { name: 'Confirm selection', exact: true }).click()
       await pause(2000)
 
       expect(picker.isClosed()).toBe(false)

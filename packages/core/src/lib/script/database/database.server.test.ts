@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import * as storageContract from '@genoacms/contracts/storage'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
 import { deriveKeyId } from '$lib/script/signing/keyId'
 import { sign, type SigningKey } from '$lib/script/signing/envelope'
@@ -9,7 +10,9 @@ const bucket = vi.hoisted(() => ({
   directories: {} as Record<string, string[]>,
   objects: {} as Record<string, unknown>,
   listed: [] as Array<{ name: string, bucket: string }>,
-  read: [] as string[]
+  read: [] as string[],
+  pageSize: Infinity,
+  failures: {} as Record<string, Error>
 }))
 const registry = vi.hoisted(() => ({ keys: new Map<string, Uint8Array>(), isUnreachable: false }))
 const recorded = vi.hoisted(() => [] as Array<{ database: string, operation: string, reference: unknown }>)
@@ -18,17 +21,33 @@ vi.mock('$app/environment', () => environment)
 
 vi.mock('../storage/storage.server', async () => {
   const { fullyQualifiedNameToFilename } = await import('../storage/paths')
+  const listPage = async (reference: { name: string, bucket: string }, params?: { pageToken?: string }) => {
+    bucket.listed.push(reference)
+    const names = bucket.directories[reference.name] ?? []
+    const start = params?.pageToken === undefined ? 0 : Number(params.pageToken)
+    const page = names.slice(start, start + bucket.pageSize)
+    const files = page.map(name => ({ name: `${reference.name}${name}` }))
+    return start + bucket.pageSize < names.length ? { files, directories: [], next: String(start + bucket.pageSize) } : { files, directories: [] }
+  }
+  const listEveryPage = async (reference: { name: string, bucket: string }) => {
+    const files: unknown[] = []
+    let page = await listPage(reference)
+    files.push(...page.files)
+    while ('next' in page) {
+      page = await listPage(reference, { pageToken: (page as { next: string }).next })
+      files.push(...page.files)
+    }
+    return { files, directories: [] }
+  }
   return {
     defaultBucketId: 'media',
     fullyQualifiedNameToFilename,
-    listDirectory: async (reference: { name: string, bucket: string }) => {
-      bucket.listed.push(reference)
-      const files = (bucket.directories[reference.name] ?? []).map(name => ({ name: `${reference.name}${name}` }))
-      return { files, directories: [] }
-    },
-    getObjectJSON: async (reference: { name: string }) => {
+    listDirectory: listPage,
+    listWholeDirectory: listEveryPage,
+    getObjectJSON: async (reference: { name: string, bucket: string }) => {
       bucket.read.push(reference.name)
-      if (!(reference.name in bucket.objects)) throw new Error('storage/not-found')
+      if (reference.name in bucket.failures) throw bucket.failures[reference.name]
+      if (!(reference.name in bucket.objects)) throw new storageContract.ObjectNotFoundError(reference)
       return structuredClone(bucket.objects[reference.name])
     }
   }
@@ -109,6 +128,8 @@ beforeEach(() => {
   bucket.objects = {}
   bucket.listed = []
   bucket.read = []
+  bucket.pageSize = Infinity
+  bucket.failures = {}
   registry.keys = new Map([[trusted.signing.keyId, trusted.publicKey]])
   registry.isUnreachable = false
   recorded.length = 0
@@ -123,6 +144,14 @@ describe('the catalog', () => {
       { name: archiveDirectory, bucket: 'media' }
     ])
     expect(getCollectionReferences()).toEqual(['articles', 'legacy', 'logs'])
+  })
+
+  it('COL-1: a directory of more than one page lists every definition', async () => {
+    bucket.pageSize = 1
+    bucket.directories = { [mainDirectory]: ['articles', 'legacy'], [archiveDirectory]: ['logs', 'extra'] }
+    const { getCollectionReferences } = await importModule()
+
+    expect(getCollectionReferences()).toEqual(['articles', 'legacy', 'logs', 'extra'])
   })
 
   it('COL-1: lists nothing while SvelteKit analyses the build', async () => {
@@ -155,6 +184,21 @@ describe('resolving a definition', () => {
 
     await expect(getCollectionReference('legacy')).rejects.toThrow('collection/not-found')
     await expect(getCollectionReference('nowhere')).rejects.toThrow('collection/not-found')
+  })
+
+  it('COL-2: a missing definition is collection/not-found', async () => {
+    bucket.failures[logsPath] = new storageContract.ObjectNotFoundError({ bucket: 'media', name: logsPath })
+    const { getCollectionReference } = await importModule()
+
+    await expect(getCollectionReference('logs')).rejects.toThrow('collection/not-found')
+  })
+
+  it('COL-2: a storage failure while reading a definition propagates', async () => {
+    const outage = new Error('boom')
+    bucket.failures[logsPath] = outage
+    const { getCollectionReference } = await importModule()
+
+    await expect(getCollectionReference('logs')).rejects.toBe(outage)
   })
 
   it('COL-2, COL-7: a definition that does not verify fails with collection/unverifiable', async () => {

@@ -14,12 +14,12 @@ function credentials () {
 const create = async () => await runtime.create({ projectId: 'p', credentials: credentials() as any }, { name: 's', resources: ['b'] })
 
 describe('storage URLs', () => {
-  it('STO-5: forms the public URL with the name fully encoded', async () => {
+  it('STO-5, STOR-9: forms the public URL with the name fully encoded', async () => {
     const storage = await create()
     expect(await storage.getPublicURL({ bucket: 'b', name: 'a/b c.txt' })).toBe('https://storage.googleapis.com/b/a%2Fb%20c.txt')
   })
 
-  it('STO-8: signs a V2 read URL locally with a key', async () => {
+  it('STO-8, STOR-9: signs a V2 read URL locally with a key', async () => {
     const storage = await create()
     const expires = Date.now() + 60_000
     const url = new URL(await storage.getSignedURL({ bucket: 'b', name: 'a/b c.txt' }, expires))
@@ -29,7 +29,7 @@ describe('storage URLs', () => {
     expect(url.searchParams.get('Signature')).toMatch(/^[A-Za-z0-9+/=]+$/)
   })
 
-  it('STO-8: signs for read, not write', async () => {
+  it('STO-8, STOR-9: signs for read, not write', async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
     const key = { client_email: 'cms@p.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) as string }
     const storage = await runtime.create({ projectId: 'p', credentials: key as any }, { name: 's', resources: ['b'] })
@@ -41,5 +41,16 @@ describe('storage URLs', () => {
       .verify(publicKey, signature, 'base64')
     expect(signs('GET')).toBe(true)
     expect(signs('PUT')).toBe(false)
+  })
+
+  it('STOR-9: neither URL needs the object to exist, and the signature expires with expires', async () => {
+    const storage = await create()
+    const reference = { bucket: 'b', name: 'never-written.txt' }
+    expect(await storage.getPublicURL(reference)).toEqual(expect.any(String))
+    const soon = Date.now() + 1_000
+    const later = soon + 3_600_000
+    const expiry = async (expires: number) => Number(new URL(await storage.getSignedURL(reference, expires)).searchParams.get('Expires'))
+    expect(await expiry(soon)).toBe(Math.floor(soon / 1000))
+    expect(await expiry(later)).toBe(Math.floor(later / 1000))
   })
 })

@@ -14,6 +14,7 @@ import {
   S3ServiceException
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
+import * as contracts from '@genoacms/contracts/storage'
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
 import runtime from './runtime.js'
 
@@ -73,7 +74,7 @@ describe('the S3 runtime', () => {
     expect(constructed[1].config).toEqual({ region: 'us-east-1' })
   })
 
-  it('OBJ-2: refuses an unregistered bucket before any request, in every method', async () => {
+  it('OBJ-2, STOR-4: refuses an unregistered bucket before any request, in every method', async () => {
     const storage = await provider(['a'])
     const other = { bucket: 'b', name: 'n/' }
     const calls: Array<() => unknown> = [
@@ -94,7 +95,7 @@ describe('the S3 runtime', () => {
     expect(s3.calls()).toHaveLength(0)
   })
 
-  it('OBJ-3: returns the body and the ETag', async () => {
+  it('OBJ-3, STOR-5: returns the body and the ETag', async () => {
     const body = Readable.from(['content'])
     s3.on(GetObjectCommand).resolves({ Body: body as never, ETag: '"e1"' })
     const storage = await provider()
@@ -104,12 +105,10 @@ describe('the S3 runtime', () => {
     expect(inputs(GetObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'n' })])
   })
 
-  it('OBJ-3: propagates NoSuchKey and other errors unchanged', async () => {
+  it('OBJ-3: propagates other errors unchanged', async () => {
     const storage = await provider()
-    const missing = new NoSuchKey({ message: 'missing', $metadata: { httpStatusCode: 404 } })
     const denied = awsError('AccessDenied', 403)
-    s3.on(GetObjectCommand).rejectsOnce(missing).rejectsOnce(denied)
-    await expect(storage.getObject(ref)).rejects.toBe(missing)
+    s3.on(GetObjectCommand).rejectsOnce(denied)
     await expect(storage.getObject(ref)).rejects.toBe(denied)
   })
 
@@ -118,7 +117,7 @@ describe('the S3 runtime', () => {
     expect(await storage.getPublicURL({ bucket: 'b', name: 'd/a b.txt' })).toBe('https://b.s3.eu-central-1.amazonaws.com/d%2Fa%20b.txt')
   })
 
-  it('OBJ-5: presigns a GetObject for the whole seconds until expiry', async () => {
+  it('OBJ-5, STOR-9: presigns a GetObject for the whole seconds until expiry', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const now = Date.UTC(2026, 8, 30, 12, 0, 0)
     vi.setSystemTime(now)
@@ -129,7 +128,7 @@ describe('the S3 runtime', () => {
     expect(url.pathname).toBe('/d/a.txt')
   })
 
-  it('OBJ-6: ifAbsent sends IfNoneMatch and wins over ifVersion', async () => {
+  it('OBJ-6, STOR-7: ifAbsent sends IfNoneMatch and wins over ifVersion', async () => {
     s3.on(PutObjectCommand).resolves({})
     const storage = await provider()
     await storage.uploadObject(ref, 'data', { ifAbsent: true, ifVersion: '"e"' })
@@ -139,7 +138,7 @@ describe('the S3 runtime', () => {
     expect(puts[0].IfMatch).toBeUndefined()
   })
 
-  it('OBJ-6: ifVersion sends IfMatch', async () => {
+  it('OBJ-6, STOR-7: ifVersion sends IfMatch', async () => {
     s3.on(PutObjectCommand).resolves({})
     const storage = await provider()
     await storage.uploadObject(ref, 'data', { ifVersion: '"e"' })
@@ -149,7 +148,7 @@ describe('the S3 runtime', () => {
     expect(puts[0].IfNoneMatch).toBeUndefined()
   })
 
-  it('OBJ-6: maps 412 and 409 to PreconditionFailedError with the reason', async () => {
+  it('OBJ-6, STOR-7: maps 412 and 409 to PreconditionFailedError with the reason', async () => {
     const storage = await provider()
     s3.on(PutObjectCommand).rejectsOnce(awsError('PreconditionFailed', 412)).rejectsOnce(awsError('ConditionalRequestConflict', 409))
     const stale = storage.uploadObject(ref, 'data', { ifVersion: '"e"' })
@@ -167,7 +166,7 @@ describe('the S3 runtime', () => {
     await expect(storage.uploadObject(ref, 'data', { ifVersion: '"e"' })).rejects.toBe(denied)
   })
 
-  it('OBJ-6: writes unconditionally through the multipart uploader, propagating its errors', async () => {
+  it('OBJ-6, STOR-7: writes unconditionally through the multipart uploader, propagating its errors', async () => {
     const failure = new Error('upload failed')
     uploadSettles(async () => { throw failure })
     const storage = await provider()
@@ -178,7 +177,7 @@ describe('the S3 runtime', () => {
     expect(conditional).toEqual([])
   })
 
-  it('OBJ-7: moves by copy then delete, and deletes nothing when the copy fails', async () => {
+  it('OBJ-7, STOR-10: moves by copy then delete, and deletes nothing when the copy fails', async () => {
     s3.on(CopyObjectCommand).resolves({})
     s3.on(DeleteObjectCommand).resolves({})
     const storage = await provider()
@@ -205,7 +204,7 @@ describe('the S3 runtime', () => {
     expect(inputs(DeleteObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'n' })])
   })
 
-  it('OBJ-8: lists one level with the given limit and startAfter only', async () => {
+  it('OBJ-8, STOR-11: lists one level with the given limit and startAfter only', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [], CommonPrefixes: [], IsTruncated: true, NextContinuationToken: 'next' })
     const storage = await provider()
     await storage.listDirectory({ bucket: 'b', name: 'd/' }, { limit: 10, startAfter: 'd/a' })
@@ -216,7 +215,7 @@ describe('the S3 runtime', () => {
     expect(inputs(ListObjectsV2Command)).toEqual([{ Bucket: 'b', Prefix: 'd/', Delimiter: '/' }])
   })
 
-  it('OBJ-8: hides placeholders and the directory itself, and returns directories as references', async () => {
+  it('OBJ-8, STOR-11: hides placeholders and the directory itself, and returns directories as references', async () => {
     const lastModified = new Date('2026-09-30T12:00:00Z')
     s3.on(ListObjectsV2Command).resolves({
       Contents: [
@@ -236,7 +235,7 @@ describe('the S3 runtime', () => {
     expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/s/' }])
   })
 
-  it('OBJ-8: returns directories when there are no files', async () => {
+  it('OBJ-8, STOR-11: returns directories when there are no files', async () => {
     s3.on(ListObjectsV2Command).resolves({ CommonPrefixes: [{ Prefix: 'd/s/' }, { Prefix: 'd/t/' }] })
     const storage = await provider()
     const listing = await storage.listDirectory({ bucket: 'b', name: 'd/' })
@@ -244,20 +243,7 @@ describe('the S3 runtime', () => {
     expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/s/' }, { bucket: 'b', name: 'd/t/' }])
   })
 
-  it('OBJ-9: writes the placeholder without reading first', async () => {
-    s3.on(PutObjectCommand).resolves({})
-    const storage = await provider()
-    await storage.createDirectory({ bucket: 'b', name: 'e' })
-    const puts = inputs(PutObjectCommand)
-    expect(puts).toHaveLength(1)
-    expect(puts[0]).toMatchObject({ Bucket: 'b', Key: 'e/.folderPlaceholder' })
-    expect(Buffer.from(puts[0].Body ?? '')).toHaveLength(0)
-    expect(s3.commandCalls(GetObjectCommand)).toHaveLength(0)
-    expect(s3.commandCalls(HeadObjectCommand)).toHaveLength(0)
-    expect(s3.calls()).toHaveLength(1)
-  })
-
-  it('OBJ-10: deletes every page of objects in batches of at most 1000', async () => {
+  it('OBJ-10, STOR-13: deletes every page of objects in batches of at most 1000', async () => {
     const keys = Array.from({ length: 2500 }, (_, index) => `f/${index}`)
     s3.on(ListObjectsV2Command)
       .resolvesOnce({ Contents: keys.slice(0, 1000).map(Key => ({ Key })), IsTruncated: true, NextContinuationToken: 't1' })
@@ -276,14 +262,14 @@ describe('the S3 runtime', () => {
     expect(deletes.flatMap(input => input.Delete.Objects)).toEqual(keys.map(Key => ({ Key })))
   })
 
-  it('OBJ-10: throws storage/delete-failed for a key the response reports', async () => {
+  it('OBJ-10, STOR-13: throws storage/delete-failed for a key the response reports', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'f/1' }, { Key: 'f/2' }] })
     s3.on(DeleteObjectsCommand).resolves({ Errors: [{ Key: 'f/1', Code: 'AccessDenied' }] })
     const storage = await provider()
     await expect(storage.deleteDirectory({ bucket: 'b', name: 'f/' })).rejects.toThrow(exactly('storage/delete-failed: b/f/1: AccessDenied'))
   })
 
-  it('OBJ-11: moves every object to the new prefix, keeping the rest of each name', async () => {
+  it('OBJ-11, STOR-14: moves every object to the new prefix, keeping the rest of each name', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/1' }, { Key: 'm/n/2' }, { Key: 'm/x$&y' }] })
     s3.on(CopyObjectCommand).resolves({})
     s3.on(DeleteObjectCommand).resolves({})
@@ -297,7 +283,7 @@ describe('the S3 runtime', () => {
     expect(inputs(DeleteObjectCommand).map(input => input.Key).sort()).toEqual(['m/1', 'm/n/2', 'm/x$&y'].sort())
   })
 
-  it('OBJ-11: stops at the first failure', async () => {
+  it('OBJ-11, STOR-14: stops at the first failure', async () => {
     const failure = awsError('AccessDenied', 403)
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/1' }, { Key: 'm/2' }, { Key: 'm/3' }] })
     s3.on(CopyObjectCommand).resolvesOnce({}).rejectsOnce(failure).resolves({})
@@ -308,7 +294,7 @@ describe('the S3 runtime', () => {
     expect(inputs(DeleteObjectCommand).map(input => input.Key)).not.toContain('m/2')
   })
 
-  it('OBJ-3: reads the object by its name exactly as given', async () => {
+  it('OBJ-3, STOR-3: reads the object by its name exactly as given', async () => {
     s3.on(GetObjectCommand).resolves({ Body: Readable.from(['x']) as never, ETag: '"e"' })
     const storage = await provider()
     await storage.getObject({ bucket: 'b', name: ' Mixed Case/ä B.TXT ' })
@@ -340,38 +326,14 @@ describe('the S3 runtime', () => {
     await expect(storage.moveObject({ bucket: 'b', name: 'd/a.txt' }, 'e/b.txt')).rejects.toBe(failure)
   })
 
-  it('OBJ-7: deletes an object with exactly one DeleteObject', async () => {
-    s3.on(DeleteObjectCommand).resolves({})
-    const storage = await provider()
-    await storage.deleteObject(ref)
-    expect(s3.calls()).toHaveLength(1)
-    expect(inputs(DeleteObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'n' })])
-  })
-
-  it('OBJ-8: uses a name without a trailing slash, or an empty name, as given', async () => {
+  it('OBJ-8, STOR-11: uses an empty name as given', async () => {
     s3.on(ListObjectsV2Command).resolves({})
     const storage = await provider()
-    await storage.listDirectory({ bucket: 'b', name: 'd' })
     await storage.listDirectory({ bucket: 'b', name: '' })
-    expect(inputs(ListObjectsV2Command)).toEqual([
-      { Bucket: 'b', Prefix: 'd', Delimiter: '/' },
-      { Bucket: 'b', Prefix: '', Delimiter: '/' }
-    ])
+    expect(inputs(ListObjectsV2Command)).toEqual([{ Bucket: 'b', Prefix: '', Delimiter: '/' }])
   })
 
-  it('OBJ-8: excludes the object named exactly name and keeps common prefixes other than name', async () => {
-    const lastModified = new Date('2026-09-30T12:00:00Z')
-    s3.on(ListObjectsV2Command).resolves({
-      Contents: [{ Key: 'd', Size: 0, LastModified: lastModified }, { Key: 'd.txt', Size: 1, LastModified: lastModified }],
-      CommonPrefixes: [{ Prefix: 'd/' }]
-    })
-    const storage = await provider()
-    const listing = await storage.listDirectory({ bucket: 'b', name: 'd' })
-    expect(listing.files).toEqual([{ name: 'd.txt', size: 1, lastModified }])
-    expect(listing.directories).toEqual([{ bucket: 'b', name: 'd/' }])
-  })
-
-  it('OBJ-8: hides only names that end in .folderPlaceholder', async () => {
+  it('OBJ-8, STOR-11: hides only names that end in .folderPlaceholder', async () => {
     const lastModified = new Date('2026-09-30T12:00:00Z')
     s3.on(ListObjectsV2Command).resolves({
       Contents: [
@@ -388,15 +350,7 @@ describe('the S3 runtime', () => {
     ])
   })
 
-  it('OBJ-9: uses a name with a trailing slash as given', async () => {
-    s3.on(PutObjectCommand).resolves({})
-    const storage = await provider()
-    await storage.createDirectory({ bucket: 'b', name: 'e/' })
-    expect(s3.calls()).toHaveLength(1)
-    expect(inputs(PutObjectCommand)).toEqual([expect.objectContaining({ Bucket: 'b', Key: 'e//.folderPlaceholder' })])
-  })
-
-  it('OBJ-10: sends no DeleteObjects for an empty directory', async () => {
+  it('OBJ-10, STOR-13: sends no DeleteObjects for an empty directory', async () => {
     s3.on(ListObjectsV2Command).resolves({})
     s3.on(DeleteObjectsCommand).resolves({})
     const storage = await provider()
@@ -404,7 +358,7 @@ describe('the S3 runtime', () => {
     expect(s3.commandCalls(DeleteObjectsCommand)).toHaveLength(0)
   })
 
-  it('OBJ-11: moves placeholders and the object named exactly name too', async () => {
+  it('OBJ-11, STOR-14: moves placeholders and the object named exactly name too', async () => {
     s3.on(ListObjectsV2Command).resolves({ Contents: [{ Key: 'm/' }, { Key: 'm/.folderPlaceholder' }, { Key: 'm/s/.folderPlaceholder' }, { Key: 'm/1' }] })
     s3.on(CopyObjectCommand).resolves({})
     s3.on(DeleteObjectCommand).resolves({})
@@ -417,5 +371,155 @@ describe('the S3 runtime', () => {
       [`b/${encodeURIComponent('m/1')}`, 'n/1']
     ])
     expect(inputs(DeleteObjectCommand).map(input => input.Key)).toEqual(['m/', 'm/.folderPlaceholder', 'm/s/.folderPlaceholder', 'm/1'])
+  })
+})
+
+describe('the storage contract on S3', () => {
+  it('OBJ-2, STOR-3, STOR-4: the directory methods check the name after the bucket', async () => {
+    const storage = await provider(['b'])
+    const calls = (bucketName: string) => ({
+      listDirectory: async () => await storage.listDirectory({ bucket: bucketName, name: 'x' }),
+      createDirectory: async () => await storage.createDirectory({ bucket: bucketName, name: 'x' }),
+      deleteDirectory: async () => await storage.deleteDirectory({ bucket: bucketName, name: 'x' }),
+      moveDirectory: async () => await storage.moveDirectory({ bucket: bucketName, name: 'x' }, 'y/'),
+      moveDirectoryDestination: async () => await storage.moveDirectory({ bucket: bucketName, name: 'x/' }, 'y'),
+      createRoot: async () => await storage.createDirectory({ bucket: bucketName, name: '' })
+    })
+    for (const [method, call] of Object.entries(calls('other'))) {
+      await expect(call(), method).rejects.toThrow(exactly('bucket-unregistered'))
+    }
+    for (const [method, call] of Object.entries(calls('b'))) {
+      await expect(call(), method).rejects.toThrow('storage/not-a-directory')
+    }
+    expect(s3.calls()).toHaveLength(0)
+  })
+
+  it('OBJ-3, STOR-16: NoSuchKey rejects with ObjectNotFoundError', async () => {
+    const storage = await provider()
+    s3.on(GetObjectCommand).rejects(new NoSuchKey({ message: 'missing', $metadata: { httpStatusCode: 404 } }))
+    const error = await storage.getObject(ref).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe('storage/not-found: b/n')
+  })
+
+  it('OBJ-7, STOR-16: a delete heads first, and a 404 sends no DeleteObject', async () => {
+    const storage = await provider()
+    s3.on(HeadObjectCommand).resolves({})
+    s3.on(DeleteObjectCommand).resolves({})
+    await storage.deleteObject(ref)
+    const sent = s3.calls().map(call => call.args[0])
+    expect(sent).toHaveLength(2)
+    expect(sent[0]).toBeInstanceOf(HeadObjectCommand)
+    expect(sent[0].input).toMatchObject({ Bucket: 'b', Key: 'n' })
+    expect(sent[1]).toBeInstanceOf(DeleteObjectCommand)
+    expect(sent[1].input).toMatchObject({ Bucket: 'b', Key: 'n' })
+
+    s3.reset()
+    s3.on(HeadObjectCommand).rejects(awsError('NotFound', 404))
+    s3.on(DeleteObjectCommand).resolves({})
+    const error = await storage.deleteObject(ref).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe('storage/not-found: b/n')
+    expect(s3.commandCalls(DeleteObjectCommand)).toHaveLength(0)
+  })
+
+  it('OBJ-8, STOR-11: ContinuationToken in, NextContinuationToken out only when truncated', async () => {
+    const storage = await provider()
+    s3.on(ListObjectsV2Command).resolvesOnce({ IsTruncated: true, NextContinuationToken: 't2' })
+      .resolvesOnce({ IsTruncated: false, NextContinuationToken: 'ignored' })
+      .resolvesOnce({ NextContinuationToken: 'ignored' })
+    const first = await storage.listDirectory({ bucket: 'b', name: 'd/' }, { limit: 3, pageToken: 't1' })
+    expect(inputs(ListObjectsV2Command)[0]).toEqual({ Bucket: 'b', Prefix: 'd/', Delimiter: '/', MaxKeys: 3, ContinuationToken: 't1' })
+    expect(first.next).toBe('t2')
+    expect((await storage.listDirectory({ bucket: 'b', name: 'd/' })).next).toBeUndefined()
+    expect((await storage.listDirectory({ bucket: 'b', name: 'd/' })).next).toBeUndefined()
+  })
+
+  it('OBJ-9, STOR-12: a directory is its name and the placeholder', async () => {
+    s3.on(PutObjectCommand).resolves({})
+    const storage = await provider()
+    await storage.createDirectory({ bucket: 'b', name: 'e/' })
+    const puts = inputs(PutObjectCommand)
+    expect(puts).toHaveLength(1)
+    expect(puts[0]).toMatchObject({ Bucket: 'b', Key: 'e/.folderPlaceholder' })
+    expect(Buffer.from(puts[0].Body ?? '')).toHaveLength(0)
+    expect(s3.calls()).toHaveLength(1)
+  })
+
+  it('STOR-15: errors propagate unchanged', async () => {
+    const consoleMethods = ['log', 'info', 'warn', 'error', 'debug'] as const
+    const spies = consoleMethods.map(method => vi.spyOn(console, method).mockImplementation(() => {}))
+    try {
+      const storage = await provider()
+      const failure = awsError('InternalError', 500)
+      const rejection = async (call: () => Promise<unknown>): Promise<unknown> => await call().then(() => undefined, (caught: unknown) => caught)
+      s3.on(ListObjectsV2Command).rejects(failure)
+      expect(await rejection(async () => await storage.listDirectory({ bucket: 'b', name: 'd/' }))).toBe(failure)
+      s3.on(PutObjectCommand).rejects(failure)
+      expect(await rejection(async () => await storage.uploadObject(ref, 'x', { ifAbsent: true }))).toBe(failure)
+      s3.on(CopyObjectCommand).rejects(failure)
+      expect(await rejection(async () => await storage.moveObject(ref, 'm'))).toBe(failure)
+      s3.on(HeadObjectCommand).resolves({})
+      s3.on(DeleteObjectCommand).rejects(failure)
+      expect(await rejection(async () => await storage.deleteObject(ref))).toBe(failure)
+      for (const spy of spies) expect(spy).not.toHaveBeenCalled()
+    } finally {
+      for (const spy of spies) spy.mockRestore()
+    }
+  })
+})
+
+describe('the storage contract on S3, as every adapter keeps it', () => {
+  const methods = ['getObject', 'getSignedURL', 'getPublicURL', 'uploadObject', 'moveObject', 'deleteObject', 'listDirectory', 'createDirectory', 'deleteDirectory', 'moveDirectory']
+
+  it('STOR-2: the adapter has the ten methods, for the buckets it was given', async () => {
+    const storage = await provider()
+    expect(Object.keys(storage).sort()).toEqual([...methods].sort())
+    for (const method of methods) expect(storage[method as keyof typeof storage], method).toBeTypeOf('function')
+    await expect(storage.getObject({ bucket: 'other', name: 'n' })).rejects.toThrow(exactly('bucket-unregistered'))
+  })
+
+  it('STOR-3: names are used as given', async () => {
+    s3.on(GetObjectCommand).resolves({ Body: Readable.from(['x']) as never })
+    s3.on(HeadObjectCommand).resolves({})
+    s3.on(DeleteObjectCommand).resolves({})
+    s3.on(CopyObjectCommand).resolves({})
+    s3.on(PutObjectCommand).resolves({})
+    const storage = await provider()
+    const names = ['a//b', './a', 'a/../b', ' Mixed Case/ä B.TXT ']
+    for (const name of names) {
+      await storage.getObject({ bucket: 'b', name })
+      await storage.uploadObject({ bucket: 'b', name }, 'x', { ifAbsent: true })
+      await storage.deleteObject({ bucket: 'b', name })
+    }
+    await storage.moveObject({ bucket: 'b', name: 'a//b' }, './a')
+    expect(inputs(GetObjectCommand).map(input => input.Key)).toEqual(names)
+    expect(inputs(PutObjectCommand).map(input => input.Key)).toEqual(names)
+    expect(inputs(DeleteObjectCommand).map(input => input.Key)).toEqual([...names, 'a//b'])
+    expect(inputs(CopyObjectCommand)).toEqual([expect.objectContaining({ Key: './a', CopySource: `b/${encodeURIComponent('a//b')}` })])
+  })
+
+  it('STOR-7: a write resolves to undefined, whatever its condition', async () => {
+    s3.on(PutObjectCommand).resolves({})
+    const storage = await provider()
+    expect(await storage.uploadObject(ref, 'x', {})).toBeUndefined()
+    expect(await storage.uploadObject(ref, 'x', { ifAbsent: true })).toBeUndefined()
+    expect(await storage.uploadObject(ref, 'x', { ifVersion: '"e"' })).toBeUndefined()
+  })
+
+  it('STOR-9: neither URL sends a request, so neither needs the object to exist', async () => {
+    const storage = await provider()
+    await storage.getPublicURL({ bucket: 'b', name: 'never-written' })
+    await storage.getSignedURL({ bucket: 'b', name: 'never-written' }, new Date(Date.now() + 60_000))
+    expect(s3.calls()).toHaveLength(0)
+  })
+
+  it('STOR-10: a move and a delete resolve to undefined', async () => {
+    s3.on(CopyObjectCommand).resolves({})
+    s3.on(DeleteObjectCommand).resolves({})
+    s3.on(HeadObjectCommand).resolves({})
+    const storage = await provider()
+    expect(await storage.moveObject(ref, 'm')).toBeUndefined()
+    expect(await storage.deleteObject(ref)).toBeUndefined()
   })
 })

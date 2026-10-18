@@ -5,7 +5,7 @@
     import Grid from '$lib/components/Grid.svelte'
 
     const { data } = $props()
-    const searchParams = $derived('?' + page.url.searchParams.toString() || '')
+    const searchParams = $derived(page.url.search)
 </script>
 
 <TopPanel>

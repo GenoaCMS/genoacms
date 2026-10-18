@@ -8,12 +8,12 @@ const databaseFixture = () => ({
   testDocuments: [{ name: 'a' }, { name: 'b' }]
 })
 
-runStorageConformance(memoryStorage(), { bucket: 'b' })
+runStorageConformance(memoryStorage(['b']), { bucket: 'b' })
 runDatabaseConformance(memoryDatabase(), databaseFixture())
 runAuthenticationConformance(correct(), fixture, { runs: 1 })
 
 describe('inside a describe', () => {
-  runStorageConformance(memoryStorage(), { bucket: 'b' })
+  runStorageConformance(memoryStorage(['b']), { bucket: 'b' })
   runDatabaseConformance(memoryDatabase(), databaseFixture())
   runAuthenticationConformance(correct(), fixture, { runs: 1 })
 })
