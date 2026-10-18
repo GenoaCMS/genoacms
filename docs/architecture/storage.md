@@ -38,6 +38,10 @@ named here (no document yet); the dashboard's list of recent directories.
 | # | Decision | Where |
 | :-- | :-- | :-- |
 | BU1 | 2026-10-18: `.genoacms/` in the default bucket is read-only for users. It is listed and its files open as any other's, under `storage:bucket:read`; the user layer refuses every write, move and delete that would change anything under it (BF1). Readable on purpose: the state helps debug the code, and lets a user debug their configuration. That every reader of the default bucket sees each user's subject, email and roles is intended. | STS-5 |
+| BU2 | 2026-10-18: a name a user types, a file's name on upload, a new directory's, a new name on rename, is one level: one that is empty, `.` or `..`, or contains `/` or the path delimiter, is refused, and names are appended to the directory as given, never through a path library (BF2). | BRW-13 |
+| BU3 | 2026-10-18: a denied operation is a 403, not a 500: a listing shows a 403 page, an action fails with 403, and the browser keeps its generic failure messages (BF6). | BRW-16 |
+| BU4 | 2026-10-18: an action on several items runs them one at a time, every one of them, and answers which failed; the selection keeps only the failed items (BF9). | BRW-14 |
+| BU5 | 2026-10-18: a directory longer than one page shows its first page, and `Show more` loads the next into the same view (BF8). | BRW-15 |
 
 **BD1. Two layers: an unchecked storage service for the CMS, and a user layer that checks a
 permission before each operation (STS-1, STS-2).** Every function of the user layer takes the
@@ -100,16 +104,16 @@ the empty one included.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| BF1 | **A user who may write or delete in the default bucket can replace or remove the CMS's own state.** The browser lists `.genoacms/` like any other directory (BRW-3), uploads replace an object of the same name without asking (BRW-6), and rename, move and delete act on it too. That state includes sessions, the authorization manifests, the key registry, the security policy and published pages. Signed state that is replaced fails its verification; unsigned state is taken as written. Found 2026-10-18 by reading at `de04f62`. | open; decided by BU1 (STS-5, no RFC yet) |
-| BF2 | **Names from the request are joined with Node's `path.join` (BRW-6 to BRW-8).** A file name, directory name or new name containing `..` resolves out of the current directory, within the same bucket; one containing `/` makes nested directories. An empty directory name sent without the form, in a subdirectory, creates `<prefix>/.folderPlaceholder` under a name ending in `/` (`contracts/storage.md` CF48); at the root, `path.join` turns it into `.`. Found 2026-10-18 by reading. | open |
-| BF3 | **Renaming a directory renames every directory that starts with its name (BRW-8).** The form sends the directory's name without its trailing `/`, so `moveDirectory` gets the prefix `photos/2024`: renaming it to `2025` also moves `photos/2024-old/x` to `photos/2025-old/x`, and any object whose name starts with `photos/2024`. Found 2026-10-18 by reading; not run. | open |
-| BF4 | **Moving into the directory an item is already in is not skipped (BRW-9).** The action compares the raw route parameter, which holds the delimiter, with the item's parent as `photos`, without its `/`; they never match, so every selected item is moved onto its own name, or a directory into itself. What each adapter does with a move onto the same name was not run. Found 2026-10-18 by reading. | open |
-| BF5 | **The `contents` field of move and delete is parsed without a check (BRW-9, BRW-10).** A value that is not JSON fails the action with a 500, not `fail(400)`, and its entries are not checked to be references. Found 2026-10-18 by reading. | open |
-| BF6 | **A denied operation is a server error (STS-2).** The routes do not map `PermissionDeniedError` to 403, as `authorization/enforce.ts` expects of them, and core has no `handleError`: a denied listing shows SvelteKit's 500 page, and a denied action shows the action's generic failure toast. Found 2026-10-18 by reading. | open |
-| BF7 | **A directory whose name contains the path delimiter cannot be opened (BRW-2).** The delimiter, `|->` by default, is removed everywhere in the route parameter, not only between levels. Found 2026-10-18 by reading. | open |
-| BF8 | **Only the first page of a directory is listed (BRW-3).** The browser passes no `limit` or `startAfter`, and a directory of more than 1000 entries shows the first 1000 with no sign that more exist (`contracts/storage.md` CF46, `collections.md` OF24). | open |
-| BF9 | **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | open |
-| BF10 | **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | open |
+| BF1 | **A user who may write or delete in the default bucket can replace or remove the CMS's own state.** The browser lists `.genoacms/` like any other directory (BRW-3), uploads replace an object of the same name without asking (BRW-6), and rename, move and delete act on it too. That state includes sessions, the authorization manifests, the key registry, the security policy and published pages. Signed state that is replaced fails its verification; unsigned state is taken as written. Found 2026-10-18 by reading at `de04f62`. | open; decided by BU1, RFC-0038 |
+| BF2 | **Names from the request are joined with Node's `path.join` (BRW-6 to BRW-8).** A file name, directory name or new name containing `..` resolves out of the current directory, within the same bucket; one containing `/` makes nested directories. An empty directory name sent without the form, in a subdirectory, creates `<prefix>/.folderPlaceholder` under a name ending in `/` (`contracts/storage.md` CF48); at the root, `path.join` turns it into `.`. Found 2026-10-18 by reading. | open; decided by BU2, RFC-0038 |
+| BF3 | **Renaming a directory renames every directory that starts with its name (BRW-8).** The form sends the directory's name without its trailing `/`, so `moveDirectory` gets the prefix `photos/2024`: renaming it to `2025` also moves `photos/2024-old/x` to `photos/2025-old/x`, and any object whose name starts with `photos/2024`. Found 2026-10-18 by reading; not run. | open, RFC-0038 |
+| BF4 | **Moving into the directory an item is already in is not skipped (BRW-9).** The action compares the raw route parameter, which holds the delimiter, with the item's parent as `photos`, without its `/`; they never match, so every selected item is moved onto its own name, or a directory into itself. What each adapter does with a move onto the same name was not run. Found 2026-10-18 by reading. | open, RFC-0038 |
+| BF5 | **The `contents` field of move and delete is parsed without a check (BRW-9, BRW-10).** A value that is not JSON fails the action with a 500, not `fail(400)`, and its entries are not checked to be references. Found 2026-10-18 by reading. | open, RFC-0038 |
+| BF6 | **A denied operation is a server error (STS-2).** The routes do not map `PermissionDeniedError` to 403, as `authorization/enforce.ts` expects of them, and core has no `handleError`: a denied listing shows SvelteKit's 500 page, and a denied action shows the action's generic failure toast. Found 2026-10-18 by reading. | open; decided by BU3, RFC-0038 |
+| BF7 | **A directory whose name contains the path delimiter cannot be opened (BRW-2).** The delimiter, `|->` by default, is removed everywhere in the route parameter, not only between levels. Found 2026-10-18 by reading. | open; mitigated by BU2, which refuses the delimiter in new names; names written outside the browser still cannot be opened |
+| BF8 | **Only the first page of a directory is listed (BRW-3).** The browser passes no `limit` or `startAfter`, and a directory of more than 1000 entries shows the first 1000 with no sign that more exist (`contracts/storage.md` CF46, `collections.md` OF24). | open; decided by BU5, RFC-0038 |
+| BF9 | **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | open; decided by BU4, RFC-0038 |
+| BF10 | **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | open, RFC-0038 |
 
 ### History
 
@@ -193,7 +197,7 @@ and neither is the CMS's own access (BD1).
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0038)
 
 ### The browser
 
@@ -327,3 +331,51 @@ once the opener acknowledges. Without `selectionId`, nothing of this is shown.
 
 - Test: unverified
 - Level: e2e
+
+#### BRW-13 · Names a user types
+
+A file's name on upload, a new directory's name and a new name on rename are each one level. A name
+that is empty, is `.` or `..`, or contains `/` or the path delimiter (BRW-2) is refused: the action
+fails with 400 and the reason `invalid-name`, and nothing is written. An accepted name is appended
+to the directory's name as given, without normalization: a new directory `<name>` in `photos/` is
+`photos/<name>/`.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0038)
+
+#### BRW-14 · Acting on several items
+
+Uploading several files, moving several items and deleting several items act on them one at a time,
+in the order given, and go on after a failure. When every item succeeds, the browser shows the
+action's success message (BRW-6, BRW-9, BRW-10). Otherwise the action fails with status 500 and
+`{ done, failed }`: the number of items that succeeded, and the names of those that failed. The
+browser then shows `<done> of <n> <past participle>. Failed: <names>`, with `uploaded`, `moved` or
+`deleted`, the names joined by `, `, and keeps only the failed items selected. A request that the
+user layer refuses as a whole (BRW-16) acts on no item.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0038)
+
+#### BRW-15 · Showing more
+
+A directory shows the first page of its listing (`contracts/storage.md` STOR-11). While the listing
+has a next page, a button `Show more` below the entries loads it and appends its directories and
+files to those shown. Select all (BRW-5) selects what is shown.
+
+- Test: none yet
+- Level: e2e
+- State: new (RFC-0038)
+
+#### BRW-16 · Denials
+
+A listing the principal may not read answers 403. An action that the user layer refuses, for a
+missing permission (STS-2) or for `.genoacms/` (STS-5), fails with 403 and the reason
+`permission-denied` or `internal-read-only`, and acts on nothing: an action on several items checks
+every item before acting on any. The browser shows the action's failure message, as for any failure.
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0038)
+

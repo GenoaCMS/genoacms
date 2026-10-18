@@ -28,7 +28,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
 | [`architecture/adapter-minio.md`](architecture/adapter-minio.md) | `M` | `MIO` | the MinIO storage adapter | yes. 2 current statements, `unverified`; 11 more **New** (RFC-0037). |
-| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 16 current statements, all `unverified`: no test carries their IDs yet; 1 more **New** (STS-5). |
+| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 16 current statements, all `unverified`: no test carries their IDs yet; 5 more **New** (RFC-0038). |
 | [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
@@ -52,7 +52,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
-| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; every statement `unverified`; open findings BF1 to BF10 |
+| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; every statement `unverified`; open findings BF1 to BF10, RFC-0038 |
 | MinIO | `adapter-minio` | `adapter-minio.md` | specified; does not conform (MF1), RFC-0037 |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
