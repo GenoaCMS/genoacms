@@ -22,11 +22,12 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/host.md`](architecture/host.md) | none (as `configuration.md`) | — | the host: provider construction and caching | **no**: split from `configuration.md` unchanged |
 | [`architecture/secrets.md`](architecture/secrets.md) | none (as `configuration.md`) | — | secret references, their resolution, the bootstrap, the development store | **no**: split from `configuration.md` unchanged |
 | [`architecture/build.md`](architecture/build.md) | none (as `configuration.md`) | — | the build, the artifact, vendoring, deployment targets, the lifecycle | **no**: split from `configuration.md` unchanged |
-| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md` and `conformance.md` conform (9 current statements, all naming a test, 1 of them partly verified (AUTHN-1, a type); 8 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `STOR`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md` and `conformance.md` conform (9 current statements naming a test, 1 of them partly verified (AUTHN-1, a type), and the 15 of `storage.md`, all `unverified`; 9 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
 | [`architecture/identities.md`](architecture/identities.md) | `I` | `PWH`, `IDS` | self-owned identity stores: password hashing, the identity record, sign-in | yes. 12 statements, all **New** (no RFC yet). |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements, all naming a test, 2 of them partly verified (STO-8, and COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
+| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 16 current statements, all `unverified`: no test carries their IDs yet; 1 more **New** (STS-5). |
 | [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
@@ -38,7 +39,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Area | Packages | Covered by | State |
 | :-- | :-- | :-- | :-- |
 | Configuration, host, secrets, build, artifact | `config` | `configuration.md`, `host.md`, `secrets.md`, `build.md` | covered, not restructured |
-| Adapter model and service contracts | `contracts` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage, database, secrets, language and deployment contracts: none, their types are the only description |
+| Adapter model and service contracts | `contracts` | `contracts/` | adapter model covered, not restructured; authentication specified (**New**); storage specified, every statement `unverified`, open findings CF44 to CF50; database, secrets, language and deployment contracts: none, their types are the only description |
 | Conformance suites | `conformance` | `contracts/conformance.md` | covered; open findings CF7 to CF9: the database suite's update and listing checks cannot fail, so GCP DB-5 and DB-7 are effectively unverified at `contract` (GF31) |
 | CLI | `cli` | `cli.md` | specified; open findings LF2 to LF8, all but LF7 in RFC-0028 |
 | GCP | `adapter-gcp`, `sveltekit-adapter-cloud-run-functions` | `adapter-gcp/` | covered; open findings: GF9 (needs paging in the contract first), GF31 (the database conformance suite, CF7) |
@@ -50,7 +51,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
-| Core: storage browser | `core` (`storage/`, routes) | none | none |
+| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; every statement `unverified`; open findings BF1 to BF10 |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | none | none |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
 

@@ -1,0 +1,370 @@
+---
+type: architecture
+title: Storage contract
+codes: [STOR]
+verified: de04f62
+---
+
+# Storage contract
+
+Part of the [service contracts](README.md). Markers, IDs and test references as defined there.
+
+## Design
+
+### Role
+
+The storage service keeps objects in buckets: the files users upload through core's storage browser
+and media fields, published pages, and the CMS's own state under `.genoacms/` in the default bucket
+(sessions, manifests, keys, the security policy, collection definitions). Every storage adapter
+implements the contract typed in `@genoacms/contracts/storage`, and core reaches it only through
+`host.storageForBucket`, which routes a bucket to the provider the configuration assigns it to
+([`host.md`](../host.md)).
+
+This document specifies what every adapter promises. Each adapter specifies its own mapping onto it:
+[`adapter-gcp/storage.md`](../adapter-gcp/storage.md) (Cloud Storage),
+[`adapter-aws/storage.md`](../adapter-aws/storage.md) (S3). `@genoacms/adapter-minio` has no document
+(CF49). What core does with the contract for users, the permission-checked layer and the storage
+browser, is [`storage.md`](../storage.md).
+
+```
+core ── host.storageForBucket(bucket) ──▶ provider ──▶ Cloud Storage | S3 | MinIO
+          one provider per bucket            Adapter: 10 methods (STOR-2)
+```
+
+Not part of the contract: cross-object atomicity, which no object store offers (CD8); creating or
+configuring buckets, which is the operator's (`adapter-gcp/README.md`, `adapter-aws/README.md`);
+object metadata other than size and modification time; access control on objects, which is the
+bucket's configuration.
+
+### Decisions
+
+| # | Decision | Where |
+| :-- | :-- | :-- |
+| CU5 | 2026-10-18: a missing object is a contract error of its own: `getObject` rejects with `ObjectNotFoundError`, `storage/not-found`, recognized as the precondition error is (CF44). | STOR-16 |
+| CU8 | 2026-10-18: deleting a missing object fails, with the error of CU5, on every adapter (CF45). | STOR-16 |
+| CU6 | 2026-10-18: `@genoacms/adapter-minio` is brought to this contract by an RFC, with a document of its own and a conformance run that runs (CF49). | no RFC yet |
+| CU7 | 2026-10-18: `gzip` is removed from `UploadOptions`. No caller passes it, and only one adapter honors it (CF47, CU1). It may return as an optional capability (CD1). | STOR-1, STOR-7, by an RFC |
+
+**CD8. A conditional write on one object is the contract's only concurrency primitive (STOR-6,
+STOR-7).** `uploadObject` takes `ifAbsent` or `ifVersion`, and a refused write throws
+`PreconditionFailedError`.
+*Why:* object storage offers no transaction across objects, and the CMS does not pretend to one.
+What every store does offer is a conditional write on a single object, and that is enough for the
+problem a storage-first CMS has: two writers that both read an object and both write it back, the
+second silently erasing the first. Sessions, manifests, the key registry, the security policy and
+publications rely on it.
+*Cost:* a change spanning several objects can be left half done. A caller that loses the race must
+read again and decide; for a document a person is editing that means reporting a conflict, never
+replaying the write.
+
+**CD9. A version is an opaque token (STOR-6).** A GCS generation, an S3 or MinIO ETag.
+*Why:* these are not comparable, orderable or meaningful across providers. Code that treats a
+version as a number or a time works against one adapter and fails subtly against another.
+*Cost:* a caller can only pass a version back to `uploadObject`; it cannot tell which of two versions
+is newer.
+
+**CD10. A directory is a name prefix ending in `/`; an empty one is held by a placeholder object
+(STOR-3, STOR-11, STOR-12).** `createDirectory` writes `<name>/.folderPlaceholder`, and listings hide
+it. The GCP and AWS adapters write the same name (`adapter-aws/storage.md`, *Decisions*), so a bucket
+moved between them keeps its empty directories.
+*Why:* object stores have no directories; a prefix with no object under it does not exist.
+*Cost:* an object whose name ends in `.folderPlaceholder` is never listed. Directory operations act
+on every object under the prefix and are not atomic (STOR-13, STOR-14).
+
+**CD11. A refused conditional write is recognized by the error's name (STOR-8).**
+`isPreconditionFailed` checks `name === 'PreconditionFailedError'`, not `instanceof`.
+*Why:* an adapter may resolve its own copy of `@genoacms/contracts`, and an `instanceof` check would
+then miss its errors and treat a lost race as a fault.
+*Cost:* any error named `PreconditionFailedError` passes, from whatever source.
+
+### Findings
+
+| # | Finding | State |
+| :-- | :-- | :-- |
+| CF44 | **A missing object is not told apart from a failure, and adapters report it differently** (STOR-5). The GCP adapter resolves `getObject` and fails only when the stream is read; the AWS adapter rejects with S3's `NoSuchKey`; the conformance package's in-memory adapter throws `not found: <bucket>/<name>`. No error code is common to them, so core cannot tell a missing object from an outage: `collections.md` OF29 is this finding seen from core. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU5 (STOR-16, no RFC yet) |
+| CF45 | **Deleting a missing object succeeds on AWS and fails on GCP** (STOR-10). `adapter-aws/storage.md` OBJ-7 resolves it, as S3 answers it with success; `adapter-gcp/storage.md` STO-7 propagates Cloud Storage's 404. Found 2026-10-18 by comparing the two Specifications. | open; decided by CU8 (STOR-16, no RFC yet) |
+| CF46 | **A listing cannot be continued** (STOR-11). `limit` and `startAfter` exist, but a listing returns no sign that more entries remain, and Cloud Storage and S3 answer at most 1000 per request. A caller that passes no `limit` gets the first page and cannot know it is cut. Core passes neither (`collections.md` OF24). | open |
+| CF47 | **`gzip` is honored by the GCP adapter only** (STOR-6). It passes the option to the client's `save`; the AWS adapter and the MinIO adapter drop it. CU1 admits into the contract only what every adapter can do. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU7 (no RFC yet) |
+| CF48 | **The contract does not say whether a directory's name ends in `/`** (STOR-3, STOR-12). Listings return directories with a trailing `/`; `createDirectory` appends `/.folderPlaceholder`, so a name that already ends in `/` writes `<name>//.folderPlaceholder`, a subdirectory with an empty name (`collections.md` OF23). | open |
+| CF49 | **`@genoacms/adapter-minio` does not conform.** Found 2026-10-18 by reading `packages/adapter-minio/src/runtime.js` at `de04f62`; nothing was run, and its conformance run is not in CI (`docs/README.md`). (1) It has no `getPublicURL` (STOR-2). (2) The bucket check is not awaited, so an unregistered bucket's request is still sent and the check's rejection is unhandled, which ends a Node process (STOR-4). (3) It ignores `ifAbsent` and `ifVersion` and writes unconditionally, so every write core makes conditionally, sessions, manifests, the key registry, the security policy and publications included, can silently erase a concurrent one (STOR-6, CD8). (4) `getObject` returns no `version` (STOR-5). (5) Its placeholder is `.directoryPlaceholder`, not `.folderPlaceholder` (CD10, STOR-12). (6) `listDirectory` normalizes the name with `path.join`, which resolves `..` and collapses `//`, and ignores `limit` (STOR-3, STOR-11). (7) `deleteDirectory` resolves before anything is deleted, and a failure is thrown inside a stream handler, where nothing can catch it (STOR-13). (8) `moveDirectory` copies every object at once, renames by replacing the first occurrence of the old name, so `$` patterns in the new name are expanded (as `adapter-gcp/storage.md` GF22 was), and removes the originals only after every copy (STOR-14). (9) A listing error becomes `Failed to list directory` and is written with `console.log` (STOR-15). | open; decided by CU6 (no RFC yet) |
+| CF50 | **The storage suite checks 5 of this contract's 15 statements, and its own in-memory adapter does not conform.** `CONF-2` uploads, lists, reads and deletes one object. Nothing in `@genoacms/conformance` checks conditional writes, versions, moves, directories or URLs, so an adapter can drop them unnoticed (CF49 went unnoticed this way). The in-memory adapter of `packages/conformance/test/memory.js` lists no directories, ignores `UploadOptions` and returns no version. Found 2026-10-18 by reading. | open |
+
+### History
+
+*History.* The contract lived in `@genoacms/cloudabstraction` from the monorepo's start; the 2026-09
+redesign moved it into `@genoacms/contracts` with its signatures unchanged (RFC-0001,
+[`configuration.md`](../configuration.md) A1 to A6). Conditional writes (`ifAbsent`, `ifVersion`, the
+version on reads and `PreconditionFailedError`) were added on 2026-08-16 for core's optimistic
+concurrency. `ObjectPayload` named only a stream until the CMS's own writes of strings contradicted
+it. Until 2026-10-18 the types were the only description of the contract.
+
+### Verification
+
+No test carries a `STOR` ID yet, so every statement is `unverified`. Tests that check statements
+without carrying their IDs:
+
+- `packages/contracts/src/storage.test.js` (unit): STOR-8, the error's name, message, fields, and
+  `isPreconditionFailed` on a copy and on other values.
+- `packages/conformance/src/storage.js`, run at `conformance` against the in-memory adapter and the
+  MinIO adapter, and at `contract` by the GCP and AWS adapters: parts of STOR-5, STOR-7, STOR-10 and
+  STOR-11 (CF50).
+- The GCP and AWS adapters' own tests, through their statements: each `STO` and `OBJ` statement
+  named in the Specification below is that adapter's form of the contract statement, verified at
+  `unit` and `contract`.
+
+The contract was written on 2026-10-18 from the types, the doc comments of
+`packages/contracts/src/storage/`, the Specifications of the GCP and AWS adapters, and a reading of
+the three adapters at `de04f62`. Where they disagree, the statement follows the GCP and AWS
+Specifications and the disagreement is a finding.
+
+## Specification
+
+### Types
+
+#### STOR-1 · The types that cross the contract
+
+```ts
+type ObjectName = string
+
+interface ObjectReference {
+  bucket: string
+  name: ObjectName
+}
+
+interface StorageObject {
+  name: string
+  size: number
+  lastModified: Date
+}
+
+type ObjectPayload = string | Buffer | NodeJS.ReadableStream
+
+type ObjectVersion = string
+
+interface UploadOptions {
+  gzip?: boolean
+  ifVersion?: ObjectVersion
+  ifAbsent?: boolean
+}
+
+interface ObjectData {
+  data: NodeJS.ReadableStream
+  version?: ObjectVersion
+}
+
+interface DirectoryListingParams {
+  startAfter?: string
+  limit?: number
+}
+
+interface DirectoryContents {
+  files: StorageObject[]
+  directories: ObjectReference[]
+}
+```
+
+`StorageObject.name` and a directory's `ObjectReference.name` are full names from the bucket's root.
+`size` is in bytes.
+
+- Test: unverified
+- Level: unit
+
+#### STOR-2 · The adapter
+
+```ts
+interface Adapter {
+  getObject (reference: ObjectReference): Promise<ObjectData>
+  getSignedURL (reference: ObjectReference, expires: Date): Promise<string>
+  getPublicURL (reference: ObjectReference): Promise<string>
+  uploadObject (reference: ObjectReference, data: ObjectPayload, options: UploadOptions): Promise<void>
+  moveObject (reference: ObjectReference, destination: ObjectName): Promise<void>
+  deleteObject (reference: ObjectReference): Promise<void>
+  listDirectory (reference: ObjectReference, params?: DirectoryListingParams): Promise<DirectoryContents>
+  createDirectory (reference: ObjectReference): Promise<void>
+  deleteDirectory (reference: ObjectReference): Promise<void>
+  moveDirectory (reference: ObjectReference, destination: ObjectName): Promise<void>
+}
+```
+
+Every adapter implements all ten methods. A runtime's `create` returns the adapter for the buckets the
+configuration assigns to it, given in `ctx.resources`.
+
+- Test: unverified
+- Level: unit, conformance
+
+### Names and buckets
+
+#### STOR-3 · Names are used as given
+
+An object's name is the whole key within its bucket. `/` separates directory levels: a directory is
+the prefix of the names under it, ending in `/`, and the bucket's root is the empty prefix `''`. An
+adapter neither normalizes nor resolves a name: `a//b`, `./a` and `a/../b` are names of their own.
+
+- Test: unverified
+- Level: unit, conformance
+
+#### STOR-4 · Only the provider's buckets
+
+Every method first checks the reference's bucket against the buckets the runtime was given, and for
+any other bucket throws an `Error` with the message `bucket-unregistered` before sending any
+request. (`adapter-gcp/storage.md` STO-3, `adapter-aws/storage.md` OBJ-2.)
+
+- Test: unverified
+- Level: unit
+
+### Objects
+
+#### STOR-5 · Reading an object
+
+`getObject(reference)` returns `{ data, version }`: `data` is a stream of exactly the object's bytes,
+and `version` the object's current version (STOR-6), or `undefined` when the adapter cannot supply one.
+(STO-4, OBJ-3.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+#### STOR-6 · Versions
+
+A version is an opaque string (CD9). Every successful write to an object gives it a new version, and
+a version read with `getObject` stays valid for `ifVersion` until the object is next written. A
+caller never compares, orders or parses versions.
+
+- Test: unverified
+- Level: conformance, contract
+
+#### STOR-7 · Writing an object
+
+`uploadObject(reference, data, options)` writes `data` as the object's whole content and resolves to
+`undefined`:
+
+| `options` | Writes when |
+| :-- | :-- |
+| `ifAbsent: true` | no object of that name exists. Of any number of racing callers, exactly one succeeds. `ifVersion` is then ignored. |
+| `ifVersion: v` | the object's current version is `v` |
+| neither | always, replacing any object of that name |
+
+A refused condition throws `PreconditionFailedError` (STOR-8) with the reason `object already exists`
+for `ifAbsent`, and `object changed since it was read` for `ifVersion`. `gzip: true` **MAY** store the
+content compressed (CF47). (STO-6, OBJ-6.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+#### STOR-8 · The precondition error
+
+```ts
+declare class PreconditionFailedError extends Error {
+  readonly name: 'PreconditionFailedError'
+  readonly reference: ObjectReference
+  readonly reason: string
+  constructor (reference: ObjectReference, reason: string)
+}
+declare function isPreconditionFailed (error: unknown): boolean
+```
+
+`@genoacms/contracts/storage` exports both. The error's message is
+`storage/precondition-failed: <bucket>/<name>: <reason>`. `isPreconditionFailed` is true for any
+non-null object whose `name` is `PreconditionFailedError`, and false for everything else (CD11).
+
+- Test: unverified
+- Level: unit
+
+#### STOR-9 · URLs
+
+`getSignedURL(reference, expires)` returns a URL from which anyone can read the object without
+credentials until `expires`, and not after; it **MAY** stop working earlier when the credentials that
+signed it expire (`adapter-aws/storage.md` OBJ-5). `getPublicURL(reference)` returns the URL at which
+the object is served when the bucket allows public reads; it does not check that it does. Neither
+checks that the object exists. (STO-5, STO-8, OBJ-4, OBJ-5.)
+
+- Test: unverified
+- Level: unit, contract
+
+#### STOR-10 · Moving and deleting an object
+
+`moveObject(reference, destination)` gives the object the name `destination` in the same bucket, with
+the same content, and the old name no longer exists. `deleteObject(reference)` removes the object.
+Both resolve to `undefined`. (STO-7, OBJ-7.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+### Directories
+
+#### STOR-11 · Listing one level
+
+`listDirectory({ bucket, name }, { limit?, startAfter? })` lists the entries directly under the
+prefix `name`, one level deep, from one request:
+
+- `files`: each object whose name starts with `name` and has no further `/` after it, except the
+  object named exactly `name` and objects whose name ends in `.folderPlaceholder`, with its `name`,
+  `size` (`0` when unknown) and `lastModified`;
+- `directories`: each prefix `name` + `<segment>/` under which at least one object exists, as
+  `{ bucket, name }`, its name ending in `/`.
+
+With `startAfter`, only entries whose name sorts after it are listed, `startAfter` itself excluded.
+With `limit`, at most `limit` entries are listed, files and directories together. (STO-9, OBJ-8.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+#### STOR-12 · Creating a directory
+
+`createDirectory({ bucket, name })`, `name` not ending in `/`, writes the empty object
+`<name>/.folderPlaceholder`, so the directory `<name>/` is listed in its parent even when it holds
+nothing else (CD10). (STO-10, OBJ-9.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+#### STOR-13 · Deleting a directory
+
+`deleteDirectory({ bucket, name })` deletes every object whose name starts with `name`, at every
+depth, placeholders included, and resolves only after they are deleted. The first failure rejects
+with that failure; no further delete starts, and the directory is left partly deleted. (STO-11,
+OBJ-10.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+#### STOR-14 · Moving a directory
+
+`moveDirectory({ bucket, name }, destination)` lists every object whose name starts with `name`, at
+every depth, before moving any, then moves each as STOR-10 to `destination` followed by the rest of
+its name after `name`, taken literally. The first failure rejects with that failure; no further move
+starts, and the directory is left partly moved. (STO-12, OBJ-11.)
+
+- Test: unverified
+- Level: unit, conformance, contract
+
+### Failures
+
+#### STOR-15 · Failures propagate
+
+Apart from `bucket-unregistered` (STOR-4) and `PreconditionFailedError` (STOR-7), a method that
+fails rejects with its service's error unchanged. It does not resolve in place of failing, does not
+replace the error with one of its own, and writes nothing to the console.
+
+- Test: unverified
+- Level: unit
+
+#### STOR-16 · A missing object
+
+```ts
+declare class ObjectNotFoundError extends Error {
+  readonly name: 'ObjectNotFoundError'
+  readonly reference: ObjectReference
+  constructor (reference: ObjectReference)
+}
+declare function isNotFound (error: unknown): boolean
+```
+
+`getObject` of an object that does not exist rejects with `ObjectNotFoundError`, message
+`storage/not-found: <bucket>/<name>`, before it returns a stream; no adapter reports a missing object
+any other way. `deleteObject` of an object that does not exist rejects with the same error, and deletes nothing. `@genoacms/contracts/storage` exports both. `isNotFound` is true for any non-null
+object whose `name` is `ObjectNotFoundError`, and false for everything else, as CD11. This is an
+exception to STOR-15.
+
+- Test: none yet
+- Level: unit, conformance, contract
+- State: new (no RFC yet)

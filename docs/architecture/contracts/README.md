@@ -27,8 +27,9 @@ redesign ([`configuration.md`](../configuration.md)).
 | :-- | :-- | :-- | :-- |
 | [`adapter-model.md`](adapter-model.md) | — | descriptors and runtimes, references, registries, packages and their dependency direction | not restructured (`conforms: false`) |
 | [`authentication.md`](authentication.md) | AUTHN | `authenticate`, `getIdentity`, and what core does with them: sign-in, session revalidation | conforming |
+| [`storage.md`](storage.md) | STOR | the ten storage methods, names and directories, conditional writes and versions, failures | conforming; every statement `unverified` |
 | [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
-| storage, database, secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
+| database, secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
 
 ### Decisions
 
@@ -50,7 +51,7 @@ capability needs its own conformance suite.
 *History.* The contracts lived in `@genoacms/cloudabstraction`, beside a config loader and a build tool,
 until the 2026-09 redesign moved them into `@genoacms/contracts` with their signatures unchanged
 (RFC-0001, [`configuration.md`](../configuration.md) A1 to A6). On 2026-10-02 the adapter model moved
-out of `configuration.md` into this directory, and the authentication contract and the conformance suites got a Specification.
+out of `configuration.md` into this directory, and the authentication contract and the conformance suites got a Specification. On 2026-10-18 the storage contract got one, written from the types and the adapters.
 
 ### Register
 
@@ -62,6 +63,10 @@ Every `C` ID, where it lives, and its state.
 | CU2 | Credentials are user credentials; `GENOACMS_CREDENTIALS`, `users` | current | [`authentication.md`](authentication.md) |
 | CU3 | `getIdentity`, and rejections that carry a reason | decided | [`authentication.md`](authentication.md) |
 | CU4 | Providers one at a time; core limits failed sign-ins (5 per pair, 50 per address, 15 min) | decided | [`authentication.md`](authentication.md) |
+| CU5 | A missing object is `ObjectNotFoundError`, `storage/not-found` | decided | [`storage.md`](storage.md) |
+| CU8 | Deleting a missing object fails with `storage/not-found` | decided | [`storage.md`](storage.md) |
+| CU6 | The MinIO adapter is brought to the storage contract by an RFC | decided | [`storage.md`](storage.md) |
+| CU7 | `gzip` is removed from `UploadOptions` | decided | [`storage.md`](storage.md) |
 | CD1 | What only some adapters can do is an optional capability | decided, none yet | README |
 | CD2 | Sessions are revalidated with `getIdentity` at each refresh | new | [`authentication.md`](authentication.md) |
 | CD3 | A rejection carries its reason; users see one message | new | [`authentication.md`](authentication.md) |
@@ -69,6 +74,10 @@ Every `C` ID, where it lives, and its state.
 | CD4 | A suite test checks only contract statements, and carries their IDs | new | [`conformance.md`](conformance.md) |
 | CD5 | Each suite assertion is shown to fail against a mutant | new | [`conformance.md`](conformance.md) |
 | CD6 | Suites use per-run names and clean up | new | [`conformance.md`](conformance.md) |
+| CD8 | A conditional write on one object is the only concurrency primitive | current | [`storage.md`](storage.md) |
+| CD9 | A version is an opaque token | current | [`storage.md`](storage.md) |
+| CD10 | A directory is a prefix ending in `/`, held by a placeholder | current | [`storage.md`](storage.md) |
+| CD11 | A refused conditional write is recognized by the error's name | current | [`storage.md`](storage.md) |
 | CF1 | Nothing limits failed sign-ins | open, fixed by CD7 | [`authentication.md`](authentication.md) |
 | CF2 | The array adapter compares plain-text passwords, not in constant time | open | [`authentication.md`](authentication.md) |
 | CF3 | Every password is sent to every provider | mitigated, RFC-0030 | [`authentication.md`](authentication.md) |
@@ -112,6 +121,13 @@ Every `C` ID, where it lives, and its state.
 | CF41 | The conformance package's behavior that no statement covers, and a stale README | open | [`conformance.md`](conformance.md) |
 | CF42 | Parts of sign-in and revalidation that CS6 found untested | fixed, RFC-0033 | [`authentication.md`](authentication.md) |
 | CF43 | The authentication suite ignores the answers to wrong passwords in its sequence, and tries no transforms | partly fixed, RFC-0033; open: the throttling reading | [`conformance.md`](conformance.md) |
+| CF44 | A missing object is not told apart from a failure, and adapters differ | open, decided by CU5 | [`storage.md`](storage.md) |
+| CF45 | Deleting a missing object succeeds on AWS and fails on GCP | open, decided by CU8 | [`storage.md`](storage.md) |
+| CF46 | A listing cannot be continued | open | [`storage.md`](storage.md) |
+| CF47 | `gzip` is honored by the GCP adapter only | open, decided by CU7 | [`storage.md`](storage.md) |
+| CF48 | The contract does not say whether a directory's name ends in `/` | open | [`storage.md`](storage.md) |
+| CF49 | `@genoacms/adapter-minio` does not conform | open, decided by CU6 | [`storage.md`](storage.md) |
+| CF50 | The storage suite checks 5 of 15 statements; its in-memory adapter does not conform | open | [`storage.md`](storage.md) |
 | CS1 | Falsification audit of AUTHN-2 to AUTHN-7 and CONF-4 at `5dcc69f` | recorded | [`authentication.md`](authentication.md) |
 | CS2 | Falsification audit of AUTHN-5 to AUTHN-7 and CONF-4 as amended, at `f7294c4` | recorded | [`authentication.md`](authentication.md) |
 | CS3 | Falsification audit of AUTHN-5, AUTHN-7 and CONF-4 as amended again, at `eea34d9` | recorded | [`authentication.md`](authentication.md) |

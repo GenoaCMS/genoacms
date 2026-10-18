@@ -36,7 +36,7 @@ collections ([`configuration.md`](configuration.md)), how the host routes a coll
 database provider ([`host.md`](host.md)), what each database adapter stores
 ([`adapter-gcp/`](adapter-gcp/README.md), [`adapter-aws/`](adapter-aws/README.md)), and the grant
 model behind the permissions this document names (no document yet). The storage browser, which
-answers the file pickers of PCK, has no document yet either.
+answers the file pickers of PCK, is [`storage.md`](storage.md).
 
 ### Decisions
 
