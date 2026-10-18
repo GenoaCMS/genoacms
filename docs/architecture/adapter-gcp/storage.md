@@ -2,7 +2,7 @@
 type: architecture
 title: GCP storage: Cloud Storage
 codes: [STO]
-verified: a830c48
+verified: 813d2b5
 ---
 
 # GCP storage: Cloud Storage
@@ -99,16 +99,19 @@ Without `credentials`, the client is constructed with `{ projectId }` only.
 
 #### STO-3 · Only registered buckets
 
-Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request.
+Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request. The directory methods then check the name (`contracts/storage.md` STOR-3).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`
 - Level: unit
 
 #### STO-4 · Reads return the generation
 
-`getObject({ bucket, name })` returns `{ data, version }`: `data` is the object's read stream, and `version` is its generation as a decimal string. When the metadata call fails, `version` is `undefined` and the read still proceeds.
+`getObject({ bucket, name })` reads the object's metadata, then returns `{ data, version }`: `data`
+is the object's read stream, and `version` its generation as a decimal string. When the metadata
+call fails with 404, it rejects with `ObjectNotFoundError`; when it fails otherwise, `version` is
+`undefined` and the read still proceeds.
 
-- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+- Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-5 · Public URL
@@ -120,14 +123,14 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-6 · Conditional writes
 
-`uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. The remaining options pass to the client's `save`. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
+`uploadObject(ref, stream, options)`: `ifAbsent: true` writes with `ifGenerationMatch: 0`; otherwise `ifVersion` writes with `ifGenerationMatch: Number(ifVersion)`; otherwise the write is unconditional. `save` receives only the precondition. HTTP 412 throws the contract's `PreconditionFailedError`, whose message is `storage/precondition-failed: <bucket>/<name>: <reason>`, with the reason `object already exists` when `ifAbsent` was set, else `object changed since it was read`. Other errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-7 · Moving and deleting an object
 
-`moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes. Errors propagate.
+`moveObject(ref, newName)` renames within the same bucket. `deleteObject(ref)` deletes; a delete answered with 404 rejects with `ObjectNotFoundError`. Errors propagate.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
@@ -141,14 +144,21 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### STO-9 · Listing one level
 
-`listDirectory({ bucket, name }, { limit?, startAfter? })` lists one level: prefix `name`, delimiter `/`, no automatic paging, at most `limit` results, files and directories together: when more come back, the first `limit` in GCS's order, by the UTF-8 bytes of the name, are kept, and `limit: 0` lists nothing. It starts after `startAfter`: an object or prefix named exactly `startAfter` is not listed and does not count toward `limit` (GF21). `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories` are the returned prefixes other than `name`, as `{ bucket, name }` references.
+`listDirectory({ bucket, name }, { limit?, startAfter?, pageToken? })` makes one `getFiles` request:
+prefix `name`, delimiter `/`, `autoPaginate: false`, `maxResults: limit`, `startOffset:
+startAfter` and `pageToken`, each only when given. An object or prefix named exactly `startAfter`
+is left out, so a page **MAY** hold one entry fewer than `limit` (GF21). `files` excludes objects
+whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`,
+`size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories`
+are the returned prefixes other than `name`, as `{ bucket, name }` references. `next` is the
+response's next page token, when there is one. `limit: 0` lists nothing and sends no request.
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### STO-10 · Creating a directory
 
-`createDirectory({ bucket, name })` writes an empty object `<name>/.folderPlaceholder`.
+`createDirectory({ bucket, name })` writes an empty object `<name>.folderPlaceholder` (`contracts/storage.md` CD10).
 
 - Test: `packages/adapter-gcp/src/storage/runtime.test.ts`, `packages/adapter-gcp/test/contract/storage.test.ts`
 - Level: unit, contract

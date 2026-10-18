@@ -2,8 +2,8 @@
 type: rfc
 number: 38
 title: The storage browser to its Specification, with the CMS's state read-only
-status: draft
-commits: []
+status: implemented
+commits: [813d2b5]
 depends: [37]
 architecture: [architecture/storage.md]
 changes: [STS-4 compatible, BRW-3 compatible, BRW-6 breaking, BRW-7 compatible, BRW-8 compatible, BRW-9 compatible, BRW-10 compatible, BRW-11 compatible, BRW-12 compatible]
@@ -36,7 +36,8 @@ BF10). The author decided BU1 to BU5 the same day. This RFC, after RFC-0037:
 
 | File | Change |
 | :-- | :-- |
-| `packages/core/src/lib/script/storage/user.server.ts` | STS-5; `listUserDirectory` takes `params`; `requireUserActions` |
+| `packages/core/src/lib/script/storage/user.server.ts` | STS-5; `listUserDirectory` takes `params`; `requireUserWrites`, `requireUserDeletes` |
+| `packages/core/evidence/permissionMatrix.ts`, `permissionMatrix.test.ts` | the two new checks in the matrix; the storage mock gains `defaultBucketId` |
 | `packages/core/src/lib/script/storage/user.server.test.ts` | the existing tests retitled with STS IDs; the tests of §Tests |
 | `packages/core/src/lib/script/storage/browserPaths.ts` | new, pure: the path, names and `contents` of BRW-2, BRW-11, BRW-13 |
 | `packages/core/src/lib/script/storage/browserPaths.test.ts` | new: its unit tests |
@@ -51,6 +52,14 @@ BF10). The author decided BU1 to BU5 the same day. This RFC, after RFC-0037:
 | `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/RenameModal.svelte`, `Directory.svelte` | the directory's own name, ending in `/`, sent as `name` |
 | `packages/core/src/lib/script/storage/bulkResult.ts`, `bulkResult.test.ts` | new, pure: BRW-14's message, and its unit test |
 | `packages/core/e2e/storage.test.ts` | new: the e2e tests of §Tests |
+| `packages/core/src/lib/script/storage/SelectionRune.svelte.ts` | the selection is kept per tab in `sessionStorage`, so a reload keeps it (BRW-5); a picker starts from its opener's value alone (BRW-12) |
+| `packages/core/src/lib/components/ContextMenu.svelte`, `ContextMenuItem.svelte` | the menu and its items have the roles `menu` and `menuitem` (BRW-4, BRW-8) |
+| `packages/core/src/lib/components/CardLinkContents.svelte` | the icon is `aria-hidden`, so a card is named by its text alone (BRW-3) |
+| `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/ConfirmMove.svelte` | the button is named `Move here` (BRW-4, BRW-9) |
+| `packages/core/src/routes/(admin)/storage/[bucketId]/+page.server.ts` | redirects to the absolute `/storage/<bucket>/contents` (BRW-1) |
+| `packages/core/e2e/collections.test.ts` | the two PCK-2 tests confirm the storage picker with `Confirm selection`, its new name (BRW-12) |
+| `packages/core/src/routes/(admin)/storage/+page.svelte`, `.../contents/Directory.svelte` | links carry the page's query string as is, without a lone `?` (BRW-1) |
+| `packages/core/genoa.config/e2e.ts` | a reader of the e2e bucket: `e2e-dan`, assigned a role holding only `storage:bucket:read` on it |
 | `.changeset/storage-browser-to-specification.md` | new: `minor` for `@genoacms/core` |
 | `docs/architecture/storage.md` | to current, step 6 |
 
@@ -138,11 +147,12 @@ function lastLevelOf (name: string): string         // 'a/b/' → 'b/', 'a/f' �
 class InternalReadOnlyError extends Error {}         // message: storage/internal-read-only: <name>
 const isInternalStateName = (bucket: string, name: string): boolean
 // '.genoacms/' covers it, it covers '.genoacms/', or it is '': in the default bucket only
-function requireUserActions (ctx: AuthContext, permission: 'write' | 'delete', references: ObjectReference[]): void
+function requireUserWrites (ctx: AuthContext, references: ObjectReference[]): void
+function requireUserDeletes (ctx: AuthContext, references: ObjectReference[]): void
 ```
 
 Every write, move, rename and delete function checks STS-5 on its reference, and a move also on its
-destination, after the permission. `requireUserActions` runs the same checks for every reference,
+destination, after the permission. `requireUserWrites` and `requireUserDeletes` run the same checks for every reference,
 throwing the first refusal, and acts on nothing.
 
 The route's actions:
@@ -151,7 +161,7 @@ The route's actions:
 load:      directory = directoryOfRoute(params.path)
            list one page (STS-4); a PermissionDeniedError → error(403)
 action:    parse; malformed → fail(400, { reason })
-           requireUserActions(every item);  PermissionDeniedError → fail(403, { reason: 'permission-denied' })
+           requireUserWrites / requireUserDeletes(every item);  PermissionDeniedError → fail(403, { reason: 'permission-denied' })
                                             InternalReadOnlyError → fail(403, { reason: 'internal-read-only' })
            for each item, in order: act; collect failures by name
            any failed → fail(500, { done, failed })
@@ -297,7 +307,7 @@ write the code, recorded as a Verification entry in `storage.md`.
 - A 500 with `{ done, failed }` is a failure status for a partial success; the browser reads its body
   rather than its status.
 - The read-only rule is by name, so a caller of the unchecked storage service bypasses it (BD1).
-- The checks of `requireUserActions` and of each operation can disagree if a grant changes between
+- The checks of `requireUserWrites` / `requireUserDeletes` and of each operation can disagree if a grant changes between
   them; the operation's check still decides.
 
 **Blindspots & missed edge cases**

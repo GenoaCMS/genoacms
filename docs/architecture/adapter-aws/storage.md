@@ -2,7 +2,7 @@
 type: architecture
 title: AWS storage: S3
 codes: [OBJ]
-verified: 624ce2e
+verified: 813d2b5
 ---
 
 # AWS storage: S3
@@ -74,16 +74,16 @@ One `S3Client` per provider (AWS-4). The runtime receives its bucket names in `c
 
 #### OBJ-2 · Only registered buckets
 
-Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request.
+Every method first checks the reference's bucket against `ctx.resources`. An unlisted bucket throws `bucket-unregistered` before any request. The directory methods then check the name (`contracts/storage.md` STOR-3).
 
 - Test: `packages/adapter-aws/src/storage/runtime.test.ts`
 - Level: unit
 
 #### OBJ-3 · Reading an object
 
-`getObject({ bucket, name })` sends `GetObject` and returns `{ data, version }`: `data` is the response body stream, and `version` is the response's `ETag`, quotes included, as S3 sends it. A missing object rejects with S3's `NoSuchKey` error, and every other error propagates unchanged (WD2). Unlike GCP, where a missing object fails only when its stream is read, the call itself rejects.
+`getObject({ bucket, name })` sends `GetObject` and returns `{ data, version }`: `data` is the response body stream, and `version` is the response's `ETag`, quotes included, as S3 sends it. S3's `NoSuchKey` rejects with `ObjectNotFoundError`, and every other error propagates unchanged (WD2).
 
-- Test: `packages/adapter-aws/src/storage/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/storage.test.ts`
+- Test: `packages/adapter-aws/src/storage/runtime.test.ts`, `packages/adapter-aws/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### OBJ-4 · Public URL
@@ -109,21 +109,24 @@ Every method first checks the reference's bucket against `ctx.resources`. An unl
 
 #### OBJ-7 · Moving and deleting an object
 
-`moveObject(ref, newName)` sends `CopyObject` to `newName` in the same bucket, with `CopySource` `<bucket>/<encodeURIComponent(name)>`, then `DeleteObject` of the original. `deleteObject(ref)` sends `DeleteObject`; deleting a missing object is not an error, as S3 answers it with success. Errors propagate unchanged, and a failed copy deletes nothing.
+`moveObject(ref, newName)` sends `CopyObject` to `newName` in the same bucket, with `CopySource`
+`<bucket>/<encodeURIComponent(name)>`, then `DeleteObject` of the original; a failed copy deletes
+nothing. `deleteObject(ref)` sends `HeadObject` first: HTTP 404 rejects with `ObjectNotFoundError`
+and sends nothing more; otherwise it sends `DeleteObject`. Other errors propagate unchanged.
 
 - Test: `packages/adapter-aws/src/storage/runtime.test.ts`, `packages/adapter-aws/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### OBJ-8 · Listing one level
 
-`listDirectory({ bucket, name }, { limit?, startAfter? })` sends one `ListObjectsV2` with `Prefix: name`, `Delimiter: '/'`, `MaxKeys: limit` and `StartAfter: startAfter`, each only when given, and does not follow continuation tokens. `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when absent) and `lastModified`. `directories` are the returned common prefixes other than `name`, as `{ bucket, name }` references, also when there are no files. `name` is used as given.
+`listDirectory({ bucket, name }, { limit?, startAfter? })` sends one `ListObjectsV2` with `Prefix: name`, `Delimiter: '/'`, `MaxKeys: limit` and `StartAfter: startAfter` and `ContinuationToken: pageToken`, each only when given, and does not follow continuation tokens. `next` is `NextContinuationToken` when the response `IsTruncated`. `files` excludes objects whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`, `size` (bytes, `0` when absent) and `lastModified`. `directories` are the returned common prefixes other than `name`, as `{ bucket, name }` references, also when there are no files. `name` is used as given.
 
 - Test: `packages/adapter-aws/src/storage/runtime.test.ts`, `packages/adapter-aws/test/contract/storage.test.ts`
 - Level: unit, contract
 
 #### OBJ-9 · Creating a directory
 
-`createDirectory({ bucket, name })` writes an empty object `<name>/.folderPlaceholder` with `PutObject`, without reading anything first.
+`createDirectory({ bucket, name })` writes an empty object `<name>.folderPlaceholder` with `PutObject`, without reading anything first (`contracts/storage.md` CD10).
 
 - Test: `packages/adapter-aws/src/storage/runtime.test.ts`, `packages/adapter-aws/test/contract/storage.test.ts`
 - Level: unit, contract

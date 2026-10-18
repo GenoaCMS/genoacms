@@ -3,7 +3,7 @@ type: architecture
 title: Storage in core
 prefix: B
 codes: [STS, BRW]
-verified: de04f62
+verified: 813d2b5
 ---
 
 # Storage in core
@@ -84,6 +84,7 @@ grant changed meanwhile shows a control that fails, or hides one that would work
 **BD6. The selection lives as long as the tab, across directories and buckets (BRW-5, BRW-9).**
 *Why:* moving is select, navigate, move here; a selection reset on every navigation would make a move
 across directories impossible.
+The selection is kept in the tab's `sessionStorage`, so a reload keeps it too.
 *Cost:* a selection can hold items the current page does not show, and a delete deletes them too.
 The confirmation counts them, but does not name them.
 
@@ -104,40 +105,42 @@ the empty one included.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| BF1 | **A user who may write or delete in the default bucket can replace or remove the CMS's own state.** The browser lists `.genoacms/` like any other directory (BRW-3), uploads replace an object of the same name without asking (BRW-6), and rename, move and delete act on it too. That state includes sessions, the authorization manifests, the key registry, the security policy and published pages. Signed state that is replaced fails its verification; unsigned state is taken as written. Found 2026-10-18 by reading at `de04f62`. | open; decided by BU1, RFC-0038 |
-| BF2 | **Names from the request are joined with Node's `path.join` (BRW-6 to BRW-8).** A file name, directory name or new name containing `..` resolves out of the current directory, within the same bucket; one containing `/` makes nested directories. An empty directory name sent without the form, in a subdirectory, creates `<prefix>/.folderPlaceholder` under a name ending in `/` (`contracts/storage.md` CF48); at the root, `path.join` turns it into `.`. Found 2026-10-18 by reading. | open; decided by BU2, RFC-0038 |
-| BF3 | **Renaming a directory renames every directory that starts with its name (BRW-8).** The form sends the directory's name without its trailing `/`, so `moveDirectory` gets the prefix `photos/2024`: renaming it to `2025` also moves `photos/2024-old/x` to `photos/2025-old/x`, and any object whose name starts with `photos/2024`. Found 2026-10-18 by reading; not run. | open, RFC-0038 |
-| BF4 | **Moving into the directory an item is already in is not skipped (BRW-9).** The action compares the raw route parameter, which holds the delimiter, with the item's parent as `photos`, without its `/`; they never match, so every selected item is moved onto its own name, or a directory into itself. What each adapter does with a move onto the same name was not run. Found 2026-10-18 by reading. | open, RFC-0038 |
-| BF5 | **The `contents` field of move and delete is parsed without a check (BRW-9, BRW-10).** A value that is not JSON fails the action with a 500, not `fail(400)`, and its entries are not checked to be references. Found 2026-10-18 by reading. | open, RFC-0038 |
-| BF6 | **A denied operation is a server error (STS-2).** The routes do not map `PermissionDeniedError` to 403, as `authorization/enforce.ts` expects of them, and core has no `handleError`: a denied listing shows SvelteKit's 500 page, and a denied action shows the action's generic failure toast. Found 2026-10-18 by reading. | open; decided by BU3, RFC-0038 |
+| BF1 | *History.* **A user who may write or delete in the default bucket can replace or remove the CMS's own state.** The browser lists `.genoacms/` like any other directory (BRW-3), uploads replace an object of the same name without asking (BRW-6), and rename, move and delete act on it too. That state includes sessions, the authorization manifests, the key registry, the security policy and published pages. Signed state that is replaced fails its verification; unsigned state is taken as written. Found 2026-10-18 by reading at `de04f62`. | fixed, RFC-0038 |
+| BF2 | *History.* **Names from the request are joined with Node's `path.join` (BRW-6 to BRW-8).** A file name, directory name or new name containing `..` resolves out of the current directory, within the same bucket; one containing `/` makes nested directories. An empty directory name sent without the form, in a subdirectory, creates `<prefix>/.folderPlaceholder` under a name ending in `/` (`contracts/storage.md` CF48); at the root, `path.join` turns it into `.`. Found 2026-10-18 by reading. | fixed, RFC-0038 |
+| BF3 | *History.* **Renaming a directory renames every directory that starts with its name (BRW-8).** The form sends the directory's name without its trailing `/`, so `moveDirectory` gets the prefix `photos/2024`: renaming it to `2025` also moves `photos/2024-old/x` to `photos/2025-old/x`, and any object whose name starts with `photos/2024`. Found 2026-10-18 by reading; not run. | fixed, RFC-0038 |
+| BF4 | *History.* **Moving into the directory an item is already in is not skipped (BRW-9).** The action compares the raw route parameter, which holds the delimiter, with the item's parent as `photos`, without its `/`; they never match, so every selected item is moved onto its own name, or a directory into itself. What each adapter does with a move onto the same name was not run. Found 2026-10-18 by reading. | fixed, RFC-0038 |
+| BF5 | *History.* **The `contents` field of move and delete is parsed without a check (BRW-9, BRW-10).** A value that is not JSON fails the action with a 500, not `fail(400)`, and its entries are not checked to be references. Found 2026-10-18 by reading. | fixed, RFC-0038 |
+| BF6 | *History.* **A denied operation is a server error (STS-2).** The routes do not map `PermissionDeniedError` to 403, as `authorization/enforce.ts` expects of them, and core has no `handleError`: a denied listing shows SvelteKit's 500 page, and a denied action shows the action's generic failure toast. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF7 | **A directory whose name contains the path delimiter cannot be opened (BRW-2).** The delimiter, `|->` by default, is removed everywhere in the route parameter, not only between levels. Found 2026-10-18 by reading. | open; mitigated by BU2, which refuses the delimiter in new names; names written outside the browser still cannot be opened |
-| BF8 | **Only the first page of a directory is listed (BRW-3).** The browser passes no `limit` or `startAfter`, and a directory of more than 1000 entries shows the first 1000 with no sign that more exist (`contracts/storage.md` CF46, `collections.md` OF24). | open; decided by BU5, RFC-0038 |
-| BF9 | **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | open; decided by BU4, RFC-0038 |
-| BF10 | **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | open, RFC-0038 |
+| BF8 | *History.* **Only the first page of a directory is listed (BRW-3).** The browser passes no `limit` or `startAfter`, and a directory of more than 1000 entries shows the first 1000 with no sign that more exist (`contracts/storage.md` CF46, `collections.md` OF24). | fixed, RFC-0038 |
+| BF9 | *History.* **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | fixed, RFC-0038 |
+| BF10 | *History.* **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 
 ### History
 
 *History.* The storage browser dates from 2024-01 (`4303719`). On 2026-08-17 (`77161e0`) the
 user layer was split from the storage service to enforce bucket permissions on user operations
 (BD1); `storage:bucket:list` was later removed as redundant (BD3). The selection and the picker's half of the protocol were shared with the collection listing
-in 2026-10 (`collections.md` OD11). Until 2026-10-18 nothing but the code described either.
+in 2026-10 (`collections.md` OD11). Until 2026-10-18 nothing but the code described either. RFC-0038
+(2026-10-18) made `.genoacms/` read-only for users, took typed names as one level, fixed renames and
+moves, answered denials with 403, reported bulk actions per item, and paged the directory view.
 
 ### Verification
 
-No test carries an `STS` or `BRW` ID yet, so every statement is `unverified`. Tests that check
-statements without carrying their IDs:
+Every statement names the tests that carry its ID (RFC-0038):
 
-- `packages/core/src/lib/script/storage/user.server.test.ts` (unit): STS-1 to STS-3, on the user layer
-  with the storage service stubbed: each permission allows its operations and denies the others,
-  grants do not carry between buckets, write does not imply read, and the bucket list.
-- `packages/core/e2e/collections.test.ts` (e2e): the browser in picker mode, through PCK-2 and PCK-4:
-  opening a bucket, selecting files up to `maxItems` and confirming. It touches BRW-1, BRW-5 and
-  BRW-12.
-- `packages/core/src/lib/script/selection/Selection.test.ts` (unit): the shared selection behind
-  BRW-5 and BRW-12.
+- **`unit`, in Node:** the user layer with the storage service stubbed, and, for STS-4, with only
+  the adapter stubbed; the route's actions with the user layer real (`actions.test.ts`); the pure path,
+  name and message modules; the permission matrix (`packages/core/evidence/`), which covers the two
+  new checks.
+- **`unit`, in Chromium:** the shared selection behind BRW-5 and BRW-12.
+- **`e2e`:** `packages/core/e2e/storage.test.ts` serves core built with `genoa.config/e2e.ts`, with an
+  administrator, a principal who reads `test`, and `e2e-dan`, who may only read the bucket. Fixtures
+  are written under `e2e-<run>/` through the GCP adapter and removed afterwards. A partial failure
+  (BRW-14) is shown by answering the action in the browser, not by a failing adapter.
 
-The browser's own screens, upload, rename, move and delete have no test. This document was written on
-2026-10-18 from the code at `de04f62`; the findings were found by reading it, and none was run.
+*History.* This document was written on 2026-10-18 from the code at `de04f62`; its findings were found
+by reading it, and RFC-0038 fixed them (BF7 mitigated).
 
 ## Specification
 
@@ -148,7 +151,7 @@ The browser's own screens, upload, rename, move and delete have no test. This do
 The bucket list holds each bucket of the configuration, in its order, on which the principal holds
 any `storage:bucket:*` grant (BD3).
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit
 
 #### STS-2 · A permission per operation
@@ -165,7 +168,7 @@ called:
 A principal without it gets `PermissionDeniedError`, message
 `permission-denied: '<subject>' lacks <permission> on '<bucket>'`, and the adapter is not called.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit, e2e
 
 #### STS-3 · Grants do not carry
@@ -173,7 +176,7 @@ A principal without it gets `PermissionDeniedError`, message
 A grant on one bucket allows nothing on another, and no permission implies another: write allows
 neither reading nor deleting, and delete allows no move.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit
 
 #### STS-4 · A listing carries signed URLs
@@ -181,23 +184,24 @@ neither reading nor deleting, and delete allows no move.
 A directory's listing, as the browser receives it, gives each file its full `name`, `size`,
 `lastModified`, its `filename` (the name after its last `/`), and a `signedURL` (`contracts/storage.md`
 STOR-9) that expires one hour after the listing. Directories are `{ bucket, name }`, as the adapter
-lists them.
+lists them. The listing is one page of the adapter's (`contracts/storage.md` STOR-11), and carries
+its `next`; the next page is listed with `pageToken: next`.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit
 
 #### STS-5 · The CMS's state is read-only for users
 
 In the default bucket, the user layer refuses an upload, a directory creation, a move, a rename or a
-delete when its name or its destination starts with `.genoacms/`, or when the operation acts on a
-prefix that `.genoacms/` starts with, such as `` or `.gen`. It throws an `Error` with the message
-`storage/internal-read-only: <name>`, and the adapter is not called. Listing and signing URLs under
-`.genoacms/` follow STS-2. Other buckets, and names elsewhere in the default bucket, are not affected,
-and neither is the CMS's own access (BD1).
+delete when its name or its destination starts with `.genoacms/`, or when it acts on a directory
+that `.genoacms/` lies under, the root `` among them. It throws an `Error` with the message
+`storage/internal-read-only: <name>`, naming the source when it is refused and the destination
+otherwise, after the permission check (STS-2), and the adapter is not called. Listing and signing
+URLs under `.genoacms/` follow STS-2. Other buckets, and names elsewhere in the default bucket, are
+not affected, and neither is the CMS's own access (BD1).
 
-- Test: none yet
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0038)
 
 ### The browser
 
@@ -212,7 +216,7 @@ and neither is the CMS's own access (BD1).
 Every link to a bucket or a directory keeps the page's query string, so a picker's `selectionId`
 follows the user into buckets and directories. The back control does not keep it.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
 
 #### BRW-2 · A directory in the path
@@ -223,16 +227,17 @@ each level carries its trailing `/`: the directory `photos/2024/` is
 directory's name is `<path>` with every occurrence of the delimiter removed. The back control leads
 to the parent directory, and from the root to `/storage`.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/browserPaths.test.ts`
 - Level: e2e
 
 #### BRW-3 · A directory
 
-The page is titled with the directory's name, and shows its directories, then its files, in the order
-the adapter lists them (`contracts/storage.md` STOR-11). A directory shows its own level's name, its
-trailing `/` removed, and opens it. A file shows its `filename` and opens its signed URL in a new tab.
+The page is titled with the directory's name, and shows the directories loaded, then the files
+loaded (BRW-15), each in the order the adapter lists them (`contracts/storage.md` STOR-11). A
+directory shows its own level's name, its trailing `/` removed, and opens it. A file shows its
+`filename` and opens its signed URL in a new tab.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
 
 #### BRW-4 · The toolbar
@@ -243,7 +248,7 @@ directory and upload are shown only to a principal holding `storage:bucket:write
 delete only to one holding `storage:bucket:delete`. Each file and directory has a context menu whose
 `Rename` (BRW-8) is shown on the same terms as move. What is shown decides nothing (BD5).
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
 
 #### BRW-5 · Selecting
@@ -254,45 +259,50 @@ otherwise it reads `Unselect all` and empties the selection. The selection holds
 the order of selecting, and lasts until the tab closes or a move or delete succeeds, across
 directories and buckets (BD6).
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/selection/Selection.test.ts`
 - Level: unit, e2e
 
 #### BRW-6 · Uploading
 
 `Upload object` opens `Upload files`, with a file input taking several files. Each file is written,
-without a condition, to the directory's name followed by the file's name; existing objects of those
-names are replaced. While it runs the browser shows `Uploading`; then `Upload successful` and the
-directory reloads, or `Upload failed`. A submission without files does nothing.
+without a condition, to the directory's name followed by the file's name (BRW-13); an existing
+object of that name is replaced. While it runs the browser shows `Uploading`; then `Upload
+successful` and the directory reloads, or a failure as BRW-14 and BRW-16 say. A submission without
+files does nothing.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
 
 #### BRW-7 · Creating a directory
 
 `Create directory` opens a dialog of that title, with a required `Directory name:`. The directory
-created is the directory's name followed by the name given (`contracts/storage.md` STOR-12). The
-browser shows `Creating`, then `Directory created` and reloads, or `Failed to create directory`.
+created is the directory's name followed by the name given and `/` (BRW-13; `contracts/storage.md`
+STOR-12). The browser shows `Creating`, then `Directory created` and reloads, or `Failed to create
+directory`.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: e2e
 
 #### BRW-8 · Renaming
 
 `Rename` opens `Rename` with `New name:`, filled with the current name. The item keeps its directory
-and takes the new name: a file by `moveObject`, a directory, with every object under it, by
-`moveDirectory` (`contracts/storage.md` STOR-10, STOR-14). The browser shows `Renaming`, then
-`Renamed` and reloads, or `Renaming failed` with the dialog open again.
+and takes the new name (BRW-13): a file `<directory><name>` moves to `<directory><newName>` by
+`moveObject`; a directory `<directory><name>/` moves, with every object under it, to
+`<directory><newName>/` by `moveDirectory`, and nothing outside it moves. The browser shows
+`Renaming`, then `Renamed` and reloads, or `Renaming failed` with the dialog open again.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: e2e
 
 #### BRW-9 · Moving here
 
 Move here moves each selected item of the bucket shown into the directory shown, under its own last
-level's name; an item already in that directory, and an item of another bucket, are left where they
-are. The browser shows `Moving`, then `Moved`, empties the selection and reloads, or `Move failed`.
+level's name. An item whose parent is the directory shown, and an item of another bucket, are left
+where they are and are not counted. A directory moved into itself or below itself fails, as an item
+(BRW-14). The browser shows `Moving`, then `Moved`, empties the selection and reloads, or a failure
+as BRW-14 and BRW-16 say.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: e2e
 
 #### BRW-10 · Deleting
@@ -301,23 +311,27 @@ Delete asks `Do you want to delete <directories> and <files>?`, where each part 
 directory` or `<n> directories`, `one file` or `<n> files`, and is left out, with the `and`, when its
 count is 0. It counts every selected item (BD6), a name ending in `/` as a directory. On confirmation
 it deletes each item, a directory with everything under it, and shows `Deleting`, then `Deleted`,
-empties the selection and reloads, or `Deletion failed`. Cancelling deletes nothing.
+empties the selection and reloads, or a failure as BRW-14 and BRW-16 say. Cancelling deletes
+nothing.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
 
 #### BRW-11 · Malformed submissions
 
-A form action missing a field fails with status 400 and a `reason`, without calling the user layer:
+A form action with a missing or malformed field fails with status 400 and a `reason`, without
+calling the user layer:
 
-| Action | Missing | `reason` |
+| Action | Missing or invalid | `reason` |
 | :-- | :-- | :-- |
-| create directory | `directoryName` | `missing-directory-name` |
-| move | `contents` | `missing-file-name` |
-| rename | `name`, `newName` | `missing-name`, `missing-new-name` |
-| delete | `contents` | `missing-contents` |
+| create directory | `directoryName` missing | `missing-directory-name` |
+| move | `contents` missing | `missing-file-name` |
+| rename | `name`, `newName` missing | `missing-name`, `missing-new-name` |
+| delete | `contents` missing | `missing-contents` |
+| move, delete | `contents` that is not a JSON array of objects with a string `bucket` and a string `name`, or an empty array | `invalid-contents` |
+| upload, create directory, rename | a name BRW-13 refuses | `invalid-name` |
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/storage/browserPaths.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: unit
 
 #### BRW-12 · The browser as a picker
@@ -325,11 +339,11 @@ A form action missing a field fails with status 400 and a `reason`, without call
 Opened with `?selectionId=<id>`, the browser joins the picker protocol of `collections.md` PCK-2 on
 that channel: it takes `maxItems` and the current value from the opener, shows no checkbox on
 directories (BD7), and selects nothing more once `maxItems` items are selected, while a selected
-item can still be unselected. While the
-selection is not empty, the selection control confirms: it sends the selection and closes the tab
-once the opener acknowledges. Without `selectionId`, nothing of this is shown.
+item can still be unselected. While the selection is not empty, the selection control is a button
+named `Confirm selection`, which sends the selection and closes the tab once the opener
+acknowledges. Without `selectionId`, nothing of this is shown.
 
-- Test: unverified
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/selection/Selection.test.ts`
 - Level: e2e
 
 #### BRW-13 · Names a user types
@@ -340,9 +354,8 @@ fails with 400 and the reason `invalid-name`, and nothing is written. An accepte
 to the directory's name as given, without normalization: a new directory `<name>` in `photos/` is
 `photos/<name>/`.
 
-- Test: none yet
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/browserPaths.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0038)
 
 #### BRW-14 · Acting on several items
 
@@ -354,9 +367,8 @@ browser then shows `<done> of <n> <past participle>. Failed: <names>`, with `upl
 `deleted`, the names joined by `, `, and keeps only the failed items selected. A request that the
 user layer refuses as a whole (BRW-16) acts on no item.
 
-- Test: none yet
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/bulkResult.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0038)
 
 #### BRW-15 · Showing more
 
@@ -364,9 +376,8 @@ A directory shows the first page of its listing (`contracts/storage.md` STOR-11)
 has a next page, a button `Show more` below the entries loads it and appends its directories and
 files to those shown. Select all (BRW-5) selects what is shown.
 
-- Test: none yet
+- Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
-- State: new (RFC-0038)
 
 #### BRW-16 · Denials
 
@@ -375,7 +386,6 @@ missing permission (STS-2) or for `.genoacms/` (STS-5), fails with 403 and the r
 `permission-denied` or `internal-read-only`, and acts on nothing: an action on several items checks
 every item before acting on any. The browser shows the action's failure message, as for any failure.
 
-- Test: none yet
+- Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/actions.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0038)
 

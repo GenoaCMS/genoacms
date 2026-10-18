@@ -2,8 +2,8 @@
 type: rfc
 number: 37
 title: The storage contract, its suite, and adapters that conform
-status: draft
-commits: []
+status: implemented
+commits: [813d2b5]
 depends: []
 architecture: [architecture/contracts/storage.md, architecture/contracts/conformance.md, architecture/adapter-gcp/storage.md, architecture/adapter-aws/storage.md, architecture/adapter-minio.md, architecture/collections.md, architecture/cli.md]
 changes: [STOR-1 breaking, STOR-3 breaking, STOR-7 breaking, STOR-11 breaking, STOR-12 breaking, STOR-15 compatible, STO-3 breaking, STO-4 breaking, STO-6 breaking, STO-7 breaking, STO-9 breaking, STO-10 breaking, OBJ-2 breaking, OBJ-3 breaking, OBJ-7 breaking, OBJ-8 breaking, OBJ-9 breaking, COL-1 compatible, COL-2 breaking, CLI-10 compatible]
@@ -28,7 +28,8 @@ CU5 to CU10 the same day. This RFC:
 3. Pages listings with an opaque token, `pageToken` in, `next` out (STOR-1, STOR-11; CU10; CF46).
    Core's internal listings and `genoa database` follow every page (COL-1, CLI-10; OF24).
 4. Removes `gzip` from `UploadOptions` (STOR-1, STOR-7; CU7; CF47).
-5. Brings `@genoacms/adapter-minio` to the contract (MIO-3 to MIO-13; CU6; CF49, MF1).
+5. Brings `@genoacms/adapter-minio` to the contract, as an adapter for any S3-compatible server that
+   honors conditional writes, tested against RustFS (MIO-3 to MIO-13; CU6, MU2; CF49, MF1).
 6. Grows the storage suite to every statement it can check, with its own mutants, on names unique to
    the run (CONF-2; CF9, CF50, CD5, CD6), and makes the in-memory adapter conform.
 
@@ -55,11 +56,11 @@ RFC-0038.
 | `packages/adapter-gcp/src/storage/runtime.ts` | STO-3, STO-4, STO-6, STO-7, STO-9, STO-10 |
 | `packages/adapter-gcp/src/storage/runtime.test.ts` | the unit tests of §Tests |
 | `packages/adapter-gcp/test/contract/storage.test.ts` | STO-4's missing read; STO-9's paging; STOR-9 in STO-8's title |
-| `packages/adapter-gcp/test/conformance.test.ts` | the suite's wrapper loses `STO-4:` (CD4) |
+| `packages/adapter-gcp/test/conformance.test.ts` | the suite's wrapper loses `STO-4:` (CD4), at step 9 with STO-4's `Test:` line |
 | `packages/adapter-aws/src/storage/runtime.ts` | OBJ-2, OBJ-3, OBJ-7, OBJ-8, OBJ-9 |
 | `packages/adapter-aws/src/storage/runtime.test.ts` | the unit tests of §Tests |
 | `packages/adapter-aws/test/contract/storage.test.ts` | OBJ-3's missing read, OBJ-7's missing delete, OBJ-8's paging; STOR-9 in OBJ-5's title |
-| `packages/adapter-aws/test/conformance.test.ts` | the suite's wrapper loses `OBJ-3:` (CD4) |
+| `packages/adapter-aws/test/conformance.test.ts` | the suite runs on the bare adapter, without `underPrefix`, which rewrites names and so the suite's messages, drops `next`, and passes `createDirectory('')` through; the suite writes under its own run directory (CD6). The wrapper loses `OBJ-3:` (CD4) at step 9 with OBJ-3's `Test:` line |
 | `packages/adapter-minio/src/runtime.js`, `runtime.d.ts` | MIO-3 to MIO-13 |
 | `packages/adapter-minio/src/runtime.test.js` | the unit tests of §Tests |
 | `packages/core/src/lib/script/storage/storage.server.ts` | `listWholeDirectory`; `listOrCreateDirectory` uses it |
@@ -70,6 +71,7 @@ RFC-0038.
 | `packages/core/src/lib/script/components/publication/io.server.ts` | the publications directory ends in `/`; the pointer is deleted with `deleteObject`; `isMissing` becomes `isNotFound` |
 | `packages/core/src/routes/(admin)/storage/[bucketId]/[...path]/contents/+page.server.ts` | `createDirectory` and a directory's `rename` pass names ending in `/` |
 | `packages/cli/src/database.js`, `database.test.js` | CLI-10 every page |
+| `.github/workflows/ci.yml`, `scripts/test-level.mjs`, `packages/adapter-minio/test/conformance.test.js` | CI starts RustFS, pinned by digest; the conformance level runs the MinIO adapter's suite against it, which creates its bucket (`adapter-minio.md` MF2) |
 | `.changeset/storage-contract-conformance.md` | new: `minor` for `@genoacms/adapter-gcp`, `@genoacms/adapter-aws`, `@genoacms/adapter-minio`, `@genoacms/core`; `patch` for `@genoacms/contracts`, `@genoacms/conformance`, `@genoacms/cli` |
 | the architecture documents of `architecture` | to current, step 9 |
 
@@ -106,6 +108,8 @@ RFC-0038.
 > An object's name is the whole key within its bucket. `/` separates directory levels: a directory is
 > the prefix of the names under it, ending in `/`, and the bucket's root is the empty prefix `''`. An
 > adapter neither normalizes nor resolves a name: `a//b`, `./a` and `a/../b` are names of their own.
+> A store **MAY** refuse such a name; its error then propagates (STOR-15), and nothing is written
+> under another name.
 >
 > A **directory name** is `''` or a name ending in `/`. `listDirectory`, `createDirectory`,
 > `deleteDirectory` and `moveDirectory` take one, and `moveDirectory`'s destination is one; for any
@@ -212,7 +216,7 @@ rejects with `ObjectNotFoundError`."
 > whose name ends in `.folderPlaceholder` and the object named exactly `name`. Each file has `name`,
 > `size` (bytes, `0` when unknown) and `lastModified` (the object's `updated` time). `directories`
 > are the returned prefixes other than `name`, as `{ bucket, name }` references. `next` is the
-> response's next page token, when there is one.
+> response's next page token, when there is one. `limit: 0` lists nothing and sends no request.
 
 **STO-10 · Creating a directory** (changed, breaking): writes `<name>.folderPlaceholder`.
 
@@ -241,8 +245,9 @@ request, and "`next` is `NextContinuationToken` when the response `IsTruncated`"
 
 MIO-3 to MIO-13 (added): as `adapter-minio.md` states them. `runtime.js` keeps `create(options,
 ctx)`; the client is `new Minio.Client(...)` as today (MIO-2). Errors of the `minio` library carry
-the S3 code in `code`; MIO-4 and MIO-8 test `code === 'NoSuchKey' || code === 'NotFound'`, MIO-7
-tests the HTTP status `412` in `error.code === 'PreconditionFailed'` or `error.statusCode === 412`.
+the S3 code in `code` and no HTTP status (`adapter-minio.md` MS1); MIO-4 and MIO-8 test
+`code === 'NoSuchKey' || code === 'NotFound'`, and MIO-7 tests `code === 'PreconditionFailed'`, or
+`code === 'NoSuchKey'` for an `ifVersion` write.
 
 ### Core and the CLI
 
@@ -333,9 +338,9 @@ AWS conformance runs. Every path is under the run's directory `d = genoacms-conf
     and `moveDirectory` from `d/x/` to `d/y`, and `createDirectory` with `''`, then each rejects with
     the message `storage/not-a-directory: <bucket>/<name>` of the offending name, and nothing was
     written.
-  - › `STOR-3: names are not normalized`: given `d/a//b.txt` and `d/./c.txt` uploaded, then `d/`
-    lists `d/./` and `d/a/` as directories, `d/a/` lists `d/a//`, and each reads back under its own
-    name.
+  - › `STOR-3: names are not normalized`: when `d/a//b.txt`, `d/./c.txt` and `d/a/../e.txt` are each
+    uploaded, then each either reads back under its own name or its upload was refused, and in both
+    cases `d/a/b.txt`, `d/c.txt` and `d/e.txt` are missing (`adapter-minio.md` MF5).
   - › `STOR-11, STOR-12: a created directory is listed in its parent while empty, and shows no file`:
     when `createDirectory` of `d/e/`, then `d/` lists `{ bucket, name: 'd/e/' }` and no file under
     `d/e/`, and `d/e/` lists no files and no directories; after `d/e/f` is uploaded and deleted, `d/e/`
@@ -344,7 +349,8 @@ AWS conformance runs. Every path is under the run's directory `d = genoacms-conf
     then `d/l/` lists the file `d/l/1.txt` and the directory `d/l/sub/` only, and no `next`.
   - › `STOR-11: pages list every entry exactly once`: given 7 files and 3 directories under `d/p/`,
     when listed with `limit: 3` following `next`, then no page holds more than 3, the last page has
-    no `next`, and the pages together hold the 10 names each exactly once.
+    no `next`, no page after the first is empty, and the pages together hold the 10 names each exactly
+    once.
   - › `STOR-11: startAfter lists only what sorts after it`: given `d/s/a`, `d/s/b`, `d/s/c`, when
     listed with `startAfter: 'd/s/a'`, then the files are `d/s/b` and `d/s/c`.
   - › `STOR-13: deleting a directory removes every object under it, and nothing beside it`: given
@@ -391,6 +397,8 @@ AWS conformance runs. Every path is under the run's directory `d = genoacms-conf
     is the response's `nextQuery.pageToken`; without a next query, `next` is absent.
   - › `STO-9: an entry named startAfter is left out and nothing else is cut`: given a response of 3
     entries the first of which is `startAfter`, then 2 are listed.
+  - › `STO-9: limit 0 lists nothing and sends no request`: then the result is empty and `getFiles`
+    was not called.
   - › `STO-10: a directory is kept by the placeholder under its name`: `createDirectory('a/')` saves
     `a/.folderPlaceholder`, not `a//.folderPlaceholder`.
   - › `STOR-15: errors propagate unchanged`: a `getFiles`, `save`, `move` and `delete` rejecting with
@@ -430,6 +438,9 @@ AWS conformance runs. Every path is under the run's directory `d = genoacms-conf
     the empty object `dir/`, and the old test asserting `.directoryPlaceholder` is removed.
   - › `MIO-11: deletes page by page, resolves after the last removal, and rejects with the first
     error`.
+  - › `MIO-11: a key removeObjects reports as failed rejects with storage/delete-failed`: given
+    `removeObjects` answering `[{ Key: 'd/1', Code: 'AccessDenied' }]`, then `deleteDirectory('d/')`
+    rejects with `storage/delete-failed: b/d/1: AccessDenied`.
   - › `MIO-12: lists first, then moves one at a time, literally, and stops at the first failure`.
   - › `MIO-13: errors propagate unchanged, and nothing is written to the console`.
 - `packages/adapter-minio/test/conformance.test.js` (conformance, opt-in): unchanged; with
@@ -449,15 +460,19 @@ AWS conformance runs. Every path is under the run's directory `d = genoacms-conf
 
 1. Baseline: `pnpm -r test` passes at `unit`; `node scripts/test-level.mjs conformance` passes;
    `node docs/tools/check-docs.mjs docs` reports 0 errors.
-2. **MinIO spike, before any code.** Against a local MinIO (`podman run` with a registry login, or a
-   binary), check by hand that `PutObject` with `If-None-Match: *` refuses an existing key and with a
-   stale `If-Match` refuses with 412, through `minio` 8.0.7's `putObject` with a known size; and
-   that an empty object `dir/` is listed in its parent as the directory `dir/`, and not as a file.
-   If either does not hold, stop: MIO-7, MIO-10 and `adapter-minio.md` MD1, MD3 are corrected first
-   (discovery rule).
+2. **S3-compatible spike, before any code.** Done on 2026-10-18 (`adapter-minio.md` MS1): MinIO
+   could not be obtained (MF3); RustFS and SeaweedFS honor both conditions and list an empty `dir/`
+   as a directory, Garage ignores the conditions (MF4). MIO-7 was corrected to the codes observed.
+   The MinIO adapter's tests and conformance run use RustFS:
+   `podman run -d --name genoacms-s3-spike-rustfs -p 127.0.0.1:9100:9000 -e RUSTFS_ACCESS_KEY=<key>
+   -e RUSTFS_SECRET_KEY=<secret> -v <dir>:/data:Z docker.io/rustfs/rustfs:latest /data`, with a bucket
+   created first.
 3. Tests: write the tests of §Tests from this RFC and the documents, by a session that has not seen
    the adapters' code, and mark `it.fails` each that fails before the code, and only those. The
    suite's tests fail against today's in-memory adapter, so step 4's `memory.js` lands with them.
+   Two test files cannot pass before the code and are committed with it: `types.test-d.ts`, because
+   a type test cannot be marked as an expected failure, and `adapter-minio/src/runtime.test.js`,
+   because today's adapter raises unhandled rejections that fail the run whatever the markers.
    Commit.
 4. `@genoacms/contracts`: the types and the two errors. `@genoacms/conformance`: the suite,
    `memory.js`, the mutants.
@@ -481,8 +496,8 @@ GENOACMS_TEST_GCP=1 node scripts/test-level.mjs contract
 # all pass, the storage suite against Cloud Storage among them
 GENOACMS_TEST_AWS=1 node scripts/test-level.mjs contract
 # all pass, the storage suite against S3 among them
-GENOACMS_TEST_MINIO=1 pnpm --filter @genoacms/adapter-minio test:conformance
-# all pass, against the operator's MinIO
+GENOACMS_TEST_MINIO=1 GENOACMS_TEST_MINIO_BUCKET=<bucket> MINIO_ENDPOINT=127.0.0.1 MINIO_PORT=9100 MINIO_USE_SSL=false MINIO_ACCESS_KEY=<key> MINIO_SECRET_KEY=<secret> pnpm --filter @genoacms/adapter-minio test:conformance
+# all pass, against RustFS (step 2)
 node docs/tools/check-docs.mjs docs
 # 0 error(s)
 ```
@@ -516,9 +531,12 @@ adapters' parts in their own documents.
   component lists want everything, and a huge directory costs requests at start-up.
 
 **Blindspots & missed edge cases**
-- The MinIO server's support for conditional `PutObject` is from the client library's source, not
-  run (step 2); an S3-compatible server other than MinIO may ignore the headers and still pass the
-  unit tests.
+- Only RustFS is tested (MS1); a server that ignores the conditions, as Garage does (MF4), passes the
+  unit tests, and only the conformance suite against that server shows it. Nothing refuses such a
+  server at runtime.
+- `ifVersion` on a missing object answers `NoSuchKey` on RustFS and `PreconditionFailed` on
+  SeaweedFS; both become `PreconditionFailedError`, so the caller cannot tell "deleted" from
+  "changed".
 - A page token is valid for how long the store says; a listing paused across a token's expiry is not
   covered.
 - `moveObject` of a missing object, and `moveDirectory` of an empty directory, keep adapter-specific
