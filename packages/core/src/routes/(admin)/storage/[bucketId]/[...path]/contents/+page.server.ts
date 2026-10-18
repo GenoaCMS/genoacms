@@ -6,182 +6,160 @@ import {
   uploadUserObject,
   moveUserObject,
   deleteUserDirectory,
-  moveUserDirectory
+  moveUserDirectory,
+  requireUserWrites,
+  requireUserDeletes,
+  InternalReadOnlyError
 } from '$lib/script/storage/user.server'
-import { fullyQualifiedNameToPath, fullyQualifiedNameToFilename } from '$lib/script/storage/paths'
+import {
+  directoryOfRoute,
+  routeOfDirectory,
+  isAcceptedName,
+  parseContents,
+  parentOf,
+  lastLevelOf,
+  isDirectoryReference
+} from '$lib/script/storage/browserPaths'
+import { actInTurn, type BulkResult } from '$lib/script/storage/bulkResult'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { join } from 'path'
+import { PermissionDeniedError } from '$lib/script/authorization/enforce'
+import type { AuthContext } from '$lib/script/authorization/context'
 import { isString } from '$lib/script/utils'
 import { readableStreamToReadable } from '$lib/script/utils.server'
-import { fail } from '@sveltejs/kit'
+import { error, fail } from '@sveltejs/kit'
 import type { Actions } from './$types'
 import { host } from '$lib/script/host.server'
 import type { ObjectReference } from '@genoacms/contracts/storage'
 
 const delimiter = host.pathDelimiter
 
-const removePathDelimiter = (path: string) => path.replaceAll(delimiter, '')
+const directoryOf = (path: string | undefined): string => directoryOfRoute(path ?? '', delimiter)
 
-const pathToSegments = (path: string) => path.split(delimiter)
+// BRW-2
+const backLinkOf = (bucket: string, directory: string): string =>
+  directory === '' ? '/storage' : routeOfDirectory(bucket, parentOf(directory), delimiter)
 
-const segmentsToPath = (segments: Array<string>) => segments.join(delimiter)
-
-const resolveParentPath = (bucketId: string, path: string) => {
-  const pathSegments = pathToSegments(path)
-  if (pathSegments.length <= 1) return '/storage'
-  pathSegments.pop()
-  const parentPath = segmentsToPath(pathSegments)
-  const newPath = `/storage/${bucketId}/${parentPath}/contents`
-  return newPath
+// BRW-16
+const refusalOf = (caught: unknown) => {
+  if (caught instanceof PermissionDeniedError) return fail(403, { reason: 'permission-denied' })
+  if (caught instanceof InternalReadOnlyError) return fail(403, { reason: 'internal-read-only' })
+  throw caught
 }
+
+const refusingWith403 = async <T>(act: () => Promise<T>) => {
+  try {
+    return await act()
+  } catch (caught) {
+    return refusalOf(caught)
+  }
+}
+
+// BRW-14
+const reported = (result: BulkResult) => result.failed.length === 0 ? undefined : fail(500, result)
+
+const moveOne = async (ctx: AuthContext, reference: ObjectReference, destination: string) =>
+  isDirectoryReference(reference.name)
+    ? await moveUserDirectory(ctx, reference, destination)
+    : await moveUserObject(ctx, reference, destination)
+
+const deleteOne = async (ctx: AuthContext, reference: ObjectReference) =>
+  isDirectoryReference(reference.name)
+    ? await deleteUserDirectory(ctx, reference)
+    : await deleteUserObject(ctx, reference)
+
+const isBelowItself = (reference: ObjectReference, directory: string): boolean =>
+  isDirectoryReference(reference.name) && directory.startsWith(reference.name)
 
 export const load = async ({ params, locals }) => {
   const ctx = requireAuthContext(locals)
-  const {
-    bucketId,
-    path
-  } = params
-
-  const contents = await listUserDirectory(ctx, {
-    bucket: bucketId,
-    name: removePathDelimiter(path)
-  })
-
-  return {
-    bucketId,
-    delimiter,
-    navigationPath: path,
-    path: removePathDelimiter(path),
-    parentPath: resolveParentPath(bucketId, path),
-    contents: await processUserDirectoryContents(ctx, bucketId, contents)
+  const { bucketId, path } = params
+  const directory = directoryOf(path)
+  try {
+    const page = await listUserDirectory(ctx, { bucket: bucketId, name: directory })
+    return {
+      bucketId,
+      delimiter,
+      navigationPath: path,
+      path: directory,
+      parentPath: backLinkOf(bucketId, directory),
+      contents: await processUserDirectoryContents(ctx, bucketId, page)
+    }
+  } catch (caught) {
+    if (caught instanceof PermissionDeniedError) error(403, 'permission-denied')
+    throw caught
   }
 }
 
 export const actions = {
-  createDirectory: async ({
-    params,
-    request,
-    locals
-  }) => {
+  // BRW-7, BRW-13
+  createDirectory: async ({ params, request, locals }) => {
     const ctx = requireAuthContext(locals)
-    const {
-      bucketId,
-      path
-    } = params
-
-    const data = await request.formData()
-    const directoryName = data.get('directoryName')
-    if (!isString(directoryName)) return fail(400, { reason: 'missing-directory-name' })
-    const cleanPath = removePathDelimiter(path || '')
-    const directoryPath = join(cleanPath, directoryName)
-
-    await createUserDirectory(ctx, {
-      bucket: bucketId,
-      name: directoryPath
-    })
+    const name = (await request.formData()).get('directoryName')
+    if (!isString(name)) return fail(400, { reason: 'missing-directory-name' })
+    if (!isAcceptedName(name, delimiter)) return fail(400, { reason: 'invalid-name' })
+    const reference = { bucket: params.bucketId, name: `${directoryOf(params.path)}${name}/` }
+    return await refusingWith403(async () => { await createUserDirectory(ctx, reference) })
   },
-  uploadObject: async ({
-    params,
-    request,
-    locals
-  }) => {
+  // BRW-6, BRW-13, BRW-14
+  uploadObject: async ({ params, request, locals }) => {
     const ctx = requireAuthContext(locals)
-    const {
-      bucketId,
-      path
-    } = params
-    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    const cleanPath = removePathDelimiter(path || '')
-    const data = await request.formData()
-    const files = data.getAll('files[]') as Array<File>
+    const files = (await request.formData()).getAll('files').filter((file): file is File => file instanceof File)
     if (files.length === 0) return
-    const uploads: Array<Promise<void>> = []
-    for (const file of files) {
-      const reference = {
-        bucket: bucketId,
-        name: join(cleanPath, file.name)
-      }
-      const nodejsStream = readableStreamToReadable(file.stream())
-      const uploadOperation = uploadUserObject(ctx, reference, nodejsStream)
-      uploads.push(uploadOperation)
-    }
-    await Promise.all(uploads)
-  },
-  move: async ({
-    params,
-    request,
-    locals
-  }) => {
-    const ctx = requireAuthContext(locals)
-    const {
-      bucketId,
-      path
-    } = params
-    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
-    const data = await request.formData()
-    const contentsString = data.get('contents')
-    if (!isString(contentsString)) return fail(400, { reason: 'missing-file-name' })
-    const contents = JSON.parse(contentsString) as Array<ObjectReference>
-    const processedContents = contents.map(c => {
-      return {
-        ...c,
-        isDirectory: c.name.endsWith('/'),
-        path: fullyQualifiedNameToPath(c.name),
-        filename: fullyQualifiedNameToFilename(c.name)
-      }
+    if (!files.every(file => isAcceptedName(file.name, delimiter))) return fail(400, { reason: 'invalid-name' })
+    const directory = directoryOf(params.path)
+    const uploads = files.map(file => ({ file, reference: { bucket: params.bucketId, name: `${directory}${file.name}` } }))
+    return await refusingWith403(async () => {
+      requireUserWrites(ctx, uploads.map(upload => upload.reference))
+      return reported(await actInTurn(uploads, upload => upload.reference.name, async ({ file, reference }) =>
+        await uploadUserObject(ctx, reference, readableStreamToReadable(file.stream()))))
     })
-    const objectsToMove = processedContents.filter(o => o.bucket === bucketId && o.path !== path)
-    const moves: Array<Promise<void>> = []
-    const cleanPath = removePathDelimiter(path || '')
-    for (const object of objectsToMove) {
-      const move = object.isDirectory ? moveUserDirectory : moveUserObject
-      const newPath = join(cleanPath, object.filename, object.isDirectory ? '/' : '')
-      const promise = move(ctx, object, newPath)
-      moves.push(promise)
-    }
-    await Promise.all(moves)
   },
-  rename: async ({
-    params,
-    request,
-    locals
-  }) => {
+  // BRW-9, BRW-11, BRW-14
+  move: async ({ params, request, locals }) => {
     const ctx = requireAuthContext(locals)
-    const {
-      bucketId,
-      path
-    } = params
-    if (!isString(bucketId)) return fail(400, { reason: 'missing-bucket-id' })
+    const value = (await request.formData()).get('contents')
+    if (value === null) return fail(400, { reason: 'missing-file-name' })
+    const contents = parseContents(value)
+    if (contents === undefined) return fail(400, { reason: 'invalid-contents' })
+    const directory = directoryOf(params.path)
+    const moves = contents
+      .filter(reference => reference.bucket === params.bucketId && parentOf(reference.name) !== directory)
+      .map(reference => ({ reference, destination: `${directory}${lastLevelOf(reference.name)}` }))
+    const allowed = moves.filter(({ reference }) => !isBelowItself(reference, directory))
+    return await refusingWith403(async () => {
+      requireUserWrites(ctx, allowed.flatMap(({ reference, destination }) => [reference, { bucket: reference.bucket, name: destination }]))
+      return reported(await actInTurn(moves, move => move.reference.name, async ({ reference, destination }) => {
+        if (isBelowItself(reference, directory)) throw new Error(`storage/below-itself: ${reference.name}`)
+        await moveOne(ctx, reference, destination)
+      }))
+    })
+  },
+  // BRW-8, BRW-13
+  rename: async ({ params, request, locals }) => {
+    const ctx = requireAuthContext(locals)
     const data = await request.formData()
-    const isDirectory = Boolean(data.get('isDirectory'))
     const name = data.get('name')
     const newName = data.get('newName')
     if (!isString(name)) return fail(400, { reason: 'missing-name' })
     if (!isString(newName)) return fail(400, { reason: 'missing-new-name' })
-    const cleanPath = removePathDelimiter(path || '')
-    const reference = {
-      bucket: bucketId,
-      name: join(cleanPath, name)
-    }
-    const newPath = join(cleanPath, newName)
-    const move = isDirectory ? moveUserDirectory : moveUserObject
-    await move(ctx, reference, newPath)
+    const isDirectory = isDirectoryReference(name)
+    const level = isDirectory ? name.slice(0, -1) : name
+    if (!isAcceptedName(level, delimiter) || !isAcceptedName(newName, delimiter)) return fail(400, { reason: 'invalid-name' })
+    const directory = directoryOf(params.path)
+    const reference = { bucket: params.bucketId, name: `${directory}${name}` }
+    const destination = `${directory}${newName}${isDirectory ? '/' : ''}`
+    return await refusingWith403(async () => { await moveOne(ctx, reference, destination) })
   },
-  delete: async ({
-    request,
-    locals
-  }) => {
+  // BRW-10, BRW-11, BRW-14
+  delete: async ({ request, locals }) => {
     const ctx = requireAuthContext(locals)
-    const data = await request.formData()
-    const contentsString = data.get('contents')
-    if (!isString(contentsString)) return fail(400, { reason: 'missing-contents' })
-    const contents: Array<ObjectReference> = JSON.parse(contentsString)
-    const deletes: Array<Promise<void>> = []
-    for (const reference of contents) {
-      const isDirectory = reference.name.endsWith('/')
-      const deleteF = isDirectory ? deleteUserDirectory : deleteUserObject
-      deletes.push(deleteF(ctx, reference))
-    }
-    await Promise.all(deletes)
+    const value = (await request.formData()).get('contents')
+    if (value === null) return fail(400, { reason: 'missing-contents' })
+    const contents = parseContents(value)
+    if (contents === undefined) return fail(400, { reason: 'invalid-contents' })
+    return await refusingWith403(async () => {
+      requireUserDeletes(ctx, contents)
+      return reported(await actInTurn(contents, reference => reference.name, async reference => { await deleteOne(ctx, reference) }))
+    })
   }
 } satisfies Actions

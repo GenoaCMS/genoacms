@@ -1,5 +1,5 @@
 import { host } from '$lib/script/host.server'
-import type { ObjectReference, ObjectPayload, UploadOptions } from '@genoacms/contracts/storage'
+import type { DirectoryListingParams, ObjectReference, ObjectPayload, UploadOptions } from '@genoacms/contracts/storage'
 
 async function getObject (reference: ObjectReference) {
   const provider = await host.storageForBucket(reference.bucket)
@@ -31,9 +31,9 @@ async function getPublicURL (reference: ObjectReference) {
   return await provider.getPublicURL(reference)
 }
 
-async function listDirectory (reference: ObjectReference) {
+async function listDirectory (reference: ObjectReference, params?: DirectoryListingParams) {
   const provider = await host.storageForBucket(reference.bucket)
-  return await provider.listDirectory(reference)
+  return await provider.listDirectory(reference, params)
 }
 
 async function createDirectory (reference: ObjectReference) {

@@ -10,7 +10,7 @@ import { Selection } from './Selection.svelte'
 const file = (name: string) => ({ bucket: 'media', name })
 
 describe('membership', () => {
-  it('toggles, keyed by the item rather than by identity', () => {
+  it('BRW-5: toggles, keyed by the item rather than by identity', () => {
     // References are rebuilt on every render, so two equal objects must be the same selection.
     const selection = new Selection<{ bucket: string, name: string }>()
     selection.toggle(file('a.txt'))
@@ -29,14 +29,14 @@ describe('membership', () => {
     expect(selection.isSelected({ id: '1', name: 'changed' })).toBe(true)
   })
 
-  it('preserves the order things were selected in', () => {
+  it('BRW-5: preserves the order things were selected in', () => {
     const selection = new Selection<string>()
     selection.selectAll(['c', 'a', 'b'])
 
     expect(selection.value).toEqual(['c', 'a', 'b'])
   })
 
-  it('empties completely', () => {
+  it('BRW-5: empties completely', () => {
     const selection = new Selection<string>()
     selection.selectAll(['a', 'b'])
     selection.clear()
@@ -47,14 +47,14 @@ describe('membership', () => {
 })
 
 describe('the item cap', () => {
-  it('stops accepting more once reached', () => {
+  it('BRW-12: stops accepting more once reached', () => {
     const selection = new Selection<string>({ maxItems: 2 })
     selection.selectAll(['a', 'b', 'c'])
 
     expect(selection.value).toEqual(['a', 'b'])
   })
 
-  it('still allows deselecting at the cap', () => {
+  it('BRW-12: still allows deselecting at the cap', () => {
     // The defect this core removes. The storage selection tested the cap *before* the toggle, so a
     // full selection could not be undone: every checkbox stopped responding at exactly the moment
     // the user needed to clear one.
@@ -87,7 +87,7 @@ describe('refusing an item outright', () => {
     canSelect: reference => !reference.name.endsWith('/')
   })
 
-  it('never selects what the surface excludes', () => {
+  it('BRW-12: never selects what the surface excludes', () => {
     const selection = filesOnly()
     selection.toggle(file('folder/'))
 

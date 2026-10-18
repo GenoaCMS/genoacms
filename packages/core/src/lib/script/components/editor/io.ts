@@ -130,7 +130,7 @@ async function listOrCreateComponentList (): Promise<Array<Component>> {
  * name first, every time.
  */
 const deleteComponentDefinition = (reference: ComponentReference) =>
-  deleteDirectory({ bucket: defaultBucketId, name: join(componentDefinitionPath, reference) })
+  deleteDirectory({ bucket: defaultBucketId, name: `${join(componentDefinitionPath, reference)}/` })
 
 export {
   uploadComponentDefinition,

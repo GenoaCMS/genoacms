@@ -40,6 +40,8 @@ const matrixOperations = [
   'moveUserDirectory',
   'deleteUserObject',
   'deleteUserDirectory',
+  'requireUserWrites',
+  'requireUserDeletes',
   // database
   'getUserCollectionReferences',
   'getUserCollectionReference',
@@ -129,14 +131,14 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     grants: [bucketGrant('storage:bucket:write')],
     allowed: [
       'getUserBucketReferences', 'uploadUserObject', 'createUserDirectory',
-      'moveUserObject', 'moveUserDirectory'
+      'moveUserObject', 'moveUserDirectory', 'requireUserWrites'
     ]
   },
   StorageContributor: {
     grants: [bucketGrant('storage:bucket:read'), bucketGrant('storage:bucket:write')],
     allowed: [
       'getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents',
-      'uploadUserObject', 'createUserDirectory', 'moveUserObject', 'moveUserDirectory'
+      'uploadUserObject', 'createUserDirectory', 'moveUserObject', 'moveUserDirectory', 'requireUserWrites'
     ]
   },
   StorageManager: {
@@ -148,7 +150,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     allowed: [
       'getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents',
       'uploadUserObject', 'createUserDirectory', 'moveUserObject', 'moveUserDirectory',
-      'deleteUserObject', 'deleteUserDirectory'
+      'deleteUserObject', 'deleteUserDirectory', 'requireUserWrites', 'requireUserDeletes'
     ]
   },
   DataReader: {

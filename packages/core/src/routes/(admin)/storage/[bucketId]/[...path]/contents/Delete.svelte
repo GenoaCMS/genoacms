@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { SubmitFunction } from '@sveltejs/kit'
   import { invalidateAll } from '$app/navigation'
-  import { alertPending, confirmationModal, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { alertPending, confirmationModal, toastSuccess } from '$lib/script/alert.svelte'
+  import { reportFailure } from '$lib/script/storage/bulkFeedback'
   import { enhance } from '$app/forms'
   import selection from '$lib/script/storage/SelectionRune.svelte'
 
@@ -21,7 +22,7 @@
     return async ({ result }) => {
       alert.close()
       if (result.type !== 'success') {
-        toastError('Deletion failed')
+        reportFailure(result, 'deleted', 'Deletion failed')
         return
       }
       selection.clear()

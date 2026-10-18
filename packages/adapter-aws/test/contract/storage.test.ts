@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Readable } from 'node:stream'
 import { S3Client, HeadObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import type { Adapter, ObjectReference, UploadOptions } from '@genoacms/contracts/storage'
+import * as contracts from '@genoacms/contracts/storage'
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
 import runtime from '../../src/storage/runtime.js'
 import { enabled, region, bucket, objectPrefix, deleteRunObjects } from './aws.js'
@@ -64,11 +65,13 @@ describe.runIf(enabled)('S3, against the real service', { timeout: ONE_MINUTE },
     expect(version).toBe(ETag)
   })
 
-  it('OBJ-3: rejects a missing object with NoSuchKey', async () => {
-    await expect(storage.getObject(ref('missing.txt'))).rejects.toMatchObject({ name: 'NoSuchKey' })
+  it('OBJ-3, STOR-16: rejects a missing object with ObjectNotFoundError', async () => {
+    const error = await storage.getObject(ref('missing.txt')).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe(`storage/not-found: ${bucket}/${objectName('missing.txt')}`)
   })
 
-  it('OBJ-5: serves the object through a presigned URL', async () => {
+  it('OBJ-5, STOR-9: serves the object through a presigned URL', async () => {
     await upload('signed.txt', 'signed')
     const url = await storage.getSignedURL(ref('signed.txt'), new Date(Date.now() + TEN_MINUTES_AHEAD))
     const response = await fetch(url)
@@ -109,6 +112,12 @@ describe.runIf(enabled)('S3, against the real service', { timeout: ONE_MINUTE },
     expect(await exists('moved.txt')).toBe(false)
   })
 
+  it('OBJ-7, STOR-16: rejects the delete of a missing object', async () => {
+    const error = await storage.deleteObject(ref('missing-delete.txt')).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe(`storage/not-found: ${bucket}/${objectName('missing-delete.txt')}`)
+  })
+
   it('OBJ-8: lists one level without placeholders or the directory itself', async () => {
     await upload('d/a.txt', 'aa')
     await upload('d/.folderPlaceholder', '')
@@ -119,16 +128,18 @@ describe.runIf(enabled)('S3, against the real service', { timeout: ONE_MINUTE },
     expect(listing.directories).toEqual([{ bucket, name: objectName('d/sub/') }])
   })
 
-  it('OBJ-8: pages a listing with limit and startAfter', async () => {
+  it('OBJ-8: pages a listing with limit and pageToken', async () => {
     for (const name of ['p/1', 'p/2', 'p/3']) await upload(name, name)
     const firstPage = await storage.listDirectory(ref('p/'), { limit: 2 })
     expect(firstPage.files.map(file => file.name)).toEqual([objectName('p/1'), objectName('p/2')])
-    const nextPage = await storage.listDirectory(ref('p/'), { startAfter: objectName('p/2') })
-    expect(nextPage.files.map(file => file.name)).toEqual([objectName('p/3')])
+    expect(firstPage.next).toEqual(expect.any(String))
+    const lastPage = await storage.listDirectory(ref('p/'), { limit: 2, pageToken: firstPage.next })
+    expect(lastPage.files.map(file => file.name)).toEqual([objectName('p/3')])
+    expect(lastPage.next).toBeUndefined()
   })
 
   it("OBJ-9: creates a directory that its parent's listing shows", async () => {
-    await storage.createDirectory(ref('e'))
+    await storage.createDirectory(ref('e/'))
     expect(await exists('e/.folderPlaceholder')).toBe(true)
     const listing = await storage.listDirectory(ref(''))
     expect(listing.directories).toContainEqual({ bucket, name: objectName('e/') })

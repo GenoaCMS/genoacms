@@ -15,10 +15,21 @@ async function openStorage ({ root, file, mode }) {
   return { host, storage, bucket: host.defaultBucket }
 }
 
+async function listEveryPage (storage, reference) {
+  const files = []
+  let pageToken
+  do {
+    const page = pageToken === undefined ? await storage.listDirectory(reference) : await storage.listDirectory(reference, { pageToken })
+    files.push(...page.files)
+    pageToken = page.next
+  } while (pageToken !== undefined)
+  return { files }
+}
+
 async function listCollections (session) {
   const listings = await Promise.all(session.host.databases.map(async database => ({
     database,
-    contents: await session.storage.listDirectory({ name: collectionsDirectoryOf(database), bucket: session.bucket })
+    contents: await listEveryPage(session.storage, { name: collectionsDirectoryOf(database), bucket: session.bucket })
   })))
   return listings.flatMap(({ database, contents }) =>
     contents.files.map(({ name }) => ({ value: name, label: `${database}/${fullyQualifiedNameToFilename(name)}` })))

@@ -2,7 +2,8 @@
   import type { SubmitFunction } from '@sveltejs/kit'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { alertPending, toastSuccess } from '$lib/script/alert.svelte'
+  import { reportFailure } from '$lib/script/storage/bulkFeedback'
   import selection from '$lib/script/storage/SelectionRune.svelte'
 
   const isPossible = $derived(!selection.isEmpty)
@@ -12,7 +13,7 @@
     return async ({ result }) => {
       alert.close()
       if (result.type !== 'success') {
-        toastError('Move failed')
+        reportFailure(result, 'moved', 'Move failed')
         return
       }
       selection.clear()
@@ -23,7 +24,7 @@
 </script>
 
 {#if isPossible}
-  <button type="submit" form="move-form" aria-label="Move" class="h-full flex items-center px-3">
+  <button type="submit" form="move-form" aria-label="Move here" class="h-full flex items-center px-3">
     <i class="bi bi-box-arrow-in-down-left text-2xl hover:text-warning transition-all"></i>
   </button>
 {/if}

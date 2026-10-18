@@ -30,8 +30,21 @@ const getBucketReferences = (): Array<{ name: string }> => host.buckets.map(name
 
 const defaultBucketId = host.defaultBucket
 
+// STOR-11, COL-1
+const listWholeDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
+  const whole: DirectoryContents = { files: [], directories: [] }
+  let pageToken: string | undefined
+  do {
+    const page = pageToken === undefined ? await listDirectory(reference) : await listDirectory(reference, { pageToken })
+    whole.files.push(...page.files)
+    whole.directories.push(...page.directories)
+    pageToken = page.next
+  } while (pageToken !== undefined)
+  return whole
+}
+
 const listOrCreateDirectory = async (reference: ObjectReference): Promise<DirectoryContents> => {
-  const componentList = await listDirectory(reference)
+  const componentList = await listWholeDirectory(reference)
   const isComponentListExisting = isDirectoryExisting(componentList)
   if (!isComponentListExisting) {
     await createDirectory(reference)
@@ -126,6 +139,7 @@ export {
   fullyQualifiedNameToPath,
   fullyQualifiedNameToFilename,
   isDirectoryExisting,
+  listWholeDirectory,
   listOrCreateDirectory,
   getObjectString,
   getObjectJSON,

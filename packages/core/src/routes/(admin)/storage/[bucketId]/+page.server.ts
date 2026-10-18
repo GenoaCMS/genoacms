@@ -3,5 +3,5 @@ import { redirect } from '@sveltejs/kit'
 
 export const load: PageServerLoad = async ({ params }) => {
   const { bucketId } = params
-  return redirect(307, `${bucketId}/contents`)
+  return redirect(307, `/storage/${bucketId}/contents`)
 }

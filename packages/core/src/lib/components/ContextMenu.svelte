@@ -47,7 +47,7 @@
     <Portal>
         <div bind:clientWidth={menuWidth} class="card preset-filled-surface-50-950 border border-surface-200-800 absolute min-w-[8rem] w-auto shadow-xl flex flex-col z-10 p-1"
              {style}>
-            <div class="text-nowrap">
+            <div class="text-nowrap" role="menu">
               {@render children?.()}
             </div>
         </div>

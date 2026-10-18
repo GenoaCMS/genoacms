@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Readable } from 'node:stream'
 import { Storage } from '@google-cloud/storage'
 import type { Adapter, ObjectReference } from '@genoacms/contracts/storage'
+import * as contracts from '@genoacms/contracts/storage'
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
 import runtime from '../../src/storage/runtime.js'
 import { enabled, projectId, bucket, objectPrefix } from './gcp.js'
@@ -56,10 +57,10 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     expect(version).toBe(String(metadata.generation))
   })
 
-  it('STO-4: reads a missing object without a version', async () => {
-    const { data, version } = await storage.getObject(ref('missing.txt'))
-    expect(version).toBeUndefined()
-    await expect(readAll(data as Readable)).rejects.toMatchObject({ code: 404 })
+  it('STO-4, STOR-16: rejects a missing object with ObjectNotFoundError', async () => {
+    const error = await storage.getObject(ref('missing.txt')).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe(`storage/not-found: ${bucket}/${objectName('missing.txt')}`)
   })
 
   it('STO-6: creates with ifAbsent, and refuses a second create', async () => {
@@ -95,7 +96,13 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     expect(await exists('moved.txt')).toBe(false)
   })
 
-  it('STO-8: serves the object through a URL signed as the test identity', async () => {
+  it('STO-7, STOR-16: rejects the delete of a missing object', async () => {
+    const error = await storage.deleteObject(ref('missing-delete.txt')).then(() => undefined, (caught: unknown) => caught)
+    expect(contracts.isNotFound(error)).toBe(true)
+    expect((error as Error).message).toBe(`storage/not-found: ${bucket}/${objectName('missing-delete.txt')}`)
+  })
+
+  it('STO-8, STOR-9: serves the object through a URL signed as the test identity', async () => {
     await upload('signed.txt', 'signed')
     const expires = Date.now() + 10 * 60 * 1000
     const url = new URL(await storage.getSignedURL(ref('signed.txt'), expires))
@@ -119,16 +126,24 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     expect(listing.directories).toEqual([{ bucket, name: objectName('d/sub/') }])
   })
 
-  it('STO-9: pages a listing with limit and startAfter', async () => {
+  it('STO-9: pages a listing with limit and pageToken', async () => {
     for (const name of ['p/1', 'p/2', 'p/3']) await upload(name, name)
     const firstPage = await storage.listDirectory(ref('p/'), { limit: 2 })
     expect(firstPage.files.map(file => file.name)).toEqual([objectName('p/1'), objectName('p/2')])
-    const nextPage = await storage.listDirectory(ref('p/'), { startAfter: objectName('p/2') })
-    expect(nextPage.files.map(file => file.name)).toEqual([objectName('p/3')])
+    expect(firstPage.next).toEqual(expect.any(String))
+    const lastPage = await storage.listDirectory(ref('p/'), { limit: 2, pageToken: firstPage.next })
+    expect(lastPage.files.map(file => file.name)).toEqual([objectName('p/3')])
+    expect(lastPage.next).toBeUndefined()
+  })
+
+  it('STO-9: startAfter leaves out its own entry', async () => {
+    for (const name of ['q/1', 'q/2', 'q/3']) await upload(name, name)
+    const listing = await storage.listDirectory(ref('q/'), { startAfter: objectName('q/1') })
+    expect(listing.files.map(file => file.name)).toEqual([objectName('q/2'), objectName('q/3')])
   })
 
   it("STO-10: creates a directory that its parent's listing shows", async () => {
-    await storage.createDirectory(ref('e'))
+    await storage.createDirectory(ref('e/'))
     expect(await exists('e/.folderPlaceholder')).toBe(true)
     const listing = await storage.listDirectory(ref(''))
     expect(listing.directories).toContainEqual({ bucket, name: objectName('e/') })

@@ -46,4 +46,4 @@
   </Selectable>
 </div>
 
-<RenameModal isDirectory={false} name={filename} bind:isModalOpen={isRenameModalOpen}/>
+<RenameModal name={filename} value={filename} bind:isModalOpen={isRenameModalOpen}/>

@@ -1,5 +1,6 @@
 import type {
   DirectoryContents,
+  DirectoryListingParams,
   ObjectReference,
   ObjectPayload,
   UploadOptions
@@ -7,6 +8,7 @@ import type {
 import { hasAnyPermissionOn, requirePermission } from '$lib/script/authorization/enforce'
 import type { AuthContext } from '$lib/script/authorization/context'
 import {
+  defaultBucketId,
   getBucketReferences,
   uploadObject,
   moveObject,
@@ -17,113 +19,105 @@ import {
   deleteDirectory,
   processDirectoryContents
 } from './storage.server'
+import { isDirectoryReference } from './browserPaths'
 
-/**
- * Storage operations performed **by a user**, as opposed to by the CMS.
- *
- * `storage.server` is the primary service and stays unprivileged: the CMS reads and writes its own
- * `.genoacms/` state through it, during bootstrap, before any principal exists. Gating it would make
- * a copywriter need bucket-write to save a page, and would make starting a fresh instance
- * impossible.
- *
- * This module is the layer in front of it for operations a user actually performed — browsing a
- * bucket, uploading a file, deleting one. Every export takes an `AuthContext` as its first parameter
- * and checks a permission before delegating, so omitting the context is a *type error* and
- * the check lives with the operation rather than at the route.
- *
- * **Naming.** Each function is its primary counterpart with `User` in the name — `getObject` becomes
- * `getUserObject`. The two can then be imported side by side without aliasing, and a reader can tell
- * at the call site which layer is being used.
- *
- * Permissions are bucket-scoped, so the resource is always the bucket name:
- * - `storage:bucket:read` — listing directories and decorating a listing with signed URLs. There is
- *   no gated read of object *contents* here because no call site needs one: the browser fetches
- *   objects directly from the signed URLs. A feature that needs a server-side read must add the
- *   wrapper rather than reach for the primary `getObject`, which is unprivileged
- * - `storage:bucket:write` — uploading, creating directories, and **moves**, which relocate rather
- *   than remove
- * - `storage:bucket:delete` — deleting objects and directories
- */
+// BD1, BD2, BD4, STS-2, STS-3, STS-5
 
-const requireRead = (ctx: AuthContext, bucket: string): void =>
-  requirePermission(ctx, 'storage:bucket:read', bucket)
-const requireWrite = (ctx: AuthContext, bucket: string): void =>
-  requirePermission(ctx, 'storage:bucket:write', bucket)
-const requireDelete = (ctx: AuthContext, bucket: string): void =>
-  requirePermission(ctx, 'storage:bucket:delete', bucket)
+const INTERNAL_STATE = '.genoacms/'
 
-/**
- * The buckets this principal holds some grant on, not every bucket configured.
- *
- * There is no `storage:bucket:list` permission — it was removed as redundant — so this filters
- * rather than denies. Navigation then offers only what the user could actually act on, instead of
- * listing names that lead to a denial.
- *
- * **Any bucket-scoped grant, not `read` alone.** A principal holding only
- * `storage:bucket:write` must still see the bucket as an upload target; filtering on `read` would
- * hide the destination of an upload they are permitted to perform.
- */
+/** Raised when a user operation would change the CMS's own state (STS-5). */
+class InternalReadOnlyError extends Error {
+  readonly reference: ObjectReference
+
+  constructor (reference: ObjectReference) {
+    super(`storage/internal-read-only: ${reference.name}`)
+    this.name = 'InternalReadOnlyError'
+    this.reference = reference
+  }
+}
+
+type UserPermission = 'read' | 'write' | 'delete'
+
+const requireOn = (ctx: AuthContext, permission: UserPermission, bucket: string): void =>
+  requirePermission(ctx, `storage:bucket:${permission}`, bucket)
+
+// STS-5
+const isInternalState = ({ bucket, name }: ObjectReference): boolean =>
+  bucket === defaultBucketId &&
+  (name.startsWith(INTERNAL_STATE) || (isDirectoryReference(name) && INTERNAL_STATE.startsWith(name)) || name === '')
+
+// STS-5
+const requireWritable = (...references: ObjectReference[]): void => {
+  const internal = references.find(isInternalState)
+  if (internal !== undefined) throw new InternalReadOnlyError(internal)
+}
+
+const requireChange = (ctx: AuthContext, permission: UserPermission, ...references: ObjectReference[]): void => {
+  for (const reference of references) requireOn(ctx, permission, reference.bucket)
+  requireWritable(...references)
+}
+
+const destinationOf = (reference: ObjectReference, name: string): ObjectReference => ({ bucket: reference.bucket, name })
+
+// STS-1, BD3
 const getUserBucketReferences = (ctx: AuthContext) =>
   getBucketReferences().filter(bucket => hasAnyPermissionOn(ctx, 'bucket', bucket.name))
 
-const uploadUserObject = async (
-  ctx: AuthContext,
-  reference: ObjectReference,
-  data: ObjectPayload,
-  options?: UploadOptions
-) => {
-  requireWrite(ctx, reference.bucket)
+/** Checks every reference as a write would, the permission first, before any is written (BRW-16). */
+const requireUserWrites = (ctx: AuthContext, references: ObjectReference[]): void =>
+  requireChange(ctx, 'write', ...references)
+
+/** Checks every reference as a delete would, the permission first, before any is deleted (BRW-16). */
+const requireUserDeletes = (ctx: AuthContext, references: ObjectReference[]): void =>
+  requireChange(ctx, 'delete', ...references)
+
+const uploadUserObject = async (ctx: AuthContext, reference: ObjectReference, data: ObjectPayload, options?: UploadOptions) => {
+  requireChange(ctx, 'write', reference)
   return await uploadObject(reference, data, options)
 }
 
-/** A move relocates rather than removes, so it needs write rather than delete. */
 const moveUserObject = async (ctx: AuthContext, reference: ObjectReference, newPath: string) => {
-  requireWrite(ctx, reference.bucket)
+  requireChange(ctx, 'write', reference, destinationOf(reference, newPath))
   return await moveObject(reference, newPath)
 }
 
 const deleteUserObject = async (ctx: AuthContext, reference: ObjectReference) => {
-  requireDelete(ctx, reference.bucket)
+  requireChange(ctx, 'delete', reference)
   return await deleteObject(reference)
 }
 
-const listUserDirectory = async (ctx: AuthContext, reference: ObjectReference) => {
-  requireRead(ctx, reference.bucket)
-  return await listDirectory(reference)
+const listUserDirectory = async (ctx: AuthContext, reference: ObjectReference, params?: DirectoryListingParams) => {
+  requireOn(ctx, 'read', reference.bucket)
+  return params === undefined ? await listDirectory(reference) : await listDirectory(reference, params)
 }
 
 const createUserDirectory = async (ctx: AuthContext, reference: ObjectReference) => {
-  requireWrite(ctx, reference.bucket)
+  requireChange(ctx, 'write', reference)
   return await createDirectory(reference)
 }
 
 const moveUserDirectory = async (ctx: AuthContext, reference: ObjectReference, newPath: string) => {
-  requireWrite(ctx, reference.bucket)
+  requireChange(ctx, 'write', reference, destinationOf(reference, newPath))
   return await moveDirectory(reference, newPath)
 }
 
 const deleteUserDirectory = async (ctx: AuthContext, reference: ObjectReference) => {
-  requireDelete(ctx, reference.bucket)
+  requireChange(ctx, 'delete', reference)
   return await deleteDirectory(reference)
 }
 
-/**
- * Decorates directory contents with filenames and signed URLs.
- *
- * The read check is on the bucket, once, rather than per file: a signed URL is minted here for every
- * listed object, so the permission that matters is the one covering the listing.
- */
-const processUserDirectoryContents = async (
-  ctx: AuthContext,
-  bucketId: string,
-  contents: DirectoryContents
-) => {
-  requireRead(ctx, bucketId)
-  return await processDirectoryContents(bucketId, contents)
+// STS-4
+const processUserDirectoryContents = async (ctx: AuthContext, bucketId: string, contents: DirectoryContents) => {
+  requireOn(ctx, 'read', bucketId)
+  const processed = await processDirectoryContents(bucketId, contents)
+  return contents.next === undefined ? processed : { ...processed, next: contents.next }
 }
 
 export {
+  InternalReadOnlyError,
   getUserBucketReferences,
+  requireUserWrites,
+  requireUserDeletes,
   uploadUserObject,
   moveUserObject,
   deleteUserObject,

@@ -3,7 +3,8 @@ import type { Adapter, CollectionReference } from '@genoacms/contracts/database'
 import type { DocumentType } from '$lib/script/signing/envelope'
 import type { JsonValue } from '$lib/script/signing/canonical'
 import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
-import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listDirectory } from '../storage/storage.server'
+import { isNotFound } from '@genoacms/contracts/storage'
+import { defaultBucketId, fullyQualifiedNameToFilename, getObjectJSON, listWholeDirectory } from '../storage/storage.server'
 import { getCollections, getDatabaseNames, adapterForCollection, adapterForDatabase } from './providers.server'
 
 const COLLECTION_DEFINITION_DOCUMENT: DocumentType = 'genoacms.collectionDefinition.v1'
@@ -18,7 +19,7 @@ const isConfigured = (name: string): boolean => configuredCollections.some(colle
 async function listDynamicCollections (): Promise<Map<string, string>> {
   const listings = await Promise.all(getDatabaseNames().map(async database => ({
     database,
-    contents: await listDirectory({ name: collectionsDirectoryOf(database), bucket: defaultBucketId })
+    contents: await listWholeDirectory({ name: collectionsDirectoryOf(database), bucket: defaultBucketId })
   })))
   const dynamic = new Map<string, string>()
   for (const { database, contents } of listings) {
@@ -48,7 +49,7 @@ async function getCollectionReference (name: string): Promise<CollectionReferenc
 // COL-2, OD13
 async function readDefinition (database: string, name: string): Promise<CollectionReference> {
   const candidate: unknown = await getObjectJSON({ name: definitionPath(database, name), bucket: defaultBucketId })
-    .catch(() => { throw new Error('collection/not-found') })
+    .catch((error: unknown) => { throw isNotFound(error) || error instanceof SyntaxError ? new Error('collection/not-found') : error })
   const verified = await readSignedDocument(candidate, COLLECTION_DEFINITION_DOCUMENT)
   if (!verified.ok) throw unverifiable(name, verified.reason)
   return definitionOf(verified.payload, database, name)

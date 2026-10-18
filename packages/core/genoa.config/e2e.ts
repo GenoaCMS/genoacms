@@ -41,9 +41,10 @@ export default defineConfig({
   authorization: {
     roles: {
       Administrator: [{ permission: '*', resource: '*' }],
-      TestReader: [{ permission: 'db:collection:read', resource: { scope: 'collection', id: 'test' } }]
+      TestReader: [{ permission: 'db:collection:read', resource: { scope: 'collection', id: 'test' } }],
+      StorageReader: [{ permission: 'storage:bucket:read', resource: { scope: 'bucket', id: bucket } }]
     },
-    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'], 'e2e-carol': ['TestReader'] }
+    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'], 'e2e-carol': ['TestReader'], 'e2e-dan': ['StorageReader'] }
   },
   security
 })

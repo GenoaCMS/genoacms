@@ -5,13 +5,14 @@ import { join } from 'path'
 import {
   defaultBucketId,
   deleteDirectory,
+  deleteObject,
   listOrCreateDirectory,
   fullyQualifiedNameToFilename,
   uploadInternalObjectJSON,
   getInternalObjectFlatted,
   uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
-import { isPreconditionFailed } from '@genoacms/contracts/storage'
+import { isNotFound, isPreconditionFailed } from '@genoacms/contracts/storage'
 import { validator } from '@exodus/schemasafe'
 import { publishedComponentSchema } from './schemas'
 
@@ -147,8 +148,8 @@ const getPublishedComponent = async (uid: string): Promise<PublishedComponent | 
  */
 const deleteComponentPublications = async (uid: string): Promise<void> => {
   await Promise.all([
-    tolerateMissing(() => deleteDirectory({ bucket: defaultBucketId, name: join(publicPath, uid) })),
-    tolerateMissing(() => deleteDirectory({ bucket: defaultBucketId, name: publishedComponentPath(uid) }))
+    tolerateMissing(() => deleteDirectory({ bucket: defaultBucketId, name: `${join(publicPath, uid)}/` })),
+    tolerateMissing(() => deleteObject({ bucket: defaultBucketId, name: publishedComponentPath(uid) }))
   ])
 }
 
@@ -156,12 +157,9 @@ const tolerateMissing = async (removal: () => Promise<unknown>): Promise<void> =
   try {
     await removal()
   } catch (error) {
-    if (!isMissing(error)) throw error
+    if (!isNotFound(error)) throw error
   }
 }
-
-/** Object storage has no directories, so removing one that holds nothing is not an error. */
-const isMissing = (error: unknown): boolean => (error as { code?: number })?.code === 404
 
 /**
  * Every component that has published something, by uid.

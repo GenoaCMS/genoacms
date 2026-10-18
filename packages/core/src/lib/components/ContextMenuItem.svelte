@@ -9,7 +9,7 @@
 </script>
 
 <div>
-  <button {onclick} class="w-full border-b p-2" {...restProps}>
+  <button {onclick} role="menuitem" class="w-full border-b p-2" {...restProps}>
     {@render children?.()}
   </button>
 </div>
