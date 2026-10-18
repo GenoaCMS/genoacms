@@ -11,6 +11,9 @@ const sdkBucket = () => new Storage({ projectId }).bucket(bucket)
 const objectName = (name: string): string => `${objectPrefix}${name}`
 const ref = (name: string): ObjectReference => ({ bucket, name: objectName(name) })
 
+const PAGE_OF_1000 = 1000
+const WRITE_BATCH = 50
+
 let storage: Adapter
 
 async function readAll (stream: Readable): Promise<string> {
@@ -178,6 +181,16 @@ describe.runIf(enabled)('Cloud Storage, against the real service', { timeout: 60
     const [remaining] = await sdkBucket().getFiles({ prefix: objectName('many-moved/') })
     expect(remaining).toEqual([])
   })
+
+  it('STO-11, GF38: deletes a directory of more than one page, and ends', async () => {
+    const names = Array.from({ length: PAGE_OF_1000 + 1 }, (_, index) => `pages/${String(index).padStart(4, '0')}`)
+    for (let start = 0; start < names.length; start += WRITE_BATCH) {
+      await Promise.all(names.slice(start, start + WRITE_BATCH).map(async name => { await upload(name, name) }))
+    }
+    await storage.deleteDirectory(ref('pages/'))
+    const [remaining] = await sdkBucket().getFiles({ prefix: objectName('pages/') })
+    expect(remaining).toEqual([])
+  }, 180_000)
 
   it('STO-12: moves into a name with $ patterns literally', async () => {
     await upload('dollar/x', 'x')

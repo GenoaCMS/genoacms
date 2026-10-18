@@ -343,6 +343,18 @@ describe('the GCP storage runtime', () => {
     for (const object of objects) expect(object.delete).toHaveBeenCalledOnce()
   })
 
+  it('STO-11, GF38: lists every page with autoPaginate off, though the next query the client returns omits it', async () => {
+    const storage = await create()
+    bucket.getFiles
+      .mockResolvedValueOnce([[mockFileResolvingEveryCall('d/1')], { prefix: 'd/', pageToken: 'second' }, {}])
+      .mockResolvedValueOnce([[mockFileResolvingEveryCall('d/2')], null, {}])
+    await storage.deleteDirectory({ bucket: 'b', name: 'd/' })
+    expect(bucket.getFiles.mock.calls).toEqual([
+      [{ prefix: 'd/', autoPaginate: false }],
+      [{ prefix: 'd/', autoPaginate: false, pageToken: 'second' }]
+    ])
+  })
+
   it('STO-9, STOR-11: hides a name only when it ends in .folderPlaceholder', async () => {
     const storage = await create()
     bucket.getFiles.mockResolvedValueOnce([[

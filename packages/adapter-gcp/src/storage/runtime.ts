@@ -37,6 +37,11 @@ function listingQuery (name: string, { limit, startAfter, pageToken }: Directory
   }
 }
 
+// STO-11, GF38
+function everyDepthPage (prefix: string, pageToken: string | undefined): GetFilesOptions {
+  return pageToken === undefined ? { prefix, autoPaginate: false } : { prefix, autoPaginate: false, pageToken }
+}
+
 // STO-11, GF29
 async function deleteAtMost (concurrency: number, files: File[]): Promise<void> {
   let next = 0
@@ -192,12 +197,12 @@ export default defineRuntime<GcpStorageOptions, Adapter>({
     // STO-11, GD7, GF29
     const deleteDirectory: Adapter['deleteDirectory'] = async (reference) => {
       const bucketInstance = getDirectoryBucket(reference, { allowRoot: false })
-      let query: GetFilesOptions | undefined = { prefix: reference.name, autoPaginate: false }
-      while (query !== undefined) {
-        const [files, nextQuery]: [File[], GetFilesOptions | null, unknown] = await bucketInstance.getFiles(query)
+      let pageToken: string | undefined
+      do {
+        const [files, nextQuery]: [File[], GetFilesOptions | null, unknown] = await bucketInstance.getFiles(everyDepthPage(reference.name, pageToken))
         await deleteAtMost(DELETE_CONCURRENCY, files)
-        query = nextQuery ?? undefined
-      }
+        pageToken = nextQuery?.pageToken
+      } while (pageToken !== undefined)
     }
 
     // STO-12, GD7, GF22
