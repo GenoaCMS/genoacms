@@ -20,9 +20,9 @@ package is published, so its exports are an API that adapter authors depend on.
 
 A suite checks only what its service's contract states. It does not test what is specific to one
 service (preconditions on GCS generations, Firestore names): that belongs to the adapter's own tests
-and contract tests. Today the suites cover storage and database. Neither contract is specified yet
-([`README.md`](README.md)), so their suites are, for now, the only executable statement of those
-contracts.
+and contract tests. Today the suites cover storage and database. The storage contract is specified in
+[`storage.md`](storage.md); the database contract is not ([`README.md`](README.md)), so its suite is,
+for now, the only executable statement of it.
 
 Who runs them, and at which level: the package's own tests run each suite against in-memory adapters
 (`conformance`); `adapter-postgres` runs the database suite against a local Postgres
@@ -62,7 +62,7 @@ it fails too; the suite reports the first failure.
 | CF6 | *History.* **The storage suite's read check could not fail its test.** `is getting uploaded object` asserts inside the stream's `end` handler and does not wait for it. Against an adapter that returns the wrong body, the test passes and the assertion surfaces as an unattributed unhandled error of the run. Shown 2026-10-02 with a mutant adapter. The read is now awaited; no test yet shows that the check fails a wrong body (CF8). | fixed, `f22136c` |
 | CF7 | **The database suite uses the second document for every step, and checks neither the update nor the listing.** `documentData = testDocuments[1]` runs while vitest collects the tests, before any of them, so `createDocument` receives `testDocuments[1]` and the update writes what is already there. An update that does nothing passes, and so does a listing that returns no document: `lists collection` checks only that the result is an array. Shown 2026-10-02 with a mutant adapter. The contract-level verification of GCP DB-5 and DB-7 rests on this suite alone (GF31); AWS DDB-5 and DDB-7 also have their own contract tests. | open |
 | CF8 | **Nothing checks that a suite fails a non-conforming adapter.** The package's tests run each suite only against in-memory adapters that conform, which is how CF6 and CF7 went unnoticed, and why CF6's fix has no regression test. Since RFC-0030 the authentication suite has its mutant test (CF39); the storage and database suites still have none. | open (CD5) |
-| CF9 | **The storage suite writes a fixed name, `GenoaCMS/test.txt`, and cleans up only by its own delete step.** On GCP it runs in the production project's bucket (GU6). Two concurrent runs collide, and a run that fails before the delete leaves the object behind. `adapter-aws` avoids this by wrapping the adapter under a per-run prefix; `adapter-gcp` does not. | open (CD6) |
+| CF9 | **The storage suite writes a fixed name, `GenoaCMS/test.txt`, and cleans up only by its own delete step.** On GCP it runs in the production project's bucket (GU6). Two concurrent runs collide, and a run that fails before the delete leaves the object behind. `adapter-aws` avoids this by wrapping the adapter under a per-run prefix; `adapter-gcp` does not. | open (CD6), RFC-0037 |
 | CF15 | *History.* **The authentication suite does not check the identity's email, nor when `disabled` may be reported.** Its identity checks accept any string as the email (`expect.any(String)`), so an adapter whose `authenticate` or `getIdentity` returns an empty or stale email passes; AUTHN-2 requires the identity the credentials belong to, and AUTHN-4 the current email. No test sends the disabled identity a wrong password, so an adapter that answers `disabled` before checking the password passes. That adapter tells an existing account from a missing one, which AUTHN-2 and CD3 forbid. The suite tries one wrong password, the right one with `-wrong` appended, so an adapter that accepts the empty password, or any prefix of the right one, passes too. Shown 2026-10-02 by CS1 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
 | CF20 | *History.* **The authentication suite tries few inputs, once each.** Each of these adapters passes. (1) A wrong password accepted when it differs from the right one only in case, in its first character, or in surrounding whitespace: the suite's three wrong passwords are fixed. (2) The disabled identity answering `disabled` to an empty or truncated password, which tells an existing account from a missing one: only `-wrong` appended is tried for it. (3) `getIdentity` returning an identity for the fixture's email, a case variant or a prefix of its subject, or `''`: the unknown subject is a random string. (4) An adapter that answers correctly only on the first call, or locks the account after a few wrong passwords: the suite calls each method once per input, in a fixed order. Shown 2026-10-02 by CS2 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
 | CF28 | **The authentication suite catches some faults only by chance, and others not at all.** Its enumerated near misses cover a few kinds of edit at three positions, so a fault in another place, or with another character such as `\n`, is caught only when the random property happens to generate it: in CS4's runs, between 1 and 7 of 8 times. Never caught: a `+tag` or a suffix after `#` ignored, dots ignored in an email's local part without dots, Unicode equivalence (the fixtures are ASCII). Shown 2026-10-02 by CS4 (`authentication.md`). CONF-4. | open |
@@ -129,7 +129,7 @@ still deletes the object.
 
 - Test: none yet
 - Level: conformance
-- State: new (no RFC yet)
+- State: new (RFC-0037)
 
 ### Database
 

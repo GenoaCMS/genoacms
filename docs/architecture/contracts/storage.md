@@ -22,8 +22,8 @@ implements the contract typed in `@genoacms/contracts/storage`, and core reaches
 
 This document specifies what every adapter promises. Each adapter specifies its own mapping onto it:
 [`adapter-gcp/storage.md`](../adapter-gcp/storage.md) (Cloud Storage),
-[`adapter-aws/storage.md`](../adapter-aws/storage.md) (S3). `@genoacms/adapter-minio` has no document
-(CF49). What core does with the contract for users, the permission-checked layer and the storage
+[`adapter-aws/storage.md`](../adapter-aws/storage.md) (S3),
+[`adapter-minio.md`](../adapter-minio.md) (MinIO). What core does with the contract for users, the permission-checked layer and the storage
 browser, is [`storage.md`](../storage.md).
 
 ```
@@ -42,8 +42,10 @@ bucket's configuration.
 | :-- | :-- | :-- |
 | CU5 | 2026-10-18: a missing object is a contract error of its own: `getObject` rejects with `ObjectNotFoundError`, `storage/not-found`, recognized as the precondition error is (CF44). | STOR-16 |
 | CU8 | 2026-10-18: deleting a missing object fails, with the error of CU5, on every adapter (CF45). | STOR-16 |
-| CU6 | 2026-10-18: `@genoacms/adapter-minio` is brought to this contract by an RFC, with a document of its own and a conformance run that runs (CF49). | no RFC yet |
-| CU7 | 2026-10-18: `gzip` is removed from `UploadOptions`. No caller passes it, and only one adapter honors it (CF47, CU1). It may return as an optional capability (CD1). | STOR-1, STOR-7, by an RFC |
+| CU6 | 2026-10-18: `@genoacms/adapter-minio` is brought to this contract by an RFC, with a document of its own and a conformance run that runs (CF49). | [`adapter-minio.md`](../adapter-minio.md), RFC-0037 |
+| CU7 | 2026-10-18: `gzip` is removed from `UploadOptions`. No caller passes it, and only one adapter honors it (CF47, CU1). It may return as an optional capability (CD1). | STOR-1, STOR-7, RFC-0037 |
+| CU9 | 2026-10-18: a directory's name is `''`, the root, or ends in `/`, everywhere in the contract, as listings already return it. The four directory methods refuse any other name, and `createDirectory('photos/')` writes `photos/.folderPlaceholder` (CF48). | STOR-3, STOR-12, RFC-0037 |
+| CU10 | 2026-10-18: a listing is continued with an opaque page token: `DirectoryContents.next`, absent when the listing is complete, passed back as `DirectoryListingParams.pageToken`. A last name passed as `startAfter` cannot continue a listing, because the store folds the objects under a listed directory back into it (CF46). | STOR-1, STOR-11, RFC-0037 |
 
 **CD8. A conditional write on one object is the contract's only concurrency primitive (STOR-6,
 STOR-7).** `uploadObject` takes `ifAbsent` or `ifVersion`, and a refused write throws
@@ -63,13 +65,20 @@ version as a number or a time works against one adapter and fails subtly against
 *Cost:* a caller can only pass a version back to `uploadObject`; it cannot tell which of two versions
 is newer.
 
-**CD10. A directory is a name prefix ending in `/`; an empty one is held by a placeholder object
-(STOR-3, STOR-11, STOR-12).** `createDirectory` writes `<name>/.folderPlaceholder`, and listings hide
-it. The GCP and AWS adapters write the same name (`adapter-aws/storage.md`, *Decisions*), so a bucket
-moved between them keeps its empty directories.
-*Why:* object stores have no directories; a prefix with no object under it does not exist.
-*Cost:* an object whose name ends in `.folderPlaceholder` is never listed. Directory operations act
-on every object under the prefix and are not atomic (STOR-13, STOR-14).
+**CD10. A directory is a name prefix ending in `/`; how an empty one is kept is the adapter's
+(STOR-3, STOR-11, STOR-12).** The contract promises that a created directory is listed in its parent
+while it holds nothing, and that a listing shows nothing the adapter wrote only to keep it. A store
+that lists an empty directory needs nothing more; a store that lists a prefix only while an object
+lies under it needs a placeholder object, which its adapter writes and hides. Cloud Storage is such a
+store, and the GCP adapter writes `<name>.folderPlaceholder`; the AWS adapter writes the same name
+(`adapter-aws/storage.md`, *Decisions*), so a bucket moved between the two keeps its empty
+directories. MinIO lists an empty directory object `<name>` as a directory (`adapter-minio.md`).
+*Why:* a placeholder exists only to work around a store, so the contract does not impose one on a
+store that does not need it.
+*Cost:* a bucket moved between adapters that keep empty directories differently shows the other's
+placeholders as files, or loses its empty directories. An adapter that writes a placeholder never
+lists a user's object of that name. Directory operations act on every object under the prefix and are
+not atomic (STOR-13, STOR-14).
 
 **CD11. A refused conditional write is recognized by the error's name (STOR-8).**
 `isPreconditionFailed` checks `name === 'PreconditionFailedError'`, not `instanceof`.
@@ -81,13 +90,13 @@ then miss its errors and treat a lost race as a fault.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| CF44 | **A missing object is not told apart from a failure, and adapters report it differently** (STOR-5). The GCP adapter resolves `getObject` and fails only when the stream is read; the AWS adapter rejects with S3's `NoSuchKey`; the conformance package's in-memory adapter throws `not found: <bucket>/<name>`. No error code is common to them, so core cannot tell a missing object from an outage: `collections.md` OF29 is this finding seen from core. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU5 (STOR-16, no RFC yet) |
-| CF45 | **Deleting a missing object succeeds on AWS and fails on GCP** (STOR-10). `adapter-aws/storage.md` OBJ-7 resolves it, as S3 answers it with success; `adapter-gcp/storage.md` STO-7 propagates Cloud Storage's 404. Found 2026-10-18 by comparing the two Specifications. | open; decided by CU8 (STOR-16, no RFC yet) |
-| CF46 | **A listing cannot be continued** (STOR-11). `limit` and `startAfter` exist, but a listing returns no sign that more entries remain, and Cloud Storage and S3 answer at most 1000 per request. A caller that passes no `limit` gets the first page and cannot know it is cut. Core passes neither (`collections.md` OF24). | open |
-| CF47 | **`gzip` is honored by the GCP adapter only** (STOR-6). It passes the option to the client's `save`; the AWS adapter and the MinIO adapter drop it. CU1 admits into the contract only what every adapter can do. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU7 (no RFC yet) |
-| CF48 | **The contract does not say whether a directory's name ends in `/`** (STOR-3, STOR-12). Listings return directories with a trailing `/`; `createDirectory` appends `/.folderPlaceholder`, so a name that already ends in `/` writes `<name>//.folderPlaceholder`, a subdirectory with an empty name (`collections.md` OF23). | open |
-| CF49 | **`@genoacms/adapter-minio` does not conform.** Found 2026-10-18 by reading `packages/adapter-minio/src/runtime.js` at `de04f62`; nothing was run, and its conformance run is not in CI (`docs/README.md`). (1) It has no `getPublicURL` (STOR-2). (2) The bucket check is not awaited, so an unregistered bucket's request is still sent and the check's rejection is unhandled, which ends a Node process (STOR-4). (3) It ignores `ifAbsent` and `ifVersion` and writes unconditionally, so every write core makes conditionally, sessions, manifests, the key registry, the security policy and publications included, can silently erase a concurrent one (STOR-6, CD8). (4) `getObject` returns no `version` (STOR-5). (5) Its placeholder is `.directoryPlaceholder`, not `.folderPlaceholder` (CD10, STOR-12). (6) `listDirectory` normalizes the name with `path.join`, which resolves `..` and collapses `//`, and ignores `limit` (STOR-3, STOR-11). (7) `deleteDirectory` resolves before anything is deleted, and a failure is thrown inside a stream handler, where nothing can catch it (STOR-13). (8) `moveDirectory` copies every object at once, renames by replacing the first occurrence of the old name, so `$` patterns in the new name are expanded (as `adapter-gcp/storage.md` GF22 was), and removes the originals only after every copy (STOR-14). (9) A listing error becomes `Failed to list directory` and is written with `console.log` (STOR-15). | open; decided by CU6 (no RFC yet) |
-| CF50 | **The storage suite checks 5 of this contract's 15 statements, and its own in-memory adapter does not conform.** `CONF-2` uploads, lists, reads and deletes one object. Nothing in `@genoacms/conformance` checks conditional writes, versions, moves, directories or URLs, so an adapter can drop them unnoticed (CF49 went unnoticed this way). The in-memory adapter of `packages/conformance/test/memory.js` lists no directories, ignores `UploadOptions` and returns no version. Found 2026-10-18 by reading. | open |
+| CF44 | **A missing object is not told apart from a failure, and adapters report it differently** (STOR-5). The GCP adapter resolves `getObject` and fails only when the stream is read; the AWS adapter rejects with S3's `NoSuchKey`; the conformance package's in-memory adapter throws `not found: <bucket>/<name>`. No error code is common to them, so core cannot tell a missing object from an outage: `collections.md` OF29 is this finding seen from core. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU5, RFC-0037 |
+| CF45 | **Deleting a missing object succeeds on AWS and fails on GCP** (STOR-10). `adapter-aws/storage.md` OBJ-7 resolves it, as S3 answers it with success; `adapter-gcp/storage.md` STO-7 propagates Cloud Storage's 404. Found 2026-10-18 by comparing the two Specifications. | open; decided by CU8, RFC-0037 |
+| CF46 | **A listing cannot be continued** (STOR-11). `limit` and `startAfter` exist, but a listing returns no sign that more entries remain, and Cloud Storage and S3 answer at most 1000 per request. A caller that passes no `limit` gets the first page and cannot know it is cut. Core passes neither (`collections.md` OF24). | open; decided by CU10, RFC-0037 |
+| CF47 | **`gzip` is honored by the GCP adapter only** (STOR-6). It passes the option to the client's `save`; the AWS adapter and the MinIO adapter drop it. CU1 admits into the contract only what every adapter can do. Found 2026-10-18 by reading the adapters at `de04f62`. | open; decided by CU7, RFC-0037 |
+| CF48 | **The contract does not say whether a directory's name ends in `/`** (STOR-3, STOR-12). Listings return directories with a trailing `/`; `createDirectory` appends `/.folderPlaceholder`, so a name that already ends in `/` writes `<name>//.folderPlaceholder`, a subdirectory with an empty name (`collections.md` OF23). | open; decided by CU9, RFC-0037 |
+| CF49 | **`@genoacms/adapter-minio` does not conform.** Found 2026-10-18 by reading `packages/adapter-minio/src/runtime.js` at `de04f62`; nothing was run, and its conformance run is not in CI (`docs/README.md`). (1) It has no `getPublicURL` (STOR-2). (2) The bucket check is not awaited, so an unregistered bucket's request is still sent and the check's rejection is unhandled, which ends a Node process (STOR-4). (3) It ignores `ifAbsent` and `ifVersion` and writes unconditionally, so every write core makes conditionally, sessions, manifests, the key registry, the security policy and publications included, can silently erase a concurrent one (STOR-6, CD8). (4) `getObject` returns no `version` (STOR-5). (5) It writes its placeholder, `.directoryPlaceholder`, with `path.join`, so a name ending in `/` loses it (STOR-3); which object keeps an empty directory is the adapter's own (CD10), and MIO-10 uses MinIO's own directory object. (6) `listDirectory` normalizes the name with `path.join`, which resolves `..` and collapses `//`, and ignores `limit` (STOR-3, STOR-11). (7) `deleteDirectory` resolves before anything is deleted, and a failure is thrown inside a stream handler, where nothing can catch it (STOR-13). (8) `moveDirectory` copies every object at once, renames by replacing the first occurrence of the old name, so `$` patterns in the new name are expanded (as `adapter-gcp/storage.md` GF22 was), and removes the originals only after every copy (STOR-14). (9) A listing error becomes `Failed to list directory` and is written with `console.log` (STOR-15). | open; decided by CU6, RFC-0037 |
+| CF50 | **The storage suite checks 5 of this contract's 15 statements, and its own in-memory adapter does not conform.** `CONF-2` uploads, lists, reads and deletes one object. Nothing in `@genoacms/conformance` checks conditional writes, versions, moves, directories or URLs, so an adapter can drop them unnoticed (CF49 went unnoticed this way). The in-memory adapter of `packages/conformance/test/memory.js` lists no directories, ignores `UploadOptions` and returns no version. Found 2026-10-18 by reading. | open, RFC-0037 |
 
 ### History
 
@@ -367,4 +376,4 @@ exception to STOR-15.
 
 - Test: none yet
 - Level: unit, conformance, contract
-- State: new (no RFC yet)
+- State: new (RFC-0037)

@@ -67,6 +67,8 @@ Every `C` ID, where it lives, and its state.
 | CU8 | Deleting a missing object fails with `storage/not-found` | decided | [`storage.md`](storage.md) |
 | CU6 | The MinIO adapter is brought to the storage contract by an RFC | decided | [`storage.md`](storage.md) |
 | CU7 | `gzip` is removed from `UploadOptions` | decided | [`storage.md`](storage.md) |
+| CU9 | A directory's name is `''` or ends in `/`; other names are refused | decided | [`storage.md`](storage.md) |
+| CU10 | A listing is continued with an opaque page token | decided | [`storage.md`](storage.md) |
 | CD1 | What only some adapters can do is an optional capability | decided, none yet | README |
 | CD2 | Sessions are revalidated with `getIdentity` at each refresh | new | [`authentication.md`](authentication.md) |
 | CD3 | A rejection carries its reason; users see one message | new | [`authentication.md`](authentication.md) |
