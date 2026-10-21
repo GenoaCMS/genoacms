@@ -48,3 +48,21 @@ features:
       collection: tabler
       name: shield-check
 ---
+
+<div class="screenshots">
+  <figure>
+    <img class="shot-light" src="./screenshots/collection-list-light.webp" alt="The collection list: a table of documents with a filter">
+    <img class="shot-dark" src="./screenshots/collection-list-dark.webp" alt="The collection list: a table of documents with a filter">
+    <figcaption>Collections: browse and filter the documents of a table that already exists</figcaption>
+  </figure>
+  <figure>
+    <img class="shot-light" src="./screenshots/document-editor-light.webp" alt="The document editor with a markdown field and live preview">
+    <img class="shot-dark" src="./screenshots/document-editor-dark.webp" alt="The document editor with a markdown field and live preview">
+    <figcaption>Documents: edit every field type, with a live markdown preview</figcaption>
+  </figure>
+  <figure>
+    <img class="shot-light" src="./screenshots/signing-keys-light.webp" alt="The signing keys page with the root trust anchor and the key registry">
+    <img class="shot-dark" src="./screenshots/signing-keys-dark.webp" alt="The signing keys page with the root trust anchor and the key registry">
+    <figcaption>Signing keys: the trust anchor your application uses to verify published pages</figcaption>
+  </figure>
+</div>
