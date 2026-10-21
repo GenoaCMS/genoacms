@@ -8,7 +8,7 @@
     "name": "Filip Holčík",
     "email": "filip.holcik.official@gmail.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GenoaCMS/genoacms.git"

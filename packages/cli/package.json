@@ -11,7 +11,7 @@
     "name": "Filip Holčík",
     "email": "filip.holcik.official@gmail.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "main": "src/index.js",
   "bin": {
     "genoa": "src/index.js"

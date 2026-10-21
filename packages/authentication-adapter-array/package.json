@@ -13,7 +13,7 @@
     "url": "git+https://github.com/GenoaCMS/genoacms.git",
     "directory": "packages/authentication-adapter-array"
   },
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@genoacms/contracts": "workspace:^"
   },

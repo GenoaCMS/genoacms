@@ -10,7 +10,7 @@
 		"name": "Filip Holčík",
 		"email": "filip.holcik.official@gmail.com"
 	},
-	"license": "ISC",
+	"license": "MIT",
 	"scripts": {
 		"adapters": "pnpm --filter @genoacms/config --filter @genoacms/language-adapter-ts --filter @genoacms/adapter-gcp --filter @genoacms/sveltekit-adapter-cloud-run-functions run build",
 		"dev": "pnpm run adapters && vite dev --host",

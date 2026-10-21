@@ -11,7 +11,7 @@
     "url": "git+https://github.com/GenoaCMS/genoacms.git",
     "directory": "packages/internal"
   },
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/GenoaCMS/genoacms/issues"
   },
