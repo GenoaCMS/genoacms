@@ -1,7 +1,9 @@
 # GenoaCMS
 
-Monorepo for GenoaCMS: the CMS core, the cloud abstraction layer, and the adapters
-that implement that abstraction for individual providers.
+Monorepo for GenoaCMS: the CMS core, the service contracts, and the adapters
+that implement them for individual providers.
+
+GenoaCMS has run in production since 2024. See the [sites that use it](https://genoacms.js.org/in-production/).
 
 ## Layout
 
@@ -12,19 +14,18 @@ that implement that abstraction for individual providers.
 | [`packages/conformance`](packages/conformance)                                              | `@genoacms/conformance`                            | Test suites an adapter runs to prove it meets its service contract |
 | [`packages/core`](packages/core)                                                             | `@genoacms/core`                                    | The SvelteKit CMS application                                  |
 | [`packages/cli`](packages/cli)                                                               | `@genoacms/cli`                                     | Project scaffolding and setup                                  |
-| [`packages/adapter-gcp`](packages/adapter-gcp)                                               | `@genoacms/adapter-gcp`                             | Storage / database / auth / deployment on Google Cloud         |
-| [`packages/adapter-aws`](packages/adapter-aws)                                               | `@genoacms/adapter-aws`                             | Storage / database / auth / deployment on AWS                  |
+| [`packages/adapter-gcp`](packages/adapter-gcp)                                               | `@genoacms/adapter-gcp`                             | Storage / database / auth / secrets / deployment on Google Cloud         |
+| [`packages/adapter-aws`](packages/adapter-aws)                                               | `@genoacms/adapter-aws`                             | Storage / database / secrets / deployment on AWS                  |
 | [`packages/adapter-minio`](packages/adapter-minio)                                           | `@genoacms/adapter-minio`                           | Storage on MinIO                                               |
 | [`packages/adapter-postgres`](packages/adapter-postgres)                                     | `@genoacms/adapter-postgres`                        | Database on PostgreSQL                                         |
 | [`packages/adapter-node`](packages/adapter-node)                                             | `@genoacms/adapter-node`                            | Deployment to a plain Node server                              |
-| [`packages/authentication-adapter-array`](packages/authentication-adapter-array)             | `@genoacms/authentication-adapter-array`            | Authentication from an in-config credential array              |
-| [`packages/authorization-adapter-array`](packages/authorization-adapter-array)               | `@genoacms/authorization-adapter-array`             | Authorization from an in-config user array                     |
+| [`packages/authentication-adapter-array`](packages/authentication-adapter-array)             | `@genoacms/authentication-adapter-array`            | Authentication from a fixed list of users held as a secret              |
 | [`packages/sveltekit-adapter-cloud-run-functions`](packages/sveltekit-adapter-cloud-run-functions) | `@genoacms/sveltekit-adapter-cloud-run-functions` | SvelteKit build adapter targeting Cloud Run Functions          |
 | [`packages/docs`](packages/docs)                                                             | — (private)                                         | Documentation site, deployed to GitHub Pages                   |
 
 ## Getting started
 
-Requires Node 20+ and [pnpm](https://pnpm.io) (pinned via `packageManager`; `corepack enable` picks up the right version).
+Requires Node `^20.19`, `^22.12` or `>=24`, and [pnpm](https://pnpm.io) (pinned via `packageManager`; `corepack enable` picks up the right version).
 
 ```bash
 pnpm install     # installs every package and links them together
@@ -72,6 +73,13 @@ automatically. `@genoacms/docs` is private and never published.
 
 | Workflow                                     | Trigger                          | Does                                              |
 | -------------------------------------------- | -------------------------------- | ------------------------------------------------- |
-| [`ci.yml`](.github/workflows/ci.yml)           | push to `main`, pull requests    | install, lint, build, test across the workspace   |
+| [`ci.yml`](.github/workflows/ci.yml)           | push to `main`, pull requests    | install, build, test across the workspace   |
 | [`release.yml`](.github/workflows/release.yml) | push to `main`                   | Changesets version PR / npm publish               |
 | [`docs.yml`](.github/workflows/docs.yml)       | push to `main` touching `packages/docs/**` | build and deploy the docs site to Pages |
+
+## Contributing, security and license
+
+GenoaCMS is maintained by one person. See [`CONTRIBUTING.md`](CONTRIBUTING.md) to report a bug or propose a
+change, [`SECURITY.md`](SECURITY.md) to report a vulnerability, and
+[Stability and versions](https://genoacms.js.org/guide/stability/) for which releases and adapter
+combinations to use. Released under the [MIT License](LICENSE).
