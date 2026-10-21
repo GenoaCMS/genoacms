@@ -38,6 +38,10 @@ const config = defineConfig({
           {
             title: 'Reference',
             to: '/reference/config/'
+          },
+          {
+            title: 'In production',
+            to: '/in-production/'
           }
         ],
         sidebar: {
@@ -56,6 +60,10 @@ const config = defineConfig({
                 {
                   title: 'Getting Started',
                   to: '/guide/getting-started/'
+                },
+                {
+                  title: 'Stability and versions',
+                  to: '/guide/stability/'
                 }
               ]
             },

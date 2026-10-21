@@ -154,7 +154,7 @@ The `exports` map of its `package.json` publishes both modules:
     "./runtime": { "types": "./dist/runtime.d.ts", "import": "./dist/runtime.js" }
   },
   "dependencies": {
-    "@genoacms/contracts": "^0.0.1",
+    "@genoacms/contracts": "^0.0.2",
     "@acme/sdk": "^1.0.0"
   }
 }

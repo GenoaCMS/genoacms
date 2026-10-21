@@ -5,6 +5,8 @@ actions:
   - label: Get started
     type: primary
     to: /guide/introduction
+  - label: In production
+    to: /in-production/
   - label: View on github
     to: https://github.com/GenoaCMS/genoacms
     external: true
