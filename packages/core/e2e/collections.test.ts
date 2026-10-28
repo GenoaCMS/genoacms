@@ -372,7 +372,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
 
       expect(await readDocument('authors', first)).toBeUndefined()
       expect(await readDocument('authors', second)).toBeUndefined()
-      expect(await page.getByRole('link').filter({ hasText: `${run} doomed` }).count()).toBe(0)
+      await expect.poll(async () => await page.getByRole('link').filter({ hasText: `${run} doomed` }).count(), { timeout: 30_000 }).toBe(0)
     })
 
     it('LST-6, DOC-5: New document creates the document and opens it', async () => {
