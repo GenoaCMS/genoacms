@@ -1,5 +1,22 @@
 # @genoacms/core
 
+## 0.3.0
+
+### Minor Changes
+
+- [`7f69446`](https://github.com/GenoaCMS/genoacms/commit/7f69446f8509938b2fa6a4e3ee43922ba8461b7e) Thanks [@Hejtmus](https://github.com/Hejtmus)! - AI agents control components and pages through an MCP endpoint, `POST /mcp`, with 18 tools. An agent is declared in `authentication.agents` or created on `/configuration/iam`, identifies itself with a bearer token alone, and never holds a configuration permission. Every save of a component header, a component body or a page carries the version it was read at, on the screens and in the tools, and a stale save is refused. The screens now refuse a header saved for an unknown component, a changed component kind, a page name of more than one level, a replaced page, a node of an unpublished component, and a node edit that rewrites a page's structure with only the content permission; a node removed from a slot leaves the page with every node below it.
+
+- [#22](https://github.com/GenoaCMS/genoacms/pull/22) [`813d2b5`](https://github.com/GenoaCMS/genoacms/commit/813d2b5ec6841e155cd697e45dccdb42e7f9c3d0) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The storage browser treats `.genoacms/` in the default bucket as read-only for users, takes typed names as one level, renames and moves only what was chosen, answers denials with 403, reports actions on several items per item, shows long directories a page at a time with `Show more`, keeps the selection across reloads, and names the picker's confirm button `Confirm selection`.
+
+- [#22](https://github.com/GenoaCMS/genoacms/pull/22) [`813d2b5`](https://github.com/GenoaCMS/genoacms/commit/813d2b5ec6841e155cd697e45dccdb42e7f9c3d0) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The storage contract gains `ObjectNotFoundError`: reading or deleting a missing object rejects with `storage/not-found` on every adapter. A directory's name is `''` or ends in `/`, and other names are refused with `storage/not-a-directory`. Listings page with an opaque `next` token, and core and `genoa database` follow every page. `gzip` is removed from `UploadOptions`. The MinIO adapter now serves any S3-compatible server that honours conditional writes (tested against RustFS), and the conformance suite checks the whole storage contract.
+
+### Patch Changes
+
+- Updated dependencies [[`7f69446`](https://github.com/GenoaCMS/genoacms/commit/7f69446f8509938b2fa6a4e3ee43922ba8461b7e), [`813d2b5`](https://github.com/GenoaCMS/genoacms/commit/813d2b5ec6841e155cd697e45dccdb42e7f9c3d0)]:
+  - @genoacms/config@0.0.4
+  - @genoacms/contracts@0.0.3
+  - @genoacms/language-adapter-ts@0.1.2
+
 ## 0.2.0
 
 ### Minor Changes
