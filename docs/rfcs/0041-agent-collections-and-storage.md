@@ -37,9 +37,10 @@ Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (
 | `packages/core/src/lib/script/database/errors.ts` | new: `DocumentValidationError`, `DocumentNotFoundError` |
 | `packages/core/src/lib/script/database/validation.ts` | new: `validateDocument` |
 | `packages/core/src/lib/script/database/user.server.ts` | DOC-8 in `createUserDocument` and `updateUserDocument`; DOC-3's not-found; TOL-19's unreadable fields in `getUserCollection` |
-| `packages/core/src/lib/script/database/user.server.test.ts` | the DOC-3 and DOC-8 tests of §Tests; the format checks moved from `documents.remote.test.ts` (DOC-5, DOC-8); the existing DOC-3 tests of an unrestricted update not reading first, and of an update with nothing stored, changed to the read-first and not-found behavior of DOC-3 and DOC-8 |
+| `packages/core/src/lib/script/database/user.server.test.ts` | the DOC-3 and DOC-8 tests of §Tests; the format checks moved from `documents.remote.test.ts` (DOC-5, DOC-8); the existing DOC-3 tests of an unrestricted update not reading first, and of an update with nothing stored, changed to the read-first and not-found behavior of DOC-3 and DOC-8; its article fixture given a collection with a schema, and the DOC-1 write test expecting the read |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/create.remote.ts`, `[documentId]/update.remote.ts` | validation removed; `DocumentValidationError` answered as invalid data |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/documents.remote.test.ts` | the two "schema rejects" tests changed as §Tests says; its format checks move to `user.server.test.ts`, where the validation now is |
+| `packages/core/evidence/permissionMatrix.ts`, `permissionMatrix.test.ts` | `getUserSignedURL` in the matrix of operations, its read roles and its mock; the document reference given a schema, now that an update validates |
 | `packages/core/src/lib/script/storage/storage.server.ts` | exports `getSignedURL` of the providers, as it exports the other operations |
 | `packages/core/src/lib/script/storage/user.server.ts` | `getUserSignedURL` |
 | `packages/core/src/lib/script/storage/user.server.test.ts` | the STS-7 tests |
@@ -122,16 +123,17 @@ It builds the validator with `validator(schema, { formats, includeErrors: true, 
 `packages/core/src/lib/script/database/user.server.ts`:
 
 - `createUserDocument`: after `requireWrite`, `validateDocument(withoutRequiredKey(reference),
-  document)`, where `withoutRequiredKey` returns the schema with `primaryKey.key` removed from its
-  top-level `required`; then as today.
+  withoutKey(document))`, where `withoutRequiredKey` returns the schema with `primaryKey.key` removed
+  from its top-level `required`, and `withoutKey` the document without that field; then as today.
 - `getUserCollection(ctx, reference, params)`: after `requireRead`, when `readable(ctx, name)` is not
   `'*'`, a condition of `params.where` on a field outside it throws
   `new Error('documents/unreadable-field: ' + field)` before the adapter is called.
 - `updateUserDocument`: after `requireWrite`, read `current = await getDocument(reference)`; when it
   is `undefined`, throw `new DocumentNotFoundError(reference.collection.name, reference.id)`. The
   document to store is `{ ...current.data, ...document }` when every field is writable, otherwise
-  `mergeDocument(current.data, document, fields)`; `validateDocument(reference.collection.schema,
-  stored)`; then write: `updateDocument(reference, document)` when every field is writable (the
+  `mergeDocument(current.data, document, fields)`; `validateDocument(withoutRequiredKey(collection),
+  withoutKey(stored))`, since a read carries the key field (DATA-3) and the store's IDs need not
+  match the schema's format for it; then write: `updateDocument(reference, document)` when every field is writable (the
   adapter merges), `updateDocument(reference, stored)` otherwise, as today.
 
 `create.remote.ts`, `update.remote.ts`: the `validator` import and the validation are removed. In
@@ -339,7 +341,7 @@ pnpm --filter @genoacms/core run adapters
 pnpm --filter @genoacms/core exec vitest run --project node
 # all pass
 pnpm --filter @genoacms/core exec eslint src/lib/script/mcp src/lib/script/database src/lib/script/storage "src/routes/(admin)/collections"
-# no errors
+# no error on a changed line (the baseline has `no-explicit-any` and Svelte errors elsewhere)
 pnpm --filter @genoacms/core run check
 # no error in a file of §Files (the baseline has 39 elsewhere)
 pnpm --filter @genoacms/docs run build
