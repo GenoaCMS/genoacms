@@ -142,6 +142,7 @@ export {
   moveObject,
   deleteObject,
   getPublicURL,
+  getSignedURL,
   fullyQualifiedNameToPath,
   fullyQualifiedNameToFilename,
   isDirectoryExisting,

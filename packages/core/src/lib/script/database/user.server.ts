@@ -6,6 +6,7 @@ import {
   writableDocument
 } from '$lib/script/authorization/fields'
 import type { AuthContext } from '$lib/script/authorization/context'
+import { WILDCARD } from '$lib/script/authorization/grants'
 import {
   getCollectionReferences,
   getCollectionReference,
@@ -15,6 +16,8 @@ import {
   updateDocument,
   deleteDocument
 } from './database.server'
+import { DocumentNotFoundError } from './errors'
+import { validateDocument } from './validation'
 
 /**
  * Database operations performed **by a user**.
@@ -79,12 +82,24 @@ const readable = (ctx: AuthContext, collection: string) =>
 const writable = (ctx: AuthContext, collection: string) =>
   permittedFields(ctx, 'db:collection:write', collection)
 
+const requireReadableConditions = (
+  ctx: AuthContext,
+  collection: string,
+  queryParams: Parameters<typeof getCollection>[1]
+): void => {
+  const fields = readable(ctx, collection)
+  if (fields === WILDCARD) return
+  const unreadable = queryParams?.where?.find(({ field }) => !fields.includes(field))
+  if (unreadable !== undefined) throw new Error('documents/unreadable-field: ' + unreadable.field)
+}
+
 const getUserCollection = async (
   ctx: AuthContext,
   reference: CollectionRef,
   queryParams?: Parameters<typeof getCollection>[1]
 ) => {
   requireRead(ctx, reference.name)
+  requireReadableConditions(ctx, reference.name, queryParams)
 
   const page = await getCollection(reference, queryParams)
   const fields = readable(ctx, reference.name)
@@ -106,6 +121,12 @@ const getUserDocument = async (ctx: AuthContext, reference: DocumentRef) => {
   return { ...snapshot, data: projectDocument(snapshot.data, readable(ctx, reference.collection.name)) }
 }
 
+const withoutRequiredKey = (reference: CollectionRef) => {
+  const schema = reference.schema as { required?: string[] }
+  if (schema.required === undefined) return reference.schema
+  return { ...schema, required: schema.required.filter(key => key !== reference.primaryKey.key) } as typeof reference.schema
+}
+
 const createUserDocument = async (
   ctx: AuthContext,
   reference: CollectionRef,
@@ -113,10 +134,22 @@ const createUserDocument = async (
 ) => {
   requireWrite(ctx, reference.name)
 
+  validateDocument(withoutRequiredKey(reference), document)
+
   // Nothing is stored yet, so a field the principal may not write is not theirs to set.
   const permitted = writableDocument(document, writable(ctx, reference.name))
   return await createDocument(reference, permitted as typeof document)
 }
+
+const withoutKey = (reference: DocumentRef, data: Record<string, unknown>): Record<string, unknown> => {
+  return Object.fromEntries(Object.entries(data).filter(([field]) => field !== reference.collection.primaryKey?.key))
+}
+
+const storedAfterUpdate = (
+  stored: Record<string, unknown>,
+  document: Record<string, unknown>,
+  fields: ReturnType<typeof writable>
+) => fields === WILDCARD ? { ...stored, ...document } : mergeDocument(stored, document, fields)
 
 const updateUserDocument = async (
   ctx: AuthContext,
@@ -125,17 +158,16 @@ const updateUserDocument = async (
 ) => {
   requireWrite(ctx, reference.collection.name)
 
-  const fields = writable(ctx, reference.collection.name)
-  if (fields === '*') return await updateDocument(reference, document)
-
-  // Restricted writes need the stored record to merge against. It is read here and never returned:
-  // the values of unwritable fields are preserved, not disclosed.
+  // The stored record is read here and never returned: the values of unwritable fields are
+  // preserved, not disclosed.
   const current = await getDocument(reference)
-  const merged = current === undefined
-    ? writableDocument(document, fields)
-    : mergeDocument(current.data, document, fields)
+  if (current === undefined) throw new DocumentNotFoundError(reference.collection.name, reference.id)
 
-  return await updateDocument(reference, merged as typeof document)
+  const fields = writable(ctx, reference.collection.name)
+  const stored = storedAfterUpdate(current.data, document, fields)
+  validateDocument(reference.collection.schema, withoutKey(reference, stored))
+
+  return await updateDocument(reference, (fields === WILDCARD ? document : stored) as typeof document)
 }
 
 const deleteUserDocument = async (ctx: AuthContext, reference: DocumentRef) => {

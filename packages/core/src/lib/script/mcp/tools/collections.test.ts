@@ -36,7 +36,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('collection tools', () => {
-  it.fails('TOL-18: collections are listed from the catalog, and one is read with its schema', async () => {
+  it('TOL-18: collections are listed from the catalog, and one is read with its schema', async () => {
     const agent = createAuthContext('agent:editor', [onTest('db:collection:read')])
 
     expect(await useTool(agent, 'list_collections', {})).toEqual([{ name: 'test' }])
@@ -44,12 +44,12 @@ describe('collection tools', () => {
       .toEqual({ name: definition.name, primaryKey: definition.primaryKey, schema: definition.schema })
   })
 
-  it.fails('TOL-18: an unknown collection fails as not found', async () => {
+  it('TOL-18: an unknown collection fails as not found', async () => {
     expect(await callTool(reader, 'get_collection', { collection: 'absent' }))
       .toMatchObject({ isError: true, text: 'collection/not-found: absent' })
   })
 
-  it.fails('TOL-19: documents are listed a page at a time, filtered by conditions', async () => {
+  it('TOL-19: documents are listed a page at a time, filtered by conditions', async () => {
     for (let index = 0; index < 120; index++) memoryDatabase.set('test', idOf(index), { name: `n${index}`, isA: index % 4 === 0 })
 
     const first = await useTool(reader, 'list_documents', { collection: 'test' })
@@ -70,14 +70,14 @@ describe('collection tools', () => {
     expect(new Set(idsOf({ documents: listed })).size).toBe(30)
   })
 
-  it.fails('TOL-19: a limit outside 1 to 200 is refused', async () => {
+  it('TOL-19: a limit outside 1 to 200 is refused', async () => {
     for (const limit of [0, 201]) {
       expect(await callTool(reader, 'list_documents', { collection: 'test', limit }), String(limit))
         .toMatchObject({ isError: true, text: expect.stringMatching(/^tools\/invalid-arguments: /) })
     }
   })
 
-  it.fails('TOL-19: a condition on a field the agent may not read is refused', async () => {
+  it('TOL-19: a condition on a field the agent may not read is refused', async () => {
     memoryDatabase.set('test', 'd', { name: 'a', isA: true })
     const queried = vi.spyOn(memoryDatabase, 'getCollection')
 
@@ -87,7 +87,7 @@ describe('collection tools', () => {
     expect(queried).not.toHaveBeenCalled()
   })
 
-  it.fails('TOL-19, TOL-20: only readable fields are returned', async () => {
+  it('TOL-19, TOL-20: only readable fields are returned', async () => {
     memoryDatabase.set('test', 'd', { name: 'a', isA: true })
 
     const page = await useTool(restrictedReader, 'list_documents', { collection: 'test' })
@@ -95,12 +95,12 @@ describe('collection tools', () => {
     expect(await useTool(restrictedReader, 'get_document', { collection: 'test', id: 'd' })).toEqual({ id: 'd', data: { name: 'a' } })
   })
 
-  it.fails('TOL-20: a missing document fails as not found', async () => {
+  it('TOL-20: a missing document fails as not found', async () => {
     expect(await callTool(reader, 'get_document', { collection: 'test', id: 'x' }))
       .toMatchObject({ isError: true, text: 'documents/not-found: test/x' })
   })
 
-  it.fails('TOL-21: a document is created, validated, and its id returned', async () => {
+  it('TOL-21: a document is created, validated, and its id returned', async () => {
     const created = await useTool(writer, 'create_document', { collection: 'test', data: { name: 'a', isA: true } })
     expect(memoryDatabase.get('test', created.id)).toEqual({ name: 'a', isA: true })
 
@@ -109,7 +109,7 @@ describe('collection tools', () => {
     expect(memoryDatabase.ids('test')).toEqual([created.id])
   })
 
-  it.fails('TOL-22: an update sets only the given fields and the later save wins', async () => {
+  it('TOL-22: an update sets only the given fields and the later save wins', async () => {
     memoryDatabase.set('test', 'd', { name: 'a', isA: true })
 
     expect(await useTool(writer, 'update_document', { collection: 'test', id: 'd', data: { name: 'b' } })).toEqual({ id: 'd' })
@@ -117,13 +117,13 @@ describe('collection tools', () => {
     expect(memoryDatabase.get('test', 'd')).toEqual({ name: 'c', isA: true })
   })
 
-  it.fails('TOL-22: an update of a missing document fails and writes nothing', async () => {
+  it('TOL-22: an update of a missing document fails and writes nothing', async () => {
     expect(await callTool(writer, 'update_document', { collection: 'test', id: 'x', data: { name: 'b' } }))
       .toMatchObject({ isError: true, text: 'documents/not-found: test/x' })
     expect(memoryDatabase.get('test', 'x')).toBeUndefined()
   })
 
-  it.fails('TOL-23: a document is deleted, and a missing one is not an error', async () => {
+  it('TOL-23: a document is deleted, and a missing one is not an error', async () => {
     memoryDatabase.set('test', 'd', { name: 'a' })
 
     expect(await useTool(remover, 'delete_document', { collection: 'test', id: 'd' })).toEqual({})
@@ -131,7 +131,7 @@ describe('collection tools', () => {
     expect(memoryDatabase.get('test', 'd')).toBeUndefined()
   })
 
-  it.fails('TOL-29: each collection tool demands its permission', async () => {
+  it('TOL-29: each collection tool demands its permission', async () => {
     memoryDatabase.set('test', 'd', { name: 'a' })
     const demands: Array<[string, Record<string, unknown>, Permission[]]> = [
       ['get_collection', { collection: 'test' }, ['db:collection:read']],

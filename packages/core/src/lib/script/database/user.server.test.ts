@@ -67,7 +67,7 @@ const deleter = () => contextWith([collectionGrant('db:collection:delete', 'arti
 const nobody = () => contextWith([])
 
 const articles = { name: 'articles', schema: {} } as never
-const articleDocument = { collection: { name: 'articles' }, id: 'doc-1' } as never
+const articleDocument = { collection: articles, id: 'doc-1' } as never
 
 const fieldGrant = (permission: Permission, fields: string[]): Grant =>
   ({ ...collectionGrant(permission, 'articles'), fields } as Grant)
@@ -121,7 +121,7 @@ describe('writing', () => {
   it('DOC-1: is allowed with the write permission', async () => {
     await database.createUserDocument(writer(), articles, {})
     await database.updateUserDocument(writer(), articleDocument, {})
-    expect(calls).toEqual(['createDocument:articles', 'updateDocument:articles/doc-1'])
+    expect(calls).toEqual(['createDocument:articles', 'getDocument:articles/doc-1', 'updateDocument:articles/doc-1'])
   })
 
   it('DOC-1: does not imply reading', async () => {
@@ -209,10 +209,10 @@ describe('reading restricted fields', () => {
 })
 
 describe('updating restricted fields', () => {
-  it('DOC-3: an unrestricted update stores the submission as given, without reading first', async () => {
+  it('DOC-3: an unrestricted update reads the stored document, then stores the submission as given', async () => {
     await database.updateUserDocument(writer(), articleDocument, { title: 'New' })
     expect(written).toEqual([{ title: 'New' }])
-    expect(calls).toEqual(['updateDocument:articles/doc-1'])
+    expect(calls).toEqual(['getDocument:articles/doc-1', 'updateDocument:articles/doc-1'])
   })
 
   it('DOC-3: a restricted update keeps the stored value of every field it may not write', async () => {
@@ -229,11 +229,11 @@ describe('updating restricted fields', () => {
     expect(written).toEqual([{ title: 'New', price: 10 }])
   })
 
-  it('DOC-3: with nothing stored, only the writable fields of the submission are stored', async () => {
+  it('DOC-3: with nothing stored, a restricted update fails as not found and stores nothing', async () => {
     storedDocument = undefined
     const context = contextWith([fieldGrant('db:collection:write', ['title'])])
-    await database.updateUserDocument(context, articleDocument, { title: 'New', price: 0 })
-    expect(written).toStrictEqual([{ title: 'New' }])
+    await expect(database.updateUserDocument(context, articleDocument, { title: 'New', price: 0 })).rejects.toThrow('documents/not-found: articles/doc-1')
+    expect(written).toEqual([])
   })
 })
 
@@ -257,13 +257,13 @@ describe('validating what is stored', () => {
     ({ permission, resource: { scope: 'collection', id: 'test' }, ...(fields === undefined ? {} : { fields }) } as Grant)
   const testWriter = (fields?: string[]) => contextWith([testGrant('db:collection:write', fields)])
 
-  it.fails('DOC-8: a creation the schema refuses is not written', async () => {
+  it('DOC-8: a creation the schema refuses is not written', async () => {
     await expect(database.createUserDocument(testWriter(), testCollection, { id: 'not-a-uuid' }))
       .rejects.toThrow(/^documents\/invalid: \/id format/)
     expect(calls).not.toContain('createDocument:test')
   })
 
-  it.fails('DOC-8: an update is validated with the stored fields it keeps', async () => {
+  it('DOC-8: an update is validated with the stored fields it keeps', async () => {
     storedDocument = { name: 'a', isA: 'yes' }
     await expect(database.updateUserDocument(testWriter(), testDocument, { name: 'b' }))
       .rejects.toThrow('documents/invalid: /isA type')
@@ -281,9 +281,38 @@ describe('validating what is stored', () => {
     expect(calls).toEqual([])
   })
 
-  it.fails('DOC-3: an update of a missing document fails as not found and writes nothing', async () => {
+  it('DOC-3: an update of a missing document fails as not found and writes nothing', async () => {
     storedDocument = undefined
     await expect(database.updateUserDocument(testWriter(), testDocument, { name: 'b' })).rejects.toThrow('documents/not-found: test/x')
     expect(calls).not.toContain('updateDocument:test/x')
+  })
+})
+
+describe('the formats of validation', () => {
+  const formatted = {
+    name: 'formatted',
+    primaryKey: { key: 'id', schema: { type: 'string' } },
+    schema: {
+      type: 'object',
+      properties: {
+        cover: { format: 'storageResource' },
+        author: { type: 'string', format: 'reference' },
+        body: { type: 'string', format: 'markdown' },
+        summary: { type: 'string', format: 'text' }
+      }
+    }
+  } as never
+  const accepted = async (document: Data): Promise<boolean> =>
+    await database.createUserDocument(contextWith([collectionGrant('db:collection:write', 'formatted')]), formatted, document).then(() => true, () => false)
+
+  it('DOC-8: reference, markdown and text accept any string', async () => {
+    expect(await accepted({ author: '', body: '# any', summary: 'x'.repeat(10_000) })).toBe(true)
+  })
+
+  it('DOC-8: storageResource refuses any string and does not check any other value', async () => {
+    expect(await accepted({ cover: 'media/a.png' })).toBe(false)
+    expect(await accepted({ cover: { bucket: 'media', name: 'a.png' } })).toBe(true)
+    expect(await accepted({ cover: { bucket: 'media' } })).toBe(true)
+    expect(await accepted({ cover: 5 })).toBe(true)
   })
 })

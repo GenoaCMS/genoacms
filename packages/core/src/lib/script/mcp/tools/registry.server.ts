@@ -1,6 +1,8 @@
 import type { AuthContext } from '$lib/script/authorization/context'
+import * as collections from './collections.server'
 import * as components from './components.server'
 import * as pages from './pages.server'
+import * as storage from './storage.server'
 
 type JsonSchema = Record<string, unknown>
 
@@ -19,6 +21,12 @@ const position = { type: 'integer', minimum: 0, description: '0-based; the end w
 const object = (properties: JsonSchema, required: string[]): JsonSchema =>
   ({ type: 'object', properties, required, additionalProperties: false })
 
+const condition = object({
+  field: identifier,
+  operator: { enum: ['==', '!=', '<', '<=', '>', '>='] },
+  value: { type: ['string', 'number', 'boolean', 'null'] }
+}, ['field', 'operator', 'value'])
+
 const ATTRIBUTE_TYPES = ['boolean', 'number', 'string', 'text', 'markdown', 'richText', 'link', 'storageResource', 'components']
 
 const attributeInput = object({
@@ -30,7 +38,7 @@ const attributeInput = object({
 const tool = (name: string, description: string, inputSchema: JsonSchema, handler: Tool['handler']): Tool =>
   ({ name, description, inputSchema, handler })
 
-/** The 18 tools of TOL-2 to TOL-15, in that order. */
+/** The 34 tools of TOL-2 to TOL-15 and TOL-18 to TOL-28, in that order. */
 const toolRegistry: Tool[] = [
   tool('list_components', 'Lists the components with their publication.', object({}, []), components.listComponents),
   tool('get_component', 'Reads a component with its attributes in order, its publication and its version.', object({ uid: identifier }, ['uid']), components.getComponent),
@@ -52,7 +60,27 @@ const toolRegistry: Tool[] = [
   tool('remove_node', 'Removes a node and every node below it.', object({ page: identifier, version, node: identifier }, ['page', 'version', 'node']), pages.removeNode),
   tool('set_preview_url', 'Sets the preview URL of a page.', object({ page: identifier, version, url: text }, ['page', 'version', 'url']), pages.setPreviewUrl),
   tool('build_page', 'Builds the stored page into its signed tree.', object({ page: identifier }, ['page']), pages.buildPage),
-  tool('delete_page', 'Deletes a page and its built tree.', object({ page: identifier }, ['page']), pages.deletePage)
+  tool('delete_page', 'Deletes a page and its built tree.', object({ page: identifier }, ['page']), pages.deletePage),
+  tool('list_collections', 'Lists the collections you hold a grant on.', object({}, []), collections.listCollections),
+  tool('get_collection', 'Reads a collection\'s schema and primary key.', object({ collection: identifier }, ['collection']), collections.getCollection),
+  tool('list_documents', 'Lists one page of a collection\'s documents, filtered by conditions on top-level fields; pass next back as pageToken.',
+    object({ collection: identifier, where: { type: 'array', items: condition }, limit: { type: 'integer', minimum: 1, maximum: 200 }, pageToken: identifier }, ['collection']), collections.listDocuments),
+  tool('get_document', 'Reads a document.', object({ collection: identifier, id: identifier }, ['collection', 'id']), collections.getDocument),
+  tool('create_document', 'Creates a document, validated against the schema.', object({ collection: identifier, data: { type: 'object' } }, ['collection', 'data']), collections.createDocument),
+  tool('update_document', 'Sets the given top-level fields of a document; the later save wins.',
+    object({ collection: identifier, id: identifier, data: { type: 'object' } }, ['collection', 'id', 'data']), collections.updateDocument),
+  tool('delete_document', 'Deletes a document.', object({ collection: identifier, id: identifier }, ['collection', 'id']), collections.deleteDocument),
+  tool('list_buckets', 'Lists the buckets you hold a grant on.', object({}, []), storage.listBuckets),
+  tool('list_directory', 'Lists one page of a directory.',
+    object({ bucket: identifier, path: text, pageToken: identifier, limit: { type: 'integer', minimum: 1 } }, ['bucket']), storage.listDirectory),
+  tool('get_object', 'Returns a signed URL to fetch an object\'s contents from, valid for an hour.', object({ bucket: identifier, name: identifier }, ['bucket', 'name']), storage.getObject),
+  tool('upload_object', 'Stores an object of at most 4 MiB, as UTF-8 text or base64; refuses to replace one unless overwrite is true.',
+    object({ bucket: identifier, name: identifier, content: text, encoding: { enum: ['utf8', 'base64'] }, overwrite: { type: 'boolean' } }, ['bucket', 'name', 'content']), storage.uploadObject),
+  tool('move_object', 'Moves an object within its bucket.', object({ bucket: identifier, name: identifier, destination: identifier }, ['bucket', 'name', 'destination']), storage.moveObject),
+  tool('delete_object', 'Deletes an object.', object({ bucket: identifier, name: identifier }, ['bucket', 'name']), storage.deleteObject),
+  tool('create_directory', 'Creates a directory.', object({ bucket: identifier, path: text }, ['bucket', 'path']), storage.createDirectory),
+  tool('move_directory', 'Moves everything under a directory.', object({ bucket: identifier, path: text, destination: text }, ['bucket', 'path', 'destination']), storage.moveDirectory),
+  tool('delete_directory', 'Deletes everything under a directory.', object({ bucket: identifier, path: text }, ['bucket', 'path']), storage.deleteDirectory)
 ]
 
 export { toolRegistry }

@@ -248,7 +248,7 @@ describe('signing one object', () => {
 
   afterEach(() => { vi.useRealTimers() })
 
-  it.fails("STS-7: one object's URL is signed for an hour on read", async () => {
+  it("STS-7: one object's URL is signed for an hour on read", async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
 
@@ -258,7 +258,7 @@ describe('signing one object', () => {
     expect(result).toEqual({ url: 'signed://media/a.png', expiresAt: new Date(NOW + ONE_HOUR_MS) })
   })
 
-  it.fails('STS-7: signing without read is denied and signs nothing', async () => {
+  it('STS-7: signing without read is denied and signs nothing', async () => {
     await expectDenied(() => getUserSignedURL(writer(), { bucket: 'media', name: 'a.png' }))
     expect(signed).toEqual([])
   })

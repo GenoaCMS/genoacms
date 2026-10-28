@@ -56,7 +56,7 @@ describe('creating from the editor', () => {
     expect(service.createUserDocument).not.toHaveBeenCalled()
   })
 
-  it.fails('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
+  it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
     const { DocumentValidationError } = await importModule('$lib/script/database/errors')
     service.createUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/count', keyword: 'type' }]))
 
@@ -92,7 +92,7 @@ describe('updating from the editor', () => {
     expect(service.updateUserDocument).not.toHaveBeenCalled()
   })
 
-  it.fails('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
+  it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
     const { DocumentValidationError } = await importModule('$lib/script/database/errors')
     service.updateUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/title', keyword: 'type' }]))
 
@@ -118,21 +118,5 @@ describe('updating from the editor', () => {
     service.updateUserDocument.mockRejectedValue(new Error('adapter down'))
 
     expect(await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 'a' } })).toEqual({ status: 'fail', text: 'Error updating document' })
-  })
-})
-
-describe('the formats of validation', () => {
-  const valid = async (documentData: Data): Promise<boolean> =>
-    (await create({ collectionName: 'articles', documentData })).status === 'success'
-
-  it('DOC-5: reference, markdown and text accept any string', async () => {
-    expect(await valid({ author: '', body: '# any', summary: 'x'.repeat(10_000) })).toBe(true)
-  })
-
-  it('DOC-5: storageResource refuses any string and does not check any other value', async () => {
-    expect(await valid({ cover: 'media/a.png' })).toBe(false)
-    expect(await valid({ cover: { bucket: 'media', name: 'a.png' } })).toBe(true)
-    expect(await valid({ cover: { bucket: 'media' } })).toBe(true)
-    expect(await valid({ cover: 5 })).toBe(true)
   })
 })

@@ -53,7 +53,7 @@ describe('the MCP protocol', () => {
     }
   })
 
-  it.fails('MCP-4: tools/list lists every tool with its input schema, whatever the grants', async () => {
+  it('MCP-4: tools/list lists every tool with its input schema, whatever the grants', async () => {
     const response = await request('tools/list', {}, nobody, await toolRegistry())
 
     const tools = response.result.tools as Array<{ name: string, description: string, inputSchema: Parsed }>

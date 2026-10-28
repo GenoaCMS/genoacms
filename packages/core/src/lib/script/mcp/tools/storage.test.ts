@@ -25,7 +25,7 @@ afterEach(() => {
 })
 
 describe('storage tools', () => {
-  it.fails('TOL-24: buckets are listed, and a directory is listed one page at a time without URLs', async () => {
+  it('TOL-24: buckets are listed, and a directory is listed one page at a time without URLs', async () => {
     memory.set('a/1.txt', 'x')
     memory.set('a/2.txt', 'yy')
     memory.set('a/b/3.txt', 'zzz')
@@ -42,7 +42,7 @@ describe('storage tools', () => {
     expect(listing.directories).toEqual(['a/b/'])
   })
 
-  it.fails('TOL-25: an object is read through a signed URL that expires in an hour', async () => {
+  it('TOL-25: an object is read through a signed URL that expires in an hour', async () => {
     memory.set('a/1.txt', 'x')
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
@@ -55,7 +55,7 @@ describe('storage tools', () => {
     })
   })
 
-  it.fails('TOL-26: text and base64 contents are stored as bytes', async () => {
+  it('TOL-26: text and base64 contents are stored as bytes', async () => {
     const uploads = vi.spyOn(memoryProviders, 'uploadObject')
 
     expect(await useTool(agent, 'upload_object', { bucket, name: 'u/text.txt', content: 'Návod 😀' })).toEqual({ name: 'u/text.txt' })
@@ -68,7 +68,7 @@ describe('storage tools', () => {
     expect(memory.has('u/bytes')).toBe(true)
   })
 
-  it.fails('TOL-26: an existing object is replaced only with overwrite', async () => {
+  it('TOL-26: an existing object is replaced only with overwrite', async () => {
     memory.set('a/1.txt', 'old')
 
     expect(await callTool(agent, 'upload_object', { bucket, name: 'a/1.txt', content: 'new' }))
@@ -79,7 +79,7 @@ describe('storage tools', () => {
     expect(memory.text('a/1.txt')).toBe('new')
   })
 
-  it.fails('TOL-26: oversized and malformed contents are refused and nothing is written', async () => {
+  it('TOL-26: oversized and malformed contents are refused and nothing is written', async () => {
     expect(await callTool(agent, 'upload_object', { bucket, name: 'u/big.txt', content: 'a'.repeat(MAX_BYTES + 1) }))
       .toMatchObject({ isError: true, text: 'storage/too-large: 4194305 bytes exceed 4194304' })
     expect(await callTool(agent, 'upload_object', { bucket, name: 'u/bad', content: 'no t', encoding: 'base64' }))
@@ -87,7 +87,7 @@ describe('storage tools', () => {
     expect(memory.names()).toEqual([])
   })
 
-  it.fails('TOL-27: an object is moved and deleted, and a missing one fails as not found', async () => {
+  it('TOL-27: an object is moved and deleted, and a missing one fails as not found', async () => {
     memory.set('a/1.txt', 'x')
 
     expect(await useTool(agent, 'move_object', { bucket, name: 'a/1.txt', destination: 'c/1.txt' })).toEqual({})
@@ -97,7 +97,7 @@ describe('storage tools', () => {
       .toMatchObject({ isError: true, text: `storage/not-found: ${bucket}/c/1.txt` })
   })
 
-  it.fails('TOL-28: directories are created, moved and deleted recursively', async () => {
+  it('TOL-28: directories are created, moved and deleted recursively', async () => {
     memory.set('a/1.txt', 'x')
     memory.set('a/b/3.txt', 'z')
     const remaining = (prefix: string): string[] => memory.names().filter(name => name.startsWith(prefix))
@@ -110,7 +110,7 @@ describe('storage tools', () => {
     expect(remaining('e/')).toEqual([])
   })
 
-  it.fails('TOL-28: the root cannot be moved or deleted', async () => {
+  it('TOL-28: the root cannot be moved or deleted', async () => {
     memory.set('a/1.txt', 'x')
     const before = memory.snapshot()
 
@@ -121,7 +121,7 @@ describe('storage tools', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails('TOL-24 to TOL-28: changes under .genoacms are refused as STS-5 says', async () => {
+  it('TOL-24 to TOL-28: changes under .genoacms are refused as STS-5 says', async () => {
     memory.set('.genoacms/x', 'state')
     const before = memory.snapshot()
 
@@ -132,7 +132,7 @@ describe('storage tools', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails('TOL-29: each storage tool demands its permission', async () => {
+  it('TOL-29: each storage tool demands its permission', async () => {
     memory.set('a/1.txt', 'x')
     const before = memory.snapshot()
     const demands: Array<[string, Record<string, unknown>, Permission]> = [

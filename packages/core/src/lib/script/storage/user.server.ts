@@ -17,7 +17,8 @@ import {
   createDirectory,
   moveDirectory,
   deleteDirectory,
-  processDirectoryContents
+  processDirectoryContents,
+  getSignedURL
 } from './storage.server'
 import { isDirectoryReference } from './browserPaths'
 
@@ -91,6 +92,15 @@ const listUserDirectory = async (ctx: AuthContext, reference: ObjectReference, p
   return params === undefined ? await listDirectory(reference) : await listDirectory(reference, params)
 }
 
+const SIGNED_URL_LIFETIME_MS = 3_600_000
+
+// STS-7
+const getUserSignedURL = async (ctx: AuthContext, reference: ObjectReference): Promise<{ url: string, expiresAt: Date }> => {
+  requireOn(ctx, 'read', reference.bucket)
+  const expiresAt = new Date(Date.now() + SIGNED_URL_LIFETIME_MS)
+  return { url: await getSignedURL(reference, expiresAt), expiresAt }
+}
+
 const createUserDirectory = async (ctx: AuthContext, reference: ObjectReference) => {
   requireChange(ctx, 'write', reference)
   return await createDirectory(reference)
@@ -122,6 +132,7 @@ export {
   moveUserObject,
   deleteUserObject,
   listUserDirectory,
+  getUserSignedURL,
   createUserDirectory,
   moveUserDirectory,
   deleteUserDirectory,

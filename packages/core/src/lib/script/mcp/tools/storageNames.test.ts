@@ -4,7 +4,7 @@ import { importModule } from '$lib/script/testing/requests'
 const names = () => importModule('$lib/script/mcp/tools/storageNames')
 
 describe('the names of the storage tools', () => {
-  it.fails('TOL-24: object names and directory paths are checked by level', async () => {
+  it('TOL-24: object names and directory paths are checked by level', async () => {
     const { requireObjectName, requireDirectoryPath, requireSubdirectoryPath, StorageToolError } = await names()
     const refusal = (name: string) => ({ message: `storage/invalid-name: ${name}` })
 

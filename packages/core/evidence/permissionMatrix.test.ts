@@ -41,6 +41,7 @@ vi.mock('$lib/script/storage/storage.server', () => ({
   moveObject: async () => {},
   deleteObject: async () => {},
   getPublicURL: () => 'url',
+  getSignedURL: async () => 'signed',
   listDirectory: async () => ({ directories: [], files: [] }),
   createDirectory: async () => {},
   moveDirectory: async () => {},
@@ -239,7 +240,7 @@ const securityPolicy = await import('$lib/script/securityPolicy/user.server')
 const objectRef = { bucket: BUCKET, name: 'photo.jpg' }
 const directoryRef = { bucket: BUCKET, name: 'folder/' }
 const collectionRef = { name: COLLECTION, schema: {} } as never
-const documentRef = { collection: { name: COLLECTION }, id: 'doc-1' } as never
+const documentRef = { collection: collectionRef, id: 'doc-1' } as never
 const pageEntry = { name: 'home' } as never
 // `attributes` is present because saving a header checks that no two of them share a name before it
 // reaches storage. Empty rather than populated: this file answers which permission each operation
@@ -260,6 +261,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   // storage
   getUserBucketReferences: ctx => visible(storage.getUserBucketReferences(ctx)),
   listUserDirectory: ctx => storage.listUserDirectory(ctx, directoryRef),
+  getUserSignedURL: ctx => storage.getUserSignedURL(ctx, objectRef),
   processUserDirectoryContents: ctx =>
     storage.processUserDirectoryContents(ctx, BUCKET, { directories: [], files: [] }),
   uploadUserObject: ctx => storage.uploadUserObject(ctx, objectRef, 'data'),
