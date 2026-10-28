@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Grant } from '$lib/script/authorization/grants'
 import type { Permission } from '$lib/script/authorization/permissions'
 import type { AuthContext } from '$lib/script/authorization/context'
+import { collections } from '../../../../genoa.config/collections'
 
 /**
  * Enforcement in the user-facing database layer.
@@ -246,5 +247,43 @@ describe('creating with restricted fields', () => {
   it('DOC-4: an unrestricted creation stores the whole submission', async () => {
     await database.createUserDocument(writer(), articles, { title: 'New', price: 0 })
     expect(written).toEqual([{ title: 'New', price: 0 }])
+  })
+})
+
+describe('validating what is stored', () => {
+  const testCollection = collections.find(collection => collection.name === 'test') as never
+  const testDocument = { collection: testCollection, id: 'x' } as never
+  const testGrant = (permission: Permission, fields?: string[]): Grant =>
+    ({ permission, resource: { scope: 'collection', id: 'test' }, ...(fields === undefined ? {} : { fields }) } as Grant)
+  const testWriter = (fields?: string[]) => contextWith([testGrant('db:collection:write', fields)])
+
+  it.fails('DOC-8: a creation the schema refuses is not written', async () => {
+    await expect(database.createUserDocument(testWriter(), testCollection, { id: 'not-a-uuid' }))
+      .rejects.toThrow(/^documents\/invalid: \/id format/)
+    expect(calls).not.toContain('createDocument:test')
+  })
+
+  it.fails('DOC-8: an update is validated with the stored fields it keeps', async () => {
+    storedDocument = { name: 'a', isA: 'yes' }
+    await expect(database.updateUserDocument(testWriter(), testDocument, { name: 'b' }))
+      .rejects.toThrow('documents/invalid: /isA type')
+    expect(calls).not.toContain('updateDocument:test/x')
+  })
+
+  it('DOC-8: a restricted writer\'s update is validated as stored, without the fields it may not write', async () => {
+    storedDocument = { name: 'a', isA: true }
+    await database.updateUserDocument(testWriter(['name']), testDocument, { name: 'b', isA: 'yes' })
+    expect(written).toEqual([{ name: 'b', isA: true }])
+  })
+
+  it('DOC-8: the permission is checked before validation', async () => {
+    await expect(database.createUserDocument(nobody(), testCollection, { id: 'not-a-uuid' })).rejects.toBeInstanceOf(PermissionDeniedError)
+    expect(calls).toEqual([])
+  })
+
+  it.fails('DOC-3: an update of a missing document fails as not found and writes nothing', async () => {
+    storedDocument = undefined
+    await expect(database.updateUserDocument(testWriter(), testDocument, { name: 'b' })).rejects.toThrow('documents/not-found: test/x')
+    expect(calls).not.toContain('updateDocument:test/x')
   })
 })

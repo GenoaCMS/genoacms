@@ -21,6 +21,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
  */
 
 const calls: string[] = []
+const signed: Array<{ reference: { bucket: string, name: string }, expiresAt: Date }> = []
 
 let directoryContents: DirectoryContents = { directories: [], files: [] }
 
@@ -40,6 +41,11 @@ vi.mock('./storage.server', () => {
     listDirectory: async (reference: { bucket: string, name: string }) => {
       calls.push(`listDirectory:${reference.bucket}/${reference.name}`)
       return directoryContents
+    },
+    getSignedURL: async (reference: { bucket: string, name: string }, expiresAt: Date) => {
+      calls.push(`getSignedURL:${reference.bucket}/${reference.name}`)
+      signed.push({ reference, expiresAt })
+      return `signed://${reference.bucket}/${reference.name}`
     },
     createDirectory: record('createDirectory'),
     moveDirectory: record('moveDirectory'),
@@ -71,6 +77,7 @@ const media = (name: string) => ({ bucket: 'media', name })
 
 beforeEach(() => {
   calls.length = 0
+  signed.length = 0
   directoryContents = { directories: [], files: [] }
 })
 
@@ -228,6 +235,32 @@ describe('the CMS state under .genoacms/', () => {
     await storage.uploadUserObject(writer(), media('.genoacmsx/y'), 'data')
     await storage.createUserDirectory(writer(), media('photos/.genoacms/'))
     expect(calls).toEqual(['uploadObject:private/.genoacms/x', 'uploadObject:media/.genoacmsx/y', 'createDirectory:media/photos/.genoacms/'])
+  })
+})
+
+describe('signing one object', () => {
+  const NOW = Date.UTC(2026, 9, 18, 12, 0, 0)
+  const ONE_HOUR_MS = 3600 * 1000
+
+  const getUserSignedURL = (storage as unknown as {
+    getUserSignedURL: (ctx: AuthContext, reference: { bucket: string, name: string }) => Promise<{ url: string, expiresAt: Date }>
+  }).getUserSignedURL
+
+  afterEach(() => { vi.useRealTimers() })
+
+  it.fails("STS-7: one object's URL is signed for an hour on read", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+
+    const result = await getUserSignedURL(reader(), { bucket: 'media', name: 'a.png' })
+
+    expect(signed).toEqual([{ reference: { bucket: 'media', name: 'a.png' }, expiresAt: new Date(NOW + ONE_HOUR_MS) }])
+    expect(result).toEqual({ url: 'signed://media/a.png', expiresAt: new Date(NOW + ONE_HOUR_MS) })
+  })
+
+  it.fails('STS-7: signing without read is denied and signs nothing', async () => {
+    await expectDenied(() => getUserSignedURL(writer(), { bucket: 'media', name: 'a.png' }))
+    expect(signed).toEqual([])
   })
 })
 

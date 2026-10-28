@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Grant } from '$lib/script/authorization/grants'
+import { importModule } from '$lib/script/testing/requests'
 
 type Data = Record<string, unknown>
 
@@ -55,12 +56,14 @@ describe('creating from the editor', () => {
     expect(service.createUserDocument).not.toHaveBeenCalled()
   })
 
-  it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const answer = await create({ collectionName: 'articles', documentData: { count: 'many' } })
+  it.fails('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
+    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    service.createUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/count', keyword: 'type' }]))
+
+    const answer = await create({ collectionName: 'articles', documentData: { title: 'a' } })
 
     expect(answer).toMatchObject({ status: 'fail', text: 'Invalid document data' })
     expect(answer.errors).toBeUndefined()
-    expect(service.createUserDocument).not.toHaveBeenCalled()
   })
 
   it('DOC-5: a created document answers Document created with its id', async () => {
@@ -89,12 +92,14 @@ describe('updating from the editor', () => {
     expect(service.updateUserDocument).not.toHaveBeenCalled()
   })
 
-  it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const answer = await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 7 } })
+  it.fails('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
+    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    service.updateUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/title', keyword: 'type' }]))
+
+    const answer = await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 'a' } })
 
     expect(answer).toMatchObject({ status: 'fail', text: 'Invalid document data' })
     expect(answer.errors).toBeUndefined()
-    expect(service.updateUserDocument).not.toHaveBeenCalled()
   })
 
   it('DOC-5: an updated document answers Document updated', async () => {
