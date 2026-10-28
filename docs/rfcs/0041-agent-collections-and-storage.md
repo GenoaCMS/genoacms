@@ -21,8 +21,8 @@ collections and buckets too (`agent-access.md` TU12 to TU15). This RFC:
    before (DOC-5), except that an update is now checked together with the fields it keeps.
 2. Makes an update of a missing document fail with `documents/not-found` (DOC-3).
 3. Adds signing one object's URL to the storage user layer (STS-7).
-4. Adds 13 tools: six over collections and documents (TOL-18 to TOL-23), listing documents a page
-   at a time through the database contract of RFC-0042, and seven over buckets,
+4. Adds 16 tools: seven over collections and documents (TOL-18 to TOL-23), listing documents a page
+   at a time through the database contract of RFC-0042, and nine over buckets,
    directories and objects (TOL-24 to TOL-28), with their permissions (TOL-29).
 5. Documents the tools on the documentation site.
 
@@ -37,22 +37,23 @@ Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (
 | `packages/core/src/lib/script/database/errors.ts` | new: `DocumentValidationError`, `DocumentNotFoundError` |
 | `packages/core/src/lib/script/database/validation.ts` | new: `validateDocument` |
 | `packages/core/src/lib/script/database/user.server.ts` | DOC-8 in `createUserDocument` and `updateUserDocument`; DOC-3's not-found; TOL-19's unreadable fields in `getUserCollection` |
-| `packages/core/src/lib/script/database/user.server.test.ts` | the DOC-3 and DOC-8 tests of §Tests |
+| `packages/core/src/lib/script/database/user.server.test.ts` | the DOC-3 and DOC-8 tests of §Tests; the format checks moved from `documents.remote.test.ts` (DOC-5, DOC-8); the existing DOC-3 tests of an unrestricted update not reading first, and of an update with nothing stored, changed to the read-first and not-found behavior of DOC-3 and DOC-8 |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/create.remote.ts`, `[documentId]/update.remote.ts` | validation removed; `DocumentValidationError` answered as invalid data |
-| `packages/core/src/routes/(admin)/collections/[collectionName]/documents.remote.test.ts` | the two "schema rejects" tests changed as §Tests says |
+| `packages/core/src/routes/(admin)/collections/[collectionName]/documents.remote.test.ts` | the two "schema rejects" tests changed as §Tests says; its format checks move to `user.server.test.ts`, where the validation now is |
+| `packages/core/src/lib/script/storage/storage.server.ts` | exports `getSignedURL` of the providers, as it exports the other operations |
 | `packages/core/src/lib/script/storage/user.server.ts` | `getUserSignedURL` |
 | `packages/core/src/lib/script/storage/user.server.test.ts` | the STS-7 tests |
 | `packages/core/src/lib/script/mcp/tools/collections.server.ts` | new: TOL-18 to TOL-23 |
 | `packages/core/src/lib/script/mcp/tools/storage.server.ts` | new: TOL-24 to TOL-28 |
 | `packages/core/src/lib/script/mcp/tools/storageNames.ts` | new, pure: the object names and directory paths of the storage tools |
-| `packages/core/src/lib/script/mcp/tools/registry.server.ts` | the 13 tools, after the 18 of RFC-0039 |
+| `packages/core/src/lib/script/mcp/tools/registry.server.ts` | the 16 tools, after the 18 of RFC-0039 |
 | `packages/core/src/lib/script/mcp/protocol.ts` | `DocumentValidationError`, `DocumentNotFoundError` among the refusal classes |
 | `packages/core/src/lib/script/mcp/tools/collections.test.ts` | new: TOL-18 to TOL-23, TOL-29 |
 | `packages/core/src/lib/script/mcp/tools/storage.test.ts` | new: TOL-24 to TOL-29 |
 | `packages/core/src/lib/script/mcp/tools/storageNames.test.ts` | new: the names of the storage tools |
-| `packages/core/src/lib/script/mcp/protocol.test.ts` | the expected tool list gains the 13 names |
+| `packages/core/src/lib/script/mcp/protocol.test.ts` | the expected tool list gains the 16 names |
 | `packages/core/src/lib/script/testing/memoryDatabase.ts` | new: an in-memory database adapter for tests, to the database contract |
-| `packages/docs/src/routes/reference/mcp/+page.md` | the 13 tools |
+| `packages/docs/src/routes/reference/mcp/+page.md` | the 16 tools |
 | `.changeset/agent-collections-storage.md` | new: `'@genoacms/core': minor` |
 | `docs/architecture/agent-access.md`, `collections.md`, `storage.md`, `docs/README.md` | the statements current, after the code (§Steps) |
 
@@ -221,7 +222,7 @@ this order: name, content, size; then the upload.
 | `move_directory` | Moves everything under a directory. | **bucket**, **path**, **destination** |
 | `delete_directory` | Deletes everything under a directory. | **bucket**, **path** |
 
-The doc comment of `toolRegistry` becomes *The 31 tools of TOL-2 to TOL-15 and TOL-18 to TOL-28,
+The doc comment of `toolRegistry` becomes *The 34 tools of TOL-2 to TOL-15 and TOL-18 to TOL-28,
 in that order.*
 
 `protocol.ts`: `REFUSAL_CLASSES` gains `DocumentValidationError` and `DocumentNotFoundError`. The
@@ -295,7 +296,7 @@ throws `DocumentValidationError` from `createUserDocument` / `updateUserDocument
 | :-- | :-- |
 | `TOL-24: buckets are listed, and a directory is listed one page at a time without URLs` | Given objects `a/1.txt`, `a/2.txt`, `a/b/3.txt` in the default bucket; when `list_buckets` and `list_directory({ bucket, path: 'a/' })`; then the bucket is listed, `files` are the two objects with `name`, `size` and an ISO `lastModified` and no `signedURL`, and `directories` is `['a/b/']`. |
 | `TOL-25: an object is read through a signed URL that expires in an hour` | When `get_object({ bucket, name: 'a/1.txt' })` at T; then `url` is the memory storage's signed URL of it and `expiresAt` is T + 1 h as ISO 8601. |
-| `TOL-26: text and base64 contents are stored as bytes` | When `upload_object` with `content: 'Návod 😀'`, then with the base64 of bytes `00 ff`; then the stored objects are those UTF-8 bytes and those two bytes. |
+| `TOL-26: text and base64 contents are stored as bytes` | (The memory storage keeps text, so the bytes are asserted on what its `uploadObject` received.) When `upload_object` with `content: 'Návod 😀'`, then with the base64 of bytes `00 ff`; then the stored objects are those UTF-8 bytes and those two bytes. |
 | `TOL-26: an existing object is replaced only with overwrite` | Given `a/1.txt`; when uploaded without `overwrite`, then with `overwrite: true`; then `storage/exists: <bucket>/a/1.txt` and the old contents, then the new contents. |
 | `TOL-26: oversized and malformed contents are refused and nothing is written` | When `upload_object` with 4,194,305 bytes of `utf8` text, then with `encoding: 'base64'` and `content: 'no t'`; then `storage/too-large: 4194305 bytes exceed 4194304`, then `storage/invalid-content: <name> is not base64`, and no object exists. |
 | `TOL-27: an object is moved and deleted, and a missing one fails as not found` | Given `a/1.txt`; when moved to `c/1.txt`, then deleted, then deleted again; then `{}`, `{}`, and `storage/not-found: <bucket>/c/1.txt`. |
@@ -310,7 +311,7 @@ throws `DocumentValidationError` from `createUserDocument` / `updateUserDocument
 | :-- | :-- |
 | `TOL-24: object names and directory paths are checked by level` | `a`, `a/b.txt`, `a b/ć.txt` pass as names; `''`, `a/`, `/a`, `a//b`, `./a`, `a/../b` fail with `storage/invalid-name: <name>`. `''` and `a/b/` pass as paths; `a`, `a//`, `../` fail. `''` fails as a subdirectory path. |
 
-`packages/core/src/lib/script/mcp/protocol.test.ts`: the expected `tools/list` names gain the 13
+`packages/core/src/lib/script/mcp/protocol.test.ts`: the expected `tools/list` names gain the 16
 tools, in the order of §MCP; the test's title and other assertions are unchanged.
 
 ## Steps
