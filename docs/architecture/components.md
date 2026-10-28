@@ -144,7 +144,9 @@ The editor is where the choice is made.
 lists the pages whose published tree pins the component and refuses while there is any.
 *Why:* a deleted component's publications are removed with it, so a published page pinning it
 would fail to render. A warning would need a surface to show it on, and the bulk selection has
-none.
+none. A tree that cannot be read or does not verify is not served, so a component it pins holds up
+no working page: it is shown in the confirmation but does not refuse, or one corrupt tree would
+block every deletion.
 *Cost:* only published trees are consulted, not page entries (NF9). Every deletion reads every
 published tree.
 
@@ -179,6 +181,7 @@ otherwise.
 | NF16 | **A dynamic component is always created in `typescript` (SRC-1).** No operation sets or changes `language`. | open |
 | NF17 | **`setStorageResourceValue` stores one object where a list belongs (PGE-6).** It sets a `storageResource` value, a list (CMP-3), to the first item of the selection, so building the page then fails on it. No screen calls the action: the file control saves through `update` (PGE-4). | fixed, RFC-0039 |
 | NF18 | **Deleting through the registrar reads the component before the permission is checked (CMP-11).** The kind decides which service deletes, so the header is read for a principal who may then be refused. | open |
+| NF19 | **A published tree that cannot be read counts as no tree (CMP-10).** A tree file that is not JSON, or whose read fails for any reason other than absence, was left out of the unreadable pages, so the deletion dialog did not show it. | fixed |
 
 ### History
 
@@ -365,7 +368,7 @@ does not verify is reported as unreadable and does not refuse a deletion. The re
 `pagesPinningComponent(uid)` answers `{ status: 'success', pages: [{ name, nodes }], unreadable }`,
 or `{ status: 'fail', text, pages: [], unreadable: [] }`.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts` (unverified: a tree that cannot be read)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`
 - Level: unit
 
 #### CMP-11 · Component permissions
