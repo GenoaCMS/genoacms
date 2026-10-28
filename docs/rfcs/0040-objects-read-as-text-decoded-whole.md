@@ -2,7 +2,8 @@
 type: rfc
 number: 40
 title: Objects read as text are decoded whole, as UTF-8
-status: draft
+status: implemented
+commits: [a878a518]
 depends: [38]
 architecture: [architecture/storage.md]
 changes: [STS-6 added]

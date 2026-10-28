@@ -3,7 +3,7 @@ type: architecture
 title: Storage in core
 prefix: B
 codes: [STS, BRW]
-verified: 813d2b5
+verified: a878a518
 ---
 
 # Storage in core
@@ -117,7 +117,7 @@ the empty one included.
 | BF9 | *History.* **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF10 | *History.* **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF11 | **A denial by the storage service is an unexplained server error (BRW-3, BRW-16).** BU3 and RFC-0038 map only core's own `PermissionDeniedError` to 403. What a provider refuses, the adapter lets escape as its raw error: core has no `handleError` and no `+error.svelte`, so opening a directory the service account may not list shows SvelteKit's `Internal Error` page, and only the server log names the cause. The contract has no error for it. Found 2026-10-28 in use, on a directory of about 2000 objects, first suspected to be load; the log showed a permission error. Which adapter and the provider's exact error are not recorded. | open; decided in BU6, awaiting an RFC |
-| BF12 | **Text the CMS reads from an object is corrupted when a multibyte character spans two chunks (STS-6).** The storage service, the session store and the authorization manifests read an object as text by turning each chunk of its stream into a string on its own and joining the strings. The two halves of a UTF-8 character split across chunks each become U+FFFD. Whether it happens depends on how the provider chunks the stream, not on the content alone: the memory storage of the unit tests yields one chunk and never shows it. A page edit reads its entry, changes it and writes it back, so the damage is written into the entry and grows with each save. Found 2026-10-28 in use, on core 0.3.0 on Cloud Storage: a Slovak page built with about 280 MCP edits stored 2,731 U+FFFD characters, `Návod na používanie aplikácie` having become `Návod na pou��ívanie aplik��������cie`. The MCP client sent correct UTF-8. | open; RFC-0040 |
+| BF12 | *History.* **Text the CMS reads from an object is corrupted when a multibyte character spans two chunks (STS-6).** The storage service, the session store and the authorization manifests read an object as text by turning each chunk of its stream into a string on its own and joining the strings. The two halves of a UTF-8 character split across chunks each become U+FFFD. Whether it happens depends on how the provider chunks the stream, not on the content alone: the memory storage of the unit tests yields one chunk and never shows it. A page edit reads its entry, changes it and writes it back, so the damage is written into the entry and grows with each save. Found 2026-10-28 in use, on core 0.3.0 on Cloud Storage: a Slovak page built with about 280 MCP edits stored 2,731 U+FFFD characters, `Návod na používanie aplikácie` having become `Návod na pou��ívanie aplik��������cie`. The MCP client sent correct UTF-8. | fixed, RFC-0040 |
 
 ### History
 
@@ -127,6 +127,8 @@ user layer was split from the storage service to enforce bucket permissions on u
 in 2026-10 (`collections.md` OD11). Until 2026-10-18 nothing but the code described either. RFC-0038
 (2026-10-18) made `.genoacms/` read-only for users, took typed names as one level, fixed renames and
 moves, answered denials with 403, reported bulk actions per item, and paged the directory view.
+RFC-0040 (2026-10-28) decoded objects the CMS reads as text whole, after a split character had
+damaged a page in use (BF12), and specified it (STS-6).
 
 ### Verification
 
@@ -144,6 +146,10 @@ Every statement names the tests that carry its ID (RFC-0038):
 
 *History.* This document was written on 2026-10-18 from the code at `de04f62`; its findings were found
 by reading it, and RFC-0038 fixed them (BF7 mitigated).
+
+**BS1.** STS-6 is checked in unit tests over an adapter that splits every object into 3-byte chunks:
+the storage service, a manifest and twenty MCP page edits, and `streamToString` itself, under any split
+(property-based). No test reads a large non-ASCII object through a real provider's stream. A falsification audit on 2026-10-28, by an agent that did not write the code, found no counterexample. It found the session store unpinned, its own tests stubbing the decoding; a session-family test now covers it. Not stated, and not tested: chunk types other than strings and byte arrays, which `Buffer.concat` refuses; a stream closed without an error, which fails the read with `ERR_STREAM_PREMATURE_CLOSE`; a stream that never ends, which never answers; and a size limit.
 
 ## Specification
 
@@ -218,9 +224,8 @@ inside a multibyte character included; a chunk that is a string counts as its UT
 are not valid UTF-8 decode to U+FFFD, and a leading byte order mark is kept as U+FEFF. A stream that
 fails fails the read with the stream's error.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/utils.server.test.ts`, `packages/core/src/lib/script/storage/storage.server.test.ts`
 - Level: unit
-- State: new (RFC-0040)
 
 ### The browser
 

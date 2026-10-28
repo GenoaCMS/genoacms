@@ -28,7 +28,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
 | [`architecture/adapter-minio.md`](architecture/adapter-minio.md) | `M` | `MIO` | the S3-compatible storage adapter, `adapter-minio` | yes. 13 statements, all naming a test (RFC-0037). |
-| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 21 statements, all naming a test (RFC-0038). |
+| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 22 statements, all naming a test (RFC-0038, RFC-0040). |
 | [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
 | [`architecture/components.md`](architecture/components.md) | `N` | `CMP`, `SRC`, `HIS`, `PUB`, `PGE`, `TRE` | components and pages in core: the catalog of headers, dynamic components' source, the editing history, publication, page entries and the published page tree | yes. 38 current statements; 6 name tests (CMP-8, HIS-2, PGE-2, PGE-4, PGE-5, PGE-11), the rest are unverified: existing tests check most of them without carrying their IDs. |
 | [`architecture/agent-access.md`](architecture/agent-access.md) | `T` | `AGT`, `MCP`, `TOL` | agents: their declaration, tokens and ceiling, the MCP endpoint, and the tools for components and pages | yes. 26 current statements, all naming a test (RFC-0039); MCP-3 is **New** (no RFC yet). |
@@ -54,7 +54,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
-| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 21 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF7 mitigated |
+| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 22 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF12 (RFC-0040), BF7 mitigated |
 | MinIO | `adapter-minio` | `adapter-minio.md` | specified; conforms (RFC-0037), tested against RustFS, in CI too |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; 6 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16 and NF18; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
