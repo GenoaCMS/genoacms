@@ -2,8 +2,8 @@
 type: rfc
 number: 39
 title: Agent access through MCP, with checked and conditional component and page edits
-status: draft
-commits: []
+status: implemented
+commits: [7f69446f]
 depends: [38]
 architecture: [architecture/agent-access.md, architecture/components.md, architecture/contracts/authentication.md]
 changes: [CMP-8 breaking, SRC-4 breaking, PGE-2 breaking, PGE-4 breaking, PGE-5 breaking, PGE-6 breaking, PGE-7 breaking, AUTHN-5 compatible]

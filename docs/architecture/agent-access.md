@@ -3,13 +3,12 @@ type: architecture
 title: Agent access
 prefix: T
 codes: [AGT, MCP, TOL]
-verified: 95b7dae3
+verified: 7f69446f
 ---
 
 # Agent access
 
-**Everything in this document is New.** No agent, token or MCP endpoint exists. RFC-0039 implements
-it, except MCP-3, which follows RFC-0031.
+Implemented by RFC-0039, except MCP-3, which is **New** and follows RFC-0031.
 
 ## Design
 
@@ -38,7 +37,7 @@ grants would not let it do on a screen.
 Out of scope: collections and storage, which an agent reaches by other means; a server-side record
 of who changed what (TF1); the specification of components and pages themselves
 ([`components.md`](components.md)), which the RFC of this document also changes, to fix NF1, NF2,
-NF4, NF5, NF6 and NF11. Limiting failed tokens (MCP-3) builds on the counters of
+NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters of
 [`contracts/authentication.md`](contracts/authentication.md) AUTHN-8 to AUTHN-10, themselves New
 (RFC-0031), and is not part of RFC-0039 (TU11).
 
@@ -118,7 +117,10 @@ None.
 
 ### Verification
 
-None: nothing is implemented.
+- **`unit`, in Node.** Tools and the protocol are called through `handleMessage` and the real registry over a versioned in-memory storage with real ML-DSA-65 signatures; the endpoint through its `Request` handlers; the services through their public functions.
+- **`e2e`** (`packages/core/e2e/mcp.test.ts`): a built core with `genoa.config/e2e.ts`, an agent token in `GENOACMS_E2E_AGENT_TOKEN`, a real browser for TOL-1 and AGT-4. They need Google Cloud credentials and run in CI on pushes to `main` only.
+
+Not yet done: the falsification audit of the statements RFC-0039 added, with the tokens of two agents, one under the ceiling and one whose role was made to exceed it in storage. Until it is, no statement here is audited.
 
 ## Specification
 
@@ -158,9 +160,8 @@ configuration is corrected, every request to `/mcp` answers 503 and logs that er
 CMS runs. A declared agent's roles
 are its `authorization.assignments`. A declared agent cannot be changed or revoked at runtime.
 
-- Test: none yet
+- Test: `packages/config/src/load/agents.test.ts`, `packages/core/src/lib/script/agents/declared.server.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### AGT-2 · Agents stored in Tier 2
 
@@ -182,9 +183,8 @@ interface AgentsManifest {
 A manifest that does not verify is treated as the users manifest is when it does not verify: no
 stored agent is known, and Tier-1 agents still are.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/agents/manifest.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### AGT-3 · Administering agents
 
@@ -204,9 +204,8 @@ once, with a note that it cannot be shown again, and only its hash is stored. An
 declared agent is refused with `agents/declared: <subject> is declared in genoa.config.` Tokens do
 not expire.
 
-- Test: none yet
-- Level: unit, e2e
-- State: new (RFC-0039)
+- Test: `packages/core/src/lib/script/agents/administration.server.test.ts`, `packages/core/src/lib/script/agents/tokens.test.ts`
+- Level: unit
 
 #### AGT-4 · Agents and people stay apart
 
@@ -215,9 +214,8 @@ with a subject starting with `agent:` fails with `invalid-credentials`, and is l
 provider's key. An agent has no password, no session and no cookie: it is admitted only by MCP-2.
 A token is only ever issued to, and only ever resolves to, an agent.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/auth/providers.server.test.ts`
+- Level: unit, e2e
 
 #### AGT-5 · The ceiling
 
@@ -232,9 +230,8 @@ does.
 | administration: assigning such a role to an agent, or changing a role an agent holds so it exceeds it | refused with the same message |
 | resolution: an agent whose roles exceed it anyway, such as a declared assignment of a stored role | the agent resolves with no grants, every tool call is denied, and the error is logged |
 
-- Test: none yet
+- Test: `packages/config/src/load/agents.test.ts`, `packages/core/src/lib/script/agents/ceiling.test.ts`, `packages/core/src/lib/script/authorization/administration.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### AGT-6 · An agent's authority
 
@@ -243,9 +240,8 @@ person's are, through the same grant cache: a changed role takes effect within t
 `grantCacheSeconds`, as it does for a person. The token is looked up on every request, so a
 revoked token or a removed declaration takes effect at the next request.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/agents/authenticate.server.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 ### The endpoint
 
@@ -258,9 +254,8 @@ It never answers with a stream and never sends `Mcp-Session-Id`. `GET` and `DELE
 It handles `initialize` (server name `genoacms`, the capability `tools`), `notifications/initialized`,
 `ping`, `tools/list` and `tools/call`; any other method answers the JSON-RPC error `-32601`.
 
-- Test: none yet
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/protocol.test.ts`, `packages/core/src/routes/mcp/server.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0039)
 
 #### MCP-2 · Authenticating a request
 
@@ -270,9 +265,8 @@ answers 401 with `WWW-Authenticate: Bearer realm="genoacms"` and no JSON-RPC bod
 ignored on `/mcp`, and the `Authorization` header is ignored everywhere else. No log line contains a
 token.
 
-- Test: none yet
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/agents/authenticate.server.test.ts`, `packages/core/src/routes/mcp/server.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0039)
 
 #### MCP-3 · Failed tokens are limited per address
 
@@ -298,9 +292,8 @@ request with no `Authorization` header records nothing.
 | a refusal: a permission denial, a validation, a conflict | a result with `isError: true` and one text content, the error's message, which starts with its code (`permission-denied:`, `conflict/modified-since:`, …) |
 | any other failure | a result with `isError: true` and the text `tools/failed: <message>`, logged |
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/protocol.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 ### Tools
 
@@ -313,9 +306,8 @@ writes nothing and fails with
 `conflict/modified-since: <object> has changed since version <version>; read it again.` On success it
 returns the new `version`.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`
+- Level: e2e
 
 #### TOL-2 · Reading components
 
@@ -325,18 +317,16 @@ returns the new `version`.
 `attributes` as TOL-4 takes them, in `attributeOrder`; an unknown `uid` fails with
 `components/no-such-component: <uid> does not exist.`
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/components.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-3 · Creating a component
 
 `create_component({ name, type })` registers a component as `components.md` CMP-6 does, and returns
 `{ uid, version }`.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/components.test.ts`
+- Level: unit, e2e
 
 #### TOL-4 · Describing a component
 
@@ -352,9 +342,8 @@ without one, with `name` equal to `schema.title`, and whose `attributeOrder` is 
 `components/unknown-attribute: <uid>`. The component must exist, and its `type` is kept. CMP-4 and
 CMP-5 apply. An attribute keeps its values on pages exactly when its `uid` is kept.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/components.test.ts`
+- Level: unit, e2e
 
 #### TOL-5 · A component's source
 
@@ -363,9 +352,8 @@ is the preview of `components.md` SRC-3 (`{ text, diagnostics }`). `save_compone
 version, body })` saves the body as SRC-4 does and returns `{ version, signature }`. Both refuse a
 prebuilt component as SRC-2 does.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/components.test.ts`
+- Level: unit, e2e
 
 #### TOL-6 · Publishing a component
 
@@ -373,18 +361,16 @@ prebuilt component as SRC-2 does.
 publisher, and returns `{ publicationId, publishedAt, warnings }`. A refusal's message is PUB-2's or
 PUB-3's, the line and column of a diagnostic included.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/components.test.ts`
+- Level: unit, e2e
 
 #### TOL-7 · Deleting a component
 
 `delete_component({ uid })` deletes as `components.md` CMP-9 does, and is refused as it is while a
 published page pins the component.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/components.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-8 · Reading pages
 
@@ -411,9 +397,8 @@ interface PageView {
 Only nodes reachable from the root are listed. An unknown page fails with
 `pages/no-such-page: <name>`.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/pages.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-9 · Creating a page
 
@@ -423,9 +408,8 @@ them `/`, `\` or a control character, and is not `.` or `..`; another fails with
 `pages/invalid-name: <name>`. A name already taken fails with `pages/exists: <name>`. A component
 without a publication fails with `pages/unpublished-component: <uid>`.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/pages.test.ts`
+- Level: unit, e2e
 
 #### TOL-10 · Adding a node
 
@@ -437,9 +421,8 @@ that is not of type `components`, `pages/unpublished-component: <uid>` for a com
 publication, `pages/not-accepted: <name>` for a component whose name the slot's non-empty
 `items.enum` lacks, and `pages/slot-full: <uid>` when the slot holds `maxItems` nodes.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/components/page/edits.test.ts`
+- Level: unit, e2e
 
 #### TOL-11 · Setting values
 
@@ -450,9 +433,8 @@ those values of the node and returns `{ version }`. Each value must match its at
 of type `components` fails with `pages/slot-not-a-value: <uid>`: slots change through TOL-10,
 TOL-12 and TOL-13.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/components/page/edits.test.ts`
+- Level: unit, e2e
 
 #### TOL-12 · Moving a node
 
@@ -461,9 +443,8 @@ holding it and inserts it into `slot` of `parent`, at `position`, or at the end,
 `{ version }`. Moving the root, or a node into itself or one of its descendants, fails with
 `pages/invalid-move: <uid>`; TOL-10's refusals for the parent, the slot and the component apply.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/components/page/edits.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-13 · Removing a node
 
@@ -471,26 +452,23 @@ holding it and inserts it into `slot` of `parent`, at `position`, or at the end,
 the node and every node below it from the page. Removing the root fails with
 `pages/invalid-move: <uid>`.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/components/page/edits.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-14 · The preview URL
 
 `set_preview_url({ page, version, url })` sets the page's `previewURL` and returns `{ version }`.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/pages.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-15 · Building and deleting a page
 
 `build_page({ page })` builds the stored page as `components.md` TRE-1 does. `delete_page({ page })`
 deletes it as PGE-8 does.
 
-- Test: none yet
-- Level: unit
-- State: new (RFC-0039)
+- Test: `packages/core/e2e/mcp.test.ts`, `packages/core/src/lib/script/mcp/tools/pages.test.ts`
+- Level: unit, e2e
 
 #### TOL-16 · Edits are undoable
 
@@ -499,9 +477,8 @@ history (`components.md` HIS-1), so a person can undo it on the screens. `set_pr
 none, as the screen's action does not (`components.md` PGE-6): a page's history covers its contents
 only.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/components.test.ts`
 - Level: unit
-- State: new (RFC-0039)
 
 #### TOL-17 · Tool permissions
 
@@ -520,6 +497,5 @@ Each tool requires the permissions of the operation it performs, checked by the 
 | `build_page` | `pages:read`, `pages:content_edit`, `pages:publish` |
 | `delete_page` | `pages:delete` |
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/components.test.ts`
 - Level: unit
-- State: new (RFC-0039)
