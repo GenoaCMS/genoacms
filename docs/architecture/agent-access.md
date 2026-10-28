@@ -125,7 +125,7 @@ risk corrupting, the rest. Validating the merged document is the only way to che
 submission.
 *Cost:* a field cannot be removed, only set to another value, since the database contract has no
 removal. An agent and a person saving one document at once overwrite each other's fields without
-either knowing. Firestore reads a dotted key as a path into a nested object.
+either knowing.
 
 **TD8. Object contents go out by URL and come in inline (TOL-25, TOL-26).** `get_object` returns a
 signed URL for the agent to fetch; `upload_object` takes the contents in the call, as text or
@@ -548,11 +548,13 @@ schema }` of the collection's definition (COL-2, COL-4). A collection that does 
 
 #### TOL-19 · Listing documents
 
-`list_documents({ collection, offset, limit })` reads every document of the collection, as the
-listing does (`collections.md` LST-1), each with only its readable fields (DOC-2), and returns
-`{ documents: Array<{ id, data }>, total }`: `total` is the number of documents, and `documents` those
-from position `offset`, 0 by default, on, at most `limit`, 1 to 200 and 50 by default, in the
-adapter's order.
+`list_documents({ collection, where, limit, pageToken })` returns one page of the collection's
+documents as the database contract queries it (`contracts/database.md` DATA-8 to DATA-10), each with
+only its readable fields (`collections.md` DOC-2): `{ documents: Array<{ id, data }>, next }`, `next`
+absent on the last page. `limit` is 1 to 200, 50 by default. A condition on a field the agent may
+not read fails with `documents/unreadable-field: <field>` before the database is queried. Malformed
+parameters fail with the contract's `database/invalid-query: <reason>`, and a query the store cannot
+serve with `database/unsupported-query: <reason>` (DATA-11).
 
 - Test: none yet
 - Level: unit

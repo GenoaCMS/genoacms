@@ -494,7 +494,8 @@ not redirect.
 
 Creating and updating a document through the document service validates it against the collection's
 schema with `@exodus/schemasafe`, with the formats of DOC-5. A creation validates the submission as
-given, before DOC-4 drops any field. An update validates the document as it will be stored: the
+given, before DOC-4 drops any field, with the key field not required, since the store assigns it
+(`contracts/database.md` DATA-4). An update validates the document as it will be stored: the
 stored document with each top-level field of the submission that the principal may write replacing
 the stored one (DOC-3). An invalid document is not written, and the operation fails with
 `documents/invalid: <instancePath> <keyword>`, one such pair for each error, separated by `; `,
