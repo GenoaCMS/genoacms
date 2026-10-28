@@ -3,7 +3,7 @@ type: rfc
 number: 41
 title: Agent tools for documents and objects, with documents validated by the service
 status: draft
-depends: [39, 40]
+depends: [39, 40, 42]
 architecture: [architecture/agent-access.md, architecture/collections.md, architecture/storage.md]
 changes: [TOL-18 added, TOL-19 added, TOL-20 added, TOL-21 added, TOL-22 added, TOL-23 added, TOL-24 added, TOL-25 added, TOL-26 added, TOL-27 added, TOL-28 added, TOL-29 added, DOC-8 added, STS-7 added, DOC-3 compatible, DOC-5 breaking, TOL-1 editorial]
 commit-subject: "feat(core): agent tools for documents and objects, with documents validated by the service (RFC-0041)"
@@ -21,7 +21,8 @@ collections and buckets too (`agent-access.md` TU12 to TU15). This RFC:
    before (DOC-5), except that an update is now checked together with the fields it keeps.
 2. Makes an update of a missing document fail with `documents/not-found` (DOC-3).
 3. Adds signing one object's URL to the storage user layer (STS-7).
-4. Adds 13 tools: six over collections and documents (TOL-18 to TOL-23) and seven over buckets,
+4. Adds 13 tools: six over collections and documents (TOL-18 to TOL-23), listing documents a page
+   at a time through the database contract of RFC-0042, and seven over buckets,
    directories and objects (TOL-24 to TOL-28), with their permissions (TOL-29).
 5. Documents the tools on the documentation site.
 
@@ -35,7 +36,7 @@ Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (
 | :-- | :-- |
 | `packages/core/src/lib/script/database/errors.ts` | new: `DocumentValidationError`, `DocumentNotFoundError` |
 | `packages/core/src/lib/script/database/validation.ts` | new: `validateDocument` |
-| `packages/core/src/lib/script/database/user.server.ts` | DOC-8 in `createUserDocument` and `updateUserDocument`; DOC-3's not-found |
+| `packages/core/src/lib/script/database/user.server.ts` | DOC-8 in `createUserDocument` and `updateUserDocument`; DOC-3's not-found; TOL-19's unreadable fields in `getUserCollection` |
 | `packages/core/src/lib/script/database/user.server.test.ts` | the DOC-3 and DOC-8 tests of §Tests |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/create.remote.ts`, `[documentId]/update.remote.ts` | validation removed; `DocumentValidationError` answered as invalid data |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/documents.remote.test.ts` | the two "schema rejects" tests changed as §Tests says |
@@ -50,7 +51,7 @@ Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (
 | `packages/core/src/lib/script/mcp/tools/storage.test.ts` | new: TOL-24 to TOL-29 |
 | `packages/core/src/lib/script/mcp/tools/storageNames.test.ts` | new: the names of the storage tools |
 | `packages/core/src/lib/script/mcp/protocol.test.ts` | the expected tool list gains the 13 names |
-| `packages/core/src/lib/script/testing/memoryDatabase.ts` | new: an in-memory database adapter for tests |
+| `packages/core/src/lib/script/testing/memoryDatabase.ts` | new: an in-memory database adapter for tests, to the database contract |
 | `packages/docs/src/routes/reference/mcp/+page.md` | the 13 tools |
 | `.changeset/agent-collections-storage.md` | new: `'@genoacms/core': minor` |
 | `docs/architecture/agent-access.md`, `collections.md`, `storage.md`, `docs/README.md` | the statements current, after the code (§Steps) |
@@ -119,8 +120,12 @@ It builds the validator with `validator(schema, { formats, includeErrors: true, 
 
 `packages/core/src/lib/script/database/user.server.ts`:
 
-- `createUserDocument`: after `requireWrite`, `validateDocument(reference.schema, document)`, then
-  as today.
+- `createUserDocument`: after `requireWrite`, `validateDocument(withoutRequiredKey(reference),
+  document)`, where `withoutRequiredKey` returns the schema with `primaryKey.key` removed from its
+  top-level `required`; then as today.
+- `getUserCollection(ctx, reference, params)`: after `requireRead`, when `readable(ctx, name)` is not
+  `'*'`, a condition of `params.where` on a field outside it throws
+  `new Error('documents/unreadable-field: ' + field)` before the adapter is called.
 - `updateUserDocument`: after `requireWrite`, read `current = await getDocument(reference)`; when it
   is `undefined`, throw `new DocumentNotFoundError(reference.collection.name, reference.id)`. The
   document to store is `{ ...current.data, ...document }` when every field is writable, otherwise
@@ -167,7 +172,7 @@ Record<string, unknown>) => Promise<unknown>`, as `pages.server.ts`:
 | :-- | :-- |
 | `listCollections` | `getUserCollectionReferences(ctx).map(name => ({ name }))` |
 | `getCollection` | `getUserCollectionReference(ctx, collection)`, through a helper `referenceOf(ctx, collection)` the other tools share; an `Error` whose message is exactly `collection/not-found` is rethrown as `new Error('collection/not-found: ' + collection)`; returns `{ name, primaryKey, schema }` |
-| `listDocuments` | the reference as `getCollection`; `getUserCollection(ctx, reference)`; `offset` default 0, `limit` default 50; returns `{ documents: snapshots.slice(offset, offset + limit).map(s => ({ id: s.reference.id, data: s.data })), total: snapshots.length }` |
+| `listDocuments` | the reference as `getCollection`; `getUserCollection(ctx, reference, { where, limit: limit ?? 50, pageToken })`; returns `{ documents: page.documents.map(s => ({ id: s.reference.id, data: s.data })), next }`, `next` omitted when absent |
 | `getDocument` | `getUserDocument(ctx, { collection: reference, id })`; `undefined` throws `DocumentNotFoundError`; returns `{ id, data }` |
 | `createDocument` | `createUserDocument(ctx, reference, data)`; returns `{ id: snapshot.reference.id }` |
 | `updateDocument` | `updateUserDocument(ctx, { collection: reference, id }, data)`; returns `{ id }` |
@@ -201,7 +206,7 @@ this order: name, content, size; then the upload.
 | :-- | :-- | :-- |
 | `list_collections` | Lists the collections you hold a grant on. | — |
 | `get_collection` | Reads a collection's schema and primary key. | **collection** |
-| `list_documents` | Lists a page of a collection's documents, with the total. | **collection**, offset (integer ≥ 0), limit (integer 1–200) |
+| `list_documents` | Lists one page of a collection's documents, filtered by conditions on top-level fields; pass next back as pageToken. | **collection**, where (array of `{ field, operator: ==, !=, <, <=, >, >=, value: string, number, boolean or null }`), limit (integer 1–200), pageToken |
 | `get_document` | Reads a document. | **collection**, **id** |
 | `create_document` | Creates a document, validated against the schema. | **collection**, **data** (object) |
 | `update_document` | Sets the given top-level fields of a document; the later save wins. | **collection**, **id**, **data** (object) |
@@ -222,20 +227,18 @@ in that order.*
 `protocol.ts`: `REFUSAL_CLASSES` gains `DocumentValidationError` and `DocumentNotFoundError`. The
 other new errors have coded messages, which are refusals already.
 
-`testing/memoryDatabase.ts`: a database `Adapter` over a `Map` per collection name, with
-`createDocument` taking the id from the primary key field when present and a `randomUUID()`
-otherwise, `getCollection` in insertion order, `getDocument` returning `undefined` when absent,
-`updateDocument` merging top-level fields and throwing when absent, `deleteDocument` ignoring absent
-ones; and `memoryDatabase.clear()`, `memoryDatabase.set(collection, id, data)`,
-`memoryDatabase.get(collection, id)`. Tests mock `$lib/script/database/providers.server` so that
-`adapterForCollection` returns it.
+`testing/memoryDatabase.ts`: a database `Adapter` to `contracts/database.md`, over a `Map` per
+collection name, built on `checkQuery`, `checkValues` and `matches` of
+`@genoacms/contracts/database/query` (RFC-0042), ordering by ID; with `memoryDatabase.clear()`,
+`memoryDatabase.set(collection, id, data)` and `memoryDatabase.get(collection, id)`. Tests mock
+`$lib/script/database/providers.server` so that `adapterForCollection` returns it.
 
 ## Non-goals
 
 - Uploads over 4 MiB, a signed upload URL, and content types (TU14).
 - Removing a field from a document; conditional document saves (TU13).
 - Creating or signing collection definitions.
-- Querying documents by condition, or paging in the adapter (`adapter-gcp/database.md` GF9).
+- Caller-chosen order of documents (`contracts/database.md` CD12).
 - Agent-only rules for `.genoacms/` (BU7).
 - End-to-end tests of the new tools.
 
@@ -275,8 +278,9 @@ throws `DocumentValidationError` from `createUserDocument` / `updateUserDocument
 | :-- | :-- |
 | `TOL-18: collections are listed from the catalog, and one is read with its schema` | Given an agent with `db:collection:read` on `test`; when `list_collections` and `get_collection({ collection: 'test' })`; then `[{ name: 'test' }]` and the definition's `name`, `primaryKey`, `schema`. |
 | `TOL-18: an unknown collection fails as not found` | When `get_collection({ collection: 'absent' })` by an agent with `*` on collections; then `isError` with `collection/not-found: absent`. |
-| `TOL-19: documents are paged in core with the total` | Given 120 documents; when `list_documents` with no paging, then `{ offset: 100 }`, then `{ offset: 10, limit: 5 }`; then 50 documents and `total: 120`, then 20, then the documents at positions 10 to 14, each `{ id, data }`. |
+| `TOL-19: documents are listed a page at a time, filtered by conditions` | Given 120 documents, 30 of them with `isA: true`; when `list_documents` with no parameters, then with `next` as `pageToken` until absent, and with `where: [{ field: 'isA', operator: '==', value: true }]` and `limit: 20`; then pages of 50, 50 and 20 holding every document once, `next` absent on the last; then the 30 matching ones in pages of 20 and 10. |
 | `TOL-19: a limit outside 1 to 200 is refused` | When `limit: 0` and `limit: 201`; then `tools/invalid-arguments`. |
+| `TOL-19: a condition on a field the agent may not read is refused` | Given a reader restricted to `name`; when `list_documents` with a condition on `isA`; then `documents/unreadable-field: isA`, and the adapter's `getCollection` was not called. |
 | `TOL-19, TOL-20: only readable fields are returned` | Given a reader restricted to `name`; when listing and reading; then each `data` has only `name`. |
 | `TOL-20: a missing document fails as not found` | When `get_document({ collection: 'test', id: 'x' })`; then `documents/not-found: test/x`. |
 | `TOL-21: a document is created, validated, and its id returned` | When `create_document` with a valid document, then with `{ isA: 'yes' }`; then `{ id }` of a stored document, then `documents/invalid: /isA type` and nothing more stored. |
@@ -313,7 +317,7 @@ tools, in the order of §MCP; the test's title and other assertions are unchange
 
 1. Commit the architecture changes (TOL-18 to TOL-29, DOC-8, STS-7 **New**), then this RFC,
    separately.
-2. A session that has not seen the implementation writes §Tests, including
+2. Once RFC-0042 is implemented, a session that has not seen the implementation writes §Tests, including
    `testing/memoryDatabase.ts`, marked `it.fails` where they fail today; `pnpm --filter
    @genoacms/core exec vitest run --project node` passes. Commit: `test(core): tests for the agent
    tools for documents and objects (RFC-0041)`.
@@ -357,10 +361,9 @@ node docs/tools/check-docs.mjs docs
 - DOC-5 is breaking: a stored document that its schema refuses can no longer be saved from the
   editor until it is fixed, so core rises to 0.4.0, not 0.3.1.
 - Every update now reads the stored document first, one more database read per save.
-- `list_documents` reads the whole collection on every page, as the listing does; a large
-  collection costs as much per page as in full (GF9).
-- Paging by offset over a collection that changes between calls can skip or repeat documents, and
-  DynamoDB's scan order is not guaranteed stable.
+- `list_documents` waits for RFC-0042: its pages and conditions are the database contract's, with
+  its costs (`contracts/database.md` CD12, CD13), DynamoDB scanning a whole table for a selective
+  query among them.
 - Saves are last write wins (TU13), and a field cannot be removed (TD7).
 - Uploads stop at 4 MiB and carry no content type, so the store serves them as its default type.
 
@@ -369,8 +372,6 @@ node docs/tools/check-docs.mjs docs
   stored field), though not its value.
 - A creation is validated before DOC-4 drops unwritable fields, so a restricted creator can still
   store a document missing a required field, as today.
-- Firestore reads a dotted top-level key in `update_document` as a nested path; the tool does not
-  refuse one.
 - `get_object` signs a URL for an object that does not exist; the agent learns it only from the
   store's 404.
 - `upload_object` with `overwrite: true` is unconditional: an agent and a person replacing one file
