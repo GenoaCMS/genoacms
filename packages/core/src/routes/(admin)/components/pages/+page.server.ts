@@ -1,10 +1,10 @@
 import type { PageServerLoad } from './$types'
 import {
-  saveUserPageStructure, listUserPages, deleteUserPage
+  createUserPage, listUserPages, deleteUserPage
 } from '$lib/script/components/page/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, redirect, type Actions } from '@sveltejs/kit'
-import { createPageEntry } from '$lib/script/components/page/entry'
+import { PageEditError } from '$lib/script/components/page/edits'
 import { isString } from '$lib/script/utils'
 import { parseBulkDeletion } from '$lib/script/selection/request.server'
 
@@ -26,11 +26,12 @@ export const actions = {
     const name = data.get('name')
     const componentUID = data.get('componentUID')
     if (!isString(name) || !isString(componentUID)) return fail(400, { reason: 'no-page-name' })
-    const page = await createPageEntry({
-      name,
-      componentUID
-    })
-    await saveUserPageStructure(ctx, page)
+    try {
+      await createUserPage(ctx, name, componentUID)
+    } catch (error) {
+      if (error instanceof PageEditError) return fail(error.code === 'pages/exists' ? 409 : 400, { reason: error.code })
+      throw error
+    }
     return redirect(307, `pages/${name}`)
   },
 

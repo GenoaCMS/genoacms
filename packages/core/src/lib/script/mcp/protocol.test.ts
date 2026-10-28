@@ -28,7 +28,7 @@ function stubRegistry (handler: Tool['handler']): Tool[] {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('the MCP protocol', () => {
-  it.fails('MCP-1: initialize names genoacms and the tools capability, at 2025-06-18', async () => {
+  it('MCP-1: initialize names genoacms and the tools capability, at 2025-06-18', async () => {
     for (const asked of ['2025-06-18', '2024-11-05']) {
       const response = await request('initialize', { protocolVersion: asked, capabilities: {}, clientInfo: { name: 'test', version: '1' } }, agent, stubRegistry(async () => ({})))
       expect(response.result).toEqual({
@@ -39,7 +39,7 @@ describe('the MCP protocol', () => {
     }
   })
 
-  it.fails('MCP-1: ping answers {}, a notification has no response, an unknown method -32601', async () => {
+  it('MCP-1: ping answers {}, a notification has no response, an unknown method -32601', async () => {
     const registry = stubRegistry(async () => ({}))
 
     expect(await handle({ jsonrpc: '2.0', id: 7, method: 'ping' }, agent, registry)).toEqual({ jsonrpc: '2.0', id: 7, result: {} })
@@ -50,7 +50,7 @@ describe('the MCP protocol', () => {
     }
   })
 
-  it.fails('MCP-4: tools/list lists every tool with its input schema, whatever the grants', async () => {
+  it('MCP-4: tools/list lists every tool with its input schema, whatever the grants', async () => {
     const response = await request('tools/list', {}, nobody, await toolRegistry())
 
     const tools = response.result.tools as Array<{ name: string, description: string, inputSchema: Parsed }>
@@ -61,7 +61,7 @@ describe('the MCP protocol', () => {
     }
   })
 
-  it.fails('MCP-4: arguments not matching the schema are a tool error, an unknown tool -32602', async () => {
+  it('MCP-4: arguments not matching the schema are a tool error, an unknown tool -32602', async () => {
     const handler = vi.fn(async () => ({}))
     const registry = stubRegistry(handler)
 
@@ -76,7 +76,7 @@ describe('the MCP protocol', () => {
     expect(unknown.error?.code).toBe(-32602)
   })
 
-  it.fails('MCP-4: a refusal is a tool error carrying its code, Parsed other failure tools/failed', async () => {
+  it('MCP-4: a refusal is a tool error carrying its code, Parsed other failure tools/failed', async () => {
     const lines = captureConsole()
 
     const succeeded = await request('tools/call', { name: 'echo', arguments: { text: 'hi' } }, agent,

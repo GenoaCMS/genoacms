@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { memory } from '$lib/script/testing/memoryStorage'
 import {
-  attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storedPage,
+  publicationIdOf, attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storedPage,
   entryPath, treePath
 } from '$lib/script/testing/components'
 import { callTool, useTool } from '$lib/script/testing/mcp'
@@ -40,7 +40,7 @@ beforeEach(() => {
 })
 
 describe('page tools', () => {
-  it.fails('TOL-8: a page is read with its reachable nodes, values in attribute order, and its version', async () => {
+  it('TOL-8: a page is read with its reachable nodes, values in attribute order, and its version', async () => {
     const listed = await useTool(agent, 'list_pages', {})
     expect(listed).toEqual([{ name: 'home', lastModified: expect.anything(), built: false }])
 
@@ -62,7 +62,7 @@ describe('page tools', () => {
     expect(await callTool(agent, 'get_page', { name: 'absent' })).toMatchObject({ isError: true, text: 'pages/no-such-page: absent' })
   })
 
-  it.fails('TOL-9: create_page refuses a bad name, a taken name and an unpublished component', async () => {
+  it('TOL-9: create_page refuses a bad name, a taken name and an unpublished component', async () => {
     for (const name of ['a/b', 'a\\b', '.', '..', 'x'.repeat(201)]) {
       expect(await callTool(agent, 'create_page', { name, component: card.uid }), name)
         .toMatchObject({ isError: true, text: `pages/invalid-name: ${name}` })
@@ -83,15 +83,15 @@ describe('page tools', () => {
     })
   })
 
-  it.fails('TOL-14, TOL-15: the preview URL is set; a page is built and deleted', async () => {
+  it('TOL-14, TOL-15: the preview URL is set; a page is built and deleted', async () => {
     const set = await useTool(agent, 'set_preview_url', { page: 'home', version: pageVersion('home'), url: 'https://example.com/home' })
     expect(set.version).toBe(pageVersion('home'))
     expect(storedPage('home').previewURL).toBe('https://example.com/home')
 
     await useTool(agent, 'build_page', { page: 'home' })
     const tree = memory.json(treePath('home'))
-    expect(tree).toMatchObject({ type: 'genoacms.pageTree.v1', payload: { component: 'Section', uid: section.uid, publicationId: `publication-of-${section.uid}` } })
-    expect(tree.payload.data.children).toEqual([expect.objectContaining({ component: 'Card', publicationId: `publication-of-${card.uid}`, data: { wide: true, heading: 'hello' } })])
+    expect(tree).toMatchObject({ type: 'genoacms.pageTree.v1', payload: { component: 'Section', uid: section.uid, publicationId: publicationIdOf(section.uid) } })
+    expect(tree.payload.data.children).toEqual([expect.objectContaining({ component: 'Card', publicationId: publicationIdOf(card.uid), data: { wide: true, heading: 'hello' } })])
     expect((await useTool(agent, 'list_pages', {}))[0].built).toBe(true)
 
     await useTool(agent, 'delete_page', { page: 'home' })

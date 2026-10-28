@@ -42,21 +42,21 @@ function configWithAgentAssignedRoleGranting (permission: string): Record<string
 }
 
 describe('declared agents at load', () => {
-  it.fails('AGT-1: a key without the agent prefix is refused at load', async () => {
+  it('AGT-1: a key without the agent prefix is refused at load', async () => {
     const issues = await issuesOf(configWithAgents({ builder: { label: 'Builder', token: { $secret: 'GENOACMS_AGENT_BUILDER' } } }))
     const refused = issuesStartingWith(issues, 'authentication/agent-subject-prefix:')
     expect(refused).toHaveLength(1)
     expect(refused[0]?.path).toBe('authentication.agents.builder')
   })
 
-  it.fails('AGT-1: a token may be a secret, env or inline reference', async () => {
+  it('AGT-1: a token may be a secret, env or inline reference', async () => {
     for (const token of [{ $secret: 'GENOACMS_AGENT_BUILDER' }, { $env: 'GENOACMS_AGENT_BUILDER' }, { $inline: TOKEN }]) {
       clearLoadCache()
       expect(await issuesOf(configWithAgents({ 'agent:builder': { label: 'Builder', token } }))).toEqual([])
     }
   })
 
-  it.fails('AGT-5: an agent assigned a declared role holding a configuration permission or * is refused', async () => {
+  it('AGT-5: an agent assigned a declared role holding a configuration permission or * is refused', async () => {
     for (const permission of ['config:users:manage', 'config:keys:manage', '*']) {
       clearLoadCache()
       const refused = issuesStartingWith(await issuesOf(configWithAgentAssignedRoleGranting(permission)), 'authorization/agent-ceiling:')

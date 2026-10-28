@@ -14,23 +14,29 @@
     uid: string;
     body: string;
     unsaved: boolean;
-    /** Called with the resulting depth, so the history controls answer without a reload. */
-    onsaved: (depth: { historyLength: number, futureLength: number }) => void;
+    /** HIS-2: the version this save is based on. */
+    version: string;
+    /** Called with the resulting depth and version, so the history controls answer without a reload. */
+    onsaved: (saved: { historyLength: number, futureLength: number, version: string }) => void;
   }
-  const { uid, body, unsaved, onsaved }: Props = $props()
+  const { uid, body, unsaved, version, onsaved }: Props = $props()
+
+  const CONFLICT = 'Changed elsewhere. Reload to see the latest version.'
 
   const enhance = saveComponentRemote.enhance(async ({ submit }) => {
     try {
       await submit()
       const result = saveComponentRemote.result
       if (result === undefined || result.status !== 'success') {
-        toastError(result?.text ?? 'The save was refused, and gave no reason')
+        const text = result?.text ?? 'The save was refused, and gave no reason'
+        toastError(text.startsWith('conflict/modified-since') ? CONFLICT : text)
         return
       }
       toastSuccess(result.text)
       onsaved({
         historyLength: result.historyLength as number,
-        futureLength: result.futureLength as number
+        futureLength: result.futureLength as number,
+        version: result.version as string
       })
     } catch (error) {
       toastError(error instanceof Error ? error.message : String(error))
@@ -41,6 +47,7 @@
 <form {...enhance} class="h-full" enctype="multipart/form-data">
   <input type="hidden" name="uid" value={uid} />
   <input type="hidden" name="body" value={body} />
+  <input type="hidden" name="version" value={version} />
   <button
     type="submit"
     aria-label="Save"

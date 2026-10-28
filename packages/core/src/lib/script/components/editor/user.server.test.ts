@@ -82,9 +82,9 @@ describe('every operation', () => {
     await expectDenied(() => editor.getUserComponent(nobody(), 'uid-1'))
     await expectDenied(() => editor.getUserComponentDefinition(nobody(), 'uid-1'))
     await expectDenied(() => editor.createUserComponent(nobody(), 'hero'))
-    await expectDenied(() => editor.saveUserComponentBody(nobody(), 'uid-1', 'return 1'))
-    await expectDenied(() => editor.undoUserComponentBody(nobody(), 'uid-1'))
-    await expectDenied(() => editor.redoUserComponentBody(nobody(), 'uid-1'))
+    await expectDenied(() => editor.saveUserComponentBody(nobody(), 'uid-1', 'return 1', 'v1'))
+    await expectDenied(() => editor.undoUserComponentBody(nobody(), 'uid-1', 'v1'))
+    await expectDenied(() => editor.redoUserComponentBody(nobody(), 'uid-1', 'v1'))
     await expectDenied(() => editor.getUserComponentDefinitionDepth(nobody(), 'uid-1'))
     await expectDenied(() => editor.deleteUserComponent(nobody(), component))
   })
@@ -109,21 +109,21 @@ describe('reading', () => {
 
 describe('authoring', () => {
   it('writes the draft with components:code', async () => {
-    await editor.saveUserComponentBody(developer(), 'uid-1', 'return 1')
+    await editor.saveUserComponentBody(developer(), 'uid-1', 'return 1', 'v1')
     expect(calls).toEqual(['save:uid-1:return 1'])
   })
 
   it('steps the history with the same permission that writes it', async () => {
     // Undo and redo rewrite the stored body, so they are gated with writing rather than with
     // reading. A principal permitted only to read source must not be able to move it.
-    await editor.undoUserComponentBody(developer(), 'uid-1')
-    await editor.redoUserComponentBody(developer(), 'uid-1')
+    await editor.undoUserComponentBody(developer(), 'uid-1', 'v1')
+    await editor.redoUserComponentBody(developer(), 'uid-1', 'v1')
     expect(calls).toEqual(['undo:uid-1', 'redo:uid-1'])
   })
 
   it('does not let a reader step the history', async () => {
-    await expectDenied(() => editor.undoUserComponentBody(reader(), 'uid-1'))
-    await expectDenied(() => editor.redoUserComponentBody(reader(), 'uid-1'))
+    await expectDenied(() => editor.undoUserComponentBody(reader(), 'uid-1', 'v1'))
+    await expectDenied(() => editor.redoUserComponentBody(reader(), 'uid-1', 'v1'))
   })
 
   it('does not permit creating or destroying a component', async () => {
@@ -145,6 +145,6 @@ describe('managing a component', () => {
     // Deleting destroys source, which is why it is not implied by `edit` — and managing existence
     // is not a way to read what a component does either.
     await expectDenied(() => editor.getUserComponentDefinition(manager(), 'uid-1'))
-    await expectDenied(() => editor.saveUserComponentBody(manager(), 'uid-1', 'return 1'))
+    await expectDenied(() => editor.saveUserComponentBody(manager(), 'uid-1', 'return 1', 'v1'))
   })
 })

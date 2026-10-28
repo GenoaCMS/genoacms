@@ -8,5 +8,5 @@
     const { schema }: Props = $props()
 </script>
 
-<input type="hidden" name="schema" value={JSON.stringify(schema)}>
+<input type="hidden" name="componentUID" value={schema.uid}>
 <CardLink type="submit" icon="box" text={schema.name} class="w-full"/>

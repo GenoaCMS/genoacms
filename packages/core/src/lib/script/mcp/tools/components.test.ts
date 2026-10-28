@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { memory } from '$lib/script/testing/memoryStorage'
 import {
-  attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storeTreePinning,
+  publicationIdOf, attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storeTreePinning,
   storedHeader, storedDefinition, storedPage, readFlatted,
   headerPath, headerHistoryPath, definitionPath, definitionHistoryPath, pointerPath, entryPath
 } from '$lib/script/testing/components'
@@ -47,16 +47,16 @@ beforeEach(() => {
 })
 
 describe('component tools', () => {
-  it.fails('TOL-2: components are listed with their publication, and one is read with its version', async () => {
+  it('TOL-2: components are listed with their publication, and one is read with its version', async () => {
     const listed = await useTool(agent, 'list_components', {})
     expect(listed).toEqual(expect.arrayContaining([
-      { uid: card.uid, name: 'Card', type: 'prebuilt', publication: { publicationId: `publication-of-${card.uid}`, publishedAt: 1_000 } },
+      { uid: card.uid, name: 'Card', type: 'prebuilt', publication: { publicationId: publicationIdOf(card.uid), publishedAt: 1_000 } },
       { uid: source.uid, name: 'Source', type: 'dynamic', publication: null }
     ]))
     expect(listed).toHaveLength(3)
 
     const read = await useTool(agent, 'get_component', { uid: card.uid })
-    expect(read).toMatchObject({ uid: card.uid, name: 'Card', type: 'prebuilt', publication: { publicationId: `publication-of-${card.uid}` }, version: headerVersion(card.uid) })
+    expect(read).toMatchObject({ uid: card.uid, name: 'Card', type: 'prebuilt', publication: { publicationId: publicationIdOf(card.uid) }, version: headerVersion(card.uid) })
     expect(read.attributes).toEqual([
       expect.objectContaining({ uid: HEADING, type: 'string', schema: card.attributes[HEADING].schema }),
       expect.objectContaining({ uid: WIDE, type: 'boolean', schema: card.attributes[WIDE].schema })
@@ -67,7 +67,7 @@ describe('component tools', () => {
       .toMatchObject({ isError: true, text: `components/no-such-component: ${absent} does not exist.` })
   })
 
-  it.fails('TOL-3, TOL-17: creating needs components:register', async () => {
+  it('TOL-3, TOL-17: creating needs components:register', async () => {
     const before = memory.snapshot()
     const denied = await callTool(principal(['components:read', 'components:modify', 'components:code']), 'create_component', { name: 'Hero', type: 'prebuilt' })
     expect(denied.isError).toBe(true)
@@ -83,7 +83,7 @@ describe('component tools', () => {
     expect(storedDefinition(dynamic.uid)).toMatchObject({ uid: dynamic.uid, language: 'typescript', body: '' })
   })
 
-  it.fails('TOL-4: attributes are a list; uids are kept, new ones generated, unknown ones refused', async () => {
+  it('TOL-4: attributes are a list; uids are kept, new ones generated, unknown ones refused', async () => {
     const count = { type: 'number', schema: { type: 'number', title: 'count', description: '', required: false, maximum: 5 } }
     const saved = await useTool(agent, 'update_component', {
       uid: card.uid,
@@ -118,7 +118,7 @@ describe('component tools', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails('TOL-5: the source is read and saved with its signature, prebuilt refused', async () => {
+  it('TOL-5: the source is read and saved with its signature, prebuilt refused', async () => {
     const read = await useTool(agent, 'get_component_source', { uid: source.uid })
     expect(read).toMatchObject({ language: 'typescript', body: 'return heading', version: sourceVersion(source.uid) })
     expect(typeof read.signature.text).toBe('string')
@@ -140,7 +140,7 @@ describe('component tools', () => {
     expect(savePrebuilt.text.startsWith(refusal), savePrebuilt.text).toBe(true)
   })
 
-  it.fails('TOL-6: publishing names the agent as publisher and returns warnings', async () => {
+  it('TOL-6: publishing names the agent as publisher and returns warnings', async () => {
     const published = await useTool(agent, 'publish_component', { uid: source.uid, note: 'by an agent' })
 
     expect(published).toEqual({ publicationId: expect.any(String), publishedAt: expect.any(Number), warnings: expect.any(Array) })
@@ -152,7 +152,7 @@ describe('component tools', () => {
     expect(again).toMatchObject({ isError: true, text: "Nothing has changed since the last publication: neither the component's description nor, where it has one, its code." })
   })
 
-  it.fails('TOL-7: a component a published page pins is not deleted', async () => {
+  it('TOL-7: a component a published page pins is not deleted', async () => {
     storeTreePinning('home', card.uid)
 
     const refused = await callTool(agent, 'delete_component', { uid: card.uid })
@@ -166,7 +166,7 @@ describe('component tools', () => {
     expect(memory.has(definitionPath(source.uid))).toBe(false)
   })
 
-  it.fails('TOL-16: each changing call records exactly one step', async () => {
+  it('TOL-16: each changing call records exactly one step', async () => {
     await useTool(agent, 'update_component', {
       uid: card.uid,
       version: headerVersion(card.uid),
@@ -189,7 +189,7 @@ describe('component tools', () => {
     expect(pageSteps()).toBe(4)
   })
 
-  it.fails('TOL-17: every tool demands its permissions', async () => {
+  it('TOL-17: every tool demands its permissions', async () => {
     const ADD = { page: 'home', parent: 'root', slot: CHILDREN, component: card.uid }
     const calls: Array<[string, readonly string[], () => Record<string, unknown>]> = [
       ['list_components', ['components:read'], () => ({})],

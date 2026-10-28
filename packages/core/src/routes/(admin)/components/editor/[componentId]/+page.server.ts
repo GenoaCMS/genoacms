@@ -1,7 +1,7 @@
 import { error, fail, type Actions, type RequestEvent } from '@sveltejs/kit'
 import {
   getUserComponent,
-  getUserComponentDefinition,
+  getUserComponentDefinitionVersioned,
   getUserComponentSignature,
   getUserComponentDefinitionDepth,
   undoUserComponentBody,
@@ -10,6 +10,7 @@ import {
 import { NoSuchComponentError } from '$lib/script/components/editor/errors'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { isString } from '$lib/script/utils'
+import { isConflict } from '$lib/script/components/conflict'
 
 /**
  * Opens a component for editing, or says plainly that there is nothing to open.
@@ -31,7 +32,7 @@ export const load = async ({ params, locals }) => {
   // information, so the two are fetched through their own checks rather than one broad read.
   try {
     const component = await getUserComponent(ctx, componentId)
-    const componentDefinition = await getUserComponentDefinition(ctx, component.uid)
+    const { definition: componentDefinition, version } = await getUserComponentDefinitionVersioned(ctx, component.uid)
     // What the body is wrapped in. Shown above the editor, because an author writing a body needs
     // to see the parameters it receives — and how each attribute's name became an identifier.
     const signature = await getUserComponentSignature(ctx, component.uid)
@@ -42,6 +43,7 @@ export const load = async ({ params, locals }) => {
     return {
       component,
       componentDefinition,
+      version: version ?? '',
       signature,
       ...depth
     }
@@ -65,11 +67,18 @@ export const load = async ({ params, locals }) => {
  */
 const stepThroughHistory = (
   move: typeof undoUserComponentBody
-) => async ({ params, locals }: RequestEvent) => {
+) => async ({ params, locals, request }: RequestEvent) => {
   const ctx = requireAuthContext(locals)
   const { componentId } = params
   if (!isString(componentId)) return fail(400, { reason: 'no-component-id' })
-  await move(ctx, componentId)
+  const version = (await request.formData()).get('version')
+  if (!isString(version)) return fail(400, { reason: 'no-version' })
+  try {
+    await move(ctx, componentId, version)
+  } catch (cause) {
+    if (isConflict(cause)) return fail(409, { reason: cause.message })
+    throw cause
+  }
   return { success: true }
 }
 

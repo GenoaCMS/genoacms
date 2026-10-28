@@ -14,6 +14,7 @@ import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
  * record nothing, and every undo would silently do nothing.
  */
 
+const VERSION = 'v1'
 const stored = new Map<string, unknown>()
 
 vi.mock('./io', () => ({
@@ -24,6 +25,7 @@ vi.mock('./io', () => ({
     // `saveComponentBody` alias, which is exactly the defect this file exists to catch.
     return structuredClone(definition)
   },
+  getComponentDefinitionVersioned: async (uid: string) => ({ definition: structuredClone(stored.get(`definition:${uid}`)), version: VERSION }),
   uploadComponentDefinition: async (definition: ComponentDefinition) => {
     stored.set(`definition:${definition.uid}`, structuredClone(definition))
   },
@@ -59,29 +61,29 @@ beforeEach(() => {
 
 describe('saving', () => {
   it('writes the body', async () => {
-    await saveComponentBody(UID, 'second')
+    await saveComponentBody(UID, 'second', VERSION)
 
     expect(bodyOf()).toBe('second')
   })
 
   it('records a step that can be undone', async () => {
-    const depth = await saveComponentBody(UID, 'second')
+    const depth = await saveComponentBody(UID, 'second', VERSION)
 
-    expect(depth).toEqual({ historyLength: 1, futureLength: 0 })
+    expect(depth).toMatchObject({ historyLength: 1, futureLength: 0 })
   })
 
   it('records nothing when the body has not changed', async () => {
     // Pressing save twice is harmless, and undoing once afterwards has to actually undo something.
     // An empty step would occupy a place in the history and appear to do nothing when replayed.
-    await saveComponentBody(UID, 'second')
-    const depth = await saveComponentBody(UID, 'second')
+    await saveComponentBody(UID, 'second', VERSION)
+    const depth = await saveComponentBody(UID, 'second', VERSION)
 
-    expect(depth).toEqual({ historyLength: 1, futureLength: 0 })
+    expect(depth).toMatchObject({ historyLength: 1, futureLength: 0 })
   })
 
   it('reports the depth without a reload being needed', async () => {
-    await saveComponentBody(UID, 'second')
-    await saveComponentBody(UID, 'third')
+    await saveComponentBody(UID, 'second', VERSION)
+    await saveComponentBody(UID, 'third', VERSION)
 
     expect(await getComponentDefinitionDepth(UID)).toEqual({ historyLength: 2, futureLength: 0 })
   })
@@ -89,34 +91,34 @@ describe('saving', () => {
 
 describe('undoing', () => {
   it('returns the body to the state before the last save', async () => {
-    await saveComponentBody(UID, 'second')
+    await saveComponentBody(UID, 'second', VERSION)
 
-    await undoComponentBody(UID)
+    await undoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('first')
   })
 
   it('walks back through several saves in order', async () => {
-    await saveComponentBody(UID, 'second')
-    await saveComponentBody(UID, 'third')
+    await saveComponentBody(UID, 'second', VERSION)
+    await saveComponentBody(UID, 'third', VERSION)
 
-    await undoComponentBody(UID)
+    await undoComponentBody(UID, VERSION)
     expect(bodyOf()).toBe('second')
 
-    await undoComponentBody(UID)
+    await undoComponentBody(UID, VERSION)
     expect(bodyOf()).toBe('first')
   })
 
   it('does nothing at the beginning of the history', async () => {
-    await undoComponentBody(UID)
+    await undoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('first')
     expect(await getComponentDefinitionDepth(UID)).toEqual({ historyLength: 0, futureLength: 0 })
   })
 
   it('moves the step onto the future, so it can be redone', async () => {
-    await saveComponentBody(UID, 'second')
-    await undoComponentBody(UID)
+    await saveComponentBody(UID, 'second', VERSION)
+    await undoComponentBody(UID, VERSION)
 
     expect(await getComponentDefinitionDepth(UID)).toEqual({ historyLength: 0, futureLength: 1 })
   })
@@ -124,18 +126,18 @@ describe('undoing', () => {
 
 describe('redoing', () => {
   it('reapplies what was undone', async () => {
-    await saveComponentBody(UID, 'second')
-    await undoComponentBody(UID)
+    await saveComponentBody(UID, 'second', VERSION)
+    await undoComponentBody(UID, VERSION)
 
-    await redoComponentBody(UID)
+    await redoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('second')
   })
 
   it('does nothing at the end of the history', async () => {
-    await saveComponentBody(UID, 'second')
+    await saveComponentBody(UID, 'second', VERSION)
 
-    await redoComponentBody(UID)
+    await redoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('second')
   })
@@ -144,10 +146,10 @@ describe('redoing', () => {
     // The abandoned branch is unreachable once the author writes over it, and its diffs were
     // computed against a state that no longer exists — replaying them would corrupt the body rather
     // than restore it.
-    await saveComponentBody(UID, 'second')
-    await undoComponentBody(UID)
+    await saveComponentBody(UID, 'second', VERSION)
+    await undoComponentBody(UID, VERSION)
 
-    const depth = await saveComponentBody(UID, 'elsewhere')
+    const depth = await saveComponentBody(UID, 'elsewhere', VERSION)
 
     expect(depth.futureLength).toBe(0)
     expect(bodyOf()).toBe('elsewhere')
@@ -159,7 +161,7 @@ describe('what the history does not touch', () => {
     // Publishing records no step, so undo has nothing that would revert it. Were a step ever to
     // cover these members, an author could walk a component back to a body the last publication did
     // not compile, and `no change, no publication` would then refuse a release that had changed.
-    await saveComponentBody(UID, 'second')
+    await saveComponentBody(UID, 'second', VERSION)
 
     stored.set(`definition:${UID}`, {
       ...definitionOf(),
@@ -167,7 +169,7 @@ describe('what the history does not touch', () => {
       publishedSignature: 'a signature'
     })
 
-    await undoComponentBody(UID)
+    await undoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('first')
     expect(definitionOf().publishedBody).toBe('second')

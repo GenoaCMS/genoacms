@@ -4,7 +4,7 @@ import { importModule } from '$lib/script/testing/requests'
 const tokens = async () => await importModule('$lib/script/agents/tokens')
 
 describe('agent tokens', () => {
-  it.fails('AGT-3: a new token is gat_ and 43 base64url characters, and its hash is SHA-256 hex', async () => {
+  it('AGT-3: a new token is gat_ and 43 base64url characters, and its hash is SHA-256 hex', async () => {
     const { generateAgentToken, hashAgentToken, AGENT_TOKEN_MIN_LENGTH } = await tokens()
     const issued = Array.from({ length: 1000 }, () => generateAgentToken() as string)
 

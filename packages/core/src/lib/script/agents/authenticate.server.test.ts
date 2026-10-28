@@ -31,7 +31,7 @@ beforeEach(() => {
 })
 
 describe('authenticating an agent', () => {
-  it.fails('MCP-2: a token resolves to its agent, declared or stored, and nothing else does', async () => {
+  it('MCP-2: a token resolves to its agent, declared or stored, and nothing else does', async () => {
     const { createAgent } = await administration()
     const { agentForToken } = await authentication()
     const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })
@@ -45,7 +45,7 @@ describe('authenticating an agent', () => {
     }
   })
 
-  it.fails('AGT-6: a revoked token stops at the next request', async () => {
+  it('AGT-6: a revoked token stops at the next request', async () => {
     const { createAgent, revokeAgent } = await administration()
     const { agentForToken } = await authentication()
     const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })

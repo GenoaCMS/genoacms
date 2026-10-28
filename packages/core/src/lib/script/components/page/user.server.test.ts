@@ -21,7 +21,7 @@ const calls: string[] = []
 vi.mock('./page.server', () => ({
   listOrCreatePageList: async () => { calls.push('list'); return ['home'] },
   getPageEntry: async (name: string) => { calls.push(`get:${name}`); return { name } },
-  uploadPageEntry: async (page: { name: string }) => { calls.push(`upload:${page.name}`) },
+  savePageEntry: async (page: { name: string }) => { calls.push(`upload:${page.name}`) },
   generateReadablePageTree: async (page: { name: string }) => { calls.push(`generate:${page.name}`) }
 }))
 
@@ -66,21 +66,21 @@ describe('reading', () => {
 
 describe('content and structure are separate capabilities', () => {
   it('lets a content editor save content', async () => {
-    await pages.saveUserPageContent(contextWith(['pages:content_edit']), page)
+    await pages.saveUserPageContent(contextWith(['pages:content_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 
   it('does not let a content editor change the structure', async () => {
-    await expectDenied(() => pages.saveUserPageStructure(contextWith(['pages:content_edit']), page))
+    await expectDenied(() => pages.saveUserPageStructure(contextWith(['pages:content_edit']), page, 'v1'))
   })
 
   it('does not let a structure editor change content', async () => {
     // The upsert underneath is identical, so only the check keeps these apart.
-    await expectDenied(() => pages.saveUserPageContent(contextWith(['pages:structure_edit']), page))
+    await expectDenied(() => pages.saveUserPageContent(contextWith(['pages:structure_edit']), page, 'v1'))
   })
 
   it('lets a structure editor change the structure', async () => {
-    await pages.saveUserPageStructure(contextWith(['pages:structure_edit']), page)
+    await pages.saveUserPageStructure(contextWith(['pages:structure_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 })
@@ -89,12 +89,12 @@ describe('undo and redo', () => {
   it('need both editing permissions', async () => {
     // History holds changes of either kind and does not record which, so holding one is not enough:
     // a structure editor must not revert a content change they could not have made.
-    await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:content_edit']), page))
-    await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:structure_edit']), page))
+    await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:content_edit']), page, 'v1'))
+    await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:structure_edit']), page, 'v1'))
   })
 
   it('are allowed to a principal holding both', async () => {
-    await pages.revertUserPageEntry(contextWith(['pages:content_edit', 'pages:structure_edit']), page)
+    await pages.revertUserPageEntry(contextWith(['pages:content_edit', 'pages:structure_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 })

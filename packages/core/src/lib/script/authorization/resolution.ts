@@ -1,6 +1,7 @@
 import { composeGrants, type Role } from './roles'
 import { createAuthContext, type AuthContext } from './context'
 import type { UserRecord } from './manifests'
+import { exceedsAgentCeiling, isAgentSubject } from '$lib/script/agents/ceiling'
 
 /**
  * Resolving a subject to the permissions it holds.
@@ -93,8 +94,17 @@ function resolveSubject (subject: string, source: AuthorizationSource): Resoluti
 
   const { resolved, missing } = resolveRoles(source.roles, user.roles)
   const warnings = missing.map(name => `unknown-role: '${name}' referenced by subject '${subject}'`)
+  const grants = composeGrants(resolved)
+  // AGT-5: fails closed where the ceiling could not be decided earlier.
+  if (isAgentSubject(subject) && exceedsAgentCeiling(grants)) {
+    return {
+      context: createAuthContext(subject, [], source.declarationsOnly ?? false),
+      known: true,
+      warnings: [...warnings, `agent-ceiling: ${subject} holds roles that exceed the agent ceiling and resolves with no grants.`]
+    }
+  }
   return {
-    context: createAuthContext(subject, composeGrants(resolved), source.declarationsOnly ?? false),
+    context: createAuthContext(subject, grants, source.declarationsOnly ?? false),
     known: true,
     warnings
   }

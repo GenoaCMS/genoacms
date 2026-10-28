@@ -250,7 +250,7 @@ describe('the agent ceiling in administration', () => {
     `authorization/agent-ceiling: agent:writer is assigned ${role}, which grants permissions an agent cannot hold.`
   const replaceRoleHeldBy = replaceRole as unknown as (roles: Role[], role: Role, declared: Set<string>, users: UserRecord[]) => ReturnType<typeof replaceRole>
 
-  it.fails('AGT-5: assigning an agent a role beyond the ceiling is refused', () => {
+  it('AGT-5: assigning an agent a role beyond the ceiling is refused', () => {
     const all = [...roles(), elevated, wildcard]
     expect(setUserRoles([agent([])], all, 'agent:writer', ['Editor', 'Elevated'], none))
       .toEqual({ ok: false, reason: ceilingMessage('Elevated') })
@@ -259,7 +259,7 @@ describe('the agent ceiling in administration', () => {
     expect(unwrap(setUserRoles([agent([])], all, 'agent:writer', ['Editor'], none))).toEqual([agent(['Editor'])])
   })
 
-  it.fails('AGT-5: a role an agent holds cannot gain a configuration permission', () => {
+  it('AGT-5: a role an agent holds cannot gain a configuration permission', () => {
     const gaining: Role = { name: 'Editor', grants: [...editor.grants, { permission: 'config:keys:manage', resource: WILDCARD }] }
 
     expect(replaceRoleHeldBy(roles(), gaining, none, [agent(['Editor']), user('person', ['Editor'])]))

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { stringify as stringifyFlatted, parse as parseFlatted } from 'flatted'
 import { sign } from '$lib/script/signing/envelope'
 import { memory } from './memoryStorage'
@@ -67,8 +68,14 @@ function storeComponent (stored: Json, body = ''): void {
   }
 }
 
+/** The publication id the fixtures give a component: a UUID, as PUB-4 and PUB-5 require. */
+function publicationIdOf (uid: string): string {
+  const hex = createHash('sha256').update(`publication-of-${uid}`).digest('hex')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`
+}
+
 /** Stores a publication pointer (PUB-5), which is what makes a component composable (PUB-7). */
-function storePublication (uid: string, publicationId = `publication-of-${uid}`): void {
+function storePublication (uid: string, publicationId = publicationIdOf(uid)): void {
   memory.set(pointerPath(uid), stringifyFlatted({ uid, publicationId, publisherId: 'subject-1', publishedAt: 1_000, note: '', headerDigest: 'digest' }))
 }
 
@@ -114,7 +121,7 @@ function storePage (entry: Json): void {
 
 /** Stores a published page tree (TRE-1), signed by the test key, whose root pins the component. */
 function storeTreePinning (name: string, uid: string): void {
-  const tree = { component: 'Pinned', type: 'prebuilt', uid, publicationId: `publication-of-${uid}`, data: {} }
+  const tree = { component: 'Pinned', type: 'prebuilt', uid, publicationId: publicationIdOf(uid), data: {} }
   memory.set(treePath(name), JSON.stringify({ ...sign('genoacms.pageTree.v1', tree, signingKey), payload: tree }))
 }
 
@@ -128,6 +135,7 @@ const storedHeader = (uid: string): Parsed => memory.json(headerPath(uid))
 const storedDefinition = (uid: string): Parsed => readFlatted(definitionPath(uid))
 
 export {
+  publicationIdOf,
   attribute,
   header,
   node,

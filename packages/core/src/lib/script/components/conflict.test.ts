@@ -70,7 +70,7 @@ beforeEach(() => {
 })
 
 describe('conditional saves', () => {
-  it.fails('HIS-2: a save from the stored version writes and returns a new version', async () => {
+  it('HIS-2: a save from the stored version writes and returns a new version', async () => {
     const readHeader = headerVersion()
     const savedHeader = await saveHeader('Renamed', readHeader)
     expect(savedHeader).toMatchObject({ status: 'success', text: 'Component updated', version: headerVersion() })
@@ -95,7 +95,7 @@ describe('conditional saves', () => {
     expect(write).toHaveBeenCalledWith(expect.objectContaining({ ifVersion: 'v42' }))
   })
 
-  it.fails('HIS-2: a save from an older version writes nothing, records no step, and fails modified-since', async () => {
+  it('HIS-2: a save from an older version writes nothing, records no step, and fails modified-since', async () => {
     const readHeader = headerVersion()
     await saveHeader('Renamed', readHeader)
     let before = memory.snapshot()
@@ -123,7 +123,7 @@ describe('conditional saves', () => {
     expect((refused as Error).message).toBe(modifiedSince('page home', 'v7'))
   })
 
-  it.fails('HIS-2: undo and redo are conditional too', async () => {
+  it('HIS-2: undo and redo are conditional too', async () => {
     const readHeader = headerVersion()
     await saveHeader('Renamed', readHeader)
     let before = memory.snapshot()
@@ -154,7 +154,7 @@ describe('conditional saves', () => {
     expect(storedPage('home').contents.nodes.n1.data.heading.value).toBe('first')
   })
 
-  it.fails('HIS-2: an object read without a version cannot be saved', async () => {
+  it('HIS-2: an object read without a version cannot be saved', async () => {
     const { writeConditionally, UnversionedError } = await conflict()
     const write = vi.fn(async () => {})
 

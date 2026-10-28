@@ -1,5 +1,6 @@
 import {
   getComponentHeader,
+  getComponentHeaderVersioned,
   getComponentHeaderHistory,
   uploadComponentHeader,
   uploadComponentHeaderHistory
@@ -11,6 +12,8 @@ import {
 } from './component/attributeNames'
 import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import { writeConditionally, requireCurrent } from '../conflict'
+import { NoSuchComponentError } from '../editor/errors'
 
 /**
  * Editing a prebuilt component, with the history that makes it reversible.
@@ -42,22 +45,30 @@ const depthOf = (adjunct: UndoRedoAdjunct<ComponentHeader>): HistoryDepth => ({
 const getComponentHeaderDepth = async (reference: ComponentHeaderReference): Promise<HistoryDepth> =>
   depthOf(await getComponentHeaderHistory(reference))
 
+const objectOf = (reference: ComponentHeaderReference): string => `component ${reference}`
+
+/** HIS-2: the version the stored header has now, which is what a successful write has just made. */
+const currentVersion = async (reference: ComponentHeaderReference): Promise<string | undefined> =>
+  (await getComponentHeaderVersioned(reference))?.version
+
+/** A header saved or stepped, the depth of its history, and the version it now has. */
+interface HeaderSaved extends HistoryDepth {
+  version: string | undefined
+}
+
 /**
- * Saves an edited description and records the step that produced it.
+ * Saves an edited description, conditionally on `version`, and records the step that produced it.
  *
  * The previous state is read back from storage rather than taken from the client. A client that
  * reported its own "before" could report anything, and the recorded step is what an undo replays —
  * so trusting it would let a save write a history that reverts to a state that never existed.
  *
- * A component with nothing stored yet has no step to record: there is no previous state to diff
- * against, and the creation itself is not something undo reverses.
+ * CMP-8: only a component that exists is saved, and it keeps its stored kind.
  *
- * **Returns the resulting depth**, because saving is a remote call rather than a form action and so
- * nothing re-runs the page's `load`. Without it the editor keeps whatever depth it was rendered
- * with, and an author who has just made a change is told there is nothing to undo until they
- * reload.
+ * **Returns the resulting depth and version**, because saving is a remote call rather than a form
+ * action and so nothing re-runs the page's `load`.
  */
-const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth> => {
+const saveComponentHeader = async (entry: ComponentHeader, version: string): Promise<HeaderSaved> => {
   // Before anything is read or written. A published page keys each value by its attribute's name, so
   // two attributes sharing one silently lose a value with every signature over the result still
   // valid — and this is the one place both kinds of component are written through.
@@ -65,14 +76,17 @@ const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth
   requireUnreservedAttributeNames(entry)
 
   const previous = await getComponentHeader(entry.uid)
+  if (previous === null) {
+    throw new NoSuchComponentError(entry.uid, `components/no-such-component: ${entry.uid} does not exist.`)
+  }
+  const saved: ComponentHeader = { ...entry, type: previous.type }
   const adjunct = await getComponentHeaderHistory(entry.uid)
 
-  await uploadComponentHeader(entry)
-  if (previous === null) return depthOf(adjunct)
+  await writeConditionally(async options => { await uploadComponentHeader(saved, options) }, objectOf(entry.uid), version)
 
-  const recorded = recordChange(entry, adjunct, previous)
+  const recorded = recordChange(saved, adjunct, previous)
   await uploadComponentHeaderHistory(entry.uid, recorded)
-  return depthOf(recorded)
+  return { ...depthOf(recorded), version: await currentVersion(entry.uid) }
 }
 
 /**
@@ -83,7 +97,7 @@ const saveComponentHeader = async (entry: ComponentHeader): Promise<HistoryDepth
  * returns the history that results.
  */
 const step = (move: typeof undo) =>
-  async (reference: ComponentHeaderReference): Promise<ComponentHeader | null> => {
+  async (reference: ComponentHeaderReference, version: string): Promise<ComponentHeader | null> => {
     const entry = await getComponentHeader(reference)
     if (entry === null) return null
 
@@ -91,9 +105,12 @@ const step = (move: typeof undo) =>
     const stepped = move(entry, adjunct)
     // Nothing to move through. Returned unchanged rather than written back, so that pressing undo
     // at the beginning of a history does not rewrite storage with what is already there.
-    if (stepped === adjunct) return entry
+    if (stepped === adjunct) {
+      requireCurrent(objectOf(reference), version, await currentVersion(reference))
+      return entry
+    }
 
-    await uploadComponentHeader(entry)
+    await writeConditionally(async options => { await uploadComponentHeader(entry, options) }, objectOf(reference), version)
     await uploadComponentHeaderHistory(reference, stepped)
     return entry
   }
@@ -107,4 +124,4 @@ export {
   redoComponentHeader,
   getComponentHeaderDepth
 }
-export type { HistoryDepth }
+export type { HistoryDepth, HeaderSaved }

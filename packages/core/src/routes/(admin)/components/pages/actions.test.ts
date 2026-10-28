@@ -46,7 +46,7 @@ beforeEach(() => {
 })
 
 describe('the page form actions', () => {
-  it.fails('PGE-2, PGE-11: a page is created only under a valid, free name, of a published component', async () => {
+  it('PGE-2, PGE-11: a page is created only under a valid, free name, of a published component', async () => {
     const before = memory.snapshot()
     expect(await createPage({ componentUID: card.uid })).toEqual({ status: 400, data: { reason: 'no-page-name' } })
     for (const name of ['a/b', '../../components/headers/x.json', '..', 'a\u0001']) {
@@ -67,7 +67,7 @@ describe('the page form actions', () => {
     })
   })
 
-  it.fails('PGE-5: a child is of the component named, from storage, never the client\'s header', async () => {
+  it('PGE-5: a child is of the component named, from storage, never the client\'s header', async () => {
     const forged = { ...header(card.uid, 'Forged', [attribute.string('forged-attribute', 'forged')]), uid: banner.uid }
     const added = await onNode('addChildNode', 'root', {
       componentUID: card.uid,
@@ -103,7 +103,7 @@ describe('the page form actions', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails('PGE-4: a content editor cannot reorder or remove children', async () => {
+  it('PGE-4: a content editor cannot reorder or remove children', async () => {
     const before = memory.snapshot()
     const reordered = node('root', section, { [CHILDREN]: ['c2', 'c1'] })
     const reorder = await onNode('update', 'root', { componentNode: JSON.stringify(reordered), version: pageVersion('home') }, contentEditor)

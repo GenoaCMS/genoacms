@@ -1,4 +1,5 @@
 import type { CollectionReference } from '@genoacms/contracts/database'
+import type { Secret } from '@genoacms/contracts'
 import type { Permission } from '@genoacms/internal/authorization'
 
 /** One provider: which adapter descriptor, and that adapter's options. */
@@ -105,6 +106,11 @@ interface Config<AP extends Providers, DP extends Providers, SP extends Provider
     /** Tried in key order; the first `Identity` wins. */
     providers: AP
     cookieName: string
+    /**
+     * Agents, keyed by their subject `agent:<name>`. An agent identifies itself with its token
+     * alone, on `/mcp` alone, and holds the roles `authorization.assignments` gives it.
+     */
+    agents?: Record<string, { label: string, token: Secret<string> }>
   }
   database: {
     providers: DP

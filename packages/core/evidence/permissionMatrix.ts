@@ -54,6 +54,7 @@ const matrixOperations = [
   'listUserComponents',
   'getUserComponent',
   'getUserComponentDefinition',
+  'getUserComponentDefinitionVersioned',
   'getUserComponentSignature',
   'createUserComponent',
   'saveUserComponentBody',
@@ -69,6 +70,7 @@ const matrixOperations = [
   'registerUserComponentHeader',
   'listUserComponentHeaders',
   'getUserComponentHeader',
+  'getUserComponentHeaderVersioned',
   'updateUserComponentHeader',
   'getUserComponentHeaderDepth',
   'undoUserComponentHeader',
@@ -77,7 +79,17 @@ const matrixOperations = [
   'listUserPagesPinningComponent',
   // pages
   'listUserPages',
+  'listUserPageSummaries',
   'getUserPageEntry',
+  'getUserPageEntryVersioned',
+  'createUserPage',
+  'editUserNode',
+  'addUserChildNode',
+  'moveUserNode',
+  'removeUserNode',
+  'setUserValues',
+  'setUserPreviewURL',
+  'stepUserPage',
   'saveUserPageContent',
   'saveUserPageStructure',
   'revertUserPageEntry',
@@ -189,7 +201,10 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   },
   Copywriter: {
     grants: [instanceGrant('pages:read'), instanceGrant('pages:content_edit')],
-    allowed: ['listUserPages', 'getUserPageEntry', 'saveUserPageContent']
+    allowed: [
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'saveUserPageContent', 'editUserNode', 'setUserValues', 'setUserPreviewURL'
+    ]
   },
   Designer: {
     grants: [
@@ -198,8 +213,10 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('pages:structure_edit')
     ],
     allowed: [
-      'listUserPages', 'getUserPageEntry',
-      'saveUserPageContent', 'saveUserPageStructure', 'revertUserPageEntry'
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'saveUserPageContent', 'saveUserPageStructure', 'revertUserPageEntry',
+      'createUserPage', 'editUserNode', 'addUserChildNode', 'moveUserNode', 'removeUserNode',
+      'setUserValues', 'setUserPreviewURL', 'stepUserPage'
     ]
   },
   /** Removes pages without being able to write one, which is what pages:delete exists to express. */
@@ -214,7 +231,9 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('pages:publish')
     ],
     allowed: [
-      'listUserPages', 'getUserPageEntry', 'saveUserPageContent', 'generateUserReadablePageTree'
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'saveUserPageContent', 'generateUserReadablePageTree',
+      'editUserNode', 'setUserValues', 'setUserPreviewURL'
     ]
   },
   /**
@@ -233,8 +252,8 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   ComponentDeveloper: {
     grants: [instanceGrant('components:read'), instanceGrant('components:code')],
     allowed: [
-      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
-      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderVersioned', 'getUserComponentHeaderDepth',
+      'listUserComponents', 'getUserComponent', 'getUserComponentDefinition', 'getUserComponentDefinitionVersioned',
       'getUserComponentSignature', 'saveUserComponentBody', 'undoUserComponentBody',
       'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent',
       'listUserComposableComponents'
@@ -256,7 +275,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
      * depends on which. `publication/user.server.test.ts` is where it is asserted.
      */
     allowed: [
-      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderVersioned', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
       'listUserComponents', 'getUserComponent',
       'publishUserComponent', 'getUserPublishedComponent', 'listUserComposableComponents'
@@ -270,7 +289,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
     // Registering covers a component's **existence**, of either kind: the same permission creates a
     // prebuilt component's description and brings a coded component into being with its source.
     allowed: [
-      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderDepth',
+      'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderVersioned', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
       'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent',

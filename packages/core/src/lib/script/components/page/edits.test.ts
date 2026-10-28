@@ -33,11 +33,11 @@ function expectRefusal (result: Parsed, code: string, message: string): void {
 }
 
 describe('adding a node', () => {
-  it.fails('TOL-10: a node is added at the position, of a published component the slot accepts', async () => {
+  it('TOL-10: a node is added at the position, of a published component the slot accepts', async () => {
     const { addNode } = await edits()
     const before = contents()
 
-    const first = addNode(before, 'root', 'children', card, true, 0)
+    const first = addNode(before, 'root', 'children', card, true, headers, 0)
     expect(first.ok).toBe(true)
     expect(slotOf(first, 'root')).toEqual([first.node, 's1', 'c1'])
     expect(first.contents.nodes[first.node]).toMatchObject({
@@ -47,42 +47,42 @@ describe('adding a node', () => {
     })
     expect(before).toEqual(contents())
 
-    const last = addNode(contents(), 's2', 'children', card, true)
+    const last = addNode(contents(), 's2', 'children', card, true, headers)
     expect(slotOf(last, 's2')).toEqual(['c2', last.node])
 
-    expectRefusal(addNode(contents(), 'missing', 'children', card, true), 'pages/no-such-node', 'pages/no-such-node: missing')
-    expectRefusal(addNode(contents(), 'root', 'title', card, true), 'pages/not-a-slot', 'pages/not-a-slot: title')
-    expectRefusal(addNode(contents(), 'root', 'children', card, false), 'pages/unpublished-component', 'pages/unpublished-component: card')
-    expectRefusal(addNode(contents(), 'root', 'children', banner, true), 'pages/not-accepted', 'pages/not-accepted: Banner')
+    expectRefusal(addNode(contents(), 'missing', 'children', card, true, headers), 'pages/no-such-node', 'pages/no-such-node: missing')
+    expectRefusal(addNode(contents(), 'root', 'title', card, true, headers), 'pages/not-a-slot', 'pages/not-a-slot: title')
+    expectRefusal(addNode(contents(), 'root', 'children', card, false, headers), 'pages/unpublished-component', 'pages/unpublished-component: card')
+    expectRefusal(addNode(contents(), 'root', 'children', banner, true, headers), 'pages/not-accepted', 'pages/not-accepted: Banner')
 
-    const full = addNode(contents(), 'root', 'children', card, true)
-    expectRefusal(addNode(full.contents, 'root', 'children', card, true), 'pages/slot-full', 'pages/slot-full: children')
+    const full = addNode(contents(), 'root', 'children', card, true, headers)
+    expectRefusal(addNode(full.contents, 'root', 'children', card, true, headers), 'pages/slot-full', 'pages/slot-full: children')
   })
 })
 
 describe('moving a node', () => {
-  it.fails('TOL-12: a node moves between slots; the root, itself or a descendant is refused', async () => {
+  it('TOL-12: a node moves between slots; the root, itself or a descendant is refused', async () => {
     const { moveNode } = await edits()
 
-    const moved = moveNode(contents(), 'c2', 'root', 'children', 0)
+    const moved = moveNode(contents(), 'c2', 'root', 'children', headers, 0)
     expect(moved.ok).toBe(true)
     expect(slotOf(moved, 'root')).toEqual(['c2', 's1', 'c1'])
     expect(slotOf(moved, 's2')).toEqual([])
 
-    const toEnd = moveNode(contents(), 'c1', 's2', 'children')
+    const toEnd = moveNode(contents(), 'c1', 's2', 'children', headers)
     expect(slotOf(toEnd, 's2')).toEqual(['c2', 'c1'])
     expect(slotOf(toEnd, 'root')).toEqual(['s1'])
 
-    expectRefusal(moveNode(contents(), 'root', 's1', 'children'), 'pages/invalid-move', 'pages/invalid-move: root')
-    expectRefusal(moveNode(contents(), 's1', 's1', 'children'), 'pages/invalid-move', 'pages/invalid-move: s1')
-    expectRefusal(moveNode(contents(), 's1', 's2', 'children'), 'pages/invalid-move', 'pages/invalid-move: s1')
-    expectRefusal(moveNode(contents(), 'c1', 'missing', 'children'), 'pages/no-such-node', 'pages/no-such-node: missing')
-    expectRefusal(moveNode(contents(), 'c1', 's1', 'title'), 'pages/not-a-slot', 'pages/not-a-slot: title')
+    expectRefusal(moveNode(contents(), 'root', 's1', 'children', headers), 'pages/invalid-move', 'pages/invalid-move: root')
+    expectRefusal(moveNode(contents(), 's1', 's1', 'children', headers), 'pages/invalid-move', 'pages/invalid-move: s1')
+    expectRefusal(moveNode(contents(), 's1', 's2', 'children', headers), 'pages/invalid-move', 'pages/invalid-move: s1')
+    expectRefusal(moveNode(contents(), 'c1', 'missing', 'children', headers), 'pages/no-such-node', 'pages/no-such-node: missing')
+    expectRefusal(moveNode(contents(), 'c1', 's1', 'title', headers), 'pages/not-a-slot', 'pages/not-a-slot: title')
   })
 })
 
 describe('removing a node', () => {
-  it.fails('TOL-13, PGE-4: removing a node removes every node below it, and the root cannot be removed', async () => {
+  it('TOL-13, PGE-4: removing a node removes every node below it, and the root cannot be removed', async () => {
     const { removeNode, applyNodeEdit } = await edits()
 
     const removed = removeNode(contents(), 's1')
@@ -141,7 +141,7 @@ describe('setting values', () => {
     ['sr', 'a.png']
   ]
 
-  it.fails('TOL-11: each value is checked against its attribute; a slot is not a value', async () => {
+  it('TOL-11: each value is checked against its attribute; a slot is not a value', async () => {
     const { setValues } = await edits()
 
     const set = setValues(page(), 'root', valid, everyHeaders)
@@ -159,7 +159,7 @@ describe('setting values', () => {
 })
 
 describe('editing a node', () => {
-  it.fails('PGE-4: a node edit takes only values, and tells content from structure', async () => {
+  it('PGE-4: a node edit takes only values, and tells content from structure', async () => {
     const { applyNodeEdit } = await edits()
 
     const injected = structuredClone(contents().nodes.c1)
@@ -190,7 +190,7 @@ describe('editing a node', () => {
 })
 
 describe('page names', () => {
-  it.fails('PGE-11: names of one level are accepted, others refused', async () => {
+  it('PGE-11: names of one level are accepted, others refused', async () => {
     const { isPageName } = await names()
 
     for (const name of ['home', 'a b', 'ü', '..a', 'x'.repeat(200)]) expect(isPageName(name), name).toBe(true)

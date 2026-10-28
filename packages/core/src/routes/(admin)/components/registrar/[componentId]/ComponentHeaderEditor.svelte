@@ -33,12 +33,14 @@
   interface Props {
     id: string
     entry: ComponentHeader
+    /** HIS-2: the version the header was read at, advanced by each save. */
+    version: string
     historyLength: number
     futureLength: number
     /** When this component was last published, or `undefined` if it never has been. */
     publishedAt?: number
   }
-  const { id, entry, historyLength, futureLength, publishedAt }: Props = $props()
+  const { id, entry, version: loadedVersion, historyLength, futureLength, publishedAt }: Props = $props()
 
   const form = $state(untrack(() => entry))
 
@@ -59,14 +61,18 @@
    * ever written here.
    */
   let depth = $state(untrack(() => ({ historyLength, futureLength })))
+  let version = $state(untrack(() => loadedVersion))
+
+  const CONFLICT = 'Changed elsewhere. Reload to see the latest version.'
 
   async function submit () {
-    const result = await updateComponent(form)
+    const result = await updateComponent({ header: form, version })
     if (result.status !== 'success') {
-      toastError(result.text)
+      toastError(result.text.startsWith('conflict/modified-since') ? CONFLICT : result.text)
       return
     }
     depth = { historyLength: result.historyLength, futureLength: result.futureLength }
+    version = result.version ?? version
     toastSuccess(result.text)
   }
   function addAttribute (attribute: AttributeT) {
@@ -113,8 +119,8 @@
     </PermissionGate>
     <PermissionGate permission="components:modify">
       <ChangeName bind:name={form.name} onrename={submit} />
-      <Undo historyLength={depth.historyLength} />
-      <Redo futureLength={depth.futureLength} />
+      <Undo historyLength={depth.historyLength} {version} />
+      <Redo futureLength={depth.futureLength} {version} />
       <AddAttribute onadd={addAttribute} />
       <Submit />
       <!-- Gated on `modify`, which is what publishing demands of every component. A dynamic one

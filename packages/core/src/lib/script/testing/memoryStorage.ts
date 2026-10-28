@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream'
-import { PreconditionFailedError } from '@genoacms/contracts/storage'
+import { ObjectNotFoundError, PreconditionFailedError } from '@genoacms/contracts/storage'
 import type { DirectoryContents, ObjectPayload, ObjectReference, UploadOptions } from '@genoacms/contracts/storage'
 import type { Parsed } from './requests'
 
@@ -17,7 +17,7 @@ const { objects, directories } = state
 const keyOf = ({ bucket, name }: ObjectReference): string => `${bucket}/${name}`
 
 function notFound (reference: ObjectReference): never {
-  throw new Error(`storage/not-found: ${keyOf(reference)}`)
+  throw new ObjectNotFoundError(reference)
 }
 
 function payloadText (data: ObjectPayload): string {

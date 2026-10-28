@@ -93,6 +93,9 @@ vi.mock('$lib/script/components/componentHeader/io.server', () => ({
   getComponentHeader: async () => ({
     uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: []
   }),
+  getComponentHeaderVersioned: async () => ({
+    header: { uid: 'hero', type: 'prebuilt', name: 'Hero', attributes: {}, attributeOrder: [] }, version: 'v1'
+  }),
   uploadComponentHeader: async () => {},
   deleteComponentHeader: async () => {},
   getComponentHeaderHistory: async () => ({ history: [], future: [] }),
@@ -102,7 +105,10 @@ vi.mock('$lib/script/components/componentHeader/io.server', () => ({
 // The definition's editing history, stubbed like the other primary layers: the matrix is about
 // which principal may call what, not about what reaches the bucket.
 vi.mock('$lib/script/components/editor/editing.server', () => ({
-  saveComponentBody: async () => ({ historyLength: 1, futureLength: 0 }),
+  getComponentDefinitionVersioned: async () => ({
+    definition: { uid: 'uid-1', language: 'typescript', body: '', publishedBody: '', publishedSignature: '' }, version: 'v1'
+  }),
+  saveComponentBody: async () => ({ historyLength: 1, futureLength: 0, version: 'v2' }),
   undoComponentBody: async () => ({ uid: 'uid-1' }),
   redoComponentBody: async () => ({ uid: 'uid-1' }),
   getComponentDefinitionDepth: async () => ({ historyLength: 0, futureLength: 0 })
@@ -119,7 +125,8 @@ vi.mock('$lib/script/components/page/tree/dependents.server', () => ({
 
 // Storage-level, mocked because deleting a component header now removes its publications too.
 vi.mock('$lib/script/components/publication/io.server', () => ({
-  deleteComponentPublications: async () => {}
+  deleteComponentPublications: async () => {},
+  getPublishedComponent: async () => null
 }))
 
 vi.mock('$lib/script/components/publication', () => ({
@@ -137,7 +144,16 @@ vi.mock('$lib/script/components/publication', () => ({
 
 vi.mock('$lib/script/components/page/page.server', () => ({
   listOrCreatePageList: async () => [],
+  listPageSummaries: async () => [],
   getPageEntry: async () => ({ name: 'home' }),
+  getPageEntryVersioned: async () => ({ page: { name: 'home', history: [], future: [] }, version: 'v1' }),
+  savePageEntry: async () => 'v2',
+  createPageIfAbsent: async () => 'v1',
+  // Stands for an edit of a value: the outcome is handed to the authorization the service passes.
+  applyPageEdit: async (_name: string, _version: string, _headers: string[], _edit: unknown, authorize?: (result: unknown) => void) => {
+    authorize?.({ ok: true, content: true, structure: false })
+    return { version: 'v2', result: { ok: true, node: 'n' } }
+  },
   uploadPageEntry: async () => {},
   generateReadablePageTree: async () => {},
   deletePageEntry: async () => {}
@@ -268,11 +284,12 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   listUserComponents: ctx => editor.listUserComponents(ctx),
   getUserComponent: ctx => editor.getUserComponent(ctx, 'uid-1'),
   getUserComponentDefinition: ctx => editor.getUserComponentDefinition(ctx, 'uid-1'),
+  getUserComponentDefinitionVersioned: ctx => editor.getUserComponentDefinitionVersioned(ctx, 'uid-1'),
   getUserComponentSignature: ctx => editor.getUserComponentSignature(ctx, 'uid-1'),
   createUserComponent: ctx => editor.createUserComponent(ctx, 'hero'),
-  saveUserComponentBody: ctx => editor.saveUserComponentBody(ctx, 'uid-1', 'return 1'),
-  undoUserComponentBody: ctx => editor.undoUserComponentBody(ctx, 'uid-1'),
-  redoUserComponentBody: ctx => editor.redoUserComponentBody(ctx, 'uid-1'),
+  saveUserComponentBody: ctx => editor.saveUserComponentBody(ctx, 'uid-1', 'return 1', 'v1'),
+  undoUserComponentBody: ctx => editor.undoUserComponentBody(ctx, 'uid-1', 'v1'),
+  redoUserComponentBody: ctx => editor.redoUserComponentBody(ctx, 'uid-1', 'v1'),
   getUserComponentDefinitionDepth: ctx => editor.getUserComponentDefinitionDepth(ctx, 'uid-1'),
   publishUserComponent: ctx =>
     publication.publishUserComponent(ctx, { componentId: 'uid-1', note: 'n' }),
@@ -284,19 +301,30 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   registerUserComponentHeader: ctx => components.registerUserComponentHeader(ctx, { name: 'Hero', type: 'prebuilt' }),
   listUserComponentHeaders: ctx => components.listUserComponentHeaders(ctx),
   getUserComponentHeader: ctx => components.getUserComponentHeader(ctx, 'hero'),
-  updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader),
+  getUserComponentHeaderVersioned: ctx => components.getUserComponentHeaderVersioned(ctx, 'hero'),
+  updateUserComponentHeader: ctx => components.updateUserComponentHeader(ctx, componentHeader, 'v1'),
   getUserComponentHeaderDepth: ctx => components.getUserComponentHeaderDepth(ctx, 'hero'),
-  undoUserComponentHeader: ctx => components.undoUserComponentHeader(ctx, 'hero'),
-  redoUserComponentHeader: ctx => components.redoUserComponentHeader(ctx, 'hero'),
+  undoUserComponentHeader: ctx => components.undoUserComponentHeader(ctx, 'hero', 'v1'),
+  redoUserComponentHeader: ctx => components.redoUserComponentHeader(ctx, 'hero', 'v1'),
   deleteUserComponentHeader: ctx => components.deleteUserComponentHeader(ctx, 'hero'),
   listUserPagesPinningComponent: ctx => components.listUserPagesPinningComponent(ctx, 'uid-1'),
 
   // pages
   listUserPages: ctx => pagesService.listUserPages(ctx),
+  listUserPageSummaries: ctx => pagesService.listUserPageSummaries(ctx),
   getUserPageEntry: ctx => pagesService.getUserPageEntry(ctx, 'home'),
-  saveUserPageContent: ctx => pagesService.saveUserPageContent(ctx, pageEntry),
-  saveUserPageStructure: ctx => pagesService.saveUserPageStructure(ctx, pageEntry),
-  revertUserPageEntry: ctx => pagesService.revertUserPageEntry(ctx, pageEntry),
+  getUserPageEntryVersioned: ctx => pagesService.getUserPageEntryVersioned(ctx, 'home'),
+  createUserPage: ctx => pagesService.createUserPage(ctx, 'about', 'uid-1'),
+  editUserNode: ctx => pagesService.editUserNode(ctx, 'home', 'v1', {}),
+  addUserChildNode: ctx => pagesService.addUserChildNode(ctx, 'home', 'v1', { parent: 'root', slot: 'slot', componentUID: 'uid-1' }),
+  moveUserNode: ctx => pagesService.moveUserNode(ctx, 'home', 'v1', { node: 'n', parent: 'root', slot: 'slot' }),
+  removeUserNode: ctx => pagesService.removeUserNode(ctx, 'home', 'v1', 'n'),
+  setUserValues: ctx => pagesService.setUserValues(ctx, 'home', 'v1', 'n', {}),
+  setUserPreviewURL: ctx => pagesService.setUserPreviewURL(ctx, 'home', 'v1', 'https://example.com'),
+  stepUserPage: ctx => pagesService.stepUserPage(ctx, 'home', 'v1', 'undo'),
+  saveUserPageContent: ctx => pagesService.saveUserPageContent(ctx, pageEntry, 'v1'),
+  saveUserPageStructure: ctx => pagesService.saveUserPageStructure(ctx, pageEntry, 'v1'),
+  revertUserPageEntry: ctx => pagesService.revertUserPageEntry(ctx, pageEntry, 'v1'),
   generateUserReadablePageTree: ctx => pagesService.generateUserReadablePageTree(ctx, pageEntry),
   deleteUserPage: ctx => pagesService.deleteUserPage(ctx, 'home'),
 

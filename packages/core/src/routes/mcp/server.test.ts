@@ -39,7 +39,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('the MCP endpoint', () => {
-  it.fails('MCP-2: no header, a wrong token and a cookie alone each answer 401 with WWW-Authenticate', async () => {
+  it('MCP-2: no header, a wrong token and a cookie alone each answer 401 with WWW-Authenticate', async () => {
     await expectUnauthorized(await callEndpoint({ body: initialize }))
     await expectUnauthorized(await callEndpoint({ token: WRONG, body: initialize }))
     await expectUnauthorized(await callEndpoint({ cookie: `__session=${TOKEN}`, body: initialize }))
@@ -48,7 +48,7 @@ describe('the MCP endpoint', () => {
     expect((await callEndpoint({ token: TOKEN, body: initialize })).status).toBe(200)
   })
 
-  it.fails('MCP-1: GET and DELETE answer 405; a notification 202; never Mcp-Session-Id', async () => {
+  it('MCP-1: GET and DELETE answer 405; a notification 202; never Mcp-Session-Id', async () => {
     const responses: Response[] = []
     const call = async (...args: Parameters<typeof callEndpoint>): Promise<Response> => {
       const response = await callEndpoint(...args)
@@ -71,7 +71,7 @@ describe('the MCP endpoint', () => {
     for (const response of responses) expect(response.headers.has('mcp-session-id')).toBe(false)
   })
 
-  it.fails('MCP-2: no log line holds the token', async () => {
+  it('MCP-2: no log line holds the token', async () => {
     const lines = captureConsole()
 
     await expectUnauthorized(await callEndpoint({ token: WRONG, body: initialize }))

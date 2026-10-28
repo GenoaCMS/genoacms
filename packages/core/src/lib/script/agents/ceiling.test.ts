@@ -11,7 +11,7 @@ const CONFIGURATION_PERMISSIONS = ['config:users:manage', 'config:roles:manage',
 const grantsOf = (...permissions: string[]): Grant[] => permissions.map(permission => ({ permission, resource: '*' }) as Grant)
 
 describe('the agent ceiling', () => {
-  it.fails('AGT-5: assigning an agent a role beyond the ceiling is refused', async () => {
+  it('AGT-5: assigning an agent a role beyond the ceiling is refused', async () => {
     const { exceedsAgentCeiling, isAgentSubject } = await ceiling()
 
     for (const permission of [...CONFIGURATION_PERMISSIONS, '*']) {
@@ -22,7 +22,7 @@ describe('the agent ceiling', () => {
     expect(isAgentSubject('writer')).toBe(false)
   })
 
-  it.fails('AGT-5: an agent whose roles exceed the ceiling anyway resolves with no grants', () => {
+  it('AGT-5: an agent whose roles exceed the ceiling anyway resolves with no grants', () => {
     const roles: Role[] = [{ name: 'Keys', grants: grantsOf('pages:read', 'config:keys:manage') }]
     const source = {
       available: true as const,

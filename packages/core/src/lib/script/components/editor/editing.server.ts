@@ -3,11 +3,13 @@ import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 
 import {
   getComponentDefiniton,
+  getComponentDefinitionVersioned,
   getComponentDefinitionHistory,
   uploadComponentDefinition,
   uploadComponentDefinitionHistory
 } from './io'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
+import { writeConditionally, requireCurrent } from '../conflict'
 
 /**
  * Editing a component's body, with the history that makes it reversible.
@@ -69,10 +71,21 @@ const getComponentDefinitionDepth = async (
  * nothing re-runs the page's `load`. Without it the editor keeps whatever depth it was rendered
  * with, and an author who has just typed is told there is nothing to undo until they reload.
  */
+const objectOf = (reference: ComponentReference): string => `component source ${reference}`
+
+/** HIS-2: the version the stored definition has now, which is what a successful write has just made. */
+const currentVersion = async (reference: ComponentReference): Promise<string | undefined> =>
+  (await getComponentDefinitionVersioned(reference)).version
+
+interface BodySaved extends HistoryDepth {
+  version: string | undefined
+}
+
 const saveComponentBody = async (
   reference: ComponentReference,
-  body: string
-): Promise<HistoryDepth> => {
+  body: string,
+  version: string
+): Promise<BodySaved> => {
   const previous = await getComponentDefiniton(reference)
   const adjunct = await getComponentDefinitionHistory(reference)
 
@@ -80,11 +93,11 @@ const saveComponentBody = async (
   // header's equivalent is handed two distinct objects by its caller; here the caller supplies only
   // a string, so the pair has to be made rather than received.
   const saved: ComponentDefinition = { ...previous, body }
-  await uploadComponentDefinition(saved)
+  await writeConditionally(async options => { await uploadComponentDefinition(saved, options) }, objectOf(reference), version)
 
   const recorded = recordChange(saved, adjunct, previous)
   await uploadComponentDefinitionHistory(reference, recorded)
-  return depthOf(recorded)
+  return { ...depthOf(recorded), version: await currentVersion(reference) }
 }
 
 /**
@@ -95,15 +108,18 @@ const saveComponentBody = async (
  * the history that results.
  */
 const step = (move: typeof undo) =>
-  async (reference: ComponentReference): Promise<ComponentDefinition> => {
+  async (reference: ComponentReference, version: string): Promise<ComponentDefinition> => {
     const definition = await getComponentDefiniton(reference)
     const adjunct = await getComponentDefinitionHistory(reference)
     const stepped = move(definition, adjunct)
     // Nothing to move through. Returned unchanged rather than written back, so that pressing undo at
     // the beginning of a history does not rewrite storage with what is already there.
-    if (stepped === adjunct) return definition
+    if (stepped === adjunct) {
+      requireCurrent(objectOf(reference), version, await currentVersion(reference))
+      return definition
+    }
 
-    await uploadComponentDefinition(definition)
+    await writeConditionally(async options => { await uploadComponentDefinition(definition, options) }, objectOf(reference), version)
     await uploadComponentDefinitionHistory(reference, stepped)
     return definition
   }
@@ -115,6 +131,7 @@ export {
   saveComponentBody,
   undoComponentBody,
   redoComponentBody,
-  getComponentDefinitionDepth
+  getComponentDefinitionDepth,
+  getComponentDefinitionVersioned
 }
-export type { HistoryDepth }
+export type { HistoryDepth, BodySaved }

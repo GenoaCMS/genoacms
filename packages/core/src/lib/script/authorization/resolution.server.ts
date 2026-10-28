@@ -12,6 +12,8 @@ import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { peekUnverifiedHeader, verify, type DocumentType } from '$lib/script/signing/envelope'
 import { resolveVerificationKey } from '$lib/script/signing/keyResolution.server'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'
+import { AGENTS_DOCUMENT, EMPTY_AGENTS, agentsManifestPath } from '$lib/script/agents/manifest.server'
+import { parseAgentsManifest, type AgentRecord } from '$lib/script/agents/manifest'
 import { mergeDeclarations, declarationsOnly } from './declared'
 import { readDeclarations } from './declared.server'
 import type { Role } from './roles'
@@ -142,6 +144,15 @@ async function loadManifest<T> (
   return { ok: true, value: parsed.value }
 }
 
+/** AGT-2: a stored agent is a user the source knows, with no email. */
+const asUserRecord = (agent: AgentRecord): UserRecord => ({ subject: agent.subject, email: '', roles: agent.roles })
+
+/** AGT-2: the stored agents; a manifest that does not verify is quarantined, and no stored agent is known. */
+async function loadStoredAgents (): Promise<AgentRecord[]> {
+  const loaded = await loadManifest<AgentRecord[]>(agentsManifestPath, AGENTS_DOCUMENT, parseAgentsManifest, EMPTY_AGENTS, EMPTY_AGENTS)
+  return loaded.ok ? loaded.value : []
+}
+
 /**
  * Both manifests or neither. Roles without users, or users without roles, is not a partial success —
  * it is a state in which permissions cannot be resolved correctly.
@@ -169,7 +180,8 @@ async function loadAuthorizationSource (): Promise<{ source: AuthorizationSource
     }
   }
 
-  const merged = mergeDeclarations(declared, { roles: roles.value, users: users.value })
+  const agents = await loadStoredAgents()
+  const merged = mergeDeclarations(declared, { roles: roles.value, users: [...users.value, ...agents.map(asUserRecord)] })
   return {
     source: { available: true, roles: merged.roles, users: merged.users },
     warnings: []
@@ -193,5 +205,6 @@ async function resolvePrincipal (subject: string): Promise<Resolution> {
 
 export {
   resolvePrincipal,
-  loadAuthorizationSource
+  loadAuthorizationSource,
+  loadStoredAgents
 }

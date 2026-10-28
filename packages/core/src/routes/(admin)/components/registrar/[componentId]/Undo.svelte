@@ -2,8 +2,10 @@
   import { enhance } from '$app/forms'
   interface Props {
     historyLength: number
+    /** HIS-2 */
+    version: string
   }
-  const { historyLength }: Props = $props()
+  const { historyLength, version }: Props = $props()
 
 </script>
 
@@ -15,6 +17,7 @@
   JavaScript the same POST still works — the browser just navigates.
 -->
 <form action="?/undo" method="post" use:enhance>
+  <input type="hidden" name="version" value={version} />
   <button
     type="submit"
     aria-label="Undo"

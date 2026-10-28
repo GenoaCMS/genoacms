@@ -7,6 +7,7 @@
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
+  import { page } from '$app/state'
 
   /**
    * Editing one node of a page, and the forms the top panel's buttons submit.
@@ -39,6 +40,8 @@
    * inside the success branch would leave the overlay up exactly when something had gone wrong and
    * the author most needs to read the error behind it.
    */
+  const CONFLICT = 'Changed elsewhere. Reload to see the latest version.'
+
   const enhanceAction = (
     pending: string,
     succeeded: string,
@@ -56,7 +59,7 @@
           : result.type === 'failure'
             ? String((result.data as Record<string, unknown> | undefined)?.reason ?? '')
             : ''
-        toastError(reason ? `${failed}: ${reason}` : failed)
+        toastError(reason.startsWith('conflict/modified-since') ? CONFLICT : reason ? `${failed}: ${reason}` : failed)
         return
       }
       if (reload) await invalidateAll()
@@ -64,7 +67,7 @@
     }
   }
 
-  const enhanceUpdate = enhanceAction('Saving', 'Saved', 'Error saving')
+  const enhanceUpdate = enhanceAction('Saving', 'Saved', 'Error saving', true)
   // Undo and redo change what the server holds without navigating, so the editor is re-fetched — and
   // the route's `{#key}` is what turns that re-fetch into a screen that has actually changed.
   const enhanceUndo = enhanceAction('Undoing', 'Undid', 'Undo failed', true)
@@ -82,12 +85,16 @@
 </div>
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>
+  <input type="hidden" name="version" value={page.data.version} />
   <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="build-form" action="?/updateAndGenerateTree" method="post" use:enhance={enhanceUpdate} hidden>
+  <input type="hidden" name="version" value={page.data.version} />
   <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="undo-form" action="?/undo" method="post" use:enhance={enhanceUndo} hidden>
+  <input type="hidden" name="version" value={page.data.version} />
 </form>
 <form id="redo-form" action="?/redo" method="post" use:enhance={enhanceRedo} hidden>
+  <input type="hidden" name="version" value={page.data.version} />
 </form>

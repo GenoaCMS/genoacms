@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('declared agents', () => {
-  it.fails('AGT-1: a declared token shorter than 43 characters closes the agent endpoint', async () => {
+  it('AGT-1: a declared token shorter than 43 characters closes the agent endpoint', async () => {
     const short = 'k'.repeat(42)
     declareAgent('agent:site-builder', short)
 
@@ -41,7 +41,7 @@ describe('declared agents', () => {
     await expect((signInPage as (event: unknown) => Promise<unknown>)({ locals: {} })).resolves.toBeUndefined()
   })
 
-  it.fails('AGT-1: two agents sharing a token are refused', async () => {
+  it('AGT-1: two agents sharing a token are refused', async () => {
     const shared = 's'.repeat(43)
     declareAgent('agent:first', shared)
     declareAgent('agent:second', shared)

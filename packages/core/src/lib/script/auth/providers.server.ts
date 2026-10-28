@@ -1,6 +1,7 @@
 import { host } from '$lib/script/host.server'
 import { isRejection } from '@genoacms/contracts/authentication'
 import type { Adapter, Identity, Rejection } from '@genoacms/contracts/authentication'
+import { isAgentSubject } from '$lib/script/agents/ceiling'
 
 type SignInFailure = 'invalid-credentials' | 'too-many-attempts' | 'sign-in-unavailable'
 
@@ -55,6 +56,12 @@ function failureAfter (failures: unknown[]): SignInFailure {
   return failures.some(error => messageOf(error).startsWith(THROTTLED)) ? 'too-many-attempts' : 'sign-in-unavailable'
 }
 
+// AGT-4
+function refusedAgentSubject (key: string): SignInResult {
+  console.error(`[genoacms:auth] provider ${key} returned a subject with the reserved agent: prefix; the sign-in is refused`)
+  return { outcome: 'failed', failure: 'invalid-credentials' }
+}
+
 /**
  * Tries the providers one at a time, in key order (AUTHN-5).
  *
@@ -70,6 +77,7 @@ async function signIn (email: string, password: string): Promise<SignInResult> {
   for (const key of host.authenticationProviderKeys) {
     const answer = await ask(key, email, password)
     log(key, answer)
+    if (answer.kind === 'identity' && isAgentSubject(answer.identity.subject)) return refusedAgentSubject(key)
     if (answer.kind === 'identity') return { outcome: 'signed-in', provider: key, identity: answer.identity }
     if (answer.kind === 'rejected' && answer.rejection.rejected !== 'credentials') return { outcome: 'failed', failure: 'invalid-credentials' }
     if (answer.kind === 'threw') failures.push(answer.error)
@@ -80,6 +88,7 @@ async function signIn (email: string, password: string): Promise<SignInResult> {
 async function lookUp (key: string, subject: string): Promise<Identity | null> {
   try {
     const answer: unknown = await (await host.authentication(key)).getIdentity(subject)
+    if (isIdentity(answer) && isAgentSubject(answer.subject)) return null // AGT-4
     if (answer === null || isIdentity(answer)) return answer
     throw new Error(INVALID_ANSWER) // AUTHN-7
   } catch (error) {

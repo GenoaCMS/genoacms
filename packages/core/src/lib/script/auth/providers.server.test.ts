@@ -348,7 +348,7 @@ describe('revalidating a session', () => {
 })
 
 describe('agent subjects at sign-in', () => {
-  it.fails('AGT-4, AUTHN-5: an identity with an agent: subject is not admitted', async () => {
+  it('AGT-4, AUTHN-5: an identity with an agent: subject is not admitted', async () => {
     configured.providers = { idp: returning({ subject: 'agent:x', email: EMAIL }) }
 
     expect(await signIn(EMAIL, PASSWORD)).toEqual({ outcome: 'failed', failure: 'invalid-credentials' })

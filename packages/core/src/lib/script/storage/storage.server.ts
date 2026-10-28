@@ -82,11 +82,17 @@ const getInternalObjectJSONVersioned = async (path: string): Promise<{ data: unk
   return { data: JSON.parse(text), version }
 }
 
+const getInternalObjectFlattedVersioned = async (path: string): Promise<{ data: unknown, version?: string }> => {
+  const { text, version } = await getInternalObjectStringVersioned(path)
+  return { data: parseFlatted(text), version }
+}
+
 const getInternalObjectJSON = (path: string) => getObjectJSON({ bucket: defaultBucketId, name: path })
 const getInternalObjectFlatted = (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
 const uploadInternalObjectJSON = async (path: string, data: any, options?: UploadOptions) =>
   uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data), options)
-const uploadInternalObjectFlatted = async (path: string, data: any) => uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data))
+const uploadInternalObjectFlatted = async (path: string, data: any, options?: UploadOptions) =>
+  uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data), options)
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }
 
@@ -145,6 +151,7 @@ export {
   getObjectJSON,
   getInternalObjectStringVersioned,
   getInternalObjectJSONVersioned,
+  getInternalObjectFlattedVersioned,
   getObjectFlatted,
   getInternalObjectJSON,
   getInternalObjectFlatted,

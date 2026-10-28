@@ -42,7 +42,7 @@ beforeEach(() => {
 })
 
 describe('administering agents', () => {
-  it.fails('AGT-3: creating an agent stores its hash, never its token, and shows the token once', async () => {
+  it('AGT-3: creating an agent stores its hash, never its token, and shows the token once', async () => {
     const { createAgent } = await administration()
 
     const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })
@@ -58,7 +58,7 @@ describe('administering agents', () => {
     expect(memory.allText()).not.toContain(created.token)
   })
 
-  it.fails('AGT-3: names are checked and unique across declared and stored agents', async () => {
+  it('AGT-3: names are checked and unique across declared and stored agents', async () => {
     const { createAgent } = await administration()
     await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
 
@@ -69,7 +69,7 @@ describe('administering agents', () => {
     expect(Object.keys(await storedAgents()).sort()).toEqual([`agent:${'a'.repeat(63)}`, 'agent:writer'])
   })
 
-  it.fails('AGT-3: a reissued token replaces the old one, and a revoked agent is gone', async () => {
+  it('AGT-3: a reissued token replaces the old one, and a revoked agent is gone', async () => {
     const { createAgent, reissueAgentToken, revokeAgent } = await administration()
     const { agentForToken } = await authentication()
     const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })
@@ -86,7 +86,7 @@ describe('administering agents', () => {
     expect(await storedAgents()).not.toHaveProperty('agent:writer')
   })
 
-  it.fails('AGT-3: a declared agent cannot be changed', async () => {
+  it('AGT-3: a declared agent cannot be changed', async () => {
     const { reissueAgentToken, updateAgent, revokeAgent } = await administration()
     const refusal = 'agents/declared: agent:e2e-builder is declared in genoa.config.'
 
@@ -95,7 +95,7 @@ describe('administering agents', () => {
     await expect(revokeAgent(administrator, 'agent:e2e-builder')).rejects.toThrow(refusal)
   })
 
-  it.fails('AGT-3: administering agents needs config:users:manage', async () => {
+  it('AGT-3: administering agents needs config:users:manage', async () => {
     const { createAgent, reissueAgentToken, updateAgent, revokeAgent } = await administration()
     await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
     const before = memory.snapshot()

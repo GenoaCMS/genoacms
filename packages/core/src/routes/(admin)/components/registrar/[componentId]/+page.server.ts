@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types'
 import {
-  getUserComponentHeader,
+  getUserComponentHeaderVersioned,
   getUserComponentHeaderDepth,
   undoUserComponentHeader,
   redoUserComponentHeader
@@ -11,12 +11,13 @@ import { getUserPublishedComponent } from '$lib/script/components/publication/us
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
 import { isString } from '$lib/script/utils'
+import { isConflict } from '$lib/script/components/conflict'
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { componentId } = params
   const ctx = requireAuthContext(locals)
-  const componentHeader = await getUserComponentHeader(ctx, componentId)
-  if (!componentHeader) error(404, 'No such component')
+  const read = await getUserComponentHeaderVersioned(ctx, componentId)
+  if (!read) error(404, 'No such component')
 
   // How deep the history runs is what enables or disables the buttons. Without it they render
   // permanently disabled, which is how undo appeared to exist without working.
@@ -31,7 +32,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   return {
     id: componentId,
-    componentHeader,
+    componentHeader: read.header,
+    version: read.version ?? '',
     publishedAt: published?.publishedAt,
     ...depth
   }
@@ -50,11 +52,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
  */
 const stepThroughHistory = (
   move: typeof undoUserComponentHeader
-) => async ({ params, locals }: RequestEvent) => {
+) => async ({ params, locals, request }: RequestEvent) => {
   const ctx = requireAuthContext(locals)
   const { componentId } = params
   if (!isString(componentId)) return fail(400, { reason: 'no-component-entry-name' })
-  await move(ctx, componentId)
+  const version = (await request.formData()).get('version')
+  if (!isString(version)) return fail(400, { reason: 'no-version' })
+  try {
+    await move(ctx, componentId, version)
+  } catch (cause) {
+    if (isConflict(cause)) return fail(409, { reason: cause.message })
+    throw cause
+  }
   return { success: true }
 }
 

@@ -18,6 +18,7 @@
     component={data.component}
     definition={data.componentDefinition}
     signature={data.signature}
+    version={data.version}
     historyLength={data.historyLength}
     futureLength={data.futureLength}
   />

@@ -31,7 +31,7 @@ beforeEach(() => {
 })
 
 describe('the agents manifest', () => {
-  it.fails('AGT-2: the agents manifest round-trips, signed, and a tampered one is not trusted', async () => {
+  it('AGT-2: the agents manifest round-trips, signed, and a tampered one is not trusted', async () => {
     captureConsole()
     const { createAgent } = await administration()
     const { agentForToken } = await authentication()

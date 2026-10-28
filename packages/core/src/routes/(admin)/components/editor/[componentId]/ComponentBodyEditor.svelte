@@ -36,10 +36,12 @@
     component: { uid: string, name: string }
     definition: ComponentDefinition
     signature: SignaturePreview
+    /** HIS-2: the version the definition was read at, advanced by each save. */
+    version: string
     historyLength: number
     futureLength: number
   }
-  const { component, definition, signature, historyLength, futureLength }: Props = $props()
+  const { component, definition, signature, version: loadedVersion, historyLength, futureLength }: Props = $props()
 
   untrack(() => activityTracker.add({
     type: 'componentCode',
@@ -66,6 +68,7 @@
    * ever written here.
    */
   let depth = $state(untrack(() => ({ historyLength, futureLength })))
+  let version = $state(untrack(() => loadedVersion))
 
   const unsaved = $derived(body !== saved)
 </script>
@@ -89,14 +92,16 @@
     <!-- Undo, redo and save all write the stored body, so all three ride on the permission that
          reaches source. Ordered as they are performed, matching the registrar's own panel. -->
     <PermissionGate permission="components:code">
-      <Undo historyLength={depth.historyLength} {unsaved} />
-      <Redo futureLength={depth.futureLength} {unsaved} />
+      <Undo historyLength={depth.historyLength} {unsaved} {version} />
+      <Redo futureLength={depth.futureLength} {unsaved} {version} />
       <SaveComponent
         uid={component.uid}
         {body}
         {unsaved}
+        {version}
         onsaved={(next) => {
-          depth = next
+          depth = { historyLength: next.historyLength, futureLength: next.futureLength }
+          version = next.version
           saved = body
         }}
       />

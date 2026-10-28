@@ -5,8 +5,10 @@
   interface Props {
     futureLength: number
     unsaved: boolean
+    /** HIS-2 */
+    version: string
   }
-  const { futureLength, unsaved }: Props = $props()
+  const { futureLength, unsaved, version }: Props = $props()
 
   const title = $derived(
     unsaved
@@ -16,6 +18,7 @@
 </script>
 
 <form action="?/redo" method="post" use:enhance>
+  <input type="hidden" name="version" value={version} />
   <button
     type="submit"
     aria-label="Redo"

@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createServer } from 'node:net'
+import { randomBytes } from 'node:crypto'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -70,7 +71,8 @@ export async function startServer (providers: Providers): Promise<RunningServer>
   const environment = withoutVitest(process.env)
   delete environment.GENOACMS_E2E_PRIMARY_USERS
   delete environment.GENOACMS_E2E_SECONDARY_USERS
-  const child = spawn('node', [SERVER_ENTRY], { cwd: CORE, env: { ...environment, ...usersOf(providers), PORT: String(port), ORIGIN: origin } })
+  const agentToken = environment.GENOACMS_E2E_AGENT_TOKEN ?? randomBytes(32).toString('base64url')
+  const child = spawn('node', [SERVER_ENTRY], { cwd: CORE, env: { ...environment, ...usersOf(providers), GENOACMS_E2E_AGENT_TOKEN: agentToken, PORT: String(port), ORIGIN: origin } })
   let output = ''
   child.stdout.on('data', (chunk: Buffer) => { output += chunk.toString() })
   child.stderr.on('data', (chunk: Buffer) => { output += chunk.toString() })

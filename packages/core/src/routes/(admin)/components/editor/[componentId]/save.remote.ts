@@ -3,10 +3,15 @@ import { form, getRequestEvent } from '$app/server'
 import { saveUserComponentBody } from '$lib/script/components/editor/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { validator } from '@exodus/schemasafe'
-import { componentCodeChangeSchema } from '$lib/script/components/editor/schemas'
 import { formats } from '$lib/script/database/validators'
 
-const validate = validator(componentCodeChangeSchema as Schema, { formats })
+const versionedBodySchema: Schema = {
+  type: 'object',
+  properties: { uid: { type: 'string', format: 'uuid' }, body: { type: 'string' }, version: { type: 'string' } },
+  required: ['uid', 'body', 'version']
+}
+
+const validate = validator(versionedBodySchema, { formats })
 
 /**
  * Saving the draft.
@@ -20,19 +25,20 @@ const validate = validator(componentCodeChangeSchema as Schema, { formats })
  * the controls keep whatever depth the page was rendered with, and an author who has just saved is
  * told there is nothing to undo until they reload.
  */
-export const saveComponentRemote = form('unchecked', async (data: { uid: string, body: string }) => {
+export const saveComponentRemote = form('unchecked', async (data: { uid: string, body: string, version: string }) => {
   const isValid = validate(data)
   if (!isValid) return { status: 'fail', text: 'Invalid data' }
 
   try {
     // A remote function has no `locals` parameter; the request context is fetched rather than passed.
     const ctx = requireAuthContext(getRequestEvent().locals)
-    const depth = await saveUserComponentBody(ctx, data.uid, data.body)
+    const saved = await saveUserComponentBody(ctx, data.uid, data.body, data.version)
     return {
       status: 'success',
       text: 'Code saved',
-      historyLength: depth.historyLength,
-      futureLength: depth.futureLength
+      historyLength: saved.historyLength,
+      futureLength: saved.futureLength,
+      version: saved.version
     }
   } catch (e) {
     console.log(e)

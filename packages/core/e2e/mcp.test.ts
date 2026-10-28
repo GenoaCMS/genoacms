@@ -109,7 +109,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     await removeInstance()
   }, SETUP_TIMEOUT_MS)
 
-  it.fails('MCP-1, MCP-2: an agent initializes and lists the tools with its token; without it, 401', async () => {
+  it('MCP-1, MCP-2: an agent initializes and lists the tools with its token; without it, 401', async () => {
     const initialized = await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } })
     expect(initialized.result).toMatchObject({ protocolVersion: '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'genoacms' } })
     expect((await post({ jsonrpc: '2.0', method: 'notifications/initialized' })).status).toBe(202)
@@ -125,7 +125,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     expect(server.output()).not.toContain(agentToken)
   })
 
-  it.fails('TOL-3, TOL-4, TOL-5, TOL-6: an agent registers, describes, codes and publishes a component', async () => {
+  it('TOL-3, TOL-4, TOL-5, TOL-6: an agent registers, describes, codes and publishes a component', async () => {
     const created = await useTool('create_component', { name: `E2E hero ${run}`, type: 'dynamic' })
     const described = await useTool('update_component', { uid: created.uid, version: created.version, name: `E2E hero ${run}`, attributes: [stringAttribute('heading')] })
     expect(typeof described.version).toBe('string')
@@ -142,7 +142,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     expect(read.attributes).toEqual([expect.objectContaining({ type: 'string', schema: expect.objectContaining({ title: 'heading' }) })])
   })
 
-  it.fails('TOL-9, TOL-10, TOL-11, TOL-15: an agent composes a page and builds it, and the tree verifies', async () => {
+  it('TOL-9, TOL-10, TOL-11, TOL-15: an agent composes a page and builds it, and the tree verifies', async () => {
     const card = await publishedPrebuilt(`E2E card ${run}`, [stringAttribute('heading')])
     const section = await publishedPrebuilt(`E2E section ${run}`, [slotAttribute('children', [`E2E card ${run}`])])
     const page = `e2e-${run}`
@@ -161,7 +161,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     expect(tree.data.children).toEqual([expect.objectContaining({ component: `E2E card ${run}`, uid: card, data: { heading: 'Hello from an agent' } })])
   })
 
-  it.fails('TOL-1: a save from a version a person has since changed in the browser is refused', async () => {
+  it('TOL-1: a save from a version a person has since changed in the browser is refused', async () => {
     const uid = await publishedPrebuilt(`E2E contested ${run}`, [stringAttribute('heading')])
     const read = await useTool('get_component', { uid })
 
@@ -179,7 +179,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     expect((await useTool('get_component', { uid })).name).toBe(`E2E renamed by a person ${run}`)
   })
 
-  it.fails('AGT-4: the agent\'s subject cannot sign in on the sign-in page', async () => {
+  it('AGT-4: the agent\'s subject cannot sign in on the sign-in page', async () => {
     expect(await signIn(server, impostor.email, impostor.password)).toEqual({ outcome: 'failed', status: 400, reason: 'invalid-credentials' })
     expect(server.output()).toMatch(/\[genoacms:auth\].*primary/)
     expect(await signIn(server, AGENT, agentToken)).toEqual({ outcome: 'failed', status: 400, reason: 'invalid-credentials' })
