@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ObjectNotFoundError } from '@genoacms/contracts/storage'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
 import { deriveKeyId } from '$lib/script/signing/keyId'
 import { verify } from '$lib/script/signing/envelope'
@@ -35,7 +36,7 @@ let readFails = false
 vi.mock('$lib/script/storage/storage.server', () => ({
   uploadInternalObjectJSON: async (_path: string, data: unknown) => { stored = data },
   getInternalObjectJSON: async () => {
-    if (readFails) throw new Error('no such object')
+    if (readFails) throw new ObjectNotFoundError({ bucket: 'default', name: 'never-built' })
     return stored
   }
 }))

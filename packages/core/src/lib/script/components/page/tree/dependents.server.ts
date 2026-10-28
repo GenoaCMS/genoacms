@@ -165,26 +165,7 @@ class ComponentInUseError extends Error {
 const isComponentInUse = (error: unknown): boolean =>
   error instanceof Error && error.name === 'ComponentInUseError'
 
-/**
- * Refuses to delete a component a published page is built on.
- *
- * **Enforced below the surfaces, not at them.** Four things delete a component — the registrar's
- * dialog and its bulk selection, the code editor's dialog and its bulk selection — and a rule that
- * lives in a confirmation is a rule the other three do not have. This is what the bulk paths get for
- * free, and it is why the check is not merely a nicer dialog.
- *
- * ## A page nobody can read does not block
- *
- * An unreadable tree is one that failed verification, and a tree that fails verification **is
- * already not being served**: this CMS refuses to return it and a consumer refuses to render it. So
- * a component it pins is not holding up a working page, and blocking on it would let a single
- * corrupt document freeze component deletion across the whole instance with no way out but deleting
- * pages blind.
- *
- * They are still surfaced in the confirmation, where an author can see that something could not be
- * checked. Refusing there and permitting here would be the wrong way round: the dialog is where
- * uncertainty is worth showing, and the gate is where only certainty should stop someone.
- */
+/** Refuses to delete a component a published page is built on (CMP-9, CMP-10, ND12). */
 const requireNoPublishedDependents = async (uid: ComponentHeaderReference): Promise<void> => {
   const { pages } = await listPagesPinning(uid)
   if (pages.length === 0) return

@@ -341,7 +341,7 @@ describe('the pages that pin a component', () => {
     expect(await runAction(registrarOne.actions, 'delete', {}, { auth: everything, params: { componentId: card.uid } })).toMatchObject({ status: 307 })
   })
 
-  it.fails('CMP-10: a tree that cannot be read is reported unreadable', async () => {
+  it('CMP-10: a tree that cannot be read is reported unreadable', async () => {
     storeComponent(card)
     memory.set('.genoacms/pages/readables/garbled', 'not json')
 
