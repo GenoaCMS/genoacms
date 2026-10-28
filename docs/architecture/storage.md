@@ -42,6 +42,7 @@ named here (no document yet); the dashboard's list of recent directories.
 | BU3 | 2026-10-18: a denied operation is a 403, not a 500: a listing shows a 403 page, an action fails with 403, and the browser keeps its generic failure messages (BF6). | BRW-16 |
 | BU4 | 2026-10-18: an action on several items runs them one at a time, every one of them, and answers which failed; the selection keeps only the failed items (BF9). | BRW-14 |
 | BU5 | 2026-10-18: a directory longer than one page shows its first page, and `Show more` loads the next into the same view (BF8). | BRW-15 |
+| BU6 | 2026-10-28: a denial by the storage service itself, as against the CMS's own permission check (BU3), is a typed contract error, `StorageAccessDeniedError`, which each adapter raises for its provider's denial. Core answers it with 403 and a readable reason, and keeps the provider's detail (bucket, role, account) in the log, not on the page. An error no layer classifies shows its correlation ID, the one in the log line, instead of SvelteKit's bare `Internal Error` (BF11). Not yet specified: it needs an RFC, and a contract change in `contracts/storage.md`. | pending RFC |
 
 **BD1. Two layers: an unchecked storage service for the CMS, and a user layer that checks a
 permission before each operation (STS-1, STS-2).** Every function of the user layer takes the
@@ -115,6 +116,7 @@ the empty one included.
 | BF8 | *History.* **Only the first page of a directory is listed (BRW-3).** The browser passes no `limit` or `startAfter`, and a directory of more than 1000 entries shows the first 1000 with no sign that more exist (`contracts/storage.md` CF46, `collections.md` OF24). | fixed, RFC-0038 |
 | BF9 | *History.* **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF10 | *History.* **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | fixed, RFC-0038 |
+| BF11 | **A denial by the storage service is an unexplained server error (BRW-3, BRW-16).** BU3 and RFC-0038 map only core's own `PermissionDeniedError` to 403. What a provider refuses, the adapter lets escape as its raw error: core has no `handleError` and no `+error.svelte`, so opening a directory the service account may not list shows SvelteKit's `Internal Error` page, and only the server log names the cause. The contract has no error for it. Found 2026-10-28 in use, on a directory of about 2000 objects, first suspected to be load; the log showed a permission error. Which adapter and the provider's exact error are not recorded. | open; decided in BU6, awaiting an RFC |
 
 ### History
 
