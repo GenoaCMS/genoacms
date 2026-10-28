@@ -369,9 +369,6 @@ importers:
       '@types/estree':
         specifier: ^1.0.6
         version: 1.0.9
-      '@types/highland':
-        specifier: ^2.13.0
-        version: 2.13.0
       '@types/jsdom':
         specifier: ^21.1.6
         version: 21.1.7
@@ -399,9 +396,6 @@ importers:
       github-markdown-css:
         specifier: ^5.5.1
         version: 5.9.0
-      highland:
-        specifier: ^2.13.5
-        version: 2.13.5
       jose:
         specifier: ^5.2.2
         version: 5.10.0
@@ -3296,9 +3290,6 @@ packages:
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
 
-  '@types/highland@2.13.0':
-    resolution: {integrity: sha512-ZB4u9dUDnBmqGtbY4t7gAiW9L5oHWfP1TknVzlucd9se+AYXhcr3/5V51ViNBj8lqmRC0xvTRSBmSPU4hkPGAQ==}
-
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
@@ -5478,9 +5469,6 @@ packages:
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
-
-  highland@2.13.5:
-    resolution: {integrity: sha512-dn2flPapIIAa4BtkB2ahjshg8iSJtrJtdhEb9/oiOrS5HMQTR/GuhFpqJ+11YBdtnl3AwWKvbZd1Uxr8uAmA7A==}
 
   hosted-git-info@7.0.2:
     resolution: {integrity: sha512-puUZAUKT5m8Zzvs72XWy3HtvVbTWljRE66cP60bxJzAqf2DgICo7lYTY2IHUmLnNpjYvw5bvmoHvPc0QO2a62w==}
@@ -11126,10 +11114,6 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
-  '@types/highland@2.13.0':
-    dependencies:
-      '@types/node': 20.19.43
-
   '@types/http-errors@2.0.5': {}
 
   '@types/jsdom@21.1.7':
@@ -14072,10 +14056,6 @@ snapshots:
       '@types/hast': 3.0.5
 
   he@1.2.0: {}
-
-  highland@2.13.5:
-    dependencies:
-      util-deprecate: 1.0.2
 
   hosted-git-info@7.0.2:
     dependencies:

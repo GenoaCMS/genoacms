@@ -44,7 +44,7 @@ beforeEach(() => {
 })
 
 describe('objects read as text', () => {
-  it.fails('STS-6: the storage service reads text, JSON and flatted objects whole', async () => {
+  it('STS-6: the storage service reads text, JSON and flatted objects whole', async () => {
     memory.set('text', TEXT)
     memory.set('text.json', JSON.stringify({ text: TEXT }))
     memory.set('text.flatted', stringifyFlatted({ text: TEXT }))
@@ -58,13 +58,13 @@ describe('objects read as text', () => {
     expect((await storage.getInternalObjectFlattedVersioned('text.flatted')).data).toEqual({ text: TEXT })
   })
 
-  it.fails('STS-6: a manifest is read whole', async () => {
+  it('STS-6: a manifest is read whole', async () => {
     memory.set(usersManifestPath, TEXT)
 
     expect((await readRawManifest(usersManifestPath)).text).toBe(TEXT)
   })
 
-  it.fails('STS-6: a session family is read whole', async () => {
+  it('STS-6: a session family is read whole', async () => {
     const identity = { subject: TEXT, email: 'ľubomír.šťastný@príklad.sk' }
 
     const { familyId } = await startSession(identity, 'array')
@@ -72,7 +72,7 @@ describe('objects read as text', () => {
     expect((await loadFamily(familyId))?.family).toMatchObject(identity)
   })
 
-  it.fails('STS-6: a page edited twenty times by MCP keeps its text', async () => {
+  it('STS-6: a page edited twenty times by MCP keeps its text', async () => {
     storePublishedComponent(guide)
     storePage(pageEntry('Guide-sk', 'n1', [node('n1', guide, { [HEADING]: TEXT })]))
 

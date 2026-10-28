@@ -23,14 +23,14 @@ const largeSlovakDocument = (): { paragraphs: string[] } => {
 }
 
 describe('streamToString', () => {
-  it.fails('STS-6: a character split between two chunks is read whole', async () => {
+  it('STS-6: a character split between two chunks is read whole', async () => {
     const bytes = bytesOf('používanie')
     const insideZ = bytes.indexOf(0xC5) + 1
 
     expect(await read(splitAt(bytes, [insideZ]))).toBe('používanie')
   })
 
-  it.fails('STS-6: a large Slovak document over many chunks reads back exactly', async () => {
+  it('STS-6: a large Slovak document over many chunks reads back exactly', async () => {
     const document = largeSlovakDocument()
     const serialized = JSON.stringify(document)
 
@@ -42,7 +42,7 @@ describe('streamToString', () => {
     }
   })
 
-  it.fails('STS-6: any text split anywhere reads back the same', async () => {
+  it('STS-6: any text split anywhere reads back the same', async () => {
     const textAndOffsets = fc.string({ unit: 'binary', minLength: 1 }).chain(text =>
       fc.tuple(fc.constant(text), fc.array(fc.nat({ max: bytesOf(text).length })))
     )
@@ -51,13 +51,13 @@ describe('streamToString', () => {
     }), { examples: [[['ž', [1]]]] })
   })
 
-  it.fails('STS-6: string chunks count as their UTF-8 bytes', async () => {
+  it('STS-6: string chunks count as their UTF-8 bytes', async () => {
     const rest = bytesOf('žívanie')
 
     expect(await read(['Návod na pou', ...splitAt(rest, [1])])).toBe('Návod na používanie')
   })
 
-  it.fails('STS-6: invalid bytes decode to U+FFFD and a byte order mark is kept', async () => {
+  it('STS-6: invalid bytes decode to U+FFFD and a byte order mark is kept', async () => {
     const chunks = [Buffer.from([0xEF, 0xBB]), Buffer.from([0xBF, 0x61, 0xFF])]
 
     expect(await read(chunks)).toBe('\uFEFFa\uFFFD')
