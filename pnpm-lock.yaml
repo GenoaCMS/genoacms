@@ -493,6 +493,9 @@ importers:
       eslint-plugin-svelte:
         specifier: ^3.0.0
         version: 3.22.0(eslint@9.39.5(jiti@2.7.0))(svelte@5.56.8(@typescript-eslint/types@8.66.0))
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
       globals:
         specifier: ^14.0.0
         version: 14.0.0
