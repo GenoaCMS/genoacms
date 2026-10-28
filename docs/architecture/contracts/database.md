@@ -217,8 +217,9 @@ A document matches when it matches every condition. It matches a condition when 
 value of the condition value's JSON type, and the comparison holds: numbers by value, strings by
 their UTF-8 bytes, `false` before `true`; `null` is only equal to `null`, so `<`, `<=`, `>` and `>=`
 with `null` match nothing. A document whose field is missing, or holds another type, an array or an
-object, matches no condition on that field, `!=` included. A condition on the key field compares the
-ID.
+object, matches no condition on that field, `!=` included; a field that a store with a fixed set of
+fields reads as `null` (DATA-2) holds `null`, and so matches `== null`. A condition on the key field
+compares the ID.
 
 - Test: none yet
 - Level: unit, conformance, contract
