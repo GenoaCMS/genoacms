@@ -40,7 +40,7 @@ function roundTrip (value: unknown): Json {
 
 describe('attribute inits', () => {
   it.each(attributeTypeInits)(
-    'a new $name attribute validates against its schema after a JSON round-trip',
+    'CMP-3, CMP-4: a new $name attribute validates against its schema after a JSON round-trip',
     ({ name, schema }) => {
       const validate = validator(attributeSchemaByType[name])
       expect(validate(roundTrip(buildAttribute(name, schema)))).toBe(true)
@@ -51,14 +51,14 @@ describe('attribute inits', () => {
   // JCS({"minimum": null}) and JCS({}) are different byte streams, so admitting
   // both shapes would mean two entries meaning the same thing sign differently.
   it.each(attributeTypeInits)(
-    'a new $name attribute names no unset constraint at all',
+    'CMP-3: a new $name attribute names no unset constraint at all',
     ({ schema }) => {
       const unset = ['minimum', 'maximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems']
       expect(Object.keys(roundTrip(schema) as object).filter(key => unset.includes(key))).toEqual([])
     }
   )
 
-  it('rejects a number attribute whose unset fields are null', () => {
+  it('CMP-3, CMP-4: rejects a number attribute whose unset fields are null', () => {
     const validate = validator(numberAttributeSchema)
     const withNulls = buildAttribute('number', {
       type: 'number',
@@ -75,7 +75,7 @@ describe('attribute inits', () => {
     expect(validate(roundTrip(withNulls))).toBe(false)
   })
 
-  it('rejects an attribute carrying a flat sibling the schema already expresses', () => {
+  it('CMP-4: rejects an attribute carrying a flat sibling the schema already expresses', () => {
     // The other half of the rule: one place per fact. additionalProperties: false is
     // what stops a producer quietly reintroducing the duplication.
     const validate = validator(componentsAttributeSchema)
@@ -90,7 +90,7 @@ describe('attribute inits', () => {
 })
 
 describe('component entry', () => {
-  it('validates an entry containing one of every attribute type', () => {
+  it('CMP-2, CMP-4: validates an entry containing one of every attribute type', () => {
     const validate = validator(componentHeaderSchema)
     const attributes = Object.fromEntries(
       attributeTypeInits.map(({ name, schema }) => [name, buildAttribute(name, schema)])
@@ -105,7 +105,7 @@ describe('component entry', () => {
     expect(validate(roundTrip(entry))).toBe(true)
   })
 
-  it('rejects an entry still carrying an editing history', () => {
+  it('CMP-4: rejects an entry still carrying an editing history', () => {
     // Editing history moved into UndoRedoEnvelope, and an entry is now only what describes a
     // component — which is what makes it publishable and signable. Asserted rather than assumed,
     // because additionalProperties: false is the only thing enforcing it and a schema is easy to

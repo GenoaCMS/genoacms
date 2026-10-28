@@ -66,19 +66,19 @@ beforeEach(() => {
 })
 
 describe('finding the pages a deletion would break', () => {
-  it('names a page that pins the component', async () => {
+  it('CMP-10: names a page that pins the component', async () => {
     const { pages } = await listPagesPinning('component-1')
 
     expect(pages.map(page => page.name)).toEqual(['home'])
   })
 
-  it('says nothing about a page that pins a different component', async () => {
+  it('CMP-10: says nothing about a page that pins a different component', async () => {
     const { pages } = await listPagesPinning('component-9')
 
     expect(pages.map(page => page.name)).toEqual(['about'])
   })
 
-  it('counts every node that pins it, not every page', async () => {
+  it('CMP-10: counts every node that pins it, not every page', async () => {
     // One component may be placed in a page more than once, and an author deciding whether to delete
     // is better served by how much of the page goes than by how many pages are touched.
     trees.home = node({ data: { body: [node(), node()] } as never })
@@ -88,7 +88,7 @@ describe('finding the pages a deletion would break', () => {
     expect(pages[0]).toEqual({ name: 'home', nodes: 3 })
   })
 
-  it('finds a pin nested deep inside a slot', async () => {
+  it('CMP-10: finds a pin nested deep inside a slot', async () => {
     // The pin that matters is rarely the root's. A scan that read only the top node would report
     // nothing for most real pages and would look like it worked.
     trees.home = node({
@@ -101,7 +101,7 @@ describe('finding the pages a deletion would break', () => {
     expect(pages).toEqual([{ name: 'home', nodes: 1 }])
   })
 
-  it('does not mistake a list of URLs for nested nodes', async () => {
+  it('CMP-10: does not mistake a list of URLs for nested nodes', async () => {
     trees.home = node({ data: { links: ['https://example.com'], body: [node()] } as never })
 
     expect((await listPagesPinning('component-1')).pages).toEqual([{ name: 'home', nodes: 2 }])
@@ -114,7 +114,7 @@ describe('finding the pages a deletion would break', () => {
     expect(pages.map(page => page.name)).not.toContain('unpublished')
   })
 
-  it('matches on the uid rather than the name', async () => {
+  it('CMP-10: matches on the uid rather than the name', async () => {
     // A name is a label an author may reuse or change. Matching on it would warn about a different
     // component that happens to share one, and miss this one published under an old one.
     trees.home = node({ component: 'Renamed', uid: 'component-1' })
@@ -123,7 +123,7 @@ describe('finding the pages a deletion would break', () => {
     expect((await listPagesPinning('component-1')).pages.map(page => page.name)).toEqual(['home'])
   })
 
-  it('reports nothing for a component no page uses', async () => {
+  it('CMP-10: reports nothing for a component no page uses', async () => {
     expect(await listPagesPinning('component-never-used')).toEqual({ pages: [], unreadable: [] })
   })
 })
@@ -140,7 +140,7 @@ describe('a page that cannot be answered for', () => {
     expect(unreadable).toEqual(['about'])
   })
 
-  it('does not stop the scan', async () => {
+  it('CMP-10: does not stop the scan', async () => {
     // One page in that state must not cost the answer about all the others.
     unverifiable.add('about')
 
@@ -149,7 +149,7 @@ describe('a page that cannot be answered for', () => {
     expect(pages.map(page => page.name)).toEqual(['home'])
   })
 
-  it('is kept out of the pages that definitely pin it', async () => {
+  it('CMP-10: is kept out of the pages that definitely pin it', async () => {
     unverifiable.add('home')
 
     const { pages, unreadable } = await listPagesPinning('component-1')
@@ -176,12 +176,12 @@ describe('refusing to break a published page', () => {
    * without a warning is the one that silently breaks a site, so the rule moved below all four.
    */
 
-  it('refuses a component a published page is built on', async () => {
+  it('CMP-9: refuses a component a published page is built on', async () => {
     await expect(requireNoPublishedDependents('component-1'))
       .rejects.toBeInstanceOf(ComponentInUseError)
   })
 
-  it('names the pages, so an author knows what to go and change', async () => {
+  it('CMP-9: names the pages, so an author knows what to go and change', async () => {
     // "This component is in use" is not something anyone can act on.
     await expect(requireNoPublishedDependents('component-1')).rejects.toThrow(/home/)
   })
@@ -198,7 +198,7 @@ describe('refusing to break a published page', () => {
     await expect(requireNoPublishedDependents('component-never-used')).resolves.toBeUndefined()
   })
 
-  it('does not block on a page whose tree cannot be read', async () => {
+  it('CMP-10: does not block on a page whose tree cannot be read', async () => {
     /*
      * **Deliberate, and the opposite of what the confirmation does.** A tree that fails verification
      * is already not being served — this CMS refuses to return it and a consumer refuses to render

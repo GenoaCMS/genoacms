@@ -60,7 +60,7 @@ const build = (
 ) => buildComponentPublication(subject, header(headerOver), executables)
 
 describe('building a publication', () => {
-  it('carries everything a consumer needs to call the component', () => {
+  it('PUB-4: carries everything a consumer needs to call the component', () => {
     expect(build({}, [bundle()])).toMatchObject({
       uid: 'component-1',
       publicationId: 'publication-2',
@@ -73,7 +73,7 @@ describe('building a publication', () => {
     })
   })
 
-  it('carries the bundles as a list', () => {
+  it('PUB-4: carries the bundles as a list', () => {
     // A list rather than one bundle, so a second target is an extra element rather than a second
     // signed format — and so a page never has to pin a platform.
     const publication = build({}, [bundle()])
@@ -82,7 +82,7 @@ describe('building a publication', () => {
     expect(publication.executables?.[0]).toMatchObject({ platform: 'web-esmodule' })
   })
 
-  it('accepts several targets in one release', () => {
+  it('PUB-4: accepts several targets in one release', () => {
     const publication = build({}, [bundle(), bundle({ platform: 'android-dex' })])
 
     expect(publication.executables?.map(e => e.platform)).toEqual(['web-esmodule', 'android-dex'])
@@ -97,14 +97,14 @@ describe('a prebuilt component', () => {
     expect(publication.name).toBe('Hero')
   })
 
-  it('omits the key rather than writing an empty list', () => {
+  it('PUB-4: omits the key rather than writing an empty list', () => {
     // Under RFC 8785 `{}` and `{"executables":[]}` are different documents. A producer writing one
     // where another wrote the other would sign the same release two ways, and no consumer could tell
     // which was meant.
     expect('executables' in build({ type: 'prebuilt' })).toBe(false)
   })
 
-  it('is refused if it carries code', () => {
+  it('PUB-4: is refused if it carries code', () => {
     // Its code lives in the consuming application. A bundle here is either a description that was
     // swapped or a bundle nobody asked for, and the CMS should not be able to emit either.
     expect(() => build({ type: 'prebuilt' }, [bundle()]))
@@ -113,16 +113,16 @@ describe('a prebuilt component', () => {
 })
 
 describe('a dynamic component', () => {
-  it('is refused if it carries no code', () => {
+  it('PUB-4: is refused if it carries no code', () => {
     // It would verify and render nothing — kept apart from "this component was never published".
     expect(() => build({})).toThrow(PublicationPayloadError)
   })
 
-  it('is refused if its list of bundles is empty', () => {
+  it('PUB-4: is refused if its list of bundles is empty', () => {
     expect(() => build({}, [])).toThrow(PublicationPayloadError)
   })
 
-  it('is refused if two bundles claim the same platform', () => {
+  it('PUB-4: is refused if two bundles claim the same platform', () => {
     // Not a richer publication: one that does not say which bundle to run. Whichever a consumer
     // picked would be signed, so nothing downstream could report the ambiguity.
     expect(() => build({}, [bundle(), bundle({ executableCode: 'export default () => 2' })]))
@@ -137,7 +137,7 @@ describe('refusing a payload that would sign a claim nobody made', () => {
     ['a non-numeric timestamp', () => buildComponentPublication({ ...subject, publishedAt: NaN }, header(), [bundle()])],
     ['an empty bundle', () => build({}, [bundle({ executableCode: '   ' })])],
     ['a bundle with no platform', () => build({}, [bundle({ platform: '' })])]
-  ])('refuses %s', (_why, attempt) => {
+  ])('PUB-4: refuses %s', (_why, attempt) => {
     expect(attempt).toThrow(PublicationPayloadError)
   })
 
@@ -148,13 +148,13 @@ describe('refusing a payload that would sign a claim nobody made', () => {
 })
 
 describe('the digest that decides whether to publish again', () => {
-  it('ignores which publication carried the description', () => {
+  it('PUB-2: ignores which publication carried the description', () => {
     // The publication identifier is different every time by construction, so including it would make
     // every release count as changed and defeat `no change, no publication` entirely.
     expect(describingDigest(header())).toBe(describingDigest(header()))
   })
 
-  it('moves when the attribute order moves', () => {
+  it('PUB-2: moves when the attribute order moves', () => {
     // Reordering the attributes reorders the arguments, so this is a change even though every
     // attribute is the same one.
     const reordered = header({
@@ -168,7 +168,7 @@ describe('the digest that decides whether to publish again', () => {
     expect(describingDigest(reordered)).not.toBe(describingDigest(header()))
   })
 
-  it('moves when the kind changes', () => {
+  it('PUB-2: moves when the kind changes', () => {
     expect(describingDigest(header({ type: 'prebuilt' }))).not.toBe(describingDigest(header()))
   })
 })

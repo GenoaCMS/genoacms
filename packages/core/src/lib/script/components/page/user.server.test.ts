@@ -47,17 +47,17 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 }
 
 describe('reading', () => {
-  it('is denied without pages:read', async () => {
+  it('PGE-10: is denied without pages:read', async () => {
     await expectDenied(() => pages.listUserPages(contextWith([])))
     await expectDenied(() => pages.getUserPageEntry(contextWith([]), 'home'))
   })
 
-  it('is not implied by being able to edit', async () => {
+  it('PGE-10: is not implied by being able to edit', async () => {
     // Reading became a permission precisely so a role could exist that cannot open a draft.
     await expectDenied(() => pages.getUserPageEntry(contextWith(['pages:content_edit']), 'home'))
   })
 
-  it('is allowed with it', async () => {
+  it('PGE-10: is allowed with it', async () => {
     await pages.listUserPages(contextWith(['pages:read']))
     await pages.getUserPageEntry(contextWith(['pages:read']), 'home')
     expect(calls).toEqual(['list', 'get:home'])
@@ -65,42 +65,42 @@ describe('reading', () => {
 })
 
 describe('content and structure are separate capabilities', () => {
-  it('lets a content editor save content', async () => {
+  it('PGE-10: lets a content editor save content', async () => {
     await pages.saveUserPageContent(contextWith(['pages:content_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 
-  it('does not let a content editor change the structure', async () => {
+  it('PGE-10: does not let a content editor change the structure', async () => {
     await expectDenied(() => pages.saveUserPageStructure(contextWith(['pages:content_edit']), page, 'v1'))
   })
 
-  it('does not let a structure editor change content', async () => {
+  it('PGE-10: does not let a structure editor change content', async () => {
     // The upsert underneath is identical, so only the check keeps these apart.
     await expectDenied(() => pages.saveUserPageContent(contextWith(['pages:structure_edit']), page, 'v1'))
   })
 
-  it('lets a structure editor change the structure', async () => {
+  it('PGE-10: lets a structure editor change the structure', async () => {
     await pages.saveUserPageStructure(contextWith(['pages:structure_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 })
 
 describe('undo and redo', () => {
-  it('need both editing permissions', async () => {
+  it('PGE-10: need both editing permissions', async () => {
     // History holds changes of either kind and does not record which, so holding one is not enough:
     // a structure editor must not revert a content change they could not have made.
     await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:content_edit']), page, 'v1'))
     await expectDenied(() => pages.revertUserPageEntry(contextWith(['pages:structure_edit']), page, 'v1'))
   })
 
-  it('are allowed to a principal holding both', async () => {
+  it('PGE-10: are allowed to a principal holding both', async () => {
     await pages.revertUserPageEntry(contextWith(['pages:content_edit', 'pages:structure_edit']), page, 'v1')
     expect(calls).toEqual(['upload:home'])
   })
 })
 
 describe('generating the readable tree', () => {
-  it('needs publish as well as the edit that produced it', async () => {
+  it('PGE-10: needs publish as well as the edit that produced it', async () => {
     // Publishing someone else's saved draft is still publishing.
     await expectDenied(() => pages.generateUserReadablePageTree(contextWith(['pages:content_edit']), page))
     await expectDenied(() => pages.generateUserReadablePageTree(contextWith(['pages:publish']), page))

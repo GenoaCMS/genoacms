@@ -60,7 +60,7 @@ const slotOf = (page: PageEntry<IsSerializable>): string[] =>
   page.contents.nodes.root.data.slot.value as unknown as string[]
 
 describe('undoing a change to the tree', () => {
-  it('takes a nested component back out', () => {
+  it('HIS-1: takes a nested component back out', () => {
     // The defect the end-to-end suite reported as "undo leaves the tree unchanged".
     let page = pageWith('a')
     page = addChildNodeToNodeInPage(page, page.contents.nodes.root, 'slot', child('b'))
@@ -82,7 +82,7 @@ describe('undoing a change to the tree', () => {
     expect('b' in page.contents.nodes).toBe(false)
   })
 
-  it('moves the step onto the future so it can be replayed', () => {
+  it('HIS-1: moves the step onto the future so it can be replayed', () => {
     let page = pageWith('a')
     page = addChildNodeToNodeInPage(page, page.contents.nodes.root, 'slot', child('b'))
 
@@ -92,7 +92,7 @@ describe('undoing a change to the tree', () => {
     expect(page.future).toHaveLength(1)
   })
 
-  it('does nothing to a page with no history', () => {
+  it('HIS-1: does nothing to a page with no history', () => {
     const page = undoPageEntryState(pageWith('a'))
 
     expect(slotOf(page)).toEqual(['a'])
@@ -101,7 +101,7 @@ describe('undoing a change to the tree', () => {
 })
 
 describe('redoing what was undone', () => {
-  it('puts the tree back exactly as it was', () => {
+  it('HIS-1: puts the tree back exactly as it was', () => {
     // The property `redoes it` should have asserted and did not: an undo makes the tree differ from
     // where it started, and a redo makes it match again.
     let page = pageWith('a')
@@ -125,7 +125,7 @@ describe('redoing what was undone', () => {
     expect(page.future).toHaveLength(0)
   })
 
-  it('does nothing when nothing has been undone', () => {
+  it('HIS-1: does nothing when nothing has been undone', () => {
     let page = pageWith('a')
     page = addChildNodeToNodeInPage(page, page.contents.nodes.root, 'slot', child('b'))
     const built = [...slotOf(page)]
@@ -135,7 +135,7 @@ describe('redoing what was undone', () => {
     expect(slotOf(page)).toEqual(built)
   })
 
-  it('is discarded once the page is edited from the undone state', () => {
+  it('HIS-1: is discarded once the page is edited from the undone state', () => {
     // The abandoned branch is unreachable, and its differences were computed against a state that no
     // longer exists — replaying them would corrupt the page rather than restore it.
     let page = pageWith('a')
@@ -158,7 +158,7 @@ describe('across the two requests undo and redo actually are', () => {
   const stored = (page: PageEntry<IsSerializable>): PageEntry<IsSerializable> =>
     parse(stringify(page)) as PageEntry<IsSerializable>
 
-  it('undoes a step recorded in an earlier request', () => {
+  it('HIS-1: undoes a step recorded in an earlier request', () => {
     let page = pageWith('a')
     page = addChildNodeToNodeInPage(page, page.contents.nodes.root, 'slot', child('b'))
 
@@ -167,7 +167,7 @@ describe('across the two requests undo and redo actually are', () => {
     expect(slotOf(page)).toEqual(['a'])
   })
 
-  it('redoes a step undone in an earlier request', () => {
+  it('HIS-1: redoes a step undone in an earlier request', () => {
     let page = pageWith('a')
     page = addChildNodeToNodeInPage(page, page.contents.nodes.root, 'slot', child('b'))
     page = undoPageEntryState(stored(page))

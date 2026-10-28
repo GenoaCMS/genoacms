@@ -88,7 +88,7 @@ describe('pinning a publication', () => {
     expect(tree.uid).toBe('entry-dynamic')
   })
 
-  it('carries uid and publicationId together or not at all', async () => {
+  it('TRE-2: carries uid and publicationId together or not at all', async () => {
     const dynamic = await pageEntryToReadableTree(pageWith('entry-dynamic'))
     const unpublished = await pageEntryToReadableTree(pageWith('entry-unpublished'))
 
@@ -96,7 +96,7 @@ describe('pinning a publication', () => {
     expect([unpublished.uid !== undefined, unpublished.publicationId !== undefined]).toEqual([false, false])
   })
 
-  it('keeps the pin the page was built with, even after a newer publication exists', async () => {
+  it('TRE-2: keeps the pin the page was built with, even after a newer publication exists', async () => {
     const before = await pageEntryToReadableTree(pageWith('entry-dynamic'))
     published['entry-dynamic'] = 'publication-newer'
 
@@ -106,7 +106,7 @@ describe('pinning a publication', () => {
     expect((await pageEntryToReadableTree(pageWith('entry-dynamic'))).publicationId).toBe('publication-newer')
   })
 
-  it('pins a prebuilt node too', async () => {
+  it('TRE-2: pins a prebuilt node too', async () => {
     // A prebuilt component's *code* is in the consuming
     // application, but its description is published and signed like any other — so it has a
     // publication, and a builder that still skipped it would leave the consumer calling the
@@ -117,7 +117,7 @@ describe('pinning a publication', () => {
     expect(tree.uid).toBe('entry-prebuilt')
   })
 
-  it('states the kind rather than leaving it to be inferred', async () => {
+  it('TRE-2: states the kind rather than leaving it to be inferred', async () => {
     // Both kinds are pinned now, so absence distinguishes nothing and the node has to say which it
     // is. It is what tells a consumer whether to expect code at the publication.
     const dynamic = await pageEntryToReadableTree(pageWith('entry-dynamic'))
@@ -127,7 +127,7 @@ describe('pinning a publication', () => {
     expect(prebuilt.type).toBe('prebuilt')
   })
 
-  it('leaves a component that was never published unpinned, but still typed', async () => {
+  it('TRE-2: leaves a component that was never published unpinned, but still typed', async () => {
     const tree = await pageEntryToReadableTree(pageWith('entry-unpublished'))
 
     expect(tree.type).toBe('dynamic')
@@ -135,7 +135,7 @@ describe('pinning a publication', () => {
     expect('uid' in tree).toBe(false)
   })
 
-  it('omits the key rather than writing undefined', async () => {
+  it('TRE-2: omits the key rather than writing undefined', async () => {
     // The tree is signed. Canonicalization drops an undefined member silently, so an explicit
     // `publicationId: undefined` would sign as though the key had never been written.
     const tree = await pageEntryToReadableTree(pageWith('entry-unpublished'))
@@ -151,7 +151,7 @@ describe('pinning a publication', () => {
 })
 
 describe('resolving list-valued attributes', () => {
-  it('resolves every link, in the order the author arranged them', async () => {
+  it('TRE-3: resolves every link, in the order the author arranged them', async () => {
     const tree = await pageEntryToReadableTree(pageWith('entry-dynamic', {
       a1: attribute('link', [
         { isExternal: true, url: 'https://example.com' },
@@ -162,7 +162,7 @@ describe('resolving list-valued attributes', () => {
     expect(tree.data.field).toEqual(['https://example.com', 'https://site.example/about'])
   })
 
-  it('resolves an empty link list to an empty list', async () => {
+  it('TRE-3: resolves an empty link list to an empty list', async () => {
     // What an author who filled nothing in leaves behind. It used to be a single blank link, which
     // resolved to a published link pointing at ''.
     const tree = await pageEntryToReadableTree(pageWith('entry-dynamic', {
@@ -172,7 +172,7 @@ describe('resolving list-valued attributes', () => {
     expect(tree.data.field).toEqual([])
   })
 
-  it('resolves every storage resource', async () => {
+  it('TRE-3: resolves every storage resource', async () => {
     const tree = await pageEntryToReadableTree(pageWith('entry-dynamic', {
       a1: attribute('storageResource', [
         { bucket: 'b', name: 'one.png' },

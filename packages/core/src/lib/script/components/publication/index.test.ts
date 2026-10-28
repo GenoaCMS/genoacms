@@ -163,7 +163,7 @@ beforeEach(() => {
 })
 
 describe('publishing a prebuilt component', () => {
-  it('writes one signed document, a pointer, and nothing else', async () => {
+  it('PUB-1, PUB-5: writes one signed document, a pointer, and nothing else', async () => {
     // The whole point of the rework reaching the release path. A component whose code lives in the
     // consuming application still has a description consumers must agree with, and until now it had
     // no way to publish one.
@@ -193,7 +193,7 @@ describe('publishing a prebuilt component', () => {
     expect(writes).not.toContain('definition')
   })
 
-  it('signs a publication a consumer can verify', async () => {
+  it('PUB-4: signs a publication a consumer can verify', async () => {
     asPrebuilt()
 
     await publishComponent(order, 'user-1')
@@ -216,7 +216,7 @@ describe('publishing a prebuilt component', () => {
 })
 
 describe('publishing a dynamic component', () => {
-  it('writes one document, the pointer and the definition', async () => {
+  it('PUB-1, PUB-5: writes one document, the pointer and the definition', async () => {
     await publishComponent(order, 'user-1')
 
     expect(writes).toContain('publication')
@@ -224,7 +224,7 @@ describe('publishing a dynamic component', () => {
     expect(writes).toContain('definition')
   })
 
-  it('writes the signed release before anything that points at it', async () => {
+  it('PUB-1, PUB-5: writes the signed release before anything that points at it', async () => {
     // A pointer advanced past a document that was never written is a component reporting a
     // publication nothing can serve. A publication nothing points at is merely unreferenced.
     await publishComponent(order, 'user-1')
@@ -232,7 +232,7 @@ describe('publishing a dynamic component', () => {
     expect(writes[0]).toBe('publication')
   })
 
-  it('carries the description and the code in one signature', async () => {
+  it('PUB-4: carries the description and the code in one signature', async () => {
     // **What the merge is for.** The two used to be signed and served separately, so a consumer
     // could hold a properly signed description from one publication and properly signed code from
     // another, with the shapes disagreeing and neither document invalid. One document cannot be
@@ -305,7 +305,7 @@ describe('publishing a dynamic component', () => {
 })
 
 describe('refusing a publication', () => {
-  it('writes nothing when the body does not compile', async () => {
+  it('PUB-1, PUB-3: writes nothing when the body does not compile', async () => {
     // An import is **inexpressible** in a body rather than refused: it is a module-level construct,
     // and a body is not a module, so it is a syntax error before the import rule is ever reached.
     // The rule stays for the assembled source it still guards; nothing an author types can trip it.
@@ -315,7 +315,7 @@ describe('refusing a publication', () => {
     expect(writes).toEqual([])
   })
 
-  it('reports where a refusal is, so an author can find it', async () => {
+  it('PUB-3: reports where a refusal is, so an author can find it', async () => {
     draft = { ...definition, body: `import { x } from "somewhere"\n${GOOD_SOURCE}` }
 
     await expect(publishComponent(order, 'user-1')).rejects.toThrow(/line 1/)
@@ -337,7 +337,7 @@ describe('refusing a publication', () => {
     expect(writes).toContain('publication')
   })
 
-  it('writes nothing when neither the description nor the code has changed', async () => {
+  it('PUB-2: writes nothing when neither the description nor the code has changed', async () => {
     // Publishing again would write a second immutable, write-once directory with identical content
     // and a different identifier, and `components/public/` would fill with releases differing in
     // nothing.
@@ -353,7 +353,7 @@ describe('refusing a publication', () => {
     expect(writes).toEqual([])
   })
 
-  it('refuses an unchanged prebuilt component, which has no code to fall back on', async () => {
+  it('PUB-2: refuses an unchanged prebuilt component, which has no code to fall back on', async () => {
     // The header digest is the *whole* of the rule for a prebuilt component. If it were skipped,
     // every prebuilt publication would be allowed and the immutable directory would fill up one
     // click at a time.
@@ -364,7 +364,7 @@ describe('refusing a publication', () => {
     expect(writes).toEqual([])
   })
 
-  it('publishes a description change even though the code is untouched', async () => {
+  it('PUB-2: publishes a description change even though the code is untouched', async () => {
     // Renaming a component or an attribute changes what consumers are told, and for a dynamic
     // component it also changes what is compiled, because the signature is emitted from the shape.
     published = { headerDigest: 'a digest of some other description' }
@@ -380,7 +380,7 @@ describe('refusing a publication', () => {
     expect(writes).toContain('publication')
   })
 
-  it('publishes a prebuilt description change, which has no other rule to pass', async () => {
+  it('PUB-2: publishes a prebuilt description change, which has no other rule to pass', async () => {
     // The digest is the entire rule for a prebuilt component: there is no body and no signature to
     // fall back on, so if the comparison were skipped a renamed prebuilt component could never be
     // republished and consumers would keep the old name forever.
@@ -392,7 +392,7 @@ describe('refusing a publication', () => {
     expect(writes).toContain('publication')
   })
 
-  it('publishes a code change even though the description is untouched', async () => {
+  it('PUB-2: publishes a code change even though the description is untouched', async () => {
     published = { headerDigest: describingDigest(stored as never) }
     draft = {
       ...definition,
@@ -450,7 +450,7 @@ describe('what the ruleset does to a publication', () => {
     expect(writes).toEqual([])
   })
 
-  it('publishes a component that only warns, and hands the warning back', async () => {
+  it('PUB-3: publishes a component that only warns, and hands the warning back', async () => {
     // A warning is the ruleset saying it cannot decide something and naming the guard that will.
     // Blocking on it would refuse a correct component for a value nothing can know yet.
     withBody('const rows = new Array(heading.length)\nreturn String(rows.length)')

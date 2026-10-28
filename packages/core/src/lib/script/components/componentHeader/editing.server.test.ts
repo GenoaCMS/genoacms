@@ -64,28 +64,28 @@ beforeEach(() => {
 })
 
 describe('recording what an author did', () => {
-  it('records a step when an existing component is changed', async () => {
+  it('HIS-1: records a step when an existing component is changed', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Renamed' }), VERSION)
 
     expect((await getComponentHeaderDepth('c1')).historyLength).toBe(1)
   })
 
-  it('records nothing for the first save, which has no previous state', async () => {
+  it('HIS-1: records nothing for the first save, which has no previous state', async () => {
     // Creation is not something undo reverses, and there is nothing to diff it against.
     existing()
 
     expect((await getComponentHeaderDepth('c1')).historyLength).toBe(0)
   })
 
-  it('records nothing when a save changed nothing', async () => {
+  it('HIS-1: records nothing when a save changed nothing', async () => {
     existing()
     await saveComponentHeader(entry(), VERSION)
 
     expect((await getComponentHeaderDepth('c1')).historyLength).toBe(0)
   })
 
-  it('diffs against storage rather than against whatever the caller supplied', async () => {
+  it('HIS-1: diffs against storage rather than against whatever the caller supplied', async () => {
     // The recorded step is what an undo replays. A client that reported its own "before" could
     // report anything, and the history would then revert to a state that never existed.
     existing()
@@ -97,7 +97,7 @@ describe('recording what an author did', () => {
 })
 
 describe('stepping back and forward', () => {
-  it('restores the previous state', async () => {
+  it('HIS-1: restores the previous state', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Renamed' }), VERSION)
 
@@ -106,7 +106,7 @@ describe('stepping back and forward', () => {
     expect(entries.get('c1')?.name).toBe('Card')
   })
 
-  it('puts the change back', async () => {
+  it('HIS-1: puts the change back', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Renamed' }), VERSION)
 
@@ -116,7 +116,7 @@ describe('stepping back and forward', () => {
     expect(entries.get('c1')?.name).toBe('Renamed')
   })
 
-  it('moves the step from history to future, so the buttons follow', async () => {
+  it('HIS-1: moves the step from history to future, so the buttons follow', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Renamed' }), VERSION)
 
@@ -125,7 +125,7 @@ describe('stepping back and forward', () => {
     expect(await getComponentHeaderDepth('c1')).toEqual({ historyLength: 0, futureLength: 1 })
   })
 
-  it('walks back through several edits in the order they were made', async () => {
+  it('HIS-1: walks back through several edits in the order they were made', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Second' }), VERSION)
     await saveComponentHeader(entry({ name: 'Third' }), VERSION)
@@ -146,7 +146,7 @@ describe('stepping back and forward', () => {
     expect(entries.get('c1')?.attributeOrder).toEqual([])
   })
 
-  it('does nothing at the beginning of a history', async () => {
+  it('HIS-1: does nothing at the beginning of a history', async () => {
     existing()
 
     await undoComponentHeader('c1', VERSION)
@@ -159,7 +159,7 @@ describe('stepping back and forward', () => {
     expect(await undoComponentHeader('missing', VERSION)).toBeNull()
   })
 
-  it('drops the redo branch once the author edits from an undone state', async () => {
+  it('HIS-1: drops the redo branch once the author edits from an undone state', async () => {
     existing()
     await saveComponentHeader(entry({ name: 'Second' }), VERSION)
     await undoComponentHeader('c1', VERSION)
@@ -186,11 +186,11 @@ describe('the names a save refuses', () => {
     attributeOrder: ['a', 'b']
   })
 
-  it('refuses two attributes sharing a name', async () => {
+  it('CMP-5: refuses two attributes sharing a name', async () => {
     await expect(saveComponentHeader(colliding, VERSION)).rejects.toThrow(/duplicate-attribute-name/)
   })
 
-  it('refuses an attribute named for the parameter every component already receives', async () => {
+  it('CMP-5: refuses an attribute named for the parameter every component already receives', async () => {
     // Asserted through the save path rather than against the rule directly: the rule had tests and
     // was still droppable from here without anything failing.
     const reserved = entry({
@@ -201,7 +201,7 @@ describe('the names a save refuses', () => {
     await expect(saveComponentHeader(reserved, VERSION)).rejects.toThrow(/reserved-attribute-name/)
   })
 
-  it('writes nothing when it refuses', async () => {
+  it('CMP-5: writes nothing when it refuses', async () => {
     existing()
     const before = structuredClone(entries.get('c1'))
 
@@ -210,7 +210,7 @@ describe('the names a save refuses', () => {
     expect(entries.get('c1')).toEqual(before)
   })
 
-  it('records no step when it refuses', async () => {
+  it('CMP-5: records no step when it refuses', async () => {
     existing()
 
     await saveComponentHeader(colliding, VERSION).catch(() => undefined)

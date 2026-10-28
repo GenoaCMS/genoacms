@@ -230,7 +230,7 @@ Every object is in the default bucket. *Flatted* is the serialization of the `fl
 A file in `headers/` whose name ends in `.history` is not a component. The catalog's references are
 the other file names, without `.json`.
 
-- Test: unverified (partly checked without the ID by packages/core/src/lib/script/components/componentHeader/io.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`
 - Level: unit
 
 ### Catalog
@@ -249,7 +249,7 @@ interface ComponentHeader {
 }
 ```
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`
 - Level: unit
 
 #### CMP-3 · Attributes
@@ -270,7 +270,7 @@ it, is `schema.title`.
 Every schema has `title`, `description` and `required`. An unset constraint is an absent key: never
 `null`, `undefined`, `''` or `[]`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/component/constraints.test.ts, packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts)
+- Test: `packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts`, `packages/core/src/lib/script/components/componentHeader/component/constraints.test.ts`, `packages/core/src/lib/script/components/layout.test.ts` (unverified: the form of a link and storageResource `default`)
 - Level: unit
 
 #### CMP-4 · A valid header
@@ -279,7 +279,7 @@ A stored header is valid when it matches CMP-2 with no other top-level field and
 matches the meta-schema of its `type`, with no field the meta-schema does not declare. A stored
 header that is not valid reads as absent. Nothing else is checked (NF3).
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`
 - Level: unit
 
 #### CMP-5 · Attribute names
@@ -290,7 +290,7 @@ with `components/duplicate-attribute-name:` and quotes each shared name (an empt
 `an empty name`). It refuses one with an attribute named `passthrough`, which every component
 receives as a parameter, with an error whose message starts with `components/reserved-attribute-name:`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/component/attributeNames.test.ts, packages/core/src/lib/script/components/componentHeader/editing.server.test.ts)
+- Test: `packages/core/src/lib/script/components/componentHeader/component/attributeNames.test.ts`, `packages/core/src/lib/script/components/componentHeader/editing.server.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`
 - Level: unit
 
 #### CMP-6 · Registering a component
@@ -306,7 +306,7 @@ a source definition (SRC-1). It answers:
 | created | `{ status: 'success', text: 'Component created', uid }` |
 | a permission denial | thrown |
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/registration.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`
 - Level: unit
 
 #### CMP-7 · Reading the catalog
@@ -316,7 +316,7 @@ shows one, with its history depth (HIS-1) and the time of its last publication, 
 `No such component` for a reference with no valid header. A header that cannot be read, for any
 reason, is absent (NF12).
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/user.server.test.ts, packages/core/src/lib/script/components/componentHeader/io.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`
 - Level: unit
 
 #### CMP-8 · Saving a header
@@ -353,7 +353,7 @@ names the pages. Removing an object that is already absent is not a failure.
 Comparing confirmations ignores spaces around the commas. The editor's `deleteSelected` refuses a
 prebuilt component as SRC-2 does.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/registration.server.test.ts, packages/core/src/lib/script/components/componentHeader/io.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`
 - Level: unit
 
 #### CMP-10 · The pages that pin a component
@@ -365,7 +365,7 @@ does not verify is reported as unreadable and does not refuse a deletion. The re
 `pagesPinningComponent(uid)` answers `{ status: 'success', pages: [{ name, nodes }], unreadable }`,
 or `{ status: 'fail', text, pages: [], unreadable: [] }`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/page/tree/dependents.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts` (unverified: a tree that cannot be read)
 - Level: unit
 
 #### CMP-11 · Component permissions
@@ -383,7 +383,7 @@ Each operation requires, before anything is read or written:
 No permission implies another. The permission is checked before the stored kind is read, except
 when deleting through the registrar (NF18).
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/componentHeader/user.server.test.ts, packages/core/src/lib/script/components/editor/user.server.test.ts, packages/core/src/lib/script/components/registration.server.test.ts, packages/core/src/lib/script/components/publication/user.server.test.ts)
+- Test: `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/editor/user.server.test.ts`, `packages/core/src/lib/script/components/permissions.test.ts`, `packages/core/src/lib/script/components/publication/user.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`
 - Level: unit
 
 ### Source
@@ -403,7 +403,7 @@ interface ComponentDefinition {
 A dynamic component is created with `language: 'typescript'` and every other field empty. A stored
 definition that does not match fails the read with `Invalid component definition: <uid>`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/registration.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`
 - Level: unit
 
 #### SRC-2 · Opening a component's source
@@ -412,7 +412,7 @@ definition that does not match fails the read with `Invalid component definition
 reference with no header answers 404 `components/no-such-component: <uid> does not exist.`; a
 prebuilt component answers 404 `components/no-such-component: <uid> is a prebuilt component. …`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/editor/io.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/io.test.ts`
 - Level: unit
 
 #### SRC-3 · The signature preview
@@ -421,7 +421,7 @@ The preview is the language adapter's `emitSignature` of the header's `attribute
 `attributeOrder`: the declaration a body is wrapped in, as text, and the diagnostics that stop the
 shape being emitted. It is returned, not raised, when it has diagnostics.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`
 - Level: unit
 
 #### SRC-4 · Saving a body
@@ -433,7 +433,7 @@ futureLength, version }`, or `{ status: 'fail', text }` with `Invalid data` or a
 Saving does not touch `publishedBody` or `publishedSignature`. The form actions `undo` and `redo` of
 `/components/editor/<uid>` take the form field `version` and step its history.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/editor/editing.server.test.ts)
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`
 - Level: unit
 
 ### History
@@ -450,7 +450,7 @@ last step of `future` and moves it back. Undo with an empty `history` and redo w
 anyway (PGE-7). The state is written before its history. An absent history is empty, and one whose
 `history` or `future` is not an array is replaced by an empty one, with a console warning.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/undoRedo/index.test.ts, packages/core/src/lib/script/components/componentHeader/editing.server.test.ts, packages/core/src/lib/script/components/editor/editing.server.test.ts, packages/core/src/lib/script/components/page/entry/history.test.ts)
+- Test: `packages/core/src/lib/script/components/componentHeader/editing.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`, `packages/core/src/lib/script/components/page/entry/history.test.ts`, `packages/core/src/lib/script/undoRedo/index.test.ts`
 - Level: unit
 
 #### HIS-2 · Saves are conditional
@@ -494,7 +494,7 @@ write the publication once, then the pointer and, for a dynamic component, the d
 
 The publisher is the principal's subject, never a value of the request.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/index.test.ts, packages/core/src/lib/script/components/publication/user.server.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/src/lib/script/components/publication/user.server.test.ts`
 - Level: unit
 
 #### PUB-2 · No change, no publication
@@ -506,7 +506,7 @@ publishing is refused with `Nothing has changed since the last publication: neit
 component's description nor, where it has one, its code.` The description's digest is the lowercase
 hex of SHA-256 over the RFC 8785 form of `{ type, name, attributes, attributeOrder }`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/index.test.ts, packages/core/src/lib/script/components/publication/payload.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/payload.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
 - Level: unit
 
 #### PUB-3 · Analysis and compilation
@@ -521,7 +521,7 @@ either refuses the publication with its message, followed by ` (line <l>)` or
 no fatal diagnostic with `The adapter for '<language>' returned no code and gave no reason`. The
 analysis's warnings are returned to the publisher (PUB-6).
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/index.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
 - Level: unit
 
 #### PUB-4 · The publication
@@ -554,7 +554,7 @@ Building it refuses, before signing: a blank `uid`, `publicationId`, `publisherI
 dynamic one with none; an empty `executableCode`; ceilings that are not three positive whole
 numbers; two executables for one platform. A dynamic component's publication has one executable.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/payload.test.ts, packages/core/src/lib/script/components/publication/index.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/payload.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
 - Level: unit
 
 #### PUB-5 · Writing a publication
@@ -578,7 +578,7 @@ interface PublishedComponent {   // the pointer
 A pointer that cannot be read is no pointer (NF12); one that does not match fails the read with
 `Invalid publication record for component <uid>`.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/index.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
 - Level: unit
 
 #### PUB-6 · What publishing answers
@@ -588,7 +588,7 @@ publishedAt, warnings }`, where each warning is `{ rule, message, line? }`. It a
 `{ status: 'fail', text: 'Invalid data' }` for an invalid argument, and `{ status: 'fail', text }`
 with the error's message for every failure, a permission denial included.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/publication/publishing.test.ts`
 - Level: unit
 
 #### PUB-7 · Composable components
@@ -597,7 +597,7 @@ The components a page may be composed from are the valid headers whose component
 the catalog's order, of either kind. The page screens offer only these, filtered for a slot by its
 `items.enum` when that is a non-empty list.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/publication/composition.test.ts)
+- Test: `packages/core/src/lib/script/components/publication/composition.test.ts`
 - Level: unit
 
 ### Pages
@@ -633,7 +633,7 @@ interface ComponentNode {
 
 A slot's value lists node uids of the same page.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-2 · Creating a page
@@ -661,7 +661,7 @@ new value (PGE-2) otherwise, with the attribute's current name and schema; value
 header no longer has are dropped. An entry that cannot be read, or one with a node whose component
 has no header, answers 404 `No page named "<name>"`.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-4 · Editing a node
@@ -699,7 +699,7 @@ The form action `changePreviewURL` reads `value` and `version` and writes `value
 `previewURL` conditionally on `version`, without recording a step; without them, it fails with 400
 `{ reason: 'no-diff' }`.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-7 · Undoing and redoing a page
@@ -708,7 +708,7 @@ The form actions `undo` and `redo` of `/components/pages/<name>/<nodeUid>` read 
 entry's history (HIS-1) over `contents`, and write the entry conditionally on `version` (HIS-2),
 also when there was nothing to step.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/page/entry/history.test.ts)
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-8 · Deleting pages
@@ -719,7 +719,7 @@ propagates. A failure to remove the tree is logged as a warning
 deletion succeeds. The form action `deleteSelected` of `/components/pages` deletes by name, with
 the input, refusals and answers of CMP-9's `deleteSelected`.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-9 · Pages and the components they use
@@ -727,7 +727,7 @@ the input, refusals and answers of CMP-9's `deleteSelected`.
 A page is not changed when a component it uses changes: reading it applies PGE-3, and building it
 applies TRE-2. Nothing records on a component which pages use it, except their published trees.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
 - Level: unit
 
 #### PGE-10 · Page permissions
@@ -747,7 +747,7 @@ Each operation requires, before it writes:
 Every action on an existing page reads its entry first, and so also requires `pages:read`.
 Opening the page screens also requires `components:read` (PUB-7).
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/page/user.server.test.ts)
+- Test: `packages/core/src/lib/script/components/page/user.server.test.ts`, `packages/core/src/lib/script/components/permissions.test.ts`
 - Level: unit
 
 #### PGE-11 · Page names
@@ -772,7 +772,7 @@ and writes it to `.genoacms/pages/readables/<name>`, replacing any tree there. T
 neither who built it nor when. Reading a tree back verifies it; one that does not verify fails with
 an error whose message starts with `pages/tree-unverifiable:`, and an absent one is none.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/io.server.test.ts`
 - Level: unit
 
 #### TRE-2 · A node of the tree
@@ -792,7 +792,7 @@ type ReadableAttributeValue = boolean | number | string | string[] | ReadablePag
 A node of a component with a pointer carries its `uid` and the pointer's `publicationId`, read when
 the page is built. A node of a component never published carries neither.
 
-- Test: unverified (checked without the ID by packages/core/src/lib/script/components/page/tree/dependents.server.test.ts)
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/index.test.ts`
 - Level: unit
 
 #### TRE-3 · Values in the tree
@@ -808,5 +808,5 @@ the page is built. A node of a component never published carries neither.
 
 An internal link to a page with no entry fails the build.
 
-- Test: unverified
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/index.test.ts`
 - Level: unit

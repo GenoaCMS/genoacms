@@ -74,7 +74,7 @@ const entry = (uid: string): ComponentHeader => ({
 beforeEach(() => { objects.clear() })
 
 describe('storing the description', () => {
-  it('writes it as plain JSON, which is what makes it publishable', async () => {
+  it('CMP-1: writes it as plain JSON, which is what makes it publishable', async () => {
     // A format only this CMS can read would make the published header unverifiable outside it.
     await uploadComponentHeader(entry('c1'))
 
@@ -87,7 +87,7 @@ describe('storing the description', () => {
     expect(await getComponentHeader('c1')).toMatchObject({ uid: 'c1', name: 'Card' })
   })
 
-  it('reports a component that was never stored as absent', async () => {
+  it('CMP-7: reports a component that was never stored as absent', async () => {
     expect(await getComponentHeader('missing')).toBeNull()
   })
 })
@@ -102,11 +102,11 @@ describe('storing the history beside it', () => {
     expect(objects.get(`${PREFIX}/c1.json`)).not.toContain('history')
   })
 
-  it('reads an absent history as an empty one rather than failing', async () => {
+  it('HIS-1: reads an absent history as an empty one rather than failing', async () => {
     expect(await getComponentHeaderHistory('c1')).toEqual({ history: [], future: [] })
   })
 
-  it('starts a new history rather than failing on an unreadable one', async () => {
+  it('HIS-1: starts a new history rather than failing on an unreadable one', async () => {
     // The description is intact either way, and the worst outcome is that the author cannot undo
     // past this point — which is not worth refusing the edit over.
     objects.set(`${PREFIX}/c1.history`, stringifyFlatted({ history: 'not an array' }))
@@ -116,7 +116,7 @@ describe('storing the history beside it', () => {
 })
 
 describe('listing components', () => {
-  it('lists one component per component, not one per stored file', async () => {
+  it('CMP-1, CMP-7: lists one component per component, not one per stored file', async () => {
     // The directory now holds two files each. Treating every filename as a reference would report
     // every component twice — once as itself, once as its own history.
     await uploadComponentHeader(entry('c1'))
@@ -129,7 +129,7 @@ describe('listing components', () => {
     expect(listed.map(component => component.uid).sort()).toEqual(['c1', 'c2'])
   })
 
-  it('does not read a history file as though it were a component', async () => {
+  it('CMP-1: does not read a history file as though it were a component', async () => {
     // Counting the result is not enough to show this. A history read as a header fails the schema
     // and is dropped, so the count comes out right while every listing still does an extra storage
     // read. Asserting silence is what distinguishes "filtered" from "never looked at".
@@ -145,7 +145,7 @@ describe('listing components', () => {
 })
 
 describe('deleting a component', () => {
-  it('removes a component that was never edited, which has no history object', async () => {
+  it('CMP-9: removes a component that was never edited, which has no history object', async () => {
     // Storage raises on removing an object that is not there. Requiring the history to exist made
     // deleting a freshly created component answer 500 instead of redirecting.
     await uploadComponentHeader(entry('c1'))
@@ -154,7 +154,7 @@ describe('deleting a component', () => {
     expect([...objects.keys()]).toEqual([])
   })
 
-  it('removes its history too, so nothing unreachable is left in the bucket', async () => {
+  it('CMP-9: removes its history too, so nothing unreachable is left in the bucket', async () => {
     await uploadComponentHeader(entry('c1'))
     await uploadComponentHeaderHistory('c1', { history: [], future: [] })
 

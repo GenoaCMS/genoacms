@@ -85,7 +85,7 @@ describe('finding attributes that share a name', () => {
 })
 
 describe('what counts as the same name', () => {
-  it('treats names differing only at the ends as one', () => {
+  it('CMP-5: treats names differing only at the ends as one', () => {
     // Different keys in storage, the same name to the person reading a list of them. Nobody should
     // have to tell "Body" from "Body " by eye.
     const header = headerWith(attribute('a', 'Body'), attribute('b', ' Body '))
@@ -93,14 +93,14 @@ describe('what counts as the same name', () => {
     expect(duplicateAttributeNames(header)).toEqual(['Body'])
   })
 
-  it('keeps names differing in case apart', () => {
+  it('CMP-5: keeps names differing in case apart', () => {
     // Two names a person chose to write differently, which survive into two distinct parameters.
     const header = headerWith(attribute('a', 'Body'), attribute('b', 'body'))
 
     expect(duplicateAttributeNames(header)).toEqual([])
   })
 
-  it('collides two attributes that have not been named yet', () => {
+  it('CMP-5: collides two attributes that have not been named yet', () => {
     // They key a published page identically, so the collision is real even though neither has a name
     // to report. The message describes the empty name rather than quoting nothing.
     const header = headerWith(attribute('a'), attribute('b'))
@@ -108,7 +108,7 @@ describe('what counts as the same name', () => {
     expect(duplicateAttributeNames(header)).toEqual([''])
   })
 
-  it('leaves a single unnamed attribute alone', () => {
+  it('CMP-5: leaves a single unnamed attribute alone', () => {
     // An ordinary state halfway through describing a component. Refusing it would stop an author
     // saving between adding an attribute and naming it; the emitter is what refuses to publish one.
     const header = headerWith(attribute('a'), attribute('b', 'Body'))
@@ -118,19 +118,19 @@ describe('what counts as the same name', () => {
 })
 
 describe('refusing the component', () => {
-  it('refuses a header carrying a repeated name', () => {
+  it('CMP-5: refuses a header carrying a repeated name', () => {
     const header = headerWith(attribute('a', 'Heading'), attribute('b', 'Heading'))
 
     expect(() => requireDistinctAttributeNames(header)).toThrow(DuplicateAttributeNameError)
   })
 
-  it('names the attributes, so an author knows which to rename', () => {
+  it('CMP-5: names the attributes, so an author knows which to rename', () => {
     const header = headerWith(attribute('a', 'Heading'), attribute('b', 'Heading'))
 
     expect(() => requireDistinctAttributeNames(header)).toThrow(/"Heading"/)
   })
 
-  it('reads naturally when several names collide', () => {
+  it('CMP-5: reads naturally when several names collide', () => {
     const header = headerWith(
       attribute('a', 'Heading'), attribute('b', 'Heading'),
       attribute('c', 'Body'), attribute('d', 'Body')
@@ -140,13 +140,13 @@ describe('refusing the component', () => {
       .toThrow(/"Heading" and "Body" are used by more than one attribute/)
   })
 
-  it('describes an unnamed attribute rather than quoting an empty string', () => {
+  it('CMP-5: describes an unnamed attribute rather than quoting an empty string', () => {
     const header = headerWith(attribute('a'), attribute('b'))
 
     expect(() => requireDistinctAttributeNames(header)).toThrow(/an empty name is/)
   })
 
-  it('permits a header whose names are distinct', () => {
+  it('CMP-5: permits a header whose names are distinct', () => {
     const header = headerWith(attribute('a', 'Heading'), attribute('b', 'Body'))
 
     expect(() => requireDistinctAttributeNames(header)).not.toThrow()
@@ -183,7 +183,7 @@ describe('recognizing the refusal at a route', () => {
 })
 
 describe('a name the component already uses', () => {
-  it('refuses an attribute called passthrough', () => {
+  it('CMP-5: refuses an attribute called passthrough', () => {
     // Every component receives that parameter, so the attribute would become a second one of the
     // same name and the emitted signature would not compile.
     const header = headerWith(attribute('a', 'passthrough'))
@@ -197,20 +197,20 @@ describe('a name the component already uses', () => {
     expect(() => requireUnreservedAttributeNames(header)).toThrow(/consuming application/)
   })
 
-  it('trims the ends before deciding, as the emitter does', () => {
+  it('CMP-5: trims the ends before deciding, as the emitter does', () => {
     const header = headerWith(attribute('a', ' passthrough '))
 
     expect(() => requireUnreservedAttributeNames(header)).toThrow(ReservedAttributeNameError)
   })
 
-  it('allows a name differing only in case, which becomes a different parameter', () => {
+  it('CMP-5: allows a name differing only in case, which becomes a different parameter', () => {
     // Refusing it would cost an author a usable name for a collision that does not happen.
     const header = headerWith(attribute('a', 'Passthrough'))
 
     expect(() => requireUnreservedAttributeNames(header)).not.toThrow()
   })
 
-  it('leaves ordinary names alone', () => {
+  it('CMP-5: leaves ordinary names alone', () => {
     const header = headerWith(attribute('a', 'Heading'), attribute('b', 'Body'))
 
     expect(() => requireUnreservedAttributeNames(header)).not.toThrow()

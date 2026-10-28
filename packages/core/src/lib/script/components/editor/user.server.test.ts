@@ -76,7 +76,7 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 }
 
 describe('every operation', () => {
-  it('is denied to a principal with no grants', async () => {
+  it('CMP-11: is denied to a principal with no grants', async () => {
     // What this whole module exists to establish: none of these were checked at all before.
     await expectDenied(() => editor.listUserComponents(nobody()))
     await expectDenied(() => editor.getUserComponent(nobody(), 'uid-1'))
@@ -91,7 +91,7 @@ describe('every operation', () => {
 })
 
 describe('reading', () => {
-  it('separates the catalog from the source', async () => {
+  it('CMP-11: separates the catalog from the source', async () => {
     // Seeing that a component exists is catalog information; seeing what it does is not.
     await editor.listUserComponents(reader())
     await editor.getUserComponent(reader(), 'uid-1')
@@ -101,19 +101,19 @@ describe('reading', () => {
     await expectDenied(() => editor.getUserComponentDefinition(reader(), 'uid-1'))
   })
 
-  it('needs components:code, which reading the catalog does not imply', async () => {
+  it('CMP-11: needs components:code, which reading the catalog does not imply', async () => {
     await editor.getUserComponentDefinition(developer(), 'uid-1')
     expect(calls).toEqual(['definition:uid-1'])
   })
 })
 
 describe('authoring', () => {
-  it('writes the draft with components:code', async () => {
+  it('CMP-11: writes the draft with components:code', async () => {
     await editor.saveUserComponentBody(developer(), 'uid-1', 'return 1', 'v1')
     expect(calls).toEqual(['save:uid-1:return 1'])
   })
 
-  it('steps the history with the same permission that writes it', async () => {
+  it('CMP-11: steps the history with the same permission that writes it', async () => {
     // Undo and redo rewrite the stored body, so they are gated with writing rather than with
     // reading. A principal permitted only to read source must not be able to move it.
     await editor.undoUserComponentBody(developer(), 'uid-1', 'v1')
@@ -121,12 +121,12 @@ describe('authoring', () => {
     expect(calls).toEqual(['undo:uid-1', 'redo:uid-1'])
   })
 
-  it('does not let a reader step the history', async () => {
+  it('CMP-11: does not let a reader step the history', async () => {
     await expectDenied(() => editor.undoUserComponentBody(reader(), 'uid-1', 'v1'))
     await expectDenied(() => editor.redoUserComponentBody(reader(), 'uid-1', 'v1'))
   })
 
-  it('does not permit creating or destroying a component', async () => {
+  it('CMP-11: does not permit creating or destroying a component', async () => {
     // Existence is `components:register`. Holding the key to a component's source is not a licence
     // to add components pages can be built on, or to destroy one every page depends on.
     await expectDenied(() => editor.createUserComponent(developer(), 'hero'))
@@ -135,13 +135,13 @@ describe('authoring', () => {
 })
 
 describe('managing a component', () => {
-  it('creates and deletes with manage alone', async () => {
+  it('CMP-11: creates and deletes with manage alone', async () => {
     await editor.createUserComponent(manager(), 'hero')
     await editor.deleteUserComponent(manager(), component)
     expect(calls).toEqual(['create:hero', 'delete:uid-1'])
   })
 
-  it('does not thereby permit reading or writing the source', async () => {
+  it('CMP-11: does not thereby permit reading or writing the source', async () => {
     // Deleting destroys source, which is why it is not implied by `edit` — and managing existence
     // is not a way to read what a component does either.
     await expectDenied(() => editor.getUserComponentDefinition(manager(), 'uid-1'))

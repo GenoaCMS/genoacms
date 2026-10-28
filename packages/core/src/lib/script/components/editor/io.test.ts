@@ -31,13 +31,13 @@ const { getComponent } = await import('./io')
 const { NoSuchComponentError } = await import('./errors')
 
 describe('opening a component the editor cannot show', () => {
-  it('refuses a reference that names nothing', async () => {
+  it('SRC-2: refuses a reference that names nothing', async () => {
     stored = null
 
     await expect(getComponent('gone')).rejects.toBeInstanceOf(NoSuchComponentError)
   })
 
-  it('refuses a prebuilt component, which exists but not to the editor', async () => {
+  it('SRC-2: refuses a prebuilt component, which exists but not to the editor', async () => {
     // It has no source and no definition. Refused by name rather than by a missing definition,
     // which would surface as a confusing storage error.
     stored = { uid: 'card', type: 'prebuilt', name: 'Card' }
