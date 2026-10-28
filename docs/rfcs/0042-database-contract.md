@@ -42,8 +42,11 @@ the contract (CU11 to CU16). This RFC:
 | `packages/contracts/src/database/query.test.js` | new: their unit tests |
 | `packages/adapter-gcp/src/database/runtime.ts`, `runtime.test.ts` | DATA-1 to DATA-11 on Firestore (§Firestore) |
 | `packages/adapter-aws/src/database/runtime.ts`, `runtime.test.ts`, `values.ts` | DATA-1 to DATA-11 on DynamoDB (§DynamoDB) |
+| `packages/adapter-aws/test/contract/database.test.ts` | its assertions of the array and of `data` without the key follow DDB-5 and DDB-6 as §Changed gives them |
 | `packages/adapter-postgres/src/runtime.js`, `runtime.test.js`, `test/fixture.js` | DATA-1 to DATA-11 on Postgres (§Postgres) |
-| `packages/conformance/src/database.js` | the suite of §Conformance |
+| `packages/conformance/src/database.js`, `src/index.d.ts`, `README.md` | the suite of §Conformance and its fixture `{ collection, prefix }` |
+| `packages/conformance/test/database.test.js`, `test/registration/suites.registration.js` | the suite against `memoryDatabase` and every mutant |
+| `packages/docs/src/routes/guide/adapters/+page.md` | the database suite's fixture |
 | `packages/conformance/test/memory.js` | `memoryDatabase` to the contract |
 | `packages/conformance/test/mutants/database.js`, `database.mutant.js` | new: one mutant per suite test, as `storage.js` / `storage.mutant.js` |
 | `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js` | the new fixture; describe titles carry the DATA IDs |
@@ -146,8 +149,9 @@ In `adapter-postgres/src/runtime.js`:
 - `updateDocument`: as Firestore's key rule; `update ... returning key`; no row updated throws
   `DocumentNotFoundError`.
 - `getCollection`: `checkQuery`; each condition is `jsonb_typeof(to_jsonb(<col>)) = '<type>' AND
-  <expr> <op> ?`, where `<expr>` is `<col>::text COLLATE "C"` for a string, `(to_jsonb(<col>))::text::numeric`
-  for a number, `<col>::boolean` for a boolean; `== null` is `<col> IS NULL`, and another operator
+  <expr> <op> ?`, where `<expr>` reads the value as text with `to_jsonb(<col>) #>> '{}'`, so a `jsonb`
+  column gives its unquoted value as a `text` column does: `(…) COLLATE "C"` for a string,
+  `(…)::numeric` for a number, `(…)::boolean` for a boolean; `== null` is `<col> IS NULL`, and another operator
   with `null` is `false`. Ordered by the key column; `limit` as given; the page token encodes the
   last row's key, continued with `<key> > ?`. Columns are quoted identifiers.
 
@@ -218,7 +222,8 @@ level `contract` against Firestore (`genoacms-tests`), DynamoDB and Postgres 16 
    in-memory adapter and the unit tests of §Tests, those failing today marked `it.fails`. Commit:
    `test: the database contract's conformance suite and tests (RFC-0042)`.
 3. Another session implements §Shared, §Firestore, §DynamoDB, §Postgres and §Core, removes the
-   markers without changing an assertion, and adds the changeset. Commit with the `commit-subject`.
+   markers without changing an assertion (the adapters' conformance blocks are `describe.skip` until
+   then, and become `describe`), updates the unit tests of DB-4, DB-5, DDB-4 to DDB-6 to §Changed, and adds the changeset. Commit with the `commit-subject`.
 4. Run the contract tests: Firestore and DynamoDB need the credentials CI has on `main`; Postgres
    runs in CI and locally with `GENOACMS_TEST_POSTGRES=1`.
 5. Update the documents: DATA-1 to DATA-12 current with their tests; the adapter statements to
