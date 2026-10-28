@@ -104,6 +104,10 @@ const config = defineConfig({
                   to: '/guide/authorization/'
                 },
                 {
+                  title: 'AI agents',
+                  to: '/guide/agents/'
+                },
+                {
                   title: 'Identity and sessions',
                   to: '/guide/sessions/'
                 },
@@ -171,6 +175,15 @@ const config = defineConfig({
                 {
                   title: 'Storage',
                   to: '/reference/contracts/storage/'
+                }
+              ]
+            },
+            {
+              title: 'Agent access',
+              items: [
+                {
+                  title: 'MCP tools',
+                  to: '/reference/mcp/'
                 }
               ]
             },
