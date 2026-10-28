@@ -48,6 +48,9 @@ async function listComponents (ctx: AuthContext) {
   })))
 }
 
+// TOL-2, TOL-4
+const attributeInputOf = ({ uid, type, schema }: Attribute): AttributeInput => ({ uid, type, schema })
+
 /** TOL-2 */
 async function getComponentTool (ctx: AuthContext, { uid }: Args) {
   const read = await getUserComponentHeaderVersioned(ctx, uid as string)
@@ -57,7 +60,7 @@ async function getComponentTool (ctx: AuthContext, { uid }: Args) {
     uid: header.uid,
     name: header.name,
     type: header.type,
-    attributes: header.attributeOrder.map(key => header.attributes[key]),
+    attributes: header.attributeOrder.map(key => attributeInputOf(header.attributes[key])),
     publication: await publicationOf(ctx, header.uid),
     version
   }

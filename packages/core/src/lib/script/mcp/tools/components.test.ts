@@ -83,6 +83,19 @@ describe('component tools', () => {
     expect(storedDefinition(dynamic.uid)).toMatchObject({ uid: dynamic.uid, language: 'typescript', body: '' })
   })
 
+  it('TOL-2, TOL-4: a component read with get_component saves back through update_component unchanged', async () => {
+    const read = await useTool(agent, 'get_component', { uid: card.uid })
+    expect(read.attributes).toEqual(card.attributeOrder.map(uid => {
+      const { type, schema } = card.attributes[uid]
+      return { uid, type, schema }
+    }))
+
+    const saved = await callTool(agent, 'update_component', { uid: card.uid, version: read.version, name: read.name, attributes: read.attributes })
+    expect(saved.isError).toBe(false)
+    expect(storedHeader(card.uid).attributes).toEqual(card.attributes)
+    expect(storedHeader(card.uid).attributeOrder).toEqual(card.attributeOrder)
+  })
+
   it('TOL-4: attributes are a list; uids are kept, new ones generated, unknown ones refused', async () => {
     const count = { type: 'number', schema: { type: 'number', title: 'count', description: '', required: false, maximum: 5 } }
     const saved = await useTool(agent, 'update_component', {

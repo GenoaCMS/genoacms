@@ -34,13 +34,13 @@ let server: RunningServer
 let session: Session
 let nextId = 1
 
-async function post (body: unknown, token: string | undefined = agentToken): Promise<Response> {
+async function post (body: unknown, token: string | null = agentToken): Promise<Response> {
   return await fetch(`${server.origin}/mcp`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       accept: 'application/json, text/event-stream',
-      ...(token === undefined ? {} : { authorization: `Bearer ${token}` })
+      ...(token === null ? {} : { authorization: `Bearer ${token}` })
     },
     body: JSON.stringify(body)
   })
@@ -98,7 +98,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
   beforeAll(async () => {
     await removeInstance()
     process.env.GENOACMS_E2E_AGENT_TOKEN = agentToken
-    server = await startServer({ primary: [ada, impostor] })
+    server = await startServer({ primary: [ada, impostor], secondary: [] })
     await launchBrowser()
     session = await signedInSession(server, ada)
   }, SETUP_TIMEOUT_MS)
@@ -117,7 +117,7 @@ describe.skipIf(!enabled).sequential('agents through the running server', { time
     const listed = await rpc('tools/list')
     expect(listed.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([...TOOLS].sort())
 
-    for (const token of [undefined, `gat_${randomBytes(32).toString('base64url')}`]) {
+    for (const token of [null, `gat_${randomBytes(32).toString('base64url')}`]) {
       const refused = await post({ jsonrpc: '2.0', id: nextId++, method: 'tools/list' }, token)
       expect(refused.status).toBe(401)
       expect(refused.headers.get('www-authenticate')).toBe('Bearer realm="genoacms"')
