@@ -8,7 +8,8 @@ verified: 95b7dae3
 
 # Agent access
 
-**Everything in this document is New.** No agent, token or MCP endpoint exists. No RFC yet.
+**Everything in this document is New.** No agent, token or MCP endpoint exists. RFC-0039 implements
+it, except MCP-3, which follows RFC-0031.
 
 ## Design
 
@@ -39,7 +40,7 @@ of who changed what (TF1); the specification of components and pages themselves
 ([`components.md`](components.md)), which the RFC of this document also changes, to fix NF1, NF2,
 NF4, NF5, NF6 and NF11. Limiting failed tokens (MCP-3) builds on the counters of
 [`contracts/authentication.md`](contracts/authentication.md) AUTHN-8 to AUTHN-10, themselves New
-(RFC-0031).
+(RFC-0031), and is not part of RFC-0039 (TU11).
 
 ### Decisions
 
@@ -55,6 +56,7 @@ NF4, NF5, NF6 and NF11. Limiting failed tokens (MCP-3) builds on the counters of
 | TU8 | 2026-10-27: tools change a page one node at a time, validated against stored, published component headers. | TD4; TOL-9 to TOL-13 |
 | TU9 | 2026-10-27: every save carries the version it was read at, and a stale save is refused, for agents and for the screens. | TD6; TOL-1 |
 | TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. | TF1 |
+| TU11 | 2026-10-27: `tools/list` lists every tool; the first version includes the deleting tools; stored agents keep their roles in `agents.json`; agent access does not wait for RFC-0031, so failed tokens are limited only once it lands; no CLI command generates tokens for now. | MCP-3, MCP-4, AGT-2, TOL-7, TOL-15 |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -147,15 +149,18 @@ authorization: {
 }
 ```
 
-When the server resolves its secrets, it refuses to start with an error whose message starts with
+Loading the config fails with an issue whose message starts with
 `authentication/agent-subject-prefix:` for a key that does not match `agent:<name>` (AGT-3's
-`<name>`), `authentication/agent-token-too-short:` for a token of fewer than 43 characters, and
-`authentication/agent-token-shared:` for two agents with the same token. A declared agent's roles
+`<name>`). Core resolves the declared tokens when `/mcp` is first requested; a token of fewer than
+43 characters fails with an error whose message starts with `authentication/agent-token-too-short:`,
+and two agents with the same token with `authentication/agent-token-shared:`. Until the
+configuration is corrected, every request to `/mcp` answers 503 and logs that error; the rest of the
+CMS runs. A declared agent's roles
 are its `authorization.assignments`. A declared agent cannot be changed or revoked at runtime.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### AGT-2 · Agents stored in Tier 2
 
@@ -179,7 +184,7 @@ stored agent is known, and Tier-1 agents still are.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### AGT-3 · Administering agents
 
@@ -201,7 +206,7 @@ not expire.
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### AGT-4 · Agents and people stay apart
 
@@ -212,7 +217,7 @@ A token is only ever issued to, and only ever resolves to, an agent.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### AGT-5 · The ceiling
 
@@ -229,17 +234,18 @@ does.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### AGT-6 · An agent's authority
 
 An agent's `AuthContext` has its subject, and the grants of its roles, matched exactly as a
-person's are. It is resolved on every request to `/mcp`, so a revoked token, a removed declaration
-or a changed role takes effect at the next request.
+person's are, through the same grant cache: a changed role takes effect within the policy's
+`grantCacheSeconds`, as it does for a person. The token is looked up on every request, so a
+revoked token or a removed declaration takes effect at the next request.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 ### The endpoint
 
@@ -254,7 +260,7 @@ It handles `initialize` (server name `genoacms`, the capability `tools`), `notif
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### MCP-2 · Authenticating a request
 
@@ -266,7 +272,7 @@ token.
 
 - Test: none yet
 - Level: unit, e2e
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### MCP-3 · Failed tokens are limited per address
 
@@ -294,7 +300,7 @@ request with no `Authorization` header records nothing.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 ### Tools
 
@@ -309,7 +315,7 @@ returns the new `version`.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-2 · Reading components
 
@@ -321,7 +327,7 @@ returns the new `version`.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-3 · Creating a component
 
@@ -330,7 +336,7 @@ returns the new `version`.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-4 · Describing a component
 
@@ -348,7 +354,7 @@ CMP-5 apply. An attribute keeps its values on pages exactly when its `uid` is ke
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-5 · A component's source
 
@@ -359,7 +365,7 @@ prebuilt component as SRC-2 does.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-6 · Publishing a component
 
@@ -369,7 +375,7 @@ PUB-3's, the line and column of a diagnostic included.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-7 · Deleting a component
 
@@ -378,7 +384,7 @@ published page pins the component.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-8 · Reading pages
 
@@ -407,7 +413,7 @@ Only nodes reachable from the root are listed. An unknown page fails with
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-9 · Creating a page
 
@@ -419,7 +425,7 @@ without a publication fails with `pages/unpublished-component: <uid>`.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-10 · Adding a node
 
@@ -433,7 +439,7 @@ publication, `pages/not-accepted: <name>` for a component whose name the slot's 
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-11 · Setting values
 
@@ -446,7 +452,7 @@ TOL-12 and TOL-13.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-12 · Moving a node
 
@@ -457,7 +463,7 @@ holding it and inserts it into `slot` of `parent`, at `position`, or at the end,
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-13 · Removing a node
 
@@ -467,7 +473,7 @@ the node and every node below it from the page. Removing the root fails with
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-14 · The preview URL
 
@@ -475,7 +481,7 @@ the node and every node below it from the page. Removing the root fails with
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-15 · Building and deleting a page
 
@@ -484,7 +490,7 @@ deletes it as PGE-8 does.
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-16 · Edits are undoable
 
@@ -493,7 +499,7 @@ Each tool call that changes a header, a body or a page records exactly one step 
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)
 
 #### TOL-17 · Tool permissions
 
@@ -514,4 +520,4 @@ Each tool requires the permissions of the operation it performs, checked by the 
 
 - Test: none yet
 - Level: unit
-- State: new (no RFC yet)
+- State: new (RFC-0039)

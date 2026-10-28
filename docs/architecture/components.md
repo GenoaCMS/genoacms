@@ -50,6 +50,11 @@ pickers ([`storage.md`](storage.md)).
 | # | Decision | Where |
 | :-- | :-- | :-- |
 | NU1 | 2026-10-27: components and pages get an architecture document of their own, written from the code as it is at `8161e000`, so that agent access to them can be specified against it. | this document |
+| NU2 | 2026-10-27: saving a header saves only a component that exists, and keeps its stored kind (NF1, NF2). | CMP-8 |
+| NU3 | 2026-10-27: a page name is one level, checked when the page is created, and creating a page never replaces one (NF4). | PGE-2, PGE-11 |
+| NU4 | 2026-10-27: a page's nodes are of stored, published components: the root when a page is created, and a child, which the slot must also accept and have room for (NF5, NF8). | PGE-2, PGE-5 |
+| NU5 | 2026-10-27: editing a node takes only its values from the client, each checked against its attribute; changing a slot is a structure edit, may only reorder or remove the node's own children, and a removed child leaves the page with every node below it (NF6, NF7). | PGE-4 |
+| NU6 | 2026-10-27: every save carries the version it was read at, and a save of an object changed since is refused, on the screens and through agent tools alike (NF11). | HIS-2 |
 
 **ND1. One catalog holds both kinds, and the kind decides what is stored (CMP-2, CMP-6).** Every
 component has a header in one directory. A dynamic one also has a source definition. Creating,
@@ -156,17 +161,17 @@ otherwise.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| NF1 | **`components:modify` can create a component.** Updating a header (CMP-8) does not check that the component exists: a header with a new `uid` is stored as a new component, without `components:register`, and of either kind, so a `dynamic` one without a source definition (SRC-2 then fails on it). | open |
-| NF2 | **A header update can change the stored kind.** CMP-8 stores the submitted `type`, so a prebuilt component becomes dynamic without a definition, or a dynamic one prebuilt while its definition stays in the bucket; undo replays such a step too. ND1 says the kind is fixed at creation. | open |
+| NF1 | **`components:modify` can create a component.** Updating a header (CMP-8) does not check that the component exists: a header with a new `uid` is stored as a new component, without `components:register`, and of either kind, so a `dynamic` one without a source definition (SRC-2 then fails on it). | open; decided by NU2, RFC-0039 |
+| NF2 | **A header update can change the stored kind.** CMP-8 stores the submitted `type`, so a prebuilt component becomes dynamic without a definition, or a dynamic one prebuilt while its definition stays in the bucket; undo replays such a step too. ND1 says the kind is fixed at creation. | open; decided by NU2, RFC-0039 |
 | NF3 | **A header is not checked for consistency (CMP-4).** Nothing requires an attribute's key to equal its `uid`, `attributeOrder` to list exactly the keys of `attributes`, or its entries to be distinct. The published order is what a consumer calls the component's parameters by (PUB-4). | open |
-| NF4 | **A page name is not validated (PGE-2).** It is joined into a storage path, so a name containing `/` or `..` addresses another object of the default bucket: `../../components/headers/<uid>.json` writes a page entry over a component header. Creating a page with an existing name overwrites that page. | open |
-| NF5 | **Adding a child node trusts the client's component header (PGE-5).** The child is built from the `schema` form field as submitted: its `entryReference` and attributes are the client's, not those of a stored, published component, and the slot's `items.enum` is not checked. A node that does not exist fails with a `TypeError`, answered as 500, because the failure it builds is not returned. | open |
-| NF6 | **The update action can change a page's structure with `pages:content_edit` (PGE-4).** It replaces the node with the one the client sends, unvalidated, so the value of a `components` slot can be rewritten: children removed, reordered, or pointed at other nodes of the page. The client's `name` and `schema` fields are stored in the entry with it. | open |
-| NF7 | **A child removed from a slot stays in the page (PGE-4).** Its node is left in `contents.nodes` with nothing referring to it. | open |
-| NF8 | **Creating a page accepts any component (PGE-2).** The root component is the form's `componentUID`, published or not; only the editor's offer is limited (PUB-7). | open |
+| NF4 | **A page name is not validated (PGE-2).** It is joined into a storage path, so a name containing `/` or `..` addresses another object of the default bucket: `../../components/headers/<uid>.json` writes a page entry over a component header. Creating a page with an existing name overwrites that page. | open; decided by NU3, RFC-0039 |
+| NF5 | **Adding a child node trusts the client's component header (PGE-5).** The child is built from the `schema` form field as submitted: its `entryReference` and attributes are the client's, not those of a stored, published component, and the slot's `items.enum` is not checked. A node that does not exist fails with a `TypeError`, answered as 500, because the failure it builds is not returned. | open; decided by NU4, RFC-0039 |
+| NF6 | **The update action can change a page's structure with `pages:content_edit` (PGE-4).** It replaces the node with the one the client sends, unvalidated, so the value of a `components` slot can be rewritten: children removed, reordered, or pointed at other nodes of the page. The client's `name` and `schema` fields are stored in the entry with it. | open; decided by NU5, RFC-0039 |
+| NF7 | **A child removed from a slot stays in the page (PGE-4).** Its node is left in `contents.nodes` with nothing referring to it. | open; decided by NU5, RFC-0039 |
+| NF8 | **Creating a page accepts any component (PGE-2).** The root component is the form's `componentUID`, published or not; only the editor's offer is limited (PUB-7). | open; decided by NU4, RFC-0039 |
 | NF9 | **Deleting a component breaks the drafts that use it, and deleting a page breaks the pages that link to it.** CMP-9 consults only published trees. A page entry with a node of a deleted component can no longer be opened (`No page named "<name>"`, PGE-3), edited or built. A page linking to a deleted page fails to build (TRE-3). | open |
 | NF10 | **A `richText` attribute always publishes `''` (TRE-3).** The type is offered and stored, and its value is dropped at build. | open |
-| NF11 | **Concurrent saves overwrite each other.** Every save of a header, a body or a page reads, changes and writes without a precondition, so of two editors saving the same object the later wins silently and the earlier's step is lost from the history. | open |
+| NF11 | **Concurrent saves overwrite each other.** Every save of a header, a body or a page reads, changes and writes without a precondition, so of two editors saving the same object the later wins silently and the earlier's step is lost from the history. | open; decided by NU6, RFC-0039 |
 | NF12 | **A failed read is read as absence.** Reading a header (CMP-7) or a pointer (PUB-5) treats any storage failure as a missing object, so an outage makes a component look absent or unpublished; opening a page (PGE-3) answers any failure as 404. | open |
 | NF13 | **No server-side record says who edited what.** The dashboard's activity is the browser's own list of recently opened items. Only a publication names its publisher (PUB-4); a page tree records neither who built it nor when (TRE-1). | open |
 | NF14 | **Publishing reports a permission denial as a failed result (PUB-6),** where the document service of [`collections.md`](collections.md) DOC-5 throws it. The form logs every failure to the console. | open |
@@ -444,6 +449,27 @@ anyway (PGE-7). The state is written before its history. An absent history is em
 - Test: unverified (checked without the ID by packages/core/src/lib/script/undoRedo/index.test.ts, packages/core/src/lib/script/components/componentHeader/editing.server.test.ts, packages/core/src/lib/script/components/editor/editing.server.test.ts, packages/core/src/lib/script/components/page/entry/history.test.ts)
 - Level: unit
 
+#### HIS-2 · Saves are conditional
+
+Every read of a header, a source definition or a page entry for editing returns its storage
+version (`contracts/storage.md` STOR-6), and every save of it, undo and redo included, writes on
+condition that the object still has that version. When it does not, nothing is written, no step is
+recorded, and the save fails with an error whose message is
+`conflict/modified-since: <object> has changed since version <version>; read it again.`, where
+`<object>` is `component <uid>`, `component source <uid>` or `page <name>`. An object read without a
+version cannot be saved: the save fails with an error whose message starts with
+`storage/unversioned:`. A successful save returns the new version.
+
+| Surface | Carries the version | On a conflict |
+| :-- | :-- | :-- |
+| `updateComponent` (CMP-8), `saveComponentRemote` (SRC-4) | an argument `version`; the result carries the new one | `{ status: 'fail', text }` with the message; the screen shows `Changed elsewhere. Reload to see the latest version.` |
+| the page form actions (PGE-4 to PGE-7) | the form field `version`; the page reloads after a success | 409 `{ reason }` with the message; the screen shows the same text |
+| the undo and redo actions of the registrar and the editor | the form field `version` | 409 `{ reason }` with the message |
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0039)
+
 ### Publication
 
 #### PUB-1 · Publishing
@@ -710,6 +736,19 @@ Opening the page screens also requires `components:read` (PUB-7).
 
 - Test: unverified (checked without the ID by packages/core/src/lib/script/components/page/user.server.test.ts)
 - Level: unit
+
+#### PGE-11 · Page names
+
+A page name has 1 to 200 characters, none of them `/`, `\` or a control character (U+0000 to
+U+001F, U+007F), and is neither `.` nor `..`. It is appended to `.genoacms/pages/entries/` and
+`.genoacms/pages/readables/` as given, never through a path library. Creating a page with any other
+name fails with 400 `{ reason: 'pages/invalid-name' }`, and with a name an entry already has, with
+409 `{ reason: 'pages/exists' }`; nothing is written. A page is created only if no entry of its name
+exists (`ifAbsent`).
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0039)
 
 ### Published page tree
 
