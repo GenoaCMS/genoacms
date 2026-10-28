@@ -57,28 +57,28 @@ beforeEach(() => {
 })
 
 describe('listing what a page may be composed from', () => {
-  it('offers a component that has been published', async () => {
+  it('PUB-7: offers a component that has been published', async () => {
     expect(await namesOf()).toContain('published-dynamic')
   })
 
-  it('withholds a component that has never been published', async () => {
+  it('PUB-7: withholds a component that has never been published', async () => {
     expect(await namesOf()).not.toContain('never-published')
   })
 
-  it('does not dispatch on the kind', async () => {
+  it('PUB-7: does not dispatch on the kind', async () => {
     // Both kinds publish, so both compose. A filter that let prebuilt components through unpublished
     // would be the old behavior wearing the new name, and every other assertion here would still pass.
     expect(await namesOf()).toEqual(['published-prebuilt', 'published-dynamic'])
   })
 
-  it('keeps the catalog order', async () => {
+  it('PUB-7: keeps the catalog order', async () => {
     // The picker renders them in the order given, so reordering here reorders what an author sees.
     publishedUids.add('never-published')
 
     expect(await namesOf()).toEqual(['published-prebuilt', 'never-published', 'published-dynamic'])
   })
 
-  it('offers nothing when nothing has been published', async () => {
+  it('PUB-7: offers nothing when nothing has been published', async () => {
     // The ordinary state of a fresh instance, and what the editor states rather than showing blank.
     publishedUids.clear()
 

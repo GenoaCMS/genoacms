@@ -89,17 +89,17 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 }
 
 describe('reading the catalog', () => {
-  it('is denied without components:read', async () => {
+  it('CMP-11: is denied without components:read', async () => {
     await expectDenied(() => components.listUserComponentHeaders(contextWith([])))
     await expectDenied(() => components.getUserComponentHeader(contextWith([]), 'hero'))
   })
 
-  it('is not implied by being able to modify', async () => {
+  it('CMP-11: is not implied by being able to modify', async () => {
     await expectDenied(() =>
       components.listUserComponentHeaders(contextWith(['components:modify'])))
   })
 
-  it('is allowed with it', async () => {
+  it('CMP-11: is allowed with it', async () => {
     await components.listUserComponentHeaders(contextWith(['components:read']))
     await components.getUserComponentHeader(contextWith(['components:read']), 'hero')
     expect(calls).toEqual(['list', 'get:hero'])
@@ -107,12 +107,12 @@ describe('reading the catalog', () => {
 })
 
 describe('modifying', () => {
-  it('is denied to a principal who may only read', async () => {
+  it('CMP-11: is denied to a principal who may only read', async () => {
     await expectDenied(() =>
       components.updateUserComponentHeader(contextWith(['components:read']), entry, 'v1'))
   })
 
-  it('is allowed with components:modify', async () => {
+  it('CMP-11: is allowed with components:modify', async () => {
     await components.updateUserComponentHeader(contextWith(['components:modify']), entry, 'v1')
     // Saving reads the stored state first, because the step it records has to be diffed against
     // what is actually stored rather than against whatever the caller believed was there.
@@ -124,20 +124,20 @@ describe('modifying', () => {
 })
 
 describe('deleting', () => {
-  it('is denied to a principal holding only modify', async () => {
+  it('CMP-11: is denied to a principal holding only modify', async () => {
     // Removal is the inverse of registration. Letting modify cover it would mean a role meant to
     // edit attribute schemas could destroy a component that pages depend on.
     await expectDenied(() =>
       components.deleteUserComponentHeader(contextWith(['components:modify']), 'hero'))
   })
 
-  it('is allowed with components:register', async () => {
+  it('CMP-11: is allowed with components:register', async () => {
     await components.deleteUserComponentHeader(contextWith(['components:register']), 'hero')
     // Read first, to refuse a reference naming a component the editor owns.
     expect(calls).toEqual(['get:hero', 'delete:hero'])
   })
 
-  it('is not implied by being able to read', async () => {
+  it('CMP-11: is not implied by being able to read', async () => {
     await expectDenied(() =>
       components.deleteUserComponentHeader(contextWith(['components:read']), 'hero'))
   })
@@ -162,7 +162,7 @@ describe('components the editor owns', () => {
   const dynamic = () => { stored = { uid: 'hero', type: 'dynamic', name: 'Hero' } }
   const registrar = () => contextWith(['components:read', 'components:register'])
 
-  it('refuses to delete one, even holding the permission that deletes prebuilt components', async () => {
+  it('CMP-9: refuses to delete one, even holding the permission that deletes prebuilt components', async () => {
     dynamic()
 
     await expect(components.deleteUserComponentHeader(registrar(), 'hero'))
@@ -215,7 +215,7 @@ describe('components the editor owns', () => {
     expect(listed.map(entry => entry.uid).sort()).toEqual(['card', 'hero'])
   })
 
-  it('checks the permission before the type, so neither answer leaks the other', async () => {
+  it('CMP-11: checks the permission before the type, so neither answer leaks the other', async () => {
     // A principal with no permission must not learn whether a component exists or what kind it is.
     dynamic()
 

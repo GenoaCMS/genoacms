@@ -71,7 +71,7 @@ describe('publishing a tree', () => {
     expect(readablePageTreePath('home')).toBe('.genoacms/pages/readables/home')
   })
 
-  it('writes a signed envelope, not the bare tree', async () => {
+  it('TRE-1: writes a signed envelope, not the bare tree', async () => {
     await uploadReadablePageTree('home', tree)
 
     expect(stored).toMatchObject({ type: PAGE_TREE_DOCUMENT, keyId })
@@ -94,13 +94,13 @@ describe('publishing a tree', () => {
 })
 
 describe('reading one back', () => {
-  it('returns the tree when it verifies', async () => {
+  it('TRE-1: returns the tree when it verifies', async () => {
     await uploadReadablePageTree('home', tree)
 
     expect(await getReadablePageTree('home')).toEqual(tree)
   })
 
-  it('refuses a tree whose nodes were repointed after signing', async () => {
+  it('TRE-1: refuses a tree whose nodes were repointed after signing', async () => {
     await uploadReadablePageTree('home', tree)
     const envelope = stored as { payload: ReadablePageNode }
     stored = { ...envelope, payload: { ...envelope.payload, component: 'Attacker' } }
@@ -108,7 +108,7 @@ describe('reading one back', () => {
     await expect(getReadablePageTree('home')).rejects.toThrow(/did not verify/)
   })
 
-  it('refuses a tree whose revision pin was rolled back after signing', async () => {
+  it('TRE-1: refuses a tree whose revision pin was rolled back after signing', async () => {
     await uploadReadablePageTree('home', tree)
     const envelope = stored as { payload: ReadablePageNode }
     stored = { ...envelope, payload: { ...envelope.payload, publicationId: 'an-older-commit' } }
@@ -116,7 +116,7 @@ describe('reading one back', () => {
     await expect(getReadablePageTree('home')).rejects.toThrow(/did not verify/)
   })
 
-  it('refuses one signed by a key the registry does not list', async () => {
+  it('TRE-1: refuses one signed by a key the registry does not list', async () => {
     await uploadReadablePageTree('home', tree)
     stored = { ...(stored as object), keyId: 'not-in-the-registry' }
 
@@ -132,7 +132,7 @@ describe('reading one back', () => {
     await expect(getReadablePageTree('home')).rejects.toThrow()
   })
 
-  it('reports a page that was never published as absent, not as tampered with', async () => {
+  it('TRE-1: reports a page that was never published as absent, not as tampered with', async () => {
     readFails = true
 
     expect(await getReadablePageTree('never-built')).toBeNull()

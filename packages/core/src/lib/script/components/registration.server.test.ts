@@ -78,14 +78,14 @@ beforeEach(() => {
 })
 
 describe('what registering demands', () => {
-  it('is allowed for either kind with components:register', async () => {
+  it('CMP-11: is allowed for either kind with components:register', async () => {
     await registerUserComponent(contextWith([REGISTER]), { name: 'Card', type: 'prebuilt' })
     await registerUserComponent(contextWith([REGISTER]), { name: 'Hero', type: 'dynamic' })
 
     expect(created).toEqual(['header:prebuilt:Card', 'definition:Hero'])
   })
 
-  it('is denied for either kind without it', async () => {
+  it('CMP-11: is denied for either kind without it', async () => {
     for (const type of ['prebuilt', 'dynamic'] as const) {
       await expect(
         registerUserComponent(contextWith([]), { name: 'Nothing', type })
@@ -94,7 +94,7 @@ describe('what registering demands', () => {
     expect(created).toEqual([])
   })
 
-  it('is not implied by being able to describe a component, or to write code', async () => {
+  it('CMP-11: is not implied by being able to describe a component, or to write code', async () => {
     // Registering is a component's existence. Neither adjusting an existing component's shape nor
     // holding the key to its source is a licence to add components pages can then be built on.
     for (const permission of ['components:modify', 'components:code', 'components:read'] as const) {
@@ -136,7 +136,7 @@ describe('what registering stores', () => {
 })
 
 describe('deleting a component', () => {
-  it('removes a prebuilt one through the header service', async () => {
+  it('CMP-9: removes a prebuilt one through the header service', async () => {
     stored = { uid: 'card', type: 'prebuilt', name: 'Card' }
 
     await deleteUserComponentByReference(contextWith([REGISTER]), 'card')
@@ -144,7 +144,7 @@ describe('deleting a component', () => {
     expect(created).toEqual(['removed-header:card'])
   })
 
-  it('removes a dynamic one through the service that owns its source', async () => {
+  it('CMP-9: removes a dynamic one through the service that owns its source', async () => {
     // The defect that made the catalog hide dynamic components: removing one through the header
     // service deletes the description and strands the definition, every commit under it, and every
     // executable it published — each still signed and still verifying, for a component that is gone.
@@ -156,7 +156,7 @@ describe('deleting a component', () => {
     expect(created).not.toContain('removed-header:hero')
   })
 
-  it('reads the stored kind rather than believing the request', async () => {
+  it('CMP-9: reads the stored kind rather than believing the request', async () => {
     // The reference is all the request carries, so there is nothing to forge — asserting it here is
     // what stops a later signature growing a caller-supplied type as a convenience.
     stored = { uid: 'hero', type: 'dynamic', name: 'Hero' }
@@ -166,7 +166,7 @@ describe('deleting a component', () => {
     expect(created).toEqual(['removed-everything:hero'])
   })
 
-  it('is denied without components:register, for either kind', async () => {
+  it('CMP-11: is denied without components:register, for either kind', async () => {
     for (const type of ['prebuilt', 'dynamic']) {
       stored = { uid: 'x', type, name: 'X' }
       await expect(

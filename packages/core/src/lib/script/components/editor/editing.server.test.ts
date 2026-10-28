@@ -60,19 +60,19 @@ beforeEach(() => {
 })
 
 describe('saving', () => {
-  it('writes the body', async () => {
+  it('SRC-4: writes the body', async () => {
     await saveComponentBody(UID, 'second', VERSION)
 
     expect(bodyOf()).toBe('second')
   })
 
-  it('records a step that can be undone', async () => {
+  it('HIS-1: records a step that can be undone', async () => {
     const depth = await saveComponentBody(UID, 'second', VERSION)
 
     expect(depth).toMatchObject({ historyLength: 1, futureLength: 0 })
   })
 
-  it('records nothing when the body has not changed', async () => {
+  it('HIS-1: records nothing when the body has not changed', async () => {
     // Pressing save twice is harmless, and undoing once afterwards has to actually undo something.
     // An empty step would occupy a place in the history and appear to do nothing when replayed.
     await saveComponentBody(UID, 'second', VERSION)
@@ -90,7 +90,7 @@ describe('saving', () => {
 })
 
 describe('undoing', () => {
-  it('returns the body to the state before the last save', async () => {
+  it('HIS-1: returns the body to the state before the last save', async () => {
     await saveComponentBody(UID, 'second', VERSION)
 
     await undoComponentBody(UID, VERSION)
@@ -98,7 +98,7 @@ describe('undoing', () => {
     expect(bodyOf()).toBe('first')
   })
 
-  it('walks back through several saves in order', async () => {
+  it('HIS-1: walks back through several saves in order', async () => {
     await saveComponentBody(UID, 'second', VERSION)
     await saveComponentBody(UID, 'third', VERSION)
 
@@ -109,14 +109,14 @@ describe('undoing', () => {
     expect(bodyOf()).toBe('first')
   })
 
-  it('does nothing at the beginning of the history', async () => {
+  it('HIS-1: does nothing at the beginning of the history', async () => {
     await undoComponentBody(UID, VERSION)
 
     expect(bodyOf()).toBe('first')
     expect(await getComponentDefinitionDepth(UID)).toEqual({ historyLength: 0, futureLength: 0 })
   })
 
-  it('moves the step onto the future, so it can be redone', async () => {
+  it('HIS-1: moves the step onto the future, so it can be redone', async () => {
     await saveComponentBody(UID, 'second', VERSION)
     await undoComponentBody(UID, VERSION)
 
@@ -125,7 +125,7 @@ describe('undoing', () => {
 })
 
 describe('redoing', () => {
-  it('reapplies what was undone', async () => {
+  it('HIS-1: reapplies what was undone', async () => {
     await saveComponentBody(UID, 'second', VERSION)
     await undoComponentBody(UID, VERSION)
 
@@ -134,7 +134,7 @@ describe('redoing', () => {
     expect(bodyOf()).toBe('second')
   })
 
-  it('does nothing at the end of the history', async () => {
+  it('HIS-1: does nothing at the end of the history', async () => {
     await saveComponentBody(UID, 'second', VERSION)
 
     await redoComponentBody(UID, VERSION)
@@ -142,7 +142,7 @@ describe('redoing', () => {
     expect(bodyOf()).toBe('second')
   })
 
-  it('is discarded by editing from an undone state', async () => {
+  it('HIS-1: is discarded by editing from an undone state', async () => {
     // The abandoned branch is unreachable once the author writes over it, and its diffs were
     // computed against a state that no longer exists — replaying them would corrupt the body rather
     // than restore it.

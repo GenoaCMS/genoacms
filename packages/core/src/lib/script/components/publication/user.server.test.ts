@@ -72,16 +72,16 @@ const expectDenied = async (operation: () => unknown): Promise<void> => {
 }
 
 describe('publishing a prebuilt component', () => {
-  it('needs components:modify', async () => {
+  it('CMP-11, PUB-1: needs components:modify', async () => {
     await publication.publishUserComponent(curator(), order)
     expect(calls).toContain('publish:uid-1:subject-1')
   })
 
-  it('is denied to a principal with no grants', async () => {
+  it('CMP-11: is denied to a principal with no grants', async () => {
     await expectDenied(() => publication.publishUserComponent(nobody(), order))
   })
 
-  it('is denied to a principal who may only read the catalog', async () => {
+  it('CMP-11: is denied to a principal who may only read the catalog', async () => {
     await expectDenied(() => publication.publishUserComponent(reader(), order))
   })
 
@@ -97,12 +97,12 @@ describe('publishing a dynamic component', () => {
     storedType = 'dynamic'
   })
 
-  it('needs components:code as well as components:modify', async () => {
+  it('CMP-11, PUB-1: needs components:code as well as components:modify', async () => {
     await publication.publishUserComponent(developer(), order)
     expect(calls).toContain('publish:uid-1:subject-1')
   })
 
-  it('is denied to a curator who may not read the source', async () => {
+  it('CMP-11: is denied to a curator who may not read the source', async () => {
     // The guard this module exists for. Publishing a dynamic component compiles its source and signs
     // an executable consumers will run; releasing code one is not permitted to read is the
     // "publisher who releases what others wrote" arrangement the permission collapse gave up.
@@ -115,7 +115,7 @@ describe('publishing a dynamic component', () => {
     await expectDenied(() => publication.publishUserComponent(coder(), order))
   })
 
-  it('dispatches on the stored type, not on anything the caller sends', async () => {
+  it('CMP-11, PUB-1: dispatches on the stored type, not on anything the caller sends', async () => {
     // A client that could declare its own component prebuilt would publish an executable with
     // `components:modify` alone. The type is read from storage, and the order has no place for one.
     await expectDenied(() =>
@@ -125,7 +125,7 @@ describe('publishing a dynamic component', () => {
 })
 
 describe('attribution', () => {
-  it('names the authenticated principal, not the order', async () => {
+  it('PUB-1: names the authenticated principal, not the order', async () => {
     // The order is what the browser sent. If it could name the publisher, a principal could
     // attribute its own release to somebody else, and both signed documents would carry that claim.
     const forged = { ...order, publisherId: 'someone-else' } as never
@@ -137,7 +137,7 @@ describe('attribution', () => {
 })
 
 describe('reading publication status', () => {
-  it('rides on the catalog permission, not on modify', async () => {
+  it('CMP-11: rides on the catalog permission, not on modify', async () => {
     // Which components are actually usable on a page is catalog-order information. A principal who
     // may see that a component exists needs to know whether anything has been released of it.
     await publication.getUserPublishedComponent(reader(), 'uid-1')
@@ -152,7 +152,7 @@ describe('reading publication status', () => {
 })
 
 describe('listing what a page may be composed from', () => {
-  it('rides on the catalog permission', async () => {
+  it('CMP-11: rides on the catalog permission', async () => {
     // Which components can be put on a page is the same order of fact as which components exist, and
     // a principal composing a page is not thereby permitted to change anything.
     await publication.listUserComposableComponents(reader())

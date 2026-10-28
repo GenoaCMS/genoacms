@@ -24,7 +24,7 @@ describe('recording steps', () => {
     expect(noHistory<Doc>()).toEqual({ history: [], future: [] })
   })
 
-  it('records a step and leaves the state as the author left it', () => {
+  it('HIS-1: records a step and leaves the state as the author left it', () => {
     const doc: Doc = { title: 'first', tags: [] }
     const adjunct = edit(doc, noHistory<Doc>(), d => { d.title = 'second' })
 
@@ -32,7 +32,7 @@ describe('recording steps', () => {
     expect(adjunct.history).toHaveLength(1)
   })
 
-  it('records nothing when nothing changed', () => {
+  it('HIS-1: records nothing when nothing changed', () => {
     // An empty step still occupies a place in the history, so undoing would appear to do nothing
     // once for every save that changed nothing.
     const doc: Doc = { title: 'first', tags: [] }
@@ -62,7 +62,7 @@ describe('undoing and redoing', () => {
     return { doc, adjunct: edit(doc, first, d => { d.title = 'c' }) }
   }
 
-  it('reverts the most recent step, not the oldest', () => {
+  it('HIS-1: reverts the most recent step, not the oldest', () => {
     // History reads oldest-first, so taking the wrong end walks the author's edits backwards from
     // the start and leaves a state they never saw.
     const { doc, adjunct } = twoEdits()
@@ -71,14 +71,14 @@ describe('undoing and redoing', () => {
     expect(doc.title).toBe('b')
   })
 
-  it('walks back to the beginning one step at a time', () => {
+  it('HIS-1: walks back to the beginning one step at a time', () => {
     const { doc, adjunct } = twoEdits()
     redo(doc, undo(doc, undo(doc, adjunct)))
 
     expect(doc.title).toBe('b')
   })
 
-  it('applies what was undone, most recently undone first', () => {
+  it('HIS-1: applies what was undone, most recently undone first', () => {
     const { doc, adjunct } = twoEdits()
     const undone = undo(doc, undo(doc, adjunct))
     expect(doc.title).toBe('a')
@@ -87,7 +87,7 @@ describe('undoing and redoing', () => {
     expect(doc.title).toBe('c')
   })
 
-  it('moves a step between history and future rather than dropping it', () => {
+  it('HIS-1: moves a step between history and future rather than dropping it', () => {
     const { doc, adjunct } = twoEdits()
     const undone = undo(doc, adjunct)
 
@@ -95,7 +95,7 @@ describe('undoing and redoing', () => {
     expect(undone.future).toHaveLength(1)
   })
 
-  it('does nothing with an empty history, rather than failing', () => {
+  it('HIS-1: does nothing with an empty history, rather than failing', () => {
     const doc: Doc = { title: 'a', tags: [] }
     const empty = noHistory<Doc>()
 
@@ -104,7 +104,7 @@ describe('undoing and redoing', () => {
     expect(doc.title).toBe('a')
   })
 
-  it('discards the redo branch once the author edits from an undone state', () => {
+  it('HIS-1: discards the redo branch once the author edits from an undone state', () => {
     // The abandoned branch's differences were computed against a state that no longer exists, so
     // applying them would corrupt rather than restore.
     const { doc, adjunct } = twoEdits()
@@ -115,7 +115,7 @@ describe('undoing and redoing', () => {
     expect(doc.title).toBe('elsewhere')
   })
 
-  it('restores a nested change, not only a top-level field', () => {
+  it('HIS-1: restores a nested change, not only a top-level field', () => {
     const doc: Doc = { title: 'a', tags: ['x'] }
     const adjunct = edit(doc, noHistory<Doc>(), d => { d.tags.push('y') })
 
