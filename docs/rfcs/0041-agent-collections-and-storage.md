@@ -5,7 +5,7 @@ title: Agent tools for documents and objects, with documents validated by the se
 status: draft
 depends: [39, 40, 42]
 architecture: [architecture/agent-access.md, architecture/collections.md, architecture/storage.md]
-changes: [TOL-18 added, TOL-19 added, TOL-20 added, TOL-21 added, TOL-22 added, TOL-23 added, TOL-24 added, TOL-25 added, TOL-26 added, TOL-27 added, TOL-28 added, TOL-29 added, DOC-8 added, STS-7 added, DOC-3 compatible, DOC-5 breaking, TOL-1 editorial]
+changes: [TOL-18 added, TOL-19 added, TOL-20 added, TOL-21 added, TOL-22 added, TOL-23 added, TOL-24 added, TOL-25 added, TOL-26 added, TOL-27 added, TOL-28 added, TOL-29 added, DOC-8 added, STS-7 added, DOC-3 compatible, DOC-5 breaking, STS-5 breaking, TOL-1 editorial]
 commit-subject: "feat(core): agent tools for documents and objects, with documents validated by the service (RFC-0041)"
 ---
 
@@ -27,6 +27,13 @@ collections and buckets too (`agent-access.md` TU12 to TU15). This RFC:
 5. Documents the tools on the documentation site.
 
 Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (TU14).
+
+**Amended after its falsification audit** (`agent-access.md` TS1; OU7, OU8, TU16): the key neither
+required nor validated on update and create (OF30, OF31); errors under hidden fields not described
+(OF32); creations validated as stored (OF33); the contract's not-found answered as the service's
+(OF34); restricted updates writing only the writable fields (OF35); the bare `.genoacms` protected
+(BF13); moves refusing an existing destination unless told to replace it, and never into themselves
+(TF2); the root refused by `create_directory` (TF3); base64 strictness stated (TF4).
 
 ## Files
 
@@ -57,6 +64,11 @@ Document saves stay unconditional (TU13); uploads are inline and at most 4 MiB (
 | `packages/docs/src/routes/reference/mcp/+page.md` | the 16 tools |
 | `.changeset/agent-collections-storage.md` | new: `'@genoacms/core': minor` |
 | `docs/architecture/agent-access.md`, `collections.md`, `storage.md`, `docs/README.md` | the statements current, after the code (§Steps) |
+
+**Amended by the audit:** `database/user.server.ts`, `validation.ts`, `user.server.test.ts`;
+`storage/user.server.ts`, `user.server.test.ts`; `mcp/tools/storage.server.ts`, `registry.server.ts`,
+`storage.test.ts`; the MCP reference page (`overwrite` on the moves); `.changeset/agent-tools-audit.md`
+(`@genoacms/core`, minor).
 
 ## Specification
 
@@ -89,6 +101,14 @@ allows, can no longer be saved from the editor until the field is valid.
 
 **TOL-1** (editorial): *Every read tool returns* becomes *Every read tool of components and pages
 returns*, and *Every tool that changes one of them* is unchanged.
+
+**STS-5** (breaking, by the amendment): *when its name or its destination starts with `.genoacms/`*
+becomes *when its name or its destination is `.genoacms` or starts with `.genoacms/`*.
+
+**DOC-3**, by the amendment: its second sentence becomes *Any other update reads the stored document
+and writes only the writable fields of the submission, those it has, so every other field keeps the
+value it holds when the write lands.*, and `documents/not-found` is also the answer when the document
+disappears between the read and the write.
 
 ### Core
 
@@ -236,6 +256,24 @@ collection name, built on `checkQuery`, `checkValues` and `matches` of
 `memoryDatabase.set(collection, id, data)` and `memoryDatabase.get(collection, id)`. Tests mock
 `$lib/script/database/providers.server` so that `adapterForCollection` returns it.
 
+### Amended by the audit
+
+DOC-8, TOL-26, TOL-27 and TOL-28 hold the text of the architecture documents at the commit of this
+amendment (OU7, OU8, TU16). The code:
+
+- `validateDocument` takes a third argument, the readable fields, and builds DOC-8's message,
+  replacing the errors whose `instancePath` starts with `/<field>` for an unreadable `field` by one
+  `hidden fields`. `withoutRequiredKey` and `withoutKey` apply to creations and updates alike.
+- A creation validates `writableDocument(document, writable)`. A restricted update validates the
+  merged document and calls `updateDocument(reference, writableDocument(document, fields))`; an
+  unrestricted one sends the submission as before. A `DocumentNotFoundError` of the adapter
+  (`isDocumentNotFound`) becomes the service's.
+- `isInternalState` also holds for the name `.genoacms`.
+- `move_object` and `move_directory` take `overwrite` (boolean). Without it, `move_object` looks for
+  the destination in `listUserDirectory` of its parent and `move_directory` lists the destination with
+  `limit: 1`; anything found refuses the move. `move_directory` refuses a `destination` starting with
+  `path`; `create_directory` refuses `''` with `requireSubdirectoryPath`.
+
 ## Non-goals
 
 - Uploads over 4 MiB, a signed upload URL, and content types (TU14).
@@ -316,6 +354,22 @@ throws `DocumentValidationError` from `createUserDocument` / `updateUserDocument
 `packages/core/src/lib/script/mcp/protocol.test.ts`: the expected `tools/list` names gain the 16
 tools, in the order of §MCP; the test's title and other assertions are unchanged.
 
+### Amendment tests
+
+Written first, marked `it.fails` where they fail, each title carrying the statement and the finding.
+
+| File | Title | Asserts |
+| :-- | :-- | :-- |
+| `core/src/lib/script/database/user.server.test.ts` | `DOC-8, OF30, OF31: the key is neither required nor validated, on create and update` | with `required: ['id', 'name']` and `id` of `format: uuid`, an update of `name` and a creation with `id: 'bad'` succeed |
+| same | `DOC-8, OF32: errors under hidden fields are not described` | the audit's `oneOf` over a hidden `isA`: the message is `documents/invalid:` with `hidden fields` and without `/isA` |
+| same | `DOC-8, OF33: a restricted creation is validated as stored` | a principal reading and writing `name` alone, `isA` required: creating `{ name, isA }` fails with `documents/invalid: / required` and nothing is created |
+| same | `DOC-3, OF35: a restricted update writes only the writable fields` | `updateDocument` receives `{ name }` alone |
+| same | `DOC-3, OF34: a document gone before the write is not found` | the adapter throws a `DocumentNotFoundError`; the service throws `documents/not-found: <collection>/<id>` |
+| `core/src/lib/script/storage/user.server.test.ts` | `STS-5, BF13: the bare .genoacms is the CMS's state` | an upload of, and a move to, `.genoacms` in the default bucket fail with `storage/internal-read-only: .genoacms` |
+| `core/src/lib/script/mcp/tools/storage.test.ts` | `TOL-27, TF2: a move onto an existing object needs overwrite` | `move_object a → b` with `b` present fails with `storage/exists: <bucket>/b`, both unchanged; with `overwrite: true` it moves |
+| same | `TOL-28, TF2, TF3: a directory move needs overwrite, never goes into itself, and the root is not created` | `move_directory d/ → e/` with `e/x` present fails, and with `overwrite: true` moves; `p/ → p/r/` fails with `storage/invalid-name: p/r/`; `create_directory('')` fails with `storage/invalid-name: ` |
+| same | `TOL-26, TF4: wrapped and URL-safe base64 are refused` | `'QUJD\nREVG'` and `'-_8='` with `encoding: 'base64'` fail with `storage/invalid-content:` |
+
 ## Steps
 
 1. Commit the architecture changes (TOL-18 to TOL-29, DOC-8, STS-7 **New**), then this RFC,
@@ -327,12 +381,17 @@ tools, in the order of §MCP; the test's title and other assertions are unchange
 3. Another session implements §Core and §MCP, removes the `it.fails` markers without changing an
    assertion, documents the tools on the site, and adds the changeset. A contradiction with reality
    is corrected in this RFC first (WORKFLOW §8.2). Commit with the `commit-subject`.
-4. Update the architecture documents: the statements current with their test files; DOC-3, DOC-5,
+4. (After step 6.) Update the architecture documents: the statements current with their test files; DOC-3, DOC-5,
    DOC-8 and TOL-1 to §Specification's text; the History of each document; `docs/README.md`; this
    RFC `implemented` with its commits. Commit: `docs: agent tools for documents and objects current
    (RFC-0041)`.
 5. A falsification audit of every statement this RFC adds or changes, by an agent that wrote none of
-   it, recorded as a Verification entry in `agent-access.md`; each counterexample a finding.
+   it, recorded as a Verification entry in `agent-access.md`; each counterexample a finding (done:
+   TS1).
+6. The amendment, after RFC-0042's: its tests written first (`test(core): the agent tools' audit
+   findings (RFC-0041)`), then its code (`fix(core): the agent tools' audit findings (RFC-0041)`).
+7. Step 4 for the whole RFC, the amendment's findings fixed, OU7, OU8 and TU16 current, and this RFC
+   `implemented` with the commits of steps 3 and 6.
 
 ## Verification
 
@@ -369,6 +428,9 @@ node docs/tools/check-docs.mjs docs
   query among them.
 - Saves are last write wins (TU13), and a field cannot be removed (TD7).
 - Uploads stop at 4 MiB and carry no content type, so the store serves them as its default type.
+
+- By the amendment: that an update fails because of hidden fields still shows (OU7), and the move
+  check reads before moving, so two movers can still both replace (TU16).
 
 **Blindspots & missed edge cases**
 - A validation error names the path of a field the principal may not read (a restricted writer's

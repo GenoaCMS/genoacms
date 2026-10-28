@@ -27,6 +27,12 @@ the contract (CU11 to CU16). This RFC:
 5. Moves core onto the page type; core's behavior does not change, apart from the key field now
    being in every document read (DATA-3).
 
+**Amended after its falsification audit** (`contracts/database.md` CS8, CF59 to CF66; CU17): values
+every store can hold; the key field ignored before any check, and an `undefined` key omitted; IDs a
+store cannot hold read as absent; Postgres field names literal; parameters checked strictly,
+`limit` at most 1000, and tokens refused when they do not fit the query; DynamoDB's empty value map;
+and conformance cases for orderings and paging paths the suite missed.
+
 ## Files
 
 **Modify or create only:**
@@ -55,6 +61,10 @@ the contract (CU11 to CU16). This RFC:
 | `packages/core/src/routes/(admin)/collections/[collectionName]/+page.server.ts` and any other caller of `getUserCollection` | read `.documents`; no `limit`, so the listing still holds every document (LST-1) |
 | `.changeset/database-contract.md` | new: `@genoacms/contracts` minor, `@genoacms/conformance` minor, `@genoacms/adapter-gcp` minor, `@genoacms/adapter-aws` minor, `@genoacms/adapter-postgres` minor, `@genoacms/core` minor |
 | `docs/architecture/contracts/database.md`, `contracts/README.md`, `contracts/conformance.md`, `adapter-gcp/database.md`, `adapter-aws/database.md`, `docs/README.md` | after the code (§Steps) |
+
+**Amended by the audit:** `packages/contracts/src/database/query.js`, `query.d.ts`, `query.test.js`; the three
+adapters' runtimes and unit tests; `packages/conformance/src/database.js`, `test/mutants/database.js`,
+`test/memory.js`; `.changeset/database-contract-audit.md` (the same packages, minor).
 
 ## Specification
 
@@ -201,6 +211,34 @@ mutant per test that breaks exactly what it checks; each must fail its test (CD5
 params)` returns `{ documents: projected, next }`. Every caller that listed snapshots reads
 `.documents` and passes no `limit`.
 
+### Amended by the audit
+
+DATA-2, DATA-3, DATA-5, DATA-7, DATA-8 and DATA-9 hold the text of `contracts/database.md` at the
+commit of this amendment (CU17; CF59 to CF65). The code:
+
+- **Shared (`query.js`).** `checkValues(data)` follows DATA-2: strings checked with
+  `String.prototype.isWellFormed()` and for `\u0000`; numbers by `Number.isFinite`, then `0` or
+  `Math.abs(n)` from `1e-130` to `1e126`, and at most 38 significant digits in `String(n)`; arrays
+  dense (`Object.keys(a).length === a.length`) and of non-arrays; the objects on the path kept in a
+  set, a repeat throwing at its path. `checkQuery(params)` refuses `null`, a non-object, an array,
+  any key outside `where`, `limit`, `pageToken`, a sparse `where` and `limit` above 1000.
+- **Key handling, every adapter.** Before `checkValues`, a create removes the key field, and an update
+  removes it when it is `undefined` or equals the ID.
+- **Firestore.** `isStorableId(id)`: a non-empty string without `/`, not `.` or `..`, not matching
+  `__.*__`, at most 1500 bytes. `getDocument` and `deleteDocument` of an ID that is not storable
+  return `undefined` and do nothing. A key condition whose value is a string that is not storable:
+  `==` matches nothing; `!=` is dropped; an order condition is applied in process with `matches`, the
+  query fetched without it. A page token is refused unless its `values` hold one value per inequality
+  field of the query.
+- **DynamoDB.** `ExpressionAttributeValues` is omitted when it has no entry. A page token is refused
+  unless it decodes to an object holding the key attribute alone, of type `S`.
+- **Postgres.** Identifiers are quoted literally by a function `identifier(name)`: `"` doubled, the
+  whole wrapped in `"`, passed with `knex.raw`. The columns of a table are read once per adapter and
+  table from `information_schema.columns`; a condition on a field with no column matches nothing,
+  and a query with such a condition answers an empty page without being sent. `getDocument` and
+  `deleteDocument` of `''` return `undefined` and do nothing. A page token is refused unless it
+  decodes to a string or a number.
+
 ## Non-goals
 
 - Caller-chosen order, `in`, `array-contains`, nested fields, case-insensitive matching.
@@ -229,6 +267,24 @@ the store's client mocked:
 The conformance suite runs at level `conformance` against `memoryDatabase` and its mutants, and at
 level `contract` against Firestore (`genoacms-tests`), DynamoDB and Postgres 16 in CI.
 
+### Amendment tests
+
+Written first, marked `it.fails` where they fail, each title carrying the statement and the finding.
+The conformance cases each get a mutant.
+
+| File | Title | Asserts |
+| :-- | :-- | :-- |
+| `conformance/src/database.js` | `DATA-2, CF65: values no store can hold are refused before any request` | `[[1]]`, `1e200`, `5e-324`, a number of 40 significant digits, `'a\u0000'`, `'\uD800'`, a sparse array and a circular object each throw `database/unsupported-value: <path>`, and nothing is created |
+| same | `DATA-3, CF62, CF63: the key field is ignored before any check` | a create with `id: NaN` succeeds under a store-assigned ID; an update with `id: undefined` sets the other fields |
+| same | `DATA-5, DATA-7, CF60: an ID the store cannot hold reads as absent` | `getDocument` of `''` and of `'a/b'` is `undefined`; deleting them is not an error |
+| same | `DATA-8, CF64: parameters are checked strictly` | `null`, `'x'`, `{ conditions: [] }`, a sparse `where`, `limit: 1001` and a token of another query's shape each throw `database/invalid-query:` |
+| same | `DATA-9, CF66: strings order by UTF-8 bytes and numbers by value, signs included` | over `'a'`, `'é'`, `'z'`, `'Ω'`, `'😀'` and `-2`, `-0`, `0`, `1.5`: `<` and `>=` give the byte and numeric orders |
+| same | `DATA-10, CF66: paging holds with an inequality, a limit of 1 and a limit above the matches` | 7 documents with `n` from 0 to 6, `where n >= 2`: with `limit: 1`, five pages and perhaps an empty sixth, each match once; with `limit: 50`, one page of 5 and no `next` |
+| `adapter-aws/src/database/runtime.test.ts` | `DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues` | for `< null`, `!= null` and `< false`, the `Scan` input has no `ExpressionAttributeValues` key |
+| `adapter-gcp/src/database/runtime.test.ts` | `DATA-9, CF60: a key condition on an ID Firestore cannot hold compares as a string` | `id == 'a/b'` answers an empty page without a query; `id < 'b/c'` filters in process |
+| `adapter-postgres/src/runtime.test.js` | `DATA-8, DATA-9, CF61: field names are literal and a field without a column matches nothing` | a condition on `a.b` quotes `"a.b"`; one on a field outside the columns answers an empty page without the query |
+| `contracts/src/database/query.test.js` | `DATA-2, DATA-8, CF64, CF65: checkValues and checkQuery follow the subset and the strict parameters` | the conformance inputs above, without a store |
+
 ## Steps
 
 1. Commit `contracts/database.md` and the index changes, then this RFC, separately.
@@ -241,9 +297,15 @@ level `contract` against Firestore (`genoacms-tests`), DynamoDB and Postgres 16 
    §Changed, and adds the changeset. Commit with the `commit-subject`.
 4. Run the contract tests: Firestore and DynamoDB need the credentials CI has on `main`; Postgres
    runs in CI and locally with `GENOACMS_TEST_POSTGRES=1`.
-5. Update the documents: DATA-1 to DATA-12 current with their tests; the adapter statements to
-   §Changed; CF7, CF51 to CF57 and GF9 fixed; History; this RFC `implemented`. Commit: `docs: the
-   database contract current (RFC-0042)`.
+5. A falsification audit of DATA-1 to DATA-12 by an agent that wrote none of it (done: CS8, CF59 to
+   CF66).
+6. The amendment: its tests written first by a session that has not seen the code (`test: the
+   database contract's audit findings (RFC-0042)`), then its code (`fix: the database contract's
+   audit findings (RFC-0042)`), as steps 2 and 3.
+7. Update the documents: DATA-1 to DATA-12 current with their tests; the adapter statements to
+   §Changed; CF7, CF51 to CF57, CF59 to CF66 and GF9 fixed; CU17 current; History; this RFC
+   `implemented` with the commits of steps 3 and 6. Commit: `docs: the database contract current
+   (RFC-0042)`.
 
 ## Verification
 
@@ -280,6 +342,10 @@ node docs/tools/check-docs.mjs docs
   nothing.
 - Postgres compares through `to_jsonb` and casts, which no index serves.
 
+- The amendment makes the contract stricter than JSON: arrays of arrays, very large or small
+  numbers and strings with U+0000 are refused everywhere, though some stores could hold them.
+- Postgres reads a table's columns once per adapter; a column added later is unseen until restart.
+
 **Blindspots & missed edge cases**
 - A Firestore document written before this change, with a key field that differs from its ID, now
   reads with the key field overwritten by the ID; the stored field is not rewritten.
@@ -292,3 +358,6 @@ node docs/tools/check-docs.mjs docs
 - The page token is opaque but not signed: a caller can craft one; it can only move the start of a
   query the caller may run anyway.
 - Core's listing still reads every document (no `limit`); only RFC-0041's agents page.
+- Documents stored before the amendment with values DATA-2 now refuses still read, but an update
+  that keeps such a field fails on a field it did not touch.
+- A well-formed token of another query with the same shape is accepted and moves only the start.
