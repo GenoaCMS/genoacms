@@ -117,6 +117,7 @@ the empty one included.
 | BF9 | *History.* **Several items are acted on at once, and a failure hides what succeeded (BRW-6, BRW-9, BRW-10).** Uploads, moves and deletes of several items start together; the first failure fails the action, the others go on, and the user sees only `Upload failed`, `Move failed` or `Deletion failed`, with the selection kept. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF10 | *History.* **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF11 | **A denial by the storage service is an unexplained server error (BRW-3, BRW-16).** BU3 and RFC-0038 map only core's own `PermissionDeniedError` to 403. What a provider refuses, the adapter lets escape as its raw error: core has no `handleError` and no `+error.svelte`, so opening a directory the service account may not list shows SvelteKit's `Internal Error` page, and only the server log names the cause. The contract has no error for it. Found 2026-10-28 in use, on a directory of about 2000 objects, first suspected to be load; the log showed a permission error. Which adapter and the provider's exact error are not recorded. | open; decided in BU6, awaiting an RFC |
+| BF12 | **Text the CMS reads from an object is corrupted when a multibyte character spans two chunks (STS-6).** The storage service, the session store and the authorization manifests read an object as text by turning each chunk of its stream into a string on its own and joining the strings. The two halves of a UTF-8 character split across chunks each become U+FFFD. Whether it happens depends on how the provider chunks the stream, not on the content alone: the memory storage of the unit tests yields one chunk and never shows it. A page edit reads its entry, changes it and writes it back, so the damage is written into the entry and grows with each save. Found 2026-10-28 in use, on core 0.3.0 on Cloud Storage: a Slovak page built with about 280 MCP edits stored 2,731 U+FFFD characters, `Návod na používanie aplikácie` having become `Návod na pou��ívanie aplik��������cie`. The MCP client sent correct UTF-8. | open; RFC-0040 |
 
 ### History
 
@@ -204,6 +205,22 @@ not affected, and neither is the CMS's own access (BD1).
 
 - Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit, e2e
+
+### The CMS's own reads
+
+#### STS-6 · Objects read as text are decoded whole
+
+When the CMS reads an object as text, it decodes the object's bytes as one UTF-8 sequence, never chunk
+by chunk. This holds for every text read of the storage service (BD1), the internal documents it reads
+as text, JSON or flatted, page entries among them, and for the session store and the authorization
+manifests. The text is the same however the adapter splits the object's stream into chunks, a split
+inside a multibyte character included; a chunk that is a string counts as its UTF-8 bytes. Bytes that
+are not valid UTF-8 decode to U+FFFD, and a leading byte order mark is kept as U+FEFF. A stream that
+fails fails the read with the stream's error.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0040)
 
 ### The browser
 
