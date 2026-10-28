@@ -13,6 +13,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
  */
 
 const calls: string[] = []
+const uploaded: Array<{ uid: string, type?: string }> = []
 
 /**
  * What storage holds. Prebuilt by default, because these tests are about the permission gate.
@@ -48,7 +49,10 @@ vi.mock('./io.server', () => ({
     calls.push(`get:${reference}`)
     return stored
   },
-  uploadComponentHeader: async (entry: { uid: string }) => { calls.push(`upload:${entry.uid}`) },
+  uploadComponentHeader: async (entry: { uid: string }) => {
+    calls.push(`upload:${entry.uid}`)
+    uploaded.push(structuredClone(entry))
+  },
   deleteComponentHeader: async (name: string) => { calls.push(`delete:${name}`) },
   getComponentHeaderHistory: async (reference: string) => {
     calls.push(`history:${reference}`)
@@ -74,6 +78,7 @@ const entry = { uid: 'hero', attributes: {} } as never
 
 beforeEach(() => {
   calls.length = 0
+  uploaded.length = 0
   stored = { uid: 'hero', type: 'prebuilt', name: 'Hero' }
 })
 
@@ -213,5 +218,25 @@ describe('components the editor owns', () => {
     dynamic()
 
     await expectDenied(() => components.deleteUserComponentHeader(contextWith([]), 'hero'))
+  })
+})
+
+describe('saving a header', () => {
+  const save = components.updateUserComponentHeader as unknown as (ctx: AuthContext, header: unknown, version: string) => Promise<unknown>
+  const modifier = () => contextWith(['components:read', 'components:modify'])
+
+  it.fails('CMP-8: saving a header for an unknown uid is refused', async () => {
+    stored = null
+
+    await expect(save(modifier(), { uid: 'ghost', type: 'prebuilt', name: 'Ghost', attributes: {}, attributeOrder: [] }, 'v1'))
+      .rejects.toThrow(/^components\/no-such-component: ghost/)
+    expect(uploaded).toEqual([])
+    expect(calls.filter(call => call.startsWith('upload'))).toEqual([])
+  })
+
+  it.fails('CMP-8: saving a header keeps the stored kind', async () => {
+    await save(modifier(), { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] }, 'v1')
+
+    expect(uploaded.map(entry => entry.type)).toEqual(['prebuilt'])
   })
 })
