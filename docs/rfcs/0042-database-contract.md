@@ -51,6 +51,7 @@ the contract (CU11 to CU16). This RFC:
 | `packages/conformance/test/mutants/database.js`, `database.mutant.js` | new: one mutant per suite test, as `storage.js` / `storage.mutant.js` |
 | `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js` | the new fixture; describe titles carry the DATA IDs |
 | `packages/core/src/lib/script/database/database.server.ts`, `user.server.ts` | the page type; `getUserCollection` projects `page.documents` and returns the page |
+| `packages/core/src/lib/script/database/user.server.test.ts`, `packages/core/evidence/permissionMatrix.test.ts` | their stubs of the database service return pages |
 | `packages/core/src/routes/(admin)/collections/[collectionName]/+page.server.ts` and any other caller of `getUserCollection` | read `.documents`; no `limit`, so the listing still holds every document (LST-1) |
 | `.changeset/database-contract.md` | new: `@genoacms/contracts` minor, `@genoacms/conformance` minor, `@genoacms/adapter-gcp` minor, `@genoacms/adapter-aws` minor, `@genoacms/adapter-postgres` minor, `@genoacms/core` minor |
 | `docs/architecture/contracts/database.md`, `contracts/README.md`, `contracts/conformance.md`, `adapter-gcp/database.md`, `adapter-aws/database.md`, `docs/README.md` | after the code (§Steps) |
@@ -114,8 +115,12 @@ In `adapter-gcp/src/database/runtime.ts`:
 - Every write runs `checkValues` first. `createDocument` takes a new reference with
   `collection.doc()` and writes `set({ ...data, [key]: id })`, one write, so the key field is the ID.
 - `getDocument` and `getCollection` set `data[key] = id` on every snapshot.
+- A condition on the key field whose value is not a string matches nothing (DATA-9): the query is
+  not sent, and the page is empty. A string one is a `where` on `FieldPath.documentId()`.
 - `updateDocument`: a key field different from `reference.id` throws `database/key-immutable: <key>`;
-  an equal one is removed; each field is passed to `update` as a `FieldPath`, so a dotted name is one
+  an equal one is removed; an update left with no field reads the document and throws
+  `DocumentNotFoundError` when it does not exist, since `update()` takes at least one field; each
+  field is passed to `update` as a `FieldPath`, so a dotted name is one
   top-level field (DATA-6), not a path; Firestore's `NOT_FOUND` (code 5) becomes `DocumentNotFoundError`.
 - `getCollection(ref, params = {})`: `checkQuery(params)`. Conditions with `!=` on Firestore also
   return documents whose field holds another type, so the adapter filters every fetched document
@@ -134,6 +139,10 @@ In `adapter-aws/src/database/runtime.ts`:
 - `Scan` pages are read with `ExclusiveStartKey` until `limit` matches or `LastEvaluatedKey` is
   absent. When it stops inside a page, the page token encodes the key of the last returned item;
   otherwise `LastEvaluatedKey`. `next` is absent only when the scan ended.
+- DynamoDB compares booleans with `=` and `<>` only, so an order condition on a boolean is written as
+  the equalities it means under `false < true`: `< true` and `<= false` as `= false`, `> false` and
+  `>= true` as `= true`, `<= true` and `>= false` as `attribute_type` `BOOL` alone, and `< false` or
+  `> true` as never true.
 - `withoutKey` is no longer applied to reads: `data` keeps the key attribute (DATA-3).
 - `updateDocument`: a key field equal to `id` is removed before the request; the condition failure
   becomes `DocumentNotFoundError`.
@@ -145,14 +154,19 @@ In `adapter-postgres/src/runtime.js`:
 - `createDocument`: `checkValues`; the key field is removed; a key whose `primaryKey.schema.type` is
   `string` gets `randomUUID()`; any other key is left to the column's default; the row is inserted
   `RETURNING *`, and `id` is `String(row[key])`. Arrays and plain objects are written as JSON text.
+- Every document read has `data[key] = String(row[key])`, so the key field equals the ID (DATA-1,
+  DATA-3) whatever the column's type.
 - `getDocument`: `undefined` when no row. `id` compares through the column's type.
 - `updateDocument`: as Firestore's key rule; `update ... returning key`; no row updated throws
-  `DocumentNotFoundError`.
-- `getCollection`: `checkQuery`; each condition is `jsonb_typeof(to_jsonb(<col>)) = '<type>' AND
-  <expr> <op> ?`, where `<expr>` reads the value as text with `to_jsonb(<col>) #>> '{}'`, so a `jsonb`
+  `DocumentNotFoundError`; an update left with no field checks that the row exists instead, and
+  throws the same when it does not.
+- `getCollection`: `checkQuery`; each condition is `CASE WHEN jsonb_typeof(to_jsonb(<col>)) =
+  '<type>' THEN <expr> END <op> ?`, so the cast runs only on a value of that type (Postgres may
+  evaluate the operands of an `AND` in any order, and `'abc'::numeric` fails), where `<expr>` reads the value as text with `to_jsonb(<col>) #>> '{}'`, so a `jsonb`
   column gives its unquoted value as a `text` column does: `(…) COLLATE "C"` for a string,
   `(…)::numeric` for a number, `(…)::boolean` for a boolean; `== null` is `<col> IS NULL`, and another operator
-  with `null` is `false`. Ordered by the key column; `limit` as given; the page token encodes the
+  with `null` is `false`. A condition on the key column compares the ID, a string:
+  `<key>::text COLLATE "C" <op> ?` for a string value, `false` for any other. Ordered by the key column; `limit` as given; the page token encodes the
   last row's key, continued with `<key> > ?`. Columns are quoted identifiers.
 
 ### Conformance
@@ -223,7 +237,8 @@ level `contract` against Firestore (`genoacms-tests`), DynamoDB and Postgres 16 
    `test: the database contract's conformance suite and tests (RFC-0042)`.
 3. Another session implements §Shared, §Firestore, §DynamoDB, §Postgres and §Core, removes the
    markers without changing an assertion (the adapters' conformance blocks are `describe.skip` until
-   then, and become `describe`), updates the unit tests of DB-4, DB-5, DDB-4 to DDB-6 to §Changed, and adds the changeset. Commit with the `commit-subject`.
+   then, and become `describe`), updates the unit tests of DB-3 to DB-5 and DDB-4 to DDB-7 to
+   §Changed, and adds the changeset. Commit with the `commit-subject`.
 4. Run the contract tests: Firestore and DynamoDB need the credentials CI has on `main`; Postgres
    runs in CI and locally with `GENOACMS_TEST_POSTGRES=1`.
 5. Update the documents: DATA-1 to DATA-12 current with their tests; the adapter statements to
