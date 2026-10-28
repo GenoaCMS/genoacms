@@ -21,6 +21,10 @@ error.
 
 @include ../../../../../config/src/config.ts
 
+`authentication.agents` declares the accounts of AI agents, keyed by subject `agent:<name>`, each with
+a `label` and a `token` that is a `secret()` of at least 43 characters. See
+[AI agents](/guide/agents) and the [MCP tools](/reference/mcp).
+
 ### Provider helpers
 
 One per service, so an adapter's options are looked up in that service's registry. Each returns

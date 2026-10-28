@@ -149,6 +149,12 @@ What configuration declares cannot be changed from inside the CMS:
 
 Set `authorization.lockRoles` to `true` to disable runtime administration altogether.
 
+:::note[AI agents hold roles too]
+An AI agent is an account of its own, typed apart from people, and holds roles through the same
+`assignments` under a subject `agent:<name>`. It can never hold a `config:*` permission or `*`. See
+[AI agents](/guide/agents).
+:::
+
 :::note[This is also the way back in]
 Declarations are resolved **without reading the bucket**. If your authorization documents are
 missing, or fail their signature check, the administrators named in `genoa.config` can still sign in
