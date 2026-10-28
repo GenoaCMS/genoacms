@@ -132,31 +132,140 @@ function memoryStorage (buckets = ['b']) {
   }
 }
 
-/** @returns {import('@genoacms/contracts/database').Adapter} */
-function memoryDatabase () {
+const OPERATORS = ['==', '!=', '<', '<=', '>', '>=']
+const invalidQuery = (reason) => new Error(`database/invalid-query: ${reason}`)
+
+class DocumentNotFoundError extends Error {
+  constructor (reference) {
+    super(`database/not-found: ${reference.collection.name}/${reference.id}`)
+    this.name = 'DocumentNotFoundError'
+  }
+}
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' &&
+  (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+
+function unsupportedPath (value, path) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return undefined
+  if (typeof value === 'number') return Number.isFinite(value) ? undefined : path
+  if (Array.isArray(value)) {
+    for (const [index, element] of value.entries()) {
+      const found = unsupportedPath(element, [...path, index])
+      if (found !== undefined) return found
+    }
+    return undefined
+  }
+  if (isPlainObject(value)) {
+    for (const [field, element] of Object.entries(value)) {
+      if (element === undefined) continue
+      const found = unsupportedPath(element, [...path, field])
+      if (found !== undefined) return found
+    }
+    return undefined
+  }
+  return path
+}
+
+function checkValues (data) {
+  const path = unsupportedPath(data, [])
+  if (path !== undefined) throw new Error(`database/unsupported-value: ${path.join('.')}`)
+}
+
+const withoutUndefined = (data) => Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined))
+
+const jsonTypeOf = (value) => value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
+const COMPARABLE_TYPES = ['null', 'number', 'string', 'boolean']
+
+function compareValues (a, b) {
+  if (typeof a === 'string') return Buffer.compare(Buffer.from(a), Buffer.from(b))
+  return Number(a) - Number(b)
+}
+
+function holds (actual, { operator, value }) {
+  const type = jsonTypeOf(value)
+  if (!COMPARABLE_TYPES.includes(type) || jsonTypeOf(actual) !== type) return false
+  if (type === 'null') return operator === '=='
+  const order = compareValues(actual, value)
+  return { '==': order === 0, '!=': order !== 0, '<': order < 0, '<=': order <= 0, '>': order > 0, '>=': order >= 0 }[operator]
+}
+
+const matches = (data, conditions) => conditions.every(condition => Object.hasOwn(data, condition.field) && holds(data[condition.field], condition))
+
+function checkCondition (condition) {
+  if (!isPlainObject(condition)) throw invalidQuery('a condition is not an object')
+  if (typeof condition.field !== 'string') throw invalidQuery('a condition field is not a string')
+  if (!OPERATORS.includes(condition.operator)) throw invalidQuery(`unknown operator ${String(condition.operator)}`)
+  const { value } = condition
+  const comparable = value === null || typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))
+  if (!comparable) throw invalidQuery(`the value of ${condition.field} is not a string, a number, a boolean or null`)
+}
+
+function checkQuery (params) {
+  if (!isPlainObject(params)) throw invalidQuery('the parameters are not an object')
+  if (params.where !== undefined) {
+    if (!Array.isArray(params.where)) throw invalidQuery('where is not an array')
+    params.where.forEach(checkCondition)
+  }
+  if (params.limit !== undefined && !(Number.isInteger(params.limit) && params.limit >= 1)) throw invalidQuery('limit is not an integer of at least 1')
+  if (params.pageToken !== undefined && typeof params.pageToken !== 'string') throw invalidQuery('pageToken is not a string')
+}
+
+const encodePageToken = (id) => Buffer.from(JSON.stringify({ id })).toString('base64url')
+function decodePageToken (token) {
+  try {
+    const { id } = JSON.parse(Buffer.from(token, 'base64url').toString('utf8'))
+    if (typeof id === 'string') return id
+  } catch {}
+  throw invalidQuery('unknown page token')
+}
+
+const byIdentifier = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))
+
+/**
+ * @param {{ assignId?: (data: object, key: string) => string }} options only the mutants of the suite pass it
+ * @returns {import('@genoacms/contracts/database').Adapter}
+ */
+function memoryDatabase ({ assignId = () => randomUUID() } = {}) {
   /** @type {Map<string, Map<string, object>>} */
   const collections = new Map()
   const collectionOf = (name) => {
     if (!collections.has(name)) collections.set(name, new Map())
     return collections.get(name)
   }
+  const snapshotOf = (collection, id, data) => ({ reference: { collection, id }, data: structuredClone(data) })
 
   return {
     async createDocument (reference, document) {
-      const id = randomUUID()
-      collectionOf(reference.name).set(id, document)
-      return { reference: { collection: reference, id }, data: document }
+      checkValues(document)
+      const key = reference.primaryKey.key
+      const id = assignId(document, key)
+      const data = { ...withoutUndefined(document), [key]: id }
+      collectionOf(reference.name).set(id, structuredClone(data))
+      return snapshotOf(reference, id, data)
     },
-    async getCollection (reference) {
-      return [...collectionOf(reference.name).entries()]
-        .map(([id, data]) => ({ reference: { collection: reference, id }, data }))
+    async getCollection (reference, params = {}) {
+      checkQuery(params)
+      const after = params.pageToken === undefined ? undefined : decodePageToken(params.pageToken)
+      const candidates = [...collectionOf(reference.name).entries()]
+        .filter(([id]) => after === undefined || byIdentifier(id, after) > 0)
+        .filter(([, data]) => matches(data, params.where ?? []))
+        .sort(([a], [b]) => byIdentifier(a, b))
+      const page = params.limit === undefined ? candidates : candidates.slice(0, params.limit)
+      const documents = page.map(([id, data]) => snapshotOf(reference, id, data))
+      return candidates.length > page.length ? { documents, next: encodePageToken(page.at(-1)[0]) } : { documents }
     },
     async getDocument (reference) {
       const data = collectionOf(reference.collection.name).get(reference.id)
-      return data === undefined ? undefined : { reference, data }
+      return data === undefined ? undefined : snapshotOf(reference.collection, reference.id, data)
     },
     async updateDocument (reference, document) {
-      collectionOf(reference.collection.name).set(reference.id, document)
+      checkValues(document)
+      const key = reference.collection.primaryKey.key
+      if (Object.hasOwn(document, key) && document[key] !== reference.id) throw new Error(`database/key-immutable: ${key}`)
+      const stored = collectionOf(reference.collection.name).get(reference.id)
+      if (stored === undefined) throw new DocumentNotFoundError(reference)
+      const { [key]: _key, ...fields } = withoutUndefined(document)
+      collectionOf(reference.collection.name).set(reference.id, { ...stored, ...structuredClone(fields) })
       return { reference, data: document }
     },
     async deleteDocument (reference) {

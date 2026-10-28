@@ -3,16 +3,28 @@ import runtime from './runtime.js'
 
 const constructed: unknown[] = []
 const doc = { get: vi.fn(), update: vi.fn(async () => {}), delete: vi.fn(async () => {}) }
-const collection = { add: vi.fn(), get: vi.fn(), doc: vi.fn(() => doc) }
+const collection: Record<string, any> = { add: vi.fn(), get: vi.fn(), doc: vi.fn(() => doc), set: vi.fn() }
+for (const chained of ['where', 'orderBy', 'limit', 'startAfter']) collection[chained] = vi.fn(() => collection)
 const collectionCalls: string[] = []
-vi.mock('@google-cloud/firestore', () => ({
-  Firestore: vi.fn(function (this: any, options: unknown) {
-    constructed.push(options)
-    this.collection = (name: string) => { collectionCalls.push(name); return collection }
-  })
-}))
+vi.mock('@google-cloud/firestore', () => {
+  class FieldPath {
+    names: string[]
+    constructor (...names: string[]) { this.names = names }
+    static documentId (): FieldPath { return new FieldPath('__name__') }
+  }
+  return {
+    FieldPath,
+    Firestore: vi.fn(function (this: any, options: unknown) {
+      constructed.push(options)
+      this.collection = (name: string) => { collectionCalls.push(name); return collection }
+    })
+  }
+})
 
 beforeEach(() => { collectionCalls.length = 0; vi.clearAllMocks() })
+
+const fieldName = (field: unknown): string => typeof field === 'string' ? field : (field as { names: string[] }).names.join('.')
+const emptyResult = { docs: [], size: 0, empty: true, forEach: () => {} }
 
 const pages = { name: 'pages' } as any
 const create = async () => await runtime.create({ projectId: 'p' }, { name: 'db', resources: [] })
@@ -80,5 +92,37 @@ describe('the Firestore runtime', () => {
     expect(doc.delete).toHaveBeenCalled()
     doc.update.mockRejectedValueOnce(new Error('NOT_FOUND: no document to update'))
     await expect(database.updateDocument(reference, data)).rejects.toThrow('NOT_FOUND: no document to update')
+  })
+
+  it.fails('DATA-9, DB-5: conditions become where clauses ordered by their inequality fields then the ID', async () => {
+    const database = await create()
+    collection.get.mockResolvedValueOnce(emptyResult)
+    await database.getCollection(pages, {
+      where: [{ field: 'b', operator: '<', value: 2 }, { field: 'a', operator: '==', value: 'x' }],
+      limit: 3
+    })
+    const wheres = collection.where.mock.calls.map(([field, operator, value]: unknown[]) => [fieldName(field), operator, value])
+    expect(wheres).toHaveLength(2)
+    expect(wheres).toContainEqual(['b', '<', 2])
+    expect(wheres).toContainEqual(['a', '==', 'x'])
+    expect(collection.orderBy.mock.calls.map(([field]: unknown[]) => fieldName(field))).toEqual(['b', '__name__'])
+    expect(collection.limit).toHaveBeenCalledWith(3)
+  })
+
+  it.fails('DATA-11, DB-5: a missing index becomes UnsupportedQueryError', async () => {
+    const database = await create()
+    const message = '9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/index'
+    collection.get.mockRejectedValueOnce(Object.assign(new Error(message), { code: 9 }))
+    const failure = await database.getCollection(pages, { where: [{ field: 'a', operator: '==', value: 'x' }, { field: 'b', operator: '<', value: 2 }] }).catch((error: Error) => error)
+    expect(failure).toMatchObject({ name: 'UnsupportedQueryError' })
+    expect((failure as Error).message.startsWith('database/unsupported-query: ')).toBe(true)
+    expect((failure as Error).message.endsWith(message)).toBe(true)
+  })
+
+  it.fails('DATA-6, DB-7: a missing document becomes DocumentNotFoundError', async () => {
+    const database = await create()
+    doc.update.mockRejectedValueOnce(Object.assign(new Error('5 NOT_FOUND: No document to update'), { code: 5 }))
+    const failure = await database.updateDocument({ collection: pages, id: 'x' }, { n: 1 } as any).catch((error: Error) => error)
+    expect(failure).toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: pages/x' })
   })
 })
