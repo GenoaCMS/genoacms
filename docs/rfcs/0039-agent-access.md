@@ -51,7 +51,7 @@ Limiting failed tokens (MCP-3) is not part of this RFC; it follows RFC-0031 (TU1
 | `packages/config/src/host/index.ts` | `Host.agents: Readonly<Record<string, { label: string, token: unknown }>>`, read from the manifest on every access |
 | `packages/core/src/lib/script/signing/envelope.ts` | `'genoacms.agents.v1'` in `DOCUMENT_TYPES` |
 | `packages/core/src/lib/script/agents/tokens.ts` | new, pure: `generateAgentToken()`, `hashAgentToken(token)`, `AGENT_TOKEN_MIN_LENGTH = 43` |
-| `packages/core/src/lib/script/agents/ceiling.ts` | new, pure: `isAgentSubject`, `exceedsAgentCeiling(role)`, `AgentCeilingError` |
+| `packages/core/src/lib/script/agents/ceiling.ts` | new, pure: `isAgentSubject`, `exceedsAgentCeiling(grants)`, `AgentCeilingError` |
 | `packages/core/src/lib/script/agents/manifest.ts` | new, pure: `AgentsManifest`, `parseAgentsManifest` |
 | `packages/core/src/lib/script/agents/manifest.server.ts` | new: load and save `.genoacms/security/agents.json` as `manifests.server.ts` does the users manifest |
 | `packages/core/src/lib/script/agents/declared.server.ts` | new: the declared agents with resolved tokens, checked once per process (AGT-1) |
@@ -60,7 +60,7 @@ Limiting failed tokens (MCP-3) is not part of this RFC; it follows RFC-0031 (TU1
 | `packages/core/src/lib/script/agents/*.test.ts` | new: the unit tests of §Tests |
 | `packages/core/src/lib/script/authorization/resolution.server.ts` | stored agents join the users the source knows (roles from `agents.json`, email `''`); AGT-5's refusal at resolution |
 | `packages/core/src/lib/script/authorization/resolution.ts` | `resolveSubject`: an `agent:` subject whose roles exceed the ceiling resolves with no grants and the warning `agent-ceiling: <subject> …` |
-| `packages/core/src/lib/script/authorization/administration.ts` | `setUserRoles`, `replaceRole`: AGT-5's refusals |
+| `packages/core/src/lib/script/authorization/administration.ts` | `setUserRoles`, `replaceRole`: AGT-5's refusals; `replaceRole` takes the users who hold roles |
 | `packages/core/src/lib/script/auth/providers.server.ts` | AGT-4: an `agent:` subject from a provider fails as `invalid-credentials`, logged |
 | `packages/core/src/hooks.server.ts` | no cookie principal is attached for `/mcp` |
 | `packages/core/src/routes/mcp/+server.ts` | new: `POST` (MCP-1, MCP-2), `GET` and `DELETE` answer 405 |
@@ -69,6 +69,7 @@ Limiting failed tokens (MCP-3) is not part of this RFC; it follows RFC-0031 (TU1
 | `packages/core/src/lib/script/mcp/tools/pages.server.ts` | new: TOL-8 to TOL-15 |
 | `packages/core/src/lib/script/mcp/tools/registry.server.ts` | new: name, description, input schema and handler of every tool |
 | `packages/core/src/lib/script/mcp/*.test.ts`, `tools/*.test.ts` | new: the unit tests of §Tests |
+| `packages/core/src/lib/script/testing/memoryStorage.ts`, `signingKeys.ts`, `components.ts`, `host.ts`, `requests.ts`, `mcp.ts` | new, test support: a versioned in-memory storage, real signing keys, component fixtures, a host stub, form requests, and the one place the tests name `handleMessage` and `toolRegistry` |
 | `packages/core/src/lib/script/storage/storage.server.ts` | `getInternalObjectFlattedVersioned(path)`; `uploadInternalObjectFlatted(path, data, options?)` |
 | `packages/core/src/lib/script/components/conflict.ts` | new: `ConflictError`, `UnversionedError`, `isConflict(error)`, `writeConditionally(write, object, version)` (HIS-2) |
 | `packages/core/src/lib/script/components/componentHeader/io.server.ts`, `editing.server.ts`, `user.server.ts` | versioned reads; conditional saves, undo, redo; CMP-8's existence and kind |
@@ -88,7 +89,7 @@ Limiting failed tokens (MCP-3) is not part of this RFC; it follows RFC-0031 (TU1
 | `packages/core/src/routes/(admin)/configuration/iam/AgentCard.svelte`, `CreateAgent.svelte`, `IssuedToken.svelte`, `+page.svelte` | new: the Agents section |
 | `packages/core/genoa.config/e2e.ts` | an agent `agent:e2e-builder`, token `env('GENOACMS_E2E_AGENT_TOKEN')`, assigned a declared role `Builder` holding every `components:*` and `pages:*` permission |
 | `packages/core/e2e/mcp.test.ts` | new: the e2e tests of §Tests |
-| `packages/core/e2e/server.ts` | passes `GENOACMS_E2E_AGENT_TOKEN`, 43 random base64url characters per run |
+| `packages/core/e2e/server.ts` | passes `GENOACMS_E2E_AGENT_TOKEN` through when it is set; otherwise sets it to 43 random base64url characters per run |
 | `.changeset/agent-access.md` | new: `minor` for `@genoacms/core`, `patch` for `@genoacms/config` |
 | `docs/architecture/agent-access.md`, `docs/architecture/components.md`, `docs/architecture/contracts/authentication.md`, `docs/README.md` | to current, step 8 |
 
@@ -191,6 +192,19 @@ class AgentCeilingError extends Error                         // message as AGT-
 
 // agents/authenticate.server.ts
 function agentForToken (token: string): Promise<string | undefined>  // the subject, declared first
+
+// agents/administration.server.ts: each requires config:users:manage; a refusal rejects
+function createAgent (ctx: AuthContext, input: { name: string, label: string, roles: string[] }): Promise<{ subject: string, token: string }>
+function reissueAgentToken (ctx: AuthContext, subject: string): Promise<{ token: string }>
+function updateAgent (ctx: AuthContext, subject: string, input: { label: string, roles: string[] }): Promise<void>
+function revokeAgent (ctx: AuthContext, subject: string): Promise<void>
+
+// authorization/administration.ts, pure
+function setUserRoles (users: UserRecord[], roles: Role[], subject: string, names: string[], declared: Set<string>): AdministrationResult<UserRecord[]>
+  // an agent: subject given a role exceeding the ceiling: { ok: false, reason: <AGT-5's message> }
+function replaceRole (roles: Role[], role: Role, declared: Set<string>, users: UserRecord[]): AdministrationResult<Role[]>
+  // users: everyone holding roles, stored agents included as { subject, email: '', roles };
+  // a role an agent: subject holds that would exceed the ceiling: { ok: false, reason: <AGT-5's message> }
 ```
 
 The Tier-1 agents are resolved once per process, on the first request to `/mcp`, through
@@ -226,8 +240,21 @@ The refusal codes are those of TOL-9 to TOL-13 and PGE-4.
 
 ### MCP
 
-`protocol.ts` handles one parsed JSON-RPC message for an `AuthContext` and a registry; it never
-reads the request. `+server.ts` reads the bearer token, answers 401 as MCP-2 says, parses the body
+```ts
+// mcp/protocol.ts: one parsed message; undefined for a notification
+function handleMessage (message: unknown, context: AuthContext, registry: readonly Tool[]): Promise<JsonRpcResponse | undefined>
+
+// mcp/tools/registry.server.ts
+interface Tool {
+  name: string
+  description: string
+  inputSchema: JsonSchema                     // an object schema, additionalProperties: false
+  handler: (context: AuthContext, args: Record<string, unknown>) => Promise<unknown>  // the output; a refusal throws
+}
+const toolRegistry: Tool[]                    // the 18 tools of TOL-2 to TOL-15, in that order
+```
+
+`protocol.ts` never reads the request. `+server.ts` reads the bearer token, answers 401 as MCP-2 says, parses the body
 (a body that is not JSON answers the JSON-RPC error `-32700`, a batch `-32600`), and answers with
 `protocol.ts`'s result. `initialize` answers `{ protocolVersion: '2025-06-18', capabilities: {
 tools: { listChanged: false } }, serverInfo: { name: 'genoacms', version: <core's version> } }`
@@ -320,9 +347,9 @@ Unit tests run in Node with storage stubbed unless named otherwise; signatures a
     structure; a slot naming a node not its child is refused.
   - › `PGE-11: names of one level are accepted, others refused`: accepted `home`, `a b`, `ü`,
     `..a`; refused `''`, `.`, `..`, `a/b`, `a\b`, `a\u0001`, 201 characters.
-- `packages/core/src/lib/script/components/conflict.test.ts` (unit), and the existing
-  `componentHeader/editing.server.test.ts`, `editor/editing.server.test.ts`,
-  `page/user.server.test.ts` (unit), a versioned in-memory storage:
+- `packages/core/src/lib/script/components/conflict.test.ts` (unit), driven through `updateComponent`,
+  `saveComponentRemote` and the page, registrar and editor form actions over a versioned in-memory
+  storage; the existing service tests mock storage without versions and cannot host these:
   - › `HIS-2: a save from the stored version writes and returns a new version`.
   - › `HIS-2: a save from an older version writes nothing, records no step, and fails modified-since`:
     for a header, a body and a page.
@@ -346,7 +373,8 @@ Unit tests run in Node with storage stubbed unless named otherwise; signatures a
   - › `TOL-5: the source is read and saved with its signature, prebuilt refused`.
   - › `TOL-6: publishing names the agent as publisher and returns warnings`.
   - › `TOL-7: a component a published page pins is not deleted`.
-  - › `TOL-16: each changing call records exactly one step`.
+  - › `TOL-16: each changing call records exactly one step`: for every tool that changes a header, a
+    body or a page's contents; `set_preview_url` records none.
   - › `TOL-17: every tool demands its permissions`: for each tool, a principal lacking one of its
     permissions gets a tool error starting `permission-denied:`.
 - `packages/core/src/lib/script/mcp/tools/pages.test.ts` (unit):

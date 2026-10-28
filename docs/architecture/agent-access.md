@@ -494,8 +494,10 @@ deletes it as PGE-8 does.
 
 #### TOL-16 · Edits are undoable
 
-Each tool call that changes a header, a body or a page records exactly one step in its history
-(`components.md` HIS-1), so a person can undo it on the screens.
+Each tool call that changes a header, a body or a page's contents records exactly one step in its
+history (`components.md` HIS-1), so a person can undo it on the screens. `set_preview_url` records
+none, as the screen's action does not (`components.md` PGE-6): a page's history covers its contents
+only.
 
 - Test: none yet
 - Level: unit
