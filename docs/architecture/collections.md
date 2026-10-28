@@ -48,6 +48,8 @@ answers the file pickers of PCK, is [`storage.md`](storage.md).
 | OU4 | 2026-10-11: a dynamic definition is signed by core with a subordinate key, bound to its database and name, as the authorization manifests are; one that does not verify is listed and refused when opened. Core signs definitions through an administration screen that a later RFC adds. Core lists the collections directories and does not create them. | OD13; COL-1, COL-2, COL-7 |
 | OU5 | 2026-10-11: the listing is redesigned for recognising documents: one line per row, the lead field first, each cell shown by its field's kind, and a filter over the documents loaded. | OD14; LST-1, LST-3, LST-7, LST-8 |
 | OU6 | 2026-10-28: agents read and change documents through MCP tools (`agent-access.md` TU12), through the document service. Their saves are last write wins, as a person's on the editor are. | OD15; DOC-8 |
+| OU7 | 2026-10-28: a validation error under a field the principal may not read is not described: the message names no hidden path or keyword, only that hidden fields failed. That an update fails because of them still shows (OF32). | pending, RFC-0041 amendment |
+| OU8 | 2026-10-28: a creation is validated as it will be stored, after DOC-4 drops the fields the writer may not write, as an update is (OF33). | pending, RFC-0041 amendment |
 
 **OD1. Permissions are checked by the document service, per collection (DOC-1).** Every operation
 takes the principal's `AuthContext` and checks `db:collection:read`, `write` or `delete` on the
@@ -212,6 +214,12 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF27 | **A key revoked by another process keeps verifying until a restart (COL-7).** The key cache re-reads the registry only for a key id it does not know, or after its own process revokes a key, so a revocation published by another instance is not seen by a running one, and definitions signed with that key keep resolving there. The same holds for every signed document. Shown on 2026-10-11 by the second falsification audit of RFC-0035 with a probe of `signing/keyResolver.ts`. | open |
 | OF28 | **A key the registry lists can be refused (COL-2, COL-7).** The key cache answers an unknown key id without reading the registry once its refresh budget (20 in 10 s) is spent, or for 60 s after it found the id absent; envelopes naming random key ids, which anyone who can write the bucket can place, spend the budget, and a definition signed by a key just rotated in elsewhere then fails as `collection/unverifiable`. Shown on 2026-10-11 by the second falsification audit of RFC-0035 with a probe of `signing/keyResolver.ts`. | open |
 | OF29 | *History.* **A storage outage reads as a missing definition (COL-2).** Any failure to read a dynamic definition becomes `collection/not-found`, a transient outage included, while a registry that cannot be read propagates its error. Telling the two apart needs the storage contract to distinguish a missing object. Found by the second falsification audit of RFC-0035 on 2026-10-11 by reading the code. | fixed, RFC-0037 |
+| OF30 | **An update validates the key as required (DOC-8).** `updateUserDocument` leaves the key field out of the document it validates, but not out of the schema's `required`: with `required: ['id', 'name']`, every update fails with `documents/invalid: /id required`. The tests' schemas have no `required`. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| OF31 | **A creation validates a key field it is given (DOC-8).** `createUserDocument` drops the key from `required` but not from the document: `{ id: 'bad', name: 'n' }` on a schema with `id` of `format: uuid` fails with `documents/invalid: /id format`, though the store ignores the field. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| OF32 | **Validation tells a restricted writer about fields it may not read (DOC-2, DOC-8).** An update is validated with the stored hidden fields, and the error names their paths: with a `oneOf` over a hidden `isA`, an update of `name` fails or succeeds by `isA`'s value, and the message lists `/isA const`; a hidden field already invalid is named too. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| OF33 | **A restricted creation can store a document its schema refuses (DOC-4, DOC-8).** The submission is validated before DOC-4 drops the fields the writer may not write, so `{ name, isA }` by a writer of `name` alone, with `isA` required, stores `{ name }`; that writer's later updates then fail as invalid. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| OF34 | **A document deleted between an update's read and its write fails with the contract's message (DOC-3).** The adapter's `database/not-found: …` reaches the caller, not `documents/not-found: …`. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| OF35 | **A restricted update writes back every stored field (DOC-3).** It stores the whole merged record, so a hidden field changed by someone else between the read and the write is set back to the value read. The contract merges top-level fields (`contracts/database.md` DATA-6), so sending only the writable fields would not. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
 
 ### History
 
@@ -493,15 +501,16 @@ not redirect.
 #### DOC-8 · Documents are validated against the schema
 
 Creating and updating a document through the document service validates it against the collection's
-schema with `@exodus/schemasafe`, with the formats of DOC-5. A creation validates the submission as
-given, before DOC-4 drops any field. An update validates the document as it will be stored: the
-stored document with each top-level field of the submission that the principal may write replacing
-the stored one (DOC-3). Neither validates the key field, which the store assigns and owns
-(`contracts/database.md` DATA-3, DATA-4): it is left out of the document validated and of the
-schema's `required`. An invalid document is not written, and the operation fails with
-`documents/invalid: <instancePath> <keyword>`, one such pair for each error, separated by `; `,
-where `instancePath` is the JSON pointer of the failing value, `/` for the document itself. The
-permission check of DOC-1 comes first.
+schema with `@exodus/schemasafe`, with the formats of DOC-5, as it will be stored: a creation the
+submission with only the fields the principal may write (DOC-4, OU8), an update the stored document
+with each top-level field of the submission that the principal may write replacing the stored one
+(DOC-3). Neither validates the key field, which the store assigns and owns (`contracts/database.md`
+DATA-3, DATA-4): it is left out of the document validated and of the schema's top-level `required`.
+An invalid document is not written, and the operation fails with `documents/invalid: <errors>`,
+`<errors>` being `<instancePath> <keyword>` for each error, separated by `; `, `instancePath` the
+JSON pointer of the failing value, `/` for the document itself. An error under a top-level field the
+principal may not read is not described: all such errors are replaced by one `hidden fields` (OU7).
+The permission check of DOC-1 comes first.
 
 - Test: none yet
 - Level: unit

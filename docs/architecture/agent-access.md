@@ -61,11 +61,15 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU8 | 2026-10-27: tools change a page one node at a time, validated against stored, published component headers. | TD4; TOL-9 to TOL-13 |
 | TU9 | 2026-10-27: every save carries the version it was read at, and a stale save is refused, for agents and for the screens. | TD6; TOL-1 |
 | TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. | TF1 |
+| TF2 | **A move replaces what is at its destination (TOL-27, TOL-28).** `move_object a → b` replaces `b`, under `storage:bucket:write` alone, without `delete`; `move_directory d/ → e/` replaces what `e/` holds; an object can be moved onto the name of a directory, and a directory into itself, which the browser refuses (`storage.md` BRW-9). Uploads refuse to replace unless asked (TOL-26); moves say nothing. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| TF3 | **`create_directory` accepts the root (TOL-28).** A `path` of `''` reaches the adapter on any bucket but the default, where STS-5 refuses it. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| TF4 | **Content edge cases of `upload_object` (TOL-26).** Wrapped base64 and base64url are refused as `storage/invalid-content`; text with a lone surrogate is stored with U+FFFD in its place. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
 | TU11 | 2026-10-27: `tools/list` lists every tool; the first version includes the deleting tools; stored agents keep their roles in `agents.json`; agent access does not wait for RFC-0031, so failed tokens are limited only once it lands; no CLI command generates tokens for now. | MCP-3, MCP-4, AGT-2, TOL-7, TOL-15 |
 | TU12 | 2026-10-28: agents also read and change documents and objects, through MCP tools that call the document service and the storage user layer, under the same permissions as people. `.genoacms/` is for agents as it is for people (`storage.md` BU1, BU7). Defining collections stays out. | TD7; TOL-18 to TOL-29 |
 | TU13 | 2026-10-28: a document save is last write wins, for agents as for people on the editor: no database adapter offers a version to write conditionally on. TU9 holds for components and pages only. | TD7; TOL-22 |
 | TU14 | 2026-10-28: an agent reads an object through a signed URL, and uploads its contents inline, at most 4 MiB. Larger uploads, through a signed upload URL, are a later RFC. | TD8; TOL-25, TOL-26 |
 | TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
+| TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | pending, RFC-0041 amendment |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -152,6 +156,13 @@ None.
 
 - **`unit`, in Node.** Tools and the protocol are called through `handleMessage` and the real registry over a versioned in-memory storage with real ML-DSA-65 signatures; the endpoint through its `Request` handlers; the services through their public functions.
 - **`e2e`** (`packages/core/e2e/mcp.test.ts`): a built core with `genoa.config/e2e.ts`, an agent token in `GENOACMS_E2E_AGENT_TOKEN`, a real browser for TOL-1 and AGT-4. They need Google Cloud credentials and run in CI on pushes to `main` only.
+
+**TS1.** 2026-10-28, falsification audit of the statements RFC-0041 added or changed (TOL-18 to TOL-29,
+`collections.md` DOC-3, DOC-5, DOC-8, `storage.md` STS-7), by an agent that wrote none of the code,
+with probes through the tool registry, `protocol.ts` and the user layers over the memory adapters.
+Permissions (TOL-29), the unreadable-field refusal (TOL-19), key immutability, not-found answers,
+names, `.genoacms/`, the upload limit counted in bytes, overwrite and STS-7 held. Counterexamples:
+TF2 to TF4, `collections.md` OF30 to OF35, `storage.md` BF13.
 
 Not yet done: the falsification audit of the statements RFC-0039 added, with the tokens of two agents, one under the ceiling and one whose role was made to exceed it in storage. Until it is, no statement here is audited.
 
@@ -636,7 +647,8 @@ not base64 when it should be fails with `storage/invalid-content: <name> is not 
 content longer than 4,194,304 bytes fails with `storage/too-large: <bytes> bytes exceed 4194304`.
 Without `overwrite: true`, the object is written only if absent (`contracts/storage.md` STOR-6), and
 an existing one fails with `storage/exists: <bucket>/<name>`; with it, an existing object is replaced.
-It returns `{ name }`. Nothing is written when it fails.
+It returns `{ name }`. Nothing is written when it fails. `base64` is the standard alphabet with padding, unwrapped: a
+string with whitespace, or in the URL-safe alphabet, is not base64.
 
 - Test: none yet
 - Level: unit
@@ -644,9 +656,11 @@ It returns `{ name }`. Nothing is written when it fails.
 
 #### TOL-27 · Moving and deleting an object
 
-`move_object({ bucket, name, destination })` moves the object to the name `destination` in the same
-bucket, and `delete_object({ bucket, name })` deletes it; each returns `{}`. An object that does not
-exist fails with the storage contract's `storage/not-found: <bucket>/<name>`.
+`move_object({ bucket, name, destination, overwrite })` moves the object to the name `destination`
+in the same bucket, and `delete_object({ bucket, name })` deletes it; each returns `{}`. An existing
+`destination` fails with `storage/exists: <bucket>/<destination>`, and nothing moves, unless
+`overwrite: true` (TU16). An object that does not exist fails with the storage contract's
+`storage/not-found: <bucket>/<name>`.
 
 - Test: none yet
 - Level: unit
@@ -655,9 +669,12 @@ exist fails with the storage contract's `storage/not-found: <bucket>/<name>`.
 #### TOL-28 · Directories
 
 `create_directory({ bucket, path })` creates a directory, `move_directory({ bucket, path,
-destination })` moves everything under `path` to `destination`, and `delete_directory({ bucket, path })`
-deletes everything under `path`, the directories within it included (TU15); each returns `{}`. The
-root cannot be moved or deleted: a `path` of `` fails with `storage/invalid-name: `.
+destination, overwrite })` moves everything under `path` to `destination`, and `delete_directory({
+bucket, path })` deletes everything under `path`, the directories within it included (TU15); each
+returns `{}`. A `destination` that holds anything fails with `storage/exists: <bucket>/<destination>`
+unless `overwrite: true`, and one under `path` fails with `storage/invalid-name: <destination>`
+(TU16). The root cannot be created, moved or deleted: a `path` of `` fails with
+`storage/invalid-name: `.
 
 - Test: none yet
 - Level: unit
