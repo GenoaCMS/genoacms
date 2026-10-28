@@ -229,14 +229,18 @@ the new version. Reads that feed a save return `{ value, version }`.
 
 ```ts
 type EditResult = { ok: true, contents: PageContents } | { ok: false, code: string, message: string }
-function addNode (contents, parent: string, slot: string, header: ComponentHeader, published: boolean, position?: number): EditResult & { node?: string }
-function moveNode (contents, node: string, parent: string, slot: string, position?: number): EditResult
+function addNode (contents, parent: string, slot: string, header: ComponentHeader, published: boolean, headers: Map<string, ComponentHeader>, position?: number): EditResult & { node?: string }
+function moveNode (contents, node: string, parent: string, slot: string, headers: Map<string, ComponentHeader>, position?: number): EditResult
 function removeNode (contents, node: string): EditResult
 function setValues (contents, node: string, values: Record<string, unknown>, headers: Map<string, ComponentHeader>): EditResult
 function applyNodeEdit (contents, sent: unknown, headers): EditResult & { content: boolean, structure: boolean }  // PGE-4
 ```
 
-The refusal codes are those of TOL-9 to TOL-13 and PGE-4.
+The refusal codes are those of TOL-9 to TOL-13 and PGE-4. `headers` maps a component uid to its
+stored header; the slot's `items.enum` and `maxItems` are read from the header of the parent node's component
+in it. `moveNode` takes no `published` flag: the moved node is already on the page, so its component was
+published when it was added, and the function stays pure. TOL-12's `pages/not-accepted` and
+`pages/slot-full` apply to it through `headers`.
 
 ### MCP
 
