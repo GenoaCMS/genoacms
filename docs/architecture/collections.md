@@ -47,6 +47,7 @@ answers the file pickers of PCK, is [`storage.md`](storage.md).
 | OU3 | 2026-10-11: dynamic collections mirror the configuration's `databases.<key>.collections`: a definition lives in a directory of the database that serves it, and dynamic collections only add collections; a configured collection cannot be redefined. They reach collections that already exist in a database, and are not a way to create them. | OD12; COL-1, COL-2, COL-6 |
 | OU4 | 2026-10-11: a dynamic definition is signed by core with a subordinate key, bound to its database and name, as the authorization manifests are; one that does not verify is listed and refused when opened. Core signs definitions through an administration screen that a later RFC adds. Core lists the collections directories and does not create them. | OD13; COL-1, COL-2, COL-7 |
 | OU5 | 2026-10-11: the listing is redesigned for recognising documents: one line per row, the lead field first, each cell shown by its field's kind, and a filter over the documents loaded. | OD14; LST-1, LST-3, LST-7, LST-8 |
+| OU6 | 2026-10-28: agents read and change documents through MCP tools (`agent-access.md` TU12), through the document service. Their saves are last write wins, as a person's on the editor are. | OD15; DOC-8 |
 
 **OD1. Permissions are checked by the document service, per collection (DOC-1).** Every operation
 takes the principal's `AuthContext` and checks `db:collection:read`, `write` or `delete` on the
@@ -165,6 +166,16 @@ eye run down a column.
 *Cost:* long values are cut short, and seeing one whole needs a hover or opening the document. The
 summary of an object is a guess at what identifies it. The filter searches only what is loaded and
 shown, so its meaning changes once the listing pages (OF8).
+
+**OD15. The document service validates what it stores against the schema (DOC-8).** **New**
+(RFC-0041). Validation moves from the editor's remote commands (DOC-5) into the service, and an
+update is validated as it will be stored: the stored document with the submission's fields applied.
+*Why:* a second caller, the MCP tools, reaches the service without the editor; a check at each
+caller is one caller away from a hole, as OD1 says of permissions. An update that sends some fields
+is valid or not only together with the fields it keeps.
+*Cost:* every update reads the stored document first, also for a principal with every field
+writable, where the service did not read before. A validation error can name a field the principal
+may not read, though not its value.
 
 ### Findings
 
@@ -478,6 +489,21 @@ not redirect.
 
 - Test: `packages/core/src/routes/(admin)/collections/[collectionName]/page.server.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
+
+#### DOC-8 · Documents are validated against the schema
+
+Creating and updating a document through the document service validates it against the collection's
+schema with `@exodus/schemasafe`, with the formats of DOC-5. A creation validates the submission as
+given, before DOC-4 drops any field. An update validates the document as it will be stored: the
+stored document with each top-level field of the submission that the principal may write replacing
+the stored one (DOC-3). An invalid document is not written, and the operation fails with
+`documents/invalid: <instancePath> <keyword>`, one such pair for each error, separated by `; `,
+where `instancePath` is the JSON pointer of the failing value, `/` for the document itself. The
+permission check of DOC-1 comes first.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
 
 ### Listing
 

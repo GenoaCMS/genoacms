@@ -25,7 +25,9 @@ genoa.config authentication.agents ─┐
                                                   │
 MCP client ──POST /mcp, Authorization: Bearer <token>──▶ endpoint (MCP) ──AuthContext──▶ tools (TOL)
                                                                                          │
-                                       the permission-checked services of components.md ◀┘
+                                       the permission-checked services of components.md ◀┤
+                                       the document service (collections.md DOC) ◀───────┤
+                                       the storage user layer (storage.md STS) ◀─────────┘
 ```
 
 An agent has its own account, declared like everything else in Tier 1 or created in Tier 2. It
@@ -34,7 +36,11 @@ on the sign-in page alone. Its grants come from roles, as a person's do, under a
 lifts. Every tool calls the same services the screens call, so a tool can do nothing the agent's
 grants would not let it do on a screen.
 
-Out of scope: collections and storage, which an agent reaches by other means; a server-side record
+Agents also read and change documents of collections and objects in buckets, through the document
+service of [`collections.md`](collections.md) and the user layer of [`storage.md`](storage.md) (TU12,
+**New**, RFC-0041).
+
+Out of scope: defining collections; uploads larger than 4 MiB (TU14); a server-side record
 of who changed what (TF1); the specification of components and pages themselves
 ([`components.md`](components.md)), which the RFC of this document also changes, to fix NF1, NF2,
 NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters of
@@ -56,6 +62,10 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU9 | 2026-10-27: every save carries the version it was read at, and a stale save is refused, for agents and for the screens. | TD6; TOL-1 |
 | TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. | TF1 |
 | TU11 | 2026-10-27: `tools/list` lists every tool; the first version includes the deleting tools; stored agents keep their roles in `agents.json`; agent access does not wait for RFC-0031, so failed tokens are limited only once it lands; no CLI command generates tokens for now. | MCP-3, MCP-4, AGT-2, TOL-7, TOL-15 |
+| TU12 | 2026-10-28: agents also read and change documents and objects, through MCP tools that call the document service and the storage user layer, under the same permissions as people. `.genoacms/` is for agents as it is for people (`storage.md` BU1, BU7). Defining collections stays out. | TD7; TOL-18 to TOL-29 |
+| TU13 | 2026-10-28: a document save is last write wins, for agents as for people on the editor: no database adapter offers a version to write conditionally on. TU9 holds for components and pages only. | TD7; TOL-22 |
+| TU14 | 2026-10-28: an agent reads an object through a signed URL, and uploads its contents inline, at most 4 MiB. Larger uploads, through a signed upload URL, are a later RFC. | TD8; TOL-25, TOL-26 |
+| TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -104,6 +114,29 @@ the later save's undo step would be computed against a state its author never sa
 storage contract already offers conditional writes (`contracts/storage.md` STOR-6).
 *Cost:* an agent has to read again and retry after a conflict, and the screens have to carry a
 version too.
+
+**TD7. A document update sets the fields it is given (TOL-22).** `update_document` takes the
+top-level fields to change; the others keep their stored values, and the result is validated
+against the schema before it is written (`collections.md` DOC-8). There is no version: the later
+save wins (TU13).
+*Why:* both database adapters already merge an update (`adapter-gcp/database.md` DB-7,
+`adapter-aws/database.md` DDB-7), and an agent changing one field should not have to send, and
+risk corrupting, the rest. Validating the merged document is the only way to check a partial
+submission.
+*Cost:* a field cannot be removed, only set to another value, since the database contract has no
+removal. An agent and a person saving one document at once overwrite each other's fields without
+either knowing. Firestore reads a dotted key as a path into a nested object.
+
+**TD8. Object contents go out by URL and come in inline (TOL-25, TOL-26).** `get_object` returns a
+signed URL for the agent to fetch; `upload_object` takes the contents in the call, as text or
+base64, decoded to at most 4 MiB.
+*Why:* the endpoint is stateless (TD3), so a tool call carries its whole body and cannot stream
+across calls; AWS Lambda accepts at most 6 MB per request, and 4 MiB is about 5.6 MB in base64.
+A signed URL keeps object bytes out of the CMS, as for people (`storage.md` BD4). Splitting an
+upload across calls would need the provider to hold an upload session, and S3 parts of at least
+5 MiB do not fit in a Lambda request.
+*Cost:* an agent has to fetch the URL itself, and cannot upload a file larger than 4 MiB. The
+upload carries no content type.
 
 ### Findings
 
@@ -499,3 +532,150 @@ Each tool requires the permissions of the operation it performs, checked by the 
 
 - Test: `packages/core/src/lib/script/mcp/tools/components.test.ts`
 - Level: unit
+
+### Collection tools
+
+#### TOL-18 · Reading collections
+
+`list_collections()` returns `[{ name }]`, the collections of the agent's catalog (`collections.md`
+COL-3), in its order. `get_collection({ collection })` returns `{ name, primaryKey: { key, schema },
+schema }` of the collection's definition (COL-2, COL-4). A collection that does not exist fails with
+`collection/not-found: <collection>`; one whose definition does not verify fails as COL-7 says.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-19 · Listing documents
+
+`list_documents({ collection, offset, limit })` reads every document of the collection, as the
+listing does (`collections.md` LST-1), each with only its readable fields (DOC-2), and returns
+`{ documents: Array<{ id, data }>, total }`: `total` is the number of documents, and `documents` those
+from position `offset`, 0 by default, on, at most `limit`, 1 to 200 and 50 by default, in the
+adapter's order.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-20 · Reading a document
+
+`get_document({ collection, id })` returns `{ id, data }`, with only the readable fields (DOC-2). A
+document that does not exist fails with `documents/not-found: <collection>/<id>`.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-21 · Creating a document
+
+`create_document({ collection, data })` validates `data` (`collections.md` DOC-8), creates the
+document as DOC-4 does, and returns `{ id }`, the new document's id.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-22 · Updating a document
+
+`update_document({ collection, id, data })` sets each top-level field of `data` on the stored
+document and keeps every other field (TD7), as DOC-3 and DOC-8 do, and returns `{ id }`. A document
+that does not exist fails with `documents/not-found: <collection>/<id>`, and nothing is written. The
+update is not conditional: a later save wins (TU13).
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-23 · Deleting a document
+
+`delete_document({ collection, id })` deletes the document as `collections.md` DOC-6 does, and
+returns `{}`. Deleting a document that does not exist is not an error.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+### Storage tools
+
+Every storage tool acts on one bucket, through the user layer (`storage.md` STS-2), so a change under
+`.genoacms/` of the default bucket fails as STS-5 says. An object name is levels separated by `/`;
+a name that is empty, ends with `/`, or has a level that is empty, `.` or `..`, fails with
+`storage/invalid-name: <name>`. A directory path is `` for the root, or such a name followed by `/`;
+another fails the same way.
+
+#### TOL-24 · Reading buckets and directories
+
+`list_buckets()` returns `[{ name }]`, the agent's buckets (`storage.md` STS-1), in their order.
+`list_directory({ bucket, path, pageToken, limit })` returns one page of the directory, as the
+storage contract lists it (`contracts/storage.md` STOR-11): `{ files: Array<{ name, size,
+lastModified }>, directories: string[], next }`, `lastModified` an ISO 8601 string, `directories`
+their paths, and `next` the token of the next page, absent on the last. `path` is the root by
+default; `limit` is passed to the adapter when given. It signs no URLs.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-25 · Reading an object
+
+`get_object({ bucket, name })` returns `{ url, expiresAt }`: a URL signed for the object (`storage.md`
+STS-7), and when it expires, as an ISO 8601 string. The agent fetches the contents from the URL.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-26 · Uploading an object
+
+`upload_object({ bucket, name, content, encoding, overwrite })` stores `content` as the object.
+`encoding` is `utf8`, the default, for text stored as its UTF-8 bytes, or `base64`. Content that is
+not base64 when it should be fails with `storage/invalid-content: <name> is not base64`. Decoded
+content longer than 4,194,304 bytes fails with `storage/too-large: <bytes> bytes exceed 4194304`.
+Without `overwrite: true`, the object is written only if absent (`contracts/storage.md` STOR-6), and
+an existing one fails with `storage/exists: <bucket>/<name>`; with it, an existing object is replaced.
+It returns `{ name }`. Nothing is written when it fails.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-27 · Moving and deleting an object
+
+`move_object({ bucket, name, destination })` moves the object to the name `destination` in the same
+bucket, and `delete_object({ bucket, name })` deletes it; each returns `{}`. An object that does not
+exist fails with the storage contract's `storage/not-found: <bucket>/<name>`.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-28 · Directories
+
+`create_directory({ bucket, path })` creates a directory, `move_directory({ bucket, path,
+destination })` moves everything under `path` to `destination`, and `delete_directory({ bucket, path })`
+deletes everything under `path`, the directories within it included (TU15); each returns `{}`. The
+root cannot be moved or deleted: a `path` of `` fails with `storage/invalid-name: `.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
+
+#### TOL-29 · Collection and storage tool permissions
+
+Each collection and storage tool requires the permissions of the operation it performs, checked by
+the same services:
+
+| Tool | Permissions |
+| :-- | :-- |
+| `list_collections`, `list_buckets` | none: they list what the agent holds any grant on |
+| `get_collection`, `list_documents`, `get_document` | `db:collection:read` |
+| `create_document`, `update_document` | `db:collection:read`, to resolve the definition (`collections.md` DOC-1), and `db:collection:write` |
+| `delete_document` | `db:collection:read`, `db:collection:delete` |
+| `list_directory`, `get_object` | `storage:bucket:read` |
+| `upload_object`, `move_object`, `create_directory`, `move_directory` | `storage:bucket:write` |
+| `delete_object`, `delete_directory` | `storage:bucket:delete` |
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)

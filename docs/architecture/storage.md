@@ -43,6 +43,7 @@ named here (no document yet); the dashboard's list of recent directories.
 | BU4 | 2026-10-18: an action on several items runs them one at a time, every one of them, and answers which failed; the selection keeps only the failed items (BF9). | BRW-14 |
 | BU5 | 2026-10-18: a directory longer than one page shows its first page, and `Show more` loads the next into the same view (BF8). | BRW-15 |
 | BU6 | 2026-10-28: a denial by the storage service itself, as against the CMS's own permission check (BU3), is a typed contract error, `StorageAccessDeniedError`, which each adapter raises for its provider's denial. Core answers it with 403 and a readable reason, and keeps the provider's detail (bucket, role, account) in the log, not on the page. An error no layer classifies shows its correlation ID, the one in the log line, instead of SvelteKit's bare `Internal Error` (BF11). Not yet specified: it needs an RFC, and a contract change in `contracts/storage.md`. | pending RFC |
+| BU7 | 2026-10-28: agents reach storage through MCP tools (`agent-access.md` TU12), through the user layer, under the same permissions and the same read-only `.genoacms/` (BU1). That every agent that may read the default bucket sees each user's subject, email and roles is accepted, as it is for people. An agent reads an object through a signed URL for that one object. | BD4; STS-7 |
 
 **BD1. Two layers: an unchecked storage service for the CMS, and a user layer that checks a
 permission before each operation (STS-1, STS-2).** Every function of the user layer takes the
@@ -68,8 +69,8 @@ alone would hide a bucket from a principal who may only upload to it.
 *Cost:* a bucket the principal may only write is listed, and opening it fails, because listing needs
 `read` (BF6).
 
-**BD4. Users read objects only through signed URLs minted with each listing (STS-4).** The user layer
-has no read of an object's content.
+**BD4. Users read objects only through signed URLs minted with each listing (STS-4), or for one
+object at a time (STS-7, New, RFC-0041).** The user layer has no read of an object's content.
 *Why:* the browser fetches objects straight from the store, so object bytes never pass through the
 CMS. A server-side read for users would be a second path to gate.
 *Cost:* every listing signs one URL per file, a request each on Cloud Storage under ADC
@@ -211,6 +212,16 @@ not affected, and neither is the CMS's own access (BD1).
 
 - Test: `packages/core/e2e/storage.test.ts`, `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit, e2e
+
+#### STS-7 · Signing one object's URL
+
+The user layer signs a URL for one object (`contracts/storage.md` STOR-9), on `storage:bucket:read`
+of its bucket (STS-2), that expires one hour after it is signed. It does not check that the object
+exists.
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0041)
 
 ### The CMS's own reads
 
