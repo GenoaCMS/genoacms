@@ -2,8 +2,10 @@
   import { enhance } from '$app/forms'
   interface Props {
     futureLength: number
+    /** HIS-2 */
+    version: string
   }
-  const { futureLength }: Props = $props()
+  const { futureLength, version }: Props = $props()
 
 </script>
 
@@ -15,6 +17,7 @@
   JavaScript the same POST still works — the browser just navigates.
 -->
 <form action="?/redo" method="post" use:enhance>
+  <input type="hidden" name="version" value={version} />
   <button
     type="submit"
     aria-label="Redo"

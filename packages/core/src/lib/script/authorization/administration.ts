@@ -1,5 +1,6 @@
 import { SUPER_ADMIN_ROLE_NAME, type Role } from './roles'
 import type { UserRecord } from './manifests'
+import { ceilingMessage, exceedsAgentCeiling, isAgentSubject } from '$lib/script/agents/ceiling'
 
 /**
  * Administering roles and users: the rules, without storage.
@@ -53,10 +54,21 @@ function addRole (roles: Role[], role: Role, declared: Set<string>): Administrat
  * principal holding full authority — recoverable only through the Tier-1 seed administrator, which
  * is a recovery path, not a management strategy.
  */
-function replaceRole (roles: Role[], role: Role, declared: Set<string>): AdministrationResult<Role[]> {
+/** AGT-5: the first role in `names` that exceeds the ceiling, as a refusal. */
+function ceilingRefusal (subject: string, roles: Role[], names: string[]): { ok: false, reason: string } | undefined {
+  const exceeding = names.find(name => {
+    const role = findRole(roles, name)
+    return role !== undefined && exceedsAgentCeiling(role.grants)
+  })
+  return exceeding === undefined ? undefined : { ok: false, reason: ceilingMessage(subject, exceeding) }
+}
+
+function replaceRole (roles: Role[], role: Role, declared: Set<string>, users: UserRecord[] = []): AdministrationResult<Role[]> {
   if (declared.has(role.name)) return { ok: false, reason: 'role/declared-in-configuration' }
   if (role.name === SUPER_ADMIN_ROLE_NAME) return { ok: false, reason: 'role/super-admin-immutable' }
   if (findRole(roles, role.name) === undefined) return { ok: false, reason: 'role/not-found' }
+  const agent = users.find(user => isAgentSubject(user.subject) && user.roles.includes(role.name))
+  if (agent !== undefined && exceedsAgentCeiling(role.grants)) return { ok: false, reason: ceilingMessage(agent.subject, role.name) }
   return { ok: true, value: roles.map(existing => existing.name === role.name ? role : existing) }
 }
 
@@ -130,6 +142,8 @@ function setUserRoles (
 
   const assignment = validateAssignment(roles, names)
   if (!assignment.ok) return assignment
+  const exceeding = isAgentSubject(subject) ? ceilingRefusal(subject, roles, names) : undefined
+  if (exceeding !== undefined) return exceeding
 
   return {
     ok: true,

@@ -13,6 +13,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
  */
 
 const calls: string[] = []
+const uploaded: Array<{ uid: string, type?: string }> = []
 
 /**
  * What storage holds. Prebuilt by default, because these tests are about the permission gate.
@@ -48,7 +49,11 @@ vi.mock('./io.server', () => ({
     calls.push(`get:${reference}`)
     return stored
   },
-  uploadComponentHeader: async (entry: { uid: string }) => { calls.push(`upload:${entry.uid}`) },
+  getComponentHeaderVersioned: async (reference: string) => stored === null ? null : { header: stored, version: `version-of-${reference}` },
+  uploadComponentHeader: async (entry: { uid: string }) => {
+    calls.push(`upload:${entry.uid}`)
+    uploaded.push(structuredClone(entry))
+  },
   deleteComponentHeader: async (name: string) => { calls.push(`delete:${name}`) },
   getComponentHeaderHistory: async (reference: string) => {
     calls.push(`history:${reference}`)
@@ -74,6 +79,7 @@ const entry = { uid: 'hero', attributes: {} } as never
 
 beforeEach(() => {
   calls.length = 0
+  uploaded.length = 0
   stored = { uid: 'hero', type: 'prebuilt', name: 'Hero' }
 })
 
@@ -103,11 +109,11 @@ describe('reading the catalog', () => {
 describe('modifying', () => {
   it('is denied to a principal who may only read', async () => {
     await expectDenied(() =>
-      components.updateUserComponentHeader(contextWith(['components:read']), entry))
+      components.updateUserComponentHeader(contextWith(['components:read']), entry, 'v1'))
   })
 
   it('is allowed with components:modify', async () => {
-    await components.updateUserComponentHeader(contextWith(['components:modify']), entry)
+    await components.updateUserComponentHeader(contextWith(['components:modify']), entry, 'v1')
     // Saving reads the stored state first, because the step it records has to be diffed against
     // what is actually stored rather than against whatever the caller believed was there.
     //
@@ -172,7 +178,8 @@ describe('components the editor owns', () => {
 
     await components.updateUserComponentHeader(
       contextWith(['components:modify']),
-      { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] } as never
+      { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] } as never,
+      'v1'
     )
 
     expect(calls).toContain('upload:hero')
@@ -192,8 +199,8 @@ describe('components the editor owns', () => {
     dynamic()
     const curator = contextWith(['components:modify'])
 
-    await components.undoUserComponentHeader(curator, 'hero')
-    await components.redoUserComponentHeader(curator, 'hero')
+    await components.undoUserComponentHeader(curator, 'hero', 'version-of-hero')
+    await components.redoUserComponentHeader(curator, 'hero', 'version-of-hero')
 
     expect(calls).not.toEqual([])
   })
@@ -213,5 +220,25 @@ describe('components the editor owns', () => {
     dynamic()
 
     await expectDenied(() => components.deleteUserComponentHeader(contextWith([]), 'hero'))
+  })
+})
+
+describe('saving a header', () => {
+  const save = components.updateUserComponentHeader as unknown as (ctx: AuthContext, header: unknown, version: string) => Promise<unknown>
+  const modifier = () => contextWith(['components:read', 'components:modify'])
+
+  it('CMP-8: saving a header for an unknown uid is refused', async () => {
+    stored = null
+
+    await expect(save(modifier(), { uid: 'ghost', type: 'prebuilt', name: 'Ghost', attributes: {}, attributeOrder: [] }, 'v1'))
+      .rejects.toThrow(/^components\/no-such-component: ghost/)
+    expect(uploaded).toEqual([])
+    expect(calls.filter(call => call.startsWith('upload'))).toEqual([])
+  })
+
+  it('CMP-8: saving a header keeps the stored kind', async () => {
+    await save(modifier(), { uid: 'hero', type: 'dynamic', name: 'Hero', attributes: {}, attributeOrder: [] }, 'v1')
+
+    expect(uploaded.map(entry => entry.type)).toEqual(['prebuilt'])
   })
 })

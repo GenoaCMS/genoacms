@@ -13,8 +13,10 @@
     historyLength: number
     /** Set while the draft differs from what is stored: undoing would discard the difference. */
     unsaved: boolean
+    /** HIS-2 */
+    version: string
   }
-  const { historyLength, unsaved }: Props = $props()
+  const { historyLength, unsaved, version }: Props = $props()
 
   const title = $derived(
     unsaved
@@ -35,6 +37,7 @@
   what the author had typed and show them an older state as though nothing had been lost.
 -->
 <form action="?/undo" method="post" use:enhance>
+  <input type="hidden" name="version" value={version} />
   <button
     type="submit"
     aria-label="Undo"

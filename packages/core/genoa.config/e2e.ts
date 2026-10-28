@@ -7,6 +7,7 @@ import type {} from '@genoacms/adapter-gcp/database'
 import type {} from '@genoacms/adapter-secrets-env'
 import type {} from '@genoacms/authentication-adapter-array'
 import type {} from '@genoacms/adapter-node'
+import type { Permission } from '@genoacms/internal/authorization'
 import { collections } from './collections.js'
 import { security } from './security.js'
 import { languages } from './languages.js'
@@ -14,6 +15,10 @@ import { languages } from './languages.js'
 /** End-to-end tests (`e2e/`): the test project's bucket through ADC, users from the environment of each server run. */
 const projectId = process.env.GENOACMS_TEST_GCP_PROJECT ?? 'genoacms'
 const bucket = process.env.GENOACMS_TEST_GCP_BUCKET ?? 'genoacms-tests'
+const BUILDER_PERMISSIONS: Permission[] = [
+  'components:read', 'components:register', 'components:modify', 'components:code',
+  'pages:read', 'pages:content_edit', 'pages:structure_edit', 'pages:publish', 'pages:delete'
+]
 const secretsPath = process.env.GENOACMS_E2E_SECRETS ?? '.genoacms/e2e-secrets.env'
 
 export default defineConfig({
@@ -22,6 +27,9 @@ export default defineConfig({
     providers: {
       primary: authenticationProvider('@genoacms/authentication-adapter-array', { credentials: env('GENOACMS_E2E_PRIMARY_USERS') }),
       secondary: authenticationProvider('@genoacms/authentication-adapter-array', { credentials: env('GENOACMS_E2E_SECONDARY_USERS') })
+    },
+    agents: {
+      'agent:e2e-builder': { label: 'End-to-end builder', token: env('GENOACMS_E2E_AGENT_TOKEN') }
     }
   },
   secrets: {
@@ -42,9 +50,10 @@ export default defineConfig({
     roles: {
       Administrator: [{ permission: '*', resource: '*' }],
       TestReader: [{ permission: 'db:collection:read', resource: { scope: 'collection', id: 'test' } }],
-      StorageReader: [{ permission: 'storage:bucket:read', resource: { scope: 'bucket', id: bucket } }]
+      StorageReader: [{ permission: 'storage:bucket:read', resource: { scope: 'bucket', id: bucket } }],
+      Builder: BUILDER_PERMISSIONS.map(permission => ({ permission, resource: '*' }))
     },
-    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'], 'e2e-carol': ['TestReader'], 'e2e-dan': ['StorageReader'] }
+    assignments: { 'e2e-ada': ['Administrator'], 'e2e-bob': ['Administrator'], 'e2e-carol': ['TestReader'], 'e2e-dan': ['StorageReader'], 'agent:e2e-builder': ['Builder'] }
   },
   security
 })

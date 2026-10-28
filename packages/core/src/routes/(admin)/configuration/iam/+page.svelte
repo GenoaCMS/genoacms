@@ -9,12 +9,29 @@
   import DangerousAction from '../DangerousAction.svelte'
   import EditRole from './EditRole.svelte'
   import AssignRoles from './AssignRoles.svelte'
+  import AgentCard from './AgentCard.svelte'
+  import CreateAgent from './CreateAgent.svelte'
+  import IssuedToken from './IssuedToken.svelte'
+  import { enhance } from '$app/forms'
+  import { toastError } from '$lib/script/alert.svelte'
+  import { refusalMessage } from '../refusalMessage'
+  import type { SubmitFunction } from '@sveltejs/kit'
   import PermissionGate from '$lib/components/PermissionGate.svelte'
 
   const { data } = $props()
 
   // Declared roles are assignable even though they cannot be edited, so the selector offers both.
   const roleNames = $derived(data.roles.map(entry => entry.role.name))
+
+  let issued = $state<{ subject: string, token: string } | undefined>()
+
+  const enhanceReissue: SubmitFunction = () => async ({ result }) => {
+    if (result.type !== 'success') {
+      toastError(refusalMessage(result.type === 'failure' ? result.data?.reason : undefined, 'Token not replaced'))
+      return
+    }
+    issued = result.data?.issued as { subject: string, token: string }
+  }
 </script>
 
 <TopPanel>
@@ -28,6 +45,7 @@
       </PermissionGate>
       <PermissionGate permission="config:users:manage">
         <CreateAccount available={roleNames} />
+        <CreateAgent available={roleNames} onissued={(next) => { issued = next }} />
       </PermissionGate>
     {/if}
   {/snippet}
@@ -55,6 +73,41 @@
         </RoleCard>
       {/each}
     </GridLargeItems>
+  </section>
+
+  {#if issued}
+    <IssuedToken subject={issued.subject} token={issued.token} onclose={() => { issued = undefined }} />
+  {/if}
+
+  <section class="mb-8">
+    <h2 class="text-xl mb-3">Agents</h2>
+    {#if data.agents.length === 0}
+      <p class="text-sm opacity-70">No agents. An agent controls components and pages through MCP, with a token.</p>
+    {:else}
+      <GridLargeItems>
+        {#each data.agents as agent (agent.subject)}
+          <AgentCard {agent}>
+            {#snippet actions(agent)}
+              <DangerousAction
+                action="?/revokeAgent"
+                field="subject"
+                value={agent.subject}
+                confirmation={`Revoke ${agent.subject}. Its token stops working at once.`}
+                success="Agent revoked"
+                failure="Agent not revoked"
+              />
+              <form method="POST" action="?/reissueAgentToken" use:enhance={enhanceReissue}>
+                <input type="hidden" name="subject" value={agent.subject} />
+                <button type="submit" class="text-sm cursor-pointer hover:text-warning">New token</button>
+              </form>
+              <PermissionGate permission="config:roles:manage">
+                <AssignRoles subject={agent.subject} current={agent.roles} available={roleNames} action="?/updateAgent" />
+              </PermissionGate>
+            {/snippet}
+          </AgentCard>
+        {/each}
+      </GridLargeItems>
+    {/if}
   </section>
 
   <section>

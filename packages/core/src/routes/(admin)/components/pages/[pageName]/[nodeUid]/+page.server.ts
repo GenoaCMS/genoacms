@@ -1,22 +1,17 @@
 import { fail, redirect } from '@sveltejs/kit'
 import type { Actions } from './$types'
 import {
+  addUserChildNode,
+  editUserNode,
   generateUserReadablePageTree,
   getUserPageEntry,
-  saveUserPageContent,
-  saveUserPageStructure,
-  revertUserPageEntry
+  setUserPreviewURL,
+  stepUserPage
 } from '$lib/script/components/page/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import type { AuthContext } from '$lib/script/authorization/context'
-import {
-  addChildNodeToNodeInPage,
-  componentSchemaToNode,
-  redoPageEntryState,
-  serializeComponentNode,
-  undoPageEntryState,
-  updateComponentNode
-} from '$lib/script/components/page/entry'
+import { PageEditError } from '$lib/script/components/page/edits'
+import { isConflict } from '$lib/script/components/conflict'
 import { isString } from '$lib/script/utils'
 
 export const load = async ({ params, parent }) => {
@@ -30,98 +25,80 @@ export const load = async ({ params, parent }) => {
   }
 }
 
+const NOT_FOUND = 'pages/no-such-node'
+
+/** HIS-2, PGE-4, PGE-5: a conflict and a refusal of the edit are answers; anything else is a fault. */
+function answerFor (error: unknown) {
+  if (isConflict(error)) return fail(409, { reason: error.message })
+  if (error instanceof PageEditError) return fail(error.code === NOT_FOUND ? 404 : 400, { reason: error.message })
+  throw error
+}
+
+const versionOf = (data: FormData): string | undefined => {
+  const version = data.get('version')
+  return isString(version) ? version : undefined
+}
+
 const updatePage = async (ctx: AuthContext, pageName: string, data: FormData, generateTree: boolean) => {
   const componentNodeText = data.get('componentNode')
-  if (!isString(componentNodeText)) return fail(400, { reason: 'no-diff' })
-  const componentNode = JSON.parse(componentNodeText)
+  const version = versionOf(data)
+  if (!isString(componentNodeText) || version === undefined) return fail(400, { reason: 'no-diff' })
 
-  let page = await getUserPageEntry(ctx, pageName)
-  page = updateComponentNode(page, componentNode)
-  await saveUserPageContent(ctx, page)
-  if (generateTree) return await generateUserReadablePageTree(ctx, page)
+  try {
+    await editUserNode(ctx, pageName, version, JSON.parse(componentNodeText))
+  } catch (error) {
+    if (error instanceof PageEditError && error.code === NOT_FOUND) return fail(404, { reason: NOT_FOUND })
+    return answerFor(error)
+  }
+  if (generateTree) return await generateUserReadablePageTree(ctx, await getUserPageEntry(ctx, pageName))
+}
+
+const stepThroughHistory = (direction: 'undo' | 'redo') => async ({ request, params, locals }: Parameters<NonNullable<Actions['undo']>>[0]) => {
+  const version = versionOf(await request.formData())
+  if (version === undefined) return fail(400, { reason: 'no-version' })
+  try {
+    await stepUserPage(requireAuthContext(locals), params.pageName, version, direction)
+  } catch (error) {
+    return answerFor(error)
+  }
 }
 
 export const actions = {
-  undo: async ({ params, locals }) => {
-    const ctx = requireAuthContext(locals)
-    const { pageName } = params
-    let page = await getUserPageEntry(ctx, pageName)
-    page = undoPageEntryState(page)
-    await revertUserPageEntry(ctx, page)
-  },
-  redo: async ({ params, locals }) => {
-    const ctx = requireAuthContext(locals)
-    const { pageName } = params
-    let page = await getUserPageEntry(ctx, pageName)
-    page = redoPageEntryState(page)
-    await revertUserPageEntry(ctx, page)
-  },
-  changePreviewURL: async ({
-    request,
-    params,
-    locals
-  }) => {
-    const ctx = requireAuthContext(locals)
-    const { pageName } = params
+  undo: stepThroughHistory('undo'),
+  redo: stepThroughHistory('redo'),
+  changePreviewURL: async ({ request, params, locals }) => {
     const data = await request.formData()
     const value = data.get('value')
-    if (!isString(value)) return fail(400, { reason: 'no-diff' })
-    const page = await getUserPageEntry(ctx, pageName)
+    const version = versionOf(data)
+    if (!isString(value) || version === undefined) return fail(400, { reason: 'no-diff' })
 
-    await saveUserPageContent(ctx, {
-      ...page,
-      previewURL: value,
-      lastModified: new Date().toISOString()
-    })
+    try {
+      await setUserPreviewURL(requireAuthContext(locals), params.pageName, version, value)
+    } catch (error) {
+      return answerFor(error)
+    }
   },
-  update: async ({
-    request,
-    params,
-    locals
-  }) => {
-    const { pageName } = params
-    const data = await request.formData()
-    await updatePage(requireAuthContext(locals), pageName, data, false)
+  update: async ({ request, params, locals }) => {
+    return await updatePage(requireAuthContext(locals), params.pageName, await request.formData(), false)
   },
-  updateAndGenerateTree: async ({
-    request,
-    params,
-    locals
-  }) => {
-    const { pageName } = params
-    const data = await request.formData()
-    await updatePage(requireAuthContext(locals), pageName, data, true)
+  updateAndGenerateTree: async ({ request, params, locals }) => {
+    return await updatePage(requireAuthContext(locals), params.pageName, await request.formData(), true)
   },
   addChildNode: async ({ request, params, locals }) => {
     const ctx = requireAuthContext(locals)
     const { pageName, nodeUid } = params
     const data = await request.formData()
-    const schema = data.get('schema')
+    const componentUID = data.get('componentUID')
     const attributeUID = data.get('attributeUID')
-    if (!isString(schema)) return fail(400, { reason: 'no-schema' })
+    const version = versionOf(data)
+    if (!isString(componentUID)) return fail(400, { reason: 'no-component' })
     if (!isString(attributeUID)) return fail(400, { reason: 'no-target-attribute' })
-    const schemaObject = JSON.parse(schema) // TODO: validate schema
-    let page = await getUserPageEntry(ctx, pageName)
-    const currentNode = page.contents.nodes[nodeUid]
-    if (!currentNode) fail(400, { reason: 'non-existent-node' })
-    const childNode = await componentSchemaToNode(schemaObject)
-    const serializeChildNode = serializeComponentNode(childNode)
-    page = addChildNodeToNodeInPage(page, currentNode, attributeUID, serializeChildNode)
-    await saveUserPageStructure(ctx, page)
-  },
-  setStorageResourceValue: async ({ request, params, locals }) => {
-    const ctx = requireAuthContext(locals)
-    const { pageName, nodeUid } = params
-    const data = await request.formData()
-    const valueText = data.get('value')
-    if (!isString(valueText)) return fail(400, { reason: 'no-value' })
-    const value = JSON.parse(valueText)
-    let page = await getUserPageEntry(ctx, pageName)
-    const node = page.contents.nodes[nodeUid]
-    const attribute = node.data[value.attributeUID]
-    attribute.value = JSON.parse(value.selection[0])
-    page = updateComponentNode(page, node)
-    await saveUserPageContent(ctx, page)
-    return redirect(307, `/components/pages/${pageName}/${nodeUid}`)
+    if (version === undefined) return fail(400, { reason: 'no-version' })
+
+    try {
+      await addUserChildNode(ctx, pageName, version, { parent: nodeUid, slot: attributeUID, componentUID })
+    } catch (error) {
+      return answerFor(error)
+    }
   }
 } satisfies Actions

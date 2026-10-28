@@ -19,6 +19,8 @@ if (!building) await ensureInstanceInitialized()
  * function is handed a context rather than being trusted to fetch one — and a permission revoked
  * elsewhere stops being honored within the cache window rather than at token expiry.
  */
+const AGENT_ENDPOINT = '/mcp'
+
 async function attachPrincipal (locals: App.Locals, cookies: Cookies): Promise<void> {
   const payload: JWTPayload | undefined = await authenticateRequest(cookies)
   if (payload === undefined) return
@@ -28,6 +30,7 @@ async function attachPrincipal (locals: App.Locals, cookies: Cookies): Promise<v
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-  await attachPrincipal(event.locals, event.cookies)
+  // MCP-2: cookies are ignored on /mcp, where an agent is admitted by its token alone.
+  if (event.url.pathname !== AGENT_ENDPOINT) await attachPrincipal(event.locals, event.cookies)
   return await resolve(event)
 }

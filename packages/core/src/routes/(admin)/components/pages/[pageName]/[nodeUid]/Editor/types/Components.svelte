@@ -43,11 +43,13 @@
     if (!Array.isArray(allowed) || allowed.length === 0) return components
     return components.filter((component) => allowed.includes(component.name))
   }
+  const CONFLICT = 'Changed elsewhere. Reload to see the latest version.'
   const addComponent: SubmitFunction = () => {
     isModalOpen = false
     return ({ result }) => {
       if (result.type !== 'success') {
-        toastError('Failed to add component')
+        const reason = result.type === 'failure' ? String((result.data as Record<string, unknown> | undefined)?.reason ?? '') : ''
+        toastError(reason.startsWith('conflict/modified-since') ? CONFLICT : 'Failed to add component')
         return
       }
       invalidateAll()
@@ -116,6 +118,7 @@
         class="col-span-1"
       >
         <input type="hidden" name="attributeUID" value={data.uid} />
+        <input type="hidden" name="version" value={page.data.version} />
         <Component schema={componentSchema} />
       </form>
     {/each}

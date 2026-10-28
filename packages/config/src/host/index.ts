@@ -44,6 +44,8 @@ interface Host {
   readonly authorization: AuthorizationConfig
   readonly security: SecurityConfig
   readonly cookieName: string
+  /** The declared agents with their tokens still unresolved; resolve through `resolve`. */
+  readonly agents: Readonly<Record<string, { label: string, token: unknown }>>
   readonly defaultBucket: string
   /** `storage.pathDelimiter ?? '|->'`. */
   readonly pathDelimiter: string
@@ -167,6 +169,7 @@ function createHost (options: HostOptions): Host {
     get authorization () { return config.authorization },
     get security () { return config.security },
     get cookieName () { return config.authentication.cookieName },
+    get agents () { return config.authentication.agents ?? {} },
     get defaultBucket () { return config.storage.defaultBucket },
     get pathDelimiter () { return config.storage.pathDelimiter ?? DEFAULT_PATH_DELIMITER },
     get buckets () { return bucketNames(config) },

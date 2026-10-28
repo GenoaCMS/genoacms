@@ -1,5 +1,6 @@
 import type { ComponentHeader, ComponentHeaderReference } from './component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import type { UploadOptions } from '@genoacms/contracts/storage'
 import {
   defaultBucketId,
   listOrCreateDirectory,
@@ -8,6 +9,7 @@ import {
   uploadInternalObjectFlatted,
   deleteInternalObject,
   getInternalObjectJSON,
+  getInternalObjectJSONVersioned,
   getInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { noHistory } from '$lib/script/undoRedo'
@@ -135,6 +137,15 @@ const getComponentHeader = async (reference: ComponentHeaderReference): Promise<
   return stored as unknown as ComponentHeader
 }
 
+/** HIS-2: a valid stored header with the version it was read at, or `null`. */
+const getComponentHeaderVersioned = async (
+  reference: ComponentHeaderReference
+): Promise<{ header: ComponentHeader, version?: string } | null> => {
+  const stored = await toleratingAbsence(getInternalObjectJSONVersioned(headerPath(reference)))
+  if (stored === undefined || !validateComponentHeader(stored.data as Json)) return null
+  return { header: stored.data as ComponentHeader, version: stored.version }
+}
+
 /** A component's editing history. Absent is empty, not an error: nothing has been undone yet. */
 const getComponentHeaderHistory = async (
   reference: ComponentHeaderReference
@@ -151,8 +162,8 @@ const getComponentHeaderHistory = async (
   return { history: stored.history, future: stored.future }
 }
 
-const uploadComponentHeader = async (header: ComponentHeader) =>
-  await uploadInternalObjectJSON(headerPath(header.uid), header)
+const uploadComponentHeader = async (header: ComponentHeader, options?: UploadOptions) =>
+  await uploadInternalObjectJSON(headerPath(header.uid), header, options)
 
 const uploadComponentHeaderHistory = async (
   reference: ComponentHeaderReference,
@@ -181,6 +192,7 @@ export {
   listComponentHeaderReferences,
   listOrCreateComponentHeaderList,
   getComponentHeader,
+  getComponentHeaderVersioned,
   getComponentHeaderHistory,
   uploadComponentHeader,
   uploadComponentHeaderHistory,

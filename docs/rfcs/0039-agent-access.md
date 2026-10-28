@@ -2,8 +2,8 @@
 type: rfc
 number: 39
 title: Agent access through MCP, with checked and conditional component and page edits
-status: draft
-commits: []
+status: implemented
+commits: [7f69446f]
 depends: [38]
 architecture: [architecture/agent-access.md, architecture/components.md, architecture/contracts/authentication.md]
 changes: [CMP-8 breaking, SRC-4 breaking, PGE-2 breaking, PGE-4 breaking, PGE-5 breaking, PGE-6 breaking, PGE-7 breaking, AUTHN-5 compatible]
@@ -90,6 +90,9 @@ Limiting failed tokens (MCP-3) is not part of this RFC; it follows RFC-0031 (TU1
 | `packages/core/genoa.config/e2e.ts` | an agent `agent:e2e-builder`, token `env('GENOACMS_E2E_AGENT_TOKEN')`, assigned a declared role `Builder` holding every `components:*` and `pages:*` permission |
 | `packages/core/e2e/mcp.test.ts` | new: the e2e tests of §Tests |
 | `packages/core/e2e/server.ts` | passes `GENOACMS_E2E_AGENT_TOKEN` through when it is set; otherwise sets it to 43 random base64url characters per run |
+| `packages/core/evidence/permissionMatrix.ts`, `permissionMatrix.test.ts` | the new and versioned user-layer operations: each role's allowed set written from CMP-11, PGE-10 and TOL-17; `version` at the call sites of the changed services |
+| `packages/core/src/lib/script/components/{componentHeader,editor,page}/*.test.ts` (existing) | `version` at the call sites of the changed services, and the mocks of `io` extended for versioned reads; no assertion changes |
+| `packages/core/src/lib/script/mcp/tools/*.test.ts`, `testing/components.ts`, `testing/memoryStorage.ts` | fixture publication ids are UUIDs (`publicationIdOf`), as PUB-5 validates; a missing object throws `ObjectNotFoundError` |
 | `.changeset/agent-access.md` | new: `minor` for `@genoacms/core`, `patch` for `@genoacms/config` |
 | `docs/architecture/agent-access.md`, `docs/architecture/components.md`, `docs/architecture/contracts/authentication.md`, `docs/README.md` | to current, step 8 |
 
@@ -229,14 +232,18 @@ the new version. Reads that feed a save return `{ value, version }`.
 
 ```ts
 type EditResult = { ok: true, contents: PageContents } | { ok: false, code: string, message: string }
-function addNode (contents, parent: string, slot: string, header: ComponentHeader, published: boolean, position?: number): EditResult & { node?: string }
-function moveNode (contents, node: string, parent: string, slot: string, position?: number): EditResult
+function addNode (contents, parent: string, slot: string, header: ComponentHeader, published: boolean, headers: Map<string, ComponentHeader>, position?: number): EditResult & { node?: string }
+function moveNode (contents, node: string, parent: string, slot: string, headers: Map<string, ComponentHeader>, position?: number): EditResult
 function removeNode (contents, node: string): EditResult
 function setValues (contents, node: string, values: Record<string, unknown>, headers: Map<string, ComponentHeader>): EditResult
 function applyNodeEdit (contents, sent: unknown, headers): EditResult & { content: boolean, structure: boolean }  // PGE-4
 ```
 
-The refusal codes are those of TOL-9 to TOL-13 and PGE-4.
+The refusal codes are those of TOL-9 to TOL-13 and PGE-4. `headers` maps a component uid to its
+stored header; the slot's `items.enum` and `maxItems` are read from the header of the parent node's component
+in it. `moveNode` takes no `published` flag: the moved node is already on the page, so its component was
+published when it was added, and the function stays pure. TOL-12's `pages/not-accepted` and
+`pages/slot-full` apply to it through `headers`.
 
 ### MCP
 

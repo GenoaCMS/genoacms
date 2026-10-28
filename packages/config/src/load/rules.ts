@@ -1,6 +1,7 @@
 import { SECRET_KEY_PATTERN } from '@genoacms/contracts/secrets'
 import type { ConfigIssue } from '../errors.js'
 import { isPlainObject, isReference, isSecretRef, isInlineRef } from '../references.js'
+import { agentIssues, agentTokenPaths } from './agents.js'
 import { providerSlots, isWellFormedEntry, type LoadedDescriptor, type ProviderSlot, type WellFormedEntry } from './descriptors.js'
 
 type Mode = 'development' | 'production'
@@ -122,6 +123,7 @@ function referencePlaces (ctx: RuleContext): { allowed: Set<string>, skipped: Se
     skipped.delete(slot.path)
     for (const key of Object.keys(loaded.descriptor.secretOptions ?? {})) allowed.add(`${slot.path}.options.${key}`)
   }
+  for (const path of agentTokenPaths(ctx)) allowed.add(path)
   return { allowed, skipped }
 }
 
@@ -216,6 +218,9 @@ function inlineValues (ctx: RuleContext): ConfigIssue[] {
     .map(({ path }) => issue(code, path, 'is inline: this value is written into the build'))
 }
 
+// Rule 15
+const agentRules = (ctx: RuleContext): ConfigIssue[] => agentIssues(ctx)
+
 const RULES: ReadonlyArray<(ctx: RuleContext) => ConfigIssue[]> = [
   missingStanzas,
   invalidProviderEntries,
@@ -231,7 +236,8 @@ const RULES: ReadonlyArray<(ctx: RuleContext) => ConfigIssue[]> = [
   unknownDefaultBucket,
   integerKeys,
   developmentOnlyInProduction,
-  inlineValues
+  inlineValues,
+  agentRules
 ]
 
 /** Every issue in the config, rules in table order, paths in document order. Pure. */

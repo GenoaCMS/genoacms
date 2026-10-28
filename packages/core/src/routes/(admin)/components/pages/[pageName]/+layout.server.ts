@@ -1,7 +1,7 @@
 import type { LayoutServerLoad } from './$types'
-import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
+import type { PageEntry } from '$lib/script/components/page/entry/types'
 import {
-  getUserPageEntry
+  getUserPageEntryVersioned
 } from '$lib/script/components/page/user.server'
 import { listUserComponentHeaders } from '$lib/script/components/componentHeader/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
@@ -13,8 +13,8 @@ export const load: LayoutServerLoad = async ({ params, locals, parent }) => {
   const { pageName } = params
   const parentData = await parent()
 
-  const [serializedPage, componentSchemas, composableComponents] = await Promise.all([
-    getUserPageEntry(ctx, pageName).catch(e => {
+  const [read, componentSchemas, composableComponents] = await Promise.all([
+    getUserPageEntryVersioned(ctx, pageName).catch(e => {
       console.log(e)
       return null
     }),
@@ -22,19 +22,20 @@ export const load: LayoutServerLoad = async ({ params, locals, parent }) => {
     parentData.composableComponents
   ])
 
-  if (serializedPage === null) {
+  if (read === null) {
     return error(404, { message: `No page named "${pageName}"` })
   }
 
   let page: PageEntry
   try {
-    page = await deserializePageEntry(serializedPage)
+    page = await deserializePageEntry(read.page)
   } catch {
     return error(500, { message: `Failed to deserialize page "${pageName}"` })
   }
 
   return {
     page,
+    version: read.version ?? '',
     componentSchemas,
     composableComponents,
     canUndo: !!page.history.length,

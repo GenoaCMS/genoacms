@@ -8,8 +8,10 @@ import {
   upsertUserAccount,
   removeUserAccount
 } from '$lib/script/configuration/user.server'
+import { createAgent, listAgents, reissueAgentToken, revokeAgent, updateAgent } from '$lib/script/agents/administration.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { isString } from '$lib/script/utils'
+import { PermissionDeniedError, hasPermission } from '$lib/script/authorization/enforce'
 import { error, fail, type Actions } from '@sveltejs/kit'
 import type { AdministrationResult } from '$lib/script/authorization/administration'
 import type { Grant } from '$lib/script/authorization/grants'
@@ -25,7 +27,7 @@ export const load = async ({ locals }) => {
   // Both are governed by `config:roles:manage`, which the read above has already demanded, so this
   // cannot deny a caller who reached this line. The check stays on the service function regardless —
   // the route is not where the rule lives.
-  return { ...result.value, resources: await listGrantableResources(ctx) }
+  return { ...result.value, resources: await listGrantableResources(ctx), agents: hasPermission(ctx, 'config:users:manage') ? await listAgents(ctx) : [] }
 }
 
 /**
@@ -59,7 +61,53 @@ function selectedRoleNames (data: FormData): string[] {
   return data.getAll('roles').filter(isString).filter(name => name.length > 0)
 }
 
+/** AGT-3: a refusal of an agent action is an answer, not a fault. */
+async function answer<T> (run: () => Promise<T>, success: (value: T) => object) {
+  try {
+    return success(await run())
+  } catch (cause) {
+    if (cause instanceof PermissionDeniedError) throw cause
+    return fail(409, { reason: cause instanceof Error ? cause.message : String(cause) })
+  }
+}
+
 export const actions = {
+  createAgent: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
+    const data = await request.formData()
+    const name = data.get('name')
+    const label = data.get('label')
+    if (!isString(name) || !isString(label)) return fail(400, { reason: 'agents/name-required' })
+
+    return await answer(() => createAgent(ctx, { name, label, roles: selectedRoleNames(data) }), issued => ({ issued }))
+  },
+
+  reissueAgentToken: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
+    const subject = (await request.formData()).get('subject')
+    if (!isString(subject)) return fail(400, { reason: 'user/subject-required' })
+
+    return await answer(() => reissueAgentToken(ctx, subject), ({ token }) => ({ issued: { subject, token } }))
+  },
+
+  updateAgent: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
+    const data = await request.formData()
+    const subject = data.get('subject')
+    if (!isString(subject)) return fail(400, { reason: 'user/subject-required' })
+    const agent = (await listAgents(ctx)).find(candidate => candidate.subject === subject)
+
+    return await answer(() => updateAgent(ctx, subject, { label: agent?.label ?? subject, roles: selectedRoleNames(data) }), () => ({ success: true }))
+  },
+
+  revokeAgent: async ({ request, locals }) => {
+    const ctx = requireAuthContext(locals)
+    const subject = (await request.formData()).get('subject')
+    if (!isString(subject)) return fail(400, { reason: 'user/subject-required' })
+
+    return await answer(() => revokeAgent(ctx, subject), () => ({ success: true }))
+  },
+
   createRole: async ({ request, locals }) => {
     const ctx = requireAuthContext(locals)
     const data = await request.formData()

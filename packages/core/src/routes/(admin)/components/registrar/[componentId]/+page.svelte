@@ -18,6 +18,7 @@
   <ComponentHeaderEditor
     id={data.id}
     entry={data.componentHeader}
+    version={data.version}
     historyLength={data.historyLength}
     futureLength={data.futureLength}
     publishedAt={data.publishedAt}

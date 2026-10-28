@@ -5,6 +5,7 @@ import { createComponentHeader } from './component.server'
 import {
   listOrCreateComponentHeaderList,
   getComponentHeader,
+  getComponentHeaderVersioned,
   deleteComponentHeader
 } from './io.server'
 import {
@@ -126,6 +127,15 @@ const getUserComponentHeader = async (
   return await getComponentHeader(reference)
 }
 
+/** HIS-2: one component's header with the version a later save must carry. */
+const getUserComponentHeaderVersioned = async (
+  ctx: AuthContext,
+  reference: ComponentHeaderReference
+): Promise<{ header: ComponentHeader, version?: string } | null> => {
+  requirePermission(ctx, 'components:read')
+  return await getComponentHeaderVersioned(reference)
+}
+
 /**
  * Rewrites a component's description, of either kind.
  *
@@ -139,9 +149,9 @@ const getUserComponentHeader = async (
  * publication compiles against the new one. A body that referred to a parameter now gone stops
  * compiling — which is the author being told, at the moment they publish, what their edit cost.
  */
-const updateUserComponentHeader = async (ctx: AuthContext, header: ComponentHeader) => {
+const updateUserComponentHeader = async (ctx: AuthContext, header: ComponentHeader, version: string) => {
   requirePermission(ctx, 'components:modify')
-  return await saveComponentHeader(header)
+  return await saveComponentHeader(header, version)
 }
 
 /**
@@ -164,14 +174,14 @@ const getUserComponentHeaderDepth = async (
  * Gated on `modify`, because both change what the component is. Undo is not a lesser action than an
  * edit — it *is* an edit, expressed as the reverse of one.
  */
-const undoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
+const undoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference, version: string) => {
   requirePermission(ctx, 'components:modify')
-  return await undoComponentHeader(reference)
+  return await undoComponentHeader(reference, version)
 }
 
-const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference) => {
+const redoUserComponentHeader = async (ctx: AuthContext, reference: ComponentHeaderReference, version: string) => {
   requirePermission(ctx, 'components:modify')
-  return await redoComponentHeader(reference)
+  return await redoComponentHeader(reference, version)
 }
 
 /**
@@ -231,6 +241,7 @@ export {
   registerUserComponentHeader,
   listUserComponentHeaders,
   getUserComponentHeader,
+  getUserComponentHeaderVersioned,
   updateUserComponentHeader,
   getUserComponentHeaderDepth,
   undoUserComponentHeader,

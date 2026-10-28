@@ -1,5 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
+  import { invalidateAll } from '$app/navigation'
+  import { page } from '$app/state'
   import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import type { SubmitFunction } from '@sveltejs/kit'
@@ -18,9 +20,11 @@
     return async ({ result }) => {
       alert.close()
       if (result.type !== 'success') {
-        toastError('Edit failed')
+        const reason = result.type === 'failure' ? String((result.data as Record<string, unknown> | undefined)?.reason ?? '') : ''
+        toastError(reason.startsWith('conflict/modified-since') ? 'Changed elsewhere. Reload to see the latest version.' : 'Edit failed')
         return
       }
+      await invalidateAll()
       toastSuccess('Edit successful')
       isModalOpen = false
       const nextValue = formData.get('value')
@@ -35,6 +39,7 @@
 
 <Modal title="Edit preview URL:" bind:open={isModalOpen}>
     <form action="?/changePreviewURL" method="post" use:enhance={enhanceEdit} class="w-full space-y-3">
+        <input type="hidden" name="version" value={page.data.version} />
         <Label>
             Preview URL:
             <Input type="url" name="value" {value} class="w-full mt-1"/>

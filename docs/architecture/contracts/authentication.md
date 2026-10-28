@@ -2,7 +2,7 @@
 type: architecture
 title: Authentication contract
 codes: [AUTHN]
-verified: a830c48
+verified: 7f69446f
 ---
 
 # Authentication contract
@@ -280,7 +280,8 @@ order. An answer that is neither an `Identity`, an object with a non-empty strin
 string `email`, nor a `Rejection`, an object whose `rejected` is one of the three reasons, counts
 as a thrown failure. It stops at the first that returns an `Identity`, or a `Rejection` other than `credentials`;
 a `credentials` rejection or a thrown failure moves on to the next provider. An `Identity` is admitted
-only if the authorization data knows its subject. Otherwise the sign-in fails with one of three
+only if the authorization data knows its subject. An `Identity` whose subject starts with `agent:` is never admitted
+(`agent-access.md` AGT-4), and fails as an unknown one does. Otherwise the sign-in fails with one of three
 messages, the only ones the user sees:
 
 | Message | When |

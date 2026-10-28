@@ -18,7 +18,9 @@ import {
   undoComponentBody,
   redoComponentBody,
   getComponentDefinitionDepth,
-  type HistoryDepth
+  getComponentDefinitionVersioned,
+  type HistoryDepth,
+  type BodySaved
 } from './editing.server'
 
 /**
@@ -107,6 +109,15 @@ const getUserComponentDefinition = async (
   return await getComponentDefiniton(reference)
 }
 
+/** HIS-2: the definition with the version a later save must carry. */
+const getUserComponentDefinitionVersioned = async (
+  ctx: AuthContext,
+  reference: ComponentReference
+): Promise<{ definition: ComponentDefinition, version?: string }> => {
+  requirePermission(ctx, 'components:code')
+  return await getComponentDefinitionVersioned(reference)
+}
+
 /**
  * Brings a coded component into existence.
  *
@@ -132,10 +143,11 @@ const createUserComponent = async (ctx: AuthContext, name: string): Promise<stri
 const saveUserComponentBody = async (
   ctx: AuthContext,
   reference: ComponentReference,
-  body: string
-): Promise<HistoryDepth> => {
+  body: string,
+  version: string
+): Promise<BodySaved> => {
   requirePermission(ctx, 'components:code')
-  return await saveComponentBody(reference, body)
+  return await saveComponentBody(reference, body, version)
 }
 
 /**
@@ -146,18 +158,20 @@ const saveUserComponentBody = async (
  */
 const undoUserComponentBody = async (
   ctx: AuthContext,
-  reference: ComponentReference
+  reference: ComponentReference,
+  version: string
 ): Promise<ComponentDefinition> => {
   requirePermission(ctx, 'components:code')
-  return await undoComponentBody(reference)
+  return await undoComponentBody(reference, version)
 }
 
 const redoUserComponentBody = async (
   ctx: AuthContext,
-  reference: ComponentReference
+  reference: ComponentReference,
+  version: string
 ): Promise<ComponentDefinition> => {
   requirePermission(ctx, 'components:code')
-  return await redoComponentBody(reference)
+  return await redoComponentBody(reference, version)
 }
 
 /**
@@ -192,6 +206,7 @@ export {
   listUserComponents,
   getUserComponent,
   getUserComponentDefinition,
+  getUserComponentDefinitionVersioned,
   createUserComponent,
   getUserComponentSignature,
   saveUserComponentBody,

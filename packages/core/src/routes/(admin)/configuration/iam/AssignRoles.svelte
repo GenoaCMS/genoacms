@@ -8,8 +8,10 @@
     subject: string
     current: string[]
     available: string[]
+    /** The form action; accounts by default, agents when given. */
+    action?: string
   }
-  const { subject, current, available }: Props = $props()
+  const { subject, current, available, action = '?/assignRoles' }: Props = $props()
 
   let open = $state(false)
 </script>
@@ -20,7 +22,7 @@
   <div class="w-full">
     <form
       method="POST"
-      action="?/assignRoles"
+      {action}
       class="w-full"
       use:enhance={enhanceWithToast('Roles assigned', 'Roles not assigned', () => { open = false })}
     >

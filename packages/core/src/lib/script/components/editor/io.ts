@@ -2,17 +2,19 @@ import type { Component, ComponentDefinition, ComponentReference } from './types
 import type { ComponentHeader, ComponentHeaderReference } from '../componentHeader/component/types'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
 import { noHistory } from '$lib/script/undoRedo'
+import type { UploadOptions } from '@genoacms/contracts/storage'
 
 import { join } from 'path'
 import {
   defaultBucketId,
   uploadInternalObjectFlatted,
   getInternalObjectFlatted,
+  getInternalObjectFlattedVersioned,
   deleteDirectory
 } from '$lib/script/storage/storage.server'
 import { getComponentHeader, listOrCreateComponentHeaderList } from '../componentHeader/io.server'
 import { NoSuchComponentError } from './errors'
-import { validator } from '@exodus/schemasafe'
+import { validator, type Json } from '@exodus/schemasafe'
 import { componentDefinitionSchema } from './schemas'
 
 /**
@@ -48,8 +50,8 @@ const definitionPath = (reference: ComponentReference): string =>
 const historyPath = (reference: ComponentReference): string =>
   join(componentDefinitionPath, reference, 'history.json')
 
-async function uploadComponentDefinition (definition: ComponentDefinition) {
-  await uploadInternalObjectFlatted(definitionPath(definition.uid), definition)
+async function uploadComponentDefinition (definition: ComponentDefinition, options?: UploadOptions) {
+  await uploadInternalObjectFlatted(definitionPath(definition.uid), definition, options)
 }
 
 const uploadComponentDefinitionHistory = async (
@@ -102,11 +104,22 @@ async function getComponent (reference: ComponentHeaderReference): Promise<Compo
   return asComponent(entry)
 }
 
-async function getComponentDefiniton (reference: ComponentReference) {
-  const potentialComponentDefinition = await getInternalObjectFlatted(definitionPath(reference))
+function validDefinition (potential: unknown, reference: ComponentReference): ComponentDefinition {
   const validateComponentDefinition = validator(componentDefinitionSchema)
-  if (!validateComponentDefinition(potentialComponentDefinition)) throw Error(`Invalid component definition: ${reference}`)
-  return potentialComponentDefinition
+  if (!validateComponentDefinition(potential as Json)) throw Error(`Invalid component definition: ${reference}`)
+  return potential as ComponentDefinition
+}
+
+async function getComponentDefiniton (reference: ComponentReference) {
+  return validDefinition(await getInternalObjectFlatted(definitionPath(reference)), reference)
+}
+
+/** HIS-2: the definition with the version it was read at. */
+async function getComponentDefinitionVersioned (
+  reference: ComponentReference
+): Promise<{ definition: ComponentDefinition, version?: string }> {
+  const { data, version } = await getInternalObjectFlattedVersioned(definitionPath(reference))
+  return { definition: validDefinition(data, reference), version }
 }
 
 /**
@@ -137,6 +150,7 @@ export {
   uploadComponentDefinitionHistory,
   getComponent,
   getComponentDefiniton,
+  getComponentDefinitionVersioned,
   getComponentDefinitionHistory,
   listOrCreateComponentList,
   deleteComponentDefinition

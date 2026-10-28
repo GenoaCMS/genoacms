@@ -3,16 +3,26 @@ import {
   defaultBucketId,
   deleteInternalObject,
   fullyQualifiedNameToFilename,
-  getInternalObjectFlatted,
+  getInternalObjectFlattedVersioned,
   listOrCreateDirectory,
   uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
 import { join } from 'path'
+import { isPreconditionFailed, type UploadOptions } from '@genoacms/contracts/storage'
+import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
+import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
+import { writeConditionally } from '$lib/script/components/conflict'
+import { PageEditError, throwRefusal, type EditResult } from './edits'
+import { isPageName } from './names'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
 import { readablePageTreePath, uploadReadablePageTree } from '$lib/script/components/page/tree/io.server'
-import { deserializeComponentNode } from './entry'
+import { createPageEntry, deserializeComponentNode, recordPageEdit, serializePageEntry } from './entry'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
+const pageReadablesPath = join('.genoacms', 'pages', 'readables/')
+
+// PGE-11: appended as given, never through a path library.
+const entryPathOf = (name: string): string => `${pageEntriesPath}${name}`
 
 const listOrCreatePageList = async () => {
   const pageStructureList = await listOrCreateDirectory({
@@ -26,14 +36,33 @@ const listOrCreatePageList = async () => {
   return pageStructureList.files.map(page => fullyQualifiedNameToFilename(page.name))
 }
 
-const uploadPageEntry = (page: PageEntry<IsSerializable>) => {
+interface PageSummary {
+  name: string
+  lastModified: string
+  built: boolean
+}
+
+const listPageSummaries = async (): Promise<PageSummary[]> => {
+  const [entries, readables] = await Promise.all([
+    listOrCreateDirectory({ bucket: defaultBucketId, name: pageEntriesPath }),
+    listOrCreateDirectory({ bucket: defaultBucketId, name: pageReadablesPath })
+  ])
+  const built = new Set(readables.files.map(file => fullyQualifiedNameToFilename(file.name)))
+  return entries.files.map(file => {
+    const name = fullyQualifiedNameToFilename(file.name)
+    return { name, lastModified: new Date(file.lastModified ?? 0).toISOString(), built: built.has(name) }
+  })
+}
+
+const uploadPageEntry = async (page: PageEntry<IsSerializable>, options?: UploadOptions): Promise<void> => {
   page.lastModified = new Date().toISOString()
-  return uploadInternalObjectFlatted(join(pageEntriesPath, page.name), page)
+  await uploadInternalObjectFlatted(entryPathOf(page.name), serializePageEntry(page as never), options)
 }
 
 // TODO: refactor/rethink
-const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> => {
-  const serializedPageEntry = await getInternalObjectFlatted(join(pageEntriesPath, name)) as PageEntry<IsSerializable>
+const readPageEntry = async (name: string): Promise<{ page: PageEntry<IsSerializable>, version?: string }> => {
+  const { data, version } = await getInternalObjectFlattedVersioned(entryPathOf(name))
+  const serializedPageEntry = data as PageEntry<IsSerializable>
   const deserializedNodePromises = []
   for (const key in serializedPageEntry.contents.nodes) {
     const node = serializedPageEntry.contents.nodes[key]
@@ -43,7 +72,63 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
   for (const item of deserializedNodes) {
     serializedPageEntry.contents.nodes[item.uid] = item
   }
-  return serializedPageEntry
+  return { page: serializedPageEntry, version }
+}
+
+const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> => (await readPageEntry(name)).page
+
+/** HIS-2: the entry with the version a later save must carry. */
+const getPageEntryVersioned = readPageEntry
+
+const currentVersion = async (name: string): Promise<string | undefined> => (await readPageEntry(name)).version
+
+/** HIS-2: writes the entry on condition that it still has `version`, and returns the version it now has. */
+const savePageEntry = async (page: PageEntry<IsSerializable>, version: string | undefined): Promise<string | undefined> => {
+  await writeConditionally(async options => { await uploadPageEntry(page, options) }, `page ${page.name}`, version)
+  return await currentVersion(page.name)
+}
+
+const headersOfContents = async (contents: PageEntry<IsSerializable>['contents'], extra: string[]): Promise<Map<string, ComponentHeader>> => {
+  const uids = new Set([...Object.values(contents.nodes).map(node => node.entryReference), ...extra])
+  const headers = await Promise.all([...uids].map(async uid => await getComponentHeader(uid)))
+  return new Map(headers.filter((header): header is ComponentHeader => header !== null).map(header => [header.uid, header]))
+}
+
+interface AppliedEdit<R> {
+  version: string | undefined
+  result: R
+}
+
+/**
+ * PGE-4, PGE-5, TOL-16: applies a pure edit to a page read at `version`, records one step, and writes
+ * conditionally. `authorize` runs on the outcome before anything is written.
+ */
+const applyPageEdit = async <R extends EditResult>(
+  name: string,
+  version: string | undefined,
+  extraHeaders: string[],
+  edit: (contents: PageEntry<IsSerializable>['contents'], headers: Map<string, ComponentHeader>) => R,
+  authorize: (result: R) => void = () => {}
+): Promise<AppliedEdit<R>> => {
+  const { page } = await readPageEntry(name)
+  const result = edit(page.contents, await headersOfContents(page.contents, extraHeaders))
+  if (!result.ok) throwRefusal(result)
+  authorize(result)
+  const saved = recordPageEdit(page, result.contents)
+  return { version: await savePageEntry(saved, version), result }
+}
+
+/** PGE-2, PGE-11: creates the entry of a new page, only if no entry of that name exists. */
+const createPageIfAbsent = async (name: string, componentUID: string): Promise<string | undefined> => {
+  if (!isPageName(name)) throw new PageEditError('pages/invalid-name', `pages/invalid-name: ${name}`)
+  const entry = await createPageEntry({ name, componentUID })
+  try {
+    await uploadPageEntry(entry, { ifAbsent: true })
+  } catch (error) {
+    if (isPreconditionFailed(error)) throw new PageEditError('pages/exists', `pages/exists: ${name}`)
+    throw error
+  }
+  return await currentVersion(name)
 }
 
 /**
@@ -70,7 +155,7 @@ const generateReadablePageTree = async (page: PageEntry<IsSerializable>) => {
  * missing tree is tolerated while a failure to delete the entry is not.
  */
 const deletePageEntry = async (name: string) => {
-  await deleteInternalObject(join(pageEntriesPath, name))
+  await deleteInternalObject(entryPathOf(name))
 
   try {
     await deleteInternalObject(readablePageTreePath(name))
@@ -82,10 +167,17 @@ const deletePageEntry = async (name: string) => {
   }
 }
 
+export type { PageSummary, AppliedEdit }
+
 export {
   listOrCreatePageList,
+  listPageSummaries,
   uploadPageEntry,
   getPageEntry,
+  getPageEntryVersioned,
+  savePageEntry,
+  applyPageEdit,
+  createPageIfAbsent,
   generateReadablePageTree,
   deletePageEntry
 }

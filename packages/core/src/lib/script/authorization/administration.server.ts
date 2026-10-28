@@ -28,6 +28,7 @@ import type { Role } from './roles'
 import { declaredRoleNames, declaredSubjects, type Declarations } from './declared'
 import { readDeclarations } from './declared.server'
 import type { JsonValue } from '$lib/script/signing/canonical'
+import { readStoredAgentsForAdministration } from '$lib/script/agents/manifest.server'
 
 /**
  * Reading and writing the authorization manifests as an administrator.
@@ -93,6 +94,8 @@ interface AdministrationState {
   /** Stored roles only. Declared ones are never written, so they are not in here. */
   roles: Role[]
   users: UserRecord[]
+  /** Stored agents as users with no email: the holders of a role that AGT-5 protects. */
+  agents: UserRecord[]
   /**
    * What Tier 1 declares.
    *
@@ -110,12 +113,14 @@ async function loadAdministrationState (): Promise<AdministrationResult<Administ
   if (!roles.ok) return roles
   const users = await loadUsers()
   if (!users.ok) return users
+  const agents = await readStoredAgentsForAdministration()
 
   return {
     ok: true,
     value: {
       roles: roles.value.value,
       users: users.value.value,
+      agents: agents.agents.map(agent => ({ subject: agent.subject, email: '', roles: agent.roles })),
       declared: readDeclarations(),
       rolesVersion: roles.value.version,
       usersVersion: users.value.version
@@ -183,7 +188,7 @@ const createRole = async (role: Role): Promise<AdministrationResult<void>> =>
   await applyToRoles(state => addRole(state.roles, role, declaredRoleNames(state.declared)))
 
 const updateRole = async (role: Role): Promise<AdministrationResult<void>> =>
-  await applyToRoles(state => replaceRole(state.roles, role, declaredRoleNames(state.declared)))
+  await applyToRoles(state => replaceRole(state.roles, role, declaredRoleNames(state.declared), [...state.users, ...state.agents]))
 
 const deleteRole = async (name: string): Promise<AdministrationResult<void>> =>
   await applyToRoles(state => removeRole(state.roles, state.users, name, declaredRoleNames(state.declared)))

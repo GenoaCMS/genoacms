@@ -6,6 +6,8 @@ import type {
   ComponentHeaderReference
 } from '$lib/script/components/componentHeader/component/types'
 import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
+import { getPublishedComponent } from '$lib/script/components/publication/io.server'
+import { defaultValueOf, newNode, PageEditError } from '../edits'
 import type {
   AttributeData,
   AttributeReference,
@@ -18,29 +20,7 @@ import type {
 } from './types'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
-import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
 import { duplicateObject } from '$lib/script/utils'
-
-const generateAttributeDefaultValue = (type: AttributeType): AttributeValue => {
-  switch (type) {
-    case 'boolean':
-      return false
-    case 'number':
-      return 0
-    case 'string':
-    case 'text':
-    case 'markdown':
-    case 'richText':
-      return ''
-    // Both are lists, and a list an author has not filled in is empty. The old defaults were a
-    // single blank link and a reference to a bucket named '' — values that read as "one of these,
-    // unset" and had to be told apart from a real one everywhere downstream.
-    case 'link':
-    case 'storageResource':
-    case 'components':
-      return []
-  }
-}
 
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
   return {
@@ -48,7 +28,7 @@ const generateAttributeData = async (attribute: Attribute): Promise<AttributeDat
     name: attribute.schema.title,
     type: attribute.type,
     schema: attribute.schema,
-    value: attribute.schema.default ? attribute.schema.default : generateAttributeDefaultValue(attribute.type)
+    value: defaultValueOf(attribute)
   }
 }
 
@@ -69,23 +49,22 @@ const componentSchemaToNode = async (entry: ComponentHeader): Promise<ComponentN
   }
 }
 
+/** PGE-2: the entry of a new page, whose one root node is of a stored, published component. */
 const createPageEntry = async (values: {
   name: string,
   componentUID: ComponentHeaderReference
-}): Promise<PageEntry> => {
+}): Promise<PageEntry<IsSerializable>> => {
   const component = await getComponentHeader(values.componentUID)
-  if (!component) throw new Error('no-component')
-  const componentNode = await componentSchemaToNode(component)
+  const published = component === null ? null : await getPublishedComponent(values.componentUID)
+  if (component === null || published === null) {
+    throw new PageEditError('pages/unpublished-component', `pages/unpublished-component: ${values.componentUID}`)
+  }
+  const root = newNode(component)
 
   return {
     name: values.name,
     previewURL: '',
-    contents: {
-      nodes: {
-        [componentNode.uid]: componentNode
-      },
-      rootNodeUid: componentNode.uid
-    },
+    contents: { nodes: { [root.uid]: root }, rootNodeUid: root.uid },
     history: [],
     future: [],
     lastModified: new Date().toISOString()
@@ -125,6 +104,13 @@ const undoPageEntryState = (page: PageEntry<IsSerializable>) =>
 
 const redoPageEntryState = (page: PageEntry<IsSerializable>) =>
   withHistory(page, redo(page.contents, historyOf(page)))
+
+/** TOL-16: swaps in edited contents and records the one step from the contents it replaces. */
+const recordPageEdit = (page: PageEntry<IsSerializable>, contents: PageContents<IsSerializable>) => {
+  const before: PageContents<IsSerializable> = duplicateObject(page.contents)
+  page.contents = contents
+  return pushPageEntryState(before, page)
+}
 
 const updateComponentNode = (page: PageEntry<IsSerializable>, updaterComponent: ComponentNode<IsSerializable>) => {
   const node = page.contents.nodes[updaterComponent.uid]
@@ -253,6 +239,7 @@ const deserializePageEntry = async (page: PageEntry<IsSerializable>): Promise<Pa
 export {
   componentSchemaToNode,
   createPageEntry,
+  recordPageEdit,
   updateComponentNode,
   addChildNodeToNodeInPage,
   undoPageEntryState,
