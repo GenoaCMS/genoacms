@@ -8,7 +8,7 @@ const condition = (operator, value, field = 'a') => ({ field, operator, value })
 const holdsFor = async (data, ...conditions) => (await load()).matches(data, conditions)
 
 describe('checkQuery', () => {
-  it.fails('DATA-8: checkQuery refuses what the types do not allow', async () => {
+  it('DATA-8: checkQuery refuses what the types do not allow', async () => {
     const { checkQuery } = await load()
     const valid = [
       undefined,
@@ -47,7 +47,7 @@ describe('checkQuery', () => {
 })
 
 describe('checkValues', () => {
-  it.fails('DATA-2: checkValues names the first value that is not JSON by its dotted path', async () => {
+  it('DATA-2: checkValues names the first value that is not JSON by its dotted path', async () => {
     const { checkValues } = await load()
     expect(() => checkValues({ a: 1, b: [null, 'x', { c: true }], d: undefined })).not.toThrow()
     expect(() => checkValues({ a: Number.NaN })).toThrow('database/unsupported-value: a')
@@ -62,7 +62,7 @@ describe('checkValues', () => {
 })
 
 describe('matches', () => {
-  it.fails('DATA-9: matches follows the type and order rules', async () => {
+  it('DATA-9: matches follows the type and order rules', async () => {
     expect(await holdsFor({ a: 2 }, condition('<', 10))).toBe(true)
     expect(await holdsFor({ a: 10 }, condition('<', 9))).toBe(false)
     expect(await holdsFor({ a: 2 }, condition('==', 2))).toBe(true)
@@ -79,7 +79,7 @@ describe('matches', () => {
     expect(await holdsFor({ a: true }, condition('==', true))).toBe(true)
   })
 
-  it.fails('DATA-9: matches treats null, missing fields, other types and compound values as matching nothing', async () => {
+  it('DATA-9: matches treats null, missing fields, other types and compound values as matching nothing', async () => {
     expect(await holdsFor({ a: null }, condition('==', null))).toBe(true)
     expect(await holdsFor({ a: null }, condition('!=', null))).toBe(false)
     expect(await holdsFor({ a: 1 }, condition('!=', null))).toBe(false)
@@ -94,7 +94,7 @@ describe('matches', () => {
     expect(await holdsFor({ a: { b: 1 } }, condition('!=', 1))).toBe(false)
   })
 
-  it.fails('DATA-9: matches combines conditions with AND, and compares the key field like any field', async () => {
+  it('DATA-9: matches combines conditions with AND, and compares the key field like any field', async () => {
     expect(await holdsFor({ a: 5, b: 'x' })).toBe(true)
     expect(await holdsFor({ a: 5, b: 'x' }, condition('>', 1), condition('==', 'x', 'b'))).toBe(true)
     expect(await holdsFor({ a: 5, b: 'x' }, condition('>', 1), condition('==', 'y', 'b'))).toBe(false)
@@ -104,7 +104,7 @@ describe('matches', () => {
 })
 
 describe('page tokens', () => {
-  it.fails('DATA-10: a token round-trips and a forged one is refused', async () => {
+  it('DATA-10: a token round-trips and a forged one is refused', async () => {
     const { encodeToken, decodeToken } = await load()
     const values = [{ values: [1, 'a'], id: 'x' }, { id: 'ü/ \u{1F600}' }, null, [1, [2, { a: null }]], 'text', 5]
     for (const value of values) {

@@ -15,8 +15,7 @@ if (process.env.GENOACMS_TEST_POSTGRES === '1') {
   }
   await recreateConformanceTable(connection)
   const database = runtime.create(connection, { name: 'conformance', resources: ['postgres'] })
-  // RFC-0042
-  describe.skip('DATA-2, DATA-3, DATA-4, DATA-5, DATA-6, DATA-7, DATA-8, DATA-9, DATA-10, DATA-12: Postgres conformance', () => {
+  describe('DATA-2, DATA-3, DATA-4, DATA-5, DATA-6, DATA-7, DATA-8, DATA-9, DATA-10, DATA-12: Postgres conformance', () => {
     runDatabaseConformance(database, { collection, prefix: `conformance-${randomUUID()}` })
   })
 } else {

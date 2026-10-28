@@ -86,12 +86,15 @@ const getUserCollection = async (
 ) => {
   requireRead(ctx, reference.name)
 
-  const snapshots = await getCollection(reference, queryParams)
+  const page = await getCollection(reference, queryParams)
   const fields = readable(ctx, reference.name)
-  return snapshots.map(snapshot => ({
-    ...snapshot,
-    data: projectDocument(snapshot.data, fields)
-  }))
+  return {
+    ...page,
+    documents: page.documents.map(snapshot => ({
+      ...snapshot,
+      data: projectDocument(snapshot.data, fields)
+    }))
+  }
 }
 
 const getUserDocument = async (ctx: AuthContext, reference: DocumentRef) => {

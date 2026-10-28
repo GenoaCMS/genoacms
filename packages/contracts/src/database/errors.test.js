@@ -4,7 +4,7 @@ import * as database from './index.js'
 const reference = { collection: { name: 'pages' }, id: 'x' }
 
 describe('the database errors', () => {
-  it.fails('DATA-12: the errors carry their names and messages, and the guard recognizes by name', () => {
+  it('DATA-12: the errors carry their names and messages, and the guard recognizes by name', () => {
     const { DocumentNotFoundError, UnsupportedQueryError, isDocumentNotFound } = database
     const notFound = new DocumentNotFoundError(reference)
     expect(notFound).toBeInstanceOf(Error)

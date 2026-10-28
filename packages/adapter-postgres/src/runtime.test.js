@@ -45,7 +45,7 @@ describe('the Postgres runtime', () => {
     await expect(database.createDocument({ name: 'articles' }, { title: 't' })).rejects.toThrow('Missing primaryKey of articles')
   })
 
-  it.fails('DATA-9: conditions are typed and strings compare in byte order', async () => {
+  it('DATA-9: conditions are typed and strings compare in byte order', async () => {
     const database = runtime.create(options, { name: 'pg', resources: [] })
     await database.getCollection(articles, { where: [{ field: 'title', operator: '<', value: 'b' }] })
     const statements = executed.map(statement => statement.sql).join('\n')
@@ -54,7 +54,7 @@ describe('the Postgres runtime', () => {
     expect(executed.flatMap(statement => statement.bindings)).toContain('b')
   })
 
-  it.fails('DATA-5, DATA-6: a missing row reads as undefined and updates as not found', async () => {
+  it('DATA-5, DATA-6: a missing row reads as undefined and updates as not found', async () => {
     const database = runtime.create(options, { name: 'pg', resources: [] })
     const reference = { collection: articles, id: 'x' }
     expect(await database.getDocument(reference)).toBeUndefined()

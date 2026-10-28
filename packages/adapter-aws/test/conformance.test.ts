@@ -23,8 +23,7 @@ if (enabled) {
   }, TABLE_TIMEOUT)
 
   describe('S3 conformance', { timeout: ONE_MINUTE }, () => { runStorageConformance(storage, { bucket }) })
-  // RFC-0042
-  describe.skip('DDB-4, DDB-5, DDB-6, DDB-7, DATA-2, DATA-3, DATA-4, DATA-5, DATA-6, DATA-7, DATA-8, DATA-9, DATA-10, DATA-12: DynamoDB conformance', { timeout: ONE_MINUTE }, () => { runDatabaseConformance(database, { collection, prefix }) })
+  describe('DDB-4, DDB-5, DDB-6, DDB-7, DATA-2, DATA-3, DATA-4, DATA-5, DATA-6, DATA-7, DATA-8, DATA-9, DATA-10, DATA-12: DynamoDB conformance', { timeout: ONE_MINUTE }, () => { runDatabaseConformance(database, { collection, prefix }) })
 } else {
   describe.skip('AWS conformance (set GENOACMS_TEST_AWS=1)', () => { it('runs against real AWS', () => {}) })
 }

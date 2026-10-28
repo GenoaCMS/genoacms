@@ -30,7 +30,7 @@ vi.mock('./database.server', () => ({
   },
   getCollection: async (reference: { name: string }) => {
     calls.push(`getCollection:${reference.name}`)
-    return storedCollection.map((data, index) => ({ reference: { collection: reference, id: String(index) }, data }))
+    return { documents: storedCollection.map((data, index) => ({ reference: { collection: reference, id: String(index) }, data })) }
   },
   getDocument: async (reference: { collection: { name: string }, id: string }) => {
     calls.push(`getDocument:${reference.collection.name}/${reference.id}`)
@@ -177,8 +177,8 @@ describe('reading restricted fields', () => {
 
   it('DOC-2: a reader restricted to fields gets only those fields of every document of a collection', async () => {
     storedCollection = [stored, { title: 'Other', price: 3 }]
-    const snapshots = await database.getUserCollection(contextWith([fieldGrant('db:collection:read', ['title'])]), articles)
-    expect(snapshots.map(snapshot => snapshot.data)).toEqual([{ title: 'Hello' }, { title: 'Other' }])
+    const { documents } = await database.getUserCollection(contextWith([fieldGrant('db:collection:read', ['title'])]), articles)
+    expect(documents.map(snapshot => snapshot.data)).toEqual([{ title: 'Hello' }, { title: 'Other' }])
   })
 
   it('DOC-2: a grant naming no fields, or the wildcard, reads every field', async () => {

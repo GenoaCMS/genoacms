@@ -36,8 +36,7 @@ describe.runIf(enabled)('DynamoDB, against the real service', { timeout: ONE_MIN
   it('DDB-2, DDB-3, DDB-4, DDB-6: creates a document and reads back every JSON value', async () => {
     const created = await database.createDocument(collection, everyJsonValue as any)
     const read = await database.getDocument(reference(created.reference.id))
-    expect(read?.data).toEqual(everyJsonValue)
-    expect(read?.data).not.toHaveProperty('id')
+    expect(read?.data).toEqual({ ...everyJsonValue, id: created.reference.id })
   })
 
   it('DDB-4: never overwrites a document', async () => {
@@ -45,7 +44,7 @@ describe.runIf(enabled)('DynamoDB, against the real service', { timeout: ONE_MIN
     const id = first.reference.id
     const second = await database.createDocument(collection, { id, t: 'second' } as any)
     expect(second.reference.id).not.toBe(id)
-    expect((await database.getDocument(reference(id)))?.data).toEqual({ t: 'first' })
+    expect((await database.getDocument(reference(id)))?.data).toEqual({ id, t: 'first' })
   })
 
   it('DDB-5: reads a collection across pages', async () => {
@@ -54,7 +53,7 @@ describe.runIf(enabled)('DynamoDB, against the real service', { timeout: ONE_MIN
       const created = await database.createDocument(collection, { index, body: 'x'.repeat(FIFTY_KB) } as any)
       ids.push(created.reference.id)
     }
-    const snapshots = await database.getCollection(collection)
+    const { documents: snapshots } = await database.getCollection(collection)
     expect(snapshots.map(snapshot => snapshot.reference.id)).toEqual(expect.arrayContaining(ids))
   }, 5 * ONE_MINUTE)
 
@@ -65,8 +64,8 @@ describe.runIf(enabled)('DynamoDB, against the real service', { timeout: ONE_MIN
   it('DDB-7: merges an update, and fails on a missing document', async () => {
     const created = await database.createDocument(collection, { a: 1, b: 2 } as any)
     await database.updateDocument(reference(created.reference.id), { b: 3 } as any)
-    expect((await database.getDocument(reference(created.reference.id)))?.data).toEqual({ a: 1, b: 3 })
-    await expect(database.updateDocument(reference(randomUUID()), { b: 3 } as any)).rejects.toMatchObject({ name: 'ConditionalCheckFailedException' })
+    expect((await database.getDocument(reference(created.reference.id)))?.data).toEqual({ id: created.reference.id, a: 1, b: 3 })
+    await expect(database.updateDocument(reference(randomUUID()), { b: 3 } as any)).rejects.toMatchObject({ name: 'DocumentNotFoundError' })
   })
 
   it('DDB-7: deletes, and deleting again is not an error', async () => {

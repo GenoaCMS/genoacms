@@ -202,7 +202,7 @@ const adapter = await runtime.create({ endpoint: process.env.ACME_TEST_ENDPOINT,
 runStorageConformance(adapter, { bucket })
 ```
 
-`runDatabaseConformance(adapter, { collection, testDocuments })` and
+`runDatabaseConformance(adapter, { collection, prefix })`, with `prefix` a name unique to the run, and
 `runAuthenticationConformance(adapter, { identity, disabled })` do the same for databases and
 authentication. Each registers a vitest suite, so call it at the top level of a test file.
 

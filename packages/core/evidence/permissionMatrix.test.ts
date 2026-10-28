@@ -61,7 +61,7 @@ const written: Array<Record<string, unknown>> = []
 vi.mock('$lib/script/database/database.server', () => ({
   getCollectionReferences: () => ['articles'],
   getCollectionReference: async () => ({ name: 'articles', schema: {} }),
-  getCollection: async () => [{ reference: {}, data: { ...storedDocument } }],
+  getCollection: async () => ({ documents: [{ reference: {}, data: { ...storedDocument } }] }),
   getDocument: async () => ({ reference: {}, data: { ...storedDocument } }),
   createDocument: async (_ref: unknown, document: Record<string, unknown>) => {
     written.push(document)
@@ -490,9 +490,9 @@ describe('field-level masking', () => {
   })
 
   it('strips it from every document in a collection', async () => {
-    const snapshots = await database.getUserCollection(restricted(), collectionRef)
+    const { documents } = await database.getUserCollection(restricted(), collectionRef)
 
-    expect(snapshots[0].data).not.toHaveProperty('internal_cost')
+    expect(documents[0].data).not.toHaveProperty('internal_cost')
   })
 
   it('denies a field the grant does not name, including one added later', async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import runtime from './runtime.js'
 
 const constructed: unknown[] = []
-const doc = { get: vi.fn(), update: vi.fn(async () => {}), delete: vi.fn(async () => {}) }
+const doc = { id: 'g1', get: vi.fn(), set: vi.fn(async () => {}), update: vi.fn(async () => {}), delete: vi.fn(async () => {}) }
 const collection: Record<string, any> = { add: vi.fn(), get: vi.fn(), doc: vi.fn(() => doc), set: vi.fn() }
 for (const chained of ['where', 'orderBy', 'limit', 'startAfter']) collection[chained] = vi.fn(() => collection)
 const collectionCalls: string[] = []
@@ -26,7 +26,7 @@ beforeEach(() => { collectionCalls.length = 0; vi.clearAllMocks() })
 const fieldName = (field: unknown): string => typeof field === 'string' ? field : (field as { names: string[] }).names.join('.')
 const emptyResult = { docs: [], size: 0, empty: true, forEach: () => {} }
 
-const pages = { name: 'pages' } as any
+const pages = { name: 'pages', primaryKey: { key: 'id', schema: { type: 'string' } } } as any
 const create = async () => await runtime.create({ projectId: 'p' }, { name: 'db', resources: [] })
 
 describe('the Firestore runtime', () => {
@@ -42,59 +42,60 @@ describe('the Firestore runtime', () => {
 
   it('DB-3: addresses the collection by its name, unchanged', async () => {
     const database = await create()
-    collection.add.mockResolvedValueOnce({ id: 'g1' })
     collection.get.mockResolvedValueOnce({ forEach: () => {} })
     doc.get.mockResolvedValueOnce({ exists: false })
     await database.createDocument(pages, {} as any)
     await database.getCollection(pages)
     await database.getDocument({ collection: pages, id: 'x' })
-    await database.updateDocument({ collection: pages, id: 'x' }, {} as any)
+    await database.updateDocument({ collection: pages, id: 'x' }, { n: 1 } as any)
     await database.deleteDocument({ collection: pages, id: 'x' })
     expect(collectionCalls).toEqual(['pages', 'pages', 'pages', 'pages', 'pages'])
   })
 
-  it('DB-4: creates with a generated id and returns the input data', async () => {
+  it('DATA-3, DATA-4, DB-4: creates with a generated id that is the key field, in one write', async () => {
     const database = await create()
-    const data = { title: 't' } as any
-    collection.add.mockResolvedValueOnce({ id: 'g1' })
+    const data = { title: 't', id: 'chosen' } as any
     const snapshot = await database.createDocument(pages, data)
-    expect(collection.add).toHaveBeenCalledWith(data)
-    expect(snapshot).toEqual({ reference: { collection: pages, id: 'g1' }, data })
-    expect(snapshot.data).toBe(data)
+    expect(doc.set).toHaveBeenCalledTimes(1)
+    expect(doc.set).toHaveBeenCalledWith({ title: 't', id: 'g1' })
+    expect(snapshot).toEqual({ reference: { collection: pages, id: 'g1' }, data: { title: 't', id: 'g1' } })
   })
 
-  it('DB-5: reads a whole collection as snapshots', async () => {
+  it('DATA-3, DB-5: reads a whole collection as a page of snapshots with the key field', async () => {
     const database = await create()
     const documents = [{ id: 'a', data: () => ({ n: 1 }) }, { id: 'b', data: () => ({ n: 2 }) }]
     collection.get.mockResolvedValueOnce({ forEach: (visit: (d: unknown) => void) => { documents.forEach(visit) } })
-    expect(await database.getCollection(pages)).toEqual([
-      { reference: { collection: pages, id: 'a' }, data: { n: 1 } },
-      { reference: { collection: pages, id: 'b' }, data: { n: 2 } }
-    ])
+    expect(await database.getCollection(pages)).toEqual({
+      documents: [
+        { reference: { collection: pages, id: 'a' }, data: { n: 1, id: 'a' } },
+        { reference: { collection: pages, id: 'b' }, data: { n: 2, id: 'b' } }
+      ]
+    })
   })
 
-  it('DB-6: reads a document, or undefined when it does not exist', async () => {
+  it('DATA-3, DB-6: reads a document with its key field, or undefined when it does not exist', async () => {
     const database = await create()
     doc.get.mockResolvedValueOnce({ exists: true, data: () => ({ n: 1 }) })
-    expect(await database.getDocument({ collection: pages, id: 'a' })).toEqual({ reference: { collection: pages, id: 'a' }, data: { n: 1 } })
+    expect(await database.getDocument({ collection: pages, id: 'a' })).toEqual({ reference: { collection: pages, id: 'a' }, data: { n: 1, id: 'a' } })
     expect(collection.doc).toHaveBeenLastCalledWith('a')
     doc.get.mockResolvedValueOnce({ exists: false })
     expect(await database.getDocument({ collection: pages, id: 'z' })).toBeUndefined()
   })
 
-  it('DB-7: updates with update and deletes with delete', async () => {
+  it('DATA-6, DB-7: updates each field as a field path and deletes with delete', async () => {
     const database = await create()
     const reference = { collection: pages, id: 'a' }
     const data = { n: 2 } as any
     expect(await database.updateDocument(reference, data)).toEqual({ reference, data })
-    expect(doc.update).toHaveBeenCalledWith(data)
+    expect(doc.update).toHaveBeenCalledTimes(1)
+    expect(doc.update.mock.calls[0].map(argument => typeof argument === 'object' ? fieldName(argument) : argument)).toEqual(['n', 2])
     await database.deleteDocument(reference)
     expect(doc.delete).toHaveBeenCalled()
-    doc.update.mockRejectedValueOnce(new Error('NOT_FOUND: no document to update'))
-    await expect(database.updateDocument(reference, data)).rejects.toThrow('NOT_FOUND: no document to update')
+    doc.update.mockRejectedValueOnce(new Error('network down'))
+    await expect(database.updateDocument(reference, data)).rejects.toThrow('network down')
   })
 
-  it.fails('DATA-9, DB-5: conditions become where clauses ordered by their inequality fields then the ID', async () => {
+  it('DATA-9, DB-5: conditions become where clauses ordered by their inequality fields then the ID', async () => {
     const database = await create()
     collection.get.mockResolvedValueOnce(emptyResult)
     await database.getCollection(pages, {
@@ -109,7 +110,7 @@ describe('the Firestore runtime', () => {
     expect(collection.limit).toHaveBeenCalledWith(3)
   })
 
-  it.fails('DATA-11, DB-5: a missing index becomes UnsupportedQueryError', async () => {
+  it('DATA-11, DB-5: a missing index becomes UnsupportedQueryError', async () => {
     const database = await create()
     const message = '9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/index'
     collection.get.mockRejectedValueOnce(Object.assign(new Error(message), { code: 9 }))
@@ -119,7 +120,7 @@ describe('the Firestore runtime', () => {
     expect((failure as Error).message.endsWith(message)).toBe(true)
   })
 
-  it.fails('DATA-6, DB-7: a missing document becomes DocumentNotFoundError', async () => {
+  it('DATA-6, DB-7: a missing document becomes DocumentNotFoundError', async () => {
     const database = await create()
     doc.update.mockRejectedValueOnce(Object.assign(new Error('5 NOT_FOUND: No document to update'), { code: 5 }))
     const failure = await database.updateDocument({ collection: pages, id: 'x' }, { n: 1 } as any).catch((error: Error) => error)
