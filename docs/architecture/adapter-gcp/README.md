@@ -215,7 +215,7 @@ Every `G` ID, where it lives, and its state.
 | GF6 | Any error looking up the function counted as "does not exist" | fixed, RFC-0021 | [`deployment.md`](deployment.md) |
 | GF7 | `getClientAddress` returned the raw `X-Forwarded-For` list | fixed, RFC-0023 | [`deployment.md`](deployment.md) |
 | GF8 | Signed URLs under ADC need `signBlob` on the runtime account | documented (IAM) | [`storage.md`](storage.md) |
-| GF9 | `getCollection` reads a whole collection | open | [`database.md`](database.md) |
+| GF9 | `getCollection` reads a whole collection | open; RFC-0042 | [`database.md`](database.md) |
 | GF10 | Directory operations are unbounded and not atomic | fixed, RFC-0027 | [`storage.md`](storage.md) |
 | GF11 | The SvelteKit adapter's tests were disabled and stale | fixed, RFC-0023 and RFC-0025 | [`deployment.md`](deployment.md) |
 | GF12 | Most of the storage runtime was untested | fixed, RFC-0024 | [`storage.md`](storage.md) |

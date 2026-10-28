@@ -29,7 +29,8 @@ redesign ([`configuration.md`](../configuration.md)).
 | [`authentication.md`](authentication.md) | AUTHN | `authenticate`, `getIdentity`, and what core does with them: sign-in, session revalidation | conforming |
 | [`storage.md`](storage.md) | STOR | the ten storage methods, names and directories, conditional writes and versions, failures | conforming; every statement `unverified` |
 | [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
-| database, secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
+| [`database.md`](database.md) | DATA | the five database methods, values and the key, queries and pages, failures | conforming; every statement **New** (RFC-0042) |
+| secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
 
 ### Decisions
 
@@ -86,11 +87,29 @@ Every `C` ID, where it lives, and its state.
 | CF4 | A provider failure reads as a wrong password | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF5 | A disabled user keeps an open session until its family expires | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF6 | The storage suite's read check could not fail its test | fixed, `f22136c` | [`conformance.md`](conformance.md) |
-| CF7 | The database suite never checks the update or the listing | open | [`conformance.md`](conformance.md) |
+| CF7 | The database suite never checks the update or the listing | open; RFC-0042 | [`conformance.md`](conformance.md) |
 | CF8 | Nothing checks that a suite fails a non-conforming adapter | open (CD5) | [`conformance.md`](conformance.md) |
 | CF9 | The storage suite writes a fixed name and may leave it behind | fixed, RFC-0037 | [`conformance.md`](conformance.md) |
 | CF10 | A refresh can skip revalidation and every test still passes | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF11 | The recorded provider is tested only at sign-in, and against the conventional key | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
+| CU11 | A collection is listed in pages continued with an opaque cursor | decided | [`database.md`](database.md) |
+| CU12 | A query filters with comparisons on top-level fields, combined with AND | decided | [`database.md`](database.md) |
+| CU13 | A document ID comes from the adapter or its store | decided | [`database.md`](database.md) |
+| CU14 | The key is a read-only part of a document's data | decided | [`database.md`](database.md) |
+| CU15 | Updating a missing document throws `DocumentNotFoundError` | decided | [`database.md`](database.md) |
+| CU16 | A document holds JSON values only | decided | [`database.md`](database.md) |
+| CD12 | Pages in the store's own order, continued with an opaque cursor | new | [`database.md`](database.md) |
+| CD13 | A condition compares values of one JSON type, strings by UTF-8 bytes | new | [`database.md`](database.md) |
+| CD14 | The key is in the data, and only the store writes it | new | [`database.md`](database.md) |
+| CD15 | The store assigns IDs | new | [`database.md`](database.md) |
+| CF51 | No adapter honours `QueryParams` | open; RFC-0042 | [`database.md`](database.md) |
+| CF52 | `QueryParams` cannot be implemented as typed | open; RFC-0042 | [`database.md`](database.md) |
+| CF53 | Who chooses an ID differs | open; RFC-0042 | [`database.md`](database.md) |
+| CF54 | The key field in data differs | open; RFC-0042 | [`database.md`](database.md) |
+| CF55 | Updating a missing document differs | open; RFC-0042 | [`database.md`](database.md) |
+| CF56 | Postgres reads a missing document as `data: undefined` | open; RFC-0042 | [`database.md`](database.md) |
+| CF57 | Firestore accepts values that are not JSON | open; RFC-0042 | [`database.md`](database.md) |
+| CF58 | The Postgres adapter has no Specification of its own | open; RFC-0042 | [`database.md`](database.md) |
 | CF12 | Parts of the sign-in trial that no test checks | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF13 | Revalidation of a family without a provider is checked with no failure | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF14 | The array adapter's `getIdentity` is tested only with its own subject and an unknown one | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
