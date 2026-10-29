@@ -226,7 +226,7 @@ describe('the CMS state under .genoacms/', () => {
     }
   })
 
-  it.fails("STS-5, BF13: the bare .genoacms is the CMS's state", async () => {
+  it("STS-5, BF13: the bare .genoacms is the CMS's state", async () => {
     await expect(storage.uploadUserObject(everything(), media('.genoacms'), 'data')).rejects.toMatchObject({ message: internal('.genoacms') })
     await expect(storage.moveUserObject(everything(), media('photos/a'), '.genoacms')).rejects.toMatchObject({ message: internal('.genoacms') })
     expect(calls).toEqual([])

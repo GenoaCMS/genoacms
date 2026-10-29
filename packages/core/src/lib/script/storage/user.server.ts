@@ -25,6 +25,7 @@ import { isDirectoryReference } from './browserPaths'
 // BD1, BD2, BD4, STS-2, STS-3, STS-5
 
 const INTERNAL_STATE = '.genoacms/'
+const INTERNAL_STATE_NAME = '.genoacms'
 
 /** Raised when a user operation would change the CMS's own state (STS-5). */
 class InternalReadOnlyError extends Error {
@@ -45,7 +46,7 @@ const requireOn = (ctx: AuthContext, permission: UserPermission, bucket: string)
 // STS-5
 const isInternalState = ({ bucket, name }: ObjectReference): boolean =>
   bucket === defaultBucketId &&
-  (name.startsWith(INTERNAL_STATE) || (isDirectoryReference(name) && INTERNAL_STATE.startsWith(name)) || name === '')
+  (name.startsWith(INTERNAL_STATE) || name === INTERNAL_STATE_NAME || (isDirectoryReference(name) && INTERNAL_STATE.startsWith(name)) || name === '')
 
 // STS-5
 const requireWritable = (...references: ObjectReference[]): void => {

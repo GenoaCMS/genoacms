@@ -132,7 +132,7 @@ describe('storage tools', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails('TOL-27, TF2: a move onto an existing object needs overwrite', async () => {
+  it('TOL-27, TF2: a move onto an existing object needs overwrite', async () => {
     memory.set('a', 'from')
     memory.set('b', 'to')
     const before = memory.snapshot()
@@ -146,7 +146,7 @@ describe('storage tools', () => {
     expect(memory.text('b')).toBe('from')
   })
 
-  it.fails('TOL-28, TF2, TF3: a directory move needs overwrite, never goes into itself, and the root is not created', async () => {
+  it('TOL-28, TF2, TF3: a directory move needs overwrite, never goes into itself, and the root is not created', async () => {
     memory.set('d/y', 'from')
     memory.set('e/x', 'to')
     memory.set('p/q', 'inside')

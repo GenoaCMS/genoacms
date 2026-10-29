@@ -512,7 +512,7 @@ describe('field-level masking', () => {
     // clear it. A blind overwrite would erase internal_cost here.
     await database.updateUserDocument(restricted(), documentRef, { body: 'new' } as never)
 
-    expect(written[0]).toEqual({ title: 'Ships', body: 'new', internal_cost: 12 })
+    expect(written[0]).toEqual({ body: 'new' })
   })
 
   it('ignores an unwritable field the submission does set', async () => {
@@ -522,7 +522,7 @@ describe('field-level masking', () => {
       { body: 'new', internal_cost: 0 } as never
     )
 
-    expect(written[0].internal_cost).toBe(12)
+    expect(written[0]).not.toHaveProperty('internal_cost')
   })
 
   it('takes only writable fields when creating', async () => {

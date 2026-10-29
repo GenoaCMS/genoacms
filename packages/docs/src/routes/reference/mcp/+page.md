@@ -103,7 +103,8 @@ The component's `type` cannot change.
   fails with `documents/unreadable-field:`.
 - Documents carry only the fields you may read. The key field is part of `data` and cannot be set.
 - A document that does not match the schema is refused with `documents/invalid: <path> <keyword>`,
-  one pair per error, and nothing is written. An update is checked as it will be stored, together with
+  one pair per error, and nothing is written. Errors under a field you may not read are replaced by one
+  `hidden fields`. An update is checked as it will be stored, together with
   the fields it keeps.
 - `update_document` leaves fields not in `data` as they are and cannot remove one. The later save wins:
   nothing is checked against a version. A missing document fails with `documents/not-found:`.
@@ -122,10 +123,10 @@ fails with `storage/internal-read-only:`.
 | `list_directory` | Lists one page of a directory | `bucket`, `path` (*optional*), `pageToken` (*optional*), `limit` (*optional*) | `{ files: [{ name, size, lastModified }], directories, next }` | `storage:bucket:read` |
 | `get_object` | Returns a signed URL to fetch an object from | `bucket`, `name` | `{ url, expiresAt }` | `storage:bucket:read` |
 | `upload_object` | Stores an object | `bucket`, `name`, `content`, `encoding` (*optional*), `overwrite` (*optional*) | `{ name }` | `storage:bucket:write` |
-| `move_object` | Moves an object within its bucket | `bucket`, `name`, `destination` | `{}` | `storage:bucket:write` |
+| `move_object` | Moves an object within its bucket | `bucket`, `name`, `destination`, `overwrite` (*optional*) | `{}` | `storage:bucket:write` |
 | `delete_object` | Deletes an object | `bucket`, `name` | `{}` | `storage:bucket:delete` |
 | `create_directory` | Creates a directory | `bucket`, `path` | `{}` | `storage:bucket:write` |
-| `move_directory` | Moves everything under a directory | `bucket`, `path`, `destination` | `{}` | `storage:bucket:write` |
+| `move_directory` | Moves everything under a directory | `bucket`, `path`, `destination`, `overwrite` (*optional*) | `{}` | `storage:bucket:write` |
 | `delete_directory` | Deletes everything under a directory, directories within it included | `bucket`, `path` | `{}` | `storage:bucket:delete` |
 
 - `lastModified` and `expiresAt` are ISO 8601 strings, and `next` is absent on the last page.
@@ -135,8 +136,13 @@ fails with `storage/internal-read-only:`.
   decodes to (`storage/invalid-content:` when it is not base64). At most 4,194,304 bytes
   (`storage/too-large:`). It refuses to replace an object (`storage/exists:`) unless `overwrite` is
   `true`, and the stored object has no content type.
-- `move_directory` and `delete_directory` refuse the root. `move_object` and `delete_object` of a
-  missing object fail with `storage/not-found:`.
+- `move_object` refuses an existing `destination`, and `move_directory` one that holds anything
+  (`storage/exists:`), unless `overwrite` is `true`. `move_directory` refuses a `destination` under
+  `path` (`storage/invalid-name:`).
+- `create_directory`, `move_directory` and `delete_directory` refuse the root. `move_object` and
+  `delete_object` of a missing object fail with `storage/not-found:`.
+- Moving without `overwrite` looks the destination up in a listing, so it needs `storage:bucket:read`
+  as well.
 
 ## Page edit errors
 

@@ -76,10 +76,10 @@ const toolRegistry: Tool[] = [
   tool('get_object', 'Returns a signed URL to fetch an object\'s contents from, valid for an hour.', object({ bucket: identifier, name: identifier }, ['bucket', 'name']), storage.getObject),
   tool('upload_object', 'Stores an object of at most 4 MiB, as UTF-8 text or base64; refuses to replace one unless overwrite is true.',
     object({ bucket: identifier, name: identifier, content: text, encoding: { enum: ['utf8', 'base64'] }, overwrite: { type: 'boolean' } }, ['bucket', 'name', 'content']), storage.uploadObject),
-  tool('move_object', 'Moves an object within its bucket.', object({ bucket: identifier, name: identifier, destination: identifier }, ['bucket', 'name', 'destination']), storage.moveObject),
+  tool('move_object', 'Moves an object within its bucket; refuses to replace one unless overwrite is true.', object({ bucket: identifier, name: identifier, destination: identifier, overwrite: { type: 'boolean' } }, ['bucket', 'name', 'destination']), storage.moveObject),
   tool('delete_object', 'Deletes an object.', object({ bucket: identifier, name: identifier }, ['bucket', 'name']), storage.deleteObject),
   tool('create_directory', 'Creates a directory.', object({ bucket: identifier, path: text }, ['bucket', 'path']), storage.createDirectory),
-  tool('move_directory', 'Moves everything under a directory.', object({ bucket: identifier, path: text, destination: text }, ['bucket', 'path', 'destination']), storage.moveDirectory),
+  tool('move_directory', 'Moves everything under a directory; refuses a destination that holds anything unless overwrite is true.', object({ bucket: identifier, path: text, destination: text, overwrite: { type: 'boolean' } }, ['bucket', 'path', 'destination']), storage.moveDirectory),
   tool('delete_directory', 'Deletes everything under a directory.', object({ bucket: identifier, path: text }, ['bucket', 'path']), storage.deleteDirectory)
 ]
 

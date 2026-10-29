@@ -223,14 +223,14 @@ describe('updating restricted fields', () => {
     storedDocument = { title: 'Old', price: 10 }
     const context = contextWith([fieldGrant('db:collection:write', ['title'])])
     await database.updateUserDocument(context, articleDocument, { title: 'New', price: 0 })
-    expect(written).toEqual([{ title: 'New', price: 10 }])
+    expect(written).toEqual([{ title: 'New' }])
   })
 
   it('DOC-3: a writable field the submission lacks keeps its stored value', async () => {
     storedDocument = { title: 'Old', price: 10 }
     const context = contextWith([fieldGrant('db:collection:write', ['title', 'price'])])
     await database.updateUserDocument(context, articleDocument, { title: 'New' })
-    expect(written).toEqual([{ title: 'New', price: 10 }])
+    expect(written).toEqual([{ title: 'New' }])
   })
 
   it('DOC-3: with nothing stored, a restricted update fails as not found and stores nothing', async () => {
@@ -259,11 +259,11 @@ describe('validating what is stored', () => {
   const testDocument = { collection: testCollection, id: 'x' } as never
   const testGrant = (permission: Permission, fields?: string[]): Grant =>
     ({ permission, resource: { scope: 'collection', id: 'test' }, ...(fields === undefined ? {} : { fields }) } as Grant)
-  const testWriter = (fields?: string[]) => contextWith([testGrant('db:collection:write', fields)])
+  const testWriter = (fields?: string[]) => contextWith([testGrant('db:collection:write', fields), testGrant('db:collection:read')])
 
   it('DOC-8: a creation the schema refuses is not written', async () => {
-    await expect(database.createUserDocument(testWriter(), testCollection, { id: 'not-a-uuid' }))
-      .rejects.toThrow(/^documents\/invalid: \/id format/)
+    await expect(database.createUserDocument(testWriter(), testCollection, { name: 5 }))
+      .rejects.toThrow(/^documents\/invalid: \/name type/)
     expect(calls).not.toContain('createDocument:test')
   })
 
@@ -277,7 +277,7 @@ describe('validating what is stored', () => {
   it('DOC-8: a restricted writer\'s update is validated as stored, without the fields it may not write', async () => {
     storedDocument = { name: 'a', isA: true }
     await database.updateUserDocument(testWriter(['name']), testDocument, { name: 'b', isA: 'yes' })
-    expect(written).toEqual([{ name: 'b', isA: true }])
+    expect(written).toEqual([{ name: 'b' }])
   })
 
   it('DOC-8: the permission is checked before validation', async () => {
@@ -300,7 +300,7 @@ describe('amendments of the audit (RFC-0041)', () => {
   const testWriter = (fields?: string[]) => contextWith([testGrant('db:collection:write', fields)])
   const withSchema = (schema: Data) => ({ ...(testCollection as Data), schema }) as never
 
-  it.fails('DOC-8, OF30, OF31: the key is neither required nor validated, on create and update', async () => {
+  it('DOC-8, OF30, OF31: the key is neither required nor validated, on create and update', async () => {
     const keyed = withSchema({
       type: 'object',
       required: ['id', 'name'],
@@ -313,7 +313,7 @@ describe('amendments of the audit (RFC-0041)', () => {
     expect(calls).toContain('createDocument:test')
   })
 
-  it.fails('DOC-8, OF32: errors under hidden fields are not described', async () => {
+  it('DOC-8, OF32: errors under hidden fields are not described', async () => {
     const hidden = withSchema({
       type: 'object',
       properties: { name: { type: 'string' }, isA: { oneOf: [{ type: 'string' }, { type: 'number' }] } }
@@ -328,7 +328,7 @@ describe('amendments of the audit (RFC-0041)', () => {
     expect(calls).not.toContain('createDocument:test')
   })
 
-  it.fails('DOC-8, OF33: a restricted creation is validated as stored', async () => {
+  it('DOC-8, OF33: a restricted creation is validated as stored', async () => {
     const required = withSchema({
       type: 'object',
       required: ['name', 'isA'],
@@ -340,13 +340,13 @@ describe('amendments of the audit (RFC-0041)', () => {
     expect(written).toEqual([])
   })
 
-  it.fails('DOC-3, OF35: a restricted update writes only the writable fields', async () => {
+  it('DOC-3, OF35: a restricted update writes only the writable fields', async () => {
     storedDocument = { id: 'x', name: 'a', isA: true }
     await database.updateUserDocument(testWriter(['name']), testDocument, { name: 'b', isA: false })
     expect(written).toEqual([{ name: 'b' }])
   })
 
-  it.fails('DOC-3, OF34: a document gone before the write is not found', async () => {
+  it('DOC-3, OF34: a document gone before the write is not found', async () => {
     storedDocument = { id: 'x', name: 'a' }
     updateFailure = new StoredDocumentNotFoundError({ collection: testCollection, id: 'x' } as never)
     await expect(database.updateUserDocument(testWriter(), testDocument, { name: 'b' })).rejects.toMatchObject({ message: 'documents/not-found: test/x' })

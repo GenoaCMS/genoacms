@@ -35,6 +35,26 @@ function requireWithinLimit (bytes: Buffer): void {
   }
 }
 
+const exists = (bucket: string, name: string): StorageToolError =>
+  new StorageToolError('storage/exists', `storage/exists: ${bucket}/${name}`)
+
+const parentOf = (name: string): string => name.slice(0, name.lastIndexOf('/') + 1)
+
+async function objectExists (ctx: AuthContext, bucket: string, name: string): Promise<boolean> {
+  let pageToken: string | undefined
+  do {
+    const page = await listUserDirectory(ctx, { bucket, name: parentOf(name) }, withoutUndefined({ pageToken }))
+    if (page.files.some(file => file.name === name)) return true
+    pageToken = page.next
+  } while (pageToken !== undefined)
+  return false
+}
+
+async function directoryHoldsAnything (ctx: AuthContext, bucket: string, path: string): Promise<boolean> {
+  const { files, directories } = await listUserDirectory(ctx, { bucket, name: path }, { limit: 1 })
+  return files.length + directories.length > 0
+}
+
 /** TOL-24 */
 async function listBuckets (ctx: AuthContext) {
   return getUserBucketReferences(ctx).map(({ name }) => ({ name }))
@@ -78,9 +98,10 @@ async function uploadObject (ctx: AuthContext, { bucket, name, content, encoding
 }
 
 /** TOL-27 */
-async function moveObject (ctx: AuthContext, { bucket, name, destination }: Args) {
+async function moveObject (ctx: AuthContext, { bucket, name, destination, overwrite }: Args) {
   requireObjectName(name as string)
   requireObjectName(destination as string)
+  if (overwrite !== true && await objectExists(ctx, bucket as string, destination as string)) throw exists(bucket as string, destination as string)
   await moveUserObject(ctx, { bucket: bucket as string, name: name as string }, destination as string)
   return {}
 }
@@ -94,15 +115,17 @@ async function deleteObject (ctx: AuthContext, { bucket, name }: Args) {
 
 /** TOL-28 */
 async function createDirectory (ctx: AuthContext, { bucket, path }: Args) {
-  requireDirectoryPath(path as string)
+  requireSubdirectoryPath(path as string)
   await createUserDirectory(ctx, { bucket: bucket as string, name: path as string })
   return {}
 }
 
 /** TOL-28 */
-async function moveDirectory (ctx: AuthContext, { bucket, path, destination }: Args) {
+async function moveDirectory (ctx: AuthContext, { bucket, path, destination, overwrite }: Args) {
   requireSubdirectoryPath(path as string)
   requireDirectoryPath(destination as string)
+  if ((destination as string).startsWith(path as string)) throw new StorageToolError('storage/invalid-name', `storage/invalid-name: ${destination as string}`)
+  if (overwrite !== true && await directoryHoldsAnything(ctx, bucket as string, destination as string)) throw exists(bucket as string, destination as string)
   await moveUserDirectory(ctx, { bucket: bucket as string, name: path as string }, destination as string)
   return {}
 }

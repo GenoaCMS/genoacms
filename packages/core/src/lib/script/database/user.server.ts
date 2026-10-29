@@ -16,6 +16,7 @@ import {
   updateDocument,
   deleteDocument
 } from './database.server'
+import { isDocumentNotFound } from '@genoacms/contracts/database'
 import { DocumentNotFoundError } from './errors'
 import { validateDocument } from './validation'
 
@@ -127,6 +128,12 @@ const withoutRequiredKey = (reference: CollectionRef) => {
   return { ...schema, required: schema.required.filter(key => key !== reference.primaryKey.key) } as typeof reference.schema
 }
 
+const withoutKey = (reference: CollectionRef, data: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(data).filter(([field]) => field !== reference.primaryKey?.key))
+
+const validateStored = (ctx: AuthContext, reference: CollectionRef, stored: Record<string, unknown>): void =>
+  validateDocument(withoutRequiredKey(reference), withoutKey(reference, stored), readable(ctx, reference.name))
+
 const createUserDocument = async (
   ctx: AuthContext,
   reference: CollectionRef,
@@ -134,15 +141,10 @@ const createUserDocument = async (
 ) => {
   requireWrite(ctx, reference.name)
 
-  validateDocument(withoutRequiredKey(reference), document)
-
   // Nothing is stored yet, so a field the principal may not write is not theirs to set.
   const permitted = writableDocument(document, writable(ctx, reference.name))
+  validateStored(ctx, reference, permitted)
   return await createDocument(reference, permitted as typeof document)
-}
-
-const withoutKey = (reference: DocumentRef, data: Record<string, unknown>): Record<string, unknown> => {
-  return Object.fromEntries(Object.entries(data).filter(([field]) => field !== reference.collection.primaryKey?.key))
 }
 
 const storedAfterUpdate = (
@@ -150,6 +152,15 @@ const storedAfterUpdate = (
   document: Record<string, unknown>,
   fields: ReturnType<typeof writable>
 ) => fields === WILDCARD ? { ...stored, ...document } : mergeDocument(stored, document, fields)
+
+const writeUpdate = async (reference: DocumentRef, document: Parameters<typeof updateDocument>[1]) => {
+  try {
+    return await updateDocument(reference, document)
+  } catch (error) {
+    if (isDocumentNotFound(error)) throw new DocumentNotFoundError(reference.collection.name, reference.id)
+    throw error
+  }
+}
 
 const updateUserDocument = async (
   ctx: AuthContext,
@@ -164,10 +175,9 @@ const updateUserDocument = async (
   if (current === undefined) throw new DocumentNotFoundError(reference.collection.name, reference.id)
 
   const fields = writable(ctx, reference.collection.name)
-  const stored = storedAfterUpdate(current.data, document, fields)
-  validateDocument(reference.collection.schema, withoutKey(reference, stored))
+  validateStored(ctx, reference.collection, storedAfterUpdate(current.data, document, fields))
 
-  return await updateDocument(reference, (fields === WILDCARD ? document : stored) as typeof document)
+  return await writeUpdate(reference, writableDocument(document, fields) as typeof document)
 }
 
 const deleteUserDocument = async (ctx: AuthContext, reference: DocumentRef) => {
