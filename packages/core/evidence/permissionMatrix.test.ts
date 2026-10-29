@@ -140,7 +140,8 @@ vi.mock('$lib/script/components/publication', () => ({
     headerDigest: 'd'
   }),
   getPublishedComponent: async () => null,
-  listComposableComponentHeaders: async () => []
+  listComposableComponentHeaders: async () => [],
+  listComponentCatalog: async () => ({ headers: [], composable: [] })
 }))
 
 vi.mock('$lib/script/components/page/page.server', () => ({
@@ -148,6 +149,7 @@ vi.mock('$lib/script/components/page/page.server', () => ({
   listPageSummaries: async () => [],
   getPageEntry: async () => ({ name: 'home' }),
   getPageEntryVersioned: async () => ({ page: { name: 'home', history: [], future: [] }, version: 'v1' }),
+  openPageEntry: async () => ({ page: { name: 'home', history: [], future: [] }, version: 'v1' }),
   savePageEntry: async () => 'v2',
   createPageIfAbsent: async () => 'v1',
   // Stands for an edit of a value: the outcome is handed to the authorization the service passes.
@@ -297,6 +299,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
     publication.publishUserComponent(ctx, { componentId: 'uid-1', note: 'n' }),
   getUserPublishedComponent: ctx => publication.getUserPublishedComponent(ctx, 'uid-1'),
   listUserComposableComponents: ctx => publication.listUserComposableComponents(ctx),
+  listUserComponentCatalog: ctx => publication.listUserComponentCatalog(ctx),
   deleteUserComponent: ctx => editor.deleteUserComponent(ctx, { uid: 'uid-1', name: 'hero' } as never),
 
   // prebuilt components
@@ -316,6 +319,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   listUserPageSummaries: ctx => pagesService.listUserPageSummaries(ctx),
   getUserPageEntry: ctx => pagesService.getUserPageEntry(ctx, 'home'),
   getUserPageEntryVersioned: ctx => pagesService.getUserPageEntryVersioned(ctx, 'home'),
+  openUserPageEntry: ctx => pagesService.openUserPageEntry(ctx, 'home'),
   createUserPage: ctx => pagesService.createUserPage(ctx, 'about', 'uid-1'),
   editUserNode: ctx => pagesService.editUserNode(ctx, 'home', 'v1', {}),
   addUserChildNode: ctx => pagesService.addUserChildNode(ctx, 'home', 'v1', { parent: 'root', slot: 'slot', componentUID: 'uid-1' }),

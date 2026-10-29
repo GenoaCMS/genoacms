@@ -6,6 +6,7 @@ import {
   listPageSummaries,
   getPageEntry,
   getPageEntryVersioned,
+  openPageEntry,
   savePageEntry,
   applyPageEdit,
   createPageIfAbsent,
@@ -53,6 +54,12 @@ const listUserPageSummaries = async (ctx: AuthContext): Promise<PageSummary[]> =
 const getUserPageEntryVersioned = async (ctx: AuthContext, name: string) => {
   requirePermission(ctx, 'pages:read')
   return await getPageEntryVersioned(name)
+}
+
+/** PGE-3, HIS-2: the entry as the page editor opens it, with the version a later save must carry. */
+const openUserPageEntry = async (ctx: AuthContext, name: string) => {
+  requirePermission(ctx, 'pages:read')
+  return await openPageEntry(name)
 }
 
 /** Editing values on a page: attributes, storage resources, the preview URL. Conditional on `version` (HIS-2). */
@@ -189,6 +196,7 @@ export {
   listUserPageSummaries,
   getUserPageEntry,
   getUserPageEntryVersioned,
+  openUserPageEntry,
   createUserPage,
   editUserNode,
   addUserChildNode,

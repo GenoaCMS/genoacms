@@ -4,6 +4,7 @@ import {
   deleteInternalObject,
   fullyQualifiedNameToFilename,
   getInternalObjectFlattedVersioned,
+  getInternalObjectStringVersioned,
   listOrCreateDirectory,
   uploadInternalObjectFlatted
 } from '$lib/script/storage/storage.server'
@@ -16,7 +17,11 @@ import { PageEditError, throwRefusal, type EditResult } from './edits'
 import { isPageName } from './names'
 import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
 import { readablePageTreePath, uploadReadablePageTree } from '$lib/script/components/page/tree/io.server'
-import { createPageEntry, deserializeComponentNode, recordPageEdit, serializePageEntry } from './entry'
+import {
+  createPageEntry, deserializeComponentNode, deserializePageEntry, recordPageEdit, serializePageEntry,
+  type ComponentHeaderReader
+} from './entry'
+import { readingOnceEach } from '$lib/script/utils'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
 const pageReadablesPath = join('.genoacms', 'pages', 'readables/')
@@ -59,14 +64,23 @@ const uploadPageEntry = async (page: PageEntry<IsSerializable>, options?: Upload
   await uploadInternalObjectFlatted(entryPathOf(page.name), serializePageEntry(page as never), options)
 }
 
-// TODO: refactor/rethink
-const readPageEntry = async (name: string): Promise<{ page: PageEntry<IsSerializable>, version?: string }> => {
+const sharedHeaderReader = (): ComponentHeaderReader => readingOnceEach(getComponentHeader)
+
+const readStoredPageEntry = async (name: string): Promise<{ stored: PageEntry<IsSerializable>, version?: string }> => {
   const { data, version } = await getInternalObjectFlattedVersioned(entryPathOf(name))
-  const serializedPageEntry = data as PageEntry<IsSerializable>
+  return { stored: data as PageEntry<IsSerializable>, version }
+}
+
+// TODO: refactor/rethink
+const readPageEntry = async (
+  name: string,
+  readHeader: ComponentHeaderReader = sharedHeaderReader()
+): Promise<{ page: PageEntry<IsSerializable>, version?: string }> => {
+  const { stored: serializedPageEntry, version } = await readStoredPageEntry(name)
   const deserializedNodePromises = []
   for (const key in serializedPageEntry.contents.nodes) {
     const node = serializedPageEntry.contents.nodes[key]
-    deserializedNodePromises.push(deserializeComponentNode(node))
+    deserializedNodePromises.push(deserializeComponentNode(node, readHeader))
   }
   const deserializedNodes = await Promise.all(deserializedNodePromises)
   for (const item of deserializedNodes) {
@@ -80,7 +94,14 @@ const getPageEntry = async (name: string): Promise<PageEntry<IsSerializable>> =>
 /** HIS-2: the entry with the version a later save must carry. */
 const getPageEntryVersioned = readPageEntry
 
-const currentVersion = async (name: string): Promise<string | undefined> => (await readPageEntry(name)).version
+/** PGE-3: the entry as the page editor opens it, with the version a later save must carry (HIS-2). */
+const openPageEntry = async (name: string): Promise<{ page: PageEntry, version?: string }> => {
+  const { stored, version } = await readStoredPageEntry(name)
+  return { page: await deserializePageEntry(stored), version }
+}
+
+const currentVersion = async (name: string): Promise<string | undefined> =>
+  (await getInternalObjectStringVersioned(entryPathOf(name))).version
 
 /** HIS-2: writes the entry on condition that it still has `version`, and returns the version it now has. */
 const savePageEntry = async (page: PageEntry<IsSerializable>, version: string | undefined): Promise<string | undefined> => {
@@ -88,9 +109,13 @@ const savePageEntry = async (page: PageEntry<IsSerializable>, version: string | 
   return await currentVersion(page.name)
 }
 
-const headersOfContents = async (contents: PageEntry<IsSerializable>['contents'], extra: string[]): Promise<Map<string, ComponentHeader>> => {
+const headersOfContents = async (
+  contents: PageEntry<IsSerializable>['contents'],
+  extra: string[],
+  readHeader: ComponentHeaderReader
+): Promise<Map<string, ComponentHeader>> => {
   const uids = new Set([...Object.values(contents.nodes).map(node => node.entryReference), ...extra])
-  const headers = await Promise.all([...uids].map(async uid => await getComponentHeader(uid)))
+  const headers = await Promise.all([...uids].map(readHeader))
   return new Map(headers.filter((header): header is ComponentHeader => header !== null).map(header => [header.uid, header]))
 }
 
@@ -110,8 +135,9 @@ const applyPageEdit = async <R extends EditResult>(
   edit: (contents: PageEntry<IsSerializable>['contents'], headers: Map<string, ComponentHeader>) => R,
   authorize: (result: R) => void = () => {}
 ): Promise<AppliedEdit<R>> => {
-  const { page } = await readPageEntry(name)
-  const result = edit(page.contents, await headersOfContents(page.contents, extraHeaders))
+  const readHeader = sharedHeaderReader()
+  const { page } = await readPageEntry(name, readHeader)
+  const result = edit(page.contents, await headersOfContents(page.contents, extraHeaders, readHeader))
   if (!result.ok) throwRefusal(result)
   authorize(result)
   const saved = recordPageEdit(page, result.contents)
@@ -175,6 +201,7 @@ export {
   uploadPageEntry,
   getPageEntry,
   getPageEntryVersioned,
+  openPageEntry,
   savePageEntry,
   applyPageEdit,
   createPageIfAbsent,

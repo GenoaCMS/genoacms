@@ -20,7 +20,9 @@ import type {
 } from './types'
 import { recordChange, undo, redo } from '$lib/script/undoRedo'
 import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
-import { duplicateObject } from '$lib/script/utils'
+import { duplicateObject, readingOnceEach } from '$lib/script/utils'
+
+type ComponentHeaderReader = (reference: ComponentHeaderReference) => Promise<ComponentHeader | null>
 
 const generateAttributeData = async (attribute: Attribute): Promise<AttributeData> => {
   return {
@@ -203,8 +205,11 @@ const deserializeComponentNodeData = async (nodeData: ComponentNodeData<IsSerial
   return deserializedData
 }
 
-const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Promise<ComponentNode> => {
-  const componentHeader = await getComponentHeader(node.entryReference)
+const deserializeComponentNode = async (
+  node: ComponentNode<IsSerializable>,
+  readHeader: ComponentHeaderReader = getComponentHeader
+): Promise<ComponentNode> => {
+  const componentHeader = await readHeader(node.entryReference)
   if (!componentHeader) throw new Error('no-component')
 
   return {
@@ -214,11 +219,14 @@ const deserializeComponentNode = async (node: ComponentNode<IsSerializable>): Pr
   }
 }
 
-const deserializePageContents = async (contents: PageContents<IsSerializable>): Promise<PageContents> => {
+const deserializePageContents = async (
+  contents: PageContents<IsSerializable>,
+  readHeader: ComponentHeaderReader
+): Promise<PageContents> => {
   const deserializedNodePromises: Array<Promise<ComponentNode>> = []
   const deserializedNodes: ComponentNodes = {}
   for (const node of Object.values(contents.nodes)) {
-    deserializedNodePromises.push(deserializeComponentNode(node))
+    deserializedNodePromises.push(deserializeComponentNode(node, readHeader))
   }
   for (const node of await Promise.all(deserializedNodePromises)) {
     deserializedNodes[node.uid] = node
@@ -229,12 +237,17 @@ const deserializePageContents = async (contents: PageContents<IsSerializable>): 
   }
 }
 
-const deserializePageEntry = async (page: PageEntry<IsSerializable>): Promise<PageEntry> => {
+const deserializePageEntry = async (
+  page: PageEntry<IsSerializable>,
+  readHeader: ComponentHeaderReader = readingOnceEach(getComponentHeader)
+): Promise<PageEntry> => {
   return {
     ...page,
-    contents: await deserializePageContents(page.contents)
+    contents: await deserializePageContents(page.contents, readHeader)
   }
 }
+
+export type { ComponentHeaderReader }
 
 export {
   componentSchemaToNode,

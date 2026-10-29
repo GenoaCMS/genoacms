@@ -67,6 +67,7 @@ const matrixOperations = [
   'publishUserComponent',
   'getUserPublishedComponent',
   'listUserComposableComponents',
+  'listUserComponentCatalog',
   // prebuilt components
   'registerUserComponentHeader',
   'listUserComponentHeaders',
@@ -83,6 +84,7 @@ const matrixOperations = [
   'listUserPageSummaries',
   'getUserPageEntry',
   'getUserPageEntryVersioned',
+  'openUserPageEntry',
   'createUserPage',
   'editUserNode',
   'addUserChildNode',
@@ -203,7 +205,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   Copywriter: {
     grants: [instanceGrant('pages:read'), instanceGrant('pages:content_edit')],
     allowed: [
-      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned', 'openUserPageEntry',
       'saveUserPageContent', 'editUserNode', 'setUserValues', 'setUserPreviewURL'
     ]
   },
@@ -214,7 +216,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('pages:structure_edit')
     ],
     allowed: [
-      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned', 'openUserPageEntry',
       'saveUserPageContent', 'saveUserPageStructure', 'revertUserPageEntry',
       'createUserPage', 'editUserNode', 'addUserChildNode', 'moveUserNode', 'removeUserNode',
       'setUserValues', 'setUserPreviewURL', 'stepUserPage'
@@ -232,7 +234,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       instanceGrant('pages:publish')
     ],
     allowed: [
-      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned',
+      'listUserPages', 'listUserPageSummaries', 'getUserPageEntry', 'getUserPageEntryVersioned', 'openUserPageEntry',
       'saveUserPageContent', 'generateUserReadablePageTree',
       'editUserNode', 'setUserValues', 'setUserPreviewURL'
     ]
@@ -257,7 +259,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponents', 'getUserComponent', 'getUserComponentDefinition', 'getUserComponentDefinitionVersioned',
       'getUserComponentSignature', 'saveUserComponentBody', 'undoUserComponentBody',
       'redoUserComponentBody', 'getUserComponentDefinitionDepth', 'getUserPublishedComponent',
-      'listUserComposableComponents'
+      'listUserComposableComponents', 'listUserComponentCatalog'
     ]
   },
   ComponentCurator: {
@@ -279,7 +281,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderVersioned', 'getUserComponentHeaderDepth',
       'updateUserComponentHeader', 'undoUserComponentHeader', 'redoUserComponentHeader',
       'listUserComponents', 'getUserComponent',
-      'publishUserComponent', 'getUserPublishedComponent', 'listUserComposableComponents'
+      'publishUserComponent', 'getUserPublishedComponent', 'listUserComposableComponents', 'listUserComponentCatalog'
     ]
   },
   ComponentRegistrar: {
@@ -293,7 +295,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       'listUserComponentHeaders', 'getUserComponentHeader', 'getUserComponentHeaderVersioned', 'getUserComponentHeaderDepth',
       'registerUserComponentHeader', 'deleteUserComponentHeader',
       'listUserComponents', 'getUserComponent', 'getUserPublishedComponent',
-      'listUserComposableComponents', 'createUserComponent', 'deleteUserComponent',
+      'listUserComposableComponents', 'listUserComponentCatalog', 'createUserComponent', 'deleteUserComponent',
       // Q4's warning rides on the permission that deletes, not on `pages:read`. Gating it on the
       // page domain would hide it from exactly this role — the one that deletes components — and an
       // empty list meaning "you may not see this" reads as "nothing depends on it".

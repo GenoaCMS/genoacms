@@ -20,26 +20,44 @@ import { getPublicURL } from '$lib/script/storage/storage.server'
 import { getPageEntry } from '$lib/script/components/page/page.server'
 import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
 import { getPublishedComponent } from '$lib/script/components/publication/io.server'
+import { readingOnceEach } from '$lib/script/utils'
 
-const parseMarkdown = async (markdown: string) => {
-  const window = new JSDOM('').window
-  const purify = dompurify(window)
-  const html = await parse(markdown)
-  return purify.sanitize(html)
+/** The reads one build makes, each made at most once per key. */
+interface BuildReads {
+  header: typeof getComponentHeader
+  publication: typeof getPublishedComponent
+  page: typeof getPageEntry
 }
 
-const linkToURL = async (link: LinkAttributeValue): Promise<string> => {
+const readsOfOneBuild = (): BuildReads => ({
+  header: readingOnceEach(getComponentHeader),
+  publication: readingOnceEach(getPublishedComponent),
+  page: readingOnceEach(getPageEntry)
+})
+
+let purifier: ReturnType<typeof dompurify> | undefined
+const sharedPurifier = () => {
+  purifier ??= dompurify(new JSDOM('').window)
+  return purifier
+}
+
+const parseMarkdown = async (markdown: string) => {
+  const html = await parse(markdown)
+  return sharedPurifier().sanitize(html)
+}
+
+const linkToURL = async (link: LinkAttributeValue, reads: BuildReads): Promise<string> => {
   if (link.isExternal) {
     return link.url || ''
   }
   if (!link.pageName) return ''
-  const destinationPageEntry = await getPageEntry(link.pageName)
+  const destinationPageEntry = await reads.page(link.pageName)
   return destinationPageEntry.previewURL
 }
 
 /** Both attribute types are lists, so both resolve to a list of URLs, in the author's order. */
-const linksToURLs = async (links: LinksAttributeValue): Promise<Array<string>> =>
-  await Promise.all(links.map(linkToURL))
+const linksToURLs = async (links: LinksAttributeValue, reads: BuildReads): Promise<Array<string>> =>
+  await Promise.all(links.map(async link => await linkToURL(link, reads)))
 
 const getStorageResourceURL = async (reference: ObjectReference) => {
   let url: string
@@ -55,15 +73,23 @@ const storageResourcesToURLs = async (
   resources: StorageResourcesAttributeValue
 ): Promise<Array<string>> => await Promise.all(resources.map(getStorageResourceURL))
 
-const componentNodesToReadableNodes = async (component: Array<ComponentNodeReference>, componentNodes: ComponentNodes) => {
+const componentNodesToReadableNodes = async (
+  component: Array<ComponentNodeReference>,
+  componentNodes: ComponentNodes,
+  reads: BuildReads
+) => {
   const readableNodePromises: Array<Promise<ReadablePageNode>> = component
-    .map(component => componentNodeToReadablePageNode(componentNodes[component], componentNodes))
+    .map(component => componentNodeToReadablePageNode(componentNodes[component], componentNodes, reads))
   const nodes = await Promise.all(readableNodePromises)
   // console.log(JSON.stringify(nodes, null, 2))
   return nodes
 }
 
-const attributeDataToNodeValue = async (data: AttributeData, componentNodes: ComponentNodes): Promise<ReadableAttributeValue> => {
+const attributeDataToNodeValue = async (
+  data: AttributeData,
+  componentNodes: ComponentNodes,
+  reads: BuildReads
+): Promise<ReadableAttributeValue> => {
   switch (data.type) {
     case 'boolean':
     case 'number':
@@ -75,11 +101,11 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
     case 'richText':
       return ''
     case 'link':
-      return await linksToURLs(data.value as LinksAttributeValue)
+      return await linksToURLs(data.value as LinksAttributeValue, reads)
     case 'storageResource':
       return await storageResourcesToURLs(data.value as StorageResourcesAttributeValue)
     case 'components':
-      return await componentNodesToReadableNodes(data.value as Array<ComponentNodeReference>, componentNodes)
+      return await componentNodesToReadableNodes(data.value as Array<ComponentNodeReference>, componentNodes, reads)
   }
 }
 
@@ -104,32 +130,38 @@ const attributeDataToNodeValue = async (data: AttributeData, componentNodes: Com
  * either alone is a pin nobody can resolve.
  */
 const publishedReference = async (
-  entryReference: string
+  entryReference: string,
+  reads: BuildReads
 ): Promise<{ type: ComponentType, uid?: string, publicationId?: string }> => {
-  const header = await getComponentHeader(entryReference)
+  const header = await reads.header(entryReference)
   // A node referencing a header that is gone is one nothing can be said about. Read as prebuilt and
   // left unpinned, which is the shape a consumer refuses rather than renders.
   if (header === null) return { type: 'prebuilt' }
 
-  const published = await getPublishedComponent(entryReference)
+  const published = await reads.publication(entryReference)
   if (published === null) return { type: header.type }
   return { type: header.type, uid: entryReference, publicationId: published.publicationId }
 }
 
 const componentNodeToReadablePageNode = async (node: ComponentNode,
-  componentNodes: ComponentNodes): Promise<ReadablePageNode> => {
+  componentNodes: ComponentNodes, reads: BuildReads): Promise<ReadablePageNode> => {
+  const attributes = Object.values(node.data)
+  const [reference, values] = await Promise.all([
+    publishedReference(node.entryReference, reads),
+    Promise.all(attributes.map(async data => await attributeDataToNodeValue(data, componentNodes, reads)))
+  ])
   const readableNode: ReadablePageNode = {
     component: node.name,
     // Spread rather than assigned, because the pair is omitted entirely when a component has never
     // been published: the tree is signed, and canonicalization drops an undefined member silently
     // while refusing to represent it — so an explicit `publicationId: undefined` would sign as
     // though the key had never been written.
-    ...(await publishedReference(node.entryReference)),
+    ...reference,
     data: {}
   }
-  for (const data of Object.values(node.data)) {
-    readableNode.data[data.name] = await attributeDataToNodeValue(data, componentNodes)
-  }
+  attributes.forEach((data, index) => {
+    readableNode.data[data.name] = values[index]
+  })
   return readableNode
 }
 
@@ -137,7 +169,7 @@ const pageEntryToReadableTree = async (page: PageEntry): Promise<ReadablePageNod
   const componentNodes = page.contents.nodes
   const rootNode = componentNodes[page.contents.rootNodeUid]
 
-  return await componentNodeToReadablePageNode(rootNode, componentNodes)
+  return await componentNodeToReadablePageNode(rootNode, componentNodes, readsOfOneBuild())
 }
 
 export {

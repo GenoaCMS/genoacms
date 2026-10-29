@@ -1,4 +1,5 @@
 import type { AuthContext } from '$lib/script/authorization/context'
+import { readingOnceEach } from '$lib/script/utils'
 import { requirePermission } from '$lib/script/authorization/enforce'
 import { isNotFound } from '@genoacms/contracts/storage'
 import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
@@ -31,10 +32,11 @@ async function readPage (ctx: AuthContext, name: string) {
 }
 
 async function viewOf (page: PageEntry<IsSerializable>, version: string | undefined) {
+  const readHeader = readingOnceEach(getComponentHeader)
   const reachable = subtreeOf(page.contents, page.contents.rootNodeUid)
   const nodes = await Promise.all(reachable.map(async uid => {
     const node = page.contents.nodes[uid]
-    const header = await getComponentHeader(node.entryReference) as ComponentHeader
+    const header = await readHeader(node.entryReference) as ComponentHeader
     return {
       uid,
       component: { uid: header.uid, name: header.name },

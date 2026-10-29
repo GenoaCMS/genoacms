@@ -302,12 +302,32 @@ const listComposableComponentHeaders = async (): Promise<ComponentHeader[]> => {
   if (published.size === 0) return []
 
   const composableReferences = references.filter(ref => published.has(ref))
-  const headers = await Promise.all(composableReferences.map(getComponentHeader))
-  return headers.filter((header): header is ComponentHeader => header !== null)
+  return presentHeaders(await Promise.all(composableReferences.map(getComponentHeader)))
 }
 
-export { publishComponent, getPublishedComponent, listComposableComponentHeaders }
-export type { PublishedComponent }
+const presentHeaders = (headers: Array<ComponentHeader | null>): ComponentHeader[] =>
+  headers.filter((header): header is ComponentHeader => header !== null)
+
+interface ComponentCatalog {
+  headers: ComponentHeader[]
+  composable: ComponentHeader[]
+}
+
+/** The whole catalog and its composable part (PUB-7), each header read once for both. */
+const listComponentCatalog = async (): Promise<ComponentCatalog> => {
+  const [published, references] = await Promise.all([
+    listPublishedComponentUids(),
+    listComponentHeaderReferences()
+  ])
+  const headers = await Promise.all(references.map(getComponentHeader))
+  return {
+    headers: presentHeaders(headers),
+    composable: presentHeaders(headers.filter((_, index) => published.has(references[index])))
+  }
+}
+
+export { publishComponent, getPublishedComponent, listComposableComponentHeaders, listComponentCatalog }
+export type { PublishedComponent, ComponentCatalog }
 
 // Re-exported so callers have one import for the concept rather than reaching into storage.
 export { deleteComponentPublications } from './io.server'

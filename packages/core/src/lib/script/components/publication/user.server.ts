@@ -6,7 +6,8 @@ import type { ComponentPublicationOrder, PublishedComponent } from './types'
 import { requirePermission } from '$lib/script/authorization/enforce'
 import { getComponentHeader } from '../componentHeader/io.server'
 import { NoSuchComponentError } from '../editor/errors'
-import { publishComponent, getPublishedComponent, listComposableComponentHeaders } from './index'
+import { publishComponent, getPublishedComponent, listComposableComponentHeaders, listComponentCatalog } from './index'
+import type { ComponentCatalog } from './index'
 
 /**
  * Publishing, performed **by a user**.
@@ -82,4 +83,10 @@ const listUserComposableComponents = async (ctx: AuthContext): Promise<Component
   return await listComposableComponentHeaders()
 }
 
-export { publishUserComponent, getUserPublishedComponent, listUserComposableComponents }
+/** The catalog and its composable components, for the page editor. */
+const listUserComponentCatalog = async (ctx: AuthContext): Promise<ComponentCatalog> => {
+  requirePermission(ctx, 'components:read')
+  return await listComponentCatalog()
+}
+
+export { publishUserComponent, getUserPublishedComponent, listUserComposableComponents, listUserComponentCatalog }
