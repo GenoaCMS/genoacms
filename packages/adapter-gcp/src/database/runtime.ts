@@ -16,6 +16,7 @@ import { defineRuntime } from '@genoacms/contracts'
 import { FieldPath, Firestore, type DocumentReference as FirestoreDocument, type Query } from '@google-cloud/firestore'
 import type { GcpDatabaseOptions } from './descriptor.js'
 
+const MAXIMUM_ID_BYTES = 1500
 const FAILED_PRECONDITION = 9
 const NOT_FOUND = 5
 
@@ -45,10 +46,30 @@ const errorCode = (error: unknown): unknown => (error as { code?: unknown } | nu
 
 const isInequality = ({ operator }: Condition): boolean => operator !== '=='
 
+// DATA-5
+const isStorableId = (id: string): boolean =>
+  id !== '' && !id.includes('/') && id !== '.' && id !== '..' && !/^__.*__$/.test(id) && Buffer.byteLength(id) <= MAXIMUM_ID_BYTES
+
+// DATA-9
+const isUnstorableKeyCondition = (collection: CollectionReference, { field, value }: Condition): boolean =>
+  field === collection.primaryKey.key && typeof value === 'string' && !isStorableId(value)
+
 // DATA-9
 const matchesNothing = (collection: CollectionReference, conditions: Condition[]): boolean =>
-  conditions.some(({ field, operator, value }) =>
-    (field === collection.primaryKey.key && typeof value !== 'string') || (value === null && operator !== '=='))
+  conditions.some(condition => {
+    const { field, operator, value } = condition
+    return (field === collection.primaryKey.key && typeof value !== 'string') ||
+      (value === null && operator !== '==') ||
+      (isUnstorableKeyCondition(collection, condition) && operator === '==')
+  })
+
+// DATA-9
+const withoutVacuousConditions = (collection: CollectionReference, conditions: Condition[]): Condition[] =>
+  conditions.filter(condition => !(isUnstorableKeyCondition(collection, condition) && condition.operator === '!='))
+
+// DATA-9
+const sentToStore = (collection: CollectionReference, conditions: Condition[]): Condition[] =>
+  conditions.filter(condition => !isUnstorableKeyCondition(collection, condition))
 
 const fieldPathOf = (collection: CollectionReference, field: string): FieldPath =>
   field === collection.primaryKey.key ? FieldPath.documentId() : new FieldPath(field)
@@ -78,8 +99,8 @@ interface Scan {
   limit: number | undefined
 }
 
-const batchQuery = ({ base, limit }: Scan, token: string | undefined): Query => {
-  const resumed = token === undefined ? base : base.startAfter(...cursorValues(token))
+const batchQuery = ({ base, limit, fields }: Scan, token: string | undefined): Query => {
+  const resumed = token === undefined ? base : base.startAfter(...cursorValues(token, fields))
   return limit === undefined ? resumed : resumed.limit(limit)
 }
 
@@ -97,9 +118,9 @@ function refuseUnservableQuery (error: unknown): never {
 }
 
 // DATA-8
-function cursorValues (token: string): unknown[] {
+function cursorValues (token: string, fields: string[]): unknown[] {
   const cursor = decodeToken(token) as Partial<PageCursor> | null
-  if (typeof cursor?.id !== 'string' || !Array.isArray(cursor.values)) throw new Error('database/invalid-query: unknown page token')
+  if (typeof cursor?.id !== 'string' || !Array.isArray(cursor.values) || cursor.values.length !== fields.length) throw new Error('database/invalid-query: unknown page token')
   return [...cursor.values, cursor.id]
 }
 
@@ -133,14 +154,24 @@ async function requireExisting (document: FirestoreDocument, reference: Document
   if (!(await document.get()).exists) throw new DocumentNotFoundError(reference)
 }
 
-// DATA-3, DATA-6
-function updateArguments (reference: DocumentReference<CollectionReference>, data: Record<string, unknown>): unknown[] {
-  const key = reference.collection.primaryKey.key
-  if (Object.hasOwn(data, key) && data[key] !== reference.id) throw new Error(`database/key-immutable: ${key}`)
-  return Object.entries(data)
-    .filter(([field, value]) => field !== key && value !== undefined)
-    .flatMap(([field, value]) => [new FieldPath(field), asJson(value)])
+// DATA-3
+function withoutKeyField (collection: CollectionReference, data: Record<string, unknown>): Record<string, unknown> {
+  const { [collection.primaryKey.key]: _key, ...rest } = data
+  return rest
 }
+
+// DATA-3
+function withoutIgnoredKey (reference: DocumentReference<CollectionReference>, data: Record<string, unknown>): Record<string, unknown> {
+  const key = reference.collection.primaryKey.key
+  if (data[key] !== undefined && data[key] !== reference.id) throw new Error(`database/key-immutable: ${key}`)
+  return withoutKeyField(reference.collection, data)
+}
+
+// DATA-6
+const updateArguments = (fields: Record<string, unknown>): unknown[] =>
+  Object.entries(fields)
+    .filter(([, value]) => value !== undefined)
+    .flatMap(([field, value]) => [new FieldPath(field), asJson(value)])
 
 /** One Firestore provider, with its own client and credential. */
 export default defineRuntime<GcpDatabaseOptions, Adapter>({
@@ -152,9 +183,10 @@ export default defineRuntime<GcpDatabaseOptions, Adapter>({
     })
 
     const createDocument = async (reference: CollectionReference, data: Record<string, unknown>): Promise<DocumentSnapshot<CollectionReference>> => {
-      checkValues(data)
+      const given = withoutKeyField(reference, data)
+      checkValues(given)
       const document = firestore.collection(reference.name).doc()
-      const stored = withKey(reference, document.id, data)
+      const stored = withKey(reference, document.id, given)
       await document.set(asJson(stored))
       const documentReference: DocumentReference<typeof reference> = {
         collection: reference,
@@ -168,24 +200,28 @@ export default defineRuntime<GcpDatabaseOptions, Adapter>({
 
     const getCollection = async (reference: CollectionReference, params: QueryParams = {}): Promise<CollectionPage<CollectionReference>> => {
       checkQuery(params)
-      const conditions = params.where ?? []
-      const fields = inequalityFields(reference, conditions)
+      const conditions = withoutVacuousConditions(reference, params.where ?? [])
+      const queried = sentToStore(reference, conditions)
+      const fields = inequalityFields(reference, queried)
       const firstToken = params.pageToken
-      if (firstToken !== undefined) cursorValues(firstToken)
+      if (firstToken !== undefined) cursorValues(firstToken, fields)
       if (matchesNothing(reference, conditions)) return { documents: [] }
-      const base = orderedQuery(filteredQuery(firestore.collection(reference.name), reference, conditions), fields)
+      const base = orderedQuery(filteredQuery(firestore.collection(reference.name), reference, queried), fields)
       return await pageOf({ base, collection: reference, conditions, fields, limit: params.limit }, firstToken)
     }
 
     const getDocument = async ({ collection, id }: DocumentReference<CollectionReference>): Promise<DocumentSnapshot<CollectionReference> | undefined> => {
+      if (!isStorableId(id)) return undefined
       const document = await firestore.collection(collection.name).doc(id).get()
       if (!document.exists) return undefined
       return { reference: { collection, id }, data: withKey(collection, id, document.data() as Record<string, unknown>) }
     }
 
     const updateDocument = async (reference: DocumentReference<CollectionReference>, data: Record<string, unknown>): Promise<UpdateSnapshot<CollectionReference>> => {
-      checkValues(data)
-      const [field, value, ...rest] = updateArguments(reference, data)
+      const given = withoutIgnoredKey(reference, data)
+      checkValues(given)
+      if (!isStorableId(reference.id)) throw new DocumentNotFoundError(reference)
+      const [field, value, ...rest] = updateArguments(given)
       const document = firestore.collection(reference.collection.name).doc(reference.id)
       try {
         if (field === undefined) await requireExisting(document, reference)
@@ -199,6 +235,7 @@ export default defineRuntime<GcpDatabaseOptions, Adapter>({
     }
 
     const deleteDocument = async (reference: DocumentReference<CollectionReference>): Promise<void> => {
+      if (!isStorableId(reference.id)) return
       await firestore.collection(reference.collection.name).doc(reference.id).delete()
     }
 

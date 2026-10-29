@@ -215,10 +215,14 @@ describe('the DynamoDB runtime', () => {
     expect(dynamo.calls()).toHaveLength(0)
   })
 
-  it('DDB-7: refuses a key field present with the value undefined', async () => {
+  it('DATA-3, DDB-7: an undefined key field is ignored', async () => {
+    dynamo.on(UpdateItemCommand).resolves({})
     const database = await provider()
-    await expect(database.updateDocument(document, { id: undefined, a: 1 })).rejects.toThrow(/^database\/key-immutable: id$/)
-    expect(dynamo.calls()).toHaveLength(0)
+    await database.updateDocument(document, { id: undefined, a: 1 })
+    const updates = inputs(UpdateItemCommand)
+    expect(updates).toHaveLength(1)
+    expect(updates[0].ExpressionAttributeNames).toEqual({ '#key': 'id', '#f0': 'a' })
+    expect(updates[0].ExpressionAttributeValues).toEqual({ ':v0': { N: '1' } })
   })
 
   it('DDB-7: propagates delete errors unchanged', async () => {
@@ -264,7 +268,7 @@ describe('the DynamoDB runtime', () => {
     expect((await database.getCollection(collection)).documents[0].data).toEqual({ id: '1', t: 'a' })
   })
 
-  it.fails('DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues', async () => {
+  it('DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues', async () => {
     dynamo.on(ScanCommand).resolves({ Items: [] })
     const database = await provider()
     const cannotMatch = [

@@ -65,7 +65,7 @@ describe('the subset of values and the strict parameters', () => {
   const circular = () => { const loop = {}; loop.self = loop; return { meta: loop } }
   const sparse = () => ({ tags: [1, , 3] }) // eslint-disable-line no-sparse-arrays
 
-  it.fails('DATA-2, DATA-8, CF64, CF65: checkValues and checkQuery follow the subset and the strict parameters', async () => {
+  it('DATA-2, DATA-8, CF64, CF65: checkValues and checkQuery follow the subset and the strict parameters', async () => {
     const { checkValues, checkQuery } = await load()
     const shared = { a: 1 }
     const holdable = [

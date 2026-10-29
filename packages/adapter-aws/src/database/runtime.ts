@@ -7,7 +7,7 @@ import {
   type DocumentSnapshot,
   type QueryParams
 } from '@genoacms/contracts/database'
-import { checkQuery, decodeToken, encodeToken } from '@genoacms/contracts/database/query'
+import { checkQuery, checkValues, decodeToken, encodeToken } from '@genoacms/contracts/database/query'
 import {
   DeleteItemCommand,
   DynamoDBClient,
@@ -58,8 +58,7 @@ function updateExpression (data: Record<string, unknown>): { UpdateExpression: s
 // DATA-3
 function withoutEqualKey (collection: CollectionReference, id: string, data: Record<string, unknown>): Record<string, unknown> {
   const key = collection.primaryKey.key
-  if (!Object.hasOwn(data, key)) return data
-  if (data[key] !== id) throw new Error(`database/key-immutable: ${key}`)
+  if (data[key] !== undefined && data[key] !== id) throw new Error(`database/key-immutable: ${key}`)
   return withoutKeyField(collection, data)
 }
 
@@ -115,19 +114,27 @@ function conditionExpression (index: number, { operator, value }: Condition): Ex
 function filterOf (conditions: Condition[]): Filter {
   if (conditions.length === 0) return {}
   const parts = conditions.map((condition, index) => conditionExpression(index, condition))
+  const values = Object.assign({}, ...parts.map(part => part.values)) as Record<string, AttributeValue>
   return {
     FilterExpression: parts.map(part => part.expression).join(' AND '),
     ExpressionAttributeNames: Object.fromEntries(conditions.map(({ field }, index) => [`#f${index}`, field])),
-    ExpressionAttributeValues: Object.assign({}, ...parts.map(part => part.values)) as Record<string, AttributeValue>
+    ...(Object.keys(values).length === 0 ? {} : { ExpressionAttributeValues: values })
   }
 }
+
+const hasExactly = (value: unknown, names: string[]): boolean =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).join() === names.join()
+
+// DATA-8
+const isKeyAttributeAlone = (token: unknown, key: string): token is Record<string, { S: string }> =>
+  hasExactly(token, [key]) && hasExactly((token as Record<string, unknown>)[key], ['S']) && typeof (token as Record<string, { S: unknown }>)[key].S === 'string'
 
 // DATA-8
 function startKeyOf (collection: CollectionReference, pageToken: string | undefined): Item | undefined {
   if (pageToken === undefined) return undefined
   const key = collection.primaryKey.key
   const token = decodeToken(pageToken)
-  if (typeof token?.[key]?.S !== 'string') throw new Error('database/invalid-query: unknown page token')
+  if (!isKeyAttributeAlone(token, key)) throw new Error('database/invalid-query: unknown page token')
   return { [key]: { S: token[key].S } }
 }
 
@@ -139,7 +146,9 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
     const createDocument = async (collection: CollectionReference, data: Record<string, unknown>): Promise<unknown> => {
       requireStringKey(collection)
       const id = randomUUID()
-      const item = { ...toItem(withoutKeyField(collection, data)), ...keyOf(collection, id) }
+      const given = withoutKeyField(collection, data)
+      checkValues(given)
+      const item = { ...toItem(given), ...keyOf(collection, id) }
       await client.send(new PutItemCommand({
         TableName: collection.name,
         Item: item,
@@ -180,7 +189,9 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
     const updateDocument = async (reference: DocumentReference<CollectionReference>, data: Record<string, unknown>): Promise<unknown> => {
       const { collection, id } = reference
       requireStringKey(collection)
-      const expression = updateExpression(withoutEqualKey(collection, id, data))
+      const given = withoutEqualKey(collection, id, data)
+      checkValues(given)
+      const expression = updateExpression(given)
       try {
         await client.send(new UpdateItemCommand({
           TableName: collection.name,

@@ -31,21 +31,10 @@ const checkCondition = (condition, index) => {
   if (!isComparable(candidate?.value)) refuseQuery(`where[${index}].value is not a string, a finite number, a boolean or null`)
 }
 
-/**
- * DATA-8: throws Error('database/invalid-query: <reason>') unless params match the types.
- *
- * @param {import('./types.d.ts').QueryParams | undefined} params
- */
-function checkQuery (params) {
-  if (params === undefined) return
-  const { where, limit, pageToken } = params
-  if (where !== undefined) {
-    if (!Array.isArray(where)) refuseQuery('where is not an array')
-    where.forEach(checkCondition)
-  }
-  if (limit !== undefined && !(Number.isInteger(limit) && limit >= 1)) refuseQuery('limit is not an integer of at least 1')
-  if (pageToken !== undefined && typeof pageToken !== 'string') refuseQuery('pageToken is not a string')
-}
+const PARAMETER_NAMES = ['where', 'limit', 'pageToken']
+const LIMIT_MAXIMUM = 1000
+const SMALLEST_MAGNITUDE = 1e-130
+const LARGEST_MAGNITUDE = 1e126
 
 /**
  * @param {unknown} value
@@ -58,43 +47,107 @@ const isPlainObject = (value) => {
 }
 
 /**
+ * @param {unknown[]} array
+ * @returns {boolean}
+ */
+const isDense = (array) => Object.keys(array).length === array.length
+
+/**
+ * DATA-8: throws Error('database/invalid-query: <reason>') unless params match the types.
+ *
+ * @param {import('./types.d.ts').QueryParams | undefined} params
+ */
+function checkQuery (params) {
+  if (params === undefined) return
+  if (!isPlainObject(params)) refuseQuery('the parameters are not an object')
+  const unknown = Object.keys(params).find(name => !PARAMETER_NAMES.includes(name))
+  if (unknown !== undefined) refuseQuery(`unknown parameter ${unknown}`)
+  const { where, limit, pageToken } = params
+  if (where !== undefined) {
+    if (!Array.isArray(where) || !isDense(where)) refuseQuery('where is not a dense array')
+    where.forEach(checkCondition)
+  }
+  if (limit !== undefined && !(Number.isInteger(limit) && limit >= 1 && limit <= LIMIT_MAXIMUM)) refuseQuery(`limit is not an integer from 1 to ${LIMIT_MAXIMUM}`)
+  if (pageToken !== undefined && typeof pageToken !== 'string') refuseQuery('pageToken is not a string')
+}
+
+/**
+ * @param {number} number
+ * @returns {boolean}
+ */
+const isHoldableNumber = (number) =>
+  Number.isFinite(number) &&
+  (number === 0 || (Math.abs(number) >= SMALLEST_MAGNITUDE && Math.abs(number) <= LARGEST_MAGNITUDE))
+
+/**
+ * @param {string} text
+ * @returns {boolean}
+ */
+const isHoldableString = (text) => text.isWellFormed() && !text.includes('\u0000')
+
+/**
  * @param {unknown} value
  * @returns {boolean}
  */
-const isJsonScalar = (value) =>
+const isHoldableScalar = (value) =>
   value === null ||
-  typeof value === 'string' ||
   typeof value === 'boolean' ||
-  (typeof value === 'number' && Number.isFinite(value))
+  (typeof value === 'string' && isHoldableString(value)) ||
+  (typeof value === 'number' && isHoldableNumber(value))
+
+/**
+ * @param {string} path
+ * @returns {never}
+ */
+const refuseValue = (path) => {
+  throw new Error(`database/unsupported-value: ${path}`)
+}
+
+/**
+ * @param {unknown[]} array
+ * @param {string} path
+ * @param {object[]} ancestors
+ */
+const checkItems = (array, path, ancestors) => {
+  if (!isDense(array)) refuseValue(path)
+  array.forEach((item, index) => {
+    if (Array.isArray(item)) refuseValue(`${path}.${index}`)
+    checkValue(item, `${path}.${index}`, ancestors)
+  })
+}
 
 /**
  * @param {unknown} value
  * @param {string} path
+ * @param {object[]} ancestors
  */
-const checkValue = (value, path) => {
-  if (isJsonScalar(value)) return
-  if (Array.isArray(value)) return value.forEach((item, index) => checkValue(item, `${path}.${index}`))
-  if (!isPlainObject(value)) throw new Error(`database/unsupported-value: ${path}`)
-  checkFields(/** @type {Record<string, unknown>} */ (value), `${path}.`)
+function checkValue (value, path, ancestors) {
+  if (isHoldableScalar(value)) return
+  if (typeof value !== 'object' || value === null || ancestors.includes(value)) refuseValue(path)
+  if (Array.isArray(value)) return checkItems(value, path, [...ancestors, value])
+  if (!isPlainObject(value)) refuseValue(path)
+  checkFields(/** @type {Record<string, unknown>} */ (value), `${path}.`, [...ancestors, value])
 }
 
 /**
  * @param {Record<string, unknown>} fields
  * @param {string} prefix
+ * @param {object[]} ancestors
  */
-const checkFields = (fields, prefix) => {
+function checkFields (fields, prefix, ancestors) {
   for (const [name, value] of Object.entries(fields)) {
-    if (value !== undefined) checkValue(value, `${prefix}${name}`)
+    if (value !== undefined) checkValue(value, `${prefix}${name}`, ancestors)
   }
 }
 
 /**
- * DATA-2: throws Error('database/unsupported-value: <path>') for the first value that is not JSON.
+ * DATA-2: throws Error('database/unsupported-value: <path>') for the first value that is not
+ * held by every store.
  *
  * @param {Record<string, unknown>} data
  */
 function checkValues (data) {
-  checkFields(data, '')
+  checkFields(data, '', [data])
 }
 
 /**

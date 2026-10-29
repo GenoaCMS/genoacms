@@ -127,7 +127,7 @@ describe('the Firestore runtime', () => {
     expect(failure).toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: pages/x' })
   })
 
-  it.fails('DATA-9, CF60: a key condition on an ID Firestore cannot hold compares as a string', async () => {
+  it('DATA-9, CF60: a key condition on an ID Firestore cannot hold compares as a string', async () => {
     const database = await create()
     expect(await database.getCollection(pages, { where: [{ field: 'id', operator: '==', value: 'a/b' }] })).toEqual({ documents: [] })
     expect(collection.get).not.toHaveBeenCalled()

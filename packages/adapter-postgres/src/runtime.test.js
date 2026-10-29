@@ -64,7 +64,7 @@ describe('the Postgres runtime', () => {
     expect(failure).toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: articles/x' })
   })
 
-  it.fails('DATA-8, DATA-9, CF61: field names are literal and a field without a column matches nothing', async () => {
+  it('DATA-8, DATA-9, CF61: field names are literal and a field without a column matches nothing', async () => {
     const database = runtime.create(options, { name: 'pg', resources: [] })
     const asked = (field) => ({ where: [{ field, operator: '==', value: 'x' }] })
     const selects = () => executed.filter(statement => !statement.sql.includes('information_schema'))

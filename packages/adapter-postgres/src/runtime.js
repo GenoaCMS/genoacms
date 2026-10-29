@@ -18,6 +18,14 @@ const CASTS = { string: '', number: '::numeric', boolean: '::boolean' }
 const withoutUndefined = (options) => Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined))
 
 /**
+ * DATA-8: a field name taken literally, as SQL text for knex.raw.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+const identifier = (name) => `"${name.replaceAll('"', '""')}"`.replaceAll('?', '\\?')
+
+/**
  * @param {unknown} value
  * @returns {unknown}
  */
@@ -40,6 +48,18 @@ const columnsOf = (collection, document) => Object.fromEntries(
  * DATA-3
  *
  * @param {CollectionReference} collection
+ * @param {Record<string, unknown>} document
+ * @returns {Record<string, unknown>}
+ */
+const withoutKeyField = (collection, document) => {
+  const { [collection.primaryKey.key]: _key, ...rest } = document
+  return rest
+}
+
+/**
+ * DATA-3
+ *
+ * @param {CollectionReference} collection
  * @param {Record<string, unknown>} row
  */
 const snapshotOf = (collection, row) => {
@@ -51,10 +71,11 @@ const snapshotOf = (collection, row) => {
  * DATA-9: the value of a column as the JSON type it holds, or NULL.
  *
  * @param {'string' | 'number' | 'boolean'} type
+ * @param {string} column
  * @returns {string}
  */
-const typedValue = (type) =>
-  `(CASE WHEN jsonb_typeof(to_jsonb(??)) = '${JSON_TYPES[type]}' THEN (to_jsonb(??) #>> '{}')${CASTS[type]} END)${type === 'string' ? ' COLLATE "C"' : ''}`
+const typedValue = (type, column) =>
+  `(CASE WHEN jsonb_typeof(to_jsonb(${column})) = '${JSON_TYPES[type]}' THEN (to_jsonb(${column}) #>> '{}')${CASTS[type]} END)${type === 'string' ? ' COLLATE "C"' : ''}`
 
 /**
  * DATA-9
@@ -64,13 +85,13 @@ const typedValue = (type) =>
  * @param {Condition} condition
  */
 const whereCondition = (query, collection, { field, operator, value }) => {
-  if (value === null) return operator === '==' ? query.whereNull(field) : query.whereRaw('false')
+  if (value === null) return operator === '==' ? query.whereRaw(`${identifier(field)} IS NULL`) : query.whereRaw('false')
   if (field === collection.primaryKey.key) {
-    return typeof value === 'string' ? query.whereRaw(`??::text COLLATE "C" ${operator === '==' ? '=' : operator} ?`, [field, value]) : query.whereRaw('false')
+    return typeof value === 'string' ? query.whereRaw(`${identifier(field)}::text COLLATE "C" ${operator === '==' ? '=' : operator} ?`, [value]) : query.whereRaw('false')
   }
   const sqlOperator = operator === '==' ? '=' : operator
   const type = /** @type {'string' | 'number' | 'boolean'} */ (typeof value)
-  return query.whereRaw(`${typedValue(type)} ${sqlOperator} ?`, [field, field, value])
+  return query.whereRaw(`${typedValue(type, identifier(field))} ${sqlOperator} ?`, [value])
 }
 
 /**
@@ -83,14 +104,35 @@ const whereCondition = (query, collection, { field, operator, value }) => {
 const startingAfter = (query, collection, pageToken) => {
   if (pageToken === undefined) return query
   const lastKey = decodeToken(pageToken)
-  if (typeof lastKey !== 'string') throw new Error('database/invalid-query: unknown page token')
-  return query.where(collection.primaryKey.key, '>', lastKey)
+  if (typeof lastKey !== 'string' && typeof lastKey !== 'number') throw new Error('database/invalid-query: unknown page token')
+  return query.whereRaw(`${identifier(collection.primaryKey.key)} > ?`, [lastKey])
 }
+
+/**
+ * DATA-9
+ *
+ * @param {string[]} columns
+ * @param {Condition[]} conditions
+ * @returns {boolean}
+ */
+const allHaveColumns = (columns, conditions) => conditions.every(({ field }) => columns.includes(field))
 
 /** One Postgres provider, with its own connection pool. */
 export default defineRuntime({
   create ({ host, port, database, user, password }) {
     const sql = knex({ client: 'pg', connection: withoutUndefined({ host, port, database, user, password }) })
+
+    /** @type {Map<string, Promise<string[]>>} */
+    const columnsByTable = new Map()
+    const readColumns = async (/** @type {string} */ tableName) => {
+      const rows = await sql('information_schema.columns').select('column_name').where({ table_name: tableName }).whereRaw('table_schema = current_schema()')
+      return rows.map(row => row.column_name)
+    }
+    /** DATA-9 */
+    const tableColumns = (/** @type {string} */ tableName) => {
+      if (!columnsByTable.has(tableName)) columnsByTable.set(tableName, readColumns(tableName))
+      return /** @type {Promise<string[]>} */ (columnsByTable.get(tableName))
+    }
 
     /**
       * @type {Adapter['createDocument']}
@@ -101,7 +143,7 @@ export default defineRuntime({
       if (!tableName) throw new Error('Missing table name when inserting a document')
       if (!document) throw new Error(`Inserting empty document to ${tableName}`)
       if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
-      checkValues(document)
+      checkValues(withoutKeyField(reference, document))
 
       const generatedKey = reference.primaryKey.schema?.type === 'string' ? { [primaryKeyProperty]: randomUUID() } : {}
       const [row] = await sql(tableName).insert({ ...columnsOf(reference, document), ...generatedKey }).returning('*')
@@ -124,7 +166,9 @@ export default defineRuntime({
       checkQuery(queryParams)
 
       const { where = [], limit, pageToken } = queryParams
-      let query = sql(tableName).select('*').orderBy(primaryKeyProperty)
+      if (pageToken !== undefined) startingAfter(sql(tableName), reference, pageToken)
+      if (!allHaveColumns(await tableColumns(tableName), where)) return { documents: [] }
+      let query = sql(tableName).select('*').orderByRaw(identifier(primaryKeyProperty))
       for (const condition of where) query = whereCondition(query, reference, condition)
       query = startingAfter(query, reference, pageToken)
       if (limit !== undefined) query = query.limit(limit)
@@ -143,6 +187,7 @@ export default defineRuntime({
       const primaryKeyValue = reference?.id
       if (!tableName) throw new Error(`Missing table name in reference ${reference?.id}`)
       if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+      if (primaryKeyValue === '') return undefined
       if (!primaryKeyValue) throw new Error(`Missing id of queried document from ${tableName}`)
 
       const row = await sql(tableName)
@@ -163,8 +208,8 @@ export default defineRuntime({
       if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
       if (!primaryKeyValue) throw new Error(`Missing id of updated document from ${tableName}`)
       if (!document) throw new Error(`Updating empty document to ${tableName}`)
-      if (Object.hasOwn(document, primaryKeyProperty) && document[primaryKeyProperty] !== primaryKeyValue) throw new Error(`database/key-immutable: ${primaryKeyProperty}`)
-      checkValues(document)
+      if (document[primaryKeyProperty] !== undefined && document[primaryKeyProperty] !== primaryKeyValue) throw new Error(`database/key-immutable: ${primaryKeyProperty}`)
+      checkValues(withoutKeyField(reference.collection, document))
 
       const columns = columnsOf(reference.collection, document)
       const matching = sql(tableName).where(primaryKeyProperty, primaryKeyValue)
@@ -188,6 +233,7 @@ export default defineRuntime({
       const primaryKeyValue = reference?.id
       if (!tableName) throw new Error(`Missing table name in reference ${reference?.id}`)
       if (!primaryKeyProperty) throw new Error(`Missing primaryKey of ${tableName}`)
+      if (primaryKeyValue === '') return
       if (!primaryKeyValue) throw new Error(`Missing id of deleted document from ${tableName}`)
 
       await sql(tableName).delete().where(primaryKeyProperty, primaryKeyValue)
