@@ -1,8 +1,9 @@
 ---
 type: docs-index
-workflow: 3.1.0
+workflow: 3.3.0
 levels: [unit, integration, e2e, contract, conformance]
 sources: [packages]
+audit-from: 41
 ---
 
 # GenoaCMS documentation
