@@ -209,7 +209,7 @@ value whole, and keeps every other field. It returns `{ reference: ref, data }` 
 `deleteDocument(ref)` deletes the document. Deleting a document that does not exist is not an error,
 and deleting by an ID the store cannot hold sends no request.
 
-- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-postgres/src/runtime.test.js`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
 
 ### Queries
