@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Grant } from '$lib/script/authorization/grants'
+import { importModule } from '$lib/script/testing/requests'
 
 type Data = Record<string, unknown>
 
@@ -56,11 +57,13 @@ describe('creating from the editor', () => {
   })
 
   it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const answer = await create({ collectionName: 'articles', documentData: { count: 'many' } })
+    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    service.createUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/count', keyword: 'type' }]))
+
+    const answer = await create({ collectionName: 'articles', documentData: { title: 'a' } })
 
     expect(answer).toMatchObject({ status: 'fail', text: 'Invalid document data' })
     expect(answer.errors).toBeUndefined()
-    expect(service.createUserDocument).not.toHaveBeenCalled()
   })
 
   it('DOC-5: a created document answers Document created with its id', async () => {
@@ -90,11 +93,13 @@ describe('updating from the editor', () => {
   })
 
   it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const answer = await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 7 } })
+    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    service.updateUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/title', keyword: 'type' }]))
+
+    const answer = await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 'a' } })
 
     expect(answer).toMatchObject({ status: 'fail', text: 'Invalid document data' })
     expect(answer.errors).toBeUndefined()
-    expect(service.updateUserDocument).not.toHaveBeenCalled()
   })
 
   it('DOC-5: an updated document answers Document updated', async () => {
@@ -113,21 +118,5 @@ describe('updating from the editor', () => {
     service.updateUserDocument.mockRejectedValue(new Error('adapter down'))
 
     expect(await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 'a' } })).toEqual({ status: 'fail', text: 'Error updating document' })
-  })
-})
-
-describe('the formats of validation', () => {
-  const valid = async (documentData: Data): Promise<boolean> =>
-    (await create({ collectionName: 'articles', documentData })).status === 'success'
-
-  it('DOC-5: reference, markdown and text accept any string', async () => {
-    expect(await valid({ author: '', body: '# any', summary: 'x'.repeat(10_000) })).toBe(true)
-  })
-
-  it('DOC-5: storageResource refuses any string and does not check any other value', async () => {
-    expect(await valid({ cover: 'media/a.png' })).toBe(false)
-    expect(await valid({ cover: { bucket: 'media', name: 'a.png' } })).toBe(true)
-    expect(await valid({ cover: { bucket: 'media' } })).toBe(true)
-    expect(await valid({ cover: 5 })).toBe(true)
   })
 })

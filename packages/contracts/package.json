@@ -31,6 +31,10 @@
       "types": "./src/database/index.d.ts",
       "import": "./src/database/index.js"
     },
+    "./database/query": {
+      "types": "./src/database/query.d.ts",
+      "import": "./src/database/query.js"
+    },
     "./authentication": {
       "types": "./src/authentication/index.d.ts",
       "import": "./src/authentication/index.js"

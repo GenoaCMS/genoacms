@@ -20,17 +20,16 @@ interface DocumentReference<C extends CollectionReference> {
   collection: C
   id: string
 }
+type Comparable = string | number | boolean | null
+interface Condition {
+  field: string
+  operator: '==' | '!=' | '<' | '<=' | '>' | '>='
+  value: Comparable
+}
 interface QueryParams {
-  startAfter?: {
-    field: string
-    value: string
-  }
+  where?: Condition[]
   limit?: number
-  conditions?: [{
-    field: string
-    operator: string
-    value: string
-  }]
+  pageToken?: string
 }
 type Document<C extends CollectionReference = CollectionReference> = Record<keyof C['schema'], C['schema'][keyof C['schema']]>
 interface DocumentSnapshot<C extends CollectionReference> {
@@ -40,15 +39,20 @@ interface DocumentSnapshot<C extends CollectionReference> {
 interface UpdateSnapshot<C extends CollectionReference> extends Omit<DocumentSnapshot<C>, 'data'> {
   data: Partial<Document<C>>
 }
-type CollectionSnapshot<C extends CollectionReference> = Array<DocumentSnapshot<C>> // TODO: make class, method docs()
+interface CollectionPage<C extends CollectionReference> {
+  documents: Array<DocumentSnapshot<C>>
+  next?: string
+}
 
 export type {
   JsonSchema,
   CollectionReference,
   DocumentReference,
+  Comparable,
+  Condition,
   QueryParams,
   Document,
   DocumentSnapshot,
   UpdateSnapshot,
-  CollectionSnapshot
+  CollectionPage
 }

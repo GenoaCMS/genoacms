@@ -41,6 +41,7 @@ vi.mock('$lib/script/storage/storage.server', () => ({
   moveObject: async () => {},
   deleteObject: async () => {},
   getPublicURL: () => 'url',
+  getSignedURL: async () => 'signed',
   listDirectory: async () => ({ directories: [], files: [] }),
   createDirectory: async () => {},
   moveDirectory: async () => {},
@@ -61,7 +62,7 @@ const written: Array<Record<string, unknown>> = []
 vi.mock('$lib/script/database/database.server', () => ({
   getCollectionReferences: () => ['articles'],
   getCollectionReference: async () => ({ name: 'articles', schema: {} }),
-  getCollection: async () => [{ reference: {}, data: { ...storedDocument } }],
+  getCollection: async () => ({ documents: [{ reference: {}, data: { ...storedDocument } }] }),
   getDocument: async () => ({ reference: {}, data: { ...storedDocument } }),
   createDocument: async (_ref: unknown, document: Record<string, unknown>) => {
     written.push(document)
@@ -239,7 +240,7 @@ const securityPolicy = await import('$lib/script/securityPolicy/user.server')
 const objectRef = { bucket: BUCKET, name: 'photo.jpg' }
 const directoryRef = { bucket: BUCKET, name: 'folder/' }
 const collectionRef = { name: COLLECTION, schema: {} } as never
-const documentRef = { collection: { name: COLLECTION }, id: 'doc-1' } as never
+const documentRef = { collection: collectionRef, id: 'doc-1' } as never
 const pageEntry = { name: 'home' } as never
 // `attributes` is present because saving a header checks that no two of them share a name before it
 // reaches storage. Empty rather than populated: this file answers which permission each operation
@@ -260,6 +261,7 @@ const operations: Record<string, (ctx: AuthContext) => unknown> = {
   // storage
   getUserBucketReferences: ctx => visible(storage.getUserBucketReferences(ctx)),
   listUserDirectory: ctx => storage.listUserDirectory(ctx, directoryRef),
+  getUserSignedURL: ctx => storage.getUserSignedURL(ctx, objectRef),
   processUserDirectoryContents: ctx =>
     storage.processUserDirectoryContents(ctx, BUCKET, { directories: [], files: [] }),
   uploadUserObject: ctx => storage.uploadUserObject(ctx, objectRef, 'data'),
@@ -490,9 +492,9 @@ describe('field-level masking', () => {
   })
 
   it('strips it from every document in a collection', async () => {
-    const snapshots = await database.getUserCollection(restricted(), collectionRef)
+    const { documents } = await database.getUserCollection(restricted(), collectionRef)
 
-    expect(snapshots[0].data).not.toHaveProperty('internal_cost')
+    expect(documents[0].data).not.toHaveProperty('internal_cost')
   })
 
   it('denies a field the grant does not name, including one added later', async () => {
@@ -510,7 +512,7 @@ describe('field-level masking', () => {
     // clear it. A blind overwrite would erase internal_cost here.
     await database.updateUserDocument(restricted(), documentRef, { body: 'new' } as never)
 
-    expect(written[0]).toEqual({ title: 'Ships', body: 'new', internal_cost: 12 })
+    expect(written[0]).toEqual({ body: 'new' })
   })
 
   it('ignores an unwritable field the submission does set', async () => {
@@ -520,7 +522,7 @@ describe('field-level masking', () => {
       { body: 'new', internal_cost: 0 } as never
     )
 
-    expect(written[0].internal_cost).toBe(12)
+    expect(written[0]).not.toHaveProperty('internal_cost')
   })
 
   it('takes only writable fields when creating', async () => {

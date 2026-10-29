@@ -33,6 +33,7 @@ const matrixOperations = [
   // storage
   'getUserBucketReferences',
   'listUserDirectory',
+  'getUserSignedURL',
   'processUserDirectoryContents',
   'uploadUserObject',
   'createUserDirectory',
@@ -132,7 +133,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   },
   StorageReader: {
     grants: [bucketGrant('storage:bucket:read')],
-    allowed: ['getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents']
+    allowed: ['getUserBucketReferences', 'listUserDirectory', 'getUserSignedURL', 'processUserDirectoryContents']
   },
   /**
    * Write without read. Present because the catalog is filtered on *any* bucket-scoped grant
@@ -149,7 +150,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
   StorageContributor: {
     grants: [bucketGrant('storage:bucket:read'), bucketGrant('storage:bucket:write')],
     allowed: [
-      'getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents',
+      'getUserBucketReferences', 'listUserDirectory', 'getUserSignedURL', 'processUserDirectoryContents',
       'uploadUserObject', 'createUserDirectory', 'moveUserObject', 'moveUserDirectory', 'requireUserWrites'
     ]
   },
@@ -160,7 +161,7 @@ const rolesUnderTest: Record<string, RoleUnderTest> = {
       bucketGrant('storage:bucket:delete')
     ],
     allowed: [
-      'getUserBucketReferences', 'listUserDirectory', 'processUserDirectoryContents',
+      'getUserBucketReferences', 'listUserDirectory', 'getUserSignedURL', 'processUserDirectoryContents',
       'uploadUserObject', 'createUserDirectory', 'moveUserObject', 'moveUserDirectory',
       'deleteUserObject', 'deleteUserDirectory', 'requireUserWrites', 'requireUserDeletes'
     ]

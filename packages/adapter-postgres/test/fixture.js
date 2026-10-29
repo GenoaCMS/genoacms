@@ -1,136 +1,46 @@
 import knex from 'knex'
 
-const storageResource = {
-  type: 'object',
-  title: 'storageResource',
-  properties: {
-    bucket: {
-      type: 'string'
-    },
-    name: {
-      type: 'string'
-    }
-  }
-}
-
-const gallerySection = {
-  properties: {
-    id: {
-      type: 'string',
-      format: 'uuid'
-    },
-    type: {
-      const: 'gallery'
-    },
-    name: {
-      type: 'string',
-      minLength: 1
-    },
-    description: {
-      type: 'string'
-    },
-    images: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 2,
-      items: storageResource
-    }
-  }
-}
-
-const zigzagSection = {
-  properties: {
-    type: {
-      const: 'zizag'
-    },
-    name: {
-      type: 'string'
-    },
-    description: {
-      type: 'string'
-    },
-    sections: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          name: {
-            type: 'string'
-          },
-          description: {
-            type: 'string'
-          },
-          image: {
-            type: 'object',
-            title: 'storageResource'
-          }
-        }
-      }
-    }
-  }
-}
-
-const references = {
-  name: 'References',
-  primaryKey: { key: 'id', schema: {} },
+const conformance = {
+  name: 'conformance',
+  primaryKey: { key: 'id', schema: { type: 'string' } },
   schema: {
     type: 'object',
     properties: {
-      id: {
-        type: 'string',
-        format: 'uuid'
-      },
-      name: {
-        type: 'string'
-      },
-      description: {
-        type: 'string'
-      },
-      sections: {
-        type: 'array',
-        items: {
-          type: 'object',
-          discriminator: {
-            propertyName: 'type'
-          },
-          required: ['type'],
-          oneOf: [
-            gallerySection,
-            zigzagSection
-          ]
-        }
-      }
+      id: { type: 'string', format: 'uuid' },
+      run: { type: 'string' },
+      batch: { type: 'string' },
+      label: { type: 'string' },
+      v: {},
+      title: { type: 'string' },
+      count: { type: 'number' },
+      flag: { type: 'boolean' },
+      nothing: { type: 'string' },
+      tags: { type: 'array' },
+      meta: { type: 'object' }
     }
   }
 }
 
-export const collections = [references]
+export const collection = conformance
 
-export async function recreateReferencesTable (connection) {
+export async function recreateConformanceTable (connection) {
   const sql = knex({ client: 'pg', connection })
   try {
-    await sql.schema.dropTableIfExists(references.name)
-    await sql.schema.createTable(references.name, table => {
-      table.uuid('id').primary()
-      table.text('name')
-      table.text('description')
-      table.specificType('sections', 'jsonb[]')
+    await sql.schema.dropTableIfExists(conformance.name)
+    await sql.schema.createTable(conformance.name, table => {
+      table.uuid('id').primary().defaultTo(sql.raw('gen_random_uuid()'))
+      table.text('run')
+      table.text('batch')
+      table.text('label')
+      table.jsonb('v')
+      table.text('title')
+      table.specificType('count', 'double precision')
+      table.boolean('flag')
+      table.text('nothing')
+      table.jsonb('tags')
+      table.jsonb('meta')
     })
   } finally {
     await sql.destroy()
   }
 }
-
-export const testDocuments = [{
-  id: crypto.randomUUID(),
-  name: 'Test documnet 1',
-  description: 'desc but changed',
-  sections: []
-}, {
-  id: crypto.randomUUID(),
-  name: 'Test documnet 2',
-  description: 'Another description',
-  sections: [{
-
-  }]
-}]

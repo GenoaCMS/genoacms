@@ -2,7 +2,7 @@
 type: architecture
 title: GCP database: Firestore
 codes: [DB]
-verified: b050b3b
+verified: 159aaffc
 ---
 
 # GCP database: Firestore
@@ -34,15 +34,16 @@ its first write, with Firestore's error rather than a GenoaCMS one.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| GF9 | **`getCollection` reads a whole collection** (DB-5): every document in one call, with no paging and no limit. Cost and latency grow with the collection, and a large one can exceed the function's memory. The contract offers no paging, so the fix belongs to the contract first. | open |
+| GF9 | **`getCollection` reads a whole collection** (DB-5): every document in one call, with no paging and no limit. Cost and latency grow with the collection, and a large one can exceed the function's memory. The contract offers no paging, so the fix belongs to the contract first. | fixed, RFC-0042 (`9b97ef12`) |
 | GF13 | *History.* **The runtime's methods were untested by unit tests.** Only construction (DB-2) was. DB-3 to DB-7 relied on the opt-in conformance suite alone. | fixed, RFC-0024 |
-| GF31 | **DB-5 and DB-7 are effectively unverified at `contract`.** Their only contract-level test is `packages/adapter-gcp/test/conformance.test.ts`, the database conformance suite, which passes a listing that misses the document and an update that changes nothing ([`contracts/conformance.md`](../contracts/conformance.md) CF7). The unit tests still check both against the mocked SDK. Found 2026-10-02. | open, fixed with CF7 |
+| GF31 | **DB-5 and DB-7 are effectively unverified at `contract`.** Their only contract-level test is `packages/adapter-gcp/test/conformance.test.ts`, the database conformance suite, which passes a listing that misses the document and an update that changes nothing ([`contracts/conformance.md`](../contracts/conformance.md) CF7). The unit tests still check both against the mocked SDK. Found 2026-10-02. | fixed, RFC-0042 (`c648abcb`): the suite now checks both; its contract run is pending |
 | GF28 | **The reason for DB-3's decision assumes that CMS users define collections.** They cannot: core only reads definitions from `.genoacms/collections`, which the operator writes (author, 2026-09-30). A reserved collection name is therefore at risk only from an operator's mistake. | fixed: the reason corrected |
 
 ### History
 
 *History.* Firestore support predates the monorepo. RFC-0007 moved the bodies into the runtime
 unchanged, with one client per provider, so two databases or two projects can be served at once.
+RFC-0042 (`9b97ef12`) made it serve the database contract: paged and filtered queries, the key field in the data, typed errors; its amendment (`eeabe194`) added the IDs Firestore cannot hold, the strict tokens and the `undefined` key.
 
 ### Verification
 
@@ -78,28 +79,32 @@ A collection reference `{ name }` addresses the Firestore collection `name` in t
 
 #### DB-4 · Creating a document
 
-`createDocument(ref, data)` adds a document with a Firestore-generated ID and returns `{ reference: { collection: ref, id }, data }`, where `data` is the input, not re-read.
+`createDocument(ref, data)` takes a new reference from `collection.doc()` and writes `data` with the key field set to its ID, in one write, after the key field of `data` is ignored and the values are checked (DATA-2 to DATA-4). It returns `{ reference: { collection: ref, id }, data }`, where `data` is the input with the key field, not re-read.
 
-- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DB-5 · Reading a collection
 
-`getCollection(ref)` reads every document of the collection in one query and returns them as `{ reference, data }` snapshots, ordered by document ID, Firestore's default.
+`getCollection(ref, params)` is a Firestore query (DATA-8 to DATA-10): one `where` per condition, with the field as a `FieldPath` and the key field as `FieldPath.documentId()`; ordered by each field of an inequality condition, in name order, then by document ID; `limit` as given, and every fetched document filtered again with the contract's matching, so the adapter fetches on until it has `limit` matches or the query ends. A key condition on an ID Firestore cannot hold (empty, with `/`, `.`, `..`, matching `__.*__`, or over 1500 bytes) answers an empty page for `==`, ignores `!=`, and is applied in process for an order condition. The page token holds the last document's values of the inequality fields, in order, and its ID; one with another number of values is refused with `database/invalid-query:`. Every document read has the key field equal to its ID. A `FAILED_PRECONDITION` naming a missing index becomes `UnsupportedQueryError` (DATA-11).
 
-- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DB-6 · Reading a document
 
-`getDocument({ collection, id })` returns `{ reference, data }`, or `undefined` when the document does not exist.
+`getDocument({ collection, id })` returns `{ reference, data }` with the key field equal to the ID, or `undefined` when the document does not exist or the ID is one Firestore cannot hold (DATA-5).
 
-- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DB-7 · Updating and deleting
 
-`updateDocument(ref, data)` is Firestore's `update`: a merge of the given fields that fails when the document does not exist. It returns `{ reference: ref, data }` with the input `data`. `deleteDocument(ref)` deletes, and deleting a missing document is not an error. Errors propagate.
+`updateDocument(ref, data)` is Firestore's `update` of each given field, passed as a `FieldPath` so a dotted name is one top-level field: a merge that fails with `DocumentNotFoundError` when the document does not exist, Firestore's `NOT_FOUND` included (DATA-6). The key field is ignored when `undefined` or equal to the ID, and otherwise throws `database/key-immutable: <key>` before any request (DATA-3); an update left with no field reads the document instead. It returns `{ reference: ref, data }` with the input `data`. `deleteDocument(ref)` deletes, deleting a missing document or an ID Firestore cannot hold is not an error. Other errors propagate.
 
-- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`
+
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract

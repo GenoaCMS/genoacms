@@ -3,7 +3,7 @@
 The suites every GenoaCMS storage, database and authentication adapter must pass.
 
 - `runStorageConformance(adapter, { bucket })`
-- `runDatabaseConformance(adapter, { collection, testDocuments })`
+- `runDatabaseConformance(adapter, { collection, prefix })`
 - `runAuthenticationConformance(adapter, { identity, disabled? }, { runs? })`
 
 Each registers a vitest suite when called, so call it at the top level of a test file. They take a
@@ -22,7 +22,7 @@ if (process.env.GENOACMS_TEST_EXAMPLE === '1') {
 }
 ```
 
-`testDocuments` is a pair: the first is created, the second replaces it in the update case.
+`prefix` is a name unique to the run: every document the database suite creates carries it in the field `run`, and the suite deletes what it created, also after a failed test. A `collection` whose `schema.properties` lists its fields, such as a table, must list `run`, `batch` and `label` (and `v` to check comparisons); the suite leaves out every field the schema does not list.
 
 The storage suite checks the storage contract: names and directories, the bucket check, reads and
 versions, conditional writes, moves, deletes, the not-found error, one-level and paged listings, and

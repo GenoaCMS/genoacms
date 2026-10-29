@@ -1,16 +1,13 @@
-import highland from 'highland'
 import { Readable } from 'node:stream'
 
-const streamToString = (stream: NodeJS.ReadableStream): Promise<string> => {
-  const highlandStream = highland(stream)
-  return new Promise((resolve, reject) => {
-    highlandStream.on('error', (err) => {
-      reject(err)
-    })
-    highlandStream.toArray((arr) => {
-      resolve(arr.join(''))
-    })
-  })
+const bytesOf = (chunk: string | Buffer): Buffer =>
+  typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk
+
+/** STS-6 */
+const streamToString = async (stream: NodeJS.ReadableStream): Promise<string> => {
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) chunks.push(bytesOf(chunk))
+  return Buffer.concat(chunks).toString('utf8')
 }
 
 function readableStreamToReadable (webStream: ReadableStream<Uint8Array>): Readable {

@@ -1,8 +1,8 @@
-import type { CollectionReference, DocumentReference, DocumentSnapshot, CollectionSnapshot, UpdateSnapshot } from './types.d.ts'
+import type { CollectionReference, DocumentReference, DocumentSnapshot, CollectionPage, QueryParams, Document, UpdateSnapshot } from './types.d.ts'
 
 type createDocument = <C extends CollectionReference>(reference: C, document: Document<C>) => Promise<DocumentSnapshot<C>>
 
-type getCollection = <C extends CollectionReference>(reference: C, queryParams?: QueryParams) => Promise<CollectionSnapshot<C>>
+type getCollection = <C extends CollectionReference>(reference: C, queryParams?: QueryParams) => Promise<CollectionPage<C>>
 type getDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D) => Promise<DocumentSnapshot<C> | undefined>
 
 type updateDocument = <C extends CollectionReference, D extends DocumentReference<C>>(reference: D, document: Document<C>) => Promise<UpdateSnapshot<C>>

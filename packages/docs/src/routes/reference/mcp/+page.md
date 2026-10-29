@@ -84,6 +84,66 @@ The component's `type` cannot change.
 }
 ```
 
+## Collections
+
+| Tool | Purpose | Arguments | Returns | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `list_collections` | Lists the collections you hold a grant on | none | `[{ name }]` | none |
+| `get_collection` | Reads a collection's schema and primary key | `collection` | `{ name, primaryKey, schema }` | `db:collection:read` |
+| `list_documents` | Lists one page of a collection's documents | `collection`, `where` (*optional*), `limit` (*optional*), `pageToken` (*optional*) | `{ documents: [{ id, data }], next }` | `db:collection:read` |
+| `get_document` | Reads a document | `collection`, `id` | `{ id, data }` | `db:collection:read` |
+| `create_document` | Creates a document, validated against the schema | `collection`, `data` | `{ id }` | `db:collection:read`, `db:collection:write` |
+| `update_document` | Sets the given top-level fields of a document | `collection`, `id`, `data` | `{ id }` | `db:collection:read`, `db:collection:write` |
+| `delete_document` | Deletes a document | `collection`, `id` | `{}` | `db:collection:read`, `db:collection:delete` |
+
+- `list_documents` returns `limit` documents (1 to 200, 50 by default) and a `next` token while more
+  remain; pass it back as `pageToken`. `where` is a list of conditions
+  `{ field, operator, value }`, all of which must hold: `operator` is one of `==`, `!=`, `<`, `<=`,
+  `>`, `>=`, and `value` a string, number, boolean or `null`. A condition on a field you may not read
+  fails with `documents/unreadable-field:`.
+- Documents carry only the fields you may read. The key field is part of `data` and cannot be set.
+- A document that does not match the schema is refused with `documents/invalid: <path> <keyword>`,
+  one pair per error, and nothing is written. Errors under a field you may not read are replaced by one
+  `hidden fields`. An update is checked as it will be stored, together with
+  the fields it keeps.
+- `update_document` leaves fields not in `data` as they are and cannot remove one. The later save wins:
+  nothing is checked against a version. A missing document fails with `documents/not-found:`.
+  `delete_document` of a missing document is not an error.
+
+## Storage
+
+`bucket` is a bucket name. An object `name` is levels separated by `/`, none of them empty, `.` or `..`,
+and does not end with `/`. A directory `path` is `''` for the root, or such a name followed by `/`;
+anything else fails with `storage/invalid-name:`. A change under `.genoacms/` of the default bucket
+fails with `storage/internal-read-only:`.
+
+| Tool | Purpose | Arguments | Returns | Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `list_buckets` | Lists the buckets you hold a grant on | none | `[{ name }]` | none |
+| `list_directory` | Lists one page of a directory | `bucket`, `path` (*optional*), `pageToken` (*optional*), `limit` (*optional*) | `{ files: [{ name, size, lastModified }], directories, next }` | `storage:bucket:read` |
+| `get_object` | Returns a signed URL to fetch an object from | `bucket`, `name` | `{ url, expiresAt }` | `storage:bucket:read` |
+| `upload_object` | Stores an object | `bucket`, `name`, `content`, `encoding` (*optional*), `overwrite` (*optional*) | `{ name }` | `storage:bucket:write` |
+| `move_object` | Moves an object within its bucket | `bucket`, `name`, `destination`, `overwrite` (*optional*) | `{}` | `storage:bucket:write` |
+| `delete_object` | Deletes an object | `bucket`, `name` | `{}` | `storage:bucket:delete` |
+| `create_directory` | Creates a directory | `bucket`, `path` | `{}` | `storage:bucket:write` |
+| `move_directory` | Moves everything under a directory | `bucket`, `path`, `destination`, `overwrite` (*optional*) | `{}` | `storage:bucket:write` |
+| `delete_directory` | Deletes everything under a directory, directories within it included | `bucket`, `path` | `{}` | `storage:bucket:delete` |
+
+- `lastModified` and `expiresAt` are ISO 8601 strings, and `next` is absent on the last page.
+  `list_directory` signs no URLs; `get_object` returns one, valid for an hour. The agent fetches the
+  contents from it, and the URL is signed even for an object that does not exist.
+- `upload_object` stores `content` as its UTF-8 bytes, or, with `encoding: "base64"`, as the bytes it
+  decodes to (`storage/invalid-content:` when it is not base64). At most 4,194,304 bytes
+  (`storage/too-large:`). It refuses to replace an object (`storage/exists:`) unless `overwrite` is
+  `true`, and the stored object has no content type.
+- `move_object` refuses an existing `destination`, and `move_directory` one that holds anything
+  (`storage/exists:`), unless `overwrite` is `true`. `move_directory` refuses a `destination` under
+  `path` (`storage/invalid-name:`).
+- `create_directory`, `move_directory` and `delete_directory` refuse the root. `move_object` and
+  `delete_object` of a missing object fail with `storage/not-found:`.
+- Moving without `overwrite` looks the destination up in a listing, so it needs `storage:bucket:read`
+  as well.
+
 ## Page edit errors
 
 | Error | When |

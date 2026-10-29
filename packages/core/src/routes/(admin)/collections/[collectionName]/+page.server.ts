@@ -10,7 +10,7 @@ export async function load ({ params, locals }) {
   const ctx = requireAuthContext(locals)
   const collectionName = params.collectionName
   const collectionReference = await getUserCollectionReference(ctx, collectionName)
-  const documents = await getUserCollection(ctx, collectionReference)
+  const { documents } = await getUserCollection(ctx, collectionReference)
   return {
     collectionReference,
     documents

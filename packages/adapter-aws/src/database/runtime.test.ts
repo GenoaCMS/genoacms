@@ -60,7 +60,7 @@ describe('the DynamoDB runtime', () => {
     expect(dynamo.calls()).toHaveLength(0)
   })
 
-  it('DDB-4: puts the document under a new UUID that overrides a key field, only if absent', async () => {
+  it('DATA-3, DATA-4, DDB-4: puts the document under a new UUID that overrides a key field, only if absent', async () => {
     dynamo.on(PutItemCommand).resolves({})
     const database = await provider()
     const data = { id: 'x', t: 'a' }
@@ -76,34 +76,33 @@ describe('the DynamoDB runtime', () => {
       ConditionExpression: 'attribute_not_exists(#key)',
       ExpressionAttributeNames: { '#key': 'id' }
     })
-    expect(created).toEqual({ reference: { collection, id }, data })
-    expect((created as any).data).toBe(data)
+    expect(created).toEqual({ reference: { collection, id }, data: { id, t: 'a' } })
     expect((created as any).reference.collection).toBe(collection)
   })
 
-  it('DDB-5: scans every page consistently and strips the key', async () => {
+  it('DDB-5: scans every page consistently and keeps the key in data', async () => {
     dynamo.on(ScanCommand)
       .resolvesOnce({ Items: [{ id: { S: '1' }, t: { S: 'a' } }], LastEvaluatedKey: { id: { S: '1' } } })
       .resolvesOnce({ Items: [{ id: { S: '2' }, t: { S: 'b' } }] })
     const database = await provider()
-    const snapshots = await database.getCollection(collection)
+    const { documents: snapshots } = await database.getCollection(collection) as any
     const scans = inputs(ScanCommand)
     expect(scans).toHaveLength(2)
     expect(scans[0]).toMatchObject({ TableName: 'articles', ConsistentRead: true })
     expect(scans[0].ExclusiveStartKey).toBeUndefined()
     expect(scans[1]).toMatchObject({ TableName: 'articles', ConsistentRead: true, ExclusiveStartKey: { id: { S: '1' } } })
     expect(snapshots).toEqual([
-      { reference: { collection, id: '1' }, data: { t: 'a' } },
-      { reference: { collection, id: '2' }, data: { t: 'b' } }
+      { reference: { collection, id: '1' }, data: { id: '1', t: 'a' } },
+      { reference: { collection, id: '2' }, data: { id: '2', t: 'b' } }
     ])
   })
 
-  it('DDB-6: reads consistently and strips the key', async () => {
+  it('DDB-6: reads consistently and keeps the key in data', async () => {
     dynamo.on(GetItemCommand).resolves({ Item: { id: { S: 'x' }, t: { S: 'a' } } })
     const database = await provider()
     const snapshot = await database.getDocument(document)
     expect(inputs(GetItemCommand)).toEqual([expect.objectContaining({ TableName: 'articles', Key: { id: { S: 'x' } }, ConsistentRead: true })])
-    expect(snapshot).toEqual({ reference: document, data: { t: 'a' } })
+    expect(snapshot).toEqual({ reference: document, data: { id: 'x', t: 'a' } })
   })
 
   it('DDB-6: resolves undefined for a missing item', async () => {
@@ -132,11 +131,11 @@ describe('the DynamoDB runtime', () => {
     expect((updated as any).reference).toBe(document)
   })
 
-  it('DDB-7: fails on a missing document even with no field to set', async () => {
+  it('DATA-6, DDB-7: a missing document is DocumentNotFoundError even with no field to set', async () => {
     const missingDocument = new ConditionalCheckFailedException({ message: 'no document', $metadata: {} })
     dynamo.on(UpdateItemCommand).rejects(missingDocument)
     const database = await provider()
-    await expect(database.updateDocument(document, { a: undefined })).rejects.toBe(missingDocument)
+    await expect(database.updateDocument(document, { a: undefined })).rejects.toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: articles/x' })
     const updates = inputs(UpdateItemCommand)
     expect(updates).toHaveLength(1)
     expect(updates[0]).toMatchObject({ Key: { id: { S: 'x' } }, ConditionExpression: 'attribute_exists(#key)', ExpressionAttributeNames: { '#key': 'id' } })
@@ -163,14 +162,14 @@ describe('the DynamoDB runtime', () => {
     expect(inputs(DeleteItemCommand)).toEqual([{ TableName: 'articles', Key: { id: { S: 'x' } } }])
   })
 
-  it('DDB-3, DDB-7: propagates SDK errors unchanged', async () => {
+  it('DDB-3, DDB-7: propagates SDK errors unchanged, but a failed condition on update is DocumentNotFoundError', async () => {
     const missingTable = new ResourceNotFoundException({ message: 'no table', $metadata: {} })
     const missingDocument = new ConditionalCheckFailedException({ message: 'no document', $metadata: {} })
     dynamo.on(GetItemCommand).rejects(missingTable)
     dynamo.on(UpdateItemCommand).rejects(missingDocument)
     const database = await provider()
     await expect(database.getDocument(document)).rejects.toBe(missingTable)
-    await expect(database.updateDocument(document, { a: 1 })).rejects.toBe(missingDocument)
+    await expect(database.updateDocument(document, { a: 1 })).rejects.toMatchObject({ name: 'DocumentNotFoundError' })
   })
 
   it('AWS-4: passes the region, credentials only when given, and keeps providers apart', async () => {
@@ -216,10 +215,14 @@ describe('the DynamoDB runtime', () => {
     expect(dynamo.calls()).toHaveLength(0)
   })
 
-  it('DDB-7: refuses a key field present with the value undefined', async () => {
+  it('DATA-3, DDB-7: an undefined key field is ignored', async () => {
+    dynamo.on(UpdateItemCommand).resolves({})
     const database = await provider()
-    await expect(database.updateDocument(document, { id: undefined, a: 1 })).rejects.toThrow(/^database\/key-immutable: id$/)
-    expect(dynamo.calls()).toHaveLength(0)
+    await database.updateDocument(document, { id: undefined, a: 1 })
+    const updates = inputs(UpdateItemCommand)
+    expect(updates).toHaveLength(1)
+    expect(updates[0].ExpressionAttributeNames).toEqual({ '#key': 'id', '#f0': 'a' })
+    expect(updates[0].ExpressionAttributeValues).toEqual({ ':v0': { N: '1' } })
   })
 
   it('DDB-7: propagates delete errors unchanged', async () => {
@@ -227,5 +230,56 @@ describe('the DynamoDB runtime', () => {
     dynamo.on(DeleteItemCommand).rejects(missingTable)
     const database = await provider()
     await expect(database.deleteDocument(document)).rejects.toBe(missingTable)
+  })
+
+  it('DATA-9, DDB-5: conditions become a typed FilterExpression', async () => {
+    dynamo.on(ScanCommand).resolves({ Items: [] })
+    const database = await provider()
+    await database.getCollection(collection, { where: [{ field: 'a', operator: '==', value: 'x' }, { field: 'b', operator: '<', value: 2 }] })
+    const scans = inputs(ScanCommand)
+    expect(scans).toHaveLength(1)
+    expect(scans[0].FilterExpression).toBe('attribute_type(#f0, :t0) AND #f0 = :v0 AND attribute_type(#f1, :t1) AND #f1 < :v1')
+    expect(scans[0].ExpressionAttributeNames).toEqual({ '#f0': 'a', '#f1': 'b' })
+    expect(scans[0].ExpressionAttributeValues).toEqual({ ':t0': { S: 'S' }, ':v0': { S: 'x' }, ':t1': { S: 'N' }, ':v1': { N: '2' } })
+  })
+
+  it('DATA-10, DDB-5: scanning continues until the limit and resumes after the last returned item', async () => {
+    const item = (id: string) => ({ id: { S: id }, t: { S: 'a' } })
+    dynamo.on(ScanCommand)
+      .resolvesOnce({ Items: [item('1'), item('2')], LastEvaluatedKey: { id: { S: '2' } } })
+      .resolvesOnce({ Items: [item('3'), item('4')], LastEvaluatedKey: { id: { S: '4' } } })
+      .resolvesOnce({ Items: [item('4')] })
+    const database = await provider()
+    const page = await database.getCollection(collection, { where: [{ field: 't', operator: '==', value: 'a' }], limit: 3 })
+    expect(page.documents.map(snapshot => snapshot.reference.id)).toEqual(['1', '2', '3'])
+    expect(page.next).toBeTypeOf('string')
+    expect(inputs(ScanCommand)).toHaveLength(2)
+    const rest = await database.getCollection(collection, { where: [{ field: 't', operator: '==', value: 'a' }], limit: 3, pageToken: page.next })
+    expect(inputs(ScanCommand)[2].ExclusiveStartKey).toEqual({ id: { S: '3' } })
+    expect(rest.documents.map(snapshot => snapshot.reference.id)).toEqual(['4'])
+    expect(rest.next).toBeUndefined()
+  })
+
+  it('DATA-3, DDB-6: the key attribute stays in data', async () => {
+    dynamo.on(GetItemCommand).resolves({ Item: { id: { S: 'x' }, t: { S: 'a' } } })
+    dynamo.on(ScanCommand).resolves({ Items: [{ id: { S: '1' }, t: { S: 'a' } }] })
+    const database = await provider()
+    expect((await database.getDocument(document))?.data).toEqual({ id: 'x', t: 'a' })
+    expect((await database.getCollection(collection)).documents[0].data).toEqual({ id: '1', t: 'a' })
+  })
+
+  it('DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues', async () => {
+    dynamo.on(ScanCommand).resolves({ Items: [] })
+    const database = await provider()
+    const cannotMatch = [
+      { field: 'a', operator: '<', value: null },
+      { field: 'a', operator: '!=', value: null },
+      { field: 'a', operator: '<', value: false }
+    ] as const
+    for (const condition of cannotMatch) {
+      dynamo.resetHistory()
+      expect(await database.getCollection(collection, { where: [condition] }), JSON.stringify(condition)).toEqual({ documents: [] })
+      expect(inputs(ScanCommand)[0], JSON.stringify(condition)).not.toHaveProperty('ExpressionAttributeValues')
+    }
   })
 })

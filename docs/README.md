@@ -1,8 +1,9 @@
 ---
 type: docs-index
-workflow: 3.1.0
+workflow: 3.3.0
 levels: [unit, integration, e2e, contract, conformance]
 sources: [packages]
+audit-from: 41
 ---
 
 # GenoaCMS documentation
@@ -22,16 +23,16 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/host.md`](architecture/host.md) | none (as `configuration.md`) | — | the host: provider construction and caching | **no**: split from `configuration.md` unchanged |
 | [`architecture/secrets.md`](architecture/secrets.md) | none (as `configuration.md`) | — | secret references, their resolution, the bootstrap, the development store | **no**: split from `configuration.md` unchanged |
 | [`architecture/build.md`](architecture/build.md) | none (as `configuration.md`) | — | the build, the artifact, vendoring, deployment targets, the lifecycle | **no**: split from `configuration.md` unchanged |
-| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `STOR`, `CONF` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md` and `conformance.md` conform (26 current statements, all naming a test: 9 of authentication and conformance, 1 of them partly verified (AUTHN-1, a type), the 16 of `storage.md` and CONF-2; 7 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `AUTHN`, `STOR`, `CONF`, `DATA` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md`, `database.md` (12 statements, 11 naming tests; DATA-2 to DATA-10 not yet run at the contract level; RFC-0042 `auditing`) and `conformance.md` conform (26 current statements, all naming a test: 9 of authentication and conformance, 1 of them partly verified (AUTHN-1, a type), the 16 of `storage.md` and CONF-2; 7 more **New**); `adapter-model.md` was split from `configuration.md` unchanged and does not |
 | [`architecture/identities.md`](architecture/identities.md) | `I` | `PWH`, `IDS` | self-owned identity stores: password hashing, the identity record, sign-in | yes. 12 statements, all **New** (no RFC yet). |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements, all naming a test, 2 of them partly verified (STO-8, and COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
 | [`architecture/cli.md`](architecture/cli.md) | `L` | `CLI` | the `genoa` command: its commands, flags, messages and help | yes. 19 current statements, all naming a test. |
 | [`architecture/adapter-minio.md`](architecture/adapter-minio.md) | `M` | `MIO` | the S3-compatible storage adapter, `adapter-minio` | yes. 13 statements, all naming a test (RFC-0037). |
-| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 21 statements, all naming a test (RFC-0038). |
-| [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 38 current statements, all naming a test. |
+| [`architecture/storage.md`](architecture/storage.md) | `B` | `STS`, `BRW` | storage in core: the permission-checked user layer, the storage browser and its picker mode | yes. 23 current statements, all naming a test (RFC-0038, RFC-0040, RFC-0041 `auditing`). |
+| [`architecture/collections.md`](architecture/collections.md) | `O` | `COL`, `DOC`, `LST`, `EDT`, `PCK` | collections in core: the catalog, the document service with field masking, the listing and its selection, the document page and editor, the pickers | yes. 39 current statements, all naming a test (RFC-0041 `auditing`). |
 | [`architecture/components.md`](architecture/components.md) | `N` | `CMP`, `SRC`, `HIS`, `PUB`, `PGE`, `TRE` | components and pages in core: the catalog of headers, dynamic components' source, the editing history, publication, page entries and the published page tree | yes. 38 current statements; 6 name tests (CMP-8, HIS-2, PGE-2, PGE-4, PGE-5, PGE-11), the rest are unverified: existing tests check most of them without carrying their IDs. |
-| [`architecture/agent-access.md`](architecture/agent-access.md) | `T` | `AGT`, `MCP`, `TOL` | agents: their declaration, tokens and ceiling, the MCP endpoint, and the tools for components and pages | yes. 26 current statements, all naming a test (RFC-0039); MCP-3 is **New** (no RFC yet). |
+| [`architecture/agent-access.md`](architecture/agent-access.md) | `T` | `AGT`, `MCP`, `TOL` | agents: their declaration, tokens and ceiling, the MCP endpoint, and the tools for components, pages, documents and objects | yes. 38 current statements, all naming a test (RFC-0039; TOL-18 to TOL-29 RFC-0041 `auditing`); MCP-3 is **New** (no RFC yet). |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
 ## Coverage
@@ -54,7 +55,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `secrets.md`, *Bootstrap ordering*, only | none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
-| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 21 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF7 mitigated |
+| Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 22 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF12 (RFC-0040), BF7 mitigated |
 | MinIO | `adapter-minio` | `adapter-minio.md` | specified; conforms (RFC-0037), tested against RustFS, in CI too |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; 6 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16 and NF18; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |

@@ -15,7 +15,7 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 
 ## Order
 
-Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
+Every RFC's front matter states its status: `draft`, `auditing` with its `commits` until its falsification audit finds nothing open, or `implemented`, after which it is
 frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 is a draft. RFC-0001 to RFC-0024
 predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 
@@ -61,6 +61,9 @@ own before starting the next.
 | [0037](0037-storage-contract-conformance.md) | The storage contract, its suite, and adapters that conform (`contracts/storage.md` CU5 to CU10, CF44 to CF50; `adapter-minio.md`; `collections.md` OF23, OF24, OF29; `cli.md` CLI-10) | `packages/contracts`, `packages/conformance`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-minio`, `packages/core`, `packages/cli` |
 | [0038](0038-storage-browser-to-specification.md) | The storage browser to its Specification, with the CMS's state read-only (`storage.md` BU1 to BU5, BF1 to BF10) | `packages/core` |
 | [0039](0039-agent-access.md) | Agent access through MCP, with checked and conditional component and page edits (`agent-access.md`; `components.md` NU2 to NU6, NF1, NF2, NF4 to NF8, NF11, NF17) | `packages/config`, `packages/core` |
+| [0040](0040-objects-read-as-text-decoded-whole.md) | Objects read as text are decoded whole, as UTF-8 (`storage.md` BF12) | `packages/core` |
+| [0041](0041-agent-collections-and-storage.md) | Agent tools for documents and objects, with documents validated by the service (`agent-access.md` TU12 to TU15; `collections.md` OU6; `storage.md` BU7) | `packages/core`, `packages/docs` |
+| [0042](0042-database-contract.md) | The database contract, with paged and filtered collection queries (`contracts/database.md` CU11 to CU16, CF51 to CF57; `conformance.md` CF7) | `packages/contracts`, `packages/conformance`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-postgres`, `packages/core` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 

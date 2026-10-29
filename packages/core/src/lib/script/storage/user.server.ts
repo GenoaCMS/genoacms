@@ -17,13 +17,15 @@ import {
   createDirectory,
   moveDirectory,
   deleteDirectory,
-  processDirectoryContents
+  processDirectoryContents,
+  getSignedURL
 } from './storage.server'
 import { isDirectoryReference } from './browserPaths'
 
 // BD1, BD2, BD4, STS-2, STS-3, STS-5
 
 const INTERNAL_STATE = '.genoacms/'
+const INTERNAL_STATE_NAME = '.genoacms'
 
 /** Raised when a user operation would change the CMS's own state (STS-5). */
 class InternalReadOnlyError extends Error {
@@ -44,7 +46,7 @@ const requireOn = (ctx: AuthContext, permission: UserPermission, bucket: string)
 // STS-5
 const isInternalState = ({ bucket, name }: ObjectReference): boolean =>
   bucket === defaultBucketId &&
-  (name.startsWith(INTERNAL_STATE) || (isDirectoryReference(name) && INTERNAL_STATE.startsWith(name)) || name === '')
+  (name.startsWith(INTERNAL_STATE) || name === INTERNAL_STATE_NAME || (isDirectoryReference(name) && INTERNAL_STATE.startsWith(name)) || name === '')
 
 // STS-5
 const requireWritable = (...references: ObjectReference[]): void => {
@@ -91,6 +93,15 @@ const listUserDirectory = async (ctx: AuthContext, reference: ObjectReference, p
   return params === undefined ? await listDirectory(reference) : await listDirectory(reference, params)
 }
 
+const SIGNED_URL_LIFETIME_MS = 3_600_000
+
+// STS-7
+const getUserSignedURL = async (ctx: AuthContext, reference: ObjectReference): Promise<{ url: string, expiresAt: Date }> => {
+  requireOn(ctx, 'read', reference.bucket)
+  const expiresAt = new Date(Date.now() + SIGNED_URL_LIFETIME_MS)
+  return { url: await getSignedURL(reference, expiresAt), expiresAt }
+}
+
 const createUserDirectory = async (ctx: AuthContext, reference: ObjectReference) => {
   requireChange(ctx, 'write', reference)
   return await createDirectory(reference)
@@ -122,6 +133,7 @@ export {
   moveUserObject,
   deleteUserObject,
   listUserDirectory,
+  getUserSignedURL,
   createUserDirectory,
   moveUserDirectory,
   deleteUserDirectory,

@@ -3,6 +3,7 @@ import type { AuthContext } from '$lib/script/authorization/context'
 import { PermissionDeniedError } from '$lib/script/authorization/enforce'
 import { ConflictError, UnversionedError } from '$lib/script/components/conflict'
 import { ComponentCodeError, ComponentDiffError, NoSuchComponentError } from '$lib/script/components/editor/errors'
+import { DocumentNotFoundError, DocumentValidationError } from '$lib/script/database/errors'
 import { PageEditError } from '$lib/script/components/page/edits'
 import corePackage from '../../../../package.json'
 import type { Tool } from './tools/registry.server'
@@ -23,7 +24,7 @@ const INVALID_PARAMS = -32602
 
 const REFUSAL_CLASSES = [
   PermissionDeniedError, ConflictError, UnversionedError, PageEditError,
-  NoSuchComponentError, ComponentDiffError, ComponentCodeError
+  NoSuchComponentError, ComponentDiffError, ComponentCodeError, DocumentValidationError, DocumentNotFoundError
 ]
 const CODED_MESSAGE = /^[a-z]+(-[a-z]+)*\/[a-z0-9-]+: /
 

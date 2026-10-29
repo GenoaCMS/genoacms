@@ -2,7 +2,7 @@
 type: architecture
 title: Conformance suites
 codes: [CONF]
-verified: 813d2b5
+verified: 159aaffc
 ---
 
 # Conformance suites
@@ -21,8 +21,7 @@ package is published, so its exports are an API that adapter authors depend on.
 A suite checks only what its service's contract states. It does not test what is specific to one
 service (preconditions on GCS generations, Firestore names): that belongs to the adapter's own tests
 and contract tests. Today the suites cover storage and database. The storage contract is specified in
-[`storage.md`](storage.md); the database contract is not ([`README.md`](README.md)), so its suite is,
-for now, the only executable statement of it.
+[`storage.md`](storage.md), the database contract in [`database.md`](database.md).
 
 Who runs them, and at which level: the package's own tests run each suite against in-memory adapters
 (`conformance`); `adapter-postgres` runs the database suite against a local Postgres
@@ -37,8 +36,8 @@ promised, and one whose tests carry no IDs cannot be traced to what it verifies.
 wraps a whole suite in a `describe` carrying the adapter's own statement IDs (`STO-4`, `DB-3` to
 `DB-7`, `OBJ-3`, `DDB-4` to `DDB-7`), so every suite test counts for every one of them, including
 statements it does not check.
-*Cost:* the storage and database suites can carry IDs only once those contracts are specified. Until
-then they carry none, and an adapter's wrapping `describe` remains the only link.
+*Cost:* the storage and database suites carry IDs now that their contracts are specified; an adapter's
+wrapping `describe` still names its own statements, which every suite test counts for.
 
 **CD5. Each assertion of a suite is shown to fail against an adapter that violates it.** CF8.
 *Why:* a suite runs inside other packages' test runs, so a check that cannot fail goes unnoticed
@@ -60,8 +59,8 @@ it fails too; the suite reports the first failure.
 | # | Finding | State |
 | :-- | :-- | :-- |
 | CF6 | *History.* **The storage suite's read check could not fail its test.** `is getting uploaded object` asserts inside the stream's `end` handler and does not wait for it. Against an adapter that returns the wrong body, the test passes and the assertion surfaces as an unattributed unhandled error of the run. Shown 2026-10-02 with a mutant adapter. The read is now awaited; no test yet shows that the check fails a wrong body (CF8). | fixed, `f22136c` |
-| CF7 | **The database suite uses the second document for every step, and checks neither the update nor the listing.** `documentData = testDocuments[1]` runs while vitest collects the tests, before any of them, so `createDocument` receives `testDocuments[1]` and the update writes what is already there. An update that does nothing passes, and so does a listing that returns no document: `lists collection` checks only that the result is an array. Shown 2026-10-02 with a mutant adapter. The contract-level verification of GCP DB-5 and DB-7 rests on this suite alone (GF31); AWS DDB-5 and DDB-7 also have their own contract tests. | open |
-| CF8 | **Nothing checks that a suite fails a non-conforming adapter.** The package's tests run each suite only against in-memory adapters that conform, which is how CF6 and CF7 went unnoticed, and why CF6's fix has no regression test. Since RFC-0030 the authentication suite has its mutant test (CF39); the storage and database suites still have none. | open (CD5): the authentication and storage suites have their mutant tests (RFC-0030, RFC-0037); the database suite has none |
+| CF7 | **The database suite uses the second document for every step, and checks neither the update nor the listing.** `documentData = testDocuments[1]` runs while vitest collects the tests, before any of them, so `createDocument` receives `testDocuments[1]` and the update writes what is already there. An update that does nothing passes, and so does a listing that returns no document: `lists collection` checks only that the result is an array. Shown 2026-10-02 with a mutant adapter. The contract-level verification of GCP DB-5 and DB-7 rests on this suite alone (GF31); AWS DDB-5 and DDB-7 also have their own contract tests. | fixed, RFC-0042 (`c648abcb`) |
+| CF8 | **Nothing checks that a suite fails a non-conforming adapter.** The package's tests run each suite only against in-memory adapters that conform, which is how CF6 and CF7 went unnoticed, and why CF6's fix has no regression test. Since RFC-0030 the authentication suite has its mutant test (CF39); the storage and database suites still have none. | open (CD5): the authentication and storage suites have their mutant tests (RFC-0030, RFC-0037); the database suite has them too (RFC-0042) |
 | CF9 | *History.* **The storage suite writes a fixed name, `GenoaCMS/test.txt`, and cleans up only by its own delete step.** On GCP it runs in the production project's bucket (GU6). Two concurrent runs collide, and a run that fails before the delete leaves the object behind. `adapter-aws` avoids this by wrapping the adapter under a per-run prefix; `adapter-gcp` does not. | fixed, RFC-0037 |
 | CF15 | *History.* **The authentication suite does not check the identity's email, nor when `disabled` may be reported.** Its identity checks accept any string as the email (`expect.any(String)`), so an adapter whose `authenticate` or `getIdentity` returns an empty or stale email passes; AUTHN-2 requires the identity the credentials belong to, and AUTHN-4 the current email. No test sends the disabled identity a wrong password, so an adapter that answers `disabled` before checking the password passes. That adapter tells an existing account from a missing one, which AUTHN-2 and CD3 forbid. The suite tries one wrong password, the right one with `-wrong` appended, so an adapter that accepts the empty password, or any prefix of the right one, passes too. Shown 2026-10-02 by CS1 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
 | CF20 | *History.* **The authentication suite tries few inputs, once each.** Each of these adapters passes. (1) A wrong password accepted when it differs from the right one only in case, in its first character, or in surrounding whitespace: the suite's three wrong passwords are fixed. (2) The disabled identity answering `disabled` to an empty or truncated password, which tells an existing account from a missing one: only `-wrong` appended is tried for it. (3) `getIdentity` returning an identity for the fixture's email, a case variant or a prefix of its subject, or `''`: the unknown subject is a random string. (4) An adapter that answers correctly only on the first call, or locks the account after a few wrong passwords: the suite calls each method once per input, in a fixed order. Shown 2026-10-02 by CS2 (`authentication.md`). CONF-4, AUTHN-2, AUTHN-4. | fixed, RFC-0030 |
@@ -88,7 +87,7 @@ The suites' own tests are `packages/conformance/test/storage.test.js` and
 `packages/conformance/test/database.test.js`, run at `conformance` against
 `packages/conformance/test/memory.js`. The storage suite's tests carry the `STOR` IDs they check, and
 `storage.test.js` runs the suite against one mutant of the in-memory adapter per test (CONF-2, CD5,
-RFC-0037); the database suite's titles carry no IDs yet. The authentication suite's
+RFC-0037); the database suite's titles carry the `DATA` IDs they check, and `database.test.js` runs it against one mutant of the in-memory adapter per test (CONF-3, CD5, RFC-0042). The authentication suite's
 own test, `packages/conformance/test/authentication.test.js`, runs it against the in-memory adapter
 and against its mutants (CF39).
 
@@ -140,16 +139,17 @@ adapter, and against one mutant of it per test, and expect exactly that test to 
 
 #### CONF-3 · The database suite
 
-Against the fixture's collection, the suite: creates `testDocuments[0]`, and the snapshot carries a
-reference and that data; reads it back with `getDocument`, which returns the same; updates it with
-`testDocuments[1]`, and the snapshot carries that data; reads it back, which returns
-`testDocuments[1]`; lists the collection with `getCollection`, which contains the document; deletes
-it, and `deleteDocument` resolves to `undefined`. When a step fails, the suite still deletes the
-document. The two fixture documents differ.
+`runDatabaseConformance(adapter, { collection, prefix })` takes a collection reference and a prefix. Every
+document it creates carries `run: prefix`, it works only on those, and it deletes what it created, also
+when a test fails. It has one test for each of DATA-2 to DATA-10 and DATA-12 and for each finding that
+amended them (CF60 to CF66): values read back as written and values no store can hold refused; the key
+ignored on create and update and a different one refused; an ID the store cannot hold read as absent;
+an update merging, and failing as not found; strict parameters and tokens; each operator by type and
+value; the orders of strings by UTF-8 bytes and of numbers by value; paging with and without a limit,
+with an inequality, with a limit of 1 and above the matches. Its titles carry those IDs.
 
-- Test: none yet
+- Test: `packages/conformance/test/database.test.js`
 - Level: conformance
-- State: new (no RFC yet)
 
 ### Authentication
 

@@ -10,7 +10,10 @@ vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/
 const TOOLS = [
   'list_components', 'get_component', 'create_component', 'update_component', 'get_component_source', 'save_component_source',
   'publish_component', 'delete_component', 'list_pages', 'get_page', 'create_page', 'add_node', 'set_values', 'move_node',
-  'remove_node', 'set_preview_url', 'build_page', 'delete_page'
+  'remove_node', 'set_preview_url', 'build_page', 'delete_page',
+  'list_collections', 'get_collection', 'list_documents', 'get_document', 'create_document', 'update_document', 'delete_document',
+  'list_buckets', 'list_directory', 'get_object', 'upload_object', 'move_object', 'delete_object', 'create_directory',
+  'move_directory', 'delete_directory'
 ]
 
 const agent = principal(['pages:read'], 'agent:site-builder')

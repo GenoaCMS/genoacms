@@ -5,7 +5,7 @@ import { fixture, correct } from '../mutants/authentication.js'
 
 const databaseFixture = () => ({
   collection: { name: 'test', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object' } },
-  testDocuments: [{ name: 'a' }, { name: 'b' }]
+  prefix: 'registration'
 })
 
 runStorageConformance(memoryStorage(['b']), { bucket: 'b' })
