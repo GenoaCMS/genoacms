@@ -116,7 +116,7 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 #### DDB-6 · Reading a document
 
-`getDocument({ collection, id })` sends `GetItem` of the key with `ConsistentRead: true` and returns `{ reference, data }`, with `data` keeping the key attribute (DATA-3), or `undefined` when there is no item.
+`getDocument({ collection, id })` sends `GetItem` of the key with `ConsistentRead: true` and returns `{ reference, data }`, with `data` keeping the key attribute (DATA-3), or `undefined` when there is no item or the ID is `''`, which DynamoDB refuses as a key, without a request.
 
 
 - Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts` (unverified: the contract level, against the real store, has not run)

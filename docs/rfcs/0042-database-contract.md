@@ -237,7 +237,7 @@ commit of this amendment (CU17; CF59 to CF65). The code:
   query fetched without it. A page token is refused unless its `values` hold one value per inequality
   field of the query; this check is Firestore's alone (DB-5), since the other stores' tokens are an ID
   and hold nothing of the query.
-- **DynamoDB.** `ExpressionAttributeValues` is omitted when it has no entry. A page token is refused
+- **DynamoDB.** `ExpressionAttributeValues` is omitted when it has no entry. `getDocument` and `deleteDocument` of `''`, which DynamoDB refuses as a key, return `undefined` and do nothing (found by the contract run on `main`). A page token is refused
   unless it decodes to an object holding the key attribute alone, of type `S`; of the query it can
   check nothing.
 - **Postgres.** Identifiers are quoted literally by a function `identifier(name)`: `"` doubled, the
