@@ -368,6 +368,15 @@ document:
 | `DOC-3: a writable field the submission lacks keeps its stored value` | the merged stored document | `{ title: 'New' }` |
 | `DOC-8: a restricted writer's update is validated as stored, without the fields it may not write` | the stored document with `name: 'b'` | `{ name: 'b' }` |
 
+Found by the implementation. In `core/evidence/permissionMatrix.test.ts`, the same OF35 change applies:
+
+| Title | `updateDocument` received, before | now |
+| :-- | :-- | :-- |
+| `field-level masking > keeps an unwritable field when the submission omits it` | `{ title: 'Ships', body: 'new', internal_cost: 12 }` | `{ body: 'new' }`; the store keeps the other fields |
+| `field-level masking > ignores an unwritable field the submission does set` | `internal_cost` was `12` | `internal_cost` is not sent |
+
+In `user.server.test.ts`, two tests of §Tests change their given, not their assertion's meaning. The key is no longer validated (OF30, OF31), so `DOC-8: a creation the schema refuses is not written` creates `{ name: 5 }` and expects a message starting `documents/invalid: /name type`. Errors under fields the principal may not read are not described (OF32), and the writer of that describe block held no read grant, so every error read `hidden fields`; its `testWriter` now also holds `db:collection:read` on `test`, which `DOC-8: an update is validated with the stored fields it keeps` needs to see `/isA type`.
+
 ### Amendment tests
 
 Written first, marked `it.fails` where they fail, each title carrying the statement and the finding.
