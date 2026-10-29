@@ -1,5 +1,26 @@
 # @genoacms/core
 
+## 0.4.0
+
+### Minor Changes
+
+- [#25](https://github.com/GenoaCMS/genoacms/pull/25) [`4f67bbf`](https://github.com/GenoaCMS/genoacms/commit/4f67bbf9973ec27a4e70ac13ee1542cf172b98e9) Thanks [@Hejtmus](https://github.com/Hejtmus)! - Agent tools for documents and objects (RFC-0041). MCP gains 16 tools: `list_collections`, `get_collection`, `list_documents`, `get_document`, `create_document`, `update_document`, `delete_document`, `list_buckets`, `list_directory`, `get_object`, `upload_object`, `move_object`, `delete_object`, `create_directory`, `move_directory` and `delete_directory`, all through the permission-checked document service and storage user layer. The document service now validates documents against the collection schema, an update as it will be stored, and an update of a missing document fails with `documents/not-found`. Breaking for the editor: a stored document its schema refuses can no longer be saved until it is valid.
+
+- [#25](https://github.com/GenoaCMS/genoacms/pull/25) [`159aaff`](https://github.com/GenoaCMS/genoacms/commit/159aaffc456e5b4a5200594ca45737d3cfc16711) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The agent tools' audit findings (RFC-0041). `move_object` and `move_directory` refuse an existing destination unless `overwrite` is true, a directory is never moved into itself, and `create_directory` refuses the root. The document service validates a creation and an update as stored, never validates the key field, describes no error under a field the principal may not read, passes only the writable fields of an update to the database, and answers a document gone before the write as `documents/not-found`. The bare `.genoacms` name is the CMS's state.
+
+- [#25](https://github.com/GenoaCMS/genoacms/pull/25) [`9b97ef1`](https://github.com/GenoaCMS/genoacms/commit/9b97ef12e59d47c8a043996a4966d91e3f271b3e) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The database contract (RFC-0042). `getCollection` returns a page, `{ documents, next }`, and filters with typed comparison conditions (`==`, `!=`, `<`, `<=`, `>`, `>=`) compared by JSON type, strings by their UTF-8 bytes. The store assigns every ID, the key is a read-only field of `data` equal to the ID, updating a missing document throws `DocumentNotFoundError`, and a value that is not JSON is refused before any request. `@genoacms/contracts/database` exports the errors and `isDocumentNotFound`, and `@genoacms/contracts/database/query` the helpers adapters share. Breaking for database adapters: `QueryParams` and `getCollection`'s result change, and Firestore and DynamoDB documents now carry the key field in `data`. `runDatabaseConformance` takes `{ collection, prefix }`.
+
+### Patch Changes
+
+- [`c23723e`](https://github.com/GenoaCMS/genoacms/commit/c23723ee3f63cc609d49dc024cb9a9a5943c6526) Thanks [@Hejtmus](https://github.com/Hejtmus)! - A published page tree that cannot be read, such as one that is not JSON, is listed as unreadable when a component is deleted, rather than treated as a page that was never published.
+
+- [#25](https://github.com/GenoaCMS/genoacms/pull/25) [`a878a51`](https://github.com/GenoaCMS/genoacms/commit/a878a51891e0a4efa5b2d42ba47b45915469d319) Thanks [@Hejtmus](https://github.com/Hejtmus)! - Objects the CMS reads as text are decoded whole, as UTF-8 (RFC-0040). A multibyte character split across two chunks of a storage stream was read as U+FFFD, and a page edit wrote the damage back into the entry, growing with each save. Entries already damaged are not repaired; rebuild them from their source.
+
+- Updated dependencies [[`eeabe19`](https://github.com/GenoaCMS/genoacms/commit/eeabe19499974018fc510f84da7e18a7b6b79cf1), [`9b97ef1`](https://github.com/GenoaCMS/genoacms/commit/9b97ef12e59d47c8a043996a4966d91e3f271b3e)]:
+  - @genoacms/contracts@0.1.0
+  - @genoacms/config@0.0.5
+  - @genoacms/language-adapter-ts@0.1.3
+
 ## 0.3.0
 
 ### Minor Changes
