@@ -80,4 +80,10 @@ describe('the Postgres runtime', () => {
     expect(await database.getCollection(articles, asked('missing'))).toEqual({ documents: [] })
     expect(selects()).toEqual([])
   })
+
+  it('DATA-7, CF60: deleting an ID the store cannot hold sends no request', async () => {
+    const database = runtime.create(options, { name: 'pg', resources: [] })
+    expect(await database.deleteDocument({ collection: articles, id: '' })).toBeUndefined()
+    expect(executed).toEqual([])
+  })
 })

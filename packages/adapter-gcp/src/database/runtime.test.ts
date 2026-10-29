@@ -138,4 +138,12 @@ describe('the Firestore runtime', () => {
     expect(page.documents.map(snapshot => snapshot.reference.id)).toEqual(['a', 'b'])
     expect(collection.where.mock.calls.map(([field]: unknown[]) => fieldName(field))).not.toContain('__name__')
   })
+
+  it('DATA-7, CF60: deleting an ID Firestore cannot hold sends no request', async () => {
+    const database = await create()
+    for (const id of ['', 'a/b', '.', '..', '__x__']) await database.deleteDocument({ collection: pages, id })
+    expect(doc.delete).not.toHaveBeenCalled()
+    await database.deleteDocument({ collection: pages, id: 'a' })
+    expect(doc.delete).toHaveBeenCalledTimes(1)
+  })
 })
