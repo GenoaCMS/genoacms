@@ -21,6 +21,12 @@ const OPERATORS = 'DATA-9: each operator matches by type and value'
 const COMBINE = 'DATA-9: conditions combine with AND, and a condition on the key compares the ID'
 const NO_LIMIT = 'DATA-10: without a limit one page holds every match and has no next'
 const PAGES = 'DATA-10: pages of a limit hold every match exactly once'
+const UNHOLDABLE = 'DATA-2, CF65: values no store can hold are refused before any request'
+const KEY_IGNORED = 'DATA-3, CF62, CF63: the key field is ignored before any check'
+const ABSENT_IDS = 'DATA-5, DATA-7, CF60: an ID the store cannot hold reads as absent'
+const STRICT = 'DATA-8, CF64: parameters are checked strictly'
+const ORDERING = 'DATA-9, CF66: strings order by UTF-8 bytes and numbers by value, signs included'
+const INEQUALITY_PAGES = 'DATA-10, CF66: paging holds with an inequality, a limit of 1 and a limit above the matches'
 
 const isNotFound = (error) => error?.name === 'DocumentNotFoundError'
 const SCOPE_FIELDS = ['run', 'batch']
@@ -46,6 +52,7 @@ function reinterpretValues (base, holds) {
   return {
     ...base,
     getCollection: async (reference, params = {}) => {
+      if (!isPlainObject(params)) return await base.getCollection(reference, params)
       const own = (params.where ?? []).filter(condition => condition.field === 'v')
       if (own.length === 0) return await base.getCollection(reference, params)
       const { documents } = await base.getCollection(reference, { where: params.where.filter(condition => condition.field !== 'v') })
@@ -73,10 +80,60 @@ function localeHolds (actual, { operator, value }) {
   return { '==': difference === 0, '!=': difference !== 0, '<': difference < 0, '<=': difference <= 0, '>': difference > 0, '>=': difference >= 0 }[operator]
 }
 
+const isUnstorableId = (id) => id === '' || id.includes('/')
+
+const outOfRange = (number) => Number.isFinite(number) && number !== 0 && (Math.abs(number) > 1e126 || Math.abs(number) < 1e-130)
+
+/** The same document with what a store cannot hold replaced by something it can. */
+function holdable (value, ancestors = []) {
+  if (typeof value === 'string') return value.toWellFormed().replaceAll('\u0000', '')
+  if (typeof value === 'number') return outOfRange(value) ? 0 : value
+  if (ancestors.includes(value)) return null
+  if (Array.isArray(value)) {
+    const dense = Object.keys(value).length === value.length ? value : value.filter(() => true)
+    return dense.map(item => Array.isArray(item) ? { items: holdable(item, [...ancestors, value]) } : holdable(item, [...ancestors, value]))
+  }
+  if (isPlainObject(value) && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([field, element]) => [field, holdable(element, [...ancestors, value])]))
+  }
+  return value
+}
+
+const withParameters = (base, transform) => ({
+  ...base,
+  getCollection: async (reference, params) => await base.getCollection(reference, transform(params))
+})
+
+const KNOWN_PARAMETERS = ['where', 'limit', 'pageToken']
+const decodesAsJson = (token) => {
+  try {
+    JSON.parse(Buffer.from(token, 'base64url').toString())
+    return true
+  } catch {
+    return false
+  }
+}
+
+const codeUnitHolds = (actual, { operator, value }) => {
+  const type = typeOf(value)
+  if (typeOf(actual) !== type) return false
+  if (type === 'null') return operator === '=='
+  const difference = type === 'string' ? (actual < value ? -1 : actual > value ? 1 : 0) : Number(actual) - Number(value)
+  return { '==': difference === 0, '!=': difference !== 0, '<': difference < 0, '<=': difference <= 0, '>': difference > 0, '>=': difference >= 0 }[operator]
+}
+
+const magnitudeHolds = (actual, { operator, value }) => {
+  const type = typeOf(value)
+  if (typeOf(actual) !== type) return false
+  if (type === 'null') return operator === '=='
+  const difference = type === 'string' ? Buffer.compare(Buffer.from(actual), Buffer.from(value)) : Math.abs(Number(actual)) - Math.abs(Number(value))
+  return { '==': difference === 0, '!=': difference !== 0, '<': difference < 0, '<=': difference <= 0, '>': difference > 0, '>=': difference >= 0 }[operator]
+}
+
 /** One adapter per suite test, each violating exactly the assertions of the tests it names (CONF-3, CD5). */
 const MUTANTS = {
   'non-ASCII text is stripped': {
-    tests: [JSON_VALUES],
+    tests: [JSON_VALUES, UNHOLDABLE, ORDERING],
     adapter: () => {
       const base = correct()
       const ascii = (data) => mapStrings(data, text => text.replace(/[^\x00-\x7F]/g, ''))
@@ -88,7 +145,7 @@ const MUTANTS = {
     }
   },
   'values are not checked': {
-    tests: [NOT_JSON],
+    tests: [NOT_JSON, UNHOLDABLE],
     adapter: () => {
       const base = correct()
       const asJson = (data) => JSON.parse(JSON.stringify(data))
@@ -99,19 +156,82 @@ const MUTANTS = {
       }
     }
   },
+  'the limits of the stores are not enforced': {
+    tests: [UNHOLDABLE],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        createDocument: async (reference, data) => await base.createDocument(reference, holdable(data)),
+        updateDocument: async (reference, data) => await base.updateDocument(reference, holdable(data))
+      }
+    }
+  },
+  'a key field given to a create is checked': {
+    tests: [KEY_IGNORED],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        createDocument: async (reference, data) => {
+          if (typeof data[key] === 'number' && !Number.isFinite(data[key])) throw new Error(`database/unsupported-value: ${key}`)
+          return await base.createDocument(reference, data)
+        }
+      }
+    }
+  },
+  'an undefined key field in an update is immutable': {
+    tests: [KEY_IGNORED],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        updateDocument: async (reference, data) => {
+          if (Object.hasOwn(data, key) && data[key] === undefined) throw new Error(`database/key-immutable: ${key}`)
+          return await base.updateDocument(reference, data)
+        }
+      }
+    }
+  },
+  'reading an unstorable ID throws': {
+    tests: [ABSENT_IDS],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        getDocument: async (reference) => {
+          if (isUnstorableId(reference.id)) throw new Error('the store cannot hold this ID')
+          return await base.getDocument(reference)
+        }
+      }
+    }
+  },
+  'deleting an unstorable ID throws': {
+    tests: [ABSENT_IDS],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        deleteDocument: async (reference) => {
+          if (isUnstorableId(reference.id)) throw new Error('the store cannot hold this ID')
+          await base.deleteDocument(reference)
+        }
+      }
+    }
+  },
   'the caller chooses the ID': {
     tests: [STORE_ID],
-    adapter: () => memoryDatabase({ assignId: (data, keyField) => data[keyField] ?? randomUUID() })
+    adapter: () => memoryDatabase({ assignId: (data, keyField) => typeof data[keyField] === 'string' ? data[keyField] : randomUUID() })
   },
   'a created snapshot lacks the key': {
-    tests: [STORE_ID],
+    tests: [STORE_ID, KEY_IGNORED],
     adapter: () => {
       const base = correct()
       return { ...base, createDocument: async (reference, data) => withoutKey(await base.createDocument(reference, data)) }
     }
   },
   'a read lacks the key': {
-    tests: [STORE_ID, KEY_IMMUTABLE],
+    tests: [STORE_ID, KEY_IMMUTABLE, KEY_IGNORED],
     adapter: () => {
       const base = correct()
       return { ...base, getDocument: async (reference) => withoutKey(await base.getDocument(reference)) }
@@ -131,7 +251,7 @@ const MUTANTS = {
     }
   },
   'a missing document reads as an empty snapshot': {
-    tests: [MISSING_READ, NOT_FOUND, DELETE],
+    tests: [MISSING_READ, NOT_FOUND, DELETE, ABSENT_IDS],
     adapter: () => {
       const base = correct()
       return {
@@ -141,7 +261,7 @@ const MUTANTS = {
     }
   },
   'an update does nothing': {
-    tests: [UPDATE],
+    tests: [UPDATE, KEY_IGNORED],
     adapter: () => {
       const base = correct()
       return {
@@ -235,7 +355,7 @@ const MUTANTS = {
     }
   },
   'deleting a missing document is an error': {
-    tests: [DELETE],
+    tests: [DELETE, ABSENT_IDS],
     adapter: () => {
       const base = correct()
       return {
@@ -252,7 +372,7 @@ const MUTANTS = {
     adapter: () => ({ ...correct(), deleteDocument: async () => {} })
   },
   'parameters are not checked': {
-    tests: [MALFORMED],
+    tests: [MALFORMED, STRICT],
     adapter: () => {
       const base = correct()
       return {
@@ -268,12 +388,84 @@ const MUTANTS = {
       }
     }
   },
+  'unknown parameters are dropped': {
+    tests: [STRICT],
+    adapter: () => withParameters(correct(), params => isPlainObject(params)
+      ? Object.fromEntries(Object.entries(params).filter(([name]) => KNOWN_PARAMETERS.includes(name)))
+      : {})
+  },
+  'the limit has no maximum': {
+    tests: [STRICT],
+    adapter: () => withParameters(correct(), params => isPlainObject(params) && params.limit > 1000 ? { ...params, limit: 1000 } : params)
+  },
+  'a sparse where is read as dense': {
+    tests: [STRICT],
+    adapter: () => withParameters(correct(), params => isPlainObject(params) && Array.isArray(params.where) ? { ...params, where: params.where.filter(() => true) } : params)
+  },
+  'a token of no query is accepted': {
+    tests: [STRICT],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        getCollection: async (reference, params = {}) => {
+          try {
+            return await base.getCollection(reference, params)
+          } catch (error) {
+            if (typeof params?.pageToken !== 'string' || !decodesAsJson(params.pageToken)) throw error
+            const { pageToken: _pageToken, ...fresh } = params
+            return await base.getCollection(reference, fresh)
+          }
+        }
+      }
+    }
+  },
+  'a string compares by UTF-16 code units': {
+    tests: [ORDERING],
+    adapter: () => reinterpretValues(correct(), codeUnitHolds)
+  },
+  'a number compares by magnitude': {
+    tests: [ORDERING],
+    adapter: () => reinterpretValues(correct(), magnitudeHolds)
+  },
+  'an inequality is lost from the second page on': {
+    tests: [INEQUALITY_PAGES],
+    adapter: () => withParameters(correct(), params => params?.pageToken === undefined || !Array.isArray(params.where)
+      ? params
+      : { ...params, where: params.where.filter(condition => condition.operator === '==') })
+  },
+  'a limit of 1 ends the paging': {
+    tests: [INEQUALITY_PAGES],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        getCollection: async (reference, params = {}) => {
+          const { documents } = await base.getCollection(reference, params)
+          return params.limit === 1 ? { documents } : await base.getCollection(reference, params)
+        }
+      }
+    }
+  },
+  'a limit above the matches still has a next': {
+    tests: [INEQUALITY_PAGES],
+    adapter: () => {
+      const base = correct()
+      return {
+        ...base,
+        getCollection: async (reference, params = {}) => {
+          const page = await base.getCollection(reference, params)
+          return params.limit >= 10 && page.next === undefined && page.documents.length > 0 ? { ...page, next: 'more' } : page
+        }
+      }
+    }
+  },
   'a string compares by locale': {
-    tests: [OPERATORS],
+    tests: [OPERATORS, ORDERING],
     adapter: () => reinterpretValues(correct(), localeHolds)
   },
   'the type of a value is ignored': {
-    tests: [OPERATORS],
+    tests: [OPERATORS, ORDERING],
     adapter: () => reinterpretValues(correct(), looseHolds)
   },
   'conditions are ORed': {
@@ -283,6 +475,7 @@ const MUTANTS = {
       return {
         ...base,
         getCollection: async (reference, params = {}) => {
+          if (!isPlainObject(params)) return await base.getCollection(reference, params)
           const conditions = params.where ?? []
           const others = conditions.filter(condition => !isScope(condition))
           if (others.length < 2) return await base.getCollection(reference, params)
@@ -295,13 +488,14 @@ const MUTANTS = {
     }
   },
   'a condition on the key is ignored': {
-    tests: [COMBINE],
+    tests: [COMBINE, STRICT],
     adapter: () => {
       const base = correct()
       return {
         ...base,
-        getCollection: async (reference, params = {}) =>
-          await base.getCollection(reference, { ...params, where: (params.where ?? []).filter(condition => condition.field !== key) })
+        getCollection: async (reference, params = {}) => isPlainObject(params)
+          ? await base.getCollection(reference, { ...params, where: (params.where ?? []).filter(condition => condition.field !== key) })
+          : await base.getCollection(reference, params)
       }
     }
   },
@@ -319,7 +513,7 @@ const MUTANTS = {
     }
   },
   'the limit is ignored': {
-    tests: [PAGES],
+    tests: [PAGES, INEQUALITY_PAGES],
     adapter: () => {
       const base = correct()
       return {
@@ -334,7 +528,7 @@ const MUTANTS = {
     }
   },
   'a page repeats a document of the page before': {
-    tests: [PAGES],
+    tests: [PAGES, INEQUALITY_PAGES],
     adapter: () => {
       const base = correct()
       return {
@@ -350,7 +544,7 @@ const MUTANTS = {
     }
   },
   'a document is skipped between pages': {
-    tests: [PAGES],
+    tests: [PAGES, INEQUALITY_PAGES],
     adapter: () => {
       const base = correct()
       return {

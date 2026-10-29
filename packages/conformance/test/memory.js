@@ -145,25 +145,42 @@ class DocumentNotFoundError extends Error {
 const isPlainObject = (value) => value !== null && typeof value === 'object' &&
   (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
 
-function unsupportedPath (value, path) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return undefined
-  if (typeof value === 'number') return Number.isFinite(value) ? undefined : path
-  if (Array.isArray(value)) {
-    for (const [index, element] of value.entries()) {
-      const found = unsupportedPath(element, [...path, index])
-      if (found !== undefined) return found
-    }
-    return undefined
-  }
-  if (isPlainObject(value)) {
-    for (const [field, element] of Object.entries(value)) {
-      if (element === undefined) continue
-      const found = unsupportedPath(element, [...path, field])
-      if (found !== undefined) return found
-    }
-    return undefined
-  }
+const MAXIMUM_DIGITS = 38
+const SMALLEST_MAGNITUDE = 1e-130
+const LARGEST_MAGNITUDE = 1e126
+
+const significantDigits = (number) => String(number).split('e')[0].replace(/[^0-9]/g, '').replace(/^0+|0+$/g, '').length
+const isHoldableNumber = (number) => Number.isFinite(number) &&
+  (number === 0 || (Math.abs(number) >= SMALLEST_MAGNITUDE && Math.abs(number) <= LARGEST_MAGNITUDE && significantDigits(number) <= MAXIMUM_DIGITS))
+const isHoldableString = (text) => text.isWellFormed() && !text.includes('\u0000')
+
+function unsupportedPath (value, path, ancestors = new Set()) {
+  if (value === null || typeof value === 'boolean') return undefined
+  if (typeof value === 'string') return isHoldableString(value) ? undefined : path
+  if (typeof value === 'number') return isHoldableNumber(value) ? undefined : path
+  if (ancestors.has(value)) return path
+  if (Array.isArray(value)) return unsupportedItem(value, path, [...ancestors, value])
+  if (isPlainObject(value)) return unsupportedField(value, path, [...ancestors, value])
   return path
+}
+
+function unsupportedItem (array, path, ancestors) {
+  if (Object.keys(array).length !== array.length) return path
+  for (const [index, element] of array.entries()) {
+    if (Array.isArray(element)) return [...path, index]
+    const found = unsupportedPath(element, [...path, index], new Set(ancestors))
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+function unsupportedField (object, path, ancestors) {
+  for (const [field, element] of Object.entries(object)) {
+    if (element === undefined) continue
+    const found = unsupportedPath(element, [...path, field], new Set(ancestors))
+    if (found !== undefined) return found
+  }
+  return undefined
 }
 
 function checkValues (data) {
@@ -200,13 +217,18 @@ function checkCondition (condition) {
   if (!comparable) throw invalidQuery(`the value of ${condition.field} is not a string, a number, a boolean or null`)
 }
 
+const PARAMETERS = ['where', 'limit', 'pageToken']
+const LIMIT_MAXIMUM = 1000
+
 function checkQuery (params) {
   if (!isPlainObject(params)) throw invalidQuery('the parameters are not an object')
+  const unknown = Object.keys(params).find(name => !PARAMETERS.includes(name))
+  if (unknown !== undefined) throw invalidQuery(`unknown parameter ${unknown}`)
   if (params.where !== undefined) {
-    if (!Array.isArray(params.where)) throw invalidQuery('where is not an array')
+    if (!Array.isArray(params.where) || Object.keys(params.where).length !== params.where.length) throw invalidQuery('where is not a dense array')
     params.where.forEach(checkCondition)
   }
-  if (params.limit !== undefined && !(Number.isInteger(params.limit) && params.limit >= 1)) throw invalidQuery('limit is not an integer of at least 1')
+  if (params.limit !== undefined && !(Number.isInteger(params.limit) && params.limit >= 1 && params.limit <= LIMIT_MAXIMUM)) throw invalidQuery('limit is not an integer from 1 to 1000')
   if (params.pageToken !== undefined && typeof params.pageToken !== 'string') throw invalidQuery('pageToken is not a string')
 }
 
@@ -236,10 +258,11 @@ function memoryDatabase ({ assignId = () => randomUUID() } = {}) {
 
   return {
     async createDocument (reference, document) {
-      checkValues(document)
       const key = reference.primaryKey.key
+      const { [key]: _ignored, ...given } = document
+      checkValues(given)
       const id = assignId(document, key)
-      const data = { ...withoutUndefined(document), [key]: id }
+      const data = { ...withoutUndefined(given), [key]: id }
       collectionOf(reference.name).set(id, structuredClone(data))
       return snapshotOf(reference, id, data)
     },
@@ -259,13 +282,13 @@ function memoryDatabase ({ assignId = () => randomUUID() } = {}) {
       return data === undefined ? undefined : snapshotOf(reference.collection, reference.id, data)
     },
     async updateDocument (reference, document) {
-      checkValues(document)
       const key = reference.collection.primaryKey.key
-      if (Object.hasOwn(document, key) && document[key] !== reference.id) throw new Error(`database/key-immutable: ${key}`)
+      if (document[key] !== undefined && document[key] !== reference.id) throw new Error(`database/key-immutable: ${key}`)
+      const { [key]: _ignored, ...given } = document
+      checkValues(given)
       const stored = collectionOf(reference.collection.name).get(reference.id)
       if (stored === undefined) throw new DocumentNotFoundError(reference)
-      const { [key]: _key, ...fields } = withoutUndefined(document)
-      collectionOf(reference.collection.name).set(reference.id, { ...stored, ...structuredClone(fields) })
+      collectionOf(reference.collection.name).set(reference.id, { ...stored, ...structuredClone(withoutUndefined(given)) })
       return { reference, data: document }
     },
     async deleteDocument (reference) {

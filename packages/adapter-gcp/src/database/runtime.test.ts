@@ -126,4 +126,16 @@ describe('the Firestore runtime', () => {
     const failure = await database.updateDocument({ collection: pages, id: 'x' }, { n: 1 } as any).catch((error: Error) => error)
     expect(failure).toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: pages/x' })
   })
+
+  it.fails('DATA-9, CF60: a key condition on an ID Firestore cannot hold compares as a string', async () => {
+    const database = await create()
+    expect(await database.getCollection(pages, { where: [{ field: 'id', operator: '==', value: 'a/b' }] })).toEqual({ documents: [] })
+    expect(collection.get).not.toHaveBeenCalled()
+
+    const documents = ['a', 'b', 'c'].map(id => ({ id, data: () => ({ n: 1 }) }))
+    collection.get.mockResolvedValueOnce({ forEach: (visit: (d: unknown) => void) => { documents.forEach(visit) } })
+    const page = await database.getCollection(pages, { where: [{ field: 'id', operator: '<', value: 'b/c' }] })
+    expect(page.documents.map(snapshot => snapshot.reference.id)).toEqual(['a', 'b'])
+    expect(collection.where.mock.calls.map(([field]: unknown[]) => fieldName(field))).not.toContain('__name__')
+  })
 })

@@ -61,6 +61,38 @@ describe('checkValues', () => {
   })
 })
 
+describe('the subset of values and the strict parameters', () => {
+  const circular = () => { const loop = {}; loop.self = loop; return { meta: loop } }
+  const sparse = () => ({ tags: [1, , 3] }) // eslint-disable-line no-sparse-arrays
+
+  it.fails('DATA-2, DATA-8, CF64, CF65: checkValues and checkQuery follow the subset and the strict parameters', async () => {
+    const { checkValues, checkQuery } = await load()
+    const shared = { a: 1 }
+    const holdable = [
+      { n: 1e126 }, { n: -1e126 }, { n: 1e-130 }, { n: 0 }, { n: -0 }, { n: 1.5 }, { s: 'Zażółć 😀' }, { tags: [1, { deep: [2] }] },
+      { x: shared, y: shared }
+    ]
+    for (const data of holdable) expect(() => checkValues(data), JSON.stringify(data)).not.toThrow()
+    const unholdable = [
+      [{ tags: [[1]] }, 'tags.0'],
+      [{ n: 1e200 }, 'n'],
+      [{ n: 1e127 }, 'n'],
+      [{ n: 5e-324 }, 'n'],
+      [{ n: 1e-131 }, 'n'],
+      [{ title: 'a\u0000' }, 'title'],
+      [{ title: '\uD800' }, 'title'],
+      [sparse(), 'tags'],
+      [circular(), 'meta.self']
+    ]
+    for (const [data, path] of unholdable) expect(() => checkValues(data), path).toThrow(`database/unsupported-value: ${path}`)
+
+    const invalid = [null, 'x', 5, [], { conditions: [] }, { startAfter: { field: 'a', value: 'b' } }, { where: [], extra: 1 },
+      { where: [, condition('==', 1)] }, { limit: 1001 }, { limit: 1e21 }] // eslint-disable-line no-sparse-arrays
+    for (const params of invalid) expect(() => checkQuery(params), JSON.stringify(params)).toThrow(INVALID)
+    expect(() => checkQuery({ limit: 1000 })).not.toThrow()
+  })
+})
+
 describe('matches', () => {
   it('DATA-9: matches follows the type and order rules', async () => {
     expect(await holdsFor({ a: 2 }, condition('<', 10))).toBe(true)

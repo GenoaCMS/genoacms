@@ -12,7 +12,7 @@ const jsonDocument = () => ({
   count: 1.5,
   flag: false,
   nothing: null,
-  tags: ['a', 1, null, true, { deep: [1, [2]] }],
+  tags: ['a', 1, null, true, { deep: [1, { two: 2 }] }],
   meta: { nested: { list: [1, 2], ok: true, absent: null }, text: 'x' }
 })
 
@@ -36,6 +36,34 @@ const REFUSED_VALUES = [
   { data: { meta: { when: new Date(0) } }, path: 'meta.when' },
   { data: { tags: [undefined] }, path: 'tags.0' }
 ]
+
+const UNHOLDABLE_VALUES = () => {
+  const loop = {}
+  loop.self = loop
+  return [
+    { data: { tags: [[1]] }, path: 'tags.0' },
+    { data: { count: 1e200 }, path: 'count' },
+    { data: { count: 5e-324 }, path: 'count' },
+    { data: { title: 'a\u0000' }, path: 'title' },
+    { data: { title: '\uD800' }, path: 'title' },
+    { data: { tags: [1, , 3] }, path: 'tags' }, // eslint-disable-line no-sparse-arrays
+    { data: { meta: loop }, path: 'meta.self' }
+  ]
+}
+
+const STRICT_PARAMETERS = {
+  null: () => null,
+  'a string': () => 'x',
+  'a key outside where, limit and pageToken': () => ({ conditions: [] }),
+  'a sparse where': (run) => ({ where: [, { field: 'run', operator: '==', value: run }] }), // eslint-disable-line no-sparse-arrays
+  'a limit of 1001': () => ({ limit: 1001 })
+}
+
+const encodedToken = (payload) => Buffer.from(JSON.stringify(payload)).toString('base64url')
+const TOKENS_OF_NO_QUERY = [true, null, [], { unrelated: true }]
+
+const ORDERED_STRINGS = ['a', 'é', 'z', 'Ω', '😀', '～']
+const ORDERED_NUMBERS = [-2, -0, 0, 1.5]
 
 const MALFORMED_PARAMETERS = {
   'an unknown operator': (run) => ({ where: [{ field: 'run', operator: '~=', value: run }] }),
@@ -257,6 +285,85 @@ function runDatabaseConformance (adapter, { collection, prefix }) {
       } while (pageToken !== undefined)
       expect([[3, 3, 1], [3, 3, 1, 0]]).toContainEqual(sizes)
       expect([...seen].sort()).toEqual(snapshots.map(snapshot => snapshot.reference.id).sort())
+    })
+
+    it('DATA-2, CF65: values no store can hold are refused before any request', async () => {
+      for (const { data, path } of UNHOLDABLE_VALUES()) {
+        const error = await rejection(create('unholdable', { label: 'unholdable', ...data }))
+        expect(error.message, path).toBe(`database/unsupported-value: ${path}`)
+      }
+      expect(await labelsMatching('unholdable')).toEqual([])
+    })
+
+    it('DATA-3, CF62, CF63: the key field is ignored before any check', async () => {
+      const created = await create('ignored-key', { label: 'created', [key]: Number.NaN })
+      expect(created.data[key]).toBe(created.reference.id)
+      const omitted = await create('ignored-key', { label: 'omitted', [key]: undefined })
+      expect(omitted.data[key]).toBe(omitted.reference.id)
+      await adapter.updateDocument(created.reference, { [key]: undefined, label: 'updated' })
+      const read = await adapter.getDocument(created.reference)
+      expect(read.data.label).toBe('updated')
+      expect(read.data[key]).toBe(created.reference.id)
+    })
+
+    it('DATA-5, DATA-7, CF60: an ID the store cannot hold reads as absent', async () => {
+      for (const id of ['', 'a/b']) {
+        expect(await adapter.getDocument(reference(id)), JSON.stringify(id)).toBeUndefined()
+        expect(await adapter.deleteDocument(reference(id)), JSON.stringify(id)).toBeUndefined()
+      }
+    })
+
+    it('DATA-8, CF64: parameters are checked strictly', async () => {
+      for (const [name, parameters] of Object.entries(STRICT_PARAMETERS)) {
+        const error = await rejection(adapter.getCollection(collection, parameters(prefix)))
+        expect(error.message, name).toMatch(/^database\/invalid-query: /)
+      }
+      for (const payload of TOKENS_OF_NO_QUERY) {
+        const params = { where: inRun('strict', { field: 'count', operator: '>=', value: 0 }), limit: 1, pageToken: encodedToken(payload) }
+        const error = await rejection(adapter.getCollection(collection, params))
+        expect(error.message, JSON.stringify(payload)).toMatch(/^database\/invalid-query: /)
+      }
+      expect((await query('strict', [], { limit: 1000 })).documents).toEqual([])
+    })
+
+    it('DATA-9, CF66: strings order by UTF-8 bytes and numbers by value, signs included', async () => {
+      const labelled = [...ORDERED_STRINGS, ...ORDERED_NUMBERS].map(v => ({ label: `v:${Object.is(v, -0) ? '-0' : String(v)}`, v }))
+      await Promise.all(labelled.map(async data => await create('ordering', data)))
+      const labelsWhere = (operator, value) => labelsMatching('ordering', { field: 'v', operator, value })
+      const among = (values) => labelled.filter(({ v }) => values.some(candidate => Object.is(candidate, v))).map(data => data.label).sort()
+      expect(await labelsWhere('<', 'é')).toEqual(among(['a', 'z']))
+      expect(await labelsWhere('>=', 'é')).toEqual(among(['é', 'Ω', '😀', '～']))
+      expect(await labelsWhere('<', 'Ω')).toEqual(among(['a', 'z', 'é']))
+      expect(await labelsWhere('>', '～')).toEqual(among(['😀']))
+      expect(await labelsWhere('<', '😀')).toEqual(among(['a', 'z', 'é', 'Ω', '～']))
+      expect(await labelsWhere('<', 0)).toEqual(among([-2]))
+      expect(await labelsWhere('>=', 0)).toEqual(among([-0, 0, 1.5]))
+      expect(await labelsWhere('<', -1)).toEqual(among([-2]))
+      expect(await labelsWhere('>', -1)).toEqual(among([-0, 0, 1.5]))
+      expect(await labelsWhere('<=', -2)).toEqual(among([-2]))
+      expect(await labelsWhere('==', 0)).toEqual(among([-0, 0]))
+      expect(await labelsWhere('>=', 1.5)).toEqual(among([1.5]))
+    })
+
+    it('DATA-10, CF66: paging holds with an inequality, a limit of 1 and a limit above the matches', async () => {
+      const snapshots = await Promise.all(Array.from({ length: MATCHING_DOCUMENTS }, async (_, count) => await create('inequality', { label: `inequality-${count}`, count })))
+      const matching = snapshots.filter(snapshot => snapshot.data.count >= 2).map(snapshot => snapshot.reference.id).sort()
+      const inequality = [{ field: 'count', operator: '>=', value: 2 }]
+      const sizes = []
+      const seen = []
+      let pageToken
+      do {
+        const page = await query('inequality', inequality, pageToken === undefined ? { limit: 1 } : { limit: 1, pageToken })
+        sizes.push(page.documents.length)
+        seen.push(...page.documents.map(document => document.reference.id))
+        pageToken = page.next
+        expect(sizes.length).toBeLessThanOrEqual(MATCHING_DOCUMENTS)
+      } while (pageToken !== undefined)
+      expect([[1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 0]]).toContainEqual(sizes)
+      expect([...seen].sort()).toEqual(matching)
+      const whole = await query('inequality', inequality, { limit: 50 })
+      expect(whole.documents.map(document => document.reference.id).sort()).toEqual(matching)
+      expect(whole.next).toBeUndefined()
     })
   })
 }

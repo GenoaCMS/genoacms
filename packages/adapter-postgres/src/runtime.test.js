@@ -3,6 +3,8 @@ import runtime from './runtime.js'
 
 const instances = []
 const executed = []
+const COLUMNS = ['id', 'title', 'a.b', '*']
+const rowsFor = (sql) => sql.includes('information_schema') ? COLUMNS.map(column => ({ column_name: column })) : []
 vi.mock('knex', async (importOriginal) => {
   const { default: knex } = await importOriginal()
   return {
@@ -13,7 +15,7 @@ vi.mock('knex', async (importOriginal) => {
       sql.client.releaseConnection = async () => {}
       sql.client._query = async (connection, query) => {
         executed.push({ sql: query.sql, bindings: query.bindings })
-        query.response = { rows: [], rowCount: 0, command: query.sql.split(' ')[0].toUpperCase() }
+        query.response = { rows: rowsFor(query.sql), rowCount: 0, command: query.sql.split(' ')[0].toUpperCase() }
         return query
       }
       instances.push(sql)
@@ -60,5 +62,22 @@ describe('the Postgres runtime', () => {
     expect(await database.getDocument(reference)).toBeUndefined()
     const failure = await database.updateDocument(reference, { title: 't' }).catch(error => error)
     expect(failure).toMatchObject({ name: 'DocumentNotFoundError', message: 'database/not-found: articles/x' })
+  })
+
+  it.fails('DATA-8, DATA-9, CF61: field names are literal and a field without a column matches nothing', async () => {
+    const database = runtime.create(options, { name: 'pg', resources: [] })
+    const asked = (field) => ({ where: [{ field, operator: '==', value: 'x' }] })
+    const selects = () => executed.filter(statement => !statement.sql.includes('information_schema'))
+
+    await database.getCollection(articles, asked('a.b'))
+    await database.getCollection(articles, asked('*'))
+    const statements = selects().map(statement => statement.sql).join('\n')
+    expect(statements).toContain('"a.b"')
+    expect(statements).not.toContain('"a"."b"')
+    expect(statements).toContain('"*"')
+
+    executed.length = 0
+    expect(await database.getCollection(articles, asked('missing'))).toEqual({ documents: [] })
+    expect(selects()).toEqual([])
   })
 })

@@ -263,4 +263,19 @@ describe('the DynamoDB runtime', () => {
     expect((await database.getDocument(document))?.data).toEqual({ id: 'x', t: 'a' })
     expect((await database.getCollection(collection)).documents[0].data).toEqual({ id: '1', t: 'a' })
   })
+
+  it.fails('DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues', async () => {
+    dynamo.on(ScanCommand).resolves({ Items: [] })
+    const database = await provider()
+    const cannotMatch = [
+      { field: 'a', operator: '<', value: null },
+      { field: 'a', operator: '!=', value: null },
+      { field: 'a', operator: '<', value: false }
+    ] as const
+    for (const condition of cannotMatch) {
+      dynamo.resetHistory()
+      expect(await database.getCollection(collection, { where: [condition] }), JSON.stringify(condition)).toEqual({ documents: [] })
+      expect(inputs(ScanCommand)[0], JSON.stringify(condition)).not.toHaveProperty('ExpressionAttributeValues')
+    }
+  })
 })
