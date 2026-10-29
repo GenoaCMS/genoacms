@@ -25,24 +25,51 @@ const withoutUndefined = (options) => Object.fromEntries(Object.entries(options)
  */
 const identifier = (name) => `"${name.replaceAll('"', '""')}"`.replaceAll('?', '\\?')
 
+const JSON_COLUMN_TYPES = ['json', 'jsonb']
+const INVALID_TEXT_REPRESENTATION = '22P02'
+
 /**
+ * DATA-2: a string in a json column is written as the JSON text of the string.
+ *
  * @param {unknown} value
+ * @param {string | undefined} dataType
  * @returns {unknown}
  */
-const asColumnValue = (value) => (Array.isArray(value) || (typeof value === 'object' && value !== null)) ? JSON.stringify(value) : value
+const asColumnValue = (value, dataType) => {
+  if (Array.isArray(value) || (typeof value === 'object' && value !== null)) return JSON.stringify(value)
+  return typeof value === 'string' && JSON_COLUMN_TYPES.includes(/** @type {string} */ (dataType)) ? JSON.stringify(value) : value
+}
 
 /**
  * DATA-2, DATA-3
  *
  * @param {CollectionReference} collection
  * @param {Record<string, unknown>} document
+ * @param {Map<string, string>} columnTypes
  * @returns {Record<string, unknown>}
  */
-const columnsOf = (collection, document) => Object.fromEntries(
+const columnsOf = (collection, document, columnTypes) => Object.fromEntries(
   Object.entries(document)
     .filter(([field, value]) => field !== collection.primaryKey.key && value !== undefined)
-    .map(([field, value]) => [field, asColumnValue(value)])
+    .map(([field, value]) => [field, asColumnValue(value, columnTypes.get(field))])
 )
+
+/**
+ * DATA-5, DATA-7: an ID the column type refuses is an ID the store cannot hold.
+ *
+ * @template T
+ * @param {() => Promise<T>} work
+ * @param {T} absent
+ * @returns {Promise<T>}
+ */
+const absentWhenUnstorable = async (work, absent) => {
+  try {
+    return await work()
+  } catch (error) {
+    if (/** @type {{ code?: string }} */ (error)?.code === INVALID_TEXT_REPRESENTATION) return absent
+    throw error
+  }
+}
 
 /**
  * DATA-3
@@ -111,27 +138,27 @@ const startingAfter = (query, collection, pageToken) => {
 /**
  * DATA-9
  *
- * @param {string[]} columns
+ * @param {Map<string, string>} columns
  * @param {Condition[]} conditions
  * @returns {boolean}
  */
-const allHaveColumns = (columns, conditions) => conditions.every(({ field }) => columns.includes(field))
+const allHaveColumns = (columns, conditions) => conditions.every(({ field }) => columns.has(field))
 
 /** One Postgres provider, with its own connection pool. */
 export default defineRuntime({
   create ({ host, port, database, user, password }) {
     const sql = knex({ client: 'pg', connection: withoutUndefined({ host, port, database, user, password }) })
 
-    /** @type {Map<string, Promise<string[]>>} */
+    /** @type {Map<string, Promise<Map<string, string>>>} */
     const columnsByTable = new Map()
     const readColumns = async (/** @type {string} */ tableName) => {
-      const rows = await sql('information_schema.columns').select('column_name').where({ table_name: tableName }).whereRaw('table_schema = current_schema()')
-      return rows.map(row => row.column_name)
+      const rows = await sql('information_schema.columns').select('column_name', 'data_type').where({ table_name: tableName }).whereRaw('table_schema = current_schema()')
+      return new Map(rows.map(row => [row.column_name, row.data_type]))
     }
     /** DATA-9 */
     const tableColumns = (/** @type {string} */ tableName) => {
       if (!columnsByTable.has(tableName)) columnsByTable.set(tableName, readColumns(tableName))
-      return /** @type {Promise<string[]>} */ (columnsByTable.get(tableName))
+      return /** @type {Promise<Map<string, string>>} */ (columnsByTable.get(tableName))
     }
 
     /**
@@ -146,7 +173,7 @@ export default defineRuntime({
       checkValues(withoutKeyField(reference, document))
 
       const generatedKey = reference.primaryKey.schema?.type === 'string' ? { [primaryKeyProperty]: randomUUID() } : {}
-      const [row] = await sql(tableName).insert({ ...columnsOf(reference, document), ...generatedKey }).returning('*')
+      const [row] = await sql(tableName).insert({ ...columnsOf(reference, document, await tableColumns(tableName)), ...generatedKey }).returning('*')
       const id = String(row[primaryKeyProperty])
 
       return {
@@ -190,10 +217,10 @@ export default defineRuntime({
       if (primaryKeyValue === '') return undefined
       if (!primaryKeyValue) throw new Error(`Missing id of queried document from ${tableName}`)
 
-      const row = await sql(tableName)
+      const row = await absentWhenUnstorable(async () => await sql(tableName)
         .select('*')
         .where(primaryKeyProperty, primaryKeyValue)
-        .first()
+        .first(), undefined)
       return row === undefined ? undefined : snapshotOf(reference.collection, row)
     }
 
@@ -211,7 +238,7 @@ export default defineRuntime({
       if (document[primaryKeyProperty] !== undefined && document[primaryKeyProperty] !== primaryKeyValue) throw new Error(`database/key-immutable: ${primaryKeyProperty}`)
       checkValues(withoutKeyField(reference.collection, document))
 
-      const columns = columnsOf(reference.collection, document)
+      const columns = columnsOf(reference.collection, document, await tableColumns(tableName))
       const matching = sql(tableName).where(primaryKeyProperty, primaryKeyValue)
       const found = Object.keys(columns).length === 0
         ? await matching.select(primaryKeyProperty)
@@ -236,7 +263,7 @@ export default defineRuntime({
       if (primaryKeyValue === '') return
       if (!primaryKeyValue) throw new Error(`Missing id of deleted document from ${tableName}`)
 
-      await sql(tableName).delete().where(primaryKeyProperty, primaryKeyValue)
+      await absentWhenUnstorable(async () => await sql(tableName).delete().where(primaryKeyProperty, primaryKeyValue), 0)
     }
 
     return {
