@@ -39,7 +39,7 @@ on nested fields; composite keys.
 | CU14 | 2026-10-28: the primary key is a read-only part of a document's data: reads include it, equal to the ID, and writes never set it. | CD14; DATA-3 |
 | CU15 | 2026-10-28: updating a document that does not exist fails with a typed error, `DocumentNotFoundError`, and writes nothing. | DATA-6, DATA-12 |
 | CU16 | 2026-10-28: a document holds JSON values only; any other value is refused before any request. | DATA-2 |
-| CU17 | 2026-10-28: a document holds only values every store can hold, so it can move between stores unchanged: no array directly inside an array, no number beyond 38 significant digits or outside DynamoDB's range, no string that is not well-formed Unicode or holds U+0000, nothing circular or sparse (CF65). | pending, RFC-0042 amendment |
+| CU17 | 2026-10-28: a document holds only values every store can hold, so it can move between stores unchanged: no array directly inside an array, no number outside DynamoDB's range, no string that is not well-formed Unicode or holds U+0000, nothing circular or sparse (CF65). | pending, RFC-0042 amendment |
 
 **CD12. Pages in the store's own order, continued with an opaque cursor (DATA-8, DATA-10).** The
 caller chooses neither the order nor an offset; `next` encodes where the store stopped.
@@ -142,12 +142,14 @@ interface CollectionPage<C> { documents: Array<DocumentSnapshot<C>>, next?: stri
 #### DATA-2 · Values
 
 A document is a plain object whose values every store can hold (CU17): strings that are well-formed
-Unicode without U+0000; finite numbers of at most 38 significant digits, `0` or of a magnitude from
+Unicode without U+0000; finite numbers, `0` or of a magnitude from
 1E-130 to 1E+126; booleans; `null`; arrays whose items are not arrays; and plain objects,
 recursively. A field whose value is `undefined` is omitted. Any other value, `NaN`, `Infinity`, an
 array directly inside an array, a sparse array, a circular reference, `undefined` in an array, a
 `bigint`, a `Date` or another class instance among them, makes a write throw `database/unsupported-value: <path>` before any request,
-where `<path>` is the field's dotted path, array indexes as numbers. A value reads back equal to the
+where `<path>` is the field's dotted path, array indexes as numbers: for a sparse array the array's
+own path (`tags`), for a circular object the path of the reference that repeats an object on its
+way (`meta.self`). A value reads back equal to the
 value written. A store with a fixed set of fields, such as a table, MAY read a field the document was
 never given as `null`.
 
@@ -224,8 +226,9 @@ type getCollection = <C>(reference: C, params?: QueryParams) => Promise<Collecti
 
 `params` is `undefined` or a plain object with no keys but these; `where` is a dense array; `field`
 is a top-level field's name, taken literally, the key field included. A parameter outside these, or a
-`pageToken` that is malformed or does not fit the query and collection it is given with, throws
-`database/invalid-query: <reason>` before any request. A well-formed token of the same query moves
+`pageToken` that is malformed, whose decoded payload is not of the store's token shape, or does not
+fit the query and collection it is given with where the store's token holds enough to tell (a store
+whose token is only an ID cannot), throws `database/invalid-query: <reason>` before any request. A well-formed token of the same query moves
 only where the page starts.
 
 - Test: none yet
