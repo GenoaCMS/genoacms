@@ -245,7 +245,7 @@ commit of this amendment (CU17; CF59 to CF65). The code:
   table from `information_schema.columns`; a condition on a field with no column matches nothing,
   and a query with such a condition answers an empty page without being sent. `getDocument` and
   `deleteDocument` of `''` return `undefined` and do nothing. A page token is refused unless it
-  decodes to a string or a number; of the query it can check nothing.
+  decodes to a string or a number; of the query it can check nothing. Found by the first contract run in CI (PR 25): the columns are read with their `data_type`, and a string written to a `json` or `jsonb` column is written as the JSON text of the string; `getDocument` and `deleteDocument` treat the store's `22P02` (the column type refuses the ID, such as `a/b` for a `uuid`) as an ID the store cannot hold.
 
 ## Non-goals
 
