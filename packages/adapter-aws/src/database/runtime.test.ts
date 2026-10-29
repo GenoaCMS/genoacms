@@ -282,4 +282,11 @@ describe('the DynamoDB runtime', () => {
       expect(inputs(ScanCommand)[0], JSON.stringify(condition)).not.toHaveProperty('ExpressionAttributeValues')
     }
   })
+
+  it('DATA-5, DATA-7, CF60: the empty ID, which DynamoDB cannot hold as a key, reads as absent and deletes nothing', async () => {
+    const database = await provider()
+    expect(await database.getDocument({ collection, id: '' })).toBeUndefined()
+    expect(await database.deleteDocument({ collection, id: '' })).toBeUndefined()
+    expect(dynamo.calls()).toHaveLength(0)
+  })
 })

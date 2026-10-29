@@ -180,6 +180,7 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
     // DDB-6
     const getDocument = async ({ collection, id }: DocumentReference<CollectionReference>): Promise<unknown> => {
       requireStringKey(collection)
+      if (id === '') return undefined
       const response = await client.send(new GetItemCommand({ TableName: collection.name, Key: keyOf(collection, id), ConsistentRead: true }))
       if (response.Item === undefined) return undefined
       return snapshotOf(collection, response.Item)
@@ -210,6 +211,7 @@ export default defineRuntime<AwsDatabaseOptions, Adapter>({
     // DDB-7
     const deleteDocument = async ({ collection, id }: DocumentReference<CollectionReference>): Promise<void> => {
       requireStringKey(collection)
+      if (id === '') return
       await client.send(new DeleteItemCommand({ TableName: collection.name, Key: keyOf(collection, id) }))
     }
 

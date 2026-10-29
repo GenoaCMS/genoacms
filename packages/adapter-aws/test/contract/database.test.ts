@@ -17,7 +17,7 @@ const everyJsonValue = {
   fraction: 0.5,
   flag: true,
   nothing: null,
-  list: [1, ['x', false]],
+  list: [1, { items: ['x', false] }],
   object: { nested: { n: -3, s: 'y' } }
 }
 
