@@ -132,6 +132,48 @@ describe('storage tools', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
+  it.fails('TOL-27, TF2: a move onto an existing object needs overwrite', async () => {
+    memory.set('a', 'from')
+    memory.set('b', 'to')
+    const before = memory.snapshot()
+
+    expect(await callTool(agent, 'move_object', { bucket, name: 'a', destination: 'b' }))
+      .toMatchObject({ isError: true, text: `storage/exists: ${bucket}/b` })
+    expect(memory.snapshot()).toEqual(before)
+
+    expect(await useTool(agent, 'move_object', { bucket, name: 'a', destination: 'b', overwrite: true })).toEqual({})
+    expect(memory.names()).toEqual(['b'])
+    expect(memory.text('b')).toBe('from')
+  })
+
+  it.fails('TOL-28, TF2, TF3: a directory move needs overwrite, never goes into itself, and the root is not created', async () => {
+    memory.set('d/y', 'from')
+    memory.set('e/x', 'to')
+    memory.set('p/q', 'inside')
+    const before = memory.snapshot()
+
+    expect(await callTool(agent, 'move_directory', { bucket, path: 'd/', destination: 'e/' }))
+      .toMatchObject({ isError: true, text: `storage/exists: ${bucket}/e/` })
+    expect(memory.snapshot()).toEqual(before)
+    expect(await callTool(agent, 'move_directory', { bucket, path: 'p/', destination: 'p/r/' }))
+      .toMatchObject({ isError: true, text: 'storage/invalid-name: p/r/' })
+    expect(await callTool(agent, 'create_directory', { bucket, path: '' }))
+      .toMatchObject({ isError: true, text: 'storage/invalid-name: ' })
+    expect(memory.snapshot()).toEqual(before)
+
+    expect(await useTool(agent, 'move_directory', { bucket, path: 'd/', destination: 'e/', overwrite: true })).toEqual({})
+    expect(memory.names()).toContain('e/y')
+    expect(memory.names()).not.toContain('d/y')
+  })
+
+  it('TOL-26, TF4: wrapped and URL-safe base64 are refused', async () => {
+    for (const content of ['QUJD\nREVG', '-_8=']) {
+      expect(await callTool(agent, 'upload_object', { bucket, name: 'u/bad', content, encoding: 'base64' }), content)
+        .toMatchObject({ isError: true, text: expect.stringMatching(/^storage\/invalid-content:/) })
+    }
+    expect(memory.names()).toEqual([])
+  })
+
   it('TOL-29: each storage tool demands its permission', async () => {
     memory.set('a/1.txt', 'x')
     const before = memory.snapshot()
