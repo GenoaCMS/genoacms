@@ -3,7 +3,7 @@ type: architecture
 title: Storage in core
 prefix: B
 codes: [STS, BRW]
-verified: a878a518
+verified: 159aaffc
 ---
 
 # Storage in core
@@ -70,7 +70,7 @@ alone would hide a bucket from a principal who may only upload to it.
 `read` (BF6).
 
 **BD4. Users read objects only through signed URLs minted with each listing (STS-4), or for one
-object at a time (STS-7, New, RFC-0041).** The user layer has no read of an object's content.
+object at a time (STS-7, RFC-0041).** The user layer has no read of an object's content.
 *Why:* the browser fetches objects straight from the store, so object bytes never pass through the
 CMS. A server-side read for users would be a second path to gate.
 *Cost:* every listing signs one URL per file, a request each on Cloud Storage under ADC
@@ -119,7 +119,7 @@ the empty one included.
 | BF10 | *History.* **The picker's confirm button is named `Select all` (BRW-12).** It sends the selection and closes the tab; the button that selects everything has the same name. Found 2026-10-18 by reading. | fixed, RFC-0038 |
 | BF11 | **A denial by the storage service is an unexplained server error (BRW-3, BRW-16).** BU3 and RFC-0038 map only core's own `PermissionDeniedError` to 403. What a provider refuses, the adapter lets escape as its raw error: core has no `handleError` and no `+error.svelte`, so opening a directory the service account may not list shows SvelteKit's `Internal Error` page, and only the server log names the cause. The contract has no error for it. Found 2026-10-28 in use, on a directory of about 2000 objects, first suspected to be load; the log showed a permission error. Which adapter and the provider's exact error are not recorded. | open; decided in BU6, awaiting an RFC |
 | BF12 | *History.* **Text the CMS reads from an object is corrupted when a multibyte character spans two chunks (STS-6).** The storage service, the session store and the authorization manifests read an object as text by turning each chunk of its stream into a string on its own and joining the strings. The two halves of a UTF-8 character split across chunks each become U+FFFD. Whether it happens depends on how the provider chunks the stream, not on the content alone: the memory storage of the unit tests yields one chunk and never shows it. A page edit reads its entry, changes it and writes it back, so the damage is written into the entry and grows with each save. Found 2026-10-28 in use, on core 0.3.0 on Cloud Storage: a Slovak page built with about 280 MCP edits stored 2,731 U+FFFD characters, `Návod na používanie aplikácie` having become `Návod na pou��ívanie aplik��������cie`. The MCP client sent correct UTF-8. | fixed, RFC-0040 |
-| BF13 | **The object named `.genoacms` is not protected (STS-5).** The rule matches `.genoacms/` and names under it, so an upload or a move to the bare name `.genoacms` passes; on a store with real directories it collides with the CMS's directory. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| BF13 | **The object named `.genoacms` is not protected (STS-5).** The rule matches `.genoacms/` and names under it, so an upload or a move to the bare name `.genoacms` passes; on a store with real directories it collides with the CMS's directory. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | fixed, RFC-0041 (`159aaffc`) |
 
 ### History
 
@@ -204,7 +204,7 @@ its `next`; the next page is listed with `pageToken: next`.
 #### STS-5 · The CMS's state is read-only for users
 
 In the default bucket, the user layer refuses an upload, a directory creation, a move, a rename or a
-delete when its name or its destination starts with `.genoacms/`, or when it acts on a directory
+delete when its name or its destination is `.genoacms` or starts with `.genoacms/`, or when it acts on a directory
 that `.genoacms/` lies under, the root `` among them. It throws an `Error` with the message
 `storage/internal-read-only: <name>`, naming the source when it is refused and the destination
 otherwise, after the permission check (STS-2), and the adapter is not called. Listing and signing
@@ -220,9 +220,8 @@ The user layer signs a URL for one object (`contracts/storage.md` STOR-9), on `s
 of its bucket (STS-2), that expires one hour after it is signed. It does not check that the object
 exists.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/storage/user.server.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 ### The CMS's own reads
 

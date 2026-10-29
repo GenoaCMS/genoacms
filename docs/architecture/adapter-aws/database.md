@@ -2,7 +2,7 @@
 type: architecture
 title: AWS database: DynamoDB
 codes: [DDB]
-verified: 624ce2e
+verified: 159aaffc
 ---
 
 # AWS database: DynamoDB
@@ -63,6 +63,7 @@ more precision than a JavaScript number is rounded when read. An item holds at m
 
 *History.* DynamoDB support dates from 2023-10. RFC-0007 moved the bodies into the runtime unchanged,
 with one client per provider. RFC-0026 (2026-10-01) brought it to this Specification: paged consistent scans, conditional creates and merging updates, string keys only (WF8 to WF13, WF21, WF22).
+RFC-0042 (`9b97ef12`) made it serve the database contract: filtered, paged scans, the key attribute kept in the data, typed errors; its amendment (`eeabe194`) added the empty value map, the strict tokens and the `undefined` key.
 
 ### Verification
 
@@ -99,28 +100,32 @@ A document's fields are written as DynamoDB attributes: a string as `S`, a finit
 
 #### DDB-4 · Creating a document
 
-`createDocument(ref, data)` sends `PutItem` of `data` with the key attribute set to a new `crypto.randomUUID()`, overriding a key field in `data`, and `ConditionExpression: 'attribute_not_exists(#key)'`. It returns `{ reference: { collection: ref, id }, data }`, where `data` is the input, not re-read.
+`createDocument(ref, data)` ignores the key field of `data`, checks the values (DATA-2), and sends `PutItem` of `data` with the key attribute set to a new `crypto.randomUUID()` and `ConditionExpression: 'attribute_not_exists(#key)'`. It returns `{ reference: { collection: ref, id }, data }`, where `data` is the input with the key field, not re-read.
 
-- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts`
+
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DDB-5 · Reading a collection
 
-`getCollection(ref)` sends `Scan` with `ConsistentRead: true`, following `LastEvaluatedKey` until it is absent, and returns every item as `{ reference: { collection: ref, id }, data }`, where `id` is the key attribute and `data` is the item without it. The order is DynamoDB's scan order, which is not the order of IDs, unlike Firestore's.
+`getCollection(ref, params)` sends `Scan` with `ConsistentRead: true` and a `FilterExpression` of the conditions (DATA-8, DATA-9): each is `attribute_type` of the value's DynamoDB type and the comparison, `<>` for `!=`; a boolean order condition is written as the equalities it means; a condition that can never match sends no `ExpressionAttributeValues` and answers an empty page. It follows `LastEvaluatedKey` until it has `limit` matches or the scan ends, and returns the items as `{ reference: { collection: ref, id }, data }` with `data` keeping the key attribute (DATA-3). The page token holds the key of the last item returned, or `LastEvaluatedKey`; one that is not an object holding the key attribute alone, of type `S`, is refused with `database/invalid-query:`. The order is DynamoDB's scan order.
 
-- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts`
+
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DDB-6 · Reading a document
 
-`getDocument({ collection, id })` sends `GetItem` of the key with `ConsistentRead: true` and returns `{ reference, data }`, with `data` the item without its key attribute, or `undefined` when there is no item.
+`getDocument({ collection, id })` sends `GetItem` of the key with `ConsistentRead: true` and returns `{ reference, data }`, with `data` keeping the key attribute (DATA-3), or `undefined` when there is no item.
 
-- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts`
+
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract
 
 #### DDB-7 · Updating and deleting
 
-`updateDocument(ref, data)` sends `UpdateItem` that sets each field of `data` (DDB-3; an `undefined` field is left unchanged), with `ConditionExpression: 'attribute_exists(#key)'`, so it merges and fails with DynamoDB's `ConditionalCheckFailedException` when the document does not exist. A key field in `data` throws `database/key-immutable: <key>` before any request. It returns `{ reference: ref, data }` with the input `data`. `deleteDocument(ref)` sends `DeleteItem`; deleting a missing document is not an error.
+`updateDocument(ref, data)` sends `UpdateItem` that sets each field of `data` (DDB-3; an `undefined` field is left unchanged), with `ConditionExpression: 'attribute_exists(#key)'`, so it merges and fails with `DocumentNotFoundError` when DynamoDB answers `ConditionalCheckFailedException` (DATA-6). A key field equal to the ID, or `undefined`, is ignored; a different one throws `database/key-immutable: <key>` before any request (DATA-3). It returns `{ reference: ref, data }` with the input `data`. `deleteDocument(ref)` sends `DeleteItem`; deleting a missing document is not an error.
 
-- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts`
+
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-aws/test/contract/database.test.ts` (unverified: the contract level, against the real store, has not run)
 - Level: unit, contract

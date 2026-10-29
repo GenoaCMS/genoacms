@@ -2,7 +2,7 @@
 type: architecture
 title: Database contract
 codes: [DATA]
-verified: 6b81d4b
+verified: 159aaffc
 ---
 
 # Database contract
@@ -39,7 +39,7 @@ on nested fields; composite keys.
 | CU14 | 2026-10-28: the primary key is a read-only part of a document's data: reads include it, equal to the ID, and writes never set it. | CD14; DATA-3 |
 | CU15 | 2026-10-28: updating a document that does not exist fails with a typed error, `DocumentNotFoundError`, and writes nothing. | DATA-6, DATA-12 |
 | CU16 | 2026-10-28: a document holds JSON values only; any other value is refused before any request. | DATA-2 |
-| CU17 | 2026-10-28: a document holds only values every store can hold, so it can move between stores unchanged: no array directly inside an array, no number outside DynamoDB's range, no string that is not well-formed Unicode or holds U+0000, nothing circular or sparse (CF65). | pending, RFC-0042 amendment |
+| CU17 | 2026-10-28: a document holds only values every store can hold, so it can move between stores unchanged: no array directly inside an array, no number outside DynamoDB's range, no string that is not well-formed Unicode or holds U+0000, nothing circular or sparse (CF65). | DATA-2 |
 
 **CD12. Pages in the store's own order, continued with an opaque cursor (DATA-8, DATA-10).** The
 caller chooses neither the order nor an offset; `next` encodes where the store stopped.
@@ -79,36 +79,46 @@ to make a unique one, and a caller-chosen ID would need a conditional create in 
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| CF51 | **No adapter honours `QueryParams` (DATA-8).** Firestore reads every document (`adapter-gcp/database.md` GF9), DynamoDB scans every item, Postgres selects every row; `limit`, `startAfter` and `conditions` are ignored. Found 2026-10-28 by reading the three adapters at `6b81d4b`. | open; RFC-0042 |
-| CF52 | **`QueryParams` cannot be implemented as typed (DATA-8).** Every value is a string, `conditions` is a tuple of one, and `startAfter: { field, value }` resumes from a field value, which a DynamoDB scan cannot. Found 2026-10-28 by reading `packages/contracts/src/database/types.d.ts`. | open; RFC-0042 |
-| CF53 | **Who chooses an ID differs (DATA-4).** Firestore and DynamoDB generate one; Postgres takes the key field of `data`, and returns an `undefined` ID when it is absent. Found 2026-10-28 by reading. | open; RFC-0042 |
-| CF54 | **The key field in data differs (DATA-3).** DynamoDB strips it from what it reads and overrides it on create; Firestore stores a key field as an ordinary field, which may disagree with the ID; Postgres reads and writes it as a column. Found 2026-10-28 by reading. | open; RFC-0042 |
-| CF55 | **Updating a missing document differs (DATA-6).** Firestore throws its `NOT_FOUND`, DynamoDB its `ConditionalCheckFailedException`, and Postgres updates no row and succeeds. Found 2026-10-28 by reading. | open; RFC-0042 |
-| CF56 | **Postgres reads a missing document as `{ reference, data: undefined }` (DATA-5),** not `undefined`. Found 2026-10-28 by reading. | open; RFC-0042 |
-| CF57 | **Firestore accepts values that are not JSON (DATA-2),** such as a `Date`, which reads back as a Firestore `Timestamp`. Found 2026-10-28 by reading. | open; RFC-0042 |
-| CF58 | **The Postgres adapter has no Specification of its own.** Its conformance test runs in CI against Postgres 16, but checks only what the database suite checks (`conformance.md` CF7), so nothing states or tests what it does beyond that. Found 2026-10-28 by reading. | open; RFC-0042 tests it against this contract |
-| CF59 | **DynamoDB sends an empty `ExpressionAttributeValues` (DATA-9, DDB-5).** A condition that can never match, `< null`, `!= null` or `< false`, builds a filter with no values and `ExpressionAttributeValues: {}`, which DynamoDB rejects; a query that must answer an empty page throws. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF60 | **Firestore throws on a key condition its IDs cannot hold (DATA-9, DATA-5, DATA-7).** `id == 'a/b'`, `id < 'a/b'` and `id == ''` throw the SDK's errors, as do `getDocument` and `deleteDocument` of `''` or `'a/b'`; Postgres throws on `''` too. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF61 | **Postgres does not take a field name literally (DATA-8, DATA-9).** A field `a.b` becomes `"a"."b"` and `*` stays `*`; a field with no column fails with Postgres' `42703` rather than matching nothing, a case the "fixed set of fields" of DATA-2 does not state. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF62 | **The key field given to a create is checked on two adapters (DATA-2, DATA-3).** `create(ref, { id: NaN })` succeeds on DynamoDB, which drops the key first, and throws `unsupported-value: id` on Firestore and Postgres, which check every value first. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF63 | **An `undefined` key field in an update throws (DATA-2, DATA-3).** `update(ref, { id: undefined, a: 1 })` throws `database/key-immutable` on all three, though DATA-2 omits an `undefined` field. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF64 | **DATA-8 is partly enforced.** `params` of `null` throws a raw `TypeError`; a string, unknown keys and the old `conditions` and `startAfter` are ignored, returning everything; a sparse `where` throws raw; `limit: 1e21` passes and fails in the store; well-formed forged tokens are accepted, and one that does not fit the query fails raw on Firestore and Postgres. "A `pageToken` this adapter did not issue" cannot be checked for an unsigned token. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF65 | **Values DATA-2 permits fail in a store.** DynamoDB holds numbers of at most 38 digits between about 1E-130 and 1E+126, so `1e200` and `5e-324` are refused by the store; Firestore refuses an array directly inside an array, which the conformance document contains; Postgres refuses U+0000; a lone surrogate is compared as U+FFFD; circular input overflows the stack, and sparse arrays pass the check. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
-| CF66 | **The suite leaves orderings and paging paths unpinned (DATA-9, DATA-10).** No condition compares non-ASCII strings, negative numbers or `-0` in the suite, so a mutant comparing UTF-16 code units passes; paging is tested with equality conditions and 7 documents at `limit: 3` only, never with `limit: 1`, a limit at or above the matches, or an inequality, the paths of Firestore's in-process filter and DynamoDB's resume inside a scan page. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | open; RFC-0042 amendment |
+| CF51 | **No adapter honours `QueryParams` (DATA-8).** Firestore reads every document (`adapter-gcp/database.md` GF9), DynamoDB scans every item, Postgres selects every row; `limit`, `startAfter` and `conditions` are ignored. Found 2026-10-28 by reading the three adapters at `6b81d4b`. | fixed, RFC-0042 (`9b97ef12`) |
+| CF52 | **`QueryParams` cannot be implemented as typed (DATA-8).** Every value is a string, `conditions` is a tuple of one, and `startAfter: { field, value }` resumes from a field value, which a DynamoDB scan cannot. Found 2026-10-28 by reading `packages/contracts/src/database/types.d.ts`. | fixed, RFC-0042 (`9b97ef12`) |
+| CF53 | **Who chooses an ID differs (DATA-4).** Firestore and DynamoDB generate one; Postgres takes the key field of `data`, and returns an `undefined` ID when it is absent. Found 2026-10-28 by reading. | fixed, RFC-0042 (`9b97ef12`) |
+| CF54 | **The key field in data differs (DATA-3).** DynamoDB strips it from what it reads and overrides it on create; Firestore stores a key field as an ordinary field, which may disagree with the ID; Postgres reads and writes it as a column. Found 2026-10-28 by reading. | fixed, RFC-0042 (`9b97ef12`) |
+| CF55 | **Updating a missing document differs (DATA-6).** Firestore throws its `NOT_FOUND`, DynamoDB its `ConditionalCheckFailedException`, and Postgres updates no row and succeeds. Found 2026-10-28 by reading. | fixed, RFC-0042 (`9b97ef12`) |
+| CF56 | **Postgres reads a missing document as `{ reference, data: undefined }` (DATA-5),** not `undefined`. Found 2026-10-28 by reading. | fixed, RFC-0042 (`9b97ef12`) |
+| CF57 | **Firestore accepts values that are not JSON (DATA-2),** such as a `Date`, which reads back as a Firestore `Timestamp`. Found 2026-10-28 by reading. | fixed, RFC-0042 (`9b97ef12`) |
+| CF58 | **The Postgres adapter has no Specification of its own.** Its conformance test runs in CI against Postgres 16, but checks only what the database suite checks (`conformance.md` CF7), so nothing states or tests what it does beyond that. Found 2026-10-28 by reading. | open; its conformance and unit tests now carry the DATA IDs (`9b97ef12`), its own Specification is not written |
+| CF59 | **DynamoDB sends an empty `ExpressionAttributeValues` (DATA-9, DDB-5).** A condition that can never match, `< null`, `!= null` or `< false`, builds a filter with no values and `ExpressionAttributeValues: {}`, which DynamoDB rejects; a query that must answer an empty page throws. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF60 | **Firestore throws on a key condition its IDs cannot hold (DATA-9, DATA-5, DATA-7).** `id == 'a/b'`, `id < 'a/b'` and `id == ''` throw the SDK's errors, as do `getDocument` and `deleteDocument` of `''` or `'a/b'`; Postgres throws on `''` too. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF61 | **Postgres does not take a field name literally (DATA-8, DATA-9).** A field `a.b` becomes `"a"."b"` and `*` stays `*`; a field with no column fails with Postgres' `42703` rather than matching nothing, a case the "fixed set of fields" of DATA-2 does not state. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF62 | **The key field given to a create is checked on two adapters (DATA-2, DATA-3).** `create(ref, { id: NaN })` succeeds on DynamoDB, which drops the key first, and throws `unsupported-value: id` on Firestore and Postgres, which check every value first. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF63 | **An `undefined` key field in an update throws (DATA-2, DATA-3).** `update(ref, { id: undefined, a: 1 })` throws `database/key-immutable` on all three, though DATA-2 omits an `undefined` field. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF64 | **DATA-8 is partly enforced.** `params` of `null` throws a raw `TypeError`; a string, unknown keys and the old `conditions` and `startAfter` are ignored, returning everything; a sparse `where` throws raw; `limit: 1e21` passes and fails in the store; well-formed forged tokens are accepted, and one that does not fit the query fails raw on Firestore and Postgres. "A `pageToken` this adapter did not issue" cannot be checked for an unsigned token. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF65 | **Values DATA-2 permits fail in a store.** DynamoDB holds numbers of at most 38 digits between about 1E-130 and 1E+126, so `1e200` and `5e-324` are refused by the store; Firestore refuses an array directly inside an array, which the conformance document contains; Postgres refuses U+0000; a lone surrogate is compared as U+FFFD; circular input overflows the stack, and sparse arrays pass the check. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (`eeabe194`) |
+| CF66 | **The suite leaves orderings and paging paths unpinned (DATA-9, DATA-10).** No condition compares non-ASCII strings, negative numbers or `-0` in the suite, so a mutant comparing UTF-16 code units passes; paging is tested with equality conditions and 7 documents at `limit: 3` only, never with `limit: 1`, a limit at or above the matches, or an inequality, the paths of Firestore's in-process filter and DynamoDB's resume inside a scan page. Found 2026-10-28 by the falsification audit of RFC-0042, with the stores' clients stubbed and the generated queries read. | fixed, RFC-0042 (tests `1ca2c2eb`) |
 
 ### History
 
-None. The contract was written on 2026-10-28 from the types of `packages/contracts/src/database/`,
-the Specifications of the GCP and AWS adapters, and a reading of the three adapters at `6b81d4b`.
+The contract was written on 2026-10-28 from the types of `packages/contracts/src/database/`, the
+Specifications of the GCP and AWS adapters, and a reading of the three adapters at `6b81d4b`. RFC-0042
+implemented it in `9b97ef12` (tests `c648abcb`). Its falsification audit (CS8) found CF59 to CF66; the
+amendment of the same RFC fixed them in `eeabe194` (tests `1ca2c2eb`), and CU17 and DATA-2 to DATA-10
+were amended with it. The digit limit of DynamoDB was left out of DATA-2, since a JavaScript number
+never reaches it.
 
 ### Verification
 
-Every statement is **New** (RFC-0042). It plans to check them from three sides:
+The statements are checked from three sides:
 
-- **`unit`:** each adapter's runtime against its mocked client, and `@genoacms/contracts`' errors.
-- **`conformance`:** the suite of `contracts/conformance.md` CONF-2 for databases, rewritten to test
-  every statement here, against an in-memory adapter and one mutant of it per test (CD5).
-- **`contract`:** the same suite against Firestore, DynamoDB and Postgres.
+- **`unit`:** each adapter's runtime against its mocked client, `@genoacms/contracts`' errors, and
+  `query.js` (`checkValues`, `checkQuery`, `matches`, the tokens).
+- **`conformance`:** the suite of `contracts/conformance.md` CONF-2 for databases, against the in-memory
+  adapter and one mutant of it per test (CD5). It passes.
+- **`contract`:** the same suite against Firestore, DynamoDB and Postgres. **Not run** for this
+  version: the adapters' blocks are skipped without `GENOACMS_TEST_GCP`, `GENOACMS_TEST_AWS` and
+  `GENOACMS_TEST_POSTGRES`, so every statement whose Level names `contract` says so in its Test line.
+
+The second falsification audit of the amendment (workflow 3.3, §8.2) has not run; RFC-0042 is
+`auditing` until it does.
 
 **CS8.** 2026-10-28, falsification audit of DATA-1 to DATA-12, DB-4 to DB-7 and DDB-4 to DDB-7, by an
 agent that wrote none of the code, with the stores' clients stubbed, Firestore queries built offline
@@ -135,9 +145,8 @@ interface CollectionPage<C> { documents: Array<DocumentSnapshot<C>>, next?: stri
 
 `primaryKey.key` names the one field holding a document's ID, and `id` is a string.
 
-- Test: none yet
+- Test: unverified (a type, checked by the compiler)
 - Level: unit
-- State: new (RFC-0042)
 
 #### DATA-2 · Values
 
@@ -153,9 +162,8 @@ way (`meta.self`). A value reads back equal to the
 value written. A store with a fixed set of fields, such as a table, MAY read a field the document was
 never given as `null`.
 
-- Test: none yet
+- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js`, `packages/contracts/src/database/query.test.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-3 · The key
 
@@ -164,9 +172,8 @@ field `primaryKey.key` in its `data`, equal to `reference.id`. `createDocument` 
 the data it is given, before any check of DATA-2. `updateDocument` ignores it when it is `undefined`
 or equals `reference.id`, and otherwise throws `database/key-immutable: <key>` before any request.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 ### Documents
 
@@ -176,9 +183,8 @@ or equals `reference.id`, and otherwise throws `database/key-immutable: <key>` b
 unique in the collection, and returns `{ reference: { collection: ref, id }, data }`, `data` being
 the input with the key field set to `id` (DATA-3).
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-5 · Reading a document
 
@@ -186,9 +192,8 @@ the input with the key field set to `id` (DATA-3).
 that ID. An ID the store cannot hold, such as `''`, or one with `/` on Firestore, reads as
 `undefined`.
 
-- Test: none yet
+- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/src/runtime.test.js`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-6 · Updating a document
 
@@ -196,18 +201,16 @@ that ID. An ID the store cannot hold, such as `''`, or one with `/` on Firestore
 value whole, and keeps every other field. It returns `{ reference: ref, data }` with the input
 `data`. When no document has that ID it throws `DocumentNotFoundError` (DATA-12) and writes nothing.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/src/runtime.test.js`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-7 · Deleting a document
 
 `deleteDocument(ref)` deletes the document. Deleting a document that does not exist is not an error,
 and deleting by an ID the store cannot hold sends no request.
 
-- Test: none yet
+- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 ### Queries
 
@@ -231,9 +234,8 @@ fit the query and collection it is given with where the store's token holds enou
 whose token is only an ID cannot), throws `database/invalid-query: <reason>` before any request. A well-formed token of the same query moves
 only where the page starts.
 
-- Test: none yet
+- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/src/runtime.test.js`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js`, `packages/contracts/src/database/query.test.js`
 - Level: unit, conformance
-- State: new (RFC-0042)
 
 #### DATA-9 · Which documents match
 
@@ -246,9 +248,8 @@ fields reads as `null` (DATA-2) holds `null`, and so matches `== null`. A condit
 compares the ID, one whose value is an ID the store cannot hold compares as that string. A field a
 store with a fixed set of fields has no column for is missing from every document.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/src/database/runtime.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/src/runtime.test.js`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js`, `packages/contracts/src/database/query.test.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-10 · Pages
 
@@ -259,9 +260,8 @@ page of one query. Across the pages of one query, a document that matches and is
 they are read appears exactly once; a document created, deleted or changed meanwhile may appear or
 not.
 
-- Test: none yet
+- Test: `packages/adapter-aws/src/database/runtime.test.ts`, `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js`, `packages/contracts/src/database/query.test.js` (unverified: the contract level, against Firestore, DynamoDB and Postgres, has not run)
 - Level: unit, conformance, contract
-- State: new (RFC-0042)
 
 #### DATA-11 · A query the store cannot serve
 
@@ -270,9 +270,8 @@ composite index, `getCollection` throws `UnsupportedQueryError` (DATA-12), whose
 `database/unsupported-query: <the store's reason>`, the reason carrying what to configure when the
 store says.
 
-- Test: none yet
+- Test: `packages/adapter-gcp/src/database/runtime.test.ts`
 - Level: unit
-- State: new (RFC-0042)
 
 ### Failures
 
@@ -290,6 +289,5 @@ store says.
 this contract are `Error`s with the coded messages of DATA-2, DATA-3 and DATA-8; a store's failure
 otherwise propagates unchanged.
 
-- Test: none yet
+- Test: `packages/adapter-aws/test/conformance.test.ts`, `packages/adapter-gcp/test/conformance.test.ts`, `packages/adapter-postgres/test/conformance.test.js`, `packages/conformance/src/database.js`, `packages/contracts/src/database/errors.test.js`
 - Level: unit
-- State: new (RFC-0042)

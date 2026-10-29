@@ -29,7 +29,7 @@ redesign ([`configuration.md`](../configuration.md)).
 | [`authentication.md`](authentication.md) | AUTHN | `authenticate`, `getIdentity`, and what core does with them: sign-in, session revalidation | conforming |
 | [`storage.md`](storage.md) | STOR | the ten storage methods, names and directories, conditional writes and versions, failures | conforming; every statement `unverified` |
 | [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
-| [`database.md`](database.md) | DATA | the five database methods, values and the key, queries and pages, failures | conforming; every statement **New** (RFC-0042) |
+| [`database.md`](database.md) | DATA | the five database methods, values and the key, queries and pages, failures | conforming; current (RFC-0042), contract level not run |
 | secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
 
 ### Decisions
@@ -87,7 +87,7 @@ Every `C` ID, where it lives, and its state.
 | CF4 | A provider failure reads as a wrong password | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF5 | A disabled user keeps an open session until its family expires | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF6 | The storage suite's read check could not fail its test | fixed, `f22136c` | [`conformance.md`](conformance.md) |
-| CF7 | The database suite never checks the update or the listing | open; RFC-0042 | [`conformance.md`](conformance.md) |
+| CF7 | The database suite never checks the update or the listing | fixed, RFC-0042 (`c648abcb`) | [`conformance.md`](conformance.md) |
 | CF8 | Nothing checks that a suite fails a non-conforming adapter | open (CD5) | [`conformance.md`](conformance.md) |
 | CF9 | The storage suite writes a fixed name and may leave it behind | fixed, RFC-0037 | [`conformance.md`](conformance.md) |
 | CF10 | A refresh can skip revalidation and every test still passes | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
@@ -103,22 +103,22 @@ Every `C` ID, where it lives, and its state.
 | CD13 | A condition compares values of one JSON type, strings by UTF-8 bytes | new | [`database.md`](database.md) |
 | CD14 | The key is in the data, and only the store writes it | new | [`database.md`](database.md) |
 | CD15 | The store assigns IDs | new | [`database.md`](database.md) |
-| CF51 | No adapter honours `QueryParams` | open; RFC-0042 | [`database.md`](database.md) |
-| CF52 | `QueryParams` cannot be implemented as typed | open; RFC-0042 | [`database.md`](database.md) |
-| CF53 | Who chooses an ID differs | open; RFC-0042 | [`database.md`](database.md) |
-| CF54 | The key field in data differs | open; RFC-0042 | [`database.md`](database.md) |
-| CF55 | Updating a missing document differs | open; RFC-0042 | [`database.md`](database.md) |
-| CF56 | Postgres reads a missing document as `data: undefined` | open; RFC-0042 | [`database.md`](database.md) |
-| CF57 | Firestore accepts values that are not JSON | open; RFC-0042 | [`database.md`](database.md) |
+| CF51 | No adapter honours `QueryParams` | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF52 | `QueryParams` cannot be implemented as typed | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF53 | Who chooses an ID differs | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF54 | The key field in data differs | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF55 | Updating a missing document differs | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF56 | Postgres reads a missing document as `data: undefined` | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
+| CF57 | Firestore accepts values that are not JSON | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
 | CF58 | The Postgres adapter has no Specification of its own | open; RFC-0042 | [`database.md`](database.md) |
-| CF59 | DynamoDB sends an empty `ExpressionAttributeValues` | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF60 | Firestore throws on a key condition its IDs cannot hold | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF61 | Postgres does not take a field name literally | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF62 | The key field given to a create is checked on two adapters | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF63 | An `undefined` key field in an update throws | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF64 | DATA-8 is partly enforced | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF65 | Values DATA-2 permits fail in a store | open; RFC-0042 amendment | [`database.md`](database.md) |
-| CF66 | The suite leaves orderings and paging paths unpinned | open; RFC-0042 amendment | [`database.md`](database.md) |
+| CF59 | DynamoDB sends an empty `ExpressionAttributeValues` | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF60 | Firestore throws on a key condition its IDs cannot hold | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF61 | Postgres does not take a field name literally | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF62 | The key field given to a create is checked on two adapters | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF63 | An `undefined` key field in an update throws | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF64 | DATA-8 is partly enforced | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF65 | Values DATA-2 permits fail in a store | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
+| CF66 | The suite leaves orderings and paging paths unpinned | fixed, RFC-0042 (tests `1ca2c2eb`) | [`database.md`](database.md) |
 | CS8 | Falsification audit of the database contract | current | [`database.md`](database.md) |
 | CF12 | Parts of the sign-in trial that no test checks | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF13 | Revalidation of a family without a provider is checked with no failure | fixed, RFC-0030 | [`authentication.md`](authentication.md) |

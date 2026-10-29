@@ -15,7 +15,7 @@ Branch: `refactor/configuration-architecture`. The branch merges to `main` only 
 
 ## Order
 
-Every RFC's front matter states its status: `draft`, or `implemented` with its `commits`, after which it is
+Every RFC's front matter states its status: `draft`, `auditing` with its `commits` until its falsification audit finds nothing open, or `implemented`, after which it is
 frozen ([`WORKFLOW.md`](../WORKFLOW.md) §8.2). RFC-0031 is a draft. RFC-0001 to RFC-0024
 predate the workflow and carry `sections: legacy`; new RFCs follow [`templates/rfc.md`](../templates/rfc.md).
 

@@ -3,7 +3,7 @@ type: architecture
 title: Agent access
 prefix: T
 codes: [AGT, MCP, TOL]
-verified: 7f69446f
+verified: 159aaffc
 ---
 
 # Agent access
@@ -37,8 +37,7 @@ lifts. Every tool calls the same services the screens call, so a tool can do not
 grants would not let it do on a screen.
 
 Agents also read and change documents of collections and objects in buckets, through the document
-service of [`collections.md`](collections.md) and the user layer of [`storage.md`](storage.md) (TU12,
-**New**, RFC-0041).
+service of [`collections.md`](collections.md) and the user layer of [`storage.md`](storage.md) (TU12, RFC-0041).
 
 Out of scope: defining collections; uploads larger than 4 MiB (TU14); a server-side record
 of who changed what (TF1); the specification of components and pages themselves
@@ -61,15 +60,15 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU8 | 2026-10-27: tools change a page one node at a time, validated against stored, published component headers. | TD4; TOL-9 to TOL-13 |
 | TU9 | 2026-10-27: every save carries the version it was read at, and a stale save is refused, for agents and for the screens. | TD6; TOL-1 |
 | TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. | TF1 |
-| TF2 | **A move replaces what is at its destination (TOL-27, TOL-28).** `move_object a → b` replaces `b`, under `storage:bucket:write` alone, without `delete`; `move_directory d/ → e/` replaces what `e/` holds; an object can be moved onto the name of a directory, and a directory into itself, which the browser refuses (`storage.md` BRW-9). Uploads refuse to replace unless asked (TOL-26); moves say nothing. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
-| TF3 | **`create_directory` accepts the root (TOL-28).** A `path` of `''` reaches the adapter on any bucket but the default, where STS-5 refuses it. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
-| TF4 | **Content edge cases of `upload_object` (TOL-26).** Wrapped base64 and base64url are refused as `storage/invalid-content`; text with a lone surrogate is stored with U+FFFD in its place. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | open; RFC-0041 amendment |
+| TF2 | **A move replaces what is at its destination (TOL-27, TOL-28).** `move_object a → b` replaces `b`, under `storage:bucket:write` alone, without `delete`; `move_directory d/ → e/` replaces what `e/` holds; an object can be moved onto the name of a directory, and a directory into itself, which the browser refuses (`storage.md` BRW-9). Uploads refuse to replace unless asked (TOL-26); moves say nothing. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | fixed, RFC-0041 (`159aaffc`) |
+| TF3 | **`create_directory` accepts the root (TOL-28).** A `path` of `''` reaches the adapter on any bucket but the default, where STS-5 refuses it. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | fixed, RFC-0041 (`159aaffc`) |
+| TF4 | **Content edge cases of `upload_object` (TOL-26).** Wrapped base64 and base64url are refused as `storage/invalid-content`; text with a lone surrogate is stored with U+FFFD in its place. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | the base64 half needed no change (the pattern already refused both inputs, tested in `storage.test.ts`); the lone surrogate stays open, no statement says what it becomes |
 | TU11 | 2026-10-27: `tools/list` lists every tool; the first version includes the deleting tools; stored agents keep their roles in `agents.json`; agent access does not wait for RFC-0031, so failed tokens are limited only once it lands; no CLI command generates tokens for now. | MCP-3, MCP-4, AGT-2, TOL-7, TOL-15 |
 | TU12 | 2026-10-28: agents also read and change documents and objects, through MCP tools that call the document service and the storage user layer, under the same permissions as people. `.genoacms/` is for agents as it is for people (`storage.md` BU1, BU7). Defining collections stays out. | TD7; TOL-18 to TOL-29 |
 | TU13 | 2026-10-28: a document save is last write wins, for agents as for people on the editor: no database adapter offers a version to write conditionally on. TU9 holds for components and pages only. | TD7; TOL-22 |
 | TU14 | 2026-10-28: an agent reads an object through a signed URL, and uploads its contents inline, at most 4 MiB. Larger uploads, through a signed upload URL, are a later RFC. | TD8; TOL-25, TOL-26 |
 | TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
-| TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | pending, RFC-0041 amendment |
+| TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | TOL-27, TOL-28 |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -150,7 +149,7 @@ upload carries no content type.
 
 ### History
 
-None.
+RFC-0041 added TOL-18 to TOL-29 (`4f67bbf9`, tests `294898d9`); its amendment after the falsification audit changed the moves, which now refuse an existing destination without `overwrite`, refuse a directory moved into itself and the root as a directory to create (`159aaffc`, tests `76bafdd6`).
 
 ### Verification
 
@@ -343,7 +342,7 @@ request with no `Authorization` header records nothing.
 
 #### TOL-1 · Versions
 
-Every read tool returns the `version` of the object it read: a component's header, a component's
+Every read tool of components and pages returns the `version` of the object it read: a component's header, a component's
 source definition or a page entry, the opaque storage version (STOR-6). Every tool that changes one
 of them takes `version` and writes conditionally on it. When the object has changed since, the tool
 writes nothing and fails with
@@ -553,9 +552,8 @@ COL-3), in its order. `get_collection({ collection })` returns `{ name, primaryK
 schema }` of the collection's definition (COL-2, COL-4). A collection that does not exist fails with
 `collection/not-found: <collection>`; one whose definition does not verify fails as COL-7 says.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-19 · Listing documents
 
@@ -567,27 +565,24 @@ not read fails with `documents/unreadable-field: <field>` before the database is
 parameters fail with the contract's `database/invalid-query: <reason>`, and a query the store cannot
 serve with `database/unsupported-query: <reason>` (DATA-11).
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-20 · Reading a document
 
 `get_document({ collection, id })` returns `{ id, data }`, with only the readable fields (DOC-2). A
 document that does not exist fails with `documents/not-found: <collection>/<id>`.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-21 · Creating a document
 
 `create_document({ collection, data })` validates `data` (`collections.md` DOC-8), creates the
 document as DOC-4 does, and returns `{ id }`, the new document's id.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-22 · Updating a document
 
@@ -596,18 +591,16 @@ document and keeps every other field (TD7), as DOC-3 and DOC-8 do, and returns `
 that does not exist fails with `documents/not-found: <collection>/<id>`, and nothing is written. The
 update is not conditional: a later save wins (TU13).
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-23 · Deleting a document
 
 `delete_document({ collection, id })` deletes the document as `collections.md` DOC-6 does, and
 returns `{}`. Deleting a document that does not exist is not an error.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 ### Storage tools
 
@@ -626,18 +619,16 @@ lastModified }>, directories: string[], next }`, `lastModified` an ISO 8601 stri
 their paths, and `next` the token of the next page, absent on the last. `path` is the root by
 default; `limit` is passed to the adapter when given. It signs no URLs.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/storage.test.ts`, `packages/core/src/lib/script/mcp/tools/storageNames.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-25 · Reading an object
 
 `get_object({ bucket, name })` returns `{ url, expiresAt }`: a URL signed for the object (`storage.md`
 STS-7), and when it expires, as an ISO 8601 string. The agent fetches the contents from the URL.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/storage.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-26 · Uploading an object
 
@@ -650,9 +641,8 @@ an existing one fails with `storage/exists: <bucket>/<name>`; with it, an existi
 It returns `{ name }`. Nothing is written when it fails. `base64` is the standard alphabet with padding, unwrapped: a
 string with whitespace, or in the URL-safe alphabet, is not base64.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/storage.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-27 · Moving and deleting an object
 
@@ -662,9 +652,8 @@ in the same bucket, and `delete_object({ bucket, name })` deletes it; each retur
 `overwrite: true` (TU16). An object that does not exist fails with the storage contract's
 `storage/not-found: <bucket>/<name>`.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/storage.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-28 · Directories
 
@@ -676,9 +665,8 @@ unless `overwrite: true`, and one under `path` fails with `storage/invalid-name:
 (TU16). The root cannot be created, moved or deleted: a `path` of `` fails with
 `storage/invalid-name: `.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/storage.test.ts`
 - Level: unit
-- State: new (RFC-0041)
 
 #### TOL-29 · Collection and storage tool permissions
 
@@ -695,6 +683,5 @@ the same services:
 | `upload_object`, `move_object`, `create_directory`, `move_directory` | `storage:bucket:write` |
 | `delete_object`, `delete_directory` | `storage:bucket:delete` |
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/mcp/tools/collections.test.ts`, `packages/core/src/lib/script/mcp/tools/storage.test.ts`
 - Level: unit
-- State: new (RFC-0041)

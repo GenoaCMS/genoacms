@@ -2,7 +2,8 @@
 type: rfc
 number: 41
 title: Agent tools for documents and objects, with documents validated by the service
-status: draft
+status: auditing
+commits: [4f67bbf9, 159aaffc]
 depends: [39, 40, 42]
 architecture: [architecture/agent-access.md, architecture/collections.md, architecture/storage.md]
 changes: [TOL-18 added, TOL-19 added, TOL-20 added, TOL-21 added, TOL-22 added, TOL-23 added, TOL-24 added, TOL-25 added, TOL-26 added, TOL-27 added, TOL-28 added, TOL-29 added, DOC-8 added, STS-7 added, DOC-3 compatible, DOC-5 breaking, STS-5 breaking, TOL-1 editorial]

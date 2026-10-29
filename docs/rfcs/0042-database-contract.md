@@ -2,7 +2,8 @@
 type: rfc
 number: 42
 title: The database contract, with paged and filtered collection queries
-status: draft
+status: auditing
+commits: [9b97ef12, eeabe194]
 depends: [37]
 architecture: [architecture/contracts/database.md, architecture/contracts/conformance.md, architecture/adapter-gcp/database.md, architecture/adapter-aws/database.md, architecture/collections.md]
 changes: [DATA-1 added, DATA-2 added, DATA-3 added, DATA-4 added, DATA-5 added, DATA-6 added, DATA-7 added, DATA-8 added, DATA-9 added, DATA-10 added, DATA-11 added, DATA-12 added, DB-4 breaking, DB-5 breaking, DB-6 compatible, DB-7 compatible, DDB-4 compatible, DDB-5 breaking, DDB-6 breaking, DDB-7 compatible]
