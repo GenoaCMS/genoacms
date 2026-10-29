@@ -65,7 +65,8 @@ required nor validated on update and create (OF30, OF31); errors under hidden fi
 | `.changeset/agent-collections-storage.md` | new: `'@genoacms/core': minor` |
 | `docs/architecture/agent-access.md`, `collections.md`, `storage.md`, `docs/README.md` | the statements current, after the code (§Steps) |
 
-**Amended by the audit:** `database/user.server.ts`, `validation.ts`, `user.server.test.ts`;
+**Amended by the audit:** `database/user.server.ts`, `validation.ts`, `user.server.test.ts`, whose
+three existing tests that change (§Existing tests that change);
 `storage/user.server.ts`, `user.server.test.ts`; `mcp/tools/storage.server.ts`, `registry.server.ts`,
 `storage.test.ts`; the MCP reference page (`overwrite` on the moves); `.changeset/agent-tools-audit.md`
 (`@genoacms/core`, minor).
@@ -297,7 +298,7 @@ of `genoa.config/collections.js`. `agent` is a principal with the permissions a 
 | :-- | :-- |
 | `DOC-8: a creation the schema refuses is not written` | Given `test` and `{ id: 'not-a-uuid' }` (`format: uuid`); when created by a writer; then it fails with a message starting `documents/invalid: /id format` and `createDocument` was not called. |
 | `DOC-8: an update is validated with the stored fields it keeps` | Given a stored document `{ name: 'a', isA: 'yes' }` and the submission `{ name: 'b' }`; when updated by an unrestricted writer; then it fails with `documents/invalid: /isA type` and `updateDocument` was not called. |
-| `DOC-8: a restricted writer's update is validated as stored, without the fields it may not write` | Given a writer restricted to `name`, a stored valid document, and the submission `{ name: 'b', isA: 'yes' }`; when updated; then it succeeds and `updateDocument` received the stored document with `name: 'b'` and the stored `isA`. |
+| `DOC-8: a restricted writer's update is validated as stored, without the fields it may not write` | Given a writer restricted to `name`, a stored valid document, and the submission `{ name: 'b', isA: 'yes' }`; when updated; then it succeeds and `updateDocument` received `{ name: 'b' }` alone (OF35), the update having been validated on the stored document with `name: 'b'`. |
 | `DOC-8: the permission is checked before validation` | Given a principal without `db:collection:write` and an invalid submission; when created; then it fails with `PermissionDeniedError`. |
 | `DOC-3: an update of a missing document fails as not found and writes nothing` | Given no stored document `x`; when updated; then it fails with `documents/not-found: test/x` and `updateDocument` was not called. |
 
@@ -354,6 +355,19 @@ throws `DocumentValidationError` from `createUserDocument` / `updateUserDocument
 `packages/core/src/lib/script/mcp/protocol.test.ts`: the expected `tools/list` names gain the 16
 tools, in the order of §MCP; the test's title and other assertions are unchanged.
 
+### Existing tests that change
+
+Named for the implementation step (§Steps), which changes them and no other. In
+`core/src/lib/script/database/user.server.test.ts`, the amended DOC-3 (OF35) makes `updateDocument`
+receive the writable fields of the submission alone, while validation still runs on the merged
+document:
+
+| Title | `updateDocument` received, before | now |
+| :-- | :-- | :-- |
+| `DOC-3: a restricted update keeps the stored value of every field it may not write` | the merged stored document | `{ title: 'New' }` |
+| `DOC-3: a writable field the submission lacks keeps its stored value` | the merged stored document | `{ title: 'New' }` |
+| `DOC-8: a restricted writer's update is validated as stored, without the fields it may not write` | the stored document with `name: 'b'` | `{ name: 'b' }` |
+
 ### Amendment tests
 
 Written first, marked `it.fails` where they fail, each title carrying the statement and the finding.
@@ -368,7 +382,7 @@ Written first, marked `it.fails` where they fail, each title carrying the statem
 | `core/src/lib/script/storage/user.server.test.ts` | `STS-5, BF13: the bare .genoacms is the CMS's state` | an upload of, and a move to, `.genoacms` in the default bucket fail with `storage/internal-read-only: .genoacms` |
 | `core/src/lib/script/mcp/tools/storage.test.ts` | `TOL-27, TF2: a move onto an existing object needs overwrite` | `move_object a → b` with `b` present fails with `storage/exists: <bucket>/b`, both unchanged; with `overwrite: true` it moves |
 | same | `TOL-28, TF2, TF3: a directory move needs overwrite, never goes into itself, and the root is not created` | `move_directory d/ → e/` with `e/x` present fails, and with `overwrite: true` moves; `p/ → p/r/` fails with `storage/invalid-name: p/r/`; `create_directory('')` fails with `storage/invalid-name: ` |
-| same | `TOL-26, TF4: wrapped and URL-safe base64 are refused` | `'QUJD\nREVG'` and `'-_8='` with `encoding: 'base64'` fail with `storage/invalid-content:` |
+| same | `TOL-26, TF4: wrapped and URL-safe base64 are refused` | `'QUJD\nREVG'` and `'-_8='` with `encoding: 'base64'` fail with `storage/invalid-content:`. Not an expected failure: the current pattern already refuses both, so this test passes today and carries no `it.fails` |
 
 ## Steps
 

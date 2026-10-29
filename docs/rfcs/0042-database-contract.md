@@ -63,8 +63,10 @@ and conformance cases for orderings and paging paths the suite missed.
 | `docs/architecture/contracts/database.md`, `contracts/README.md`, `contracts/conformance.md`, `adapter-gcp/database.md`, `adapter-aws/database.md`, `docs/README.md` | after the code (§Steps) |
 
 **Amended by the audit:** `packages/contracts/src/database/query.js`, `query.d.ts`, `query.test.js`; the three
-adapters' runtimes and unit tests; `packages/conformance/src/database.js`, `test/mutants/database.js`,
-`test/memory.js`; `.changeset/database-contract-audit.md` (the same packages, minor).
+adapters' runtimes and unit tests (the one existing test that changes is named under *Existing tests
+that change*); `packages/conformance/src/database.js`, whose fixture `jsonDocument()` held an array
+inside an array (`[1, [2]]`), which DATA-2 now refuses, and was given `{ two: 2 }` in its place at
+`1ca2c2eb`, its assertion unchanged; `test/mutants/database.js`, `test/memory.js`; `.changeset/database-contract-audit.md` (the same packages, minor).
 
 ## Specification
 
@@ -86,14 +88,16 @@ Each adapter statement becomes a reference to the contract plus what is particul
   `UnsupportedQueryError` (DATA-11).
 - **DB-6** (compatible): as today, and the key field is in `data` (DATA-3).
 - **DB-7** (compatible): updating a missing document throws `DocumentNotFoundError` (DATA-6), not
-  Firestore's `NOT_FOUND`; the key field is ignored or refused as DATA-3 says.
+  Firestore's `NOT_FOUND`; the key field is ignored or refused as DATA-3 says. By the amendment, an
+  `undefined` key field is ignored too, where the code threw `database/key-immutable`.
 - **DDB-4** (compatible): unchanged, and the returned `data` has the key field (DATA-3).
 - **DDB-5** (breaking): a `Scan` with a `FilterExpression` (§DynamoDB), continued until it has
   `limit` matches or reaches the end, returning a page; the key attribute stays in `data`.
 - **DDB-6** (breaking): the key attribute stays in `data` (DATA-3). Breaking: a reader that took
   `data` as the fields without the key now sees the key.
 - **DDB-7** (compatible): a `ConditionalCheckFailedException` on update becomes
-  `DocumentNotFoundError`; a key field equal to the ID is ignored.
+  `DocumentNotFoundError`; a key field equal to the ID is ignored, and by the amendment so is an
+  `undefined` one (DDB-7 stated that any key field in `data` throws).
 
 The new texts are written into the adapter documents in step 5.
 
@@ -218,9 +222,10 @@ commit of this amendment (CU17; CF59 to CF65). The code:
 
 - **Shared (`query.js`).** `checkValues(data)` follows DATA-2: strings checked with
   `String.prototype.isWellFormed()` and for `\u0000`; numbers by `Number.isFinite`, then `0` or
-  `Math.abs(n)` from `1e-130` to `1e126`, and at most 38 significant digits in `String(n)`; arrays
-  dense (`Object.keys(a).length === a.length`) and of non-arrays; the objects on the path kept in a
-  set, a repeat throwing at its path. `checkQuery(params)` refuses `null`, a non-object, an array,
+  `Math.abs(n)` from `1e-130` to `1e126`; arrays
+  dense (`Object.keys(a).length === a.length`, a sparse one throwing at the array's own path, such as
+  `tags`) and of non-arrays; the objects on the path kept in a set, a repeat throwing at the path of
+  the reference that repeats, such as `meta.self`. `checkQuery(params)` refuses `null`, a non-object, an array,
   any key outside `where`, `limit`, `pageToken`, a sparse `where` and `limit` above 1000.
 - **Key handling, every adapter.** Before `checkValues`, a create removes the key field, and an update
   removes it when it is `undefined` or equals the ID.
@@ -229,15 +234,17 @@ commit of this amendment (CU17; CF59 to CF65). The code:
   return `undefined` and do nothing. A key condition whose value is a string that is not storable:
   `==` matches nothing; `!=` is dropped; an order condition is applied in process with `matches`, the
   query fetched without it. A page token is refused unless its `values` hold one value per inequality
-  field of the query.
+  field of the query; this check is Firestore's alone (DB-5), since the other stores' tokens are an ID
+  and hold nothing of the query.
 - **DynamoDB.** `ExpressionAttributeValues` is omitted when it has no entry. A page token is refused
-  unless it decodes to an object holding the key attribute alone, of type `S`.
+  unless it decodes to an object holding the key attribute alone, of type `S`; of the query it can
+  check nothing.
 - **Postgres.** Identifiers are quoted literally by a function `identifier(name)`: `"` doubled, the
   whole wrapped in `"`, passed with `knex.raw`. The columns of a table are read once per adapter and
   table from `information_schema.columns`; a condition on a field with no column matches nothing,
   and a query with such a condition answers an empty page without being sent. `getDocument` and
   `deleteDocument` of `''` return `undefined` and do nothing. A page token is refused unless it
-  decodes to a string or a number.
+  decodes to a string or a number; of the query it can check nothing.
 
 ## Non-goals
 
@@ -267,6 +274,22 @@ the store's client mocked:
 The conformance suite runs at level `conformance` against `memoryDatabase` and its mutants, and at
 level `contract` against Firestore (`genoacms-tests`), DynamoDB and Postgres 16 in CI.
 
+### Existing tests that change
+
+Named for the implementation step (§Steps 3), which changes them and no other:
+
+| File | Title | New assertion |
+| :-- | :-- | :-- |
+| `adapter-aws/src/database/runtime.test.ts` | `DDB-7: refuses a key field present with the value undefined` | renamed `DATA-3, DDB-7: an undefined key field is ignored`; `updateDocument(document, { id: undefined, a: 1 })` succeeds, and the `UpdateItem` sets `a` alone |
+
+The same contradiction is in the code of `adapter-gcp/src/database/runtime.ts` (`Object.hasOwn(data,
+key) && data[key] !== reference.id`) and `adapter-postgres/src/runtime.js`, which throw on an
+`undefined` key as well; their unit tests have no assertion of it, so no other test changes. The
+statements that contradict DATA-3 are DDB-7 of `adapter-aws/database.md` (*a key field in `data`
+throws*), which §Changed above rewrites, and the DB-7 text, which does not mention an `undefined` key.
+`contracts/database.md` CF63 is the finding. The in-memory adapter and its mutant
+(`conformance/test/mutants/database.js`) follow DATA-3 as amended.
+
 ### Amendment tests
 
 Written first, marked `it.fails` where they fail, each title carrying the statement and the finding.
@@ -274,12 +297,13 @@ The conformance cases each get a mutant.
 
 | File | Title | Asserts |
 | :-- | :-- | :-- |
-| `conformance/src/database.js` | `DATA-2, CF65: values no store can hold are refused before any request` | `[[1]]`, `1e200`, `5e-324`, a number of 40 significant digits, `'a\u0000'`, `'\uD800'`, a sparse array and a circular object each throw `database/unsupported-value: <path>`, and nothing is created |
+| `conformance/src/database.js` | `DATA-2, CF65: values no store can hold are refused before any request` | `[[1]]`, `1e127`, `1e-131`, `5e-324`, `'a\u0000'`, `'\uD800'`, a sparse array (path `tags`, the array's own) and a circular object (path `meta.self`, the repeating reference) each throw `database/unsupported-value: <path>`, and nothing is created; `1e126` and `1e-130` are accepted. |
 | same | `DATA-3, CF62, CF63: the key field is ignored before any check` | a create with `id: NaN` succeeds under a store-assigned ID; an update with `id: undefined` sets the other fields |
 | same | `DATA-5, DATA-7, CF60: an ID the store cannot hold reads as absent` | `getDocument` of `''` and of `'a/b'` is `undefined`; deleting them is not an error |
-| same | `DATA-8, CF64: parameters are checked strictly` | `null`, `'x'`, `{ conditions: [] }`, a sparse `where`, `limit: 1001` and a token of another query's shape each throw `database/invalid-query:` |
-| same | `DATA-9, CF66: strings order by UTF-8 bytes and numbers by value, signs included` | over `'a'`, `'é'`, `'z'`, `'Ω'`, `'😀'` and `-2`, `-0`, `0`, `1.5`: `<` and `>=` give the byte and numeric orders |
-| same | `DATA-10, CF66: paging holds with an inequality, a limit of 1 and a limit above the matches` | 7 documents with `n` from 0 to 6, `where n >= 2`: with `limit: 1`, five pages and perhaps an empty sixth, each match once; with `limit: 50`, one page of 5 and no `next` |
+| same | `DATA-8, CF64: parameters are checked strictly` | `null`, `'x'`, `{ conditions: [] }`, a sparse `where`, `limit: 1001`, and well-formed tokens whose payload fits no query (`true`, `null`, `[]`, an unrelated object), given with a query holding an inequality, each throw `database/invalid-query:` (the conformance case builds each token as base64url of that JSON, so it is well-formed; a payload that is not of the store's token shape is what every store refuses) |
+| `adapter-gcp/src/database/runtime.test.ts` | `DATA-8, DB-5: a page token whose values do not match the inequality fields is refused` | a token whose `values` hold none, or two, for a query with one inequality field, throws `database/invalid-query:` before the query |
+| same | `DATA-9, CF66: strings order by UTF-8 bytes and numbers by value, signs included` | over `'a'`, `'é'`, `'z'`, `'Ω'`, `'～'` (U+FF5E, which UTF-16 code units order after `'😀'`), `'😀'` and `-2`, `-0`, `0`, `1.5`: `<` and `>=` give the byte and numeric orders |
+| same | `DATA-10, CF66: paging holds with an inequality, a limit of 1 and a limit above the matches` | 7 documents with `count` from 0 to 6, `where count >= 2`: with `limit: 1`, five pages and perhaps an empty sixth, each match once; with `limit: 50`, one page of 5 and no `next` |
 | `adapter-aws/src/database/runtime.test.ts` | `DATA-9, CF59: a query that cannot match sends no empty ExpressionAttributeValues` | for `< null`, `!= null` and `< false`, the `Scan` input has no `ExpressionAttributeValues` key |
 | `adapter-gcp/src/database/runtime.test.ts` | `DATA-9, CF60: a key condition on an ID Firestore cannot hold compares as a string` | `id == 'a/b'` answers an empty page without a query; `id < 'b/c'` filters in process |
 | `adapter-postgres/src/runtime.test.js` | `DATA-8, DATA-9, CF61: field names are literal and a field without a column matches nothing` | a condition on `a.b` quotes `"a.b"`; one on a field outside the columns answers an empty page without the query |
@@ -361,3 +385,4 @@ node docs/tools/check-docs.mjs docs
 - Documents stored before the amendment with values DATA-2 now refuses still read, but an update
   that keeps such a field fails on a field it did not touch.
 - A well-formed token of another query with the same shape is accepted and moves only the start.
+- Only Firestore can refuse a page token that does not fit the query; DynamoDB and Postgres tokens are an ID.
