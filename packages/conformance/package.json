@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/conformance",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Conformance suites every GenoaCMS storage, database and authentication adapter must pass",
   "type": "module",
   "author": {

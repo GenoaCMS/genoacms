@@ -1,5 +1,12 @@
 # @genoacms/config
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [[`eeabe19`](https://github.com/GenoaCMS/genoacms/commit/eeabe19499974018fc510f84da7e18a7b6b79cf1), [`9b97ef1`](https://github.com/GenoaCMS/genoacms/commit/9b97ef12e59d47c8a043996a4966d91e3f271b3e)]:
+  - @genoacms/contracts@0.1.0
+
 ## 0.0.4
 
 ### Patch Changes

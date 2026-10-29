@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-postgres",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "GenoaCMS database adapter for postgres",
   "type": "module",
   "main": "src/descriptor.js",

@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/adapter-gcp",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "description": "Implementation of abstraction layer of GenoaCMS for GCP",
   "repository": {
