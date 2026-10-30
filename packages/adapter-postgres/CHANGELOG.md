@@ -1,5 +1,12 @@
 # @genoacms/adapter-postgres
 
+## 0.10.1
+
+### Patch Changes
+
+- Updated dependencies [[`71a947c`](https://github.com/GenoaCMS/genoacms/commit/71a947c32e019353da45514c80a1ecae813fe50a)]:
+  - @genoacms/contracts@0.2.0
+
 ## 0.10.0
 
 ### Minor Changes
