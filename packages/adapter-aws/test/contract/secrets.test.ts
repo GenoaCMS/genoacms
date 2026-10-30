@@ -70,7 +70,7 @@ describe.runIf(enabled)('Secrets Manager, against the real service', { timeout: 
     const deleted = key('deleted')
     await secrets.setSecret(deleted, 'value')
     expect(await secrets.deleteSecret(deleted)).toBe(true)
-    expect(await secrets.getSecret(deleted)).toBeUndefined()
+    await expect.poll(async () => await secrets.getSecret(deleted), { timeout: VISIBLE_WITHIN_MS, interval: RETRY_EVERY_MS }).toBeUndefined()
     expect(await deletesAsAbsentWithin(deleted, VISIBLE_WITHIN_MS)).toBe(true)
     expect(await secrets.deleteSecret(key('never-existed'))).toBe(false)
   })
