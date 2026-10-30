@@ -7,7 +7,7 @@ commits: []
 audit: []
 depends: [23, 33]
 architecture: [architecture/build.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]
-changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 compatible, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible]
+changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 breaking, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible]
 commit-subject: "feat!: SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0 (RFC-0043)"
 ---
 
@@ -27,9 +27,10 @@ decisions are U15 to U19 (2026-10-30). This RFC:
    longer set `ORIGIN` on the function (DEP-1, DEP-14, LMB-1, LMB-10).
 3. **Rewrites the Cloud Run adapter for SvelteKit 3** as 2.0.0 (U18, U19): one bundling pass inside
    Vite's server build, as adapter-node 6 does, the server from `generateServerInstance`, the origin
-   from `paths.origin`, and a refusal to start when `ORIGIN` is set (ADP-2 to ADP-5, ADP-7, ADP-8). It
-   drops Rollup and its `files/` build step, which also removes `configuration.md` F17.
-4. **Migrates core's imports**: `$lib` to `#lib` (U17), `$app/environment` to `$app/env` (D8).
+   from `paths.origin`, no polyfills, and a refusal to start when `ORIGIN` is set (ADP-2 to ADP-5,
+   ADP-7, ADP-8). It drops Rollup and its `files/` build step, which also removes `configuration.md` F17.
+4. **Migrates core's imports**: `$lib` to `#lib` (U17), `$app/environment` to `$app/env` (D8), and
+   what SvelteKit 3 moved or retyped (F28).
 5. **Raises the toolchain** in every package that builds or tests with SvelteKit or Vite: Node
    ≥ 22.17, TypeScript 6, Vite 8, `@sveltejs/vite-plugin-svelte` 7, Svelte ≥ 5.57.1, Vitest 4,
    `@sveltejs/adapter-node` 6 (F26).
@@ -51,22 +52,27 @@ decisions are U15 to U19 (2026-10-30). This RFC:
 | `packages/contracts/src/adapter.d.ts` | `DeploymentDescriptor.origin` (§Specification 2) |
 | `packages/core/svelte.config.js` | deleted |
 | `packages/core/vite.config.ts` | `sveltekit()` receives the config (§Specification 3) |
-| `packages/core/package.json` | `imports` (`#lib`); versions (§Specification 6); `@vitest/browser` → `@vitest/browser-playwright` |
+| `packages/core/tsconfig.json` | extends `$app/tsconfig` (F28) |
+| `packages/core/package.json` | `imports` (`#lib`); versions (§Specification 6); `@vitest/browser` → `@vitest/browser-playwright`; the `adapters` script without the Cloud Run adapter (§Specification 5) |
 | `packages/core/eslint.config.js` | no `svelteConfig` import; no `svelte.config.js` ignore |
-| `packages/core/src/**`, `packages/core/evidence/**`, `packages/core/scripts/**`, `packages/core/tests/**`, `packages/core/e2e/**` | `$lib` → `#lib` with explicit extensions; `$app/environment` → `$app/env` (§Specification 4) |
+| `packages/core/src/**`, `packages/core/evidence/**`, `packages/core/scripts/**`, `packages/core/tests/**`, `packages/core/e2e/**` | `$lib` → `#lib` with explicit extensions; `$app/environment` → `$app/env`; moved types, `resolve()` and `vitest/browser` (§Specification 4) |
 | `packages/adapter-gcp/src/deployment/descriptor.ts` | `origin` (DEP-1) |
 | `packages/adapter-gcp/src/deployment/settings.ts` | no `ORIGIN` (DEP-14) |
-| `packages/adapter-gcp/src/deployment/descriptor.test.ts`, `settings.test.ts` | tests |
+| `packages/adapter-gcp/src/deployment/descriptor.test.ts`, `settings.test.ts`, `procedure.test.ts` | tests |
 | `packages/adapter-gcp/package.json` | `vitest` `^4.1.12` |
 | `packages/adapter-aws/src/deployment/descriptor.ts` | `origin` (LMB-1) |
 | `packages/adapter-aws/src/deployment/settings.ts` | `functionEnvironment` without `ORIGIN` (LMB-10) |
 | `packages/adapter-aws/src/deployment/descriptor.test.ts`, `procedure.test.ts`, `test/contract/deployment.test.ts` | tests |
-| `packages/adapter-aws/package.json` | `@sveltejs/adapter-node` `^6.0.1`; `vitest` `^4.1.12` |
+| `packages/adapter-aws/package.json` | `@sveltejs/adapter-node` `^6.0.1`; `vitest` `^4.1.12`; `typescript` `^6.0.0`, the peer of SvelteKit 3 it installs |
+| `packages/adapter-aws/tsconfig.json` | `rootDir`: `./src`, which TypeScript 6 requires with `outDir` |
 | `packages/adapter-node/package.json` | `@sveltejs/adapter-node` `^6.0.1`; `vitest` `^4.1.12` |
 | `packages/sveltekit-adapter-cloud-run-functions/index.js` | rewritten (§Specification 5) |
 | `packages/sveltekit-adapter-cloud-run-functions/index.d.ts` | no `ENV_PREFIX` global |
 | `packages/sveltekit-adapter-cloud-run-functions/ambient.d.ts` | declares the hand-off module `#@genoacms/sveltekit-adapter-cloud-run-functions` |
-| `packages/sveltekit-adapter-cloud-run-functions/src/handler.js`, `src/index.js`, `src/env.js`, `src/shims.js` | import from the hand-off module instead of placeholders |
+| `packages/sveltekit-adapter-cloud-run-functions/src/handler.js`, `src/index.js`, `src/env.js` | import from the hand-off module and `./handler.js` instead of placeholders |
+| `packages/sveltekit-adapter-cloud-run-functions/src/shims.js` | deleted (ADP-4, F28) |
+| `packages/sveltekit-adapter-cloud-run-functions/tsconfig.json` | no `baseUrl` or `paths`, which TypeScript 6 deprecates and which name no existing file |
+| `packages/sveltekit-adapter-cloud-run-functions/.prettierignore` | no `files/` |
 | `packages/sveltekit-adapter-cloud-run-functions/src/request.js` | `readStartupEnvironment` (ADP-7, ADP-8) |
 | `packages/sveltekit-adapter-cloud-run-functions/rollup.config.js` | deleted |
 | `packages/sveltekit-adapter-cloud-run-functions/package.json` | §Specification 5 |
@@ -74,10 +80,12 @@ decisions are U15 to U19 (2026-10-30). This RFC:
 | `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js` | tests |
 | `packages/sveltekit-adapter-cloud-run-functions/e2e/fixture/svelte.config.js` | deleted; its config moves into the fixture's `vite.config.js`, with `paths.origin` from `FIXTURE_ORIGIN` |
 | `packages/sveltekit-adapter-cloud-run-functions/e2e/fixture/vite.config.js` | as above |
-| `packages/sveltekit-adapter-cloud-run-functions/e2e/fixture/src/**` | a Svelte library imported, for ADP-3 (§Tests) |
+| `packages/sveltekit-adapter-cloud-run-functions/e2e/fixture/src/**` | a Svelte library imported, for ADP-3 (§Tests); `src/env.js` declares `FIXTURE_VALUE`, read from `$app/env/private` (F29); `$app/environment` → `$app/env` |
 | `packages/sveltekit-adapter-cloud-run-functions/README.md` | `paths.origin` replaces `ORIGIN`; migration from 1.x |
 | `packages/demo-svelte/svelte.config.js` | deleted; `vite.config.ts` passes `adapter: adapter(), preprocess: vitePreprocess()` to `sveltekit()` |
 | `packages/demo-svelte/package.json` | the versions of §Specification 6 |
+| `packages/demo-svelte/tsconfig.json` | extends `$app/tsconfig`, with an `include` of `src`, `vite.config.ts` and the route types (F28) |
+| `packages/demo-svelte/src/env.ts`, `src/routes/artifacts/[...path]/+server.ts` | `GENOACMS_BUCKET` and `GENOACMS_CREDENTIALS` declared, dynamic and private, and read from `$app/env/private` (F29) |
 | every other `packages/*/package.json` with `vitest` | `vitest` `^4.1.12`, `@vitest/*` to match; `packages/conformance` keeps its `vitest` peer range and adds `^4.0.0` (`^3.0.0 \|\| ^4.0.0`) |
 | `.changeset/sveltekit-3.md` | §Specification 7 |
 | the architecture documents in `architecture` | updated to current (step 7) |
@@ -146,16 +154,31 @@ matters only when `GENOA_MODE` is unset, and the CLI and core's `build` script a
 validation refuses an explicit `undefined`. The `vitest` browser project uses
 `provider: playwright()` from `@vitest/browser-playwright`, as Vitest 4 requires.
 
+`kit.adapter` is given to `sveltekit()` as `kit.adapter as Adapter | undefined` (`import type { Adapter }
+from '@sveltejs/kit'`): `@genoacms/contracts` types a SvelteKit adapter structurally, without SvelteKit,
+and its `adapt(builder: never)` is not assignable to SvelteKit's `Adapter`.
+
 ### 4. Core's imports
 
 - `package.json` gains `"imports": { "#lib": "./src/lib/index.ts", "#lib/*": "./src/lib/*" }`. If
   core has no `src/lib/index.ts`, the `#lib` entry is left out.
+- `tsconfig.json` extends `$app/tsconfig` instead of `./.svelte-kit/tsconfig.json`, and no longer
+  includes `.svelte-kit/ambient.d.ts`, `env.d.ts` or `non-ambient.d.ts` (F28).
 - Every `$lib/<path>` specifier, including those inside `vi.mock`, `vi.importActual`, `import()` and
   `import type`, becomes `#lib/<path>` with the file's extension: `.js` for a `.ts` module (as
   TypeScript resolves it), `.svelte` and `.svelte.js` as written. `npx sv migrate sveltekit-3` MAY do
   this; the result is checked by the build, `svelte-check` and the tests, not trusted.
 - `$app/environment` becomes `$app/env` in `hooks.server.ts`, `host.server.ts`,
   `database/database.server.ts` and its test.
+- The types SvelteKit 3 moved are imported from their new modules: `SubmitFunction` and
+  `ActionResult` from `$app/forms`, `Handle` from `@sveltejs/kit/hooks` (F28).
+- `resolve()` from `$app/paths` receives a route ID and its parameters where it received a pathname
+  starting with `/`: `resolve('/storage')` becomes `resolve('/(admin)/storage')`, and
+  `` resolve(`/collections/${collectionId}`) `` becomes
+  `resolve('/(admin)/collections/[collectionName]', { collectionName: collectionId })`. The resolved path
+  is the same, and a parameter is inserted as given, as the template literal did; an empty parameter,
+  or one starting or ending with `/`, now throws where it produced a malformed path.
+- `@vitest/browser/context` becomes `vitest/browser` in the two browser tests.
 - No other deprecated API is migrated (§Non-goals).
 
 ### 5. The Cloud Run adapter 2.0.0
@@ -169,7 +192,8 @@ the startup environment of ADP-7 and ADP-8.
   `config.ssr.noExternal` (string or RegExp rules); `ssr.noExternal: true`.
 - `environments.ssr.build.sourcemap: true`.
 - `environments.ssr.build.rolldownOptions.input`: `adapter-index` (`src/index.js`), `handler`
-  (`src/handler.js`), `adapter-env` (`src/env.js`), `adapter-shims` (`src/shims.js`).
+  (`src/handler.js`), `adapter-env` (`src/env.js`). `src/index.js` re-exports `handler` from
+  `./handler.js`.
 - The hand-off specifier `#@genoacms/sveltekit-adapter-cloud-run-functions` is external, with
   `output.paths` mapping it to `../adapter.js`. Chunks from the adapter's own modules are named
   `adapter-[name].js` at the output root, all others `chunks/[name].js`, so the hand-off path holds.
@@ -189,8 +213,10 @@ the startup environment of ADP-7 and ADP-8.
 
 `supports: { read: () => true }`. The adapter does not declare `instrumentation` (§Non-goals).
 
-**The handler** imports `server`, `dir`, `base`, `prerendered`, `origin` and `env_prefix` from the
-hand-off module, and `env` from `./env.js`. `manifest.appPath` (ADP-5's immutable prefix) becomes
+**The handler** imports `server`, `dir`, `base`, `app_path`, `prerendered`, `origin` and `env_prefix`
+from the hand-off module. It installs no polyfills: SvelteKit 3 removed
+`@sveltejs/kit/node/polyfills`, and `src/shims.js` is deleted (ADP-4, F28; the author's decision of
+2026-10-30). `manifest.appPath` (ADP-5's immutable prefix) becomes
 `app_path`. It calls `readStartupEnvironment(process.env, env_prefix)` before `server.init`.
 
 **`readStartupEnvironment(env, prefix)`** in `src/request.js`, the one function behind ADP-7 and
@@ -279,6 +305,10 @@ implementation deletes the originals and the `resolveKitAdapter` import. New:
   removed. In `DEP-10: sets IGNORED_ROUTES to the empty string`, the implementation removes
   `ORIGIN` from the two expected objects, and changes nothing else.
 
+`packages/adapter-gcp/src/deployment/procedure.test.ts` (unit):
+`DEP-10: the request carries exactly the environment of DEP-10 and DEP-14` no longer expects `ORIGIN`. Its `afterEach` adds `vi.clearAllMocks()` after `vi.restoreAllMocks()`,
+which in Vitest 4 no longer clears the call history of `vi.fn()` mocks; no assertion changes.
+
 `packages/adapter-aws/src/deployment/descriptor.test.ts` (unit):
 - `LMB-1: origin returns the origin option` **(xfail)**: as DEP-1's.
 
@@ -305,7 +335,8 @@ implementation deletes the originals and the `resolveKitAdapter` import. New:
   unprefixed name is not the adapter's).
 - `under envPrefix › ADP-7: reads XFF_DEPTH under envPrefix`, which sets `globalThis.ENV_PREFIX` and
   imports `src/env.js`, is removed: §5 removes that global, and the first test above covers the
-  prefixed read.
+  prefixed read. `readStartupEnvironment` is imported by name, without the wrapper the tests used
+  while it did not exist.
 
 `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js` (e2e). The fixture is built with
 SvelteKit 3 and served by the Functions Framework, as today. Its `beforeAll` no longer builds the
@@ -339,6 +370,10 @@ adapter (2.0.0 has no `build` script). Changed:
 - `ADP-3: bundles the server, keeping the app's dependencies external`: `prerendered` and `base`
   are imported from `<out>/adapter.js` instead of `server/manifest.js`, and the `manifest` check
   becomes `server` having `init` and `respond` functions. The `@polka/url` assertion is unchanged.
+- `ADP-4: installs the shims and initializes with process.env` becomes
+  `ADP-4: initializes with process.env`: the function is started without the `NODE_OPTIONS` that
+  deleted `crypto` and `File`, and the assertions are unchanged. The fixture declares `FIXTURE_VALUE`
+  in `src/env.js` and its `/runtime` route reads it from `$app/env/private` (F29).
 - Every other test is unchanged and passes against 2.0.0.
 
 `packages/core` (unit, `vitest run`): no new tests. The whole suite, the permission matrix
@@ -446,3 +481,8 @@ finds nothing open, this RFC is `auditing`, and its findings are fixed by amendi
   pass, not tested: no observable behavior distinguishes it, short of asserting SvelteKit's
   internal file names.
 - Core's Playwright suite, which needs GCP, is not in §Verification; it runs in CI on `main`.
+- An undeclared variable read from `$env/dynamic/private` is `undefined` without an error (F29).
+  `demo-svelte` and the fixture declare theirs; any other consumer migrating a SvelteKit app has to
+  find its own, and no check here would notice one it missed.
+- Without polyfills, the Cloud Run adapter needs a runtime with the `crypto` and `File` globals. The
+  gcp target deploys `nodejs22`; the adapter's own `engines` do not say so.
