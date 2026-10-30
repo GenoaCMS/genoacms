@@ -64,6 +64,7 @@ own before starting the next.
 | [0040](0040-objects-read-as-text-decoded-whole.md) | Objects read as text are decoded whole, as UTF-8 (`storage.md` BF12) | `packages/core` |
 | [0041](0041-agent-collections-and-storage.md) | Agent tools for documents and objects, with documents validated by the service (`agent-access.md` TU12 to TU15; `collections.md` OU6; `storage.md` BU7) | `packages/core`, `packages/docs` |
 | [0042](0042-database-contract.md) | The database contract, with paged and filtered collection queries (`contracts/database.md` CU11 to CU16, CF51 to CF57; `conformance.md` CF7) | `packages/contracts`, `packages/conformance`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-postgres`, `packages/core` |
+| [0043](0043-sveltekit-3.md) | SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0 (`build.md` U15 to U19, D10, D11, F21 to F27) | `packages/core`, `packages/config`, `packages/contracts`, `packages/sveltekit-adapter-cloud-run-functions`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-node`, `packages/demo-svelte`, every package on Vitest |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 
