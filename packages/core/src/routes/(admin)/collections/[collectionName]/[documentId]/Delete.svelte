@@ -25,6 +25,6 @@
 
 <form action="?/delete" method="POST" use:enhance={enhanceDelete}>
   <button type="submit" class="h-full flex items-center px-3" aria-label="Delete">
-    <i class="bi bi-trash text-2xl hover:text-error-500 transition-all"></i>
+    <i class="bi bi-trash text-2xl hover:text-error-600-400 transition-all"></i>
   </button>
 </form>

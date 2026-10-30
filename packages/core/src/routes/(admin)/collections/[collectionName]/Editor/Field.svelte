@@ -20,7 +20,7 @@
 
 {#snippet hintBadge ()}
   {#if hint}
-    <span class="ms-auto text-[0.7rem] font-normal tracking-wide text-surface-500 truncate">{hint}</span>
+    <span class="ms-auto text-[0.7rem] font-normal tracking-wide text-surface-600-400 truncate">{hint}</span>
   {/if}
 {/snippet}
 

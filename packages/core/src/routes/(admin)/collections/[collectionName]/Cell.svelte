@@ -12,8 +12,8 @@
     text: '',
     mono: 'font-mono text-xs',
     number: 'text-end tabular-nums',
-    check: 'text-success-600-400',
-    muted: 'text-surface-500'
+    check: 'text-success-800-200',
+    muted: 'text-surface-600-400'
   }
 </script>
 

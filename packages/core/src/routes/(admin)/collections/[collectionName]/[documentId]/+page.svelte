@@ -73,7 +73,7 @@
 
 <TopPanel>
   <h1 class="flex min-w-0 items-baseline gap-2 text-2xl">
-    <a href={resolve(`/collections/${document.reference.collection.name}`)} class="text-base text-surface-500 hover:text-primary-500 shrink-0">
+    <a href={resolve(`/collections/${document.reference.collection.name}`)} class="text-base text-surface-600-400 hover:text-primary-600-400 shrink-0">
       {document.reference.collection.name}
     </a>
     <span class="text-base text-surface-400-600" aria-hidden="true">/</span>

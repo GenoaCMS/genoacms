@@ -39,7 +39,7 @@
   class="h-full flex items-center px-3"
   onclick={toggleModal}
 >
-  <i class="bi bi-file-plus text-2xl hover:text-warning transition-all"></i>
+  <i class="bi bi-file-plus text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Register a new component" bind:open={isModalOpen}>

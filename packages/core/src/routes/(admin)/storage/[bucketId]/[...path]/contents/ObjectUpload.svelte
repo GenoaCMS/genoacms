@@ -26,7 +26,7 @@
 </script>
 
 <button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Upload object">
-    <i class="bi bi-upload text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-upload text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Upload files" bind:open={isModalOpen}>

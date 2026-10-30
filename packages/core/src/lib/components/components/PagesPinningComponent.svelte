@@ -34,12 +34,12 @@
     <p class="text-sm opacity-70">Checking which pages use this component…</p>
   {:then result}
     {#if result.status === 'fail'}
-      <p class="text-sm text-warning-500">
+      <p class="text-sm text-warning-900-100">
         Could not check which pages use this component: {result.text}
       </p>
     {:else}
       {#if result.pages.length > 0}
-        <p class="text-sm text-error-500 mb-1">
+        <p class="text-sm text-error-700-300 mb-1">
           {result.pages.length === 1 ? '1 published page uses' : `${result.pages.length} published pages use`}
           this component. Deleting it will leave
           {result.pages.length === 1 ? 'that page' : 'those pages'} unable to render it, and visitors
@@ -60,7 +60,7 @@
       {/if}
 
       {#if result.unreadable.length > 0}
-        <p class="text-sm text-warning-500 mt-2">
+        <p class="text-sm text-warning-900-100 mt-2">
           {result.unreadable.length === 1 ? '1 published page could' : `${result.unreadable.length} published pages could`}
           not be read, so
           {result.unreadable.length === 1 ? 'it may use' : 'they may use'}
@@ -70,7 +70,7 @@
       {/if}
     {/if}
   {:catch}
-    <p class="text-sm text-warning-500">
+    <p class="text-sm text-warning-900-100">
       Could not check which pages use this component.
     </p>
   {/await}

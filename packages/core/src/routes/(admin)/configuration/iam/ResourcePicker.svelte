@@ -44,7 +44,7 @@
 
 <div class="space-y-2 pt-1">
   <div class="flex items-center justify-between">
-    <span class="text-xs font-semibold uppercase tracking-wider text-surface-500">Applies to</span>
+    <span class="text-xs font-semibold uppercase tracking-wider text-surface-600-400">Applies to</span>
     <Switch
       checked={anywhere}
       onCheckedChange={(e) => onanywhere(e.checked)}

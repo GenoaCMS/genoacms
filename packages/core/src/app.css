@@ -8,6 +8,37 @@
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
+@utility btn-hover {
+  @variant not-disabled {
+    @variant hover {
+      filter: brightness(90%);
+      @variant dark {
+        filter: brightness(125%);
+      }
+    }
+  }
+}
+
+@utility btn {
+  @apply btn-hover;
+}
+
+@utility btn-icon {
+  @apply btn-hover;
+}
+
+@layer components {
+  :is(
+    [data-scope='navigation']:is([data-part='trigger'], [data-part='trigger-anchor']),
+    [data-scope='combobox']:is([data-part='trigger'], [data-part='clear-trigger']),
+    [data-scope='tabs'][data-part='trigger'],
+    [data-scope='radio-group'][data-part='item'],
+    [data-scope='toast']:is([data-part='action-trigger'], [data-part='close-trigger'])
+  ) {
+    @apply btn-hover;
+  }
+}
+
 @layer base {
 
   /* disable chrome cancel button */

@@ -46,7 +46,7 @@
         aria-label="Save"
         title="Save policy"
       >
-        <i class="bi bi-floppy text-2xl hover:text-warning transition-all"></i>
+        <i class="bi bi-floppy text-2xl hover:text-warning-800-200 transition-all"></i>
       </button>
     </PermissionGate>
   {/snippet}

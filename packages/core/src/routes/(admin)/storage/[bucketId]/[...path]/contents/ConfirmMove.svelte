@@ -25,7 +25,7 @@
 
 {#if isPossible}
   <button type="submit" form="move-form" aria-label="Move here" class="h-full flex items-center px-3">
-    <i class="bi bi-box-arrow-in-down-left text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-box-arrow-in-down-left text-2xl hover:text-warning-800-200 transition-all"></i>
   </button>
 {/if}
 

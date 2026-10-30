@@ -35,7 +35,7 @@
 </script>
 
 <button class="h-full flex items-center cursor-pointer px-3" onclick={toggleModal} aria-label="Update preview URL">
-    <i class="bi bi-input-cursor-text text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-input-cursor-text text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Edit preview URL:" bind:open={isModalOpen}>

@@ -54,12 +54,12 @@
     title={unsaved ? 'Save (unsaved changes)' : 'Save'}
     class="h-full flex items-center px-3 cursor-pointer relative"
   >
-    <i class="bi bi-floppy text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-floppy text-2xl hover:text-warning-800-200 transition-all"></i>
     {#if unsaved}
       <!-- Marked rather than announced. The state is continuous — it is true for as long as the
            author keeps typing — so anything that interrupted would interrupt constantly. -->
       <span
-        class="absolute top-1 right-1 w-2 h-2 rounded-full bg-warning-500"
+        class="absolute top-1 right-1 w-2 h-2 rounded-full bg-warning-700-300"
         aria-hidden="true"
       ></span>
     {/if}

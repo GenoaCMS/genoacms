@@ -18,5 +18,5 @@
   aria-label="Edit the description"
   title="Edit the description and publish"
 >
-  <i class="bi bi-card-list text-2xl hover:text-primary-500 transition-all"></i>
+  <i class="bi bi-card-list text-2xl hover:text-primary-600-400 transition-all"></i>
 </a>

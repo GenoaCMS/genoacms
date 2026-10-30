@@ -109,7 +109,7 @@
         {:else if grouped}
           {#each collection.group() as [groupName, groupItems] (groupName)}
             <SkeletonCombobox.ItemGroup>
-              <SkeletonCombobox.ItemGroupLabel class="text-xs font-semibold text-surface-500 px-2 py-1">
+              <SkeletonCombobox.ItemGroupLabel class="text-xs font-semibold text-surface-600-400 px-2 py-1">
                 {groupName}
               </SkeletonCombobox.ItemGroupLabel>
               {#each groupItems as item (item.value)}

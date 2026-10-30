@@ -19,7 +19,7 @@
     if (className.includes('preset-')) return '' // If class overrides the preset colors
     if (p === 'filled') return 'preset-filled-primary-500'
     if (p === 'tonal') return 'preset-tonal'
-    if (p === 'outlined') return 'preset-outlined-surface-200-800'
+    if (p === 'outlined') return 'preset-outlined-surface-200-800 hover:preset-tonal'
     return 'preset-filled-primary-500'
   }
 </script>

@@ -24,16 +24,16 @@
 {#if selectAction.isActive && !selection.isEmpty}
     <button type="button" aria-label="Confirm selection" onclick={confirmSelection}
     class="h-full flex items-center px-3">
-     <i class="bi bi-check-all text-2xl hover:text-warning transition-all"></i>
+     <i class="bi bi-check-all text-2xl hover:text-warning-800-200 transition-all"></i>
     </button>
   {:else if !selection.isEmpty}
     <button type="button" aria-label="Unselect all" onclick={clearSelection}
     class="h-full flex items-center px-3">
-     <i class="bi bi-slash-square text-2xl hover:text-warning transition-all"></i>
+     <i class="bi bi-slash-square text-2xl hover:text-warning-800-200 transition-all"></i>
     </button>
 {:else}
     <button type="button" aria-label="Select all" onclick={selectAll}
     class="h-full flex items-center px-3">
-     <i class="bi bi-square text-2xl hover:text-warning transition-all"></i>
+     <i class="bi bi-square text-2xl hover:text-warning-800-200 transition-all"></i>
     </button>
 {/if}

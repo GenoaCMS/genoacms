@@ -39,7 +39,7 @@
 </script>
 
 <button class="h-full flex items-center px-3 cursor-pointer" onclick={toggleModal} aria-label="Delete component">
-    <i class="bi bi-trash3 text-2xl hover:text-error-500 transition-all"></i>
+    <i class="bi bi-trash3 text-2xl hover:text-error-600-400 transition-all"></i>
 </button>
 
 <Modal title="Delete the component" bind:open={isModalOpen}>
@@ -50,7 +50,7 @@
             <PagesPinningComponent {uid} />
         {/if}
         {#if refusal}
-            <p class="text-sm text-error-500 mb-2">{refusal}</p>
+            <p class="text-sm text-error-700-300 mb-2">{refusal}</p>
         {/if}
         <form action="?/delete" method="post" use:enhance={enhanceDeletion} class="w-full">
             <Label class="mb-2">

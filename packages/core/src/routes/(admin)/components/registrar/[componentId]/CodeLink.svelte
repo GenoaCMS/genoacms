@@ -18,5 +18,5 @@
   aria-label="Edit the code"
   title="Edit the code"
 >
-  <i class="bi bi-code-square text-2xl hover:text-primary-500 transition-all"></i>
+  <i class="bi bi-code-square text-2xl hover:text-primary-600-400 transition-all"></i>
 </a>

@@ -58,7 +58,7 @@
   <input type="hidden" name={field} {value} />
   <button
     type="submit"
-    class="flex items-center gap-2 px-2 cursor-pointer text-error-500 hover:text-error-600 transition-all"
+    class="flex items-center gap-2 px-2 cursor-pointer text-error-700-300 hover:text-error-900-100 transition-all"
     aria-label={label}
   >
     <i class="bi bi-{icon} text-xl"></i>

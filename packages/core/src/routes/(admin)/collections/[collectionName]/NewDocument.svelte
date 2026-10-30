@@ -54,7 +54,7 @@
   onclick={toggleModal}
 >
   <i
-    class="bi bi-plus-square text-2xl hover:text-warning transition-all"
+    class="bi bi-plus-square text-2xl hover:text-warning-800-200 transition-all"
   ></i>
 </button>
 

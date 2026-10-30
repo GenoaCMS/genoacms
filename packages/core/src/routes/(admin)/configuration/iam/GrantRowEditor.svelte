@@ -82,7 +82,7 @@
       title="Remove grant"
       aria-label="Remove grant"
     >
-      <i class="bi bi-trash text-xl text-error-500 hover:text-error-600 transition-all"></i>
+      <i class="bi bi-trash text-xl text-error-700-300 hover:text-error-900-100 transition-all"></i>
     </button>
   </div>
 </div>

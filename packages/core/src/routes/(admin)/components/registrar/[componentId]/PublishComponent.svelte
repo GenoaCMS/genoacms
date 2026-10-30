@@ -77,7 +77,7 @@
   onclick={toggleModal}
   aria-label="Publish"
 >
-  <i class="bi bi-rocket-takeoff text-2xl hover:text-primary transition-all"></i>
+  <i class="bi bi-rocket-takeoff text-2xl hover:text-primary-600-400 transition-all"></i>
 </button>
 
 <Modal title="Publish the component" bind:open={isModalOpen}>

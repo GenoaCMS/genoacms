@@ -70,6 +70,6 @@
   />
 
   {#if errors}
-    <Helper class="text-error-500">Invalid</Helper>
+    <Helper class="text-error-700-300">Invalid</Helper>
   {/if}
 </div>

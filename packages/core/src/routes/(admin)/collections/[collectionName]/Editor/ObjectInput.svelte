@@ -101,7 +101,7 @@
 <div class="flex flex-col gap-4">
   {#if discriminator}
     <div class="flex flex-wrap items-center gap-3">
-      <span class="text-sm text-surface-500">Variant</span>
+      <span class="text-sm text-surface-600-400">Variant</span>
       <SegmentedControl
         value={selectedSegment}
         onValueChange={(e) => handleSegmentChange(e.value)}

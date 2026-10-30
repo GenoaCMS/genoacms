@@ -31,7 +31,7 @@
 </svelte:head>
 
 <button
-    class="btn-icon preset-tonal hover:preset-filled-surface-50-950"
+    class="btn-icon preset-tonal hover:preset-filled-surface-950-50"
     onclick={toggle}
     aria-label="Toggle Dark Mode"
 >

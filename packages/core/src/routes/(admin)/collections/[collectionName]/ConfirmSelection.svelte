@@ -15,6 +15,6 @@
     onclick={confirmSelection}
     aria-label="Confirm selection"
     class="h-full flex items-center px-3">
-     <i class="bi bi-check-all text-2xl hover:text-warning transition-all"></i>
+     <i class="bi bi-check-all text-2xl hover:text-warning-800-200 transition-all"></i>
     </button>
 {/if}

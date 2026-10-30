@@ -43,7 +43,7 @@
       </div>
       <div class="flex justify-between gap-2">
         <dt class="opacity-70">current key due</dt>
-        <dd class:text-warning-500={standing !== 'scheduled'}>{formatMoment(rotation.dueAt)}</dd>
+        <dd class:text-warning-900-100={standing !== 'scheduled'}>{formatMoment(rotation.dueAt)}</dd>
       </div>
       <p class="opacity-70 pt-1">{rotationExplanation(standing)}</p>
     {/if}

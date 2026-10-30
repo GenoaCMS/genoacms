@@ -37,7 +37,7 @@
 </script>
 
 <button class="h-full flex items-center px-3" onclick={toggleModal} aria-label="Create page">
-    <i class="bi bi-window-plus text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-window-plus text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Create a new page" bind:open={isModalOpen}>

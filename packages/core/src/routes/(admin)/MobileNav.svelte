@@ -15,8 +15,8 @@
         class="flex flex-col items-center">
         <i
           class="bi bi-{pageItem.icon} text-2xl {isActive
-            ? 'text-primary-500'
-            : 'text-surface-500'}"
+            ? 'text-primary-600-400'
+            : 'text-surface-600-400'}"
         ></i>
         <Navigation.TriggerText class="text-xs">
           {pageItem.name}

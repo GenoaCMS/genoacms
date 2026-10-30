@@ -14,7 +14,7 @@
 </script>
 
 <button aria-label="Add account" class="h-full flex items-center px-3 cursor-pointer" onclick={() => { open = true }}>
-  <i class="bi bi-person-badge text-2xl hover:text-warning transition-all"></i>
+  <i class="bi bi-person-badge text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Add account" bind:open>

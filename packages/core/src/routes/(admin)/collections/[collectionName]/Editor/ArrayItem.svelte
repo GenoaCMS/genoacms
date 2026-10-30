@@ -23,7 +23,7 @@
   <div
     use:dragHandle
     aria-label="Drag item {position} to reorder"
-    class="btn-icon btn-icon-sm text-surface-500 hover:text-surface-950-50 cursor-grab active:cursor-grabbing"
+    class="btn-icon btn-icon-sm text-surface-600-400 hover:text-surface-950-50 cursor-grab active:cursor-grabbing"
   >
     <i class="bi bi-grip-vertical text-lg"></i>
   </div>
@@ -35,7 +35,7 @@
     onclick={onremove}
     aria-label="Remove item {position}"
     title="Remove item"
-    class="btn-icon btn-icon-sm text-surface-500 hover:preset-tonal-error"
+    class="btn-icon btn-icon-sm text-surface-600-400 hover:preset-tonal-error"
   >
     <i class="bi bi-trash3"></i>
   </button>
@@ -52,12 +52,12 @@
         aria-controls={bodyId}
         class="flex flex-1 min-w-0 items-center gap-2 py-1.5 text-start text-sm"
       >
-        <i class="bi bi-chevron-right text-xs text-surface-500 transition-transform {isOpen ? 'rotate-90' : ''}"></i>
-        <span class="text-surface-500 tabular-nums">#{position}</span>
+        <i class="bi bi-chevron-right text-xs text-surface-600-400 transition-transform {isOpen ? 'rotate-90' : ''}"></i>
+        <span class="text-surface-600-400 tabular-nums">#{position}</span>
         {#if variant}
           <span class="badge preset-tonal-primary">{variant}</span>
         {/if}
-        <span class="truncate font-medium {summary ? '' : 'text-surface-500 italic font-normal'}">
+        <span class="truncate font-medium {summary ? '' : 'text-surface-600-400 italic font-normal'}">
           {summary || 'Untitled'}
         </span>
       </button>

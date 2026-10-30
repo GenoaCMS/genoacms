@@ -8,9 +8,9 @@
 </script>
 
 <div class="flex items-center gap-3 px-2">
-  <span class="hidden sm:flex items-center gap-1.5 text-xs text-surface-500" aria-live="polite">
+  <span class="hidden sm:flex items-center gap-1.5 text-xs text-surface-600-400" aria-live="polite">
     {#if isDirty}
-      <span class="size-2 rounded-full bg-warning-500"></span>
+      <span class="size-2 rounded-full bg-warning-700-300"></span>
       Unsaved changes
     {:else}
       <i class="bi bi-check2"></i>

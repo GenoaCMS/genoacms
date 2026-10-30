@@ -22,7 +22,7 @@
     onclick={() => selection.selectAll(entries)}
     class="h-full flex items-center px-3"
   >
-    <i class="bi bi-square text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-square text-2xl hover:text-warning-800-200 transition-all"></i>
   </button>
 {:else}
   <button
@@ -31,6 +31,6 @@
     onclick={() => selection.clear()}
     class="h-full flex items-center px-3"
   >
-    <i class="bi bi-slash-square text-2xl hover:text-warning transition-all"></i>
+    <i class="bi bi-slash-square text-2xl hover:text-warning-800-200 transition-all"></i>
   </button>
 {/if}

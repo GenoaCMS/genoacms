@@ -19,7 +19,7 @@
 
 <form action="/?/logout" method="post" use:enhance={enhanceLogout}>
   <button
-    class="btn-icon preset-tonal hover:preset-filled-surface-50-950"
+    class="btn-icon preset-tonal hover:preset-filled-surface-950-50"
     type="submit"
     aria-label="Logout"
   >

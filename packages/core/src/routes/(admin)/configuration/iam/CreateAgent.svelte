@@ -27,7 +27,7 @@
 </script>
 
 <button aria-label="Add agent" class="h-full flex items-center px-3 cursor-pointer" onclick={() => { open = true }}>
-  <i class="bi bi-robot text-2xl hover:text-warning transition-all"></i>
+  <i class="bi bi-robot text-2xl hover:text-warning-800-200 transition-all"></i>
 </button>
 
 <Modal title="Add agent" bind:open>

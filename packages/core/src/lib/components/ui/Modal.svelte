@@ -51,7 +51,7 @@
                 class="card preset-filled-surface-50-950 border border-surface-200-800 p-6 w-full {sizeClass} shadow-xl relative max-h-[90vh] overflow-y-auto {className}"
             >
                 <Dialog.CloseTrigger
-                    class="absolute top-4 right-4 text-surface-500 hover:text-surface-900 bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                    class="absolute top-4 right-4 text-surface-600-400 hover:text-surface-950-50 bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
                     aria-label="Close"
                 >
                     <i class="bi bi-x-lg"></i>

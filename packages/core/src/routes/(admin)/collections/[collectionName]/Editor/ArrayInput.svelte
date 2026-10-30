@@ -90,7 +90,7 @@
   </div>
 
   {#if items.length === 0}
-    <p class="text-sm text-surface-500">No items yet.</p>
+    <p class="text-sm text-surface-600-400">No items yet.</p>
   {/if}
 
   <button

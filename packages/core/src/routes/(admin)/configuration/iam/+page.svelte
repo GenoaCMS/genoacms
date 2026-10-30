@@ -98,7 +98,7 @@
               />
               <form method="POST" action="?/reissueAgentToken" use:enhance={enhanceReissue}>
                 <input type="hidden" name="subject" value={agent.subject} />
-                <button type="submit" class="text-sm cursor-pointer hover:text-warning">New token</button>
+                <button type="submit" class="text-sm cursor-pointer hover:text-warning-800-200">New token</button>
               </form>
               <PermissionGate permission="config:roles:manage">
                 <AssignRoles subject={agent.subject} current={agent.roles} available={roleNames} action="?/updateAgent" />
