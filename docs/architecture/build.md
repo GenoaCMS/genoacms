@@ -123,7 +123,7 @@ the origin cannot be a `secret()` or `env()` reference: a reference fails the bu
 descriptor's validation reason. An operator who still sets `ORIGIN` on a function gets an error at
 startup on GCP (`adapter-gcp/deployment.md` ADP-8). On AWS and Node the variable is ignored.
 
-**D12. Core builds from what it publishes (`cli.md` LF19, CLI-21).** **New** (RFC-0043 amendment). Whatever
+**D12. Core builds from what it publishes (`cli.md` LF19, CLI-21).** RFC-0043 amendment. Whatever
 `genoa build`, `genoa deploy`, `genoa dev` and `genoa rotate-root` load from core imports only
 packages core lists in `dependencies` or `peerDependencies`. Vitest's configuration, which needs
 devDependencies such as `@vitest/browser-playwright`, lives in core's `vitest.config.ts`, which

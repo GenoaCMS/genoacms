@@ -3,7 +3,7 @@ type: architecture
 title: Command-line interface
 prefix: L
 codes: [CLI]
-verified: 813d2b5
+verified: dd74c619
 ---
 
 # Command-line interface
@@ -92,7 +92,7 @@ carry no hint.
 | LF16 | *History.* **The installed command is `cli`, not `genoa`** (CLI-20). `package.json` gives `bin` as a bare path, which npm and pnpm link under the unscoped package name, so after `npm install -D @genoacms/cli` the project has `node_modules/.bin/cli` and `npx genoa` fails with `could not determine executable to run`. The getting-started guide and this document name the command `genoa`. Found by a smoke install of packed tarballs (author, 2026-10-09). || fixed, RFC-0034 |
 | LF17 | **`database` does not close the host when the storage cannot be opened** (CLI-10). The host is created and `storageForBucket` awaited before the `try` whose `finally` closes it, so a rejection leaves the host open. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
 | LF18 | **Cancelling a `database` menu is not handled** (CLI-10). Cancelling the mode menu shows it again, like continue; cancelling the collection menu passes clack's cancel symbol to `deleteObject` as a name. After a deletion the command ends instead of showing the menu again, which CLI-10 does not say. Found by the falsification audit of RFC-0035 on 2026-10-11 by reading the code. | open |
-| LF19 | **`genoa build` fails in every project that installs core 0.5.0** (CLI-21). Two causes, both from RFC-0043, each enough on its own. Core's `vite.config.ts`, which every `vite build`, `vite dev` and `rotate-root` loads, imports `@vitest/browser-playwright`, a devDependency of core that no install outside the repository has: `failed to load config from …/@genoacms/core/vite.config.ts`, `ERR_MODULE_NOT_FOUND`, `cli/vite-failed: vite build exited with 1`. Without that import, SvelteKit refuses the client build with `server_only_import` for every `*.remote.ts` route module, because it treats a remote module under `node_modules` as one only when its package lists `@sveltejs/kit` in `peerDependencies` (`build.md` F31), and core lists it only in `dependencies`. CI did not see either: the repository builds core where it is checked out, with its devDependencies installed and outside any `node_modules`. Found by the author deploying the central instance of `business-framework` (core 0.5.0, cli 0.3.2, pnpm), 2026-10-30, and reproduced with `pnpm pack` tarballs in a fresh project. | open, RFC-0043 amendment |
+| LF19 | *History.* **`genoa build` fails in every project that installs core 0.5.0** (CLI-21). Two causes, both from RFC-0043, each enough on its own. Core's `vite.config.ts`, which every `vite build`, `vite dev` and `rotate-root` loads, imports `@vitest/browser-playwright`, a devDependency of core that no install outside the repository has: `failed to load config from …/@genoacms/core/vite.config.ts`, `ERR_MODULE_NOT_FOUND`, `cli/vite-failed: vite build exited with 1`. Without that import, SvelteKit refuses the client build with `server_only_import` for every `*.remote.ts` route module, because it treats a remote module under `node_modules` as one only when its package lists `@sveltejs/kit` in `peerDependencies` (`build.md` F31), and core lists it only in `dependencies`. CI did not see either: the repository builds core where it is checked out, with its devDependencies installed and outside any `node_modules`. Found by the author deploying the central instance of `business-framework` (core 0.5.0, cli 0.3.2, pnpm), 2026-10-30, and reproduced with `pnpm pack` tarballs in a fresh project. | fixed, RFC-0043 amendment |
 
 ### History
 
@@ -276,6 +276,5 @@ Installing `@genoacms/cli` puts one command of its own on the project's path, na
 
 In a project outside the repository that installs, with pnpm and without devDependencies, `@genoacms/cli`, `@genoacms/core`, `@genoacms/config` and the adapters its config names, as `pnpm pack` packs them, `genoa build` succeeds for an `@genoacms/adapter-node` target and for an `@genoacms/adapter-gcp/deployment` target, and `genoa deploy` succeeds for an `@genoacms/adapter-node` target. Neither needs a package that a GenoaCMS package declares only in `devDependencies` (LF19).
 
-- Test: none yet
+- Test: `packages/cli/e2e/publishedPackages.test.js`
 - Level: e2e
-- State: new (RFC-0043)
