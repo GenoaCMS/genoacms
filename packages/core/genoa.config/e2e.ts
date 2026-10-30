@@ -45,7 +45,7 @@ export default defineConfig({
     databases: { firestore: { provider: 'firestore', collections } }
   },
   languages,
-  deployment: { targets: { local: deploymentTarget('@genoacms/adapter-node', {}) } },
+  deployment: { targets: { local: deploymentTarget('@genoacms/adapter-node', { origin: process.env.GENOACMS_E2E_ORIGIN }) } },
   authorization: {
     roles: {
       Administrator: [{ permission: '*', resource: '*' }],
