@@ -136,6 +136,8 @@ their published packages on 2026-10-30. Paths are inside each package.
 | F25 | **The adapter API changed.** `builder.generateManifest` and `createEntries` throw. `builder.config` has no `kit` key (`builder.config.paths.base`). `rimraf` and `mkdirp` are deprecated. New: `generateServerInstance(dest)`, a module exporting a ready `server`; `builder.manifest`; `builder.mimeTypes`. The Cloud Run adapter calls `generateManifest`, `rimraf`, `mkdirp` and `config.kit.paths.base`, so it fails on SvelteKit 3. | `src/core/adapt/builder.js:218-245`, `types/index.d.ts:136-280`, `sveltekit-adapter-cloud-run-functions/index.js` |
 | F26 | **The toolchain minimums rise.** SvelteKit 3 needs Node ≥ 22.17 and peers TypeScript ^6, Vite ^8.0.12, `@sveltejs/vite-plugin-svelte` ^7 and Svelte ^5.57.1. adapter-node 6 peers `@sveltejs/kit` ^3. Vitest 3 supports Vite up to 7, so Vitest ≥ 4 is needed wherever a Vite config with SvelteKit is loaded. `@genoacms/config` depends on Vite ^7.3 for `runnerImport` (R5) and the `genoa()` plugin, so it must follow core to Vite 8. The repository's engines, `^20.19 \|\| ^22.12 \|\| >=24`, admit Node versions SvelteKit 3 refuses. | `@sveltejs/kit/package.json`, `@sveltejs/adapter-node/package.json`, `vitest/package.json`, `packages/config/package.json`, root `package.json` |
 | F27 | **`runnerImport` survives in Vite 8,** still marked `@experimental` (R5, D1). | `vite/dist/node/index.d.ts:3726-3735` |
+| F28 | **SvelteKit 3 writes its generated `tsconfig.json` to `node_modules/$app/tsconfig.json`** of the app's package, which the app's `tsconfig.json` extends as `$app/tsconfig`. `.svelte-kit/` holds only `generated/` and `types/`. It sets no `include`. The types that moved out of `@sveltejs/kit` are `SubmitFunction` and `ActionResult` (to `$app/forms`) and `Handle` (to `@sveltejs/kit/hooks`). `resolve()` from `$app/paths` takes a route ID, with its parameters, where an argument starts with `/`. `@sveltejs/kit/node/polyfills` is removed; Node ≥ 22 has the `crypto` and `File` globals it installed. | `src/core/sync/write_tsconfig/index.js`, `types/index.d.ts:2931-2951`, `package.json` `exports` |
+| F29 | **`$env/dynamic/private` is an alias of `$app/env/private`,** which exposes only the variables declared with `defineEnvVars` in `src/env.ts`. An undeclared variable reads as `undefined`, with no error. Core reads no `$env` module. | `src/runtime/env/dynamic/private.js`, `src/core/env.js:152-230` |
 
 ## The artifact
 
@@ -175,9 +177,9 @@ Two properties of the output the RFCs must not trip over:
 where the target installs dependencies. Vendored packages (D9) need no registry. Deploying from the
 monorepo therefore needs no published `@genoacms/*` version.
 
-SvelteKit's intermediate `.svelte-kit/` stays inside the installed core package. Moving it would
-break core's `tsconfig.json`, which extends `./.svelte-kit/tsconfig.json`. The build only creates new
-files there and never modifies installed ones.
+SvelteKit's intermediate `.svelte-kit/` stays inside the installed core package, and so does the
+`tsconfig.json` SvelteKit generates at `node_modules/$app/` inside it (F28), which core's `tsconfig.json`
+extends as `$app/tsconfig`. The build only creates new files there and never modifies installed ones.
 
 ## Targets
 
