@@ -6,8 +6,8 @@ status: auditing
 commits: [8ca7b4ed, 71a947c3]
 audit: []
 depends: [23, 33]
-architecture: [architecture/build.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]
-changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 breaking, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible]
+architecture: [architecture/build.md, architecture/contracts/conformance.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]
+changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 breaking, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible, CONF-1 compatible]
 commit-subject: "feat!: SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0 (RFC-0043)"
 ---
 
@@ -338,6 +338,13 @@ target has no statements:
 - `accepts an http(s) origin`: `validate({ origin: 'http://localhost:4173' })` is `[]`.
 - `refuses an origin that is not an absolute http(s) origin`: `validate({ origin: 'localhost' })` and
   `validate({ origin: 'https://a.example/path' })` each return the one reason of §Specification 2.
+
+`packages/conformance/test/package.test.js` (unit): `CONF-1: vitest is a peer dependency, ^3.0.0`
+becomes `CONF-1: vitest is a peer dependency, ^3.0.0 or ^4.0.0`, asserting `'^3.0.0 || ^4.0.0'`.
+
+`packages/language-adapter-ts/src/sast/harness.test.ts` (unit): `accepts a rule that supplies both
+halves` calls `describeRule` while collecting, with an analyzer that raises SAST-01 only for `eval`,
+because Vitest 4 refuses a `describe` inside a test. Its assertion, that no error is thrown, is unchanged.
 
 `packages/core/e2e/*.test.ts` (e2e): unchanged; they pass again once the harness builds with the origin.
 
