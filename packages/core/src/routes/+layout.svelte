@@ -6,6 +6,7 @@
   import { Toast } from '@skeletonlabs/skeleton-svelte'
   import PendingAlert from '$lib/components/PendingAlert.svelte'
   import ConfirmAlert from '$lib/components/ConfirmAlert.svelte'
+  import NavigationProgress from '$lib/components/NavigationProgress.svelte'
 
   interface Props {
     children?: Snippet;
@@ -15,6 +16,7 @@
 
 {@render children?.()}
 
+<NavigationProgress />
 <PendingAlert />
 <ConfirmAlert />
 
