@@ -120,13 +120,13 @@ describe('a project installing the packed packages', () => {
 
   afterAll(() => rmSync(root, { recursive: true, force: true }))
 
-  test.fails('CLI-21: genoa deploy deploys an adapter-node target from the packed packages, installed without devDependencies', () => {
+  test('CLI-21: genoa deploy deploys an adapter-node target from the packed packages, installed without devDependencies', () => {
     assertSucceeded(genoa(project, 'deploy', 'node', '--config', 'genoa.config/production.ts'))
     assert.ok(existsSync(join(project, 'build/package.json')))
     assert.deepEqual(installedTestTooling(project), [])
   }, 5 * MINUTE)
 
-  test.fails('CLI-21: genoa build builds an adapter-gcp target from the packed packages', () => {
+  test('CLI-21: genoa build builds an adapter-gcp target from the packed packages', () => {
     assertSucceeded(genoa(project, 'build', 'gcp', '--config', 'genoa.config/production.ts'))
     assert.ok(existsSync(join(project, '.genoacms/build/package.json')))
   }, 5 * MINUTE)
