@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clientAddress, parseXffDepth, requestUrl } from '../src/request.js';
+import * as requestModule from '../src/request.js';
+
+const ORIGIN_REFUSED =
+	"ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)";
+
+/**
+ * @param {Record<string, string | undefined>} env
+ * @param {string} prefix
+ * @returns {{ xffDepth: number }}
+ */
+const readStartupEnvironment = (env, prefix) =>
+	/** @type {any} */ (requestModule).readStartupEnvironment(env, prefix);
 
 /**
  * @param {Record<string, string | string[]>} headers
@@ -114,6 +126,33 @@ describe('request', () => {
 				'XFF_DEPTH is 1, but X-Forwarded-For has 0 entries'
 			);
 		}
+	});
+
+	it.fails('ADP-7: reads XFF_DEPTH, default 1, with and without a prefix', () => {
+		expect(readStartupEnvironment({}, '')).toEqual({ xffDepth: 1 });
+		expect(readStartupEnvironment({ APP_XFF_DEPTH: '3' }, 'APP_')).toEqual({ xffDepth: 3 });
+		expect(() => readStartupEnvironment({ XFF_DEPTH: '0' }, '')).toThrow(
+			"XFF_DEPTH must be a positive integer, not '0'"
+		);
+	});
+
+	it.fails('ADP-7: refuses another prefixed variable', () => {
+		expect(() => readStartupEnvironment({ APP_OTHER: 'x' }, 'APP_')).toThrow(
+			'You should change envPrefix (APP_) to avoid conflicts with existing environment variables — unexpectedly saw APP_OTHER'
+		);
+	});
+
+	it.fails('ADP-8: refuses ORIGIN, even empty, before any other check', () => {
+		/** @type {Array<[Record<string, string>, string]>} */
+		const refused = [
+			[{ ORIGIN: '' }, ''],
+			[{ ORIGIN: 'https://a.example' }, ''],
+			[{ APP_ORIGIN: 'x', APP_OTHER: 'y' }, 'APP_']
+		];
+		for (const [env, prefix] of refused) {
+			expect(() => readStartupEnvironment(env, prefix)).toThrow(new Error(ORIGIN_REFUSED));
+		}
+		expect(() => readStartupEnvironment({ ORIGIN: 'x' }, 'APP_')).not.toThrow();
 	});
 
 	describe('under envPrefix', () => {

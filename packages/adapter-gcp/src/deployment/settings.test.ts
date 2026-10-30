@@ -65,6 +65,12 @@ describe('function settings', () => {
     })
   })
 
+  it.fails('DEP-14: origin sets no environment variable', () => {
+    const { environmentVariables } = serviceConfig({ origin: 'https://cms.example.com', xffDepth: 2 }) as { environmentVariables: Record<string, string> }
+    expect(environmentVariables).toMatchObject({ XFF_DEPTH: '2' })
+    expect(environmentVariables).not.toHaveProperty('ORIGIN')
+  })
+
   it('DEP-14: refuses an origin with a path or without a scheme, and a depth below 1', () => {
     const reason = "origin must be an absolute http(s) origin such as 'https://cms.example.com'"
     expect(validateSettings({ origin: 'https://cms.example.com/' })).toEqual([reason])

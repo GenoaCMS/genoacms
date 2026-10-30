@@ -277,6 +277,14 @@ describe('the AWS deploy procedure', () => {
     expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: { ...BASE_ENVIRONMENT, ORIGIN: 'https://cms.example' } })
   })
 
+  it.fails('LMB-10: a set origin adds no variable', async () => {
+    await deploy({ origin: 'https://cms.example.com' })
+    expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: BASE_ENVIRONMENT })
+    lambda.resetHistory()
+    await deploy()
+    expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: FORWARDED_ENVIRONMENT })
+  })
+
   it('LMB-11: updates code, then the whole configuration, waiting after each', async () => {
     functionExists()
     await deploy()

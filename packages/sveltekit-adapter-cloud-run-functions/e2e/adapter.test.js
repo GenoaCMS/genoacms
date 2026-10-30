@@ -39,6 +39,8 @@ export function app (req, res) {
 
 const FORWARDED = { 'x-forwarded-proto': 'https', 'x-forwarded-host': 'cms.example' };
 const XFF = '203.0.113.9, 198.51.100.7';
+const ORIGIN_REFUSED =
+	"ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)";
 
 /** @type {Array<() => void>} */
 const running = [];
@@ -81,11 +83,13 @@ function spawnFunction(out, port, env) {
 		{ env: { ...process.env, ...env } }
 	);
 	let output = '';
+	let errors = '';
 	child.stdout.on('data', (chunk) => (output += chunk));
 	child.stderr.on('data', (chunk) => (output += chunk));
+	child.stderr.on('data', (chunk) => (errors += chunk));
 	const exited = new Promise((resolve) => child.on('exit', (code) => resolve(code)));
 	running.push(() => child.kill());
-	return { exited, output: () => output };
+	return { exited, output: () => output, errors: () => errors };
 }
 
 /** @param {string} url @param {Promise<unknown>} exited */
@@ -116,6 +120,17 @@ async function serve(out, env = {}) {
 async function startupFailure(out, env) {
 	const { exited, output } = spawnFunction(out, await freePort(), env);
 	return { code: await exited, output: output() };
+}
+
+/** @param {string} out @param {Record<string, string>} env */
+async function startupOutcome(out, env) {
+	const port = await freePort();
+	const { exited, errors } = spawnFunction(out, port, env);
+	const serving = waitUntilServing(`http://localhost:${port}`, exited).then(
+		() => 'serving',
+		() => exited
+	);
+	return { code: await Promise.race([exited, serving]), stderr: errors() };
 }
 
 /** @param {string} dir @returns {string[]} */
@@ -191,9 +206,17 @@ function installDeepDependency() {
 	});
 }
 
+// ADP-3
+function installSvelteLibrary() {
+	cpSync(join(packageDir, 'e2e', 'svelte-library'), join(e2eModules, 'genoacms-e2e-svelte'), {
+		recursive: true
+	});
+}
+
 beforeAll(() => {
 	run('pnpm', ['run', 'build'], packageDir);
 	installDeepDependency();
+	installSvelteLibrary();
 	buildA = buildFixture('a', {});
 	buildB = buildFixture('b', { FIXTURE_PRECOMPRESS: 'false', FIXTURE_ENV_PREFIX: 'APP_' });
 	buildC = buildFixtureIntoDefaultOut({ FIXTURE_BASE: '/base' });
@@ -222,6 +245,23 @@ describe('the adapter output', () => {
 			expect(existsSync(join(buildA, file))).toBe(true);
 		}
 	});
+
+	it.fails(
+		'ADP-1, ADP-2: writes client assets, prerendered pages and the runtime files into out, precompressed',
+		() => {
+			const files = filesUnder(buildA);
+			const immutable = files.filter((file) => file.includes(join('client', '_app', 'immutable')));
+			expect(immutable.some((file) => file.endsWith('.js'))).toBe(true);
+			expect(immutable.some((file) => file.endsWith('.js.gz'))).toBe(true);
+			expect(immutable.some((file) => file.endsWith('.js.br'))).toBe(true);
+			for (const file of ['about.html', 'about.html.gz', 'about.html.br']) {
+				expect(existsSync(join(buildA, 'prerendered', file))).toBe(true);
+			}
+			for (const file of ['index.js', 'handler.js', 'adapter.js', 'server']) {
+				expect(existsSync(join(buildA, file))).toBe(true);
+			}
+		}
+	);
 
 	it('ADP-1: writes no compressed variants without precompress', () => {
 		const compressed = filesUnder(buildB).filter((file) => /\.(gz|br)$/.test(file));
@@ -280,6 +320,15 @@ describe('the adapter output', () => {
 		expect(deep.status).toBe(200);
 		expect(await deep.text()).toBe('deep import');
 	});
+
+	it('ADP-3: bundles Svelte libraries and keeps other dependencies external', () => {
+		const server = filesUnder(join(buildA, 'server'))
+			.filter((file) => file.endsWith('.js'))
+			.map((file) => readFileSync(file, 'utf-8'))
+			.join('\n');
+		expect(server).not.toMatch(/['"]genoacms-e2e-svelte(\/[^'"]*)?['"]/);
+		expect(server).toMatch(/from ['"]genoacms-e2e-deep\/deep['"]/);
+	});
 });
 
 describe('the served function', () => {
@@ -327,6 +376,16 @@ describe('the served function', () => {
 		expect(response.href).toBe('https://origin.example/echo');
 	});
 
+	it.fails(
+		"ADP-5: takes the request URL from the build's origin over forwarded headers",
+		async () => {
+			const out = buildFixture('origin', { FIXTURE_ORIGIN: 'https://origin.example' });
+			const response = await echo(await serve(out), { 'x-forwarded-host': 'cms.example' });
+			expect(response.href).toBe('https://origin.example/echo');
+		},
+		120_000
+	);
+
 	it('ADP-6: returns the X-Forwarded-For entry XFF_DEPTH positions from the right', async () => {
 		const address = async (/** @type {Record<string, string>} */ env) =>
 			fetch(`${await serve(buildA, env)}/address`, { headers: { 'x-forwarded-for': XFF } });
@@ -351,6 +410,20 @@ describe('the served function', () => {
 		expect(response.href).toBe('https://prefixed.example/echo');
 		const { code } = await startupFailure(buildB, { APP_UNKNOWN: '1' });
 		expect(code).not.toBe(0);
+	});
+
+	it('ADP-1, ADP-7: reads the prefixed XFF_DEPTH with envPrefix, and fails at startup on an unknown prefixed one', async () => {
+		const url = await serve(buildB, { APP_XFF_DEPTH: '2' });
+		const response = await fetch(`${url}/address`, { headers: { 'x-forwarded-for': XFF } });
+		expect(await response.text()).toBe('203.0.113.9');
+		const { code } = await startupFailure(buildB, { APP_OTHER: 'x' });
+		expect(code).not.toBe(0);
+	});
+
+	it.fails('ADP-8: fails at startup when ORIGIN is set', async () => {
+		const { code, stderr } = await startupOutcome(buildA, { ORIGIN: 'https://origin.example' });
+		expect(code).not.toBe(0);
+		expect(stderr).toContain(ORIGIN_REFUSED);
 	});
 
 	it('ADP-4: installs the shims and initializes with process.env', async () => {

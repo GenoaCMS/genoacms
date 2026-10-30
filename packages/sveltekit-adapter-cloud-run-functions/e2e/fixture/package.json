@@ -4,6 +4,7 @@
 	"type": "module",
 	"dependencies": {
 		"@polka/url": "*",
-		"genoacms-e2e-deep": "*"
+		"genoacms-e2e-deep": "*",
+		"genoacms-e2e-svelte": "*"
 	}
 }

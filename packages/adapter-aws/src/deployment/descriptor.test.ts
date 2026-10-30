@@ -19,6 +19,12 @@ describe('the Lambda deployment descriptor', () => {
     expect(descriptor.secretOptions).toEqual({ credentials: 'json' })
   })
 
+  it.fails('LMB-1: origin returns the origin option', () => {
+    const origin = (descriptor as unknown as { origin: (options: object) => string | undefined }).origin
+    expect(origin({ ...base, origin: 'https://cms.example.com' })).toBe('https://cms.example.com')
+    expect(origin(base)).toBeUndefined()
+  })
+
   it('AWS-2, AWS-3, LMB-2: requires region, role and artifactBucket, and refuses accountId', () => {
     const reasons = validate({ accountId: '1' })
     expect(reasons).toContain("unknown option 'accountId'")

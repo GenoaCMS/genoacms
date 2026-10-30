@@ -1,0 +1,11 @@
+{
+	"name": "genoacms-e2e-svelte",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"svelte": "./index.js",
+			"default": "./index.js"
+		}
+	}
+}

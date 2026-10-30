@@ -11,9 +11,16 @@ function adapterOptions() {
 	return options;
 }
 
+/** @returns {Record<string, string>} */
+function paths() {
+	const paths = { base: process.env.FIXTURE_BASE ?? '' };
+	if (process.env.FIXTURE_ORIGIN !== undefined) paths.origin = process.env.FIXTURE_ORIGIN;
+	return paths;
+}
+
 export default {
 	kit: {
 		adapter: adapter(adapterOptions()),
-		paths: { base: process.env.FIXTURE_BASE ?? '' }
+		paths: paths()
 	}
 };

@@ -19,6 +19,12 @@ describe('the GCP deployment descriptor', () => {
     expect(typeof (await descriptor.procedure()).default).toBe('function')
   })
 
+  it.fails('DEP-1: origin returns the origin option', () => {
+    const origin = (descriptor as unknown as { origin: (options: object) => string | undefined }).origin
+    expect(origin({ projectId: 'p', region: 'r', origin: 'https://cms.example.com' })).toBe('https://cms.example.com')
+    expect(origin({ projectId: 'p', region: 'r' })).toBeUndefined()
+  })
+
   it('DEP-2: accepts every function setting and reports an invalid one', () => {
     const validate = descriptor.validate as (options: unknown) => string[]
     const settings = { runtime: 'nodejs24', memory: '1Gi', timeoutSeconds: 60, minInstances: 0, maxInstances: 2, ingress: 'all', serviceAccount: 'cms@p.iam.gserviceaccount.com' }
