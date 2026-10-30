@@ -123,6 +123,22 @@ the origin cannot be a `secret()` or `env()` reference: a reference fails the bu
 descriptor's validation reason. An operator who still sets `ORIGIN` on a function gets an error at
 startup on GCP (`adapter-gcp/deployment.md` ADP-8). On AWS and Node the variable is ignored.
 
+**D12. Core builds from what it publishes (`cli.md` LF19, CLI-21).** **New** (RFC-0043 amendment). Whatever
+`genoa build`, `genoa deploy`, `genoa dev` and `genoa rotate-root` load from core imports only
+packages core lists in `dependencies` or `peerDependencies`. Vitest's configuration, which needs
+devDependencies such as `@vitest/browser-playwright`, lives in core's `vitest.config.ts`, which
+Vitest prefers to `vite.config.ts` and Vite never loads; it extends the Vite config. Core also lists
+`@sveltejs/kit` in `peerDependencies`, with the range of its `dependencies` entry, so SvelteKit
+treats core's `*.remote.ts` modules as remote functions when core is installed (F31). A test packs
+the packages, installs them into a fresh project without devDependencies, and builds there.
+*Why:* the repository builds core in place, with every devDependency installed and outside
+`node_modules`, which is the one setting no user has. Only a build of the packed packages sees what
+users see.
+*Cost:* core keeps two configs, and a test option written into `vite.config.ts` silently does
+nothing under Vitest. The peer makes pnpm and npm install `@sveltejs/kit` for the project as well,
+and warn when the project pins another major. The packed build is the slowest end-to-end test, and
+installs core's dependencies from the registry on every run.
+
 ## SvelteKit 3
 
 Facts about SvelteKit 3.1.1, `@sveltejs/adapter-node` 6.0.1, Vite 8.0.12 and Vitest 4.1, read from
@@ -140,6 +156,7 @@ their published packages on 2026-10-30. Paths are inside each package.
 | F28 | **SvelteKit 3 writes its generated `tsconfig.json` to `node_modules/$app/tsconfig.json`** of the app's package, which the app's `tsconfig.json` extends as `$app/tsconfig`. `.svelte-kit/` holds only `generated/` and `types/`. It sets no `include`. The types that moved out of `@sveltejs/kit` are `SubmitFunction` and `ActionResult` (to `$app/forms`) and `Handle` (to `@sveltejs/kit/hooks`). `resolve()` from `$app/paths` takes a route ID, with its parameters, where an argument starts with `/`. `@sveltejs/kit/node/polyfills` is removed; Node ≥ 22 has the `crypto` and `File` globals it installed. | `src/core/sync/write_tsconfig/index.js`, `types/index.d.ts:2931-2951`, `package.json` `exports` |
 | F29 | **`$env/dynamic/private` is an alias of `$app/env/private`,** which exposes only the variables declared with `defineEnvVars` in `src/env.ts`. An undeclared variable reads as `undefined`, with no error. Core reads no `$env` module. | `src/runtime/env/dynamic/private.js`, `src/core/env.js:152-230` |
 | F30 | **adapter-node 6 assumes `https` without `PROTOCOL_HEADER`.** With no `paths.origin` and no protocol header, the request origin is `https://<host>`. A server reached over plain HTTP, such as `node build` on `http://localhost`, then fails SvelteKit's CSRF check on every form post, because the browser's `Origin` is `http://…`. `ORIGIN`, which used to fix this, is ignored. Core's end-to-end harness passed `ORIGIN`, and its sign-in failed on SvelteKit 3. | `@sveltejs/adapter-node/src/handler.js:153-183` |
+| F31 | **A remote module inside `node_modules` counts only when its package peers on SvelteKit.** `is_remote_module` accepts a `*.remote.*` file whose path contains `node_modules` only when a `package.json` in one of the directories above it, up to the enclosing `node_modules`, lists `@sveltejs/kit` in `peerDependencies`. Otherwise the file is an ordinary module, its server-only imports reach the client build, and the guard fails it with `server_only_import`. Core lists `@sveltejs/kit` only in `dependencies`, so its remote functions work in the repository and fail wherever core is installed (`cli.md` LF19). | `@sveltejs/kit/src/exports/vite/utils.js:152-192`, `src/exports/vite/plugins/guard.js` |
 
 ## The artifact
 

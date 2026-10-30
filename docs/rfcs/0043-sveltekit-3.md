@@ -6,8 +6,8 @@ status: auditing
 commits: [8ca7b4ed, 71a947c3]
 audit: []
 depends: [23, 33]
-architecture: [architecture/build.md, architecture/contracts/conformance.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]
-changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 breaking, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible, CONF-1 compatible]
+architecture: [architecture/build.md, architecture/cli.md, architecture/contracts/conformance.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]
+changes: [DEP-1 compatible, DEP-14 compatible, ADP-2 compatible, ADP-3 compatible, ADP-4 breaking, ADP-5 breaking, ADP-7 breaking, ADP-8 added, LMB-1 compatible, LMB-10 compatible, CONF-1 compatible, CLI-21 added]
 commit-subject: "feat!: SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0 (RFC-0043)"
 ---
 
@@ -34,6 +34,20 @@ decisions are U15 to U19 (2026-10-30). This RFC:
 5. **Raises the toolchain** in every package that builds or tests with SvelteKit or Vite: Node
    ≥ 22.17, TypeScript 6, Vite 8, `@sveltejs/vite-plugin-svelte` 7, Svelte ≥ 5.57.1, Vitest 4,
    `@sveltejs/adapter-node` 6 (F26).
+
+**Amendment, 2026-10-30: core builds from its published package (`cli.md` LF19, `build.md` D12,
+F31).** Core 0.5.0, released from this RFC, fails `genoa build` in every project that installs it.
+Its `vite.config.ts` imports `@vitest/browser-playwright`, a devDependency, for §3's browser
+provider; and it lists `@sveltejs/kit` only in `dependencies`, so SvelteKit 3 does not treat its
+`*.remote.ts` modules as remote functions once core sits in `node_modules` (F31). CI built core only
+in place. The amendment:
+
+6. **Moves Vitest's configuration into `packages/core/vitest.config.ts`**, which extends the Vite
+   config, so `vite.config.ts` keeps only what a build needs (§8).
+7. **Adds `@sveltejs/kit` to core's `peerDependencies`** (§8).
+8. **Adds CLI-21 and its end-to-end test**, which packs the packages, installs them with pnpm into a
+   fresh project without devDependencies, and runs `genoa deploy` and `genoa build` there. It runs
+   in CI's `e2e` job. Released as `@genoacms/core` 0.5.1.
 
 ## Files
 
@@ -92,6 +106,12 @@ decisions are U15 to U19 (2026-10-30). This RFC:
 | every other `packages/*/package.json` with `vitest` | `vitest` `^4.1.12`, `@vitest/*` to match; `packages/conformance` keeps its `vitest` peer range and adds `^4.0.0` (`^3.0.0 \|\| ^4.0.0`) |
 | `.changeset/sveltekit-3.md` | §Specification 7 |
 | the architecture documents in `architecture` | updated to current (step 7) |
+| `packages/core/vite.config.ts` | amendment: no test configuration, no `@vitest/browser-playwright`, no `GENOA_CONFIG` fallback; `defineConfig` from `vite` (§8) |
+| `packages/core/vitest.config.ts` | amendment, new: the test configuration, extending `vite.config.ts` (§8) |
+| `packages/core/tsconfig.json` | amendment: `include` adds `vitest.config.ts` |
+| `packages/core/package.json` | amendment: `peerDependencies` (§8) |
+| `packages/cli/e2e/publishedPackages.test.js` | amendment, new: the CLI-21 tests (§Tests) |
+| `.changeset/core-builds-from-published-packages.md` | amendment, new (§8) |
 
 ## Specification
 
@@ -162,7 +182,8 @@ export default defineConfig(async ({ mode: viteMode }) => ({
 matters only when `GENOA_MODE` is unset, and the CLI and core's `build` script always set it.
 `paths.origin` is omitted, not set to `undefined`, when `kit.origin` is `undefined`, if SvelteKit's
 validation refuses an explicit `undefined`. The `vitest` browser project uses
-`provider: playwright()` from `@vitest/browser-playwright`, as Vitest 4 requires.
+`provider: playwright()` from `@vitest/browser-playwright`, as Vitest 4 requires, in
+`vitest.config.ts` since the amendment (§8).
 
 `kit.adapter` is given to `sveltekit()` as `kit.adapter as Adapter | undefined` (`import type { Adapter }
 from '@sveltejs/kit'`): `@genoacms/contracts` types a SvelteKit adapter structurally, without SvelteKit,
@@ -275,6 +296,68 @@ packages; `peerDependencies`: `@sveltejs/kit ^3.0.0`; devDependencies to §6's v
 
 Every package whose `engines` or dependency ranges change gets at least a patch.
 
+### 8. Core builds from its published package (amendment)
+
+CLI-21 is added to `cli.md`; its text is in that document. pnpm is the installer because its layout
+exposes to each package only what that package declares, so it also catches an import of an
+undeclared package that npm's hoisting would hide.
+
+`packages/core/vite.config.ts` keeps its imports of `@sveltejs/kit/vite`, `@sveltejs/kit` (type),
+`@sveltejs/vite-plugin-svelte`, `@tailwindcss/vite`, `@genoacms/config/vite` and
+`@genoacms/config/load`, the `resolveKitTarget` call and `kitPlugins`, and exports:
+
+```ts
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [genoa(), tailwindcss(), kitPlugins],
+  ssr: { noExternal: [] },
+  server: { fs: { allow: ['../..'] } },
+  optimizeDeps: { include: [] }
+})
+```
+
+It imports nothing from `vitest`, `@vitest/*` or `node:url`, and does not read `VITEST`.
+
+`packages/core/vitest.config.ts` holds what `vite.config.ts` held for Vitest, unchanged in meaning:
+
+```ts
+import { playwright } from '@vitest/browser-playwright'
+import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
+import type { ViteUserConfig } from 'vitest/config'
+import { fileURLToPath } from 'node:url'
+
+process.env.GENOA_CONFIG ??= fileURLToPath(new URL('./genoa.config/test.ts', import.meta.url))
+
+const { default: viteConfig } = await import('./vite.config.ts')
+
+const BROWSER_TESTS = 'src/**/*.browser.test.ts'
+const endToEndTests: ViteUserConfig['test'] = { /* as before */ }
+const unitTests: ViteUserConfig['test'] = { /* as before: projects `node` and `browser` */ }
+
+export default defineConfig(({ mode }) => mergeConfig(viteConfig, {
+  test: mode === 'e2e' ? endToEndTests : unitTests
+}))
+```
+
+`GENOA_CONFIG` is set before `vite.config.ts` is evaluated, which is why that file is imported
+dynamically: `vite.config.ts` reads the environment at its top level (D10). Vitest loads
+`vitest.config.ts` in preference to `vite.config.ts`; Vite never loads it.
+
+`packages/core/package.json` gains `"peerDependencies": { "@sveltejs/kit": "^3.1.1" }` and keeps
+`@sveltejs/kit` `^3.1.1` in `dependencies`.
+
+`.changeset/core-builds-from-published-packages.md`:
+
+```md
+---
+'@genoacms/core': patch
+---
+
+`genoa build` works again where core is installed: core's Vite config no longer needs a
+devDependency, and core peers on `@sveltejs/kit` so SvelteKit finds its remote functions.
+```
+
 ## Non-goals
 
 - `packages/docs`: sveltepress is not known to support SvelteKit 3. It stays on SvelteKit 2.
@@ -285,6 +368,7 @@ Every package whose `engines` or dependency ranges change gets at least a patch.
 - Remote functions: they stay `experimental.remoteFunctions: true`, unchanged.
 - Moving `.svelte-kit/` or Vite's temporary files out of the installed core (D7's cost).
 - Any statement of core's architecture documents: none names a changed API.
+- Amendment: moving `vitest` or any other package between core's `dependencies` and `devDependencies` (`build.md` U6); a `files` field for core or the CLI; deploying to GCP or AWS from the packed packages; npm and yarn installs; `genoa dev` and `genoa rotate-root`, which load the same `vite.config.ts` as `build`.
 
 ## Tests
 
@@ -406,6 +490,26 @@ adapter (2.0.0 has no `build` script). Changed:
 `packages/core` (unit, `vitest run`): no new tests. The whole suite, the permission matrix
 (`evidence/`) included, passes after the import migration with its assertions unchanged.
 
+`packages/cli/e2e/publishedPackages.test.js` (e2e), amendment. A `beforeAll` (10 minutes) packs, with
+`pnpm pack`, every workspace package reachable from `@genoacms/cli`, `core`, `config`,
+`adapter-node`, `adapter-gcp` and `authentication-adapter-array` through `workspace:` entries of
+`dependencies` and `peerDependencies`; writes, in a new directory under the OS temporary directory, a
+`package.json` whose `dependencies` and `pnpm.overrides` map each packed name to `file:<tarball>`, with
+the repository's `packageManager`, and a `genoa.config/production.ts` with an array authentication
+provider (`inline([])` credentials), `adapter-gcp` secrets, storage and database providers, and two
+targets, `node` (`@genoacms/adapter-node`, `{}`) and `gcp` (`@genoacms/adapter-gcp/deployment` with
+`inline({})` credentials); and runs `pnpm install --prod`, which must exit 0. `afterAll` removes it all.
+- `CLI-21: genoa deploy deploys an adapter-node target from the packed packages, installed without devDependencies` **(xfail)**:
+  when `genoa deploy node --config genoa.config/production.ts` runs in the project, then it exits 0,
+  `<project>/build/package.json` exists, and `node_modules/.pnpm` holds no `@vitest+browser-playwright@`
+  and no `@playwright+test@` entry, so the install had none of core's test tooling.
+- `CLI-21: genoa build builds an adapter-gcp target from the packed packages` **(xfail)**: when
+  `genoa build gcp --config genoa.config/production.ts` runs in the project, then it exits 0 and
+  `<project>/.genoacms/build/package.json` exists.
+
+Core's component browser tests are unchanged and keep running in Chromium through
+`vitest.config.ts`'s `browser` project.
+
 ## Steps
 
 1. Baseline, recorded before any change: `pnpm -r run test` counts per package; core's
@@ -428,6 +532,12 @@ adapter (2.0.0 has no `build` script). Changed:
    `verified` in the two deployment documents; this RFC `auditing` with `commits`. Commit:
    `docs: SvelteKit 3 current (RFC-0043)`.
 8. Audit, then `implemented` (WORKFLOW §8.2).
+9. Amendment (LF19), in WORKFLOW §8.3's order: this RFC with `cli.md` LF19 and CLI-21 **New** and
+   `build.md` F31 and D12; then the CLI-21 tests as `test.fails`
+   (`test(cli): CLI-21, core builds from the packed packages (RFC-0043)`); then §8, the markers
+   removed without changing an assertion
+   (`fix(core): build from the published package, without devDependencies (RFC-0043)`); then
+   `cli.md` and `build.md` current, and the two commits added to `commits`.
 
 ## Verification
 
@@ -459,11 +569,20 @@ node docs/tools/check-docs.mjs docs
 # 0 error(s)
 ```
 
+Amendment:
+
+```bash
+pnpm --filter @genoacms/core run test:unit
+# core's browser project runs the same number of tests as before the amendment, in Chromium
+(cd packages/cli && pnpm exec vitest run --mode e2e e2e)
+# 2 passed
+```
+
 Live: the author deploys core to GCP with `origin` set and signs in. Expected: the sign-in form posts
 without a CSRF 403, and `ORIGIN` is absent from the function's environment in the console. This also
 confirms the buildpack installs the new runtime `package.json`.
 
-A falsification audit of DEP-1, DEP-14, ADP-2 to ADP-8, LMB-1 and LMB-10 (WORKFLOW §6.3), by an
+A falsification audit of DEP-1, DEP-14, ADP-2 to ADP-8, LMB-1, LMB-10 and CLI-21 (WORKFLOW §6.3), by an
 agent that did not write the code, recorded as a Verification entry and named in `audit`. Until it
 finds nothing open, this RFC is `auditing`, and its findings are fixed by amending it (WORKFLOW §8.2).
 
@@ -477,6 +596,9 @@ finds nothing open, this RFC is `auditing`, and its findings are fixed by amendi
 - A leftover `ORIGIN` fails loudly on GCP instead of silently serving the wrong origin.
 - `resolveKitTarget` keeps all deployment knowledge in descriptors: core's Vite config stays free of
   target names.
+- Amendment: the build config holds nothing a build does not need, and CLI-21's test builds the
+  exact artifacts `changeset publish` uploads, installed as users install them, so it also catches a
+  missing file, an undeclared import or an unbuilt `dist/`.
 
 **Cons & trade-offs**
 - One large change across about 330 files, most of them the `$lib` migration. Review is of the
@@ -489,6 +611,9 @@ finds nothing open, this RFC is `auditing`, and its findings are fixed by amendi
   upstream changes by hand.
 - The Svelte libraries in core's `dependencies` are now bundled: the server output grows, and an
   update of one of them needs a rebuild, as any bundled code does.
+- Amendment: two config files, and a test option placed in `vite.config.ts` is ignored by Vitest
+  without an error. The peer makes package managers install or check `@sveltejs/kit` against the
+  project. CLI-21's test installs from the registry and builds core twice: minutes, with network.
 
 **Blindspots & missed edge cases**
 - S-1 (adapter runtimes stay external, loaded by a non-literal import) was verified under Rollup.
@@ -513,3 +638,8 @@ finds nothing open, this RFC is `auditing`, and its findings are fixed by amendi
   find its own, and no check here would notice one it missed.
 - Without polyfills, the Cloud Run adapter needs a runtime with the `crypto` and `File` globals. The
   gcp target deploys `nodejs22`; the adapter's own `engines` do not say so.
+- Amendment: CLI-21 runs no GCP or AWS deploy, no `genoa dev`, and only pnpm 10.6.1, the
+  repository's version; the reporting user runs pnpm 12. The test packs the working tree, so a stale
+  local `dist/` tests stale code.
+- Amendment: that this RFC shipped a release no user could build shows §Verification ran only in
+  place; the "Live" deploy was from the repository, not from an install.
