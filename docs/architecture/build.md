@@ -24,6 +24,7 @@ targets, and the lifecycle of a project from development to a production cold st
 | U17 | 2026-10-30: core imports its own modules through `#lib` subpath imports (`package.json` `imports`), not the deprecated `alias` that would keep `$lib` (F22). | A mechanical migration of every `$lib` import and `vi.mock('$lib/…')` call in core, committed on its own. |
 | U18 | 2026-10-30: the Cloud Run adapter bundles the server in Vite's own build, as adapter-node 6 does, instead of a second Rollup pass (F24). | `adapter-gcp/deployment.md` ADP-3 and ADP-4 change. The adapter drops its Rollup dependencies. Svelte libraries in core's `dependencies` are bundled, not external. |
 | U19 | 2026-10-30: the Cloud Run adapter supports SvelteKit 3 only, released as 2.0.0. | Its peer dependency is `@sveltejs/kit ^3`. SvelteKit 2 users stay on 1.x. |
+| U20 | 2026-10-30: the `@genoacms/adapter-node` target gets an optional `origin` option, fixed at build time like the `gcp` and `aws` targets' (F30). | D11 covers every target. A server reached over plain HTTP sets `origin`; without it the origin is `https://` plus the host. RFC-0043. |
 
 **D6. A build produces a self-contained, self-describing artifact.** It contains the SvelteKit output
 and a generated `package.json`, pinned to the installed versions. That file lists the packages the
@@ -138,6 +139,7 @@ their published packages on 2026-10-30. Paths are inside each package.
 | F27 | **`runnerImport` survives in Vite 8,** still marked `@experimental` (R5, D1). | `vite/dist/node/index.d.ts:3726-3735` |
 | F28 | **SvelteKit 3 writes its generated `tsconfig.json` to `node_modules/$app/tsconfig.json`** of the app's package, which the app's `tsconfig.json` extends as `$app/tsconfig`. `.svelte-kit/` holds only `generated/` and `types/`. It sets no `include`. The types that moved out of `@sveltejs/kit` are `SubmitFunction` and `ActionResult` (to `$app/forms`) and `Handle` (to `@sveltejs/kit/hooks`). `resolve()` from `$app/paths` takes a route ID, with its parameters, where an argument starts with `/`. `@sveltejs/kit/node/polyfills` is removed; Node ≥ 22 has the `crypto` and `File` globals it installed. | `src/core/sync/write_tsconfig/index.js`, `types/index.d.ts:2931-2951`, `package.json` `exports` |
 | F29 | **`$env/dynamic/private` is an alias of `$app/env/private`,** which exposes only the variables declared with `defineEnvVars` in `src/env.ts`. An undeclared variable reads as `undefined`, with no error. Core reads no `$env` module. | `src/runtime/env/dynamic/private.js`, `src/core/env.js:152-230` |
+| F30 | **adapter-node 6 assumes `https` without `PROTOCOL_HEADER`.** With no `paths.origin` and no protocol header, the request origin is `https://<host>`. A server reached over plain HTTP, such as `node build` on `http://localhost`, then fails SvelteKit's CSRF check on every form post, because the browser's `Origin` is `http://…`. `ORIGIN`, which used to fix this, is ignored. Core's end-to-end harness passed `ORIGIN`, and its sign-in failed on SvelteKit 3. | `@sveltejs/adapter-node/src/handler.js:153-183` |
 
 ## The artifact
 
@@ -185,7 +187,7 @@ extends as `$app/tsconfig`. The build only creates new files there and never mod
 
 | Target | SvelteKit adapter | Procedure |
 | :-- | :-- | :-- |
-| `@genoacms/adapter-node` | `@sveltejs/adapter-node` | Copies `buildDir` to `options.outDir` (default `<project>/build`). The operator runs `npm install --omit=dev` there, as with any adapter-node output. |
+| `@genoacms/adapter-node` | `@sveltejs/adapter-node` | `origin`, when set, is the build's `paths.origin` (U20). Copies `buildDir` to `options.outDir` (default `<project>/build`). The operator runs `npm install --omit=dev` there, as with any adapter-node output. |
 | `@genoacms/adapter-gcp/deployment` | `@genoacms/sveltekit-adapter-cloud-run-functions` | Archives `buildDir`. Adds a generated `function.js` that exports `genoacms` from the build's handler, and sets `"main": "function.js"` in the archived `package.json`. Uploads, then creates or updates the function. Buildpacks install the dependencies (R4). **No project source and no config leave the machine** (fixes F9, F15). GCP specifics, findings and IAM: [`adapter-gcp/deployment.md`](adapter-gcp/deployment.md). |
 | `@genoacms/adapter-aws/deployment` | `@sveltejs/adapter-node` + the Lambda wrapper | Ported (F14). Lambda does not install dependencies, so the procedure runs `npm install --omit=dev` in its `workDir` before zipping. |
 
