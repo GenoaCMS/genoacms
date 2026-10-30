@@ -95,6 +95,8 @@
 		"@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^",
 		"@playwright/test": "^1.28.1",
 		"@sveltejs/adapter-node": "^6.0.1",
+		"@types/node": "^22.17.0",
+		"@vitest/browser-playwright": "^4.1.12",
 		"dotenv": "^16.4.5",
 		"eslint": "^9.18.0",
 		"eslint-plugin-svelte": "^3.0.0",
@@ -104,7 +106,6 @@
 		"playwright": "1.62.1",
 		"svelte-check": "^4.7.7",
 		"typescript-eslint": "^8.26.1",
-		"vite-node": "^6.0.0",
-		"@vitest/browser-playwright": "^4.1.12"
+		"vite-node": "^6.0.0"
 	}
 }
