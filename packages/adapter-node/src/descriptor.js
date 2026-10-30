@@ -1,13 +1,19 @@
 import { isAbsolute, normalize } from 'node:path'
 import { defineDeploymentTarget } from '@genoacms/contracts'
 
+const OPTION_KEYS = ['outDir', 'origin']
+const ORIGIN = /^https?:\/\/[^/\s]+$/
+
 /**
  * @param {unknown} options
  * @returns {string[]}
  */
 function validate (options) {
   const o = /** @type {Record<string, unknown>} */ (options ?? {})
-  const reasons = Object.keys(o).filter(key => key !== 'outDir').map(key => `unknown option '${key}'`)
+  const reasons = Object.keys(o).filter(key => !OPTION_KEYS.includes(key)).map(key => `unknown option '${key}'`)
+  if (o.origin !== undefined && !(typeof o.origin === 'string' && ORIGIN.test(o.origin))) {
+    reasons.push("origin must be an absolute http(s) origin such as 'https://cms.example.com'")
+  }
   if (o.outDir === undefined) return reasons
   if (typeof o.outDir !== 'string' || o.outDir === '') return [...reasons, 'outDir must be a non-empty string']
   const normalized = normalize(o.outDir)
@@ -26,6 +32,7 @@ function validate (options) {
 export default defineDeploymentTarget({
   svelteKitAdapter: async () => await import('@sveltejs/adapter-node'),
   svelteKitOptions: (_options, { outDir }) => ({ out: outDir }),
+  origin: options => options.origin,
   procedure: async () => await import('./procedure.js'),
   validate
 })
