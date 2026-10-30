@@ -104,7 +104,7 @@ reported one unhandled error, from CF6's assertion.
 
 `@genoacms/conformance` exports one function per suite. Each takes a constructed adapter instance and
 a fixture, never a configuration, and registers a vitest suite when called, so it is called at the top
-level of a test file or inside a `describe`. `vitest` is a peer dependency, `^3.0.0`.
+level of a test file or inside a `describe`. `vitest` is a peer dependency, `^3.0.0 || ^4.0.0`.
 
 ```ts
 declare function runStorageConformance (adapter: StorageAdapter, fixture: { bucket: string }): void
