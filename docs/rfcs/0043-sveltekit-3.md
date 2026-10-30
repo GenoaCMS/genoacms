@@ -2,8 +2,8 @@
 type: rfc
 number: 43
 title: SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0
-status: draft
-commits: []
+status: auditing
+commits: [8ca7b4ed, 71a947c3]
 audit: []
 depends: [23, 33]
 architecture: [architecture/build.md, architecture/configuration.md, architecture/contracts/adapter-model.md, architecture/adapter-gcp/deployment.md, architecture/adapter-aws/deployment.md]

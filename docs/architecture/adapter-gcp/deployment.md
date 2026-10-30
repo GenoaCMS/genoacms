@@ -2,7 +2,7 @@
 type: architecture
 title: GCP deployment: Cloud Run functions
 codes: [DEP, ADP]
-verified: a830c48
+verified: 71a947c
 ---
 
 # GCP deployment: Cloud Run functions
@@ -308,6 +308,5 @@ At startup the handler reads `<envPrefix>XFF_DEPTH`, which defaults to `1`. A va
 
 When `<envPrefix>ORIGIN` is set, to any value, the empty string included, the handler throws at startup: `ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)`, before the check of ADP-7. The function then fails to start instead of serving with an origin the operator did not mean (GD5).
 
-- Test: none yet
+- Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e
-- State: new (RFC-0043)

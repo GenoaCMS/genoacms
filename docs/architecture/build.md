@@ -19,7 +19,7 @@ targets, and the lifecycle of a project from development to a production cold st
 | U2 | GCP does not have to build remotely. **Build locally, ship the bundle**, still without uploading `node_modules`. | Build output carries a generated `package.json` of runtime dependencies; the platform installs them (*The artifact*). |
 | U6 | Core's `dependencies` stay as they are: `vite` and the build tooling are genuinely needed where core is installed as a package and built by the user. | The runtime `package.json` is derived from what the server bundle imports, not from core's `dependencies` (*The artifact*). |
 | U10 | The live GCP spike (S-4) is skipped until the production config exists. That config uses `@genoacms/adapter-gcp/secrets`. | The first real GCP deploy is part of the GCP deployment RFC's verification ([`configuration.md`](configuration.md) *Verification before any RFC was written*). |
-| U15 | 2026-10-30: GenoaCMS moves to SvelteKit 3, including `@genoacms/sveltekit-adapter-cloud-run-functions`, which is part of the project. | The toolchain minimums of F26 apply to every package that builds or tests with SvelteKit (*SvelteKit 3*). D10 and D11; pending RFC-0043. |
+| U15 | 2026-10-30: GenoaCMS moves to SvelteKit 3, including `@genoacms/sveltekit-adapter-cloud-run-functions`, which is part of the project. | The toolchain minimums of F26 apply to every package that builds or tests with SvelteKit (*SvelteKit 3*). D10 and D11, RFC-0043. |
 | U16 | 2026-10-30: the origin is fixed at build time, on every target. Each deployment target turns its `origin` option into SvelteKit's `paths.origin`, and the Cloud Run adapter reads `paths.origin` instead of a runtime `ORIGIN` (F23). | D11. One mechanism on every target. Changing the origin needs a rebuild, which `genoa deploy` always does. Breaking for the Cloud Run adapter's users outside GenoaCMS (`adapter-gcp/deployment.md` GD5). |
 | U17 | 2026-10-30: core imports its own modules through `#lib` subpath imports (`package.json` `imports`), not the deprecated `alias` that would keep `$lib` (F22). | A mechanical migration of every `$lib` import and `vi.mock('$lib/…')` call in core, committed on its own. |
 | U18 | 2026-10-30: the Cloud Run adapter bundles the server in Vite's own build, as adapter-node 6 does, instead of a second Rollup pass (F24). | `adapter-gcp/deployment.md` ADP-3 and ADP-4 change. The adapter drops its Rollup dependencies. Svelte libraries in core's `dependencies` are bundled, not external. |
@@ -101,7 +101,7 @@ or `resolutions`. What D9 does not cover:
 Core has no `svelte.config.js`. `vite.config.ts` calls `resolveKitTarget()` from
 `@genoacms/config/load` with the facts of D7, and passes its result to `sveltekit()` together with
 core's own options (`vitePreprocess()`, `experimental.remoteFunctions`). The config is flat: no
-`kit` key. Pending RFC-0043.
+`kit` key. RFC-0043.
 *Why:* SvelteKit 3 reads no other file (F21). The Vite config is already where the `genoa()` plugin
 reads the manifest, so both now evaluate the config in the same process.
 *Cost:* the Vite config awaits the config loader at the top level, so every Vite start pays for one
@@ -113,7 +113,7 @@ declare `origin(options)`, which returns the origin the built app is served at, 
 `resolveKitTarget()` passes it to SvelteKit as `paths.origin`. Every SvelteKit adapter then reads
 the origin from `builder.config.paths.origin`: adapter-node 6 does so already, and the Cloud Run
 adapter does from 2.0.0. SvelteKit also uses `paths.origin` as the trusted origin of its CSRF check.
-Pending RFC-0043.
+RFC-0043.
 *Why:* SvelteKit 3 and adapter-node 6 no longer read `ORIGIN` at runtime. One mechanism serves every
 target.
 *Cost:* an artifact serves one origin. Moving an instance to another domain needs a rebuild, and

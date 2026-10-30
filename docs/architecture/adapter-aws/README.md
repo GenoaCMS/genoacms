@@ -166,7 +166,7 @@ Every `W` ID, where it lives, and its state.
 | WD5 | Secrets are deleted without a recovery window | current, RFC-0026 | [`secrets.md`](secrets.md) |
 | WD6 | A secret scheduled for deletion is absent | current, RFC-0026 | [`secrets.md`](secrets.md) |
 | WD7 | The client address comes from the request context | current, RFC-0026 | [`deployment.md`](deployment.md) |
-| WD8 | The origin from headers unless set; set at build time | current; build time new, RFC-0043 | [`deployment.md`](deployment.md) |
+| WD8 | The origin from headers unless set; set at build time | current, RFC-0043 | [`deployment.md`](deployment.md) |
 | WF1 | Three storage methods of the contract are missing | fixed, RFC-0026 | [`storage.md`](storage.md) |
 | WF2 | `getObject` swallows every error | fixed, RFC-0026 | [`storage.md`](storage.md) |
 | WF3 | SDK errors are replaced by the adapter's own messages | fixed, RFC-0026 | README |

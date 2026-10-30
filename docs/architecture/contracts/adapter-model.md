@@ -2,7 +2,7 @@
 type: architecture
 title: The adapter model
 codes: []
-verified: 7174f7f
+verified: 71a947c
 conforms: false
 ---
 

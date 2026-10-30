@@ -202,7 +202,7 @@ Every `G` ID, where it lives, and its state.
 | GD2 | Identity Platform authentication adapter | current, RFC-0032 | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GD3 | Function settings are target options | current, RFC-0021 | [`deployment.md`](deployment.md) |
 | GD4 | Superseded secret versions are destroyed, with a recovery window | current, RFC-0022 | [`secrets.md`](secrets.md) |
-| GD5 | The SvelteKit adapter honors the build's origin and `XFF_DEPTH`; the target sets them | current, RFC-0023; origin at build time new, RFC-0043 | [`deployment.md`](deployment.md) |
+| GD5 | The SvelteKit adapter honors the build's origin and `XFF_DEPTH`; the target sets them | current, RFC-0023, RFC-0043 | [`deployment.md`](deployment.md) |
 | GD6 | Every current runtime statement has a unit test | current, RFC-0024 | README |
 | GD7 | Directory operations are bounded and stop at the first failure | current, RFC-0027 | [`storage.md`](storage.md) |
 | GD8 | The deploy disables the framework's ignored routes | current, RFC-0027 | [`deployment.md`](deployment.md) |

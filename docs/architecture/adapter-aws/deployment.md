@@ -2,7 +2,7 @@
 type: architecture
 title: AWS deployment: Lambda
 codes: [LMB]
-verified: 624ce2e
+verified: 71a947c
 ---
 
 # AWS deployment: Lambda
@@ -52,7 +52,7 @@ console is reverted by the next deploy.
 
 **WD8. The origin comes from forwarded headers unless `origin` is set, and `origin` is fixed at build time (WU7; LMB-1, LMB-10).** Adapter-node reads the
 protocol and host from the headers the function URL sends (WS2). When `origin` is set, the descriptor gives it to the build as SvelteKit's `paths.origin`, which adapter-node 6 reads instead of the headers ([`build.md`](../build.md) D11, F23). The function gets no `ORIGIN` variable: adapter-node 6 ignores it.
-*Cost:* behind CloudFront the host differs, and `origin` must be set. One build serves one origin. Pending RFC-0043; until then adapter-node 5 reads `ORIGIN`, which the target sets.
+*Cost:* behind CloudFront the host differs, and `origin` must be set. One build serves one origin.
 
 **WD7. The client address comes from the request context, not `X-Forwarded-For` (WU6; LMB-10,
 LMB-15; WF25).** The staged entry copies `http.sourceIp` from the `x-amzn-request-context` header, which
