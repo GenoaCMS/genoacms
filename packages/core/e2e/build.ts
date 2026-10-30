@@ -19,7 +19,7 @@ function freshSecretsFile (): string {
   return path
 }
 
-export /** Builds core with `genoa.config/e2e.ts` into `.genoacms/build/`, with a secrets file of its own and the origin it is served at (build.md F30). */
+/** Builds core with `genoa.config/e2e.ts` into `.genoacms/build/`, with a secrets file of its own and the origin it is served at (build.md F30). */
 export async function buildCore (): Promise<BuiltCore> {
   const secretsFile = freshSecretsFile()
   const origin = `http://localhost:${await freePort()}`
