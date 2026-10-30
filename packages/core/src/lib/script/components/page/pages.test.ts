@@ -48,7 +48,7 @@ async function outcomeOf (run: () => Promise<unknown>): Promise<Parsed> {
 }
 
 const loadLayout = async (pageName: string, auth = editor): Promise<Parsed> =>
-  await pageLayout.load({ params: { pageName }, locals: { auth }, parent: async () => ({ composableComponents: [] }) } as never)
+  await pageLayout.load({ params: { pageName }, locals: { auth }, parent: async () => ({ composableComponents: [] }), depends: () => {} } as never)
 
 beforeEach(() => {
   memory.clear()

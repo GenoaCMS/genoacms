@@ -189,10 +189,10 @@ describe('page permissions', () => {
     const withoutComponents = principal(['pages:read'])
 
     expect(await refused(async () => await pageLayout.load({
-      params: { pageName: 'home' }, locals: { auth: withoutComponents }, parent: async () => ({ composableComponents: [] })
+      params: { pageName: 'home' }, locals: { auth: withoutComponents }, parent: async () => ({ composableComponents: [] }), depends: () => {}
     } as never))).toBe(true)
     expect(await refused(async () => await pageLayout.load({
-      params: { pageName: 'home' }, locals: { auth: principal(['pages:read', 'components:read']) }, parent: async () => ({ composableComponents: [] })
+      params: { pageName: 'home' }, locals: { auth: principal(['pages:read', 'components:read']) }, parent: async () => ({ composableComponents: [] }), depends: () => {}
     } as never))).toBe(false)
   })
 })

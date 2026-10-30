@@ -8,7 +8,8 @@
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
   import { toastError } from '$lib/script/alert.svelte'
-  import { invalidateAll } from '$app/navigation'
+  import { invalidate } from '$app/navigation'
+  import { pageEditorData } from '$lib/script/components/page/editorData'
   import Component from './Component.svelte'
   import Subcomponent from './Subcomponent.svelte'
   import { Card, Modal } from '$lib/components/ui/index'
@@ -52,7 +53,7 @@
         toastError(reason.startsWith('conflict/modified-since') ? CONFLICT : 'Failed to add component')
         return
       }
-      invalidateAll()
+      invalidate(pageEditorData)
     }
   }
   function deleteNode (uid: string) {

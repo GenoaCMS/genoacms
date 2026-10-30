@@ -6,7 +6,8 @@
   import ComponentNode from './Editor/ComponentNode.svelte'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
   import { enhance } from '$app/forms'
-  import { invalidateAll } from '$app/navigation'
+  import { invalidate } from '$app/navigation'
+  import { pageEditorData } from '$lib/script/components/page/editorData'
   import { page } from '$app/state'
 
   /**
@@ -62,12 +63,17 @@
         toastError(reason.startsWith('conflict/modified-since') ? CONFLICT : reason ? `${failed}: ${reason}` : failed)
         return
       }
-      if (reload) await invalidateAll()
+      if (reload) await invalidate(pageEditorData)
       toastSuccess(succeeded)
     }
   }
 
-  const enhanceUpdate = enhanceAction('Saving', 'Saved', 'Error saving', true)
+  const sendingCurrentNode = (submit: SubmitFunction): SubmitFunction => input => {
+    input.formData.set('componentNode', JSON.stringify(currentNode))
+    return submit(input)
+  }
+
+  const enhanceUpdate = sendingCurrentNode(enhanceAction('Saving', 'Saved', 'Error saving', true))
   // Undo and redo change what the server holds without navigating, so the editor is re-fetched — and
   // the route's `{#key}` is what turns that re-fetch into a screen that has actually changed.
   const enhanceUndo = enhanceAction('Undoing', 'Undid', 'Undo failed', true)
@@ -86,11 +92,9 @@
 
 <form id="update-form" action="?/update" method="post" use:enhance={enhanceUpdate} hidden>
   <input type="hidden" name="version" value={page.data.version} />
-  <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="build-form" action="?/updateAndGenerateTree" method="post" use:enhance={enhanceUpdate} hidden>
   <input type="hidden" name="version" value={page.data.version} />
-  <input type="text" name="componentNode" value={JSON.stringify(currentNode)} />
 </form>
 <form id="undo-form" action="?/undo" method="post" use:enhance={enhanceUndo} hidden>
   <input type="hidden" name="version" value={page.data.version} />

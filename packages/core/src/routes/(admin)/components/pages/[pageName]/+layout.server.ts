@@ -3,8 +3,10 @@ import { openUserPageEntry } from '$lib/script/components/page/user.server'
 import { listUserComponentCatalog } from '$lib/script/components/publication/user.server'
 import { requireAuthContext } from '$lib/script/authorization/request.server'
 import { error } from '@sveltejs/kit'
+import { pageEditorData } from '$lib/script/components/page/editorData'
 
-export const load: LayoutServerLoad = async ({ params, locals }) => {
+export const load: LayoutServerLoad = async ({ params, locals, depends }) => {
+  depends(pageEditorData)
   const ctx = requireAuthContext(locals)
   const { pageName } = params
 

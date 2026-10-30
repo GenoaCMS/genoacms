@@ -4,7 +4,6 @@ import {
   addUserChildNode,
   editUserNode,
   generateUserReadablePageTree,
-  getUserPageEntry,
   setUserPreviewURL,
   stepUserPage
 } from '$lib/script/components/page/user.server'
@@ -44,13 +43,14 @@ const updatePage = async (ctx: AuthContext, pageName: string, data: FormData, ge
   const version = versionOf(data)
   if (!isString(componentNodeText) || version === undefined) return fail(400, { reason: 'no-diff' })
 
+  let saved
   try {
-    await editUserNode(ctx, pageName, version, JSON.parse(componentNodeText))
+    saved = await editUserNode(ctx, pageName, version, JSON.parse(componentNodeText))
   } catch (error) {
     if (error instanceof PageEditError && error.code === NOT_FOUND) return fail(404, { reason: NOT_FOUND })
     return answerFor(error)
   }
-  if (generateTree) return await generateUserReadablePageTree(ctx, await getUserPageEntry(ctx, pageName))
+  if (generateTree) return await generateUserReadablePageTree(ctx, saved.page)
 }
 
 const stepThroughHistory = (direction: 'undo' | 'redo') => async ({ request, params, locals }: Parameters<NonNullable<Actions['undo']>>[0]) => {

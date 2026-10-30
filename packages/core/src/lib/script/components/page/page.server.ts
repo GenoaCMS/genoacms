@@ -122,6 +122,7 @@ const headersOfContents = async (
 interface AppliedEdit<R> {
   version: string | undefined
   result: R
+  page: PageEntry<IsSerializable>
 }
 
 /**
@@ -141,7 +142,7 @@ const applyPageEdit = async <R extends EditResult>(
   if (!result.ok) throwRefusal(result)
   authorize(result)
   const saved = recordPageEdit(page, result.contents)
-  return { version: await savePageEntry(saved, version), result }
+  return { version: await savePageEntry(saved, version), result, page: saved }
 }
 
 /** PGE-2, PGE-11: creates the entry of a new page, only if no entry of that name exists. */

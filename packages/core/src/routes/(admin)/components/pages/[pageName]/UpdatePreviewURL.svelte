@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { invalidateAll } from '$app/navigation'
+  import { invalidate } from '$app/navigation'
+  import { pageEditorData } from '$lib/script/components/page/editorData'
   import { page } from '$app/state'
   import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
   import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
@@ -24,7 +25,7 @@
         toastError(reason.startsWith('conflict/modified-since') ? 'Changed elsewhere. Reload to see the latest version.' : 'Edit failed')
         return
       }
-      await invalidateAll()
+      await invalidate(pageEditorData)
       toastSuccess('Edit successful')
       isModalOpen = false
       const nextValue = formData.get('value')
