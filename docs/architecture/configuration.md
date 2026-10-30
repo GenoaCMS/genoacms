@@ -32,7 +32,7 @@ moved ID keeps a pointer in its old place.
 | The service contracts, starting with authentication (U14, F20, Q5, Q6) | [`contracts/`](contracts/README.md) |
 | The host and provider construction (D3) | [`host.md`](host.md) |
 | Secret references, resolution, bootstrap, the development store (U3, U11, D5) | [`secrets.md`](secrets.md) |
-| The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9) | [`build.md`](build.md) |
+| The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9); SvelteKit 3 (U15 to U19, D10, D11, F21 to F27, since 2026-10-30) | [`build.md`](build.md) |
 | The CLI's commands, flags and messages (since 2026-10-02, before this split) | [`cli.md`](cli.md) |
 | Authentication on GCP, and self-owned identity stores (U13) | [`adapter-gcp/authentication-identity-platform.md`](adapter-gcp/authentication-identity-platform.md), [`identities.md`](identities.md) |
 | Everything else: the config, the manifest and the loader (D1), the reality before the redesign (F1 to F19, R1 to R8), goals, preserved functionality (C, A, K, P), spikes (S-1 to S-8), the RFC list | here |
@@ -126,11 +126,11 @@ These are facts about the tools, not choices. A design that ignores one fails in
 
 | Id | Constraint | Evidence |
 | :-- | :-- | :-- |
-| R1 | SvelteKit loads `svelte.config.js` from `process.cwd()`. No other channel reaches it: no arguments, no hook. | `@sveltejs/kit/src/core/config/index.js:129-154` |
-| R2 | Both SvelteKit adapters in use, `@sveltejs/adapter-node` 5.5 and `@genoacms/sveltekit-adapter-cloud-run-functions`, re-bundle the server with rollup. They leave external **exactly** the `dependencies` of `package.json` in `process.cwd()` and bundle everything else. | `adapter-node/index.js:55,75-78`, `sveltekit-adapter-cloud-run-functions/index.js:49,59-62` |
+| R1 | SvelteKit loads `svelte.config.js` from `process.cwd()`. No other channel reaches it: no arguments, no hook. From SvelteKit 3 the config is the argument of `sveltekit()` in the Vite config, which Vite also loads from `process.cwd()`, so the consequence is the same ([`build.md`](build.md) F21, D10). | `@sveltejs/kit/src/core/config/index.js:129-154` |
+| R2 | Both SvelteKit adapters in use, `@sveltejs/adapter-node` 5.5 and `@genoacms/sveltekit-adapter-cloud-run-functions`, re-bundle the server with rollup. They leave external **exactly** the `dependencies` of `package.json` in `process.cwd()` and bundle everything else. From adapter-node 6 and the Cloud Run adapter 2.0.0, Vite bundles once, and Svelte libraries among those `dependencies` are bundled too ([`build.md`](build.md) F24, U18). | `adapter-node/index.js:55,75-78`, `sveltekit-adapter-cloud-run-functions/index.js:49,59-62` |
 | R3 | Consequence of R1 and R2: the Vite build runs with `cwd` = the core package, so only packages in core's `dependencies` can stay external; the ones the server imports are. Adapter packages are not among them, so a literal `import('@genoacms/adapter-gcp/storage')` in core's code would be **bundled**, together with the cloud SDK behind it. | R1, R2 |
 | R4 | Cloud Run functions always builds a container through Cloud Build buildpacks, which run `npm install` on the uploaded `package.json`. Uploading `node_modules` is never necessary. | GCP platform behavior |
-| R5 | Vite 7.3 (`core` uses `^7.3.1`) exports `runnerImport(moduleId, inlineConfig)` → `{ module, dependencies }`. It evaluates a TypeScript module and its imports without a running dev server. It is marked `@experimental`. | `vite/dist/node/index.d.ts:3576-3584` |
+| R5 | Vite 7.3 (`core` uses `^7.3.1`) exports `runnerImport(moduleId, inlineConfig)` → `{ module, dependencies }`. It evaluates a TypeScript module and its imports without a running dev server. It is marked `@experimental`. Vite 8 keeps it, still experimental ([`build.md`](build.md) F27). | `vite/dist/node/index.d.ts:3576-3584` |
 | R6 | `@genoacms/adapter-secrets-env` is documented as development only. | `adapter-secrets-env/README.md` |
 | R7 | The authorization vs. security distinction (authority re-read on every resolution, versus seeds for the signed policy) is a requirement, carried verbatim from `cloudAbstraction/src/config/genoa.config.d.ts`. | same |
 | R8 | Core's `build` script runs `pnpm --filter @genoacms/language-adapter-ts run build`, which works only inside the monorepo. The CLI must not invoke core's npm scripts. | `core/package.json:15-17` |
@@ -165,7 +165,7 @@ developer machine or CI runner and produces a **manifest**. Every later phase re
 never the module.
 *Why:* removes the cycle (F2), the bundling step (F6) and SDK loading at build time (F7).
 *Cost:* the config cannot compute anything at runtime. Nothing needs to today. It is evaluated three
-times per build (the CLI, `svelte.config.js`, the Vite plugin): cheap because it is data, but three
+times per build (the CLI, the SvelteKit config in `vite.config.ts` ([`build.md`](build.md) D10), the Vite plugin): cheap because it is data, but three
 evaluations of user code. `runnerImport` is experimental in Vite 7, so a breaking change there hits
 the loader; it is isolated behind `loadConfig`, and a fallback such as `jiti` is a one-module swap.
 

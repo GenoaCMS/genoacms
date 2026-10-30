@@ -54,6 +54,7 @@ divergence was a finding, and RFC-0026 brought the code to the Specification.
 | WU4 | 2026-09-30: every runtime statement is verified at `unit` and `contract`. The contract tests run against the author's AWS account: locally with a scoped IAM user (`genoacms-contract`), and in CI through GitHub's OIDC provider and a role, never an access key. The root user is never used. | Verification |
 | WU5 | 2026-10-01: a secret **scheduled for deletion is absent**: reading it resolves `undefined` and deleting it again `false`, and a delete does not wait for Secrets Manager to finish (WF24). It replaced the same day's decision to wait in the delete, once the delete was seen to take up to 30 seconds (WS6). | [`secrets.md`](secrets.md) WD6 |
 | WU6 | 2026-10-01: the client address is taken from **`http.sourceIp` of the request context** through a small staged entry, not from `X-Forwarded-For`, which a function URL passes through unchanged (WF25). | [`deployment.md`](deployment.md) WD7 |
+| WU7 | 2026-10-30: on SvelteKit 3, which adapter-node 6 requires, the `origin` option is fixed at build time as SvelteKit's `paths.origin`, as on every target ([`build.md`](../build.md) U16). | [`deployment.md`](deployment.md) WD8 |
 
 **WD1. The AWS adapter matches the GCP adapter where the contract is silent.** Directory
 placeholders, listing shapes, error propagation and the messages of GenoaCMS's own errors are the
@@ -157,6 +158,7 @@ Every `W` ID, where it lives, and its state.
 | WU4 | `unit` and `contract` levels; scoped IAM user locally, OIDC role in CI | decided | README |
 | WU5 | A secret scheduled for deletion is absent | decided | [`secrets.md`](secrets.md) |
 | WU6 | The client address from the request context | decided | [`deployment.md`](deployment.md) |
+| WU7 | SvelteKit 3: `origin` at build time | decided | [`deployment.md`](deployment.md) |
 | WD1 | Match the GCP adapter where the contract is silent | current, RFC-0026 | README |
 | WD2 | SDK errors propagate unchanged | current, RFC-0026 | README |
 | WD3 | Only string keys | current, RFC-0026 | [`database.md`](database.md) |
@@ -164,6 +166,7 @@ Every `W` ID, where it lives, and its state.
 | WD5 | Secrets are deleted without a recovery window | current, RFC-0026 | [`secrets.md`](secrets.md) |
 | WD6 | A secret scheduled for deletion is absent | current, RFC-0026 | [`secrets.md`](secrets.md) |
 | WD7 | The client address comes from the request context | current, RFC-0026 | [`deployment.md`](deployment.md) |
+| WD8 | The origin from headers unless set; set at build time | current; build time new, RFC-0043 | [`deployment.md`](deployment.md) |
 | WF1 | Three storage methods of the contract are missing | fixed, RFC-0026 | [`storage.md`](storage.md) |
 | WF2 | `getObject` swallows every error | fixed, RFC-0026 | [`storage.md`](storage.md) |
 | WF3 | SDK errors are replaced by the adapter's own messages | fixed, RFC-0026 | README |

@@ -27,7 +27,8 @@ genoa build gcp                          genoa deploy gcp
 ```
 
 The SvelteKit adapter is a fork of `@sveltejs/adapter-node`'s shape for a function, which has no
-server of its own to start: the Functions Framework calls an exported handler.
+server of its own to start: the Functions Framework calls an exported handler. From 2.0.0 it follows
+adapter-node 6 on SvelteKit 3 (`build.md` U15, U18, U19).
 
 ### Decisions
 
@@ -54,16 +55,17 @@ instance fails at runtime until the grants follow (GQ2). `minInstances > 0` bill
 ingress `internal` makes the CMS unreachable from a browser without a load balancer or VPC path; the
 descriptor cannot know either.
 
-**GD5. The adapter honors `ORIGIN` and `XFF_DEPTH`, and the target sets them (GU4; GF7, GF11, GF14).**
-RFC-0023. DEP-14, ADP-5, ADP-6, ADP-7.
-- `ORIGIN`, when set, is the origin of every request, and forwarded headers no longer decide it. Behind Firebase Hosting or a custom domain the forwarded host can differ from what browsers see, and SvelteKit's CSRF check compares against the request's origin.
+**GD5. The adapter honors the build's origin and `XFF_DEPTH`, and the target sets them (GU4, GU13; GF7, GF11, GF14).**
+RFC-0023; the origin at build time from RFC-0043 (`build.md` U16, D11). DEP-1, DEP-14, ADP-5, ADP-6, ADP-7, ADP-8.
+- The origin, when set, is the origin of every request, and forwarded headers no longer decide it. Behind Firebase Hosting or a custom domain the forwarded host can differ from what browsers see, and SvelteKit's CSRF check compares against the request's origin.
 - `XFF_DEPTH` says which `X-Forwarded-For` entry, counted from the right, is the client. Default `1`, the entry the platform's own front end appended. Anything to its left was sent by the client and can be forged.
-- The `gcp` target sets both through two named options, `origin` and `xffDepth`. It still passes no other environment variable (GQ1).
+- The `gcp` target sets both through two named options. `origin` becomes SvelteKit's `paths.origin` when the app is built, and the adapter reads it from the build. `xffDepth` becomes the function's `XFF_DEPTH`. The target passes no other environment variable (GQ1).
+- A runtime `ORIGIN` is no longer read. Because an operator may still set one from before 2.0.0, the handler refuses to start when it is set, rather than ignore it (ADP-8).
 - The rest of adapter-node's variables are dropped from `env.js`: `BODY_SIZE_LIMIT` is moot because the Functions Framework has already read the body, and the others describe a server this adapter does not start.
 - The address and origin logic moves into a module with no build-time placeholders, so it can be unit-tested, and the adapter's test script runs again (GF11).
 
 *Why:* the client address is what sign-in throttling will key on (`contracts/authentication.md` CQ1), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
-*Cost:* two more target options. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
+*Cost:* two more target options. The origin is part of the artifact, so one build serves one origin (`build.md` D11), and the adapter's users outside GenoaCMS move `ORIGIN` into `paths.origin` when they upgrade to 2.0.0. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
 
 **GD8. The deploy disables the Functions Framework's ignored routes (GU8; DEP-10; GF20).** The
 function's environment carries `IGNORED_ROUTES` set to the empty string.
@@ -131,7 +133,7 @@ leave the machine (`configuration.md` F9, F15).
 
 #### DEP-1 · Descriptor
 
-Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@genoacms/sveltekit-adapter-cloud-run-functions` lazily, and `svelteKitOptions` maps the build's `outDir` to the adapter's `{ out: outDir }`. `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
+Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@genoacms/sveltekit-adapter-cloud-run-functions` lazily, and `svelteKitOptions` maps the build's `outDir` to the adapter's `{ out: outDir }`. `origin(options)` returns `options.origin`, or `undefined` when it is unset (`build.md` D11). `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
 
 - Test: `packages/adapter-gcp/src/deployment/descriptor.test.ts`
 - Level: unit
@@ -231,7 +233,7 @@ The Functions client uses `credentials` when given, else the operator's ADC.
 
 #### DEP-14 · Origin and client-address settings
 
-Two more optional settings (GD5). `origin`: an absolute `http` or `https` origin with no path, matching `/^https?:\/\/[^/\s]+$/`, set as the function's `ORIGIN` environment variable. Otherwise `origin must be an absolute http(s) origin such as 'https://cms.example.com'`. `xffDepth`: an integer ≥ 1, set as `XFF_DEPTH` (decimal). Otherwise `xffDepth must be an integer of at least 1`. Unset options set no variable. Their reasons follow DEP-4's, before the instance-order rule.
+Two more optional settings (GD5). `origin`: an absolute `http` or `https` origin with no path, matching `/^https?:\/\/[^/\s]+$/`, given to the build by DEP-1 and never set as an environment variable. Otherwise `origin must be an absolute http(s) origin such as 'https://cms.example.com'`. `xffDepth`: an integer ≥ 1, set as `XFF_DEPTH` (decimal). Otherwise `xffDepth must be an integer of at least 1`. An unset `xffDepth` sets no variable. Their reasons follow DEP-4's, before the instance-order rule.
 
 - Test: `packages/adapter-gcp/src/deployment/settings.test.ts`
 - Level: unit
@@ -250,8 +252,8 @@ export function genoacms (req, res) {
 ### SvelteKit adapter (`@genoacms/sveltekit-adapter-cloud-run-functions`)
 
 Tests here are named by file within that package. ADP-1 to ADP-4 and the handler's wiring are not
-unit-tested, because `handler.js` imports build-time placeholders (`SERVER`, `MANIFEST`). The
-production build, which bundles them, and the live deploy exercise them.
+unit-tested, because the handler imports the server that only a build generates. The end-to-end
+tests, which build a fixture app with the adapter, and the live deploy exercise them.
 
 #### ADP-1 · Options
 
@@ -262,28 +264,28 @@ Options: `out` (default `build`), `precompress` (default `true`), `envPrefix` (d
 
 #### ADP-2 · Assets
 
-`adapt()` empties `out`, writes the client assets to `<out>/client<base>` and prerendered pages to `<out>/prerendered<base>`, and gzip- and brotli-compresses both when `precompress` is set. It copies `env.js`, `handler.js`, `index.js` and `shims.js` into `out`.
+`adapt()` empties `out`, writes the client assets to `<out>/client<base>` and prerendered pages to `<out>/prerendered<base>`, and gzip- and brotli-compresses both when `precompress` is set.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-3 · Server bundle
 
-The server is bundled with Rollup into `<out>/server` (ESM, sourcemaps, chunks under `chunks/`), with node resolution under the `node` condition, CommonJS and JSON support. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports. `<out>/server/manifest.js` exports `manifest`, `prerendered` (the set of prerendered paths) and `base`.
+The server is bundled once, by SvelteKit's own server build (`build.md` U18): the adapter adds a Vite plugin to it, and the handler, its startup reader and the shims are inputs of that build, so a module they share with the app exists once. The output is ESM in `<out>/server`, with sourcemaps and chunks under `chunks/`. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports, except the Svelte libraries that vite-plugin-svelte lists in `ssr.noExternal`, which are bundled.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-4 · Entry and initialization
 
-`<out>/index.js` re-exports `handler` from `<out>/handler.js`. The handler installs SvelteKit's Node polyfills and initializes the server with `env: process.env`, reading assets from `<out>/client<base>`.
+`<out>/index.js` exports `handler`. The handler installs SvelteKit's Node polyfills and initializes the server SvelteKit generates for the routes that are not prerendered (`generateServerInstance`) with `env: process.env`, reading assets from `<out>/client<base>`. Nothing else in `out` needs SvelteKit's build directory at runtime.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
 
 #### ADP-5 · Middleware chain and request URL
 
-The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving a precompressed `.br` or `.gz` variant when the request's `Accept-Encoding` allows it; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is `ORIGIN` plus the request path and query when `ORIGIN` is set (ADP-7). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. In both cases the request path and query are appended to the origin as text: a path that starts with `//`, such as `//evil.example/x`, stays a path on the same host and never names another host. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
+The handler is a middleware chain, in order: static files from `client/`, with `cache-control: public,max-age=31536000,immutable` for `/<appPath>/immutable/` responses with status 200, and serving a precompressed `.br` or `.gz` variant when the request's `Accept-Encoding` allows it; prerendered pages, redirecting with 308 to the path with the trailing slash added or removed when only that variant is prerendered; then SvelteKit's `respond`. The request URL is the build's origin, SvelteKit's `paths.origin`, plus the request path and query when the build has one (GD5). Otherwise it is built from `X-Forwarded-Proto` (default `http`), then `X-Forwarded-Host`, else `Host`, and the request path. In both cases the request path and query are appended to the origin as text: a path that starts with `//`, such as `//evil.example/x`, stays a path on the same host and never names another host. The body is the Functions Framework's `rawBody`. Header arrays are joined with `,`. A URL that cannot be parsed answers `400 Bad Request`.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e
@@ -297,7 +299,15 @@ The handler is a middleware chain, in order: static files from `client/`, with `
 
 #### ADP-7 · Startup environment
 
-At startup the handler reads `<envPrefix>ORIGIN` and `<envPrefix>XFF_DEPTH`. `ORIGIN` is used as given, and unset means none. `XFF_DEPTH` defaults to `1`. A value that is not a positive integer (`/^[1-9]\d*$/`) throws `XFF_DEPTH must be a positive integer, not '<value>'`, so the function fails at start. With a non-empty prefix, any other variable carrying the prefix throws at startup.
+At startup the handler reads `<envPrefix>XFF_DEPTH`, which defaults to `1`. A value that is not a positive integer (`/^[1-9]\d*$/`) throws `XFF_DEPTH must be a positive integer, not '<value>'`, so the function fails at start. With a non-empty prefix, any other variable carrying the prefix throws at startup.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: unit, e2e
+
+#### ADP-8 · A runtime origin is refused
+
+When `<envPrefix>ORIGIN` is set, to any value, the empty string included, the handler throws at startup: `ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)`, before the check of ADP-7. The function then fails to start instead of serving with an origin the operator did not mean (GD5).
+
+- Test: none yet
+- Level: unit, e2e
+- State: new (RFC-0043)

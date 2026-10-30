@@ -50,10 +50,9 @@ core's dependencies has one today.
 **The whole configuration is written on every deploy (LMB-11)**, as on GCP: a setting changed in the
 console is reverted by the next deploy.
 
-**The origin comes from forwarded headers unless `origin` is set (LMB-10).** Adapter-node reads the
-protocol and host from the headers the function URL sends, or takes `ORIGIN` when the target sets
-it (WS2).
-*Cost:* behind CloudFront the host differs, and `origin` must be set.
+**WD8. The origin comes from forwarded headers unless `origin` is set, and `origin` is fixed at build time (WU7; LMB-1, LMB-10).** Adapter-node reads the
+protocol and host from the headers the function URL sends (WS2). When `origin` is set, the descriptor gives it to the build as SvelteKit's `paths.origin`, which adapter-node 6 reads instead of the headers ([`build.md`](../build.md) D11, F23). The function gets no `ORIGIN` variable: adapter-node 6 ignores it.
+*Cost:* behind CloudFront the host differs, and `origin` must be set. One build serves one origin. Pending RFC-0043; until then adapter-node 5 reads `ORIGIN`, which the target sets.
 
 **WD7. The client address comes from the request context, not `X-Forwarded-For` (WU6; LMB-10,
 LMB-15; WF25).** The staged entry copies `http.sourceIp` from the `x-amzn-request-context` header, which
@@ -98,7 +97,7 @@ settings target options, keeping every step (`configuration.md` P9). RFC-0026 (2
 
 #### LMB-1 · Descriptor
 
-Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@sveltejs/adapter-node` lazily, and `svelteKitOptions` maps the build's `outDir` to `{ out: outDir }`. `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
+Kind `deployment`. It imports no SDK. `svelteKitAdapter()` loads `@sveltejs/adapter-node` lazily, and `svelteKitOptions` maps the build's `outDir` to `{ out: outDir }`. `origin(options)` returns `options.origin`, or `undefined` when it is unset ([`build.md`](../build.md) D11). `procedure()` loads the deploy procedure lazily. `credentials` is decoded as JSON.
 
 - Test: `packages/adapter-aws/src/deployment/descriptor.test.ts`
 - Level: unit
@@ -173,7 +172,7 @@ A zip (level 9) of exactly the staged directory, at its root: no globbing, no ig
 
 #### LMB-10 · Environment
 
-The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, `PORT=8080`, `ADDRESS_HEADER=x-genoacms-client-address` (LMB-15), and either `ORIGIN=<origin>` when `origin` is set, or `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=host` when it is not.
+The function's environment variables are exactly: `NODE_ENV=production`, `AWS_LAMBDA_EXEC_WRAPPER=/opt/bootstrap`, `PORT=8080`, `ADDRESS_HEADER=x-genoacms-client-address` (LMB-15), and `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=host` when `origin` is not set. A set `origin` adds no variable: it is in the build (LMB-1).
 
 - Test: `packages/adapter-aws/src/deployment/procedure.test.ts`, `packages/adapter-aws/test/contract/deployment.test.ts`
 - Level: unit, contract

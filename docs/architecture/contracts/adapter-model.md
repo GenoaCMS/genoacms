@@ -59,13 +59,13 @@ differently from a rollup external.
                                                  │
 @genoacms/config ────────────────────────────────┘
   .                defineConfig, *Provider(), secret/env/inline
-  ./load           loadConfig → Manifest, resolveKitAdapter,         (uses vite runnerImport,
+  ./load           loadConfig → Manifest, resolveKitTarget,          (uses vite runnerImport,
                    importFromProject                                   import-meta-resolve)
   ./host           createHost                                        (runtime-safe, no vite)
   ./vite           genoa() plugin: virtual:genoa/manifest
   ./build          createRuntimePackage(manifest, coreDir)
         ▲
-        ├──────────── @genoacms/core      host.server.ts, svelte.config.js, vite.config.ts
+        ├──────────── @genoacms/core      host.server.ts, vite.config.ts
         └──────────── @genoacms/cli       dev, build, deploy, database, roles, rotate-root, init
 @genoacms/conformance      storage & database suites (vitest peer), used by adapters' tests
 ```
@@ -93,10 +93,10 @@ genoa.config/development.ts ──imports──▶ ./collections.ts, @genoacms/c
   Manifest (JSON) ────────────────────────────────────────────────┐
       │                              │                            │
       v                              v                            v
- @genoacms/config/vite         svelte.config.js              @genoacms/cli
-  virtual:genoa/manifest        resolveKitAdapter()           loadConfig(), createHost(),
+ @genoacms/config/vite         vite.config.ts                @genoacms/cli
+  virtual:genoa/manifest        resolveKitTarget()            loadConfig(), createHost(),
   (runtime manifest)            → target descriptor           deploy procedure
-      │                         → SvelteKit adapter
+      │                         → SvelteKit adapter, origin
       v
  core: host.server.ts ── createHost({ manifest, load }) ──▶ @genoacms/config/host
       │                                                          │  load(runtimeSpecifier)
@@ -205,10 +205,12 @@ interface AdapterRuntime<O extends object, Instance> {
  */
 interface DeploymentDescriptor<O extends object> {
   readonly kind: 'deployment'
-  /** Loads the SvelteKit adapter factory. Called by svelte.config.js only. */
+  /** Loads the SvelteKit adapter factory. Called by core's vite.config.ts only (build.md D10). */
   readonly svelteKitAdapter: () => Promise<{ default: (options?: Record<string, unknown>) => import('@sveltejs/kit').Adapter }>
   /** SvelteKit adapter options. Receives unresolved options: credentials never influence the build. */
   readonly svelteKitOptions?: (options: O, ctx: { outDir: string }) => Record<string, unknown>
+  /** The origin the built app is served at, given to SvelteKit as `paths.origin` (build.md D11). Receives unresolved options. */
+  readonly origin?: (options: O) => string | undefined
   /** Loads the module exporting the DeployProcedure. Called by `genoa deploy` only. */
   readonly procedure: () => Promise<{ default: DeployProcedure<O> }>
   readonly secretOptions?: { readonly [K in keyof O]?: SecretEncoding }
