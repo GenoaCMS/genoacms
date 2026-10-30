@@ -5,7 +5,7 @@
 '@genoacms/adapter-gcp': minor
 '@genoacms/adapter-aws': minor
 '@genoacms/adapter-node': minor
-'@genoacms/contracts': patch
+'@genoacms/contracts': minor
 '@genoacms/conformance': patch
 ---
 
