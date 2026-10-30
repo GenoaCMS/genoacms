@@ -1,6 +1,6 @@
 import type { LayoutServerLoad } from './$types'
-import { listUserComposableComponents } from '$lib/script/components/publication/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { listUserComposableComponents } from '#lib/script/components/publication/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 
 /**
  * Loads published components that may be introduced to a page.

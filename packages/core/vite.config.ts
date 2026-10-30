@@ -1,6 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite'
+import type { Adapter } from '@sveltejs/kit'
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
+import { playwright } from '@vitest/browser-playwright'
 import tailwindcss from '@tailwindcss/vite'
 import { genoa } from '@genoacms/config/vite'
+import { readGenoaEnvironment, resolveKitTarget } from '@genoacms/config/load'
 import { configDefaults, defineConfig } from 'vitest/config'
 import type { ViteUserConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
@@ -34,7 +38,7 @@ const unitTests: ViteUserConfig['test'] = {
         include: [BROWSER_TESTS],
         browser: {
           enabled: true,
-          provider: 'playwright',
+          provider: playwright(),
           headless: true,
           instances: [{ browser: 'chromium' }]
         }
@@ -43,8 +47,18 @@ const unitTests: ViteUserConfig['test'] = {
   ]
 }
 
+const { root, file, target, mode: genoaMode } = readGenoaEnvironment('development')
+const kit = await resolveKitTarget({ root, file, target, mode: genoaMode })
+
+const kitPlugins = await sveltekit({
+  preprocess: vitePreprocess(),
+  adapter: kit.adapter as Adapter | undefined,
+  ...(kit.origin === undefined ? {} : { paths: { origin: kit.origin } }),
+  experimental: { remoteFunctions: true }
+})
+
 export default defineConfig(({ mode }) => ({
-  plugins: [genoa(), tailwindcss(), sveltekit()],
+  plugins: [genoa(), tailwindcss(), kitPlugins],
   test: mode === 'e2e' ? endToEndTests : unitTests,
   ssr: {
     noExternal: []

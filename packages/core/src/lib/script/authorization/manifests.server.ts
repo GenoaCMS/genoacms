@@ -3,17 +3,17 @@ import {
   defaultBucketId,
   getObject,
   uploadObject
-} from '$lib/script/storage/storage.server'
-import { streamToString } from '$lib/script/utils.server'
-import { sign, type DocumentType } from '$lib/script/signing/envelope'
-import { getCurrentSigningKey } from '$lib/script/signing/keyResolution.server'
+} from '#lib/script/storage/storage.server.js'
+import { streamToString } from '#lib/script/utils.server.js'
+import { sign, type DocumentType } from '#lib/script/signing/envelope.js'
+import { getCurrentSigningKey } from '#lib/script/signing/keyResolution.server.js'
 import {
   serializeRolesManifest,
   serializeUsersManifest,
   type UserRecord
 } from './manifests'
 import type { Role } from './roles'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 
 /**
  * Storage of the authorization manifests in the primary private bucket.

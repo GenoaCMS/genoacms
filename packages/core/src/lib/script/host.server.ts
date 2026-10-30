@@ -1,4 +1,4 @@
-import { building } from '$app/environment'
+import { building } from '$app/env'
 import { createHost } from '@genoacms/config/host'
 import { manifest } from 'virtual:genoa/manifest'
 

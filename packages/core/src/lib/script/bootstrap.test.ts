@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 const objects = new Map<string, string>()
 const secrets = new Map<string, string>()
 
-vi.mock('$lib/script/secrets/providers.server', () => ({
+vi.mock('#lib/script/secrets/providers.server.js', () => ({
   getSecret: async (key: string) => secrets.get(key),
   setSecret: async (key: string, value: string) => { secrets.set(key, value); return true },
   deleteSecret: async (key: string) => secrets.delete(key),
@@ -29,7 +29,7 @@ vi.mock('$lib/script/secrets/providers.server', () => ({
   }
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => {
+vi.mock('#lib/script/storage/storage.server.js', () => {
   const notFound = (name: string): never => { throw new Error(`no such object: ${name}`) }
   return {
     defaultBucketId: 'test-bucket',
@@ -50,13 +50,13 @@ vi.mock('$lib/script/storage/storage.server', () => {
   }
 })
 
-vi.mock('$lib/script/utils.server', () => ({
+vi.mock('#lib/script/utils.server.js', () => ({
   streamToString: async (data: string) => data
 }))
 
 const declaredRoles: { value: unknown } = { value: undefined }
 
-vi.mock('$lib/script/host.server', async () => {
+vi.mock('#lib/script/host.server.js', async () => {
   const { authorization } = await import('../../../genoa.config/authorization')
   const { security } = await import('../../../genoa.config/security')
   return {
@@ -179,7 +179,7 @@ describe('re-running bootstrap', () => {
 
   it('does not reject when storage is unreachable, so the seed admin can still sign in', async () => {
     const { ensureInstanceInitialized } = await import('./bootstrap.server')
-    const storage = await import('$lib/script/storage/storage.server')
+    const storage = await import('#lib/script/storage/storage.server.js')
     vi.spyOn(storage, 'uploadInternalObjectJSON').mockRejectedValue(new Error('bucket unreachable'))
 
     await expect(ensureInstanceInitialized()).resolves.toBeUndefined()

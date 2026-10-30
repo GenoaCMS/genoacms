@@ -6,12 +6,12 @@ import {
   generateUserReadablePageTree,
   setUserPreviewURL,
   stepUserPage
-} from '$lib/script/components/page/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import type { AuthContext } from '$lib/script/authorization/context'
-import { PageEditError } from '$lib/script/components/page/edits'
-import { isConflict } from '$lib/script/components/conflict'
-import { isString } from '$lib/script/utils'
+} from '#lib/script/components/page/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { PageEditError } from '#lib/script/components/page/edits.js'
+import { isConflict } from '#lib/script/components/conflict.js'
+import { isString } from '#lib/script/utils.js'
 
 export const load = async ({ params, parent }) => {
   const { page } = await parent()

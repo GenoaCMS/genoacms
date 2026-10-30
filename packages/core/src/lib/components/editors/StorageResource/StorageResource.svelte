@@ -3,10 +3,10 @@
   import type { ObjectReference } from '@genoacms/contracts/storage'
   import { onDestroy } from 'svelte'
   import { resolve } from '$app/paths'
-  import { ITC } from '$lib/script/utils'
+  import { ITC } from '#lib/script/utils.js'
   import StorageObject from './StorageObject.svelte'
   import PickerButton from '../PickerButton.svelte'
-  import { Helper } from '$lib/components/ui/index'
+  import { Helper } from '#lib/components/ui/index.js'
 
   type Props = {
     value: ResourceValue,
@@ -16,7 +16,7 @@
   const { value, errors, onvalue }: Props = $props()
   let resource: ResourceValue = $state(value || null)
   const selectionId = crypto.randomUUID()
-  const pickerHref = `${resolve('/storage')}?selectionId=${selectionId}`
+  const pickerHref = `${resolve('/(admin)/storage')}?selectionId=${selectionId}`
   const itc = new ITC(selectionId)
 
   function deleteResource () {

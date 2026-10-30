@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
+  import { Card } from '#lib/components/ui/index.js'
   import KeyStateBadge from './KeyStateBadge.svelte'
   import { formatMoment } from './keyPresentation'
   import type { Snippet } from 'svelte'
-  import type { AdministrableKey } from '$lib/script/signing/keyAdministration'
+  import type { AdministrableKey } from '#lib/script/signing/keyAdministration.js'
 
   interface Props {
     entry: AdministrableKey

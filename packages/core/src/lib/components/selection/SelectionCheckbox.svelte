@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import { SELECTION_GUTTER } from '$lib/script/selection/gutter'
+  import { SELECTION_GUTTER } from '#lib/script/selection/gutter.js'
   import SelectionBox from './SelectionBox.svelte'
 
   /**

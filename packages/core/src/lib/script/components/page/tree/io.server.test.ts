@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ObjectNotFoundError } from '@genoacms/contracts/storage'
-import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
-import { deriveKeyId } from '$lib/script/signing/keyId'
-import { verify } from '$lib/script/signing/envelope'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
+import { deriveKeyId } from '#lib/script/signing/keyId.js'
+import { verify } from '#lib/script/signing/envelope.js'
 import type { ReadablePageNode } from './types'
 
 /**
@@ -20,7 +20,7 @@ const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(11))
 const keyId = deriveKeyId(keypair.publicKey)
 
-vi.mock('$lib/script/signing/keyResolution.server', () => ({
+vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   getCurrentSigningKey: async () => ({
     alg: SUBORDINATE_ALGORITHM,
     keyId,
@@ -33,7 +33,7 @@ vi.mock('$lib/script/signing/keyResolution.server', () => ({
 let stored: unknown
 let readFails = false
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   uploadInternalObjectJSON: async (_path: string, data: unknown) => { stored = data },
   getInternalObjectJSON: async () => {
     if (readFails) throw new ObjectNotFoundError({ bucket: 'default', name: 'never-built' })

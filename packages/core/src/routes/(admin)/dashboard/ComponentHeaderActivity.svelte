@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ComponentHeaderActivityRecord } from '$lib/script/activity/types'
-  import CardLink from '$lib/components/CardLink.svelte'
+  import type { ComponentHeaderActivityRecord } from '#lib/script/activity/types.js'
+  import CardLink from '#lib/components/CardLink.svelte'
 
   interface Props {
     record: ComponentHeaderActivityRecord

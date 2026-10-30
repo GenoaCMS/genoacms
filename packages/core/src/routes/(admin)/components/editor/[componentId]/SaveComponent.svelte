@@ -1,6 +1,6 @@
 <script lang="ts">
   import { saveComponentRemote } from './save.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
 
   /**
    * Writes the draft, and reports the history it produced.

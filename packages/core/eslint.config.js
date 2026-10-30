@@ -5,7 +5,6 @@ import globals from 'globals'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript-eslint'
 import neostandard from 'neostandard'
-import svelteConfig from './svelte.config.js'
 // the monorepo keeps a single .gitignore at the workspace root
 const gitignorePath = fileURLToPath(new URL('../../.gitignore', import.meta.url))
 
@@ -34,14 +33,13 @@ export default ts.config(
   },
   {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
-    ignores: ['eslint.config.js', 'svelte.config.js'],
+    ignores: ['eslint.config.js'],
 
     languageOptions: {
       parserOptions: {
         projectService: true,
         extraFileExtensions: ['.svelte'],
-        parser: ts.parser,
-        svelteConfig
+        parser: ts.parser
       }
     }
   }

@@ -29,7 +29,7 @@ function mode (value: string | undefined, fallbackMode: Mode): Mode {
 /**
  * `fallbackMode` applies only when GENOA_MODE is unset:
  * - the plugin passes `command === 'serve' ? 'development' : 'production'`;
- * - svelte.config.js, which cannot know Vite's command, passes 'development'.
+ * - core's vite.config.ts, which reads the facts before Vite's command is known, passes 'development'.
  * The CLI and core's `build` script always set GENOA_MODE, so the fallbacks matter only for the
  * monorepo's `pnpm dev` and tooling such as vite-node and vitest.
  *

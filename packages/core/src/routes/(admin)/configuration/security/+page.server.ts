@@ -1,7 +1,7 @@
 import { fail, error, type Actions } from '@sveltejs/kit'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { readUserSecurityPolicy, updateUserSecurityPolicy } from '$lib/script/securityPolicy/user.server'
-import { NUMERIC_FIELDS, MAX_FETCH_ORIGINS } from '$lib/script/securityPolicy/policy'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { readUserSecurityPolicy, updateUserSecurityPolicy } from '#lib/script/securityPolicy/user.server.js'
+import { NUMERIC_FIELDS, MAX_FETCH_ORIGINS } from '#lib/script/securityPolicy/policy.js'
 
 /**
  * The security policy, as a screen.

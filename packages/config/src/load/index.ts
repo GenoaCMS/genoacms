@@ -75,8 +75,8 @@ function loadConfig (options: LoadOptions): Promise<Manifest> {
 }
 
 export { loadConfig, clearLoadCache, locateConfigFile, loadDescriptor, resolveFromProject, importFromProject }
-export { resolveKitAdapter } from './kit.js'
-export type { KitAdapterRequest } from './kit.js'
+export { resolveKitTarget } from './kit.js'
+export type { KitAdapterRequest, KitTarget } from './kit.js'
 export { readGenoaEnvironment } from '../environment.js'
 export type { GenoaEnvironment } from '../environment.js'
 export type { LoadOptions }

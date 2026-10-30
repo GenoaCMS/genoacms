@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
-    import { pendingAlertState } from '$lib/script/alert.svelte'
+    import { pendingAlertState } from '#lib/script/alert.svelte.js'
 </script>
 
 <Dialog

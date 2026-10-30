@@ -2,11 +2,11 @@ import {
   listUserSigningKeys,
   rotateUserSubordinateKey,
   revokeUserSubordinateKey
-} from '$lib/script/signing/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isString } from '$lib/script/utils'
+} from '#lib/script/signing/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { isString } from '#lib/script/utils.js'
 import { error, fail, type Actions } from '@sveltejs/kit'
-import type { KeyOperationResult } from '$lib/script/signing/user.server'
+import type { KeyOperationResult } from '#lib/script/signing/user.server.js'
 
 export const load = async ({ locals }) => {
   const ctx = requireAuthContext(locals)

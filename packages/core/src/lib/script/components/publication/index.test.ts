@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
-import { deriveKeyId } from '$lib/script/signing/keyId'
-import { verify } from '$lib/script/signing/envelope'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
+import { deriveKeyId } from '#lib/script/signing/keyId.js'
+import { verify } from '#lib/script/signing/envelope.js'
 import { PUBLICATION_DOCUMENT } from './payload'
 import { ComponentCodeError, ComponentDiffError } from '../editor/errors'
 
@@ -28,8 +28,8 @@ const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(3))
 const keyId = deriveKeyId(keypair.publicKey)
 
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
   loadSecurityPolicy: async () => ({
     subordinateKeyRotationDays: 90,
     accessTokenMinutes: 15,
@@ -42,7 +42,7 @@ vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
   })
 }))
 
-vi.mock('$lib/script/signing/keyResolution.server', () => ({
+vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   getCurrentSigningKey: async () => ({
     alg: SUBORDINATE_ALGORITHM,
     keyId,

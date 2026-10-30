@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ComponentCodeActivityRecord } from '$lib/script/activity/types'
-  import CardLink from '$lib/components/CardLink.svelte'
+  import type { ComponentCodeActivityRecord } from '#lib/script/activity/types.js'
+  import CardLink from '#lib/components/CardLink.svelte'
 
   interface Props {
     record: ComponentCodeActivityRecord

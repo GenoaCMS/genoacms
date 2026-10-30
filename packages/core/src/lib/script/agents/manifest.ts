@@ -1,5 +1,5 @@
 import { validator, type Json } from '@exodus/schemasafe'
-import type { ManifestParseResult } from '$lib/script/authorization/manifests'
+import type { ManifestParseResult } from '#lib/script/authorization/manifests.js'
 
 /** A stored agent (AGT-2). */
 interface AgentRecord {

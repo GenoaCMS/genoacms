@@ -1,4 +1,4 @@
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import { importModule, type Parsed } from './requests'
 
 /** A tool as the registry of `mcp/tools/registry.server.ts` holds it (RFC-0039 §Files). */
@@ -23,7 +23,7 @@ interface ToolOutcome {
 }
 
 async function toolRegistry (): Promise<readonly Tool[]> {
-  return (await importModule('$lib/script/mcp/tools/registry.server')).toolRegistry
+  return (await importModule('#lib/script/mcp/tools/registry.server.js')).toolRegistry
 }
 
 /**
@@ -31,7 +31,7 @@ async function toolRegistry (): Promise<readonly Tool[]> {
  * unless one is given; `undefined` for a notification.
  */
 async function handle (message: unknown, context: AuthContext, registry?: readonly Tool[]): Promise<JsonRpcResponse | undefined> {
-  const { handleMessage } = await importModule('$lib/script/mcp/protocol')
+  const { handleMessage } = await importModule('#lib/script/mcp/protocol.js')
   return await handleMessage(message, context, registry ?? await toolRegistry())
 }
 

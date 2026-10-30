@@ -3,9 +3,9 @@ import type { GuardCeilings } from '@genoacms/internal/guards'
 import { isGuardCeilings } from '@genoacms/internal/guards'
 import type { ExecutablePlatform } from '@genoacms/internal/executable'
 import type { ComponentHeader, ComponentType } from '../componentHeader/component/types'
-import type { DocumentType, SignedEnvelope } from '$lib/script/signing/envelope'
-import type { JsonValue } from '$lib/script/signing/canonical'
-import { digest } from '$lib/script/signing/canonical'
+import type { DocumentType, SignedEnvelope } from '#lib/script/signing/envelope.js'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
+import { digest } from '#lib/script/signing/canonical.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 
 /**

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SELECTION_GUTTER } from '$lib/script/selection/gutter'
+  import { SELECTION_GUTTER } from '#lib/script/selection/gutter.js'
   import { gridTemplate, isEndAligned, type Column } from './listing'
 
   interface Props {

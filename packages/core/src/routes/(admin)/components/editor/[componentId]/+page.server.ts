@@ -6,11 +6,11 @@ import {
   getUserComponentDefinitionDepth,
   undoUserComponentBody,
   redoUserComponentBody
-} from '$lib/script/components/editor/user.server'
-import { NoSuchComponentError } from '$lib/script/components/editor/errors'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isString } from '$lib/script/utils'
-import { isConflict } from '$lib/script/components/conflict'
+} from '#lib/script/components/editor/user.server.js'
+import { NoSuchComponentError } from '#lib/script/components/editor/errors.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { isString } from '#lib/script/utils.js'
+import { isConflict } from '#lib/script/components/conflict.js'
 
 /**
  * Opens a component for editing, or says plainly that there is nothing to open.

@@ -17,7 +17,7 @@ type Provider = Partial<Adapter> | Error
 const configured: { providers: Record<string, Provider> } = { providers: {} }
 const calls: string[] = []
 
-vi.mock('$lib/script/host.server', () => ({
+vi.mock('#lib/script/host.server.js', () => ({
   host: {
     get authenticationProviderKeys () { return Object.keys(configured.providers) },
     authentication: async (key: string) => {

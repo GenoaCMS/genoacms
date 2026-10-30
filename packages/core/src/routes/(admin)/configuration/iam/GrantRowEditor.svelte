@@ -1,9 +1,9 @@
 <script lang="ts">
   import PermissionPicker from './PermissionPicker.svelte'
   import ResourcePicker from './ResourcePicker.svelte'
-  import { isResourceScoped, getResourceScope } from '$lib/script/authorization/permissions'
-  import type { ResourceScope, FieldSelector } from '$lib/script/authorization/grants'
-  import type { GrantableResources } from '$lib/script/configuration/resources'
+  import { isResourceScoped, getResourceScope } from '#lib/script/authorization/permissions.js'
+  import type { ResourceScope, FieldSelector } from '#lib/script/authorization/grants.js'
+  import type { GrantableResources } from '#lib/script/configuration/resources.js'
   import { rowSelectsFields, fieldsFor, withResource, withoutResource, type GrantRow } from './grantRows'
 
   /**

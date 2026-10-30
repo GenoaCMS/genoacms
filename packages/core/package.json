@@ -11,8 +11,12 @@
 		"email": "filip.holcik.official@gmail.com"
 	},
 	"license": "MIT",
+	"imports": {
+		"#lib": "./src/lib/index.ts",
+		"#lib/*": "./src/lib/*"
+	},
 	"scripts": {
-		"adapters": "pnpm --filter @genoacms/config --filter @genoacms/language-adapter-ts --filter @genoacms/adapter-gcp --filter @genoacms/sveltekit-adapter-cloud-run-functions run build",
+		"adapters": "pnpm --filter @genoacms/config --filter @genoacms/language-adapter-ts --filter @genoacms/adapter-gcp run build",
 		"dev": "pnpm run adapters && vite dev --host",
 		"build": "pnpm run adapters && GENOA_MODE=development vite build",
 		"build:genoa": "vite build --config genoa.vite.config.ts",
@@ -44,8 +48,8 @@
 		"@noble/post-quantum": "^0.7.0",
 		"@skeletonlabs/skeleton": "^5.0.0",
 		"@skeletonlabs/skeleton-svelte": "^5.0.0",
-		"@sveltejs/kit": "^2.53.3",
-		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@sveltejs/kit": "^3.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"@tailwindcss/vite": "^4.1.11",
@@ -67,14 +71,14 @@
 		"marked": "^12.0.0",
 		"postcss": "^8.4.33",
 		"runed": "^0.25.0",
-		"svelte": "^5.53.5",
+		"svelte": "^5.57.1",
 		"svelte-dnd-action": "^0.9.69",
 		"tailwindcss": "^4.1.4",
 		"ts-morph": "^25.0.1",
 		"tslib": "^2.4.1",
-		"typescript": "^5.0.0",
-		"vite": "^7.3.1",
-		"vitest": "^3.1.1"
+		"typescript": "^6.0.0",
+		"vite": "^8.0.12",
+		"vitest": "^4.1.12"
 	},
 	"type": "module",
 	"devDependencies": {
@@ -90,8 +94,7 @@
 		"@genoacms/cli": "workspace:^",
 		"@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:^",
 		"@playwright/test": "^1.28.1",
-		"@sveltejs/adapter-node": "^5.2.12",
-		"@vitest/browser": "3.2.7",
+		"@sveltejs/adapter-node": "^6.0.1",
 		"dotenv": "^16.4.5",
 		"eslint": "^9.18.0",
 		"eslint-plugin-svelte": "^3.0.0",
@@ -99,8 +102,9 @@
 		"globals": "^14.0.0",
 		"neostandard": "^0.12.1",
 		"playwright": "1.62.1",
-		"svelte-check": "^4.4.4",
+		"svelte-check": "^4.7.7",
 		"typescript-eslint": "^8.26.1",
-		"vite-node": "^6.0.0"
+		"vite-node": "^6.0.0",
+		"@vitest/browser-playwright": "^4.1.12"
 	}
 }

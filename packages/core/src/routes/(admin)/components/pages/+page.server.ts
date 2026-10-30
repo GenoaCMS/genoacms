@@ -1,12 +1,12 @@
 import type { PageServerLoad } from './$types'
 import {
   createUserPage, listUserPages, deleteUserPage
-} from '$lib/script/components/page/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+} from '#lib/script/components/page/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { fail, redirect, type Actions } from '@sveltejs/kit'
-import { PageEditError } from '$lib/script/components/page/edits'
-import { isString } from '$lib/script/utils'
-import { parseBulkDeletion } from '$lib/script/selection/request.server'
+import { PageEditError } from '#lib/script/components/page/edits.js'
+import { isString } from '#lib/script/utils.js'
+import { parseBulkDeletion } from '#lib/script/selection/request.server.js'
 
 export const load: PageServerLoad = async ({ locals }) => {
   // Awaited rather than streamed: the list drives a selection in the top panel, which cannot be

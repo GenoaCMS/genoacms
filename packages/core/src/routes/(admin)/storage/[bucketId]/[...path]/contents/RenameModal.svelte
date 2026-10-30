@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import type { SubmitFunction } from '$app/forms'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
+  import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
 
   type Props = {
     name: string,

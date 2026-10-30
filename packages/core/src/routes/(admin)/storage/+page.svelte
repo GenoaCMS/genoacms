@@ -1,8 +1,8 @@
 <script lang="ts">
     import { page } from '$app/state'
-    import CardLink from '$lib/components/CardLink.svelte'
-    import TopPanel from '$lib/components/TopPanel.svelte'
-    import Grid from '$lib/components/Grid.svelte'
+    import CardLink from '#lib/components/CardLink.svelte'
+    import TopPanel from '#lib/components/TopPanel.svelte'
+    import Grid from '#lib/components/Grid.svelte'
 
     const { data } = $props()
     const searchParams = $derived(page.url.search)

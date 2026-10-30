@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { ObjectReference } from '@genoacms/contracts/storage'
   import { page } from '$app/state'
-  import CardLink from '$lib/components/CardLink.svelte'
-  import ContextMenu from '$lib/components/ContextMenu.svelte'
-  import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
+  import CardLink from '#lib/components/CardLink.svelte'
+  import ContextMenu from '#lib/components/ContextMenu.svelte'
+  import ContextMenuItem from '#lib/components/ContextMenuItem.svelte'
   import RenameModal from './RenameModal.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
   import Selectable from './Selectable.svelte'
 
   type Props = {

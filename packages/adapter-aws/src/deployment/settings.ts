@@ -49,14 +49,14 @@ export function validateSettings (options: unknown): string[] {
 
 // LMB-10, WD7
 export function functionEnvironment (options: { origin?: string }): Record<string, string> {
-  const origin: Record<string, string> = options.origin === undefined
+  const forwardedHeaders: Record<string, string> = options.origin === undefined
     ? { PROTOCOL_HEADER: 'x-forwarded-proto', HOST_HEADER: 'host' }
-    : { ORIGIN: options.origin }
+    : {}
   return {
     NODE_ENV: 'production',
     AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
     PORT: '8080',
     ADDRESS_HEADER: CLIENT_ADDRESS_HEADER,
-    ...origin
+    ...forwardedHeaders
   }
 }

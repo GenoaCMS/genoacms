@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { DirectoryContents } from '@genoacms/contracts/storage'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 
 /**
  * Enforcement in the user-facing storage layer.
@@ -25,7 +25,7 @@ const signed: Array<{ reference: { bucket: string, name: string }, expiresAt: Da
 
 let directoryContents: DirectoryContents = { directories: [], files: [] }
 
-vi.mock('$lib/script/host.server', () => ({ host: { defaultBucket: 'media' } }))
+vi.mock('#lib/script/host.server.js', () => ({ host: { defaultBucket: 'media' } }))
 
 vi.mock('./storage.server', () => {
   const record = (name: string) => async (reference: { bucket: string, name: string }) => {
@@ -57,9 +57,9 @@ vi.mock('./storage.server', () => {
   }
 })
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { WILDCARD } = await import('$lib/script/authorization/grants')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { WILDCARD } = await import('#lib/script/authorization/grants.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const storage = await import('./user.server')
 
 const bucketGrant = (permission: Permission, id: string): Grant =>
@@ -291,7 +291,7 @@ describe('a listing', () => {
     const host = { defaultBucket: 'media', storageForBucket: async () => adapter }
     vi.resetModules()
     vi.doUnmock('./storage.server')
-    vi.doMock('$lib/script/host.server', () => ({ host }))
+    vi.doMock('#lib/script/host.server.js', () => ({ host }))
     const unstubbed = await import('./user.server')
 
     const page = await unstubbed.listUserDirectory(reader(), media('photos/2024/'), { pageToken: 'previous' })

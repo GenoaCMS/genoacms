@@ -1,12 +1,12 @@
-import { hasAnyPermissionOn, requirePermission } from '$lib/script/authorization/enforce'
+import { hasAnyPermissionOn, requirePermission } from '#lib/script/authorization/enforce.js'
 import {
   permittedFields,
   projectDocument,
   mergeDocument,
   writableDocument
-} from '$lib/script/authorization/fields'
-import type { AuthContext } from '$lib/script/authorization/context'
-import { WILDCARD } from '$lib/script/authorization/grants'
+} from '#lib/script/authorization/fields.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { WILDCARD } from '#lib/script/authorization/grants.js'
 import {
   getCollectionReferences,
   getCollectionReference,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
+import type { Grant } from '#lib/script/authorization/grants.js'
 
 const service = vi.hoisted(() => ({
   getUserCollectionReference: vi.fn(),
@@ -7,9 +7,9 @@ const service = vi.hoisted(() => ({
   deleteUserDocument: vi.fn()
 }))
 
-vi.mock('$lib/script/database/user.server', () => service)
+vi.mock('#lib/script/database/user.server.js', () => service)
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
 const { actions } = await import('./+page.server')
 
 const articles = { name: 'articles', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object' } }

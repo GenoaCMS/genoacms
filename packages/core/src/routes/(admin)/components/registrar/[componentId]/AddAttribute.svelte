@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { attributeTypeInits } from '$lib/script/components/componentHeader/component/attributeInits'
-  import { getAttributeTypeIcon } from '$lib/components/components/utils'
-  import CardLink from '$lib/components/CardLink.svelte'
-  import { Modal } from '$lib/components/ui/index'
+  import { attributeTypeInits } from '#lib/script/components/componentHeader/component/attributeInits.js'
+  import { getAttributeTypeIcon } from '#lib/components/components/utils.js'
+  import CardLink from '#lib/components/CardLink.svelte'
+  import { Modal } from '#lib/components/ui/index.js'
 
   let isModalOpen = $state(false)
 

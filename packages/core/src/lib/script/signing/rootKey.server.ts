@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { getOrClaimSecret } from '$lib/script/secrets/providers.server'
+import { getOrClaimSecret } from '#lib/script/secrets/providers.server.js'
 import { getAlgorithm, ROOT_ALGORITHM, type Keypair } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { fromBase64, toBase64, type SigningKey } from './envelope'

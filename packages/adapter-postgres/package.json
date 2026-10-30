@@ -27,7 +27,7 @@
   "devDependencies": {
     "eslint": "^9.22.0",
     "neostandard": "^0.12.1",
-    "vitest": "^3.0.9",
+    "vitest": "^4.1.12",
     "@genoacms/conformance": "workspace:^"
   },
   "exports": {

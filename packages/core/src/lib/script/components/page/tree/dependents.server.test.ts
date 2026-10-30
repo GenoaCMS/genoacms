@@ -40,7 +40,7 @@ vi.mock('./io.server', () => ({
   }
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   defaultBucketId: 'bucket',
   fullyQualifiedNameToFilename: (name: string) => name.split('/').pop() as string,
   listOrCreateDirectory: async ({ name }: { name: string }) => {

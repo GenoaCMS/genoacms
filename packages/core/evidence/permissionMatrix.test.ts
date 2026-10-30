@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BUCKET, COLLECTION, matrixOperations, rolesUnderTest } from './permissionMatrix'
-import type { AuthContext } from '$lib/script/authorization/context'
-import type { Grant } from '$lib/script/authorization/grants'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import type { Grant } from '#lib/script/authorization/grants.js'
 
 /**
  * **The exhaustive permission matrix.**
@@ -30,7 +30,7 @@ import type { Grant } from '$lib/script/authorization/grants'
 // The primary layers. Every one records nothing and simply succeeds, so any allow is a real allow.
 // ---------------------------------------------------------------------------------------------
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   defaultBucketId: 'media',
   getBucketReferences: () => [{ name: 'media' }],
   getObject: async () => ({ data: '' }),
@@ -59,7 +59,7 @@ vi.mock('$lib/script/storage/storage.server', () => ({
 const storedDocument = { title: 'Ships', body: 'text', internal_cost: 12 }
 const written: Array<Record<string, unknown>> = []
 
-vi.mock('$lib/script/database/database.server', () => ({
+vi.mock('#lib/script/database/database.server.js', () => ({
   getCollectionReferences: () => ['articles'],
   getCollectionReference: async () => ({ name: 'articles', schema: {} }),
   getCollection: async () => ({ documents: [{ reference: {}, data: { ...storedDocument } }] }),
@@ -74,7 +74,7 @@ vi.mock('$lib/script/database/database.server', () => ({
   deleteDocument: async () => {}
 }))
 
-vi.mock('$lib/script/components/editor', () => ({
+vi.mock('#lib/script/components/editor/index.js', () => ({
   createComponent: async () => 'uid-1',
   listOrCreateComponentList: async () => [],
   getComponent: async () => ({ uid: 'uid-1', name: 'hero' }),
@@ -87,7 +87,7 @@ vi.mock('$lib/script/components/editor', () => ({
   deleteComponent: async () => {}
 }))
 
-vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+vi.mock('#lib/script/components/componentHeader/io.server.js', () => ({
   listOrCreateComponentHeaderList: async () => [],
   // A prebuilt entry, because the prebuilt service refuses a reference that names anything else —
   // and this file is testing the permission gate, not that refusal.
@@ -105,7 +105,7 @@ vi.mock('$lib/script/components/componentHeader/io.server', () => ({
 
 // The definition's editing history, stubbed like the other primary layers: the matrix is about
 // which principal may call what, not about what reaches the bucket.
-vi.mock('$lib/script/components/editor/editing.server', () => ({
+vi.mock('#lib/script/components/editor/editing.server.js', () => ({
   getComponentDefinitionVersioned: async () => ({
     definition: { uid: 'uid-1', language: 'typescript', body: '', publishedBody: '', publishedSignature: '' }, version: 'v1'
   }),
@@ -117,7 +117,7 @@ vi.mock('$lib/script/components/editor/editing.server', () => ({
 
 // The primary layer behind Q4's warning. Stubbed like every other, so a denial means the operation
 // never ran rather than that a scan of the bucket failed somewhere inside it.
-vi.mock('$lib/script/components/page/tree/dependents.server', () => ({
+vi.mock('#lib/script/components/page/tree/dependents.server.js', () => ({
   listPagesPinning: async () => ({ pages: [], unreadable: [] }),
   // Permits, so the matrix measures the *permission* rather than the dependants rule. What happens
   // when a page does depend on the component is `dependents.server.test.ts`'s.
@@ -125,12 +125,12 @@ vi.mock('$lib/script/components/page/tree/dependents.server', () => ({
 }))
 
 // Storage-level, mocked because deleting a component header now removes its publications too.
-vi.mock('$lib/script/components/publication/io.server', () => ({
+vi.mock('#lib/script/components/publication/io.server.js', () => ({
   deleteComponentPublications: async () => {},
   getPublishedComponent: async () => null
 }))
 
-vi.mock('$lib/script/components/publication', () => ({
+vi.mock('#lib/script/components/publication/index.js', () => ({
   publishComponent: async () => ({
     uid: 'uid-1',
     publicationId: 'pub-1',
@@ -144,7 +144,7 @@ vi.mock('$lib/script/components/publication', () => ({
   listComponentCatalog: async () => ({ headers: [], composable: [] })
 }))
 
-vi.mock('$lib/script/components/page/page.server', () => ({
+vi.mock('#lib/script/components/page/page.server.js', () => ({
   listOrCreatePageList: async () => [],
   listPageSummaries: async () => [],
   getPageEntry: async () => ({ name: 'home' }),
@@ -162,7 +162,7 @@ vi.mock('$lib/script/components/page/page.server', () => ({
   deletePageEntry: async () => {}
 }))
 
-vi.mock('$lib/script/authorization/declared.server', () => ({
+vi.mock('#lib/script/authorization/declared.server.js', () => ({
   isAdministrationLocked: () => false
 }))
 
@@ -180,13 +180,13 @@ const registryFixture = {
   ]
 }
 
-vi.mock('$lib/script/signing/keyResolution.server', () => ({
+vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   getRegistry: async () => registryFixture,
   rotateSubordinateKey: async () => registryFixture,
   revokeSubordinateKey: async () => registryFixture
 }))
 
-vi.mock('$lib/script/signing/rootKey.server', () => ({
+vi.mock('#lib/script/signing/rootKey.server.js', () => ({
   getRootPublicKey: async () => ({ keyId: 'root-1', alg: 'SLH-DSA-SHA2-128s', publicKey: 'AA==' })
 }))
 
@@ -201,13 +201,13 @@ const POLICY = {
   fetchOrigins: []
 }
 
-vi.mock('$lib/script/securityPolicy/policy.server', () => ({
+vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
   loadSecurityPolicy: async () => POLICY,
   readStoredPolicy: async () => ({ policy: POLICY, version: 'v1' }),
   writePolicy: async () => undefined
 }))
 
-vi.mock('$lib/script/authorization/administration.server', () => ({
+vi.mock('#lib/script/authorization/administration.server.js', () => ({
   loadAdministrationState: async () => ({
     ok: true,
     value: { roles: [], users: [], declared: { roles: [], users: [] } }
@@ -220,20 +220,20 @@ vi.mock('$lib/script/authorization/administration.server', () => ({
   removeAccount: async () => ({ ok: true })
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { WILDCARD } = await import('$lib/script/authorization/grants')
-const { resolveSubject } = await import('$lib/script/authorization/resolution')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { WILDCARD } = await import('#lib/script/authorization/grants.js')
+const { resolveSubject } = await import('#lib/script/authorization/resolution.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 
-const storage = await import('$lib/script/storage/user.server')
-const database = await import('$lib/script/database/user.server')
-const components = await import('$lib/script/components/componentHeader/user.server')
-const editor = await import('$lib/script/components/editor/user.server')
-const publication = await import('$lib/script/components/publication/user.server')
-const pagesService = await import('$lib/script/components/page/user.server')
-const configuration = await import('$lib/script/configuration/user.server')
-const signing = await import('$lib/script/signing/user.server')
-const securityPolicy = await import('$lib/script/securityPolicy/user.server')
+const storage = await import('#lib/script/storage/user.server.js')
+const database = await import('#lib/script/database/user.server.js')
+const components = await import('#lib/script/components/componentHeader/user.server.js')
+const editor = await import('#lib/script/components/editor/user.server.js')
+const publication = await import('#lib/script/components/publication/user.server.js')
+const pagesService = await import('#lib/script/components/page/user.server.js')
+const configuration = await import('#lib/script/configuration/user.server.js')
+const signing = await import('#lib/script/signing/user.server.js')
+const securityPolicy = await import('#lib/script/securityPolicy/user.server.js')
 
 // ---------------------------------------------------------------------------------------------
 // The operation table: every gated service function, invoked for real.

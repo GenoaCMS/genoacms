@@ -3,7 +3,7 @@
 GenoaCMS configuration.
 
 - `@genoacms/config`: what a config file imports. `defineConfig`, the per-service provider helpers, `secret()`, `env()` and `inline()`.
-- `@genoacms/config/load`: `loadConfig()`. It evaluates a config file, loads each adapter's SDK-free descriptor from the project, applies the loader rules, and returns a JSON **manifest** that every later phase reads instead of the file. Also `resolveKitAdapter()` for `svelte.config.js`, and `readGenoaEnvironment()`.
+- `@genoacms/config/load`: `loadConfig()`. It evaluates a config file, loads each adapter's SDK-free descriptor from the project, applies the loader rules, and returns a JSON **manifest** that every later phase reads instead of the file. Also `resolveKitTarget()`, which gives the Vite config the target's SvelteKit adapter and origin, and `readGenoaEnvironment()`.
 - `@genoacms/config/host`: `createHost()`, which constructs providers from a manifest on first use, resolving their secret references just before.
 - `@genoacms/config/vite`: the `genoa()` plugin, which serves the runtime manifest as `virtual:genoa/manifest` (types: `@genoacms/config/client`).
 - `@genoacms/config/build`: `createRuntimePackage()`, which writes a build artifact's `package.json` from what its server output imports.

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
   import { applyAction, enhance } from '$app/forms'
-  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
-  import PagesPinningComponent from '$lib/components/components/PagesPinningComponent.svelte'
+  import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
+  import PagesPinningComponent from '#lib/components/components/PagesPinningComponent.svelte'
 
   const { uid, name } = $props()
   let confirmName = $state('')

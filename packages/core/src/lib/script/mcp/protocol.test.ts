@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import { captureConsole } from '$lib/script/testing/host'
-import { handle, request, callTool, toolRegistry, type Tool } from '$lib/script/testing/mcp'
-import { principal, type Parsed } from '$lib/script/testing/requests'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import { captureConsole } from '#lib/script/testing/host.js'
+import { handle, request, callTool, toolRegistry, type Tool } from '#lib/script/testing/mcp.js'
+import { principal, type Parsed } from '#lib/script/testing/requests.js'
 import corePackage from '../../../../package.json'
 
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
 
 const TOOLS = [
   'list_components', 'get_component', 'create_component', 'update_component', 'get_component_source', 'save_component_source',

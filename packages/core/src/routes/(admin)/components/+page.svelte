@@ -1,6 +1,6 @@
 <script lang="ts">
-  import TopPanel from '$lib/components/TopPanel.svelte'
-  import CardLink from '$lib/components/CardLink.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
+  import CardLink from '#lib/components/CardLink.svelte'
 </script>
 
 <div class="h-full flex flex-col">

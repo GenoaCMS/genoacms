@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { toastSuccess, toastError, confirmationModal } from '$lib/script/alert.svelte'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import { toastSuccess, toastError, confirmationModal } from '#lib/script/alert.svelte.js'
+  import type { SubmitFunction } from '$app/forms'
 
   interface Props {
     ondeleted?: () => void

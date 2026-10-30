@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Label } from '$lib/components/ui/index'
-  import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
+  import { Label } from '#lib/components/ui/index.js'
+  import type { ComponentType } from '#lib/script/components/componentHeader/component/types.js'
 
   /**
    * Choosing where a component's code lives.

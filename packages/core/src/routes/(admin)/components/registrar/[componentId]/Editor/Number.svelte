@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { NumberMetaSchema } from '$lib/script/components/componentHeader/component/types'
-  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
-  import { Label } from '$lib/components/ui/index'
+  import type { NumberMetaSchema } from '#lib/script/components/componentHeader/component/types.js'
+  import ParalelInputs from '#lib/components/editors/ParalelInputs.svelte'
+  import ConstraintInput from '#lib/components/editors/ConstraintInput.svelte'
+  import { Label } from '#lib/components/ui/index.js'
 
   /**
    * The meta-schema is passed whole rather than one bindable constraint at a time, because an unset

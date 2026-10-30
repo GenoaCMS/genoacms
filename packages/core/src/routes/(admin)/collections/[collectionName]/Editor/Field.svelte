@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { SchemaObject } from '$lib/script/schema'
-  import type { InputValue } from '$lib/components/editors/types'
+  import type { SchemaObject } from '#lib/script/schema.js'
+  import type { InputValue } from '#lib/components/editors/types.js'
   import Input from './Input.svelte'
   import { fieldHint, fieldKindOf, isCompact, isHidden, isLabellable } from './fieldKind'
 

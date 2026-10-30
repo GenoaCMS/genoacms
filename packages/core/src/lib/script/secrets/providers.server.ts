@@ -1,4 +1,4 @@
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import { assertValidSecretKey } from '@genoacms/contracts/secrets'
 
 /**

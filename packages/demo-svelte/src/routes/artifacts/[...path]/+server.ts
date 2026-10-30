@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit'
-import { env } from '$env/dynamic/private'
+import { GENOACMS_BUCKET, GENOACMS_CREDENTIALS } from '$app/env/private'
 import { isPublishedDocument } from '@genoacms/demo-support/artifacts'
 import { serveArtifact } from '@genoacms/demo-support/bucket'
 import type { RequestHandler } from './$types'
@@ -23,7 +23,7 @@ import type { RequestHandler } from './$types'
  *
  * ## Credentials
  *
- * `$env/dynamic/private` rather than a static import, so the service account is read when the server
+ * Dynamic variables of `$app/env/private` (`src/env.ts`), so the service account is read when the server
  * runs and never at build time — a build artifact with a service account baked into it is one nobody
  * can safely publish.
  */
@@ -36,8 +36,8 @@ export const GET: RequestHandler = async ({ params, setHeaders }) => {
   if (!isPublishedDocument(path)) error(404, 'Not a published document')
 
   const served = await serveArtifact(path, {
-    bucket: env.GENOACMS_BUCKET ?? '',
-    credentials: env.GENOACMS_CREDENTIALS ?? ''
+    bucket: GENOACMS_BUCKET ?? '',
+    credentials: GENOACMS_CREDENTIALS ?? ''
   })
 
   if (served.status !== 200) error(served.status, served.body)

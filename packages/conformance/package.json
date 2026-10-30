@@ -30,9 +30,9 @@
     "fast-check": "^4.10.2"
   },
   "peerDependencies": {
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0 || ^4.0.0"
   },
   "devDependencies": {
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.12"
   }
 }

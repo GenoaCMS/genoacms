@@ -1,7 +1,7 @@
-import type { SchemaObject } from '$lib/script/schema'
+import type { SchemaObject } from '#lib/script/schema.js'
 import type { Diff } from 'deep-diff'
-import type { AttributeReference, AttributeType, ComponentHeaderReference } from '$lib/script/components/componentHeader/component/types'
-import type { AttributeValue, ComponentNodeReference } from '$lib/script/components/componentHeader/attribute/types'
+import type { AttributeReference, AttributeType, ComponentHeaderReference } from '#lib/script/components/componentHeader/component/types.js'
+import type { AttributeValue, ComponentNodeReference } from '#lib/script/components/componentHeader/attribute/types.js'
 
 type IsSerializable = true
 

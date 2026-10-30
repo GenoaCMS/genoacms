@@ -192,9 +192,6 @@ const STATIC_FILES = [
 	['/robots.txt', 'User-agent: *\n']
 ];
 
-const WITHOUT_CRYPTO_AND_FILE =
-	'--import=data:text/javascript,delete%20globalThis.crypto;delete%20globalThis.File';
-
 let buildA = '';
 let buildB = '';
 let buildC = '';
@@ -214,12 +211,14 @@ function installSvelteLibrary() {
 }
 
 beforeAll(() => {
-	run('pnpm', ['run', 'build'], packageDir);
 	installDeepDependency();
 	installSvelteLibrary();
 	buildA = buildFixture('a', {});
 	buildB = buildFixture('b', { FIXTURE_PRECOMPRESS: 'false', FIXTURE_ENV_PREFIX: 'APP_' });
-	buildC = buildFixtureIntoDefaultOut({ FIXTURE_BASE: '/base' });
+	buildC = buildFixtureIntoDefaultOut({
+		FIXTURE_BASE: '/base',
+		FIXTURE_ORIGIN: 'https://origin.example'
+	});
 }, 240_000);
 
 afterAll(() => {
@@ -241,27 +240,10 @@ describe('the adapter output', () => {
 		for (const file of ['about.html', 'about.html.gz', 'about.html.br']) {
 			expect(existsSync(join(buildA, 'prerendered', file))).toBe(true);
 		}
-		for (const file of ['env.js', 'handler.js', 'index.js', 'shims.js']) {
+		for (const file of ['index.js', 'handler.js', 'adapter.js', 'server']) {
 			expect(existsSync(join(buildA, file))).toBe(true);
 		}
 	});
-
-	it.fails(
-		'ADP-1, ADP-2: writes client assets, prerendered pages and the runtime files into out, precompressed',
-		() => {
-			const files = filesUnder(buildA);
-			const immutable = files.filter((file) => file.includes(join('client', '_app', 'immutable')));
-			expect(immutable.some((file) => file.endsWith('.js'))).toBe(true);
-			expect(immutable.some((file) => file.endsWith('.js.gz'))).toBe(true);
-			expect(immutable.some((file) => file.endsWith('.js.br'))).toBe(true);
-			for (const file of ['about.html', 'about.html.gz', 'about.html.br']) {
-				expect(existsSync(join(buildA, 'prerendered', file))).toBe(true);
-			}
-			for (const file of ['index.js', 'handler.js', 'adapter.js', 'server']) {
-				expect(existsSync(join(buildA, file))).toBe(true);
-			}
-		}
-	);
 
 	it('ADP-1: writes no compressed variants without precompress', () => {
 		const compressed = filesUnder(buildB).filter((file) => /\.(gz|br)$/.test(file));
@@ -269,8 +251,9 @@ describe('the adapter output', () => {
 	});
 
 	it("ADP-3: bundles the server, keeping the app's dependencies external", async () => {
-		const { manifest, prerendered, base } = await import(join(buildA, 'server', 'manifest.js'));
-		expect(manifest).toBeTypeOf('object');
+		const { server: app, prerendered, base } = await import(join(buildA, 'adapter.js'));
+		expect(app.init).toBeTypeOf('function');
+		expect(app.respond).toBeTypeOf('function');
 		expect(prerendered.has('/about')).toBe(true);
 		expect(base).toBe('');
 		const server = filesUnder(join(buildA, 'server'))
@@ -291,9 +274,9 @@ describe('the adapter output', () => {
 		for (const file of ['about.html', 'about.html.gz', 'about.html.br']) {
 			expect(existsSync(join(buildC, 'prerendered', 'base', file))).toBe(true);
 		}
-		const { base } = await import(join(buildC, 'server', 'manifest.js'));
+		const { base } = await import(join(buildC, 'adapter.js'));
 		expect(base).toBe('/base');
-		const url = await serve(buildC, { ORIGIN: 'https://origin.example' });
+		const url = await serve(buildC);
 		const file = await fetch(`${url}/base/genoacms.txt`);
 		expect(file.status).toBe(200);
 		expect(await file.text()).toBe('static\n');
@@ -368,23 +351,11 @@ describe('the served function', () => {
 		expect(response.body).toBe('{"sent":true}');
 	});
 
-	it('ADP-5, ADP-7: takes the request URL from ORIGIN over forwarded headers', async () => {
-		const response = await echo(
-			await serve(buildA, { ORIGIN: 'https://origin.example' }),
-			FORWARDED
-		);
+	it("ADP-5: takes the request URL from the build's origin over forwarded headers", async () => {
+		const out = buildFixture('origin', { FIXTURE_ORIGIN: 'https://origin.example' });
+		const response = await echo(await serve(out), { 'x-forwarded-host': 'cms.example' });
 		expect(response.href).toBe('https://origin.example/echo');
-	});
-
-	it.fails(
-		"ADP-5: takes the request URL from the build's origin over forwarded headers",
-		async () => {
-			const out = buildFixture('origin', { FIXTURE_ORIGIN: 'https://origin.example' });
-			const response = await echo(await serve(out), { 'x-forwarded-host': 'cms.example' });
-			expect(response.href).toBe('https://origin.example/echo');
-		},
-		120_000
-	);
+	}, 120_000);
 
 	it('ADP-6: returns the X-Forwarded-For entry XFF_DEPTH positions from the right', async () => {
 		const address = async (/** @type {Record<string, string>} */ env) =>
@@ -405,13 +376,6 @@ describe('the served function', () => {
 		expect(output).toContain("XFF_DEPTH must be a positive integer, not 'abc'");
 	});
 
-	it('ADP-1, ADP-7: reads prefixed variables with envPrefix, and fails at startup on an unknown prefixed one', async () => {
-		const response = await echo(await serve(buildB, { APP_ORIGIN: 'https://prefixed.example' }));
-		expect(response.href).toBe('https://prefixed.example/echo');
-		const { code } = await startupFailure(buildB, { APP_UNKNOWN: '1' });
-		expect(code).not.toBe(0);
-	});
-
 	it('ADP-1, ADP-7: reads the prefixed XFF_DEPTH with envPrefix, and fails at startup on an unknown prefixed one', async () => {
 		const url = await serve(buildB, { APP_XFF_DEPTH: '2' });
 		const response = await fetch(`${url}/address`, { headers: { 'x-forwarded-for': XFF } });
@@ -420,15 +384,14 @@ describe('the served function', () => {
 		expect(code).not.toBe(0);
 	});
 
-	it.fails('ADP-8: fails at startup when ORIGIN is set', async () => {
+	it('ADP-8: fails at startup when ORIGIN is set', async () => {
 		const { code, stderr } = await startupOutcome(buildA, { ORIGIN: 'https://origin.example' });
 		expect(code).not.toBe(0);
 		expect(stderr).toContain(ORIGIN_REFUSED);
 	});
 
-	it('ADP-4: installs the shims and initializes with process.env', async () => {
+	it('ADP-4: initializes with process.env', async () => {
 		const url = await serve(buildA, {
-			NODE_OPTIONS: WITHOUT_CRYPTO_AND_FILE,
 			FIXTURE_VALUE: 'from process.env'
 		});
 		const response = await fetch(`${url}/runtime`);

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import { setSecret } from '$lib/script/secrets/providers.server'
-import { uploadInternalObjectJSON } from '$lib/script/storage/storage.server'
+import { setSecret } from '#lib/script/secrets/providers.server.js'
+import { uploadInternalObjectJSON } from '#lib/script/storage/storage.server.js'
 import { getAlgorithm, ROOT_ALGORITHM } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { sign, toBase64, type SigningKey } from './envelope'
@@ -9,7 +9,7 @@ import { createSubordinateKey } from './subordinateKey.server'
 import { registryPath } from './registry.server'
 import { toPayload, type KeyRegistry } from './registry'
 import { readHighWaterMark, recordPublished } from './registrySequence.server'
-import { policyPath, POLICY_DOCUMENT, defaultPolicy } from '$lib/script/securityPolicy/policy.server'
+import { policyPath, POLICY_DOCUMENT, defaultPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import type { JsonValue } from './canonical'
 
 /**

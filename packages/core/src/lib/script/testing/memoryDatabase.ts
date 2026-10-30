@@ -75,7 +75,7 @@ const deleteDocument: Adapter['deleteDocument'] = async (reference) => {
 
 /**
  * A database adapter to `contracts/database.md`, in memory, ordering documents by ID. A test mocks
- * `$lib/script/database/providers.server` so that `adapterForCollection` returns it.
+ * `#lib/script/database/providers.server.js` so that `adapterForCollection` returns it.
  */
 const memoryDatabase = {
   createDocument,

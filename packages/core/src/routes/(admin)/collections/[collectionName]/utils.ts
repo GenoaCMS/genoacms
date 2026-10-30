@@ -1,6 +1,6 @@
 import type { CollectionReference } from '@genoacms/contracts/database'
 import type { Schema } from '@exodus/schemasafe'
-import type { SchemaObject } from '$lib/script/schema'
+import type { SchemaObject } from '#lib/script/schema.js'
 
 const keywordsOf = (schema: Schema) => typeof schema === 'object' ? schema : {}
 

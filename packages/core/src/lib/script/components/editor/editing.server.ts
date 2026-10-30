@@ -1,5 +1,5 @@
 import type { ComponentDefinition, ComponentReference } from './types'
-import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import type { UndoRedoAdjunct } from '#lib/script/undoRedo/types.js'
 
 import {
   getComponentDefiniton,
@@ -8,7 +8,7 @@ import {
   uploadComponentDefinition,
   uploadComponentDefinitionHistory
 } from './io'
-import { recordChange, undo, redo } from '$lib/script/undoRedo'
+import { recordChange, undo, redo } from '#lib/script/undoRedo/index.js'
 import { writeConditionally, requireCurrent } from '../conflict'
 
 /**

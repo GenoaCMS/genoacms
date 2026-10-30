@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { pages } from './pages'
-import { demandedPermissions } from '$lib/script/authorization/gate'
-import { isPermission, isResourceScoped } from '$lib/script/authorization/permissions'
+import { demandedPermissions } from '#lib/script/authorization/gate.js'
+import { isPermission, isResourceScoped } from '#lib/script/authorization/permissions.js'
 
 /**
  * Navigation gating.

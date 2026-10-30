@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Modal, Button, Input, Label } from '$lib/components/ui/index'
+  import { Modal, Button, Input, Label } from '#lib/components/ui/index.js'
   import { createComponent } from './create.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { goto } from '$app/navigation'
   import ComponentTypeChoice from './ComponentTypeChoice.svelte'
-  import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
+  import type { ComponentType } from '#lib/script/components/componentHeader/component/types.js'
 
   /**
    * Registering a component.

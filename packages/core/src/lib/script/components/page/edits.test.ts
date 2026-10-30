@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { attribute, header, node } from '$lib/script/testing/components'
-import { importModule, type Parsed } from '$lib/script/testing/requests'
+import { attribute, header, node } from '#lib/script/testing/components.js'
+import { importModule, type Parsed } from '#lib/script/testing/requests.js'
 
-const edits = async () => await importModule('$lib/script/components/page/edits')
-const names = async () => await importModule('$lib/script/components/page/names')
+const edits = async () => await importModule('#lib/script/components/page/edits.js')
+const names = async () => await importModule('#lib/script/components/page/names.js')
 
 const card = header('card', 'Card', [attribute.string('heading', 'heading', { minLength: 2 })])
 const banner = header('banner', 'Banner', [])

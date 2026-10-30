@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { isRedirect } from '@sveltejs/kit'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePublication, storePage,
   storedPage, publicationIdOf, entryPath, treePath, headerPath, pointerPath
-} from '$lib/script/testing/components'
-import { captureConsole } from '$lib/script/testing/host'
-import { principal, runAction, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { captureConsole } from '#lib/script/testing/host.js'
+import { principal, runAction, type Parsed } from '#lib/script/testing/requests.js'
 
-vi.mock('$lib/script/storage/providers.server', async () => {
-  const { memoryProviders } = await import('$lib/script/testing/memoryStorage')
+vi.mock('#lib/script/storage/providers.server.js', async () => {
+  const { memoryProviders } = await import('#lib/script/testing/memoryStorage.js')
   return {
     ...memoryProviders,
     getPublicURL: async (reference: { bucket: string, name: string }) => {
@@ -18,7 +18,7 @@ vi.mock('$lib/script/storage/providers.server', async () => {
     }
   }
 })
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 
 const pagesList = await import('../../../../routes/(admin)/components/pages/+page.server')
 const pageLayout = await import('../../../../routes/(admin)/components/pages/[pageName]/+layout.server')

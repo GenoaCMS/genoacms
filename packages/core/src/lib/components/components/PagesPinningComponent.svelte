@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pagesPinningComponent } from '$lib/script/components/dependents.remote'
+  import { pagesPinningComponent } from '#lib/script/components/dependents.remote.js'
 
   /**
    * What deleting this component would break, shown inside the confirmation.

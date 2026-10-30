@@ -1,4 +1,4 @@
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import type { ComponentHeaderCreation, ComponentHeaderReference } from './componentHeader/component/types'
 import { getComponentHeader } from './componentHeader/io.server'
 import { deleteUserComponentHeader, registerUserComponentHeader } from './componentHeader/user.server'

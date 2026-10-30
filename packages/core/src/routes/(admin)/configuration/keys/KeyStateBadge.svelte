@@ -1,6 +1,6 @@
 <script lang="ts">
   import { stateBadge } from './keyPresentation'
-  import type { KeyState } from '$lib/script/signing/keyAdministration'
+  import type { KeyState } from '#lib/script/signing/keyAdministration.js'
 
   interface Props {
     state: KeyState

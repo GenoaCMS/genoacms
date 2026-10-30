@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
+  import { Card } from '#lib/components/ui/index.js'
   import GrantSummary from './GrantSummary.svelte'
   import DeclaredBadge from './DeclaredBadge.svelte'
-  import type { Role } from '$lib/script/authorization/roles'
+  import type { Role } from '#lib/script/authorization/roles.js'
 
   interface Props {
     role: Role

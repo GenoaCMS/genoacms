@@ -1,7 +1,7 @@
 <script lang="ts">
-    import CardLink from '$lib/components/CardLink.svelte'
-    import Grid from '$lib/components/Grid.svelte'
-    import TopPanel from '$lib/components/TopPanel.svelte'
+    import CardLink from '#lib/components/CardLink.svelte'
+    import Grid from '#lib/components/Grid.svelte'
+    import TopPanel from '#lib/components/TopPanel.svelte'
 
     const { data } = $props()
 </script>

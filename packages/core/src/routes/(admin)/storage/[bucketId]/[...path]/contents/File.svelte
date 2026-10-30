@@ -1,11 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import CardLink from '$lib/components/CardLink.svelte'
-  import ContextMenu from '$lib/components/ContextMenu.svelte'
-  import ContextMenuItem from '$lib/components/ContextMenuItem.svelte'
+  import CardLink from '#lib/components/CardLink.svelte'
+  import ContextMenu from '#lib/components/ContextMenu.svelte'
+  import ContextMenuItem from '#lib/components/ContextMenuItem.svelte'
   import Selectable from './Selectable.svelte'
   import RenameModal from './RenameModal.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
 
   type Props = {
     name: string,

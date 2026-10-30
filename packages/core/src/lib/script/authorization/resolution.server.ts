@@ -9,15 +9,15 @@ import {
 } from './manifests.server'
 import { parseRolesManifest, parseUsersManifest, type ManifestParseResult, type UserRecord } from './manifests'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
-import { peekUnverifiedHeader, verify, type DocumentType } from '$lib/script/signing/envelope'
-import { resolveVerificationKey } from '$lib/script/signing/keyResolution.server'
+import { peekUnverifiedHeader, verify, type DocumentType } from '#lib/script/signing/envelope.js'
+import { resolveVerificationKey } from '#lib/script/signing/keyResolution.server.js'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'
-import { AGENTS_DOCUMENT, EMPTY_AGENTS, agentsManifestPath } from '$lib/script/agents/manifest.server'
-import { parseAgentsManifest, type AgentRecord } from '$lib/script/agents/manifest'
+import { AGENTS_DOCUMENT, EMPTY_AGENTS, agentsManifestPath } from '#lib/script/agents/manifest.server.js'
+import { parseAgentsManifest, type AgentRecord } from '#lib/script/agents/manifest.js'
 import { mergeDeclarations, declarationsOnly } from './declared'
 import { readDeclarations } from './declared.server'
 import type { Role } from './roles'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 
 /**
  * Loading authorization data from storage and resolving a principal against it.

@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { loadStoredAgents } from '$lib/script/authorization/resolution.server'
+import { loadStoredAgents } from '#lib/script/authorization/resolution.server.js'
 import { declaredAgents } from './declared.server'
 import { hashAgentToken } from './tokens'
 

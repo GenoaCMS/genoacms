@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import { importModule } from '$lib/script/testing/requests'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import { importModule } from '#lib/script/testing/requests.js'
 
 type Data = Record<string, unknown>
 
@@ -15,10 +15,10 @@ vi.mock('$app/server', () => ({
   command: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'command' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/database/user.server', () => service)
+vi.mock('#lib/script/database/user.server.js', () => service)
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const { createDoc } = await import('./create.remote')
 const { updateDoc } = await import('./[documentId]/update.remote')
 
@@ -57,7 +57,7 @@ describe('creating from the editor', () => {
   })
 
   it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    const { DocumentValidationError } = await importModule('#lib/script/database/errors.js')
     service.createUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/count', keyword: 'type' }]))
 
     const answer = await create({ collectionName: 'articles', documentData: { title: 'a' } })
@@ -93,7 +93,7 @@ describe('updating from the editor', () => {
   })
 
   it('DOC-5: data the schema rejects answers Invalid document data, without errors, and stores nothing', async () => {
-    const { DocumentValidationError } = await importModule('$lib/script/database/errors')
+    const { DocumentValidationError } = await importModule('#lib/script/database/errors.js')
     service.updateUserDocument.mockRejectedValue(new DocumentValidationError([{ instancePath: '/title', keyword: 'type' }]))
 
     const answer = await update({ collectionName: 'articles', documentId: 'doc-1', documentData: { title: 'a' } })

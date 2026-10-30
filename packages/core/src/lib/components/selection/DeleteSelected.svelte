@@ -1,14 +1,14 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
   import { enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
-  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
+  import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
+  import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
   import {
     confirmationPhrase,
     matchesConfirmation,
     type NamedSelection
-  } from '$lib/script/selection/NamedSelection.svelte'
+  } from '#lib/script/selection/NamedSelection.svelte.js'
 
   /**
    * Deleting everything selected, confirmed by typing the names back.

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { activityTracker } from '$lib/script/activity/client'
-  import { Button, DarkMode } from '$lib/components/ui/index'
+  import { activityTracker } from '#lib/script/activity/client.js'
+  import { Button, DarkMode } from '#lib/components/ui/index.js'
   import ActivityRecord from './ActivityRecord.svelte'
-  import Grid from '$lib/components/Grid.svelte'
-  import Logout from '$lib/components/Logout.svelte'
+  import Grid from '#lib/components/Grid.svelte'
+  import Logout from '#lib/components/Logout.svelte'
 
   const { data } = $props()
 </script>

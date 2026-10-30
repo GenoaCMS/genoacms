@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Component } from '$lib/script/components/editor/types'
-  import CardLink from '$lib/components/CardLink.svelte'
+  import type { Component } from '#lib/script/components/editor/types.js'
+  import CardLink from '#lib/components/CardLink.svelte'
 
   interface Props {
     component: Component

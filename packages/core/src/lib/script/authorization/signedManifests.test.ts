@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
-import { deriveKeyId } from '$lib/script/signing/keyId'
-import { sign, verify, toBase64, peekUnverifiedHeader } from '$lib/script/signing/envelope'
-import { parseKeyRegistry, findPublicKey, withRotatedKey, withRevokedKey, type KeyRegistry } from '$lib/script/signing/registry'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
+import { deriveKeyId } from '#lib/script/signing/keyId.js'
+import { sign, verify, toBase64, peekUnverifiedHeader } from '#lib/script/signing/envelope.js'
+import { parseKeyRegistry, findPublicKey, withRotatedKey, withRevokedKey, type KeyRegistry } from '#lib/script/signing/registry.js'
 import { parseRolesManifest, serializeRolesManifest } from './manifests'
 import type { Role } from './roles'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 
 /**
  * The whole read path composed, minus storage: a manifest signed by a subordinate key, that key

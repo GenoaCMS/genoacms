@@ -29,23 +29,23 @@ const published: Record<string, string | undefined> = {
   'entry-prebuilt': 'publication-prebuilt'
 }
 
-vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+vi.mock('#lib/script/components/componentHeader/io.server.js', () => ({
   getComponentHeader: async (reference: string) => entries[reference] ?? null
 }))
 
-vi.mock('$lib/script/components/publication/io.server', () => ({
+vi.mock('#lib/script/components/publication/io.server.js', () => ({
   getPublishedComponent: async (reference: string) => {
     const publicationId = published[reference]
     return publicationId === undefined ? null : { uid: reference, publicationId }
   }
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   getPublicURL: async ({ bucket, name }: { bucket: string, name: string }) =>
     `https://storage.example/${bucket}/${name}`
 }))
 
-vi.mock('$lib/script/components/page/page.server', () => ({
+vi.mock('#lib/script/components/page/page.server.js', () => ({
   getPageEntry: async (name: string) => ({ previewURL: `https://site.example/${name}` })
 }))
 

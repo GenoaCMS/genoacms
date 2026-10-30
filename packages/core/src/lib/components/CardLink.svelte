@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CardLinkContents from '$lib/components/CardLinkContents.svelte'
+  import CardLinkContents from '#lib/components/CardLinkContents.svelte'
 
   type Props = {
     icon: string

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { resolveSubject } from '$lib/script/authorization/resolution'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Role } from '$lib/script/authorization/roles'
-import { importModule } from '$lib/script/testing/requests'
+import { resolveSubject } from '#lib/script/authorization/resolution.js'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Role } from '#lib/script/authorization/roles.js'
+import { importModule } from '#lib/script/testing/requests.js'
 
-const ceiling = async () => await importModule('$lib/script/agents/ceiling')
+const ceiling = async () => await importModule('#lib/script/agents/ceiling.js')
 
 const CONFIGURATION_PERMISSIONS = ['config:users:manage', 'config:roles:manage', 'config:keys:manage', 'config:security:manage', 'config:adapters:manage']
 

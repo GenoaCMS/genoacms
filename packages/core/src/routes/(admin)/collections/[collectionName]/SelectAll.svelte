@@ -1,5 +1,5 @@
 <script lang="ts">
-  import selection from '$lib/script/database/SelectionRune.svelte'
+  import selection from '#lib/script/database/SelectionRune.svelte.js'
 
   /**
    * Selecting or clearing every document on the screen.

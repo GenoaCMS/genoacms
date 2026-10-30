@@ -2,7 +2,7 @@ import { join } from 'path'
 import {
   getInternalObjectStringVersioned,
   uploadInternalObjectJSON
-} from '$lib/script/storage/storage.server'
+} from '#lib/script/storage/storage.server.js'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { loadRootKey, getRootSigningKey } from './rootKey.server'
 import { createSubordinateKey, forgetSubordinateKey } from './subordinateKey.server'

@@ -1,5 +1,5 @@
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import {
   createUserDirectory,
   deleteUserDirectory,
@@ -10,7 +10,7 @@ import {
   moveUserDirectory,
   moveUserObject,
   uploadUserObject
-} from '$lib/script/storage/user.server'
+} from '#lib/script/storage/user.server.js'
 import { StorageToolError, requireDirectoryPath, requireObjectName, requireSubdirectoryPath } from './storageNames'
 
 type Args = Record<string, unknown>

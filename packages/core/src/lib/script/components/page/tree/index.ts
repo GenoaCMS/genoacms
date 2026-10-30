@@ -3,24 +3,24 @@ import type {
   ComponentNode,
   ComponentNodes,
   PageEntry
-} from '$lib/script/components/page/entry/types'
-import type { ReadableAttributeValue, ReadablePageNode } from '$lib/script/components/page/tree/types'
+} from '#lib/script/components/page/entry/types.js'
+import type { ReadableAttributeValue, ReadablePageNode } from '#lib/script/components/page/tree/types.js'
 import type { ObjectReference } from '@genoacms/contracts/storage'
 import type {
   ComponentNodeReference,
   LinkAttributeValue,
   LinksAttributeValue,
   StorageResourcesAttributeValue
-} from '$lib/script/components/componentHeader/attribute/types'
-import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
+} from '#lib/script/components/componentHeader/attribute/types.js'
+import type { ComponentType } from '#lib/script/components/componentHeader/component/types.js'
 import { JSDOM } from 'jsdom'
 import dompurify from 'dompurify'
 import { parse } from 'marked'
-import { getPublicURL } from '$lib/script/storage/storage.server'
-import { getPageEntry } from '$lib/script/components/page/page.server'
-import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import { getPublishedComponent } from '$lib/script/components/publication/io.server'
-import { readingOnceEach } from '$lib/script/utils'
+import { getPublicURL } from '#lib/script/storage/storage.server.js'
+import { getPageEntry } from '#lib/script/components/page/page.server.js'
+import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
+import { getPublishedComponent } from '#lib/script/components/publication/io.server.js'
+import { readingOnceEach } from '#lib/script/utils.js'
 
 /** The reads one build makes, each made at most once per key. */
 interface BuildReads {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Grant } from '$lib/script/authorization/grants'
+  import type { Grant } from '#lib/script/authorization/grants.js'
 
   interface Props {
     grants: Grant[]

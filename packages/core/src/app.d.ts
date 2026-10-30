@@ -1,7 +1,7 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
 import type { JWTPayload } from 'jose'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 
 declare global {
   namespace App {

@@ -3,9 +3,9 @@
     AttributeReference,
     Attribute as AttributeT,
     ComponentHeader,
-  } from '$lib/script/components/componentHeader/component/types'
-  import { activityTracker } from '$lib/script/activity/client'
-  import TopPanel from '$lib/components/TopPanel.svelte'
+  } from '#lib/script/components/componentHeader/component/types.js'
+  import { activityTracker } from '#lib/script/activity/client.js'
+  import TopPanel from '#lib/components/TopPanel.svelte'
   import ChangeName from './ChangeName.svelte'
   import Submit from './Submit.svelte'
   import Redo from './Redo.svelte'
@@ -16,10 +16,10 @@
   import CodeLink from './CodeLink.svelte'
   import PublishComponent from './PublishComponent.svelte'
   import PublicationStatus from './PublicationStatus.svelte'
-  import Sortable from '$lib/components/Sortable.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import Sortable from '#lib/components/Sortable.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
   import { updateComponent } from './update.remote.js'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { tick, untrack } from 'svelte'
 
   /**

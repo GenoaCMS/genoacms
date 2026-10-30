@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
+import { WILDCARD, type Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
 
 /**
  * The gated security policy.
@@ -28,7 +28,7 @@ const writePolicy = vi.fn(async (_policy: unknown, _expected?: string) => undefi
 
 class PreconditionFailed extends Error {}
 
-vi.mock('$lib/script/securityPolicy/policy.server', () => ({
+vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
   readStoredPolicy: async () => await readStoredPolicy(),
   writePolicy: async (policy: unknown, expected?: string) => await writePolicy(policy, expected)
 }))
@@ -37,8 +37,8 @@ vi.mock('@genoacms/contracts/storage', () => ({
   isPreconditionFailed: (error: unknown) => error instanceof PreconditionFailed
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const { readUserSecurityPolicy, updateUserSecurityPolicy } = await import('./user.server')
 
 const holding = (...permissions: Permission[]) =>

@@ -1,4 +1,4 @@
-import { permissions, type Permission } from '$lib/script/authorization/permissions'
+import { permissions, type Permission } from '#lib/script/authorization/permissions.js'
 
 /**
  * The permission categories, as an administrator picks them.

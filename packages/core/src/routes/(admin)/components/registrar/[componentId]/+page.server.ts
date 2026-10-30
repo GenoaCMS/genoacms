@@ -4,14 +4,14 @@ import {
   getUserComponentHeaderDepth,
   undoUserComponentHeader,
   redoUserComponentHeader
-} from '$lib/script/components/componentHeader/user.server'
-import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
-import { isComponentInUse } from '$lib/script/components/page/tree/dependents.server'
-import { getUserPublishedComponent } from '$lib/script/components/publication/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+} from '#lib/script/components/componentHeader/user.server.js'
+import { deleteUserComponentByReference } from '#lib/script/components/registration.server.js'
+import { isComponentInUse } from '#lib/script/components/page/tree/dependents.server.js'
+import { getUserPublishedComponent } from '#lib/script/components/publication/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { fail, type Actions, type RequestEvent, redirect, error } from '@sveltejs/kit'
-import { isString } from '$lib/script/utils'
-import { isConflict } from '$lib/script/components/conflict'
+import { isString } from '#lib/script/utils.js'
+import { isConflict } from '#lib/script/components/conflict.js'
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { componentId } = params

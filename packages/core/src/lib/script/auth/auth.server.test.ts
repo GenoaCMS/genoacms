@@ -20,13 +20,13 @@ import type { Cookies } from '@sveltejs/kit'
 const COOKIE_NAME = 'session'
 const SESSION_KEY = new Uint8Array(32).fill(7)
 
-vi.mock('$lib/script/host.server', () => ({ host: { get cookieName () { return COOKIE_NAME }, authenticationProviderKeys: ['a', 'b', 'c'] } }))
+vi.mock('#lib/script/host.server.js', () => ({ host: { get cookieName () { return COOKIE_NAME }, authenticationProviderKeys: ['a', 'b', 'c'] } }))
 
-vi.mock('$lib/script/signing/rootKey.server', () => ({
+vi.mock('#lib/script/signing/rootKey.server.js', () => ({
   getSessionKey: async () => SESSION_KEY
 }))
 
-vi.mock('$lib/script/securityPolicy/policy.server', () => ({
+vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
   loadSecurityPolicy: async () => ({
     subordinateKeyRotationDays: 90,
     accessTokenMinutes: 15,

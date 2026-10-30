@@ -1,5 +1,5 @@
 import { matchesConfirmation } from './NamedSelection.svelte'
-import { isString } from '$lib/script/utils'
+import { isString } from '#lib/script/utils.js'
 
 /**
  * Reading a bulk-deletion request.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ComponentDefinition } from './types'
-import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import type { UndoRedoAdjunct } from '#lib/script/undoRedo/types.js'
 
 /**
  * Saving a body, and stepping back through the saves.

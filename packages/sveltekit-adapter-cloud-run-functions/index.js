@@ -1,13 +1,10 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import * as fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { rollup } from 'rollup';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
 
-const files = fileURLToPath(new URL('./files', import.meta.url).href);
+const src = fileURLToPath(new URL('./src', import.meta.url).href).replaceAll('\\', '/');
+const handoff = '#@genoacms/sveltekit-adapter-cloud-run-functions';
 
-/** @type {import('./index.js').default} */
+/** @type {typeof import('./index.js').default} */
 export default function (opts = {}) {
 	const { out = 'build', precompress = true, envPrefix = '' } = opts;
 
@@ -15,79 +12,98 @@ export default function (opts = {}) {
 		name: '@genoacms/sveltekit-adapter-cloud-run-functions',
 
 		async adapt(builder) {
-			const tmp = builder.getBuildDirectory('adapter-cloud-run-functions');
+			fs.rmSync(out, { force: true, recursive: true });
 
-			builder.rimraf(out);
-			builder.rimraf(tmp);
-			builder.mkdirp(tmp);
+			const base = builder.config.paths.base;
+			const client_dir = `${out}/client${base}`;
+			const prerendered_dir = `${out}/prerendered${base}`;
 
 			builder.log.minor('Copying assets');
-			builder.writeClient(`${out}/client${builder.config.kit.paths.base}`);
-			builder.writePrerendered(`${out}/prerendered${builder.config.kit.paths.base}`);
+			builder.writeClient(client_dir);
+			builder.writePrerendered(prerendered_dir);
 
 			if (precompress) {
 				builder.log.minor('Compressing assets');
-				await Promise.all([
-					builder.compress(`${out}/client`),
-					builder.compress(`${out}/prerendered`)
-				]);
+				await Promise.all([builder.compress(client_dir), builder.compress(prerendered_dir)]);
 			}
 
-			builder.log.minor('Building server');
+			const server = builder.getServerDirectory();
+			builder.generateServerInstance(`${server}/server.js`);
+			builder.copy(server, `${out}/server`);
 
-			builder.writeServer(tmp);
-
-			writeFileSync(
-				`${tmp}/manifest.js`,
+			fs.writeFileSync(
+				`${out}/adapter.js`,
 				[
-					`export const manifest = ${builder.generateManifest({ relativePath: './' })};`,
+					`import { dirname } from 'node:path';`,
+					`import { fileURLToPath } from 'node:url';`,
+					`export { server } from './server/server.js';`,
+					`export const dir = dirname(fileURLToPath(import.meta.url));`,
+					`export const base = ${JSON.stringify(base)};`,
+					`export const app_path = ${JSON.stringify(builder.getAppPath())};`,
 					`export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});`,
-					`export const base = ${JSON.stringify(builder.config.kit.paths.base)};`
-				].join('\n\n')
+					`export const origin = ${JSON.stringify(builder.config.paths.origin)};`,
+					`export const env_prefix = ${JSON.stringify(envPrefix)};`
+				].join('\n')
 			);
 
-			const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-
-			// ADP-3
-			const bundle = await rollup({
-				input: {
-					index: `${tmp}/index.js`,
-					manifest: `${tmp}/manifest.js`
-				},
-				external: [...Object.keys(pkg.dependencies || {}).map((d) => new RegExp(`^${d}(\\/.*)?$`))],
-				plugins: [
-					nodeResolve({
-						preferBuiltins: true,
-						exportConditions: ['node']
-					}),
-					// @ts-ignore https://github.com/rollup/plugins/issues/1329
-					commonjs({ strictRequires: true }),
-					// @ts-ignore https://github.com/rollup/plugins/issues/1329
-					json()
-				]
-			});
-
-			await bundle.write({
-				dir: `${out}/server`,
-				format: 'esm',
-				sourcemap: true,
-				chunkFileNames: 'chunks/[name]-[hash].js'
-			});
-
-			builder.copy(files, out, {
-				replace: {
-					ENV: './env.js',
-					HANDLER: './handler.js',
-					MANIFEST: './server/manifest.js',
-					SERVER: './server/index.js',
-					SHIMS: './shims.js',
-					ENV_PREFIX: JSON.stringify(envPrefix)
-				}
-			});
+			fs.writeFileSync(`${out}/index.js`, `export * from './server/adapter-index.js';\n`);
+			fs.writeFileSync(`${out}/handler.js`, `export * from './server/handler.js';\n`);
 		},
 
 		supports: {
 			read: () => true
+		},
+
+		vite: {
+			plugins: {
+				post: [
+					{
+						name: 'vite-plugin-sveltekit-adapter-cloud-run-functions',
+						apply: 'build',
+						config(config) {
+							const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+							const no_external = Array.isArray(config.ssr?.noExternal)
+								? config.ssr.noExternal
+								: [];
+
+							// ADP-3
+							return {
+								ssr: {
+									external: Object.keys(pkg.dependencies || {}).filter(
+										(dep) =>
+											!no_external.some((rule) =>
+												typeof rule === 'string' ? rule === dep : rule.test(dep)
+											)
+									),
+									noExternal: true
+								},
+								environments: {
+									ssr: {
+										build: {
+											sourcemap: true,
+											rolldownOptions: {
+												input: {
+													'adapter-index': `${src}/index.js`,
+													'adapter-env': `${src}/env.js`,
+													handler: `${src}/handler.js`
+												},
+												external: [handoff],
+												output: {
+													paths: { [handoff]: '../adapter.js' },
+													chunkFileNames: (chunk) =>
+														chunk.moduleIds.some((id) => id.startsWith(src))
+															? 'adapter-[name].js'
+															: 'chunks/[name].js'
+												}
+											}
+										}
+									}
+								}
+							};
+						}
+					}
+				]
+			}
 		}
 	};
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal } from '$lib/components/ui/index'
-    import PagesPinningComponent from '$lib/components/components/PagesPinningComponent.svelte'
-    import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+    import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
+    import PagesPinningComponent from '#lib/components/components/PagesPinningComponent.svelte'
+    import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
     import { deleteComponentRemote } from './delete.remote.js'
     import { goto } from '$app/navigation'
     import { resolve } from '$app/paths'
@@ -33,7 +33,7 @@
         }
         toastSuccess(result.text)
         isModalOpen = false
-        await goto(resolve('/components/editor'))
+        await goto(resolve('/(admin)/components/editor'))
       } catch (error: any) {
         toastError(error.message ?? error.code)
       }

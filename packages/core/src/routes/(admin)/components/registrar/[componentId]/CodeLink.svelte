@@ -14,7 +14,7 @@
 
 <a
   class="h-full flex items-center px-3 cursor-pointer"
-  href={resolve(`/components/editor/${id}`)}
+  href={resolve('/(admin)/components/editor/[componentId]', { componentId: id })}
   aria-label="Edit the code"
   title="Edit the code"
 >

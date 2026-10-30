@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { ResourcesValue, Errors } from '../types'
   import type { ObjectReference } from '@genoacms/contracts/storage'
-  import type { SchemaObject } from '$lib/script/schema'
+  import type { SchemaObject } from '#lib/script/schema.js'
   import { onDestroy } from 'svelte'
   import { resolve } from '$app/paths'
-  import { ITC } from '$lib/script/utils'
+  import { ITC } from '#lib/script/utils.js'
   import StorageObject from './StorageObject.svelte'
   import PickerButton from '../PickerButton.svelte'
-  import { Helper } from '$lib/components/ui/index'
+  import { Helper } from '#lib/components/ui/index.js'
 
   type Props = {
     schema: SchemaObject;
@@ -19,7 +19,7 @@
   let resources: ResourcesValue = $state(value || [])
   const maxItems = $derived(schema.maxItems || 0)
   const selectionId = crypto.randomUUID()
-  const pickerHref = `${resolve('/storage')}?selectionId=${selectionId}`
+  const pickerHref = `${resolve('/(admin)/storage')}?selectionId=${selectionId}`
   const pickerLabel = $derived(resources.length === 0 ? 'Choose files from storage' : 'Edit selection')
   const itc = new ITC(selectionId)
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import type { InputValue } from '$lib/components/editors/types'
+  import type { InputValue } from '#lib/components/editors/types.js'
 
   type Props = {
     constValue: InputValue

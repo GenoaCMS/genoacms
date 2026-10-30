@@ -1,4 +1,4 @@
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import type { DirectoryListingParams, ObjectReference, ObjectPayload, UploadOptions } from '@genoacms/contracts/storage'
 
 async function getObject (reference: ObjectReference) {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import GrantRowEditor from './GrantRowEditor.svelte'
   import { emptyRow, grantsToRows, rowsToGrants } from './grantRows'
-  import type { Grant } from '$lib/script/authorization/grants'
-  import type { GrantableResources } from '$lib/script/configuration/resources'
+  import type { Grant } from '#lib/script/authorization/grants.js'
+  import type { GrantableResources } from '#lib/script/configuration/resources.js'
 
   interface Props {
     /** Existing grants to edit. Empty when composing a new role. */

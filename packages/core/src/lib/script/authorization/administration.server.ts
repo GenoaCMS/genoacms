@@ -1,5 +1,5 @@
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
-import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
+import { readSignedDocument } from '#lib/script/signing/signedDocument.server.js'
 import {
   readRawManifest,
   writeSignedManifest,
@@ -27,8 +27,8 @@ import {
 import type { Role } from './roles'
 import { declaredRoleNames, declaredSubjects, type Declarations } from './declared'
 import { readDeclarations } from './declared.server'
-import type { JsonValue } from '$lib/script/signing/canonical'
-import { readStoredAgentsForAdministration } from '$lib/script/agents/manifest.server'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
+import { readStoredAgentsForAdministration } from '#lib/script/agents/manifest.server.js'
 
 /**
  * Reading and writing the authorization manifests as an administrator.

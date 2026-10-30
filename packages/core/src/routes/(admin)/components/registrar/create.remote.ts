@@ -1,10 +1,10 @@
 import { command, getRequestEvent } from '$app/server'
 import { validator } from '@exodus/schemasafe'
 import type { Json } from '@exodus/schemasafe'
-import { componentHeaderCreationSchema } from '$lib/script/components/componentHeader/component/schemas'
-import { registerUserComponent } from '$lib/script/components/registration.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { ComponentCodeError } from '$lib/script/components/editor/errors'
+import { componentHeaderCreationSchema } from '#lib/script/components/componentHeader/component/schemas.js'
+import { registerUserComponent } from '#lib/script/components/registration.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { ComponentCodeError } from '#lib/script/components/editor/errors.js'
 
 const validate = validator(componentHeaderCreationSchema)
 

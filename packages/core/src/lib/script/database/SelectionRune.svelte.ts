@@ -1,4 +1,4 @@
-import { Selection } from '$lib/script/selection/Selection.svelte'
+import { Selection } from '#lib/script/selection/Selection.svelte.js'
 
 /**
  * The collection browser's selection, over document references.

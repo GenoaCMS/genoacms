@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { MarkdownValue } from '$lib/components/editors/types'
-  import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
-  import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
+  import type { MarkdownValue } from '#lib/components/editors/types.js'
+  import CodeEditor from '#lib/components/ui/CodeEditor.svelte'
+  import MarkdownViewer from '#lib/components/MarkdownViewer.svelte'
 
   interface Props {
     value: MarkdownValue

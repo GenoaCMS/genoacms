@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { enhance } from '$app/forms'
-  import { alertPending, toastSuccess } from '$lib/script/alert.svelte'
-  import { reportFailure } from '$lib/script/storage/bulkFeedback'
-  import selection from '$lib/script/storage/SelectionRune.svelte'
+  import { alertPending, toastSuccess } from '#lib/script/alert.svelte.js'
+  import { reportFailure } from '#lib/script/storage/bulkFeedback.js'
+  import selection from '#lib/script/storage/SelectionRune.svelte.js'
 
   const isPossible = $derived(!selection.isEmpty)
 

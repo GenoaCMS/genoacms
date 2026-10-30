@@ -6,8 +6,8 @@ import {
 } from './registry.server'
 import { loadSubordinateKey, toSigningKey } from './subordinateKey.server'
 import { currentKey, type KeyRegistry } from './registry'
-import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
-import { isRotationDue } from '$lib/script/securityPolicy/policy'
+import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { isRotationDue } from '#lib/script/securityPolicy/policy.js'
 import type { SigningKey } from './envelope'
 
 /**

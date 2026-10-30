@@ -1,7 +1,7 @@
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import { isRejection } from '@genoacms/contracts/authentication'
 import type { Adapter, Identity, Rejection } from '@genoacms/contracts/authentication'
-import { isAgentSubject } from '$lib/script/agents/ceiling'
+import { isAgentSubject } from '#lib/script/agents/ceiling.js'
 
 type SignInFailure = 'invalid-credentials' | 'too-many-attempts' | 'sign-in-unavailable'
 

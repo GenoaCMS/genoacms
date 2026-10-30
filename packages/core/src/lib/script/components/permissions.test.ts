@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import type { Permission } from '$lib/script/authorization/permissions'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, headerPath, entryPath
-} from '$lib/script/testing/components'
-import { principal, runAction, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { principal, runAction, type Parsed } from '#lib/script/testing/requests.js'
 
 const request = vi.hoisted(() => ({ locals: {} as Record<string, unknown> }))
 
@@ -17,11 +17,11 @@ vi.mock('$app/server', () => ({
   query: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'query' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
-  loadSecurityPolicy: async () => (await import('$lib/script/testing/signingKeys')).testSecurityPolicy
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
+  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
 }))
 
 const registrarList = await import('../../../routes/(admin)/components/registrar/+page.server')

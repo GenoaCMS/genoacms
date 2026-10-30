@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-  import CardLink from '$lib/components/CardLink.svelte'
+  import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+  import CardLink from '#lib/components/CardLink.svelte'
 
   /**
    * One component in the registrar, of either kind.

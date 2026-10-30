@@ -11,6 +11,45 @@ export function parseXffDepth(value) {
 	throw new Error(`XFF_DEPTH must be a positive integer, not '${value}'`);
 }
 
+// ADP-7, ADP-8
+/**
+ * @param {Record<string, string | undefined>} env
+ * @param {string} prefix
+ * @returns {{ xffDepth: number }}
+ */
+export function readStartupEnvironment(env, prefix) {
+	refuseOrigin(env, prefix);
+	refuseUnknownPrefixed(env, prefix);
+	return { xffDepth: parseXffDepth(env[prefix + 'XFF_DEPTH']) };
+}
+
+/**
+ * @param {Record<string, string | undefined>} env
+ * @param {string} prefix
+ */
+function refuseOrigin(env, prefix) {
+	if (Object.hasOwn(env, prefix + 'ORIGIN')) {
+		throw new Error(
+			"ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)"
+		);
+	}
+}
+
+/**
+ * @param {Record<string, string | undefined>} env
+ * @param {string} prefix
+ */
+function refuseUnknownPrefixed(env, prefix) {
+	if (!prefix) return;
+	for (const name of Object.keys(env)) {
+		if (name.startsWith(prefix) && name !== prefix + 'XFF_DEPTH') {
+			throw new Error(
+				`You should change envPrefix (${prefix}) to avoid conflicts with existing environment variables — unexpectedly saw ${name}`
+			);
+		}
+	}
+}
+
 // ADP-5
 /**
  * @param {import('http').IncomingMessage} req

@@ -1,5 +1,5 @@
-import { getUserBucketReferences } from '$lib/script/storage/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { getUserBucketReferences } from '#lib/script/storage/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 
 export const load = ({ locals }) => {
   // Filtered to what this principal may read, so navigation offers nothing that would be denied.

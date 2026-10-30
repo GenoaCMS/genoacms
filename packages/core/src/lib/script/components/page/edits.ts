@@ -2,8 +2,8 @@ import type {
   Attribute,
   AttributeType,
   ComponentHeader
-} from '$lib/script/components/componentHeader/component/types'
-import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
+} from '#lib/script/components/componentHeader/component/types.js'
+import type { AttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
 import type { ComponentNode, ComponentNodeData, IsSerializable, PageContents } from './entry/types'
 
 type Contents = PageContents<IsSerializable>

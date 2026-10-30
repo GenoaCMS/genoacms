@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Button, Input, Label, Helper } from '$lib/components/ui/index'
-  import { isOrigin } from '$lib/script/securityPolicy/policy'
+  import { Button, Input, Label, Helper } from '#lib/components/ui/index.js'
+  import { isOrigin } from '#lib/script/securityPolicy/policy.js'
 
   /**
    * The origins a component's data bridge may reach.

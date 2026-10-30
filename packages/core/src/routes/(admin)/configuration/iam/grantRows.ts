@@ -3,8 +3,8 @@ import {
   getResourceScope,
   type Permission,
   type ResourceScopedPermission
-} from '$lib/script/authorization/permissions'
-import { WILDCARD, isFieldSelectable, type Grant, type FieldSelector } from '$lib/script/authorization/grants'
+} from '#lib/script/authorization/permissions.js'
+import { WILDCARD, isFieldSelectable, type Grant, type FieldSelector } from '#lib/script/authorization/grants.js'
 
 /**
  * The editor's working shape for a set of grants, and its conversion to and from the stored ones.

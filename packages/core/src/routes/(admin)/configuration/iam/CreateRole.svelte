@@ -1,9 +1,9 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Modal, Button, Input, Label } from '$lib/components/ui/index'
+  import { Modal, Button, Input, Label } from '#lib/components/ui/index.js'
   import GrantEditor from './GrantEditor.svelte'
   import { enhanceWithToast } from '../formToast'
-  import type { GrantableResources } from '$lib/script/configuration/resources'
+  import type { GrantableResources } from '#lib/script/configuration/resources.js'
 
   interface Props {
     /** The buckets and collections a resource-scoped grant may name. */

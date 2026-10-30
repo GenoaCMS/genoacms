@@ -1,5 +1,5 @@
-import type { ActionResult } from '@sveltejs/kit'
-import { toastError } from '$lib/script/alert.svelte'
+import type { ActionResult } from '$app/forms'
+import { toastError } from '#lib/script/alert.svelte.js'
 import { bulkFailureMessage, isBulkResult, type BulkVerb } from './bulkResult'
 import selection from './SelectionRune.svelte'
 

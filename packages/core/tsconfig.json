@@ -1,5 +1,5 @@
 {
-	"extends": "./.svelte-kit/tsconfig.json",
+	"extends": "$app/tsconfig",
 	"compilerOptions": {
 		"allowJs": true,
 		"checkJs": true,
@@ -11,13 +11,10 @@
 		"strict": true,
 		"moduleResolution": "bundler"
 	},
-	// Overriding `include` means restating the generated list: TypeScript replaces it rather than
-	// merging. Copied from .svelte-kit/tsconfig.json, plus `evidence/`, which holds the permission matrix and
+	// SvelteKit's generated `$app/tsconfig` sets no `include`, so this list is the whole of it: the
+	// route types under .svelte-kit/types, the sources, and `evidence/`, which holds the permission matrix and
 	// is not under src/ — without this it would be run by vitest but never type-checked.
 	"include": [
-		".svelte-kit/ambient.d.ts",
-		".svelte-kit/env.d.ts",
-		".svelte-kit/non-ambient.d.ts",
 		".svelte-kit/types/**/$types.d.ts",
 		"vite.config.js",
 		"vite.config.ts",
@@ -33,8 +30,4 @@
 		"evidence/**/*.ts",
 		"scripts/**/*.ts"
 	]
-	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
-	//
-	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
-	// from the referenced tsconfig.json - TypeScript does not merge them in
 }

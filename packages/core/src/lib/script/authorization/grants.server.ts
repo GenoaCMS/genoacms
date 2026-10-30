@@ -1,6 +1,6 @@
 import { GrantCache } from './grantCache'
 import { resolvePrincipal } from './resolution.server'
-import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
+import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import type { AuthContext } from './context'
 
 /**

@@ -5,7 +5,7 @@ import {
   defaultBucketId,
   fullyQualifiedNameToFilename,
   listOrCreateDirectory
-} from '$lib/script/storage/storage.server'
+} from '#lib/script/storage/storage.server.js'
 import { pageReadableTreePath, getReadablePageTree } from './io.server'
 
 /**

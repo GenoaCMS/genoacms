@@ -1,6 +1,6 @@
 import { SUPER_ADMIN_ROLE_NAME, type Role } from './roles'
 import type { UserRecord } from './manifests'
-import { ceilingMessage, exceedsAgentCeiling, isAgentSubject } from '$lib/script/agents/ceiling'
+import { ceilingMessage, exceedsAgentCeiling, isAgentSubject } from '#lib/script/agents/ceiling.js'
 
 /**
  * Administering roles and users: the rules, without storage.

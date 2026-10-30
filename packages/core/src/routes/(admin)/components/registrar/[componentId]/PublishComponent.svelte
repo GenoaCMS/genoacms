@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
+  import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
   import { publishComponentRemote } from './publish.remote.js'
-  import { toastError, toastSuccess, toastWarning } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess, toastWarning } from '#lib/script/alert.svelte.js'
 
   /**
    * Releasing the component: signs its header, and compiles and signs its code if it has any.

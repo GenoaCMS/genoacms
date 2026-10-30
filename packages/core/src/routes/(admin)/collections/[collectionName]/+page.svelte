@@ -2,12 +2,12 @@
     import Document from './Document.svelte'
     import Header from './Header.svelte'
     import Filter from './Filter.svelte'
-    import TopPanel from '$lib/components/TopPanel.svelte'
+    import TopPanel from '#lib/components/TopPanel.svelte'
     import NewDocument from './NewDocument.svelte'
     import ConfirmSelection from './ConfirmSelection.svelte'
     import SelectAll from './SelectAll.svelte'
     import Delete from './Delete.svelte'
-    import PermissionGate from '$lib/components/PermissionGate.svelte'
+    import PermissionGate from '#lib/components/PermissionGate.svelte'
     import { columnsOf, cellsOf, matchesFilter, openingFilter, documentCount, minimumWidth } from './listing'
 
     const { data } = $props()

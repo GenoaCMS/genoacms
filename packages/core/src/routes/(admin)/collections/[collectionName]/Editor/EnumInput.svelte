@@ -1,8 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import type { InputValue } from '$lib/components/editors/types'
-  import type { SchemaObject } from '$lib/script/schema'
-  import { Combobox } from '$lib/components/ui/index'
+  import type { InputValue } from '#lib/components/editors/types.js'
+  import type { SchemaObject } from '#lib/script/schema.js'
+  import { Combobox } from '#lib/components/ui/index.js'
 
   interface Props {
     schema: SchemaObject

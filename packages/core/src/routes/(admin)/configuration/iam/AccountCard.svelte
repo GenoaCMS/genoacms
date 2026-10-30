@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
+  import { Card } from '#lib/components/ui/index.js'
   import DeclaredBadge from './DeclaredBadge.svelte'
-  import type { UserRecord } from '$lib/script/authorization/manifests'
+  import type { UserRecord } from '#lib/script/authorization/manifests.js'
 
   interface Props {
     account: UserRecord

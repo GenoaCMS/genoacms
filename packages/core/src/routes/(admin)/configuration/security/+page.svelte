@@ -1,9 +1,9 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { enhanceWithToast } from '../formToast'
-  import TopPanel from '$lib/components/TopPanel.svelte'
-  import { Card } from '$lib/components/ui/index'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
+  import { Card } from '#lib/components/ui/index.js'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
   import PolicyField from './PolicyField.svelte'
   import CeilingNotice from './CeilingNotice.svelte'
   import DegradedNotice from './DegradedNotice.svelte'

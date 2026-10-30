@@ -1,9 +1,9 @@
 import type { Schema } from '@exodus/schemasafe'
 import { form, getRequestEvent } from '$app/server'
-import { saveUserComponentBody } from '$lib/script/components/editor/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { saveUserComponentBody } from '#lib/script/components/editor/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { validator } from '@exodus/schemasafe'
-import { formats } from '$lib/script/database/validators'
+import { formats } from '#lib/script/database/validators.js'
 
 const versionedBodySchema: Schema = {
   type: 'object',

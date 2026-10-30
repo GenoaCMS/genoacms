@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit'
-import { deleteUserDocument, getUserCollectionReference, getUserDocument } from '$lib/script/database/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { deleteUserDocument, getUserCollectionReference, getUserDocument } from '#lib/script/database/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import type { PageServerLoad, RequestEvent } from './$types'
 
 export const load: PageServerLoad = async ({ params, locals }) => {

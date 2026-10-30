@@ -36,7 +36,7 @@ fail — so the guard cannot rot into a no-op.
 
 ### Writing new unit tests
 
-Do not import `$lib/script/host.server` unmocked: the host constructs real
+Do not import `#lib/script/host.server.js` unmocked: the host constructs real
 providers on first use, with real credentials. Mock it with the members the
 module under test reads, as `bootstrap.test.ts` and `auth.server.test.ts` do.
 

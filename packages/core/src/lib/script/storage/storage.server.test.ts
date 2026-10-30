@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Readable } from 'node:stream'
 import { stringify as stringifyFlatted } from 'flatted'
 import type { ObjectReference } from '@genoacms/contracts/storage'
-import { memory } from '$lib/script/testing/memoryStorage'
-import { attribute, header, node, pageEntry, storePublishedComponent, storePage, storedPage } from '$lib/script/testing/components'
-import { useTool } from '$lib/script/testing/mcp'
-import { principal } from '$lib/script/testing/requests'
+import { memory } from '#lib/script/testing/memoryStorage.js'
+import { attribute, header, node, pageEntry, storePublishedComponent, storePage, storedPage } from '#lib/script/testing/components.js'
+import { useTool } from '#lib/script/testing/mcp.js'
+import { principal } from '#lib/script/testing/requests.js'
 
 const CHUNK_BYTES = 3
 
-vi.mock('$lib/script/storage/providers.server', async () => {
-  const { memoryProviders } = await import('$lib/script/testing/memoryStorage')
-  const { streamToString } = await vi.importActual<typeof import('$lib/script/utils.server')>('$lib/script/utils.server')
+vi.mock('#lib/script/storage/providers.server.js', async () => {
+  const { memoryProviders } = await import('#lib/script/testing/memoryStorage.js')
+  const { streamToString } = await vi.importActual<typeof import('#lib/script/utils.server.js')>('#lib/script/utils.server.js')
   return {
     ...memoryProviders,
     getObject: async (reference: ObjectReference) => {
@@ -23,15 +23,15 @@ vi.mock('$lib/script/storage/providers.server', async () => {
     }
   }
 })
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
-  loadSecurityPolicy: async () => (await import('$lib/script/testing/signingKeys')).testSecurityPolicy
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
+  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
 }))
 
 const storage = await import('./storage.server')
-const { readRawManifest, usersManifestPath } = await import('$lib/script/authorization/manifests.server')
-const { startSession, loadFamily } = await import('$lib/script/auth/session.server')
+const { readRawManifest, usersManifestPath } = await import('#lib/script/authorization/manifests.server.js')
+const { startSession, loadFamily } = await import('#lib/script/auth/session.server.js')
 
 const TEXT = 'Návod na používanie aplikácie — ľščťžýáíéúäôň €😀'
 

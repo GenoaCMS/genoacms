@@ -1,16 +1,16 @@
 <script lang="ts">
   import type { PageData } from './$types'
-  import { activityTracker } from '$lib/script/activity/client'
-  import TopPanel from '$lib/components/TopPanel.svelte'
+  import { activityTracker } from '#lib/script/activity/client.js'
+  import TopPanel from '#lib/components/TopPanel.svelte'
   import Delete from './Delete.svelte'
   import Update from './Update.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
   import Editor from '../Editor/Editor.svelte'
   import { updateDoc } from './update.remote'
-  import { toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { onMount } from 'svelte'
   import { resolve } from '$app/paths'
-  import UnsavedChangesGuard from '$lib/components/UnsavedChangesGuard.svelte'
+  import UnsavedChangesGuard from '#lib/components/UnsavedChangesGuard.svelte'
 
   const { data }: { data: PageData } = $props()
   const document = $derived(data.document!)
@@ -73,7 +73,7 @@
 
 <TopPanel>
   <h1 class="flex min-w-0 items-baseline gap-2 text-2xl">
-    <a href={resolve(`/collections/${document.reference.collection.name}`)} class="text-base text-surface-600-400 hover:text-primary-600-400 shrink-0">
+    <a href={resolve('/(admin)/collections/[collectionName]', { collectionName: document.reference.collection.name })} class="text-base text-surface-600-400 hover:text-primary-600-400 shrink-0">
       {document.reference.collection.name}
     </a>
     <span class="text-base text-surface-400-600" aria-hidden="true">/</span>

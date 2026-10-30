@@ -19,7 +19,7 @@ describe('the GCP deployment descriptor', () => {
     expect(typeof (await descriptor.procedure()).default).toBe('function')
   })
 
-  it.fails('DEP-1: origin returns the origin option', () => {
+  it('DEP-1: origin returns the origin option', () => {
     const origin = (descriptor as unknown as { origin: (options: object) => string | undefined }).origin
     expect(origin({ projectId: 'p', region: 'r', origin: 'https://cms.example.com' })).toBe('https://cms.example.com')
     expect(origin({ projectId: 'p', region: 'r' })).toBeUndefined()

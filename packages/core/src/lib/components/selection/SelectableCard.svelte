@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import type { NamedSelection, NamedEntry } from '$lib/script/selection/NamedSelection.svelte'
+  import type { NamedSelection, NamedEntry } from '#lib/script/selection/NamedSelection.svelte.js'
   import SelectionCheckbox from './SelectionCheckbox.svelte'
 
   /**

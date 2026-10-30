@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { LinkAttributeType } from '$lib/script/components/componentHeader/component/types'
-  import { Input, Select, Toggle } from '$lib/components/ui/index'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { LinkAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import { Input, Select, Toggle } from '#lib/components/ui/index.js'
   import { page } from '$app/state'
 
   interface Props {

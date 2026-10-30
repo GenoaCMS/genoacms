@@ -1,7 +1,7 @@
 <script lang="ts" generics="T extends object">
   import type { CollectionReference } from '@genoacms/contracts/database'
-  import type { InputValue } from '$lib/components/editors/types'
-  import { asSchemaObject } from '$lib/script/schema'
+  import type { InputValue } from '#lib/components/editors/types.js'
+  import { asSchemaObject } from '#lib/script/schema.js'
   import { extractDocumentProperties } from '../utils'
   import Fields from './Fields.svelte'
 

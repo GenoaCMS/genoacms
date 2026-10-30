@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import type { BooleanValue } from '$lib/components/editors/types'
+  import type { BooleanValue } from '#lib/components/editors/types.js'
   import type { Schema } from '@exodus/schemasafe'
 
   interface Props {

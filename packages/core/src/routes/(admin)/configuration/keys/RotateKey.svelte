@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Button } from '$lib/components/ui/index'
+  import { Button } from '#lib/components/ui/index.js'
   import { enhanceWithToast } from '../formToast'
 
   /**

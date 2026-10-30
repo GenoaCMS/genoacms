@@ -1,6 +1,6 @@
-import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
-import { deriveKeyId } from '$lib/script/signing/keyId'
-import type { SigningKey } from '$lib/script/signing/envelope'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
+import { deriveKeyId } from '#lib/script/signing/keyId.js'
+import type { SigningKey } from '#lib/script/signing/envelope.js'
 
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(7))

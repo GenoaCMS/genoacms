@@ -103,7 +103,7 @@ describe.runIf(enabled)('Lambda deploy, against the real service', { timeout: TE
     const configuration = await lambda.send(new GetFunctionConfigurationCommand({ FunctionName: functionName }))
     expect(configuration.MemorySize).toBe(512)
     const echo = await anonymousGet(functionUrl)
-    expect(echo.env.ORIGIN).toBe('https://cms.example')
+    expect(echo.env.ORIGIN).toBeUndefined()
     expect(echo.env).not.toHaveProperty('PROTOCOL_HEADER')
   })
 })

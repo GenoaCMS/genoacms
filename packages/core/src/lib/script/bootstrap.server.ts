@@ -1,6 +1,6 @@
-import { loadOrBootstrapRegistry } from '$lib/script/signing/registry.server'
-import { loadAuthorizationSource } from '$lib/script/authorization/resolution.server'
-import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
+import { loadOrBootstrapRegistry } from '#lib/script/signing/registry.server.js'
+import { loadAuthorizationSource } from '#lib/script/authorization/resolution.server.js'
+import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
 
 /**
  * What an instance must have in place before it serves anything.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { importModule } from '$lib/script/testing/requests'
+import { importModule } from '#lib/script/testing/requests.js'
 
-const tokens = async () => await importModule('$lib/script/agents/tokens')
+const tokens = async () => await importModule('#lib/script/agents/tokens.js')
 
 describe('agent tokens', () => {
   it('AGT-3: a new token is gat_ and 43 base64url characters, and its hash is SHA-256 hex', async () => {

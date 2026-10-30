@@ -1,7 +1,7 @@
 import { applyAction } from '$app/forms'
-import { toastSuccess, toastError } from '$lib/script/alert.svelte'
+import { toastSuccess, toastError } from '#lib/script/alert.svelte.js'
 import { refusalMessage } from './refusalMessage'
-import type { SubmitFunction } from '@sveltejs/kit'
+import type { SubmitFunction } from '$app/forms'
 
 /**
  * Reports the outcome of an administration form as a toast.

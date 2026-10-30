@@ -1,5 +1,5 @@
-import { requirePermission } from '$lib/script/authorization/enforce'
-import type { AuthContext } from '$lib/script/authorization/context'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { parseSecurityPolicy, policyBounds, type SecurityPolicy } from './policy'
 import { readStoredPolicy, writePolicy } from './policy.server'

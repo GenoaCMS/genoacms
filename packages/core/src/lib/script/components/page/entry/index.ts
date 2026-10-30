@@ -4,9 +4,9 @@ import type {
   ComponentHeader,
   ComponentsAttributeType,
   ComponentHeaderReference
-} from '$lib/script/components/componentHeader/component/types'
-import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import { getPublishedComponent } from '$lib/script/components/publication/io.server'
+} from '#lib/script/components/componentHeader/component/types.js'
+import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
+import { getPublishedComponent } from '#lib/script/components/publication/io.server.js'
 import { defaultValueOf, newNode, PageEditError } from '../edits'
 import type {
   AttributeData,
@@ -18,9 +18,9 @@ import type {
   PageContents,
   PageEntry
 } from './types'
-import { recordChange, undo, redo } from '$lib/script/undoRedo'
-import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
-import { duplicateObject, readingOnceEach } from '$lib/script/utils'
+import { recordChange, undo, redo } from '#lib/script/undoRedo/index.js'
+import type { UndoRedoAdjunct } from '#lib/script/undoRedo/types.js'
+import { duplicateObject, readingOnceEach } from '#lib/script/utils.js'
 
 type ComponentHeaderReader = (reference: ComponentHeaderReference) => Promise<ComponentHeader | null>
 

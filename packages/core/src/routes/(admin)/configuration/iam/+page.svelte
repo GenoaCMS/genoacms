@@ -1,6 +1,6 @@
 <script lang="ts">
-  import TopPanel from '$lib/components/TopPanel.svelte'
-  import GridLargeItems from '$lib/components/GridLargeItems.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
+  import GridLargeItems from '#lib/components/GridLargeItems.svelte'
   import LockNotice from './LockNotice.svelte'
   import RoleCard from './RoleCard.svelte'
   import AccountCard from './AccountCard.svelte'
@@ -13,10 +13,10 @@
   import CreateAgent from './CreateAgent.svelte'
   import IssuedToken from './IssuedToken.svelte'
   import { enhance } from '$app/forms'
-  import { toastError } from '$lib/script/alert.svelte'
+  import { toastError } from '#lib/script/alert.svelte.js'
   import { refusalMessage } from '../refusalMessage'
-  import type { SubmitFunction } from '@sveltejs/kit'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import type { SubmitFunction } from '$app/forms'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
 
   const { data } = $props()
 

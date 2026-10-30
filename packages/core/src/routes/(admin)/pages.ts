@@ -1,4 +1,4 @@
-import type { PermissionDemand } from '$lib/script/authorization/gate'
+import type { PermissionDemand } from '#lib/script/authorization/gate.js'
 
 interface AdminPage {
   name: string

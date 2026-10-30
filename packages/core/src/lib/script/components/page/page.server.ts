@@ -1,4 +1,4 @@
-import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
+import type { IsSerializable, PageEntry } from '#lib/script/components/page/entry/types.js'
 import {
   defaultBucketId,
   deleteInternalObject,
@@ -7,21 +7,21 @@ import {
   getInternalObjectStringVersioned,
   listOrCreateDirectory,
   uploadInternalObjectFlatted
-} from '$lib/script/storage/storage.server'
+} from '#lib/script/storage/storage.server.js'
 import { join } from 'path'
 import { isPreconditionFailed, type UploadOptions } from '@genoacms/contracts/storage'
-import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import { writeConditionally } from '$lib/script/components/conflict'
+import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
+import { writeConditionally } from '#lib/script/components/conflict.js'
 import { PageEditError, throwRefusal, type EditResult } from './edits'
 import { isPageName } from './names'
-import { pageEntryToReadableTree } from '$lib/script/components/page/tree'
-import { readablePageTreePath, uploadReadablePageTree } from '$lib/script/components/page/tree/io.server'
+import { pageEntryToReadableTree } from '#lib/script/components/page/tree/index.js'
+import { readablePageTreePath, uploadReadablePageTree } from '#lib/script/components/page/tree/io.server.js'
 import {
   createPageEntry, deserializeComponentNode, deserializePageEntry, recordPageEdit, serializePageEntry,
   type ComponentHeaderReader
 } from './entry'
-import { readingOnceEach } from '$lib/script/utils'
+import { readingOnceEach } from '#lib/script/utils.js'
 
 const pageEntriesPath = join('.genoacms', 'pages', 'entries/')
 const pageReadablesPath = join('.genoacms', 'pages', 'readables/')

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox, Label } from '$lib/components/ui/index'
+  import { Checkbox, Label } from '#lib/components/ui/index.js'
 
   interface Props {
     default?: boolean

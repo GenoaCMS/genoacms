@@ -1,4 +1,4 @@
-import type { KeyState } from '$lib/script/signing/keyAdministration'
+import type { KeyState } from '#lib/script/signing/keyAdministration.js'
 
 /**
  * How a key's state reads on screen.

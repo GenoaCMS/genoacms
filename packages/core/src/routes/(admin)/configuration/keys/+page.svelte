@@ -1,7 +1,7 @@
 <script lang="ts">
-  import TopPanel from '$lib/components/TopPanel.svelte'
-  import GridLargeItems from '$lib/components/GridLargeItems.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
+  import GridLargeItems from '#lib/components/GridLargeItems.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
   import DangerousAction from '../DangerousAction.svelte'
   import RootAnchorCard from './RootAnchorCard.svelte'
   import RegistrySummary from './RegistrySummary.svelte'

@@ -1,12 +1,12 @@
-import { requirePermission } from '$lib/script/authorization/enforce'
-import type { AuthContext } from '$lib/script/authorization/context'
-import type { Role } from '$lib/script/authorization/roles'
-import type { UserRecord } from '$lib/script/authorization/manifests'
-import type { AdministrationResult } from '$lib/script/authorization/administration'
-import { isAdministrationLocked } from '$lib/script/authorization/declared.server'
-import { getBucketReferences } from '$lib/script/storage/storage.server'
-import { getCollectionReferences, getCollectionReference } from '$lib/script/database/database.server'
-import { collectionFields } from '$lib/script/database/fields'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import type { Role } from '#lib/script/authorization/roles.js'
+import type { UserRecord } from '#lib/script/authorization/manifests.js'
+import type { AdministrationResult } from '#lib/script/authorization/administration.js'
+import { isAdministrationLocked } from '#lib/script/authorization/declared.server.js'
+import { getBucketReferences } from '#lib/script/storage/storage.server.js'
+import { getCollectionReferences, getCollectionReference } from '#lib/script/database/database.server.js'
+import { collectionFields } from '#lib/script/database/fields.js'
 import type { GrantableCollection, GrantableResources } from './resources'
 import {
   loadAdministrationState,
@@ -16,7 +16,7 @@ import {
   upsertAccount,
   assignAccountRoles,
   removeAccount
-} from '$lib/script/authorization/administration.server'
+} from '#lib/script/authorization/administration.server.js'
 
 /**
  * The configuration service: administering roles and accounts.

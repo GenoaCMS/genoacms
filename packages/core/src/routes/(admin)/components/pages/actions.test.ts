@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storedPage, entryPath
-} from '$lib/script/testing/components'
-import { principal, runAction } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { principal, runAction } from '#lib/script/testing/requests.js'
 
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 
 const { actions: pagesActions } = await import('./+page.server')
 const { actions: nodeActions } = await import('./[pageName]/[nodeUid]/+page.server')

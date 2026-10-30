@@ -1,5 +1,5 @@
 import type { ObjectReference } from '@genoacms/contracts/storage'
-import { Selection } from '$lib/script/selection/Selection.svelte'
+import { Selection } from '#lib/script/selection/Selection.svelte.js'
 
 /**
  * The storage browser's selection.

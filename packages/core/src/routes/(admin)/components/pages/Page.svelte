@@ -1,5 +1,5 @@
 <script lang="ts">
-    import CardLink from '$lib/components/CardLink.svelte'
+    import CardLink from '#lib/components/CardLink.svelte'
 
     interface Props {
       name: string

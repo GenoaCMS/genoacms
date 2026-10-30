@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, storeComponent, storePublication, storePage, pageEntry, node,
   headerPath, headerHistoryPath, definitionPath, definitionHistoryPath, pointerPath, entryPath,
   storedHeader, storedDefinition, readFlatted
-} from '$lib/script/testing/components'
-import { principal, runAction, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { principal, runAction, type Parsed } from '#lib/script/testing/requests.js'
 import { stringify as stringifyFlatted } from 'flatted'
-import { sign } from '$lib/script/signing/envelope'
-import { signingKey } from '$lib/script/testing/signingKeys'
+import { sign } from '#lib/script/signing/envelope.js'
+import { signingKey } from '#lib/script/testing/signingKeys.js'
 
 const request = vi.hoisted(() => ({ locals: {} as Record<string, unknown> }))
 
@@ -19,8 +19,8 @@ vi.mock('$app/server', () => ({
   query: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'query' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 
 const { createComponent: createComponentCommand } = await import('../../../routes/(admin)/components/registrar/create.remote')
 const { saveComponentRemote: saveComponentForm } = await import('../../../routes/(admin)/components/editor/[componentId]/save.remote')

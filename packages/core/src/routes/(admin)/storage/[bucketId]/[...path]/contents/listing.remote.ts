@@ -1,8 +1,8 @@
 import { query, getRequestEvent } from '$app/server'
 import { error } from '@sveltejs/kit'
-import { listUserDirectory, processUserDirectoryContents } from '$lib/script/storage/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
+import { listUserDirectory, processUserDirectoryContents } from '#lib/script/storage/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
 
 interface NextPageRequest {
   bucket: string

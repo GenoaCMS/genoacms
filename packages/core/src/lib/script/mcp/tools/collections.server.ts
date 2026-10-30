@@ -1,5 +1,5 @@
-import type { AuthContext } from '$lib/script/authorization/context'
-import { DocumentNotFoundError } from '$lib/script/database/errors'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { DocumentNotFoundError } from '#lib/script/database/errors.js'
 import {
   createUserDocument,
   deleteUserDocument,
@@ -8,7 +8,7 @@ import {
   getUserCollectionReferences,
   getUserDocument,
   updateUserDocument
-} from '$lib/script/database/user.server'
+} from '#lib/script/database/user.server.js'
 
 type Args = Record<string, unknown>
 type Where = NonNullable<Parameters<typeof getUserCollection>[2]>['where']

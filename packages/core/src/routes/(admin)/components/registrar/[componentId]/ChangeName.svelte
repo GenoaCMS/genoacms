@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Modal, } from '$lib/components/ui/index'
+  import { Button, Input, Modal, } from '#lib/components/ui/index.js'
 
   interface Props {
     name: string

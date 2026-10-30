@@ -1,17 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clientAddress, parseXffDepth, requestUrl } from '../src/request.js';
-import * as requestModule from '../src/request.js';
+import { describe, expect, it } from 'vitest';
+import {
+	clientAddress,
+	parseXffDepth,
+	readStartupEnvironment,
+	requestUrl
+} from '../src/request.js';
 
 const ORIGIN_REFUSED =
 	"ORIGIN is no longer read; set the origin at build time with paths.origin (the gcp target's origin option)";
-
-/**
- * @param {Record<string, string | undefined>} env
- * @param {string} prefix
- * @returns {{ xffDepth: number }}
- */
-const readStartupEnvironment = (env, prefix) =>
-	/** @type {any} */ (requestModule).readStartupEnvironment(env, prefix);
 
 /**
  * @param {Record<string, string | string[]>} headers
@@ -94,7 +90,7 @@ describe('request', () => {
 		);
 	});
 
-	it('ADP-5: a path starting with // keeps the request\'s host', () => {
+	it("ADP-5: a path starting with // keeps the request's host", () => {
 		const path = '//evil.example/x?y=1';
 		expect(requestUrl(request({}, path), 'https://cms.example.com')).toBe(
 			'https://cms.example.com//evil.example/x?y=1'
@@ -105,8 +101,12 @@ describe('request', () => {
 	});
 
 	it('ADP-5: ORIGIN is joined with the path as text, without a doubled slash', () => {
-		expect(requestUrl(request({}), 'https://cms.example.com/')).toBe('https://cms.example.com/a?b=1');
-		expect(requestUrl(request({}), 'https://cms.example.com/base')).toBe('https://cms.example.com/base/a?b=1');
+		expect(requestUrl(request({}), 'https://cms.example.com/')).toBe(
+			'https://cms.example.com/a?b=1'
+		);
+		expect(requestUrl(request({}), 'https://cms.example.com/base')).toBe(
+			'https://cms.example.com/base/a?b=1'
+		);
 		expect(requestUrl(request({}, ''), 'https://cms.example.com')).toBe('https://cms.example.com/');
 	});
 
@@ -115,9 +115,9 @@ describe('request', () => {
 	});
 
 	it('ADP-5: X-Forwarded-Host is preferred over Host', () => {
-		expect(requestUrl(request({ 'x-forwarded-host': 'cms.example.com', host: 'fn.example' }), undefined)).toBe(
-			'http://cms.example.com/a?b=1'
-		);
+		expect(
+			requestUrl(request({ 'x-forwarded-host': 'cms.example.com', host: 'fn.example' }), undefined)
+		).toBe('http://cms.example.com/a?b=1');
 	});
 
 	it('ADP-6: an empty X-Forwarded-For has no entries', () => {
@@ -128,7 +128,7 @@ describe('request', () => {
 		}
 	});
 
-	it.fails('ADP-7: reads XFF_DEPTH, default 1, with and without a prefix', () => {
+	it('ADP-7: reads XFF_DEPTH, default 1, with and without a prefix', () => {
 		expect(readStartupEnvironment({}, '')).toEqual({ xffDepth: 1 });
 		expect(readStartupEnvironment({ APP_XFF_DEPTH: '3' }, 'APP_')).toEqual({ xffDepth: 3 });
 		expect(() => readStartupEnvironment({ XFF_DEPTH: '0' }, '')).toThrow(
@@ -136,13 +136,13 @@ describe('request', () => {
 		);
 	});
 
-	it.fails('ADP-7: refuses another prefixed variable', () => {
+	it('ADP-7: refuses another prefixed variable', () => {
 		expect(() => readStartupEnvironment({ APP_OTHER: 'x' }, 'APP_')).toThrow(
 			'You should change envPrefix (APP_) to avoid conflicts with existing environment variables — unexpectedly saw APP_OTHER'
 		);
 	});
 
-	it.fails('ADP-8: refuses ORIGIN, even empty, before any other check', () => {
+	it('ADP-8: refuses ORIGIN, even empty, before any other check', () => {
 		/** @type {Array<[Record<string, string>, string]>} */
 		const refused = [
 			[{ ORIGIN: '' }, ''],
@@ -153,25 +153,5 @@ describe('request', () => {
 			expect(() => readStartupEnvironment(env, prefix)).toThrow(new Error(ORIGIN_REFUSED));
 		}
 		expect(() => readStartupEnvironment({ ORIGIN: 'x' }, 'APP_')).not.toThrow();
-	});
-
-	describe('under envPrefix', () => {
-		const globals = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis));
-
-		afterEach(() => {
-			delete process.env.APP_XFF_DEPTH;
-			delete process.env.XFF_DEPTH;
-			delete globals.ENV_PREFIX;
-			vi.resetModules();
-		});
-
-		it('ADP-7: reads XFF_DEPTH under envPrefix', async () => {
-			globals.ENV_PREFIX = 'APP_';
-			process.env.XFF_DEPTH = '5';
-			process.env.APP_XFF_DEPTH = '2';
-			vi.resetModules();
-			const { env } = await import('../src/env.js');
-			expect(parseXffDepth(env('XFF_DEPTH', undefined))).toBe(2);
-		});
 	});
 });

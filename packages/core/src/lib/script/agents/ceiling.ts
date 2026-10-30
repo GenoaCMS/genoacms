@@ -1,4 +1,4 @@
-import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
+import { WILDCARD, type Grant } from '#lib/script/authorization/grants.js'
 
 const AGENT_PREFIX = 'agent:'
 const AGENT_SUBJECT = /^agent:[a-z0-9][a-z0-9-]{0,62}$/

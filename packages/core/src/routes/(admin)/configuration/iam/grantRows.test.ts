@@ -9,8 +9,8 @@ import {
   withoutResource,
   type GrantRow
 } from './grantRows'
-import { WILDCARD } from '$lib/script/authorization/grants'
-import type { Grant } from '$lib/script/authorization/grants'
+import { WILDCARD } from '#lib/script/authorization/grants.js'
+import type { Grant } from '#lib/script/authorization/grants.js'
 
 /**
  * The grant editor's conversion, tested without rendering anything.

@@ -1,4 +1,4 @@
-import { getSecret, setSecret } from '$lib/script/secrets/providers.server'
+import { getSecret, setSecret } from '#lib/script/secrets/providers.server.js'
 import { REGISTRY_SEQUENCE_SECRET } from './secretNames'
 
 /**

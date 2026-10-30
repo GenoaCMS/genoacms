@@ -15,7 +15,7 @@ import type { ComponentNode, PageEntry, IsSerializable } from './types'
  * replayable one shows up.
  */
 
-vi.mock('$lib/script/components/componentHeader/io.server', () => ({
+vi.mock('#lib/script/components/componentHeader/io.server.js', () => ({
   getComponentHeader: async () => null
 }))
 

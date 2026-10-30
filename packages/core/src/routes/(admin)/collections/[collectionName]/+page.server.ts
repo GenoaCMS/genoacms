@@ -1,6 +1,6 @@
-import { getUserCollectionReference, getUserCollection, deleteUserDocument } from '$lib/script/database/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isString } from '$lib/script/utils'
+import { getUserCollectionReference, getUserCollection, deleteUserDocument } from '#lib/script/database/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { isString } from '#lib/script/utils.js'
 import { fail } from '@sveltejs/kit'
 // From the route's own generated types rather than from `@sveltejs/kit`: the generic `Actions`
 // widens the params to every route's, which then disagrees with this route's `RequestEvent`.

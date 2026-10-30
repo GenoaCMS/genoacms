@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
-  import { Combobox } from '$lib/components/ui/index'
+  import { Combobox } from '#lib/components/ui/index.js'
   import { grantCategories, categoryOf, optionGroups } from './grantCategories'
-  import type { Permission } from '$lib/script/authorization/permissions'
+  import type { Permission } from '#lib/script/authorization/permissions.js'
 
   /**
    * Choosing *which* permission a grant carries: the category tabs and the permission list.

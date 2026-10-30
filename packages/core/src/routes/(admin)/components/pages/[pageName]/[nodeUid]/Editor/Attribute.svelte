@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { AttributeType } from '$lib/script/components/componentHeader/component/types'
-  import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { AttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import type { AttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
   import Components from './types/Components.svelte'
   import Boolean from './types/Boolean.svelte'
   import Number from './types/Number.svelte'

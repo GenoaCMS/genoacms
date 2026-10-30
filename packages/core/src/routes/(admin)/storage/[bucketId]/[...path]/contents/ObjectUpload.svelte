@@ -1,10 +1,10 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { alertPending, toastSuccess } from '$lib/script/alert.svelte'
-  import { reportFailure } from '$lib/script/storage/bulkFeedback'
+  import { alertPending, toastSuccess } from '#lib/script/alert.svelte.js'
+  import { reportFailure } from '#lib/script/storage/bulkFeedback.js'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Modal } from '$lib/components/ui/index'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import { Button, Input, Modal } from '#lib/components/ui/index.js'
+  import type { SubmitFunction } from '$app/forms'
 
   let isModalOpen = $state(false)
   function toggleModal () {

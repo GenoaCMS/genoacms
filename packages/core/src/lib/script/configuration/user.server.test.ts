@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 
 /**
  * Enforcement in the configuration service.
@@ -30,11 +30,11 @@ const stored = {
   declared: { roles: [declaredRole], users: [declaredAccount] }
 }
 
-vi.mock('$lib/script/authorization/declared.server', () => ({
+vi.mock('#lib/script/authorization/declared.server.js', () => ({
   isAdministrationLocked: () => locked.value
 }))
 
-vi.mock('$lib/script/authorization/administration.server', () => ({
+vi.mock('#lib/script/authorization/administration.server.js', () => ({
   loadAdministrationState: async () => {
     calls.push('load')
     return { ok: true, value: { roles: stored.roles, users: stored.users, declared: stored.declared } }
@@ -47,11 +47,11 @@ vi.mock('$lib/script/authorization/administration.server', () => ({
   removeAccount: async (subject: string) => { calls.push(`remove:${subject}`); return { ok: true } }
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   getBucketReferences: () => [{ name: 'media' }, { name: 'invoices' }]
 }))
 
-vi.mock('$lib/script/database/database.server', () => ({
+vi.mock('#lib/script/database/database.server.js', () => ({
   getCollectionReferences: () => ['articles', 'products', 'unreadable'],
   getCollectionReference: async (name: string) => {
     if (name === 'unreadable') throw new Error('collection/not-found')
@@ -59,8 +59,8 @@ vi.mock('$lib/script/database/database.server', () => ({
   }
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const configuration = await import('./user.server')
 
 const grant = (permission: Permission): Grant => ({ permission, resource: '*' } as Grant)

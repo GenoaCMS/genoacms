@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
-  import Logout from '$lib/components/Logout.svelte'
+  import Logout from '#lib/components/Logout.svelte'
   import NavbarItem from './NavbarItem.svelte'
-  import { DarkMode } from '$lib/components/ui/index'
+  import { DarkMode } from '#lib/components/ui/index.js'
   import { pages } from './pages'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
 </script>
 
 <Navigation layout="rail" class="h-screen sticky top-0">

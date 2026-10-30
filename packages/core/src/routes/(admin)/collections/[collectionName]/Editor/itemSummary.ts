@@ -1,4 +1,4 @@
-import type { InputValue } from '$lib/components/editors/types'
+import type { InputValue } from '#lib/components/editors/types.js'
 
 const isFilledString = (value: InputValue): value is string =>
   typeof value === 'string' && value.trim() !== ''

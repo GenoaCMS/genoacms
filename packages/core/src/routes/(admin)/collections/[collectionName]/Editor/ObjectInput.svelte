@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { InputValue, ObjectValue } from '$lib/components/editors/types'
-  import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
+  import type { InputValue, ObjectValue } from '#lib/components/editors/types.js'
+  import { asSchemaObject, type SchemaObject } from '#lib/script/schema.js'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import Fields from './Fields.svelte'
   import { extractProperties } from '../utils'

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
+import { WILDCARD, type Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
 
 /**
  * The gated signing service.
@@ -35,22 +35,22 @@ const loadSecurityPolicy = vi.fn(async () => ({
   fetchOrigins: []
 }))
 
-vi.mock('$lib/script/signing/keyResolution.server', () => ({
+vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   getRegistry: async () => await getRegistry(),
   rotateSubordinateKey: async () => await rotateSubordinateKey(),
   revokeSubordinateKey: async (keyId: string) => await revokeSubordinateKey(keyId)
 }))
 
-vi.mock('$lib/script/signing/rootKey.server', () => ({
+vi.mock('#lib/script/signing/rootKey.server.js', () => ({
   getRootPublicKey: async () => ({ keyId: 'root-1', alg: 'SLH-DSA-SHA2-128s', publicKey: 'RR==' })
 }))
 
-vi.mock('$lib/script/securityPolicy/policy.server', () => ({
+vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
   loadSecurityPolicy: async () => await loadSecurityPolicy()
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const {
   listUserSigningKeys,
   rotateUserSubordinateKey,

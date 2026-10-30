@@ -1,4 +1,4 @@
-import { ITC } from '$lib/script/utils'
+import { ITC } from '#lib/script/utils.js'
 
 /**
  * Driving a selection window opened by another page.

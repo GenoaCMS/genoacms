@@ -1,23 +1,23 @@
 import { validator } from '@exodus/schemasafe'
-import type { AuthContext } from '$lib/script/authorization/context'
-import { requirePermission } from '$lib/script/authorization/enforce'
-import { componentHeaderSchema } from '$lib/script/components/componentHeader/component/schemas'
-import type { Attribute, ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-import { getComponentHeaderVersioned } from '$lib/script/components/componentHeader/io.server'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
+import { componentHeaderSchema } from '#lib/script/components/componentHeader/component/schemas.js'
+import type { Attribute, ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+import { getComponentHeaderVersioned } from '#lib/script/components/componentHeader/io.server.js'
 import {
   getUserComponentHeaderVersioned,
   listUserComponentHeaders,
   updateUserComponentHeader
-} from '$lib/script/components/componentHeader/user.server'
-import { getComponent } from '$lib/script/components/editor/index'
-import { NoSuchComponentError } from '$lib/script/components/editor/errors'
+} from '#lib/script/components/componentHeader/user.server.js'
+import { getComponent } from '#lib/script/components/editor/index.js'
+import { NoSuchComponentError } from '#lib/script/components/editor/errors.js'
 import {
   getUserComponentDefinitionVersioned,
   getUserComponentSignature,
   saveUserComponentBody
-} from '$lib/script/components/editor/user.server'
-import { getUserPublishedComponent, publishUserComponent } from '$lib/script/components/publication/user.server'
-import { deleteUserComponentByReference, registerUserComponent } from '$lib/script/components/registration.server'
+} from '#lib/script/components/editor/user.server.js'
+import { getUserPublishedComponent, publishUserComponent } from '#lib/script/components/publication/user.server.js'
+import { deleteUserComponentByReference, registerUserComponent } from '#lib/script/components/registration.server.js'
 
 type Args = Record<string, unknown>
 

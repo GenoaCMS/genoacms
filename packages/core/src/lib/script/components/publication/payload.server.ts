@@ -1,6 +1,6 @@
 import type { ComponentHeader } from '../componentHeader/component/types'
-import { sign } from '$lib/script/signing/envelope'
-import { getCurrentSigningKey } from '$lib/script/signing/keyResolution.server'
+import { sign } from '#lib/script/signing/envelope.js'
+import { getCurrentSigningKey } from '#lib/script/signing/keyResolution.server.js'
 import {
   PUBLICATION_DOCUMENT,
   buildComponentPublication,

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Switch } from '@skeletonlabs/skeleton-svelte'
-  import { SwitchList } from '$lib/components/ui/index'
+  import { SwitchList } from '#lib/components/ui/index.js'
   import FieldPicker from './FieldPicker.svelte'
-  import type { ResourceScope, FieldSelector } from '$lib/script/authorization/grants'
-  import type { GrantableCollection } from '$lib/script/configuration/resources'
+  import type { ResourceScope, FieldSelector } from '#lib/script/authorization/grants.js'
+  import type { GrantableCollection } from '#lib/script/configuration/resources.js'
 
   /**
    * What a resource-scoped grant applies to.

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as storageContract from '@genoacms/contracts/storage'
-import { getAlgorithm, SUBORDINATE_ALGORITHM } from '$lib/script/signing/algorithms'
-import { deriveKeyId } from '$lib/script/signing/keyId'
-import { sign, type SigningKey } from '$lib/script/signing/envelope'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
+import { deriveKeyId } from '#lib/script/signing/keyId.js'
+import { sign, type SigningKey } from '#lib/script/signing/envelope.js'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 
 const environment = vi.hoisted(() => ({ building: false }))
 const bucket = vi.hoisted(() => ({
@@ -17,7 +17,7 @@ const bucket = vi.hoisted(() => ({
 const registry = vi.hoisted(() => ({ keys: new Map<string, Uint8Array>(), isUnreachable: false }))
 const recorded = vi.hoisted(() => [] as Array<{ database: string, operation: string, reference: unknown }>)
 
-vi.mock('$app/environment', () => environment)
+vi.mock('$app/env', () => environment)
 
 vi.mock('../storage/storage.server', async () => {
   const { fullyQualifiedNameToFilename } = await import('../storage/paths')
@@ -53,14 +53,14 @@ vi.mock('../storage/storage.server', async () => {
   }
 })
 
-vi.mock('$lib/script/signing/keyResolution.server', () => ({
+vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   resolveVerificationKey: async (keyId: string) => {
     if (registry.isUnreachable) throw new Error('registry/unreachable')
     return registry.keys.get(keyId)
   }
 }))
 
-vi.mock('$lib/script/signing/rootKey.server', () => ({ loadRootKey: async () => { throw new Error('unused') } }))
+vi.mock('#lib/script/signing/rootKey.server.js', () => ({ loadRootKey: async () => { throw new Error('unused') } }))
 
 const articles = { name: 'articles', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object' } }
 const logs = { name: 'logs', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object', properties: { line: { type: 'string' } } } }
@@ -79,7 +79,7 @@ function recordingAdapter (database: string): Record<string, (reference: unknown
   }
 }
 
-vi.mock('$lib/script/host.server', () => {
+vi.mock('#lib/script/host.server.js', () => {
   const adapters: Record<string, ReturnType<typeof recordingAdapter>> = { main: recordingAdapter('main'), archive: recordingAdapter('archive') }
   const notFound = (name: string) => Object.assign(new Error(name), { code: 'database/not-found' })
   return {

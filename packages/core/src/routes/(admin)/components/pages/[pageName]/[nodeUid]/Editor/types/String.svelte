@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { isNullable } from '$lib/script/schema'
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { StringAttributeType } from '$lib/script/components/componentHeader/component/types'
-  import { Input, Card } from '$lib/components/ui/index'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import { isNullable } from '#lib/script/schema.js'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { StringAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import { Input, Card } from '#lib/components/ui/index.js'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<StringAttributeType>,

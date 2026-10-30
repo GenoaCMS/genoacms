@@ -1,6 +1,6 @@
 import { query, getRequestEvent } from '$app/server'
 import { listUserPagesPinningComponent } from './componentHeader/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 
 /**
  * What a component deletion would break, asked when someone is about to delete one.
@@ -12,7 +12,7 @@ import { requireAuthContext } from '$lib/script/authorization/request.server'
  * component's page would pay a full scan of the site on every visit, to show nothing at all most of
  * the time. So it is asked when a deletion dialog opens and not before.
  *
- * ## Why it lives in `$lib` rather than beside a route
+ * ## Why it lives in `#lib` rather than beside a route
  *
  * Two surfaces delete a component — the registrar, which owns both kinds, and the code editor, which
  * owns the dynamic one's source — and the warning has to be the same on both. A copy per route would

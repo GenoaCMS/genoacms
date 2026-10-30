@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import PickedItem from '$lib/components/editors/PickedItem.svelte'
+  import PickedItem from '#lib/components/editors/PickedItem.svelte'
 
   type T = string | number | boolean
   type Props = {
@@ -15,6 +15,6 @@
   icon="bi-link-45deg"
   title={String(reference)}
   subtitle={collectionId}
-  href={resolve(`/collections/${collectionId}/${reference}`)}
+  href={resolve('/(admin)/collections/[collectionName]/[documentId]', { collectionName: collectionId, documentId: String(reference) })}
   onremove={() => deleteReference(reference)}
 />

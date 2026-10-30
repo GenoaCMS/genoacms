@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ComponentHeader } from './component/types'
-import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import type { UndoRedoAdjunct } from '#lib/script/undoRedo/types.js'
 
 /**
  * Editing a prebuilt component, and stepping back through those edits.

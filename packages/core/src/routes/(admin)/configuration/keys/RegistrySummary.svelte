@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
+  import { Card } from '#lib/components/ui/index.js'
   import { formatMoment, rotationStanding, rotationExplanation } from './keyPresentation'
-  import type { KeyAdministrationView } from '$lib/script/signing/keyAdministration'
+  import type { KeyAdministrationView } from '#lib/script/signing/keyAdministration.js'
 
   /**
    * The state of the registry itself, as opposed to the keys in it.

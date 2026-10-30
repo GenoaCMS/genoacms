@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
+  import { Card } from '#lib/components/ui/index.js'
   import DeclaredBadge from './DeclaredBadge.svelte'
 
   interface Agent {

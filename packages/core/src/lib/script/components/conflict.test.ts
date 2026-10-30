@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PreconditionFailedError } from '@genoacms/contracts/storage'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, node, pageEntry, storeComponent, storePage, storedHeader, storedDefinition, storedPage,
   headerPath, definitionPath, entryPath
-} from '$lib/script/testing/components'
-import { importModule, principal, runAction, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { importModule, principal, runAction, type Parsed } from '#lib/script/testing/requests.js'
 
 const request = vi.hoisted(() => ({ locals: {} as Record<string, unknown> }))
 
@@ -15,10 +15,10 @@ vi.mock('$app/server', () => ({
   query: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'query' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 
-const conflict = async () => await importModule('$lib/script/components/conflict')
+const conflict = async () => await importModule('#lib/script/components/conflict.js')
 const { updateComponent: updateComponentCommand } = await import('../../../routes/(admin)/components/registrar/[componentId]/update.remote')
 const { saveComponentRemote: saveComponentForm } = await import('../../../routes/(admin)/components/editor/[componentId]/save.remote')
 const { actions: registrarActions } = await import('../../../routes/(admin)/components/registrar/[componentId]/+page.server')

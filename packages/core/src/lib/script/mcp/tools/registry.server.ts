@@ -1,4 +1,4 @@
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import * as collections from './collections.server'
 import * as components from './components.server'
 import * as pages from './pages.server'

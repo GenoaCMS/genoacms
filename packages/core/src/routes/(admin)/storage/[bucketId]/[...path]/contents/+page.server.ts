@@ -10,7 +10,7 @@ import {
   requireUserWrites,
   requireUserDeletes,
   InternalReadOnlyError
-} from '$lib/script/storage/user.server'
+} from '#lib/script/storage/user.server.js'
 import {
   directoryOfRoute,
   routeOfDirectory,
@@ -19,16 +19,16 @@ import {
   parentOf,
   lastLevelOf,
   isDirectoryReference
-} from '$lib/script/storage/browserPaths'
-import { actInTurn, type BulkResult } from '$lib/script/storage/bulkResult'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import type { AuthContext } from '$lib/script/authorization/context'
-import { isString } from '$lib/script/utils'
-import { readableStreamToReadable } from '$lib/script/utils.server'
+} from '#lib/script/storage/browserPaths.js'
+import { actInTurn, type BulkResult } from '#lib/script/storage/bulkResult.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { isString } from '#lib/script/utils.js'
+import { readableStreamToReadable } from '#lib/script/utils.server.js'
 import { error, fail } from '@sveltejs/kit'
 import type { Actions } from './$types'
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import type { ObjectReference } from '@genoacms/contracts/storage'
 
 const delimiter = host.pathDelimiter

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
 
 const service = vi.hoisted(() => ({
   uploadObject: vi.fn(),
@@ -13,14 +13,14 @@ const service = vi.hoisted(() => ({
   processDirectoryContents: vi.fn()
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   defaultBucketId: 'media',
   getBucketReferences: () => [{ name: 'media' }],
   ...service
 }))
-vi.mock('$lib/script/host.server', () => ({ host: { defaultBucket: 'media', pathDelimiter: '|->' } }))
+vi.mock('#lib/script/host.server.js', () => ({ host: { defaultBucket: 'media', pathDelimiter: '|->' } }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
 const { actions, load } = await import('./+page.server')
 
 const grant = (permission: Permission): Grant => ({ permission, resource: { scope: 'bucket', id: 'media' } } as Grant)

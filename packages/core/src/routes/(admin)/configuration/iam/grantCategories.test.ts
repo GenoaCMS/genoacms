@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { grantCategories, permissionsIn, categoryOf, optionGroups } from './grantCategories'
-import { permissions } from '$lib/script/authorization/permissions'
+import { permissions } from '#lib/script/authorization/permissions.js'
 
 /**
  * The grant editor's categories.

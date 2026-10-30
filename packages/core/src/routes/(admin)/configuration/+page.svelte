@@ -1,7 +1,7 @@
 <script lang="ts">
-  import TopPanel from '$lib/components/TopPanel.svelte'
-  import CardLink from '$lib/components/CardLink.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
+  import CardLink from '#lib/components/CardLink.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
 
   /**
    * The sections, each gated on the permission that makes it useful.

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import { page } from '$app/state'
-  import { isPermitted, type PermissionDemand } from '$lib/script/authorization/gate'
-  import type { AuthContext } from '$lib/script/authorization/context'
+  import { isPermitted, type PermissionDemand } from '#lib/script/authorization/gate.js'
+  import type { AuthContext } from '#lib/script/authorization/context.js'
 
   /**
    * Shows its children only to a principal holding what it demands.

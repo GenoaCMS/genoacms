@@ -1,25 +1,22 @@
-import 'SHIMS';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import sirv from 'sirv';
-import { fileURLToPath } from 'node:url';
 import { parse as polka_url_parser } from '@polka/url';
 import { setResponse, createReadableStream } from '@sveltejs/kit/node';
-import { Server } from 'SERVER';
-import { manifest, prerendered, base } from 'MANIFEST';
-import { env } from 'ENV';
-import { requestUrl, clientAddress, parseXffDepth } from './request.js';
+import {
+	server,
+	dir,
+	base,
+	app_path,
+	prerendered,
+	origin,
+	env_prefix
+} from '#@genoacms/sveltekit-adapter-cloud-run-functions';
+import { requestUrl, clientAddress, readStartupEnvironment } from './request.js';
 
-/* global ENV_PREFIX */
-
-const server = new Server(manifest);
-
-// ADP-7
-const origin = env('ORIGIN', undefined);
-const xff_depth = parseXffDepth(env('XFF_DEPTH', undefined));
-
-const dir = path.dirname(fileURLToPath(import.meta.url));
+// ADP-7, ADP-8
+const { xffDepth: xff_depth } = readStartupEnvironment(process.env, env_prefix);
 
 const asset_dir = `${dir}/client${base}`;
 
@@ -42,7 +39,7 @@ function serve(path, client = false) {
 			setHeaders:
 				client &&
 				((res, pathname) => {
-					if (pathname.startsWith(`/${manifest.appPath}/immutable/`) && res.statusCode === 200) {
+					if (pathname.startsWith(`/${app_path}/immutable/`) && res.statusCode === 200) {
 						res.setHeader('cache-control', 'public,max-age=31536000,immutable');
 					}
 				})

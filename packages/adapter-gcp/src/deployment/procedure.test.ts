@@ -39,6 +39,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  vi.clearAllMocks()
   while (roots.length > 0) rmSync(roots.pop() as string, { recursive: true, force: true })
 })
 
@@ -168,7 +169,7 @@ describe('the GCP deploy procedure', () => {
     functionExists.value = false
     expect(await environment({})).toEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
     expect(await environment({ origin: 'https://cms.example.com', xffDepth: 2 }))
-      .toEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' })
+      .toEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', XFF_DEPTH: '2' })
   })
 
   it('DEP-11: keeps the operation\'s error as cause', async () => {

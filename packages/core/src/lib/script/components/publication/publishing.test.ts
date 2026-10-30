@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createHash } from 'node:crypto'
 import { stringify as stringifyFlatted } from 'flatted'
 import { budgetsFrom } from '@genoacms/internal/guards'
-import { guardCeilings } from '$lib/script/securityPolicy/policy'
-import { verify } from '$lib/script/signing/envelope'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { guardCeilings } from '#lib/script/securityPolicy/policy.js'
+import { verify } from '#lib/script/signing/envelope.js'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, storeComponent, storePublication, storedDefinition, storedHeader, readFlatted,
   headerPath, definitionPath, pointerPath
-} from '$lib/script/testing/components'
-import { testSecurityPolicy, signingKey, testKeyResolution } from '$lib/script/testing/signingKeys'
-import { principal, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { testSecurityPolicy, signingKey, testKeyResolution } from '#lib/script/testing/signingKeys.js'
+import { principal, type Parsed } from '#lib/script/testing/requests.js'
 
 vi.setConfig({ testTimeout: 30_000 })
 
@@ -28,13 +28,13 @@ vi.mock('$app/server', () => ({
   query: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'query' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
   loadSecurityPolicy: async () => {
     fakes.policyReads++
-    return { ...(await import('$lib/script/testing/signingKeys')).testSecurityPolicy, fetchOrigins: fakes.fetchOrigins }
+    return { ...(await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy, fetchOrigins: fakes.fetchOrigins }
   }
 }))
 vi.mock('../language.server', async (importOriginal) => {

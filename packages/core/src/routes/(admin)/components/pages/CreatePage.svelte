@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
-  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import type { SubmitFunction } from '$app/forms'
+  import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { applyAction, enhance } from '$app/forms'
-  import { Button, Input, Label, Modal, Select, } from '$lib/components/ui/index'
-  import NothingToCompose from '$lib/components/components/NothingToCompose.svelte'
+  import { Button, Input, Label, Modal, Select, } from '#lib/components/ui/index.js'
+  import NothingToCompose from '#lib/components/components/NothingToCompose.svelte'
 
   interface Props {
     /**

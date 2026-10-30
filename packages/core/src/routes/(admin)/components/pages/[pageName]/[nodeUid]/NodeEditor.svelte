@@ -1,13 +1,13 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import type { SubmitFunction } from '@sveltejs/kit'
-  import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
-  import type { ComponentNode as Node } from '$lib/script/components/page/entry/types'
+  import type { SubmitFunction } from '$app/forms'
+  import type { AttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
+  import type { ComponentNode as Node } from '#lib/script/components/page/entry/types.js'
   import ComponentNode from './Editor/ComponentNode.svelte'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { enhance } from '$app/forms'
   import { invalidate } from '$app/navigation'
-  import { pageEditorData } from '$lib/script/components/page/editorData'
+  import { pageEditorData } from '#lib/script/components/page/editorData.js'
   import { page } from '$app/state'
 
   /**

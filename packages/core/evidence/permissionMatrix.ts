@@ -1,5 +1,5 @@
-import { WILDCARD, type Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
+import { WILDCARD, type Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
 
 /**
  * The permission matrix: the roles under test and what each is expected to be allowed.

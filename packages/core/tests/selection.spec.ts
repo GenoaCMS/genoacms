@@ -22,7 +22,7 @@ import {
  * Selecting several things, and acting on the selection.
  *
  * The storage browser and the collection listing share one selection implementation
- * (`$lib/script/selection/Selection.svelte`) behind two facades, and each screen puts the same three
+ * (`#lib/script/selection/Selection.svelte.js`) behind two facades, and each screen puts the same three
  * controls on its toolbar: select all, unselect all, and delete. `Selection.test.ts` asserts the
  * rules of the core without a browser; this suite asserts that the screens are really wired to it —
  * that a checkbox selects, that "select all" reaches every item listed, and that deleting removes

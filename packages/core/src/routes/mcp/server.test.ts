@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { memory } from '$lib/script/testing/memoryStorage'
-import { declared, declareAgent, clearDeclarations, captureConsole } from '$lib/script/testing/host'
-import { callEndpoint } from '$lib/script/testing/mcp'
+import { memory } from '#lib/script/testing/memoryStorage.js'
+import { declared, declareAgent, clearDeclarations, captureConsole } from '#lib/script/testing/host.js'
+import { callEndpoint } from '#lib/script/testing/mcp.js'
 
-vi.mock('$lib/script/host.server', async (importOriginal) => {
-  const { withDeclarations } = await import('$lib/script/testing/host')
-  const { host } = await importOriginal<typeof import('$lib/script/host.server')>()
+vi.mock('#lib/script/host.server.js', async (importOriginal) => {
+  const { withDeclarations } = await import('#lib/script/testing/host.js')
+  const { host } = await importOriginal<typeof import('#lib/script/host.server.js')>()
   return { host: withDeclarations(host) }
 })
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
-  loadSecurityPolicy: async () => (await import('$lib/script/testing/signingKeys')).testSecurityPolicy
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
+  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
 }))
 
 const TOKEN = 'declared-token-of-the-site-builder-0123456789'

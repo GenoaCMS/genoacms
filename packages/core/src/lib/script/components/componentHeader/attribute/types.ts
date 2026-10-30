@@ -3,7 +3,7 @@ import type {
   BooleanAttributeType, ComponentsAttributeType, LinkAttributeType, MarkdownAttributeType,
   NumberAttributeType, RichTextAttributeType, StorageResourceAttributeType, StringAttributeType, TextAttributeType,
   LinkAttributeValue, StorageResourceValue
-} from '$lib/script/components/componentHeader/component/types'
+} from '#lib/script/components/componentHeader/component/types.js'
 
 /**
  * What an attribute of each type holds once an author has filled it in.

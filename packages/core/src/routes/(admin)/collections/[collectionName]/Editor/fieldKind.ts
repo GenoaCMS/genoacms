@@ -1,5 +1,5 @@
-import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
-import type { InputValue } from '$lib/components/editors/types'
+import { asSchemaObject, type SchemaObject } from '#lib/script/schema.js'
+import type { InputValue } from '#lib/components/editors/types.js'
 
 type FieldKind =
   | 'reference'

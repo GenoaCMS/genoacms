@@ -1,15 +1,15 @@
 import { command, getRequestEvent } from '$app/server'
 import { validator } from '@exodus/schemasafe'
-import { componentHeaderSchema } from '$lib/script/components/componentHeader/component/schemas'
-import { updateUserComponentHeader } from '$lib/script/components/componentHeader/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { componentHeaderSchema } from '#lib/script/components/componentHeader/component/schemas.js'
+import { updateUserComponentHeader } from '#lib/script/components/componentHeader/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import {
   isDuplicateAttributeName,
   isReservedAttributeName
-} from '$lib/script/components/componentHeader/component/attributeNames'
-import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-import { isConflict } from '$lib/script/components/conflict'
-import { NoSuchComponentError } from '$lib/script/components/editor/errors'
+} from '#lib/script/components/componentHeader/component/attributeNames.js'
+import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+import { isConflict } from '#lib/script/components/conflict.js'
+import { NoSuchComponentError } from '#lib/script/components/editor/errors.js'
 
 const validate = validator(componentHeaderSchema)
 

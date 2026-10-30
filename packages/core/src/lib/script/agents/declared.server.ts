@@ -1,4 +1,4 @@
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import { AGENT_TOKEN_MIN_LENGTH, hashAgentToken } from './tokens'
 
 /** A declared agent as the endpoint knows it: never the token, only its hash. */

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Button, Input, } from '$lib/components/ui/index'
+  import { Button, Input, } from '#lib/components/ui/index.js'
   import { applyAction, enhance } from '$app/forms'
-  import type { ActionResult } from '@sveltejs/kit'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import type { ActionResult } from '$app/forms'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
 
   const MESSAGES: Record<string, string> = {
     'invalid-credentials': 'Wrong email or password',

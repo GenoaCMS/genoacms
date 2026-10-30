@@ -1,9 +1,9 @@
 import type { Diagnostic } from '@genoacms/internal/languageAdapter'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import type { ComponentHeader } from '../componentHeader/component/types'
 import type { ComponentPublicationOrder, PublishedComponent } from './types'
 
-import { requirePermission } from '$lib/script/authorization/enforce'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
 import { getComponentHeader } from '../componentHeader/io.server'
 import { NoSuchComponentError } from '../editor/errors'
 import { publishComponent, getPublishedComponent, listComposableComponentHeaders, listComponentCatalog } from './index'

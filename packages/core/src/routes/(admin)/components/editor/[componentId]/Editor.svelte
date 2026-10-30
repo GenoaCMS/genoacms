@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
+  import CodeEditor from '#lib/components/ui/CodeEditor.svelte'
 
   /**
    * The code surface, and nothing else.

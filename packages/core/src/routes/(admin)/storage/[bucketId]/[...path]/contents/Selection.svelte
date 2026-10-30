@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ObjectReference } from '@genoacms/contracts/storage'
-  import type { SelectActionRune } from '$lib/script/storage/SelectActionRune.svelte'
-  import selection from '$lib/script/storage/SelectionRune.svelte'
+  import type { SelectActionRune } from '#lib/script/storage/SelectActionRune.svelte.js'
+  import selection from '#lib/script/storage/SelectionRune.svelte.js'
   import { getContext } from 'svelte'
 
   type Props = {

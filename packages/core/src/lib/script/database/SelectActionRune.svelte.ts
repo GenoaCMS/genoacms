@@ -1,4 +1,4 @@
-import { SelectAction, type SelectionInitData } from '$lib/script/selection/SelectAction.svelte'
+import { SelectAction, type SelectionInitData } from '#lib/script/selection/SelectAction.svelte.js'
 import selection, { type SelectionParameters, type DocumentReference } from './SelectionRune.svelte'
 
 /**

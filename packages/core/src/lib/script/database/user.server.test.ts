@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import { DocumentNotFoundError as StoredDocumentNotFoundError } from '@genoacms/contracts/database'
 import { collections } from '../../../../genoa.config/collections'
 
@@ -54,9 +54,9 @@ vi.mock('./database.server', () => ({
   }
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { WILDCARD } = await import('$lib/script/authorization/grants')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { WILDCARD } = await import('#lib/script/authorization/grants.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const database = await import('./user.server')
 
 const collectionGrant = (permission: Permission, id: string): Grant =>

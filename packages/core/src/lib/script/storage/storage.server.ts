@@ -1,11 +1,11 @@
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import type {
   DirectoryContents,
   ObjectReference,
   StorageObject,
   UploadOptions
 } from '@genoacms/contracts/storage'
-import { streamToString } from '$lib/script/utils.server'
+import { streamToString } from '#lib/script/utils.server.js'
 import {
   fullyQualifiedNameToPath,
   fullyQualifiedNameToFilename,

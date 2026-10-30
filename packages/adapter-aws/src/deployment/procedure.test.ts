@@ -272,12 +272,7 @@ describe('the AWS deploy procedure', () => {
     expect(log.filter(entry => entry === 'AddPermission')).toHaveLength(2)
   })
 
-  it('LMB-10: sets ORIGIN instead of the forwarded headers when origin is given', async () => {
-    await deploy({ origin: 'https://cms.example' })
-    expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: { ...BASE_ENVIRONMENT, ORIGIN: 'https://cms.example' } })
-  })
-
-  it.fails('LMB-10: a set origin adds no variable', async () => {
+  it('LMB-10: a set origin adds no variable', async () => {
     await deploy({ origin: 'https://cms.example.com' })
     expect(inputsOf(CreateFunctionCommand)[0].Environment).toEqual({ Variables: BASE_ENVIRONMENT })
     lambda.resetHistory()

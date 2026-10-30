@@ -24,6 +24,7 @@ declare module '@genoacms/contracts' {
 export default defineDeploymentTarget<GcpDeploymentOptions>({
   svelteKitAdapter: async () => await import('@genoacms/sveltekit-adapter-cloud-run-functions'),
   svelteKitOptions: (_options, { outDir }) => ({ out: outDir }),
+  origin: options => options.origin,
   procedure: async () => await import('./procedure.js'),
   secretOptions: { credentials: 'json' },
   validate: options => [

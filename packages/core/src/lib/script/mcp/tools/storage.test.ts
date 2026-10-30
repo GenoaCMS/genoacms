@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { Permission } from '$lib/script/authorization/permissions'
-import { memory, memoryProviders } from '$lib/script/testing/memoryStorage'
-import { callTool, useTool } from '$lib/script/testing/mcp'
-import { principal, type Parsed } from '$lib/script/testing/requests'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import { memory, memoryProviders } from '#lib/script/testing/memoryStorage.js'
+import { callTool, useTool } from '#lib/script/testing/mcp.js'
+import { principal, type Parsed } from '#lib/script/testing/requests.js'
 
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
 
 const bucket = memory.bucket
 const agent = principal(['storage:bucket:read', 'storage:bucket:write', 'storage:bucket:delete'], 'agent:editor')

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { StringMetaSchema } from '$lib/script/components/componentHeader/component/types'
-  import { Label } from '$lib/components/ui/index'
-  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
+  import type { StringMetaSchema } from '#lib/script/components/componentHeader/component/types.js'
+  import { Label } from '#lib/components/ui/index.js'
+  import ParalelInputs from '#lib/components/editors/ParalelInputs.svelte'
+  import ConstraintInput from '#lib/components/editors/ConstraintInput.svelte'
 
   interface Props {
     schema: StringMetaSchema

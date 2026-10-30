@@ -1,15 +1,15 @@
 import { join } from 'path'
 import { isNotFound } from '@genoacms/contracts/storage'
 import type { ReadablePageNode } from './types'
-import type { DocumentType, SignedEnvelope } from '$lib/script/signing/envelope'
-import type { JsonValue } from '$lib/script/signing/canonical'
-import { sign } from '$lib/script/signing/envelope'
-import { getCurrentSigningKey } from '$lib/script/signing/keyResolution.server'
-import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
+import type { DocumentType, SignedEnvelope } from '#lib/script/signing/envelope.js'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
+import { sign } from '#lib/script/signing/envelope.js'
+import { getCurrentSigningKey } from '#lib/script/signing/keyResolution.server.js'
+import { readSignedDocument } from '#lib/script/signing/signedDocument.server.js'
 import {
   getInternalObjectJSON,
   uploadInternalObjectJSON
-} from '$lib/script/storage/storage.server'
+} from '#lib/script/storage/storage.server.js'
 
 /**
  * The published page tree: signed on the way out, verified on the way back.

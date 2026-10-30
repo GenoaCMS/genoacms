@@ -1,1 +1,1 @@
-export { handler } from 'HANDLER';
+export { handler } from './handler.js';

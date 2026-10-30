@@ -1,7 +1,7 @@
 import { isActionFailure, isHttpError, isRedirect } from '@sveltejs/kit'
-import { createAuthContext, type AuthContext } from '$lib/script/authorization/context'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
+import { createAuthContext, type AuthContext } from '#lib/script/authorization/context.js'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
 
 /** A value read from JSON, whose shape a test asserts rather than declares. */
 type Parsed = ReturnType<typeof JSON.parse>

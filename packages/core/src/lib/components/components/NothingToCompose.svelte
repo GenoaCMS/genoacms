@@ -27,7 +27,7 @@
     A page is built against a component's published description, so a component has to be published
     before it can be placed on one.
   </p>
-  <a class="link" href={resolve('/components/registrar')}>
+  <a class="link" href={resolve('/(admin)/components/registrar')}>
     Publish a component in the registrar
   </a>
 </div>

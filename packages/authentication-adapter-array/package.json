@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@genoacms/conformance": "workspace:^",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.12"
   },
   "scripts": {
     "test": "vitest run"

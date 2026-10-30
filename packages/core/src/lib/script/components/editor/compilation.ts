@@ -6,7 +6,7 @@ import type {
 } from '@genoacms/internal/languageAdapter'
 import type { GuardCeilings } from '@genoacms/internal/guards'
 import { budgetsFrom } from '@genoacms/internal/guards'
-import { getLanguageAdapter } from '$lib/script/components/language.server'
+import { getLanguageAdapter } from '#lib/script/components/language.server.js'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
 import type { Diagnostic } from '@genoacms/internal/languageAdapter'

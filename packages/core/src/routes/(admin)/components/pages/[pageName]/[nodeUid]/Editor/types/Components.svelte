@@ -1,22 +1,22 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
   import type {
     ComponentsAttributeType,
     ComponentHeader,
-  } from '$lib/script/components/componentHeader/component/types'
+  } from '#lib/script/components/componentHeader/component/types.js'
   import type { Schema } from '@exodus/schemasafe'
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
-  import { toastError } from '$lib/script/alert.svelte'
+  import { toastError } from '#lib/script/alert.svelte.js'
   import { invalidate } from '$app/navigation'
-  import { pageEditorData } from '$lib/script/components/page/editorData'
+  import { pageEditorData } from '#lib/script/components/page/editorData.js'
   import Component from './Component.svelte'
   import Subcomponent from './Subcomponent.svelte'
-  import { Card, Modal } from '$lib/components/ui/index'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
-  import NothingToCompose from '$lib/components/components/NothingToCompose.svelte'
-  import Sortable from '$lib/components/Sortable.svelte'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import { Card, Modal } from '#lib/components/ui/index.js'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
+  import NothingToCompose from '#lib/components/components/NothingToCompose.svelte'
+  import Sortable from '#lib/components/Sortable.svelte'
+  import type { SubmitFunction } from '$app/forms'
 
   interface Props {
     data: AttributeData<ComponentsAttributeType>

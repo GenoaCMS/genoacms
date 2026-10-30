@@ -1,10 +1,10 @@
 import type { Schema } from '@exodus/schemasafe'
 import { form, getRequestEvent } from '$app/server'
-import { publishUserComponent } from '$lib/script/components/publication/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+import { publishUserComponent } from '#lib/script/components/publication/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { validator } from '@exodus/schemasafe'
-import { componentPublicationOrderSchema } from '$lib/script/components/publication/schemas'
-import { formats } from '$lib/script/database/validators'
+import { componentPublicationOrderSchema } from '#lib/script/components/publication/schemas.js'
+import { formats } from '#lib/script/database/validators.js'
 
 const validate = validator(componentPublicationOrderSchema as Schema, { formats })
 

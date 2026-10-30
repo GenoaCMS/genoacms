@@ -1,13 +1,13 @@
 <script lang="ts">
-  import type { ArrayValue, InputValue } from '$lib/components/editors/types'
-  import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
+  import type { ArrayValue, InputValue } from '#lib/components/editors/types.js'
+  import { asSchemaObject, type SchemaObject } from '#lib/script/schema.js'
   import Input from './Input.svelte'
   import ArrayItem from './ArrayItem.svelte'
   import { fieldKindOf } from './fieldKind'
   import { itemSummary, itemVariant } from './itemSummary'
   import { dragHandleZone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
-  import { confirmationModal } from '$lib/script/alert.svelte'
+  import { confirmationModal } from '#lib/script/alert.svelte.js'
 
   type wrappedT = { id: string; value: InputValue }
   interface Props {

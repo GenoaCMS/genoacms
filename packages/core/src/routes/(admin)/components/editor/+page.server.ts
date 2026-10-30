@@ -3,9 +3,9 @@ import {
   deleteUserComponent,
   getUserComponent,
   listUserComponents
-} from '$lib/script/components/editor/user.server'
-import { parseBulkDeletion } from '$lib/script/selection/request.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
+} from '#lib/script/components/editor/user.server.js'
+import { parseBulkDeletion } from '#lib/script/selection/request.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { fail } from '@sveltejs/kit'
 
 export async function load ({ locals }) {

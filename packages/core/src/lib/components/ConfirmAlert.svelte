@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
-    import { confirmAlertState } from '$lib/script/alert.svelte'
+    import { confirmAlertState } from '#lib/script/alert.svelte.js'
 
     function handleChoice (isConfirmed: boolean) {
       if (confirmAlertState.resolve) {

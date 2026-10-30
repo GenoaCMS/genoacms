@@ -33,7 +33,7 @@ function put (name: string, data: string, options?: { ifAbsent?: boolean, ifVers
   objects.set(name, { data, version: `v${++versionCounter}` })
 }
 
-vi.mock('$lib/script/secrets/providers.server', () => ({
+vi.mock('#lib/script/secrets/providers.server.js', () => ({
   getSecret: async (key: string) => secrets.get(key),
   setSecret: async (key: string, value: string) => { secrets.set(key, value); return true },
   deleteSecret: async (key: string) => secrets.delete(key),
@@ -51,7 +51,7 @@ vi.mock('$lib/script/secrets/providers.server', () => ({
   }
 }))
 
-vi.mock('$lib/script/storage/storage.server', () => {
+vi.mock('#lib/script/storage/storage.server.js', () => {
   const notFound = (name: string): never => { throw new Error(`no such object: ${name}`) }
   return {
     defaultBucketId: 'test-bucket',
@@ -83,8 +83,8 @@ vi.mock('$lib/script/storage/storage.server', () => {
 const chainProviders: Record<string, { getIdentity: (subject: string) => Promise<{ subject: string, email: string } | null> }> = {}
 const chainCalls: string[][] = []
 
-vi.mock('$lib/script/host.server', async (importOriginal) => {
-  const { host } = await importOriginal<typeof import('$lib/script/host.server')>()
+vi.mock('#lib/script/host.server.js', async (importOriginal) => {
+  const { host } = await importOriginal<typeof import('#lib/script/host.server.js')>()
   return {
     host: new Proxy(host, {
       get (target, property, receiver) {
@@ -101,7 +101,7 @@ vi.mock('$lib/script/host.server', async (importOriginal) => {
   }
 })
 
-vi.mock('$lib/script/utils.server', () => ({
+vi.mock('#lib/script/utils.server.js', () => ({
   streamToString: async (data: string) => data
 }))
 
@@ -122,7 +122,7 @@ let sessions: SessionModule
 beforeAll(async () => {
   objects.clear()
   secrets.clear()
-  const { ensureInstanceInitialized } = await import('$lib/script/bootstrap.server')
+  const { ensureInstanceInitialized } = await import('#lib/script/bootstrap.server.js')
   await ensureInstanceInitialized()
   sessions = await import('./session.server')
 }, 60_000)
@@ -288,7 +288,7 @@ describe('a lost write race', () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
 
     // Both requests read the same version; the second one's conditional write finds it superseded.
-    const storage = await import('$lib/script/storage/storage.server')
+    const storage = await import('#lib/script/storage/storage.server.js')
     const upload = vi.spyOn(storage, 'uploadObject')
     upload.mockImplementationOnce(async () => { throw new PreconditionFailed('lost the race') })
 
@@ -386,8 +386,8 @@ describe('the provider and revalidation', () => {
   })
 
   it('AUTHN-6: reads a family written without a provider', async () => {
-    const { sign } = await import('$lib/script/signing/envelope')
-    const { getCurrentSigningKey } = await import('$lib/script/signing/keyResolution.server')
+    const { sign } = await import('#lib/script/signing/envelope.js')
+    const { getCurrentSigningKey } = await import('#lib/script/signing/keyResolution.server.js')
     const { newFamily } = await import('./session')
     const { provider: _dropped, ...older } = newFamily('family-older', SUBJECT, EMAIL, 'unused', 'token-older', Date.now(), 14)
     const envelope = sign(sessions.SESSION_DOCUMENT, older, await getCurrentSigningKey())
@@ -414,7 +414,7 @@ describe('the provider and revalidation', () => {
 
   it('AUTHN-7: a gone identity whose family cannot be removed fails the refresh', async () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
-    const storage = await import('$lib/script/storage/storage.server')
+    const storage = await import('#lib/script/storage/storage.server.js')
     vi.spyOn(storage, 'deleteInternalObject').mockImplementationOnce(async () => { throw new Error('storage/unavailable') })
 
     await expect(sessions.refreshSession(started.familyId, started.token, async () => null)).rejects.toThrow('storage/unavailable')
@@ -439,7 +439,7 @@ describe('the provider and revalidation', () => {
 
   it('AUTHN-7: a lost race carries the email revalidation returned', async () => {
     const started = await sessions.startSession(IDENTITY, PROVIDER)
-    const storage = await import('$lib/script/storage/storage.server')
+    const storage = await import('#lib/script/storage/storage.server.js')
     vi.spyOn(storage, 'uploadObject').mockImplementationOnce(async () => { throw new PreconditionFailed('lost the race') })
 
     const result = await sessions.refreshSession(started.familyId, started.token, async () => ({ subject: SUBJECT, email: 'ada@new.example.com' }))
@@ -454,7 +454,7 @@ describe('the provider and revalidation', () => {
     chainProviders.b = { getIdentity: async subject => ({ subject, email: ' Ada@B.Example.com ' }) }
     const started = await sessions.startSession(IDENTITY, 'b')
     const { SignJWT } = await import('jose')
-    const { getSessionKey } = await import('$lib/script/signing/rootKey.server')
+    const { getSessionKey } = await import('#lib/script/signing/rootKey.server.js')
     const { packSessionCookie } = await import('./sessionCookie')
     const { authenticateRequest, cookieName } = await import('./auth.server')
     const expired = await new SignJWT({ email: EMAIL }).setProtectedHeader({ alg: 'HS256' }).setSubject(SUBJECT).setExpirationTime('-1s').sign(await getSessionKey())

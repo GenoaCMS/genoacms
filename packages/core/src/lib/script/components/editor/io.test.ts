@@ -15,7 +15,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 let stored: { uid: string, type: string, name: string } | null = null
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   defaultBucketId: 'default',
   uploadInternalObjectFlatted: async () => {},
   getInternalObjectFlatted: async () => ({}),

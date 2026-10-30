@@ -14,7 +14,7 @@
 
 <a
   class="h-full flex items-center px-3 cursor-pointer"
-  href={resolve(`/components/registrar/${uid}`)}
+  href={resolve('/(admin)/components/registrar/[componentId]', { componentId: uid })}
   aria-label="Edit the description"
   title="Edit the description and publish"
 >

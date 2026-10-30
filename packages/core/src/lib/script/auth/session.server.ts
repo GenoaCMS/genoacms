@@ -5,12 +5,12 @@ import {
   getObject,
   uploadObject,
   deleteInternalObject
-} from '$lib/script/storage/storage.server'
-import { streamToString } from '$lib/script/utils.server'
-import { sign, type DocumentType } from '$lib/script/signing/envelope'
-import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
-import { getCurrentSigningKey } from '$lib/script/signing/keyResolution.server'
-import { loadSecurityPolicy } from '$lib/script/securityPolicy/policy.server'
+} from '#lib/script/storage/storage.server.js'
+import { streamToString } from '#lib/script/utils.server.js'
+import { sign, type DocumentType } from '#lib/script/signing/envelope.js'
+import { readSignedDocument } from '#lib/script/signing/signedDocument.server.js'
+import { getCurrentSigningKey } from '#lib/script/signing/keyResolution.server.js'
+import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import {
   assessToken,
   newFamily,
@@ -18,7 +18,7 @@ import {
   rotated,
   type SessionFamily
 } from './session'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 import type { Identity } from '@genoacms/contracts/authentication'
 
 /**

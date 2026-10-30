@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { NamedSelection, NamedEntry } from '$lib/script/selection/NamedSelection.svelte'
+  import type { NamedSelection, NamedEntry } from '#lib/script/selection/NamedSelection.svelte.js'
 
   /**
    * Select-all, which becomes clear-all once anything is selected.

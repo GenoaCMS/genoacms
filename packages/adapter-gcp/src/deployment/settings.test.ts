@@ -57,15 +57,7 @@ describe('function settings', () => {
     expect(serviceConfig({ ingress: 'internal' })).toMatchObject({ ingressSettings: 2 })
   })
 
-  it('DEP-14: sets ORIGIN and XFF_DEPTH from origin and xffDepth', () => {
-    const settings = { origin: 'https://cms.example.com', xffDepth: 2 }
-    expect(validateSettings(settings)).toEqual([])
-    expect(serviceConfig(settings)).toMatchObject({
-      environmentVariables: { NODE_ENV: 'production', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' }
-    })
-  })
-
-  it.fails('DEP-14: origin sets no environment variable', () => {
+  it('DEP-14: origin sets no environment variable', () => {
     const { environmentVariables } = serviceConfig({ origin: 'https://cms.example.com', xffDepth: 2 }) as { environmentVariables: Record<string, string> }
     expect(environmentVariables).toMatchObject({ XFF_DEPTH: '2' })
     expect(environmentVariables).not.toHaveProperty('ORIGIN')
@@ -86,9 +78,9 @@ describe('function settings', () => {
   it('DEP-10: sets IGNORED_ROUTES to the empty string', () => {
     const environment = (settings: Record<string, unknown>): unknown => (serviceConfig(settings) as { environmentVariables: unknown }).environmentVariables
     expect(environment({})).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
-    expect(environment({ origin: 'https://cms.example.com' })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com' })
+    expect(environment({ origin: 'https://cms.example.com' })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '' })
     expect(environment({ xffDepth: 2 })).toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', XFF_DEPTH: '2' })
     expect(environment({ origin: 'https://cms.example.com', xffDepth: 2 }))
-      .toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', ORIGIN: 'https://cms.example.com', XFF_DEPTH: '2' })
+      .toStrictEqual({ NODE_ENV: 'production', IGNORED_ROUTES: '', XFF_DEPTH: '2' })
   })
 })

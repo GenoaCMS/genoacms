@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 
 /**
  * Registering a component of either kind.
@@ -62,8 +62,8 @@ vi.mock('./editor/index', () => ({
   deleteComponent: async (component: { uid: string }) => { created.push(`removed-everything:${component.uid}`) }
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const { registerUserComponent, deleteUserComponentByReference } = await import('./registration.server')
 
 const grant = (permission: Permission): Grant => ({ permission, resource: '*' } as Grant)

@@ -1,6 +1,6 @@
 import { validator } from '@exodus/schemasafe'
-import { WILDCARD } from '$lib/script/authorization/grants'
-import type { PermittedFields } from '$lib/script/authorization/fields'
+import { WILDCARD } from '#lib/script/authorization/grants.js'
+import type { PermittedFields } from '#lib/script/authorization/fields.js'
 import { DocumentValidationError, type ValidationIssue } from './errors'
 import { formats } from './validators'
 

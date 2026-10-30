@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { deleteSecret, getSecret, setSecretIfAbsent } from '$lib/script/secrets/providers.server'
+import { deleteSecret, getSecret, setSecretIfAbsent } from '#lib/script/secrets/providers.server.js'
 import { getAlgorithm, SUBORDINATE_ALGORITHM, type AlgorithmName } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { fromBase64, toBase64, type SigningKey } from './envelope'

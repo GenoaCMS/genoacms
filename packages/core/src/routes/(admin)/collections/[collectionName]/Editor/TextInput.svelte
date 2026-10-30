@@ -1,8 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import type { TextValue } from '$lib/components/editors/types'
+  import type { TextValue } from '#lib/components/editors/types.js'
   import type { Schema } from '@exodus/schemasafe'
-  import { Textarea } from '$lib/components/ui/index'
+  import { Textarea } from '#lib/components/ui/index.js'
 
   interface Props {
     schema: Schema

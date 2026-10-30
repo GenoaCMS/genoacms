@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { asSchemaObject, type SchemaObject } from '$lib/script/schema'
-  import type { InputValue } from '$lib/components/editors/types'
-  import StorageResources from '$lib/components/editors/StorageResource/StorageResources.svelte'
-  import StorageResource from '$lib/components/editors/StorageResource/StorageResource.svelte'
+  import { asSchemaObject, type SchemaObject } from '#lib/script/schema.js'
+  import type { InputValue } from '#lib/components/editors/types.js'
+  import StorageResources from '#lib/components/editors/StorageResource/StorageResources.svelte'
+  import StorageResource from '#lib/components/editors/StorageResource/StorageResource.svelte'
   import UuidInput from './UUIDInput.svelte'
   import MarkdownInput from './MarkdownInput.svelte'
   import ArrayInput from './ArrayInput.svelte'

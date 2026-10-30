@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ActivityRecord } from '$lib/script/activity/types'
+  import type { ActivityRecord } from '#lib/script/activity/types.js'
   import CollectionsActivity from './CollectionsActivity.svelte'
   import ComponentHeaderActivity from './ComponentHeaderActivity.svelte'
   import ComponentCodeActivity from './ComponentCodeActivity.svelte'

@@ -21,7 +21,7 @@ import type { ComponentHeader } from './component/types'
 
 const objects = new Map<string, string>()
 
-vi.mock('$lib/script/storage/storage.server', () => ({
+vi.mock('#lib/script/storage/storage.server.js', () => ({
   defaultBucketId: 'default',
   // Filters by the directory asked for, because real storage does — otherwise a listing scoped to
   // one directory is indistinguishable from one that reads the whole bucket.

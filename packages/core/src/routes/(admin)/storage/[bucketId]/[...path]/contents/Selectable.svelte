@@ -2,8 +2,8 @@
     import type { ObjectReference } from '@genoacms/contracts/storage'
     import type { Snippet } from 'svelte'
     import { page } from '$app/state'
-    import selection from '$lib/script/storage/SelectionRune.svelte'
-    import SelectionCheckbox from '$lib/components/selection/SelectionCheckbox.svelte'
+    import selection from '#lib/script/storage/SelectionRune.svelte.js'
+    import SelectionCheckbox from '#lib/components/selection/SelectionCheckbox.svelte'
 
     type Props = {
       name: string,

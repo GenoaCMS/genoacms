@@ -1,11 +1,11 @@
 <script lang="ts">
-  import TopPanel from '$lib/components/TopPanel.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
   import UpdatePreviewURL from './UpdatePreviewURL.svelte'
   import SavePageContents from './SavePageContents.svelte'
   import Build from './Build.svelte'
   import Undo from './Undo.svelte'
   import Redo from './Redo.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
 
   const { children, data } = $props()
 

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { isNullable } from '$lib/script/schema'
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { TextAttributeType } from '$lib/script/components/componentHeader/component/types'
-  import { Textarea, Card } from '$lib/components/ui/index'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import { isNullable } from '#lib/script/schema.js'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { TextAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import { Textarea, Card } from '#lib/components/ui/index.js'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<TextAttributeType>,

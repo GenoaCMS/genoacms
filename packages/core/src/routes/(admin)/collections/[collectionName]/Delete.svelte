@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
-  import { alertPending, confirmationModal, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { alertPending, confirmationModal, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { enhance } from '$app/forms'
-  import selection from '$lib/script/database/SelectionRune.svelte'
+  import selection from '#lib/script/database/SelectionRune.svelte.js'
 
   /**
    * Deleting every selected document in one action.

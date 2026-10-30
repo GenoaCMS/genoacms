@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { flushSync, mount, unmount } from 'svelte'
 import type { CollectionReference } from '@genoacms/contracts/database'
 import { storageResource, nullableStorageResource, reference } from '@genoacms/contracts/schemas'
-import { page } from '@vitest/browser/context'
+import { page } from 'vitest/browser'
 import Editor from './Editor.svelte'
 
 type Data = Record<string, unknown>

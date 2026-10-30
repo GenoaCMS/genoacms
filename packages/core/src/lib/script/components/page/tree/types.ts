@@ -1,4 +1,4 @@
-import type { ComponentType } from '$lib/script/components/componentHeader/component/types'
+import type { ComponentType } from '#lib/script/components/componentHeader/component/types.js'
 
 /**
  * The published page: what a consumer fetches and renders.

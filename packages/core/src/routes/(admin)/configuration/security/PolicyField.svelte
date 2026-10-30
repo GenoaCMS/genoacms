@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Label, Helper } from '$lib/components/ui/index'
+  import { Input, Label, Helper } from '#lib/components/ui/index.js'
 
   /**
    * One policy value, with the range the parser will hold it to.

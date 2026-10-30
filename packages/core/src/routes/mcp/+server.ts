@@ -1,9 +1,9 @@
 import type { RequestHandler } from './$types'
-import { getAuthContext } from '$lib/script/authorization/grants.server'
-import { createAuthContext, type AuthContext } from '$lib/script/authorization/context'
-import { agentForToken } from '$lib/script/agents/authenticate.server'
-import { handleMessage } from '$lib/script/mcp/protocol'
-import { toolRegistry } from '$lib/script/mcp/tools/registry.server'
+import { getAuthContext } from '#lib/script/authorization/grants.server.js'
+import { createAuthContext, type AuthContext } from '#lib/script/authorization/context.js'
+import { agentForToken } from '#lib/script/agents/authenticate.server.js'
+import { handleMessage } from '#lib/script/mcp/protocol.js'
+import { toolRegistry } from '#lib/script/mcp/tools/registry.server.js'
 
 const BEARER = /^Bearer (.+)$/i
 const PARSE_ERROR = -32700

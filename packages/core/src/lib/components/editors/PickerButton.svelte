@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button } from '$lib/components/ui/index'
+  import { Button } from '#lib/components/ui/index.js'
 
   interface Props {
     href: string

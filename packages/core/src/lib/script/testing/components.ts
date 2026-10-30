@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { stringify as stringifyFlatted, parse as parseFlatted } from 'flatted'
-import { sign } from '$lib/script/signing/envelope'
+import { sign } from '#lib/script/signing/envelope.js'
 import { memory } from './memoryStorage'
 import { signingKey } from './signingKeys'
 import type { Parsed } from './requests'

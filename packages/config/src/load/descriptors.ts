@@ -37,6 +37,7 @@ interface Descriptor {
   readonly validate?: (options: unknown) => string[]
   readonly svelteKitAdapter?: () => Promise<{ default: (options?: Record<string, unknown>) => unknown }>
   readonly svelteKitOptions?: (options: unknown, ctx: { outDir: string }) => Record<string, unknown>
+  readonly origin?: (options: unknown) => string | undefined
   readonly procedure?: () => Promise<{ default: (options: unknown, ctx: unknown) => Promise<void> }>
 }
 

@@ -7,11 +7,7 @@
 		"allowSyntheticDefaultImports": true,
 		"target": "es2022",
 		"module": "node16",
-		"moduleResolution": "node16",
-		"baseUrl": ".",
-		"paths": {
-			"@sveltejs/kit": ["../kit/types/index"]
-		}
+		"moduleResolution": "node16"
 	},
 	"include": ["index.js", "src/**/*.js", "ambient.d.ts"]
 }

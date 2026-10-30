@@ -1,9 +1,9 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
   import { invalidateAll } from '$app/navigation'
-  import { Button, Input, Label, Modal } from '$lib/components/ui/index'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import { Button, Input, Label, Modal } from '#lib/components/ui/index.js'
+  import type { SubmitFunction } from '$app/forms'
 
   let isDirectoryCreationModalOpen = $state(false)
   function toggleDirectoryCreationModal () {

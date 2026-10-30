@@ -1,10 +1,10 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { Modal, Button, Input, Label, Helper } from '$lib/components/ui/index'
-  import { toastError } from '$lib/script/alert.svelte'
+  import { Modal, Button, Input, Label, Helper } from '#lib/components/ui/index.js'
+  import { toastError } from '#lib/script/alert.svelte.js'
   import { refusalMessage } from '../refusalMessage'
   import RoleSelector from './RoleSelector.svelte'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
 
   interface Props {
     /** Every role that exists; the server refuses one that exceeds an agent's ceiling. */

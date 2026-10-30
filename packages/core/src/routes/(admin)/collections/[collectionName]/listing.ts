@@ -1,6 +1,6 @@
 import type { CollectionReference } from '@genoacms/contracts/database'
 import { lexer, type Token } from 'marked'
-import { asSchemaObject } from '$lib/script/schema'
+import { asSchemaObject } from '#lib/script/schema.js'
 import { fieldKindOf, type FieldKind } from './Editor/fieldKind'
 
 interface Column {

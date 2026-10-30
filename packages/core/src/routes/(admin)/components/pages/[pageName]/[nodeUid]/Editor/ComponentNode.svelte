@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { ComponentNode } from '$lib/script/components/page/entry/types'
-  import type { AttributeValue } from '$lib/script/components/componentHeader/attribute/types'
-  import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
+  import type { ComponentNode } from '#lib/script/components/page/entry/types.js'
+  import type { AttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
+  import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
   import { page } from '$app/state'
   import Attribute from './Attribute.svelte'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
-  import { Button, } from '$lib/components/ui/index'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
+  import { Button, } from '#lib/components/ui/index.js'
 
   interface Props {
     node: ComponentNode,

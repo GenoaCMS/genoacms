@@ -1,8 +1,9 @@
-import { building } from '$app/environment'
-import { authenticateRequest } from '$lib/script/auth/auth.server'
-import { ensureInstanceInitialized } from '$lib/script/bootstrap.server'
-import { getAuthContext } from '$lib/script/authorization/grants.server'
-import type { Cookies, Handle } from '@sveltejs/kit'
+import { building } from '$app/env'
+import { authenticateRequest } from '#lib/script/auth/auth.server.js'
+import { ensureInstanceInitialized } from '#lib/script/bootstrap.server.js'
+import { getAuthContext } from '#lib/script/authorization/grants.server.js'
+import type { Cookies } from '@sveltejs/kit'
+import type { Handle } from '@sveltejs/kit/hooks'
 import type { JWTPayload } from 'jose'
 
 // Once per process, before anything is served. Awaited at module scope rather than per request so

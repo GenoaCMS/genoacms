@@ -1,10 +1,10 @@
 import { join } from 'path'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
-import { readSignedDocument } from '$lib/script/signing/signedDocument.server'
-import { ConflictError } from '$lib/script/components/conflict'
-import { readRawManifest, securityDirectory, writeSignedManifest } from '$lib/script/authorization/manifests.server'
-import type { JsonValue } from '$lib/script/signing/canonical'
-import type { DocumentType } from '$lib/script/signing/envelope'
+import { readSignedDocument } from '#lib/script/signing/signedDocument.server.js'
+import { ConflictError } from '#lib/script/components/conflict.js'
+import { readRawManifest, securityDirectory, writeSignedManifest } from '#lib/script/authorization/manifests.server.js'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
+import type { DocumentType } from '#lib/script/signing/envelope.js'
 import { parseAgentsManifest, serializeAgentsManifest, type AgentRecord } from './manifest'
 
 const agentsManifestPath = join(securityDirectory, 'agents.json')

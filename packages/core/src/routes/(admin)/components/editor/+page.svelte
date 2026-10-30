@@ -1,12 +1,12 @@
 <script lang="ts">
-  import Grid from '$lib/components/Grid.svelte'
-  import TopPanel from '$lib/components/TopPanel.svelte'
+  import Grid from '#lib/components/Grid.svelte'
+  import TopPanel from '#lib/components/TopPanel.svelte'
   import Component from './Component.svelte'
-  import PermissionGate from '$lib/components/PermissionGate.svelte'
-  import SelectableCard from '$lib/components/selection/SelectableCard.svelte'
-  import SelectionToggle from '$lib/components/selection/SelectionToggle.svelte'
-  import DeleteSelected from '$lib/components/selection/DeleteSelected.svelte'
-  import { NamedSelection } from '$lib/script/selection/NamedSelection.svelte'
+  import PermissionGate from '#lib/components/PermissionGate.svelte'
+  import SelectableCard from '#lib/components/selection/SelectableCard.svelte'
+  import SelectionToggle from '#lib/components/selection/SelectionToggle.svelte'
+  import DeleteSelected from '#lib/components/selection/DeleteSelected.svelte'
+  import { NamedSelection } from '#lib/script/selection/NamedSelection.svelte.js'
 
   const { data } = $props()
 

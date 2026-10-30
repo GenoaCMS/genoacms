@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { SchemaObject } from '$lib/script/schema'
+  import type { SchemaObject } from '#lib/script/schema.js'
   import { onDestroy } from 'svelte'
   import { resolve } from '$app/paths'
-  import { ITC } from '$lib/script/utils'
-  import PickerButton from '$lib/components/editors/PickerButton.svelte'
+  import { ITC } from '#lib/script/utils.js'
+  import PickerButton from '#lib/components/editors/PickerButton.svelte'
   import DocumentReference from './DocumentReference.svelte'
 
   type T = string | number | boolean
@@ -17,7 +17,7 @@
   const selectionId = crypto.randomUUID()
   const itc = new ITC(selectionId)
   const collectionId = getReferenceCollectionId(schema)
-  const pickerHref = `${resolve(`/collections/${collectionId}`)}?selectionId=${selectionId}`
+  const pickerHref = `${resolve('/(admin)/collections/[collectionName]', { collectionName: collectionId })}?selectionId=${selectionId}`
 
   function deleteReference (reference: T) {
     references = references.filter((item) => item !== reference)

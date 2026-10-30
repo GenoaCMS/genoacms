@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Modal, Button } from '$lib/components/ui/index'
+  import { Modal, Button } from '#lib/components/ui/index.js'
 
   /**
    * AGT-3: the one time a token is shown. It is not stored anywhere that could show it again.

@@ -1,21 +1,13 @@
-declare module 'ENV' {
-	export function env(key: string, fallback?: any): string;
-}
+declare module '#@genoacms/sveltekit-adapter-cloud-run-functions' {
+	import { Server } from '@sveltejs/kit';
 
-declare module 'HANDLER' {
-	export const handler: import('polka').Middleware;
-}
-
-declare module 'MANIFEST' {
-	import { SSRManifest } from '@sveltejs/kit';
-
+	export const server: Server;
+	export const dir: string;
 	export const base: string;
-	export const manifest: SSRManifest;
+	export const app_path: string;
 	export const prerendered: Set<string>;
-}
-
-declare module 'SERVER' {
-	export { Server } from '@sveltejs/kit';
+	export const origin: string | undefined;
+	export const env_prefix: string;
 }
 
 declare namespace App {

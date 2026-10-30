@@ -1,11 +1,11 @@
-import type { AuthContext } from '$lib/script/authorization/context'
-import { readingOnceEach } from '$lib/script/utils'
-import { requirePermission } from '$lib/script/authorization/enforce'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import { readingOnceEach } from '#lib/script/utils.js'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
 import { isNotFound } from '@genoacms/contracts/storage'
-import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import type { ComponentHeader } from '$lib/script/components/componentHeader/component/types'
-import { PageEditError, subtreeOf } from '$lib/script/components/page/edits'
-import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
+import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
+import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
+import { PageEditError, subtreeOf } from '#lib/script/components/page/edits.js'
+import type { IsSerializable, PageEntry } from '#lib/script/components/page/entry/types.js'
 import {
   addUserChildNode,
   createUserPage,
@@ -18,7 +18,7 @@ import {
   removeUserNode,
   setUserPreviewURL,
   setUserValues
-} from '$lib/script/components/page/user.server'
+} from '#lib/script/components/page/user.server.js'
 
 type Args = Record<string, unknown>
 

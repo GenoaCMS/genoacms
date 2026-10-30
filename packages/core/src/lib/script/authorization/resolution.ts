@@ -1,7 +1,7 @@
 import { composeGrants, type Role } from './roles'
 import { createAuthContext, type AuthContext } from './context'
 import type { UserRecord } from './manifests'
-import { exceedsAgentCeiling, isAgentSubject } from '$lib/script/agents/ceiling'
+import { exceedsAgentCeiling, isAgentSubject } from '#lib/script/agents/ceiling.js'
 
 /**
  * Resolving a subject to the permissions it holds.

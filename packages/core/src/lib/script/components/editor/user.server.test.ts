@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 
 /**
  * Enforcement on the dynamic component surface.
@@ -50,8 +50,8 @@ vi.mock('./editing.server', () => ({
   }
 }))
 
-const { createAuthContext } = await import('$lib/script/authorization/context')
-const { PermissionDeniedError } = await import('$lib/script/authorization/enforce')
+const { createAuthContext } = await import('#lib/script/authorization/context.js')
+const { PermissionDeniedError } = await import('#lib/script/authorization/enforce.js')
 const editor = await import('./user.server')
 
 const grant = (permission: Permission): Grant => ({ permission, resource: '*' } as Grant)

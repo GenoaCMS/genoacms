@@ -1,5 +1,5 @@
 import type { ComponentHeader, ComponentHeaderReference } from './component/types'
-import type { UndoRedoAdjunct } from '$lib/script/undoRedo/types'
+import type { UndoRedoAdjunct } from '#lib/script/undoRedo/types.js'
 import type { UploadOptions } from '@genoacms/contracts/storage'
 import {
   defaultBucketId,
@@ -11,8 +11,8 @@ import {
   getInternalObjectJSON,
   getInternalObjectJSONVersioned,
   getInternalObjectFlatted
-} from '$lib/script/storage/storage.server'
-import { noHistory } from '$lib/script/undoRedo'
+} from '#lib/script/storage/storage.server.js'
+import { noHistory } from '#lib/script/undoRedo/index.js'
 import { join } from 'path'
 import { validator } from '@exodus/schemasafe'
 import type { Json } from '@exodus/schemasafe'

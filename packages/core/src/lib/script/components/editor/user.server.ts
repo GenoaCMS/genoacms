@@ -1,6 +1,6 @@
-import { requirePermission } from '$lib/script/authorization/enforce'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
 import { requireNoPublishedDependents } from '../page/tree/dependents.server'
-import type { AuthContext } from '$lib/script/authorization/context'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import type { Component, ComponentDefinition, ComponentReference } from './types'
 import type { SignaturePreview } from '@genoacms/internal/languageAdapter'
 import { getComponentHeader } from '../componentHeader/io.server'

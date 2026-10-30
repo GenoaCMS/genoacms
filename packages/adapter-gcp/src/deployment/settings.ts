@@ -9,7 +9,7 @@ export interface FunctionSettings {
   maxInstances?: number
   ingress?: Ingress
   serviceAccount?: string
-  /** Set as ORIGIN: the origin browsers use, when a proxy rewrites the forwarded host (architecture GD5). */
+  /** Given to the build as SvelteKit's paths.origin: the origin browsers use, when a proxy rewrites the forwarded host (architecture GD5). */
   origin?: string
   /** Set as XFF_DEPTH: which X-Forwarded-For entry, from the right, is the client (architecture GD5). */
   xffDepth?: number
@@ -64,7 +64,6 @@ function environmentVariables (settings: FunctionSettings): Record<string, strin
   return {
     NODE_ENV: 'production',
     IGNORED_ROUTES: '',
-    ...(settings.origin === undefined ? {} : { ORIGIN: settings.origin }),
     ...(settings.xffDepth === undefined ? {} : { XFF_DEPTH: String(settings.xffDepth) })
   }
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { LinkAttributeType } from '$lib/script/components/componentHeader/component/types'
-  import type { LinkAttributeValue } from '$lib/script/components/componentHeader/attribute/types'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { LinkAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import type { LinkAttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
   import Link from './Link.svelte'
-  import { Card } from '$lib/components/ui/index'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import { Card } from '#lib/components/ui/index.js'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<LinkAttributeType>,

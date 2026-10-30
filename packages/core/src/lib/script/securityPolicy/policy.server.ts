@@ -1,13 +1,13 @@
 import { join } from 'path'
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import {
   getInternalObjectStringVersioned,
   uploadInternalObjectJSON
-} from '$lib/script/storage/storage.server'
-import { sign, type DocumentType } from '$lib/script/signing/envelope'
-import { readRootSignedDocument } from '$lib/script/signing/signedDocument.server'
-import { getRootSigningKey } from '$lib/script/signing/rootKey.server'
+} from '#lib/script/storage/storage.server.js'
+import { sign, type DocumentType } from '#lib/script/signing/envelope.js'
+import { readRootSignedDocument } from '#lib/script/signing/signedDocument.server.js'
+import { getRootSigningKey } from '#lib/script/signing/rootKey.server.js'
 import {
   parseSecurityPolicy,
   MIN_ROTATION_DAYS,
@@ -16,7 +16,7 @@ import {
   MAX_ACCESS_TOKEN_MINUTES,
   type SecurityPolicy
 } from './policy'
-import type { JsonValue } from '$lib/script/signing/canonical'
+import type { JsonValue } from '#lib/script/signing/canonical.js'
 
 /**
  * The signed security policy document.

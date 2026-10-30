@@ -1,16 +1,16 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { StorageResourceAttributeType } from '$lib/script/components/componentHeader/component/types'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { StorageResourceAttributeType } from '#lib/script/components/componentHeader/component/types.js'
   import type {
     StorageResourceValue,
     StorageResourcesAttributeValue
-  } from '$lib/script/components/componentHeader/attribute/types'
-  import type { SelectionInitData } from '$lib/script/storage/SelectActionRune.svelte'
-  import type { SelectionParameters } from '$lib/script/storage/SelectionRune.svelte'
-  import { Card } from '$lib/components/ui/index'
-  import { ITC } from '$lib/script/utils'
+  } from '#lib/script/components/componentHeader/attribute/types.js'
+  import type { SelectionInitData } from '#lib/script/storage/SelectActionRune.svelte.js'
+  import type { SelectionParameters } from '#lib/script/storage/SelectionRune.svelte.js'
+  import { Card } from '#lib/components/ui/index.js'
+  import { ITC } from '#lib/script/utils.js'
   import { onDestroy } from 'svelte'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
 
   /**
    * Choosing the files a storage-resource attribute holds.

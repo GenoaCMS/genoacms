@@ -1,6 +1,6 @@
-import { requirePermission } from '$lib/script/authorization/enforce'
-import type { AuthContext } from '$lib/script/authorization/context'
-import type { IsSerializable, PageEntry } from '$lib/script/components/page/entry/types'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
+import type { IsSerializable, PageEntry } from '#lib/script/components/page/entry/types.js'
 import {
   listOrCreatePageList,
   listPageSummaries,
@@ -14,8 +14,8 @@ import {
   deletePageEntry,
   type PageSummary
 } from './page.server'
-import { getComponentHeader } from '$lib/script/components/componentHeader/io.server'
-import { getPublishedComponent } from '$lib/script/components/publication/io.server'
+import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
+import { getPublishedComponent } from '#lib/script/components/publication/io.server.js'
 import { addNode, moveNode, removeNode, setValues, applyNodeEdit, PageEditError } from './edits'
 import { undoPageEntryState, redoPageEntryState } from './entry'
 

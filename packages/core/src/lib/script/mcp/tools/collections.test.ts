@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { Grant } from '$lib/script/authorization/grants'
-import type { Permission } from '$lib/script/authorization/permissions'
-import { createAuthContext } from '$lib/script/authorization/context'
-import { memory } from '$lib/script/testing/memoryStorage'
-import { memoryDatabase } from '$lib/script/testing/memoryDatabase'
-import { callTool, useTool } from '$lib/script/testing/mcp'
-import { principal, type Parsed } from '$lib/script/testing/requests'
+import type { Grant } from '#lib/script/authorization/grants.js'
+import type { Permission } from '#lib/script/authorization/permissions.js'
+import { createAuthContext } from '#lib/script/authorization/context.js'
+import { memory } from '#lib/script/testing/memoryStorage.js'
+import { memoryDatabase } from '#lib/script/testing/memoryDatabase.js'
+import { callTool, useTool } from '#lib/script/testing/mcp.js'
+import { principal, type Parsed } from '#lib/script/testing/requests.js'
 import { collections } from '../../../../../genoa.config/collections'
 
-vi.mock('$lib/script/storage/providers.server', async () => (await import('$lib/script/testing/memoryStorage')).memoryProviders)
-vi.mock('$lib/script/database/providers.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/database/providers.server')>(),
-  ...(await import('$lib/script/testing/memoryDatabase')).memoryDatabaseProviders
+vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/database/providers.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/database/providers.server.js')>(),
+  ...(await import('#lib/script/testing/memoryDatabase.js')).memoryDatabaseProviders
 }))
 
 const definition = collections.find(collection => collection.name === 'test') as NonNullable<typeof collections[number]>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import selection from '$lib/script/database/SelectionRune.svelte'
-    import SelectionCheckbox from '$lib/components/selection/SelectionCheckbox.svelte'
+    import selection from '#lib/script/database/SelectionRune.svelte.js'
+    import SelectionCheckbox from '#lib/components/selection/SelectionCheckbox.svelte'
 
     type Props = {
       id: string | number,

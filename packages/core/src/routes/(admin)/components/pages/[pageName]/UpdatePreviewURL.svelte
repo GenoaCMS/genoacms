@@ -1,11 +1,11 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { invalidate } from '$app/navigation'
-  import { pageEditorData } from '$lib/script/components/page/editorData'
+  import { pageEditorData } from '#lib/script/components/page/editorData.js'
   import { page } from '$app/state'
-  import { Button, Input, Label, Modal, } from '$lib/components/ui/index'
-  import { alertPending, toastError, toastSuccess } from '$lib/script/alert.svelte'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import { Button, Input, Label, Modal, } from '#lib/components/ui/index.js'
+  import { alertPending, toastError, toastSuccess } from '#lib/script/alert.svelte.js'
+  import type { SubmitFunction } from '$app/forms'
 
   interface Props {
     value: string

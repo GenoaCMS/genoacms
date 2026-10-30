@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { LinksMetaSchema } from '$lib/script/components/componentHeader/component/types'
-  import ParalelInputs from '$lib/components/editors/ParalelInputs.svelte'
-  import ConstraintInput from '$lib/components/editors/ConstraintInput.svelte'
-  import { Label } from '$lib/components/ui/index'
+  import type { LinksMetaSchema } from '#lib/script/components/componentHeader/component/types.js'
+  import ParalelInputs from '#lib/components/editors/ParalelInputs.svelte'
+  import ConstraintInput from '#lib/components/editors/ConstraintInput.svelte'
+  import { Label } from '#lib/components/ui/index.js'
 
   // TODO: default value selector, !except recursion
   interface Props {

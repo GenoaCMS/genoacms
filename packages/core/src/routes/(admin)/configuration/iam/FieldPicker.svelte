@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Switch } from '@skeletonlabs/skeleton-svelte'
-  import { SwitchList } from '$lib/components/ui/index'
-  import { WILDCARD, type FieldSelector } from '$lib/script/authorization/grants'
+  import { SwitchList } from '#lib/components/ui/index.js'
+  import { WILDCARD, type FieldSelector } from '#lib/script/authorization/grants.js'
 
   /**
    * Which fields of one collection a `read` or `write` grant covers.

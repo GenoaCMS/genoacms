@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card, } from '$lib/components/ui/index'
+  import { Button, Card, } from '#lib/components/ui/index.js'
 </script>
 
 <div class="h-full w-full flex items-center justify-center">

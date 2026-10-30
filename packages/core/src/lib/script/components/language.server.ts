@@ -1,5 +1,5 @@
 import type { LanguageAdapter } from '@genoacms/internal/languageAdapter'
-import { host } from '$lib/script/host.server'
+import { host } from '#lib/script/host.server.js'
 
 /**
  * Finding the adapter for the language a component is written in.

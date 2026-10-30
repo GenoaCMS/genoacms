@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Card } from '$lib/components/ui/index'
-  import type { RootAnchor } from '$lib/script/signing/keyAdministration'
+  import { Card } from '#lib/components/ui/index.js'
+  import type { RootAnchor } from '#lib/script/signing/keyAdministration.js'
 
   /**
    * The trust anchor, shown in full.

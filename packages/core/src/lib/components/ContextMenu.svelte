@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import Portal from '$lib/components/Portal.svelte'
+  import Portal from '#lib/components/Portal.svelte'
 
   type Props = {
     children?: Snippet,

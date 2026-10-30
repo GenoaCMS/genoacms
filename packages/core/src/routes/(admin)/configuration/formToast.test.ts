@@ -17,7 +17,7 @@ const toastError = vi.fn()
 const applyAction = vi.fn(async (_result: unknown) => undefined)
 
 vi.mock('$app/forms', () => ({ applyAction: async (result: unknown) => await applyAction(result) }))
-vi.mock('$lib/script/alert.svelte', () => ({
+vi.mock('#lib/script/alert.svelte.js', () => ({
   toastSuccess: (message: string) => toastSuccess(message),
   toastError: (message: string) => toastError(message)
 }))

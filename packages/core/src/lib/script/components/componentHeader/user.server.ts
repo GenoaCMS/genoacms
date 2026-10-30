@@ -1,5 +1,5 @@
-import { requirePermission } from '$lib/script/authorization/enforce'
-import type { AuthContext } from '$lib/script/authorization/context'
+import { requirePermission } from '#lib/script/authorization/enforce.js'
+import type { AuthContext } from '#lib/script/authorization/context.js'
 import type { ComponentHeader, ComponentHeaderCreation, ComponentHeaderReference } from './component/types'
 import { createComponentHeader } from './component.server'
 import {

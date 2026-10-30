@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { validator } from '@exodus/schemasafe'
-import { memory } from '$lib/script/testing/memoryStorage'
+import { memory } from '#lib/script/testing/memoryStorage.js'
 import {
   attribute, header, node, pageEntry, storeComponent, storePublishedComponent, storePage, storedPage, readFlatted,
   headerPath, headerHistoryPath, definitionPath, definitionHistoryPath, pointerPath, entryPath, treePath
-} from '$lib/script/testing/components'
-import { principal, runAction, type Parsed } from '$lib/script/testing/requests'
+} from '#lib/script/testing/components.js'
+import { principal, runAction, type Parsed } from '#lib/script/testing/requests.js'
 import { attributeTypeInits } from './componentHeader/component/attributeInits'
 import { componentHeaderSchema } from './componentHeader/component/schemas'
 import { requireDistinctAttributeNames, requireUnreservedAttributeNames } from './componentHeader/component/attributeNames'
@@ -21,8 +21,8 @@ vi.mock('$app/server', () => ({
   query: (_validation: unknown, run: object) => Object.assign(run, { __: { type: 'query' } }),
   getRequestEvent: () => request
 }))
-vi.mock('$lib/script/storage/providers.server', async () => {
-  const { memoryProviders } = await import('$lib/script/testing/memoryStorage')
+vi.mock('#lib/script/storage/providers.server.js', async () => {
+  const { memoryProviders } = await import('#lib/script/testing/memoryStorage.js')
   return {
     ...memoryProviders,
     uploadObject: async (reference: { name: string }, data: unknown, options: unknown) => {
@@ -31,10 +31,10 @@ vi.mock('$lib/script/storage/providers.server', async () => {
     }
   }
 })
-vi.mock('$lib/script/signing/keyResolution.server', async () => (await import('$lib/script/testing/signingKeys')).testKeyResolution)
-vi.mock('$lib/script/securityPolicy/policy.server', async (importOriginal) => ({
-  ...await importOriginal<typeof import('$lib/script/securityPolicy/policy.server')>(),
-  loadSecurityPolicy: async () => (await import('$lib/script/testing/signingKeys')).testSecurityPolicy
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
+  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
 }))
 
 const { createComponent: createComponentCommand } = await import('../../../routes/(admin)/components/registrar/create.remote')

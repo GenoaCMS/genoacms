@@ -2,11 +2,11 @@
   import type { Snippet } from 'svelte'
   import '../app.css'
   import 'bootstrap-icons/font/bootstrap-icons.css'
-  import { toaster } from '$lib/script/alert.svelte'
+  import { toaster } from '#lib/script/alert.svelte.js'
   import { Toast } from '@skeletonlabs/skeleton-svelte'
-  import PendingAlert from '$lib/components/PendingAlert.svelte'
-  import ConfirmAlert from '$lib/components/ConfirmAlert.svelte'
-  import NavigationProgress from '$lib/components/NavigationProgress.svelte'
+  import PendingAlert from '#lib/components/PendingAlert.svelte'
+  import ConfirmAlert from '#lib/components/ConfirmAlert.svelte'
+  import NavigationProgress from '#lib/components/NavigationProgress.svelte'
 
   interface Props {
     children?: Snippet;

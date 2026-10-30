@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SelectActionRune from '$lib/script/storage/SelectActionRune.svelte'
+  import SelectActionRune from '#lib/script/storage/SelectActionRune.svelte.js'
   import { setContext, untrack } from 'svelte'
 
   const { data, children } = $props()

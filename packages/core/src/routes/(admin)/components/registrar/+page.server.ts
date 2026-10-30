@@ -1,7 +1,7 @@
-import { listUserComponentHeaders } from '$lib/script/components/componentHeader/user.server'
-import { deleteUserComponentByReference } from '$lib/script/components/registration.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { parseBulkDeletion } from '$lib/script/selection/request.server'
+import { listUserComponentHeaders } from '#lib/script/components/componentHeader/user.server.js'
+import { deleteUserComponentByReference } from '#lib/script/components/registration.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { parseBulkDeletion } from '#lib/script/selection/request.server.js'
 import { fail, type Actions } from '@sveltejs/kit'
 
 export const load = async ({ locals }) => {

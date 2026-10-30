@@ -7,14 +7,14 @@ import {
   assignUserAccountRoles,
   upsertUserAccount,
   removeUserAccount
-} from '$lib/script/configuration/user.server'
-import { createAgent, listAgents, reissueAgentToken, revokeAgent, updateAgent } from '$lib/script/agents/administration.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isString } from '$lib/script/utils'
-import { PermissionDeniedError, hasPermission } from '$lib/script/authorization/enforce'
+} from '#lib/script/configuration/user.server.js'
+import { createAgent, listAgents, reissueAgentToken, revokeAgent, updateAgent } from '#lib/script/agents/administration.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { isString } from '#lib/script/utils.js'
+import { PermissionDeniedError, hasPermission } from '#lib/script/authorization/enforce.js'
 import { error, fail, type Actions } from '@sveltejs/kit'
-import type { AdministrationResult } from '$lib/script/authorization/administration'
-import type { Grant } from '$lib/script/authorization/grants'
+import type { AdministrationResult } from '#lib/script/authorization/administration.js'
+import type { Grant } from '#lib/script/authorization/grants.js'
 
 export const load = async ({ locals }) => {
   const ctx = requireAuthContext(locals)

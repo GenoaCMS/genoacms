@@ -1,10 +1,10 @@
 import { form, getRequestEvent } from '$app/server'
-import { deleteUserComponent, getUserComponent } from '$lib/script/components/editor/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { isComponentInUse } from '$lib/script/components/page/tree/dependents.server'
+import { deleteUserComponent, getUserComponent } from '#lib/script/components/editor/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { isComponentInUse } from '#lib/script/components/page/tree/dependents.server.js'
 import { validator } from '@exodus/schemasafe'
-import { componentDeletionSchema } from '$lib/script/components/editor/schemas'
-import { formats } from '$lib/script/database/validators'
+import { componentDeletionSchema } from '#lib/script/components/editor/schemas.js'
+import { formats } from '#lib/script/database/validators.js'
 
 const validate = validator(componentDeletionSchema as any, { formats })
 

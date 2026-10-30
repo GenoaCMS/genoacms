@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { AttributeData } from '$lib/script/components/page/entry/types'
-  import type { MarkdownAttributeType } from '$lib/script/components/componentHeader/component/types'
-  import { Button, Card, Modal } from '$lib/components/ui/index'
-  import CodeEditor from '$lib/components/ui/CodeEditor.svelte'
-  import MarkdownViewer from '$lib/components/MarkdownViewer.svelte'
-  import AttributeTypeIcon from '$lib/components/components/AttributeTypeIcon.svelte'
+  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
+  import type { MarkdownAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import { Button, Card, Modal } from '#lib/components/ui/index.js'
+  import CodeEditor from '#lib/components/ui/CodeEditor.svelte'
+  import MarkdownViewer from '#lib/components/MarkdownViewer.svelte'
+  import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
 
   interface Props {
     data: AttributeData<MarkdownAttributeType>

@@ -1,8 +1,8 @@
 import { command, getRequestEvent } from '$app/server'
-import { createUserDocument, getUserCollectionReference } from '$lib/script/database/user.server'
-import { requireAuthContext } from '$lib/script/authorization/request.server'
-import { PermissionDeniedError } from '$lib/script/authorization/enforce'
-import { DocumentValidationError } from '$lib/script/database/errors'
+import { createUserDocument, getUserCollectionReference } from '#lib/script/database/user.server.js'
+import { requireAuthContext } from '#lib/script/authorization/request.server.js'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import { DocumentValidationError } from '#lib/script/database/errors.js'
 
 export const createDoc = command('unchecked', async (data: { collectionName: string; documentData: any }) => {
   const { collectionName, documentData } = data

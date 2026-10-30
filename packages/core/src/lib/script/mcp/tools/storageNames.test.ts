@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { importModule } from '$lib/script/testing/requests'
+import { importModule } from '#lib/script/testing/requests.js'
 
-const names = () => importModule('$lib/script/mcp/tools/storageNames')
+const names = () => importModule('#lib/script/mcp/tools/storageNames.js')
 
 describe('the names of the storage tools', () => {
   it('TOL-24: object names and directory paths are checked by level', async () => {

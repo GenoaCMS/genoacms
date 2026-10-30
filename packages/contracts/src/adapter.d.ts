@@ -44,6 +44,8 @@ interface DeploymentDescriptor<O extends object> {
   readonly svelteKitAdapter: () => Promise<{ default: SvelteKitAdapterFactory }>
   /** Receives unresolved options: credentials never influence the build. */
   readonly svelteKitOptions?: (options: O, ctx: { outDir: string }) => Record<string, unknown>
+  /** The origin the built app is served at, given to SvelteKit as `paths.origin`. Receives unresolved options. */
+  readonly origin?: (options: O) => string | undefined
   readonly procedure: () => Promise<{ default: DeployProcedure<O> }>
   readonly secretOptions?: { readonly [K in keyof O]?: SecretEncoding }
   readonly validate?: (options: unknown) => string[]

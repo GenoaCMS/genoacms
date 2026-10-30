@@ -1,8 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { toastSuccess, toastError, confirmationModal } from '$lib/script/alert.svelte'
+  import { toastSuccess, toastError, confirmationModal } from '#lib/script/alert.svelte.js'
   import { refusalMessage } from './refusalMessage'
-  import type { SubmitFunction } from '@sveltejs/kit'
+  import type { SubmitFunction } from '$app/forms'
 
   /**
    * A one-field form that asks before it acts.
