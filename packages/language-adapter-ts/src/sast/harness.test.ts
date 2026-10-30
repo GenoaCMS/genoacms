@@ -18,6 +18,10 @@ import type { AnalysisResult, Diagnostic } from '@genoacms/internal/languageAdap
 const always = (...diagnostics: Diagnostic[]): Analyze =>
   (): AnalysisResult => ({ diagnostics })
 
+/** An analyzer that raises SAST-01 exactly for fragments that call `eval`. */
+const evalOnly: Analyze = (request): AnalysisResult =>
+  ({ diagnostics: JSON.stringify(request).includes('eval') ? [security('SAST-01')] : [] })
+
 const security = (rule: 'SAST-01' | 'SAST-10', severity: 'fatal' | 'warning' = 'fatal'): Diagnostic =>
   ({ type: 'security-rule', rule, severity, message: `${rule} fired` })
 
@@ -98,12 +102,20 @@ describe('the guard against a half-written rule suite', () => {
     expect(threw).toBe(true)
   })
 
-  it('accepts a rule that supplies both halves', () => {
+  describe('accepts a rule that supplies both halves', () => {
     // Named so the guard is not mistaken for a rule against generating suites at all.
-    const { describeRule } = harnessFor(always(security('SAST-01')))
+    const { describeRule } = harnessFor(evalOnly)
+    let threw = false
 
-    expect(() => describeRule('SAST-01', { rejects: ['eval("1")'], accepts: ['return heading'] }))
-      .not.toThrow()
+    try {
+      describeRule('SAST-01', { rejects: ['eval("1")'], accepts: ['return heading'] })
+    } catch {
+      threw = true
+    }
+
+    it('registers the suite while collecting', () => {
+      expect(threw).toBe(false)
+    })
   })
 })
 

@@ -34,8 +34,8 @@ describe('the package', () => {
     expect(suitesUnder(tests, ['inside a describe'])).toEqual(SUITES)
   }, 300_000)
 
-  it('CONF-1: vitest is a peer dependency, ^3.0.0', () => {
+  it('CONF-1: vitest is a peer dependency, ^3.0.0 or ^4.0.0', () => {
     const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-    expect(manifest.peerDependencies.vitest).toBe('^3.0.0')
+    expect(manifest.peerDependencies.vitest).toBe('^3.0.0 || ^4.0.0')
   })
 })
