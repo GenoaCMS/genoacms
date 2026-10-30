@@ -255,8 +255,9 @@ Every package whose `engines` or dependency ranges change gets at least a patch.
 Titles carry their statement IDs. **(xfail)** marks a test that fails until the code changes; it is
 written first with `it.fails`. A test without the mark is expected to pass before and after.
 
-`packages/config/src/load/kit.test.ts` (unit), the existing tests renamed to `resolveKitTarget`,
-their assertions read from `.adapter`:
+`packages/config/src/load/kit.test.ts` (unit). The three `resolveKitAdapter` tests get copies under
+`describe('resolveKitTarget')`, same titles, assertions read from `.adapter` **(xfail)**; the
+implementation deletes the originals and the `resolveKitAdapter` import. New:
 - `returns the descriptor's origin for the target's unresolved options` **(xfail)**: given a fake
   descriptor with `origin: options => options.site` and a target with `site: 'https://cms.example'`,
   when `resolveKitTarget` runs, then `origin` is `'https://cms.example'`; given the same target
@@ -274,7 +275,9 @@ their assertions read from `.adapter`:
 `packages/adapter-gcp/src/deployment/settings.test.ts` (unit):
 - `DEP-14: origin sets no environment variable` **(xfail)**: given settings with `origin` and
   `xffDepth: 2`, when the function's environment is built, then it holds `XFF_DEPTH: '2'` and no
-  `ORIGIN` key. The existing test asserting `ORIGIN` is replaced by this one.
+  `ORIGIN` key. The existing `DEP-14: sets ORIGIN and XFF_DEPTH from origin and xffDepth` is
+  removed. In `DEP-10: sets IGNORED_ROUTES to the empty string`, the implementation removes
+  `ORIGIN` from the two expected objects, and changes nothing else.
 
 `packages/adapter-aws/src/deployment/descriptor.test.ts` (unit):
 - `LMB-1: origin returns the origin option` **(xfail)**: as DEP-1's.
@@ -283,8 +286,10 @@ their assertions read from `.adapter`:
 - `LMB-10: a set origin adds no variable` **(xfail)**: given `origin: 'https://cms.example.com'`,
   when the function is created, then `Environment.Variables` is exactly `NODE_ENV`,
   `AWS_LAMBDA_EXEC_WRAPPER`, `PORT` and `ADDRESS_HEADER`. Given no `origin`, it also holds
-  `PROTOCOL_HEADER` and `HOST_HEADER` (unchanged). The existing assertion of `ORIGIN` is replaced.
-  `test/contract/deployment.test.ts` changes the same assertion.
+  `PROTOCOL_HEADER` and `HOST_HEADER` (unchanged). The existing
+  `LMB-10: sets ORIGIN instead of the forwarded headers when origin is given` is removed. In
+  `test/contract/deployment.test.ts`, `LMB-11: updates code and configuration` asserts
+  `echo.env.ORIGIN` is `undefined` instead of `https://cms.example` (contract level, AWS credentials).
 
 `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unit):
 - `ADP-7: reads XFF_DEPTH, default 1, with and without a prefix` **(xfail)**: given `{}`, then
@@ -298,27 +303,42 @@ their assertions read from `.adapter`:
   each throws exactly `ORIGIN is no longer read; set the origin at build time with paths.origin (the
   gcp target's origin option)`. Given `{ ORIGIN: 'x' }` with prefix `APP_`, it does not throw (the
   unprefixed name is not the adapter's).
+- `under envPrefix › ADP-7: reads XFF_DEPTH under envPrefix`, which sets `globalThis.ENV_PREFIX` and
+  imports `src/env.js`, is removed: §5 removes that global, and the first test above covers the
+  prefixed read.
 
 `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js` (e2e). The fixture is built with
-SvelteKit 3 and served by the Functions Framework, as today. Changed:
+SvelteKit 3 and served by the Functions Framework, as today. Its `beforeAll` no longer builds the
+adapter (2.0.0 has no `build` script). Changed:
 - `ADP-5, ADP-7: takes the request URL from ORIGIN over forwarded headers` becomes
   `ADP-5: takes the request URL from the build's origin over forwarded headers` **(xfail)**: given
   the fixture built with `FIXTURE_ORIGIN=https://origin.example`, when a request carries
-  `X-Forwarded-Host: cms.example`, then the app sees `https://origin.example/<path>`.
+  `X-Forwarded-Host: cms.example`, then the app sees `https://origin.example/<path>`. Today it
+  fails earlier, when it builds: SvelteKit 2 refuses `paths.origin`. The old test is removed.
 - `ADP-1, ADP-7: reads prefixed variables …` becomes
-  `ADP-1, ADP-7: reads the prefixed XFF_DEPTH with envPrefix, and fails at startup on an unknown prefixed one`
-  **(xfail)**: given build B (`envPrefix: 'APP_'`), `APP_XFF_DEPTH=2` selects the second entry from
+  `ADP-1, ADP-7: reads the prefixed XFF_DEPTH with envPrefix, and fails at startup on an unknown prefixed one`:
+  it passes today too, and guards the rewrite; the old test is removed. Given build B (`envPrefix: 'APP_'`), `APP_XFF_DEPTH=2` selects the second entry from
   the right; `APP_OTHER=x` makes the function exit non-zero at start.
 - New: `ADP-8: fails at startup when ORIGIN is set` **(xfail)**: given any build, when the
   framework starts with `ORIGIN=https://origin.example`, then the process exits non-zero and its
   stderr holds the ADP-8 message.
-- New: `ADP-3: bundles Svelte libraries and keeps other dependencies external` **(xfail)**: given the
+- New: `ADP-3: bundles Svelte libraries and keeps other dependencies external`, which passes today
+  too: vite-plugin-svelte already puts the library in `ssr.noExternal`, so SvelteKit's build bundles
+  it before Rollup's pass. It guards §5's `ssr.external` filter. Given the
   fixture depending on a Svelte library (a local package with `"svelte"` in its exports, added to
   the fixture's `dependencies`) and on `genoacms-e2e-deep`, when built, then `<out>/server` contains
-  no bare import of the Svelte library and still imports `genoacms-e2e-deep` and its deep path.
+  no import of the Svelte library and still imports `genoacms-e2e-deep/deep`, the only path that
+  package exports.
 - `ADP-1, ADP-2: writes client assets, prerendered pages and the runtime files into out` keeps its
   title and asserts `index.js`, `handler.js`, `adapter.js` and `server/` instead of the four copied
-  files **(xfail)**.
+  files **(xfail)**. The old test of that title is removed.
+- `ADP-1, ADP-2: defaults out, precompress and envPrefix, empties out, and honors base`: build C is
+  built with `FIXTURE_ORIGIN=https://origin.example` and served without `ORIGIN`; `base` is
+  imported from `<out>/adapter.js` instead of `server/manifest.js`. Its other assertions, the
+  echoed `https://origin.example/base/echo` included, are unchanged.
+- `ADP-3: bundles the server, keeping the app's dependencies external`: `prerendered` and `base`
+  are imported from `<out>/adapter.js` instead of `server/manifest.js`, and the `manifest` check
+  becomes `server` having `init` and `respond` functions. The `@polka/url` assertion is unchanged.
 - Every other test is unchanged and passes against 2.0.0.
 
 `packages/core` (unit, `vitest run`): no new tests. The whole suite, the permission matrix
