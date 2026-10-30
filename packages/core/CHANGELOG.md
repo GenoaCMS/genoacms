@@ -1,5 +1,12 @@
 # @genoacms/core
 
+## 0.5.1
+
+### Patch Changes
+
+- [`dd74c61`](https://github.com/GenoaCMS/genoacms/commit/dd74c619f66d9edbf2382ed0be916b2f9c4f04be) Thanks [@Hejtmus](https://github.com/Hejtmus)! - `genoa build` works again where core is installed: core's Vite config no longer needs a
+  devDependency, and core peers on `@sveltejs/kit` so SvelteKit finds its remote functions.
+
 ## 0.5.0
 
 ### Minor Changes
