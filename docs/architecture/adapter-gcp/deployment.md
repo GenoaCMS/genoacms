@@ -271,7 +271,7 @@ Options: `out` (default `build`), `precompress` (default `true`), `envPrefix` (d
 
 #### ADP-3 · Server bundle
 
-The server is bundled once, by SvelteKit's own server build (`build.md` U18): the adapter adds a Vite plugin to it, and the handler, its startup reader and the shims are inputs of that build, so a module they share with the app exists once. The output is ESM in `<out>/server`, with sourcemaps and chunks under `chunks/`. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports, except the Svelte libraries that vite-plugin-svelte lists in `ssr.noExternal`, which are bundled.
+The server is bundled once, by SvelteKit's own server build (`build.md` U18): the adapter adds a Vite plugin to it, and the handler, its startup reader and the shims are inputs of that build. The output is ESM in `<out>/server`, with sourcemaps and chunks under `chunks/`. Packages in the `dependencies` of the `package.json` in the working directory, core's, stay external, including deep imports, except the Svelte libraries that vite-plugin-svelte lists in `ssr.noExternal`, which are bundled.
 
 - Test: `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
 - Level: e2e
