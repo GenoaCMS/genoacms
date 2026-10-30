@@ -66,6 +66,9 @@ decisions are U15 to U19 (2026-10-30). This RFC:
 | `packages/adapter-aws/package.json` | `@sveltejs/adapter-node` `^6.0.1`; `vitest` `^4.1.12`; `typescript` `^6.0.0`, the peer of SvelteKit 3 it installs |
 | `packages/adapter-aws/tsconfig.json` | `rootDir`: `./src`, which TypeScript 6 requires with `outDir` |
 | `packages/adapter-node/package.json` | `@sveltejs/adapter-node` `^6.0.1`; `vitest` `^4.1.12` |
+| `packages/adapter-node/src/descriptor.js`, `descriptor.d.ts`, `descriptor.test.js` | `origin` option (§Specification 2, U20) |
+| `packages/core/e2e/globalSetup.ts`, `e2e/server.ts`, `genoa.config/e2e.ts` | the harness builds with a fixed origin (§Specification 2, F30) |
+| `packages/core/package.json`, `genoa.config/tsconfig.json` | `@types/node` `^22.17.0`, which TypeScript 6 no longer loads unasked, for `check:config` |
 | `packages/sveltekit-adapter-cloud-run-functions/index.js` | rewritten (§Specification 5) |
 | `packages/sveltekit-adapter-cloud-run-functions/index.d.ts` | no `ENV_PREFIX` global |
 | `packages/sveltekit-adapter-cloud-run-functions/ambient.d.ts` | declares the hand-off module `#@genoacms/sveltekit-adapter-cloud-run-functions` |
@@ -123,8 +126,15 @@ interface DeploymentDescriptor<O extends object> {
 }
 ```
 
-The `gcp` and `aws` descriptors: `origin: options => options.origin`. The `adapter-node` descriptor
-declares none: a Node operator who needs a fixed origin is a non-goal.
+The `gcp`, `aws` and `adapter-node` descriptors: `origin: options => options.origin`. The
+`adapter-node` target's options gain `origin?: string` (U20, F30), which `validate` accepts when it
+matches `/^https?:\/\/[^/\s]+$/`, and otherwise reports
+`origin must be an absolute http(s) origin such as 'https://cms.example.com'`, as the `gcp` target does.
+
+Core's end-to-end harness (`packages/core/e2e/`) builds with that origin: `buildCore()` chooses a free
+port, builds with `GENOACMS_E2E_ORIGIN=http://localhost:<port>`, which `genoa.config/e2e.ts` passes as
+the `local` target's `origin`, and provides the origin to the test files. `startServer` serves on that
+port and no longer sets `ORIGIN`.
 
 ### 3. Core's `vite.config.ts`
 
@@ -270,7 +280,7 @@ Every package whose `engines` or dependency ranges change gets at least a patch.
 - `packages/docs`: sveltepress is not known to support SvelteKit 3. It stays on SvelteKit 2.
 - Deprecated APIs that still work in SvelteKit 3: `invalidateAll` (8 call sites), `error(status,
   { message })`, `$env/*`, the `Server` class. They are a later change, with a warning each.
-- A fixed origin for the `adapter-node` target, and `trustedOrigins` for CSRF.
+- `trustedOrigins` for CSRF.
 - OpenTelemetry instrumentation in the Cloud Run adapter (`supports.instrumentation`).
 - Remote functions: they stay `experimental.remoteFunctions: true`, unchanged.
 - Moving `.svelte-kit/` or Vite's temporary files out of the installed core (D7's cost).
@@ -320,6 +330,16 @@ which in Vitest 4 no longer clears the call history of `vi.fn()` mocks; no asser
   `LMB-10: sets ORIGIN instead of the forwarded headers when origin is given` is removed. In
   `test/contract/deployment.test.ts`, `LMB-11: updates code and configuration` asserts
   `echo.env.ORIGIN` is `undefined` instead of `https://cms.example` (contract level, AWS credentials).
+
+`packages/adapter-node/src/descriptor.test.js` (unit), whose tests carry no statement ID, as the
+target has no statements:
+- `returns the origin option as the build's origin`: given `{ origin: 'http://localhost:4173' }`, when
+  `descriptor.origin` runs, then it returns that string; given `{}`, `undefined`.
+- `accepts an http(s) origin`: `validate({ origin: 'http://localhost:4173' })` is `[]`.
+- `refuses an origin that is not an absolute http(s) origin`: `validate({ origin: 'localhost' })` and
+  `validate({ origin: 'https://a.example/path' })` each return the one reason of §Specification 2.
+
+`packages/core/e2e/*.test.ts` (e2e): unchanged; they pass again once the harness builds with the origin.
 
 `packages/sveltekit-adapter-cloud-run-functions/tests/request.test.js` (unit):
 - `ADP-7: reads XFF_DEPTH, default 1, with and without a prefix` **(xfail)**: given `{}`, then
@@ -475,8 +495,8 @@ finds nothing open, this RFC is `auditing`, and its findings are fixed by amendi
 - `fail()` statuses are now sent in enhanced form responses, and `cookies.set` defaults its path to
   `/`. Core's forms read `result.type`, and its cookie sets a path, so neither is expected to change
   behavior. Neither is tested here.
-- A Node operator behind a proxy that rewrites the host has no fixed origin (§Non-goals), while
-  adapter-node 6 no longer offers `ORIGIN` either. Only the header variables remain.
+- The `adapter-node` target's `origin` is optional, and without it a plain-HTTP server fails every
+  form post with a CSRF 403 (F30). `validate` cannot tell, so the failure shows only at runtime.
 - That the handler and the app share one copy of SvelteKit's runtime is a property of the single
   pass, not tested: no observable behavior distinguishes it, short of asserting SvelteKit's
   internal file names.
