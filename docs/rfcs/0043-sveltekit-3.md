@@ -259,7 +259,7 @@ packages; `peerDependencies`: `@sveltejs/kit ^3.0.0`; devDependencies to §6's v
 | `@genoacms/sveltekit-adapter-cloud-run-functions` | major (2.0.0) | ADP-5, ADP-7 breaking; peer SvelteKit 3 |
 | `@genoacms/core` | minor (below 1.0) | Node ≥ 22.17; SvelteKit 3 |
 | `@genoacms/config` | minor | `resolveKitAdapter` removed |
-| `@genoacms/contracts` | patch | `origin` added, optional |
+| `@genoacms/contracts` | minor (below 1.0) | `origin` added, optional; the RFC's breaking statements reach every package of §Files (WORKFLOW §11.3) |
 | `@genoacms/adapter-gcp`, `@genoacms/adapter-aws`, `@genoacms/adapter-node` | minor | adapter-node 6 and SvelteKit 3 required; no `ORIGIN` variable |
 | `@genoacms/conformance` | patch | Vitest 4 accepted |
 
