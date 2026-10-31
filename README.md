@@ -6,8 +6,8 @@ that implement them for individual providers.
 GenoaCMS has run in production since 2024. See the [sites that use it](https://genoacms.js.org/in-production/).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="packages/docs/static/screenshots/collection-list-dark.webp">
-  <img alt="The collection list of GenoaCMS: a table of documents with a filter" src="packages/docs/static/screenshots/collection-list-light.webp" width="49%">
+  <source media="(prefers-color-scheme: dark)" srcset="packages/docs/static/screenshots/page-builder-components-dark.webp">
+  <img alt="The GenoaCMS page builder: a page assembled from components, with a preview of the page" src="packages/docs/static/screenshots/page-builder-components-light.webp" width="49%">
 </picture>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="packages/docs/static/screenshots/document-editor-dark.webp">

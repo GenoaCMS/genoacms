@@ -61,6 +61,11 @@ features:
     <figcaption>Documents: edit every field type, with a live markdown preview</figcaption>
   </figure>
   <figure>
+    <img class="shot-light" src="./screenshots/page-builder-components-light.webp" alt="The page builder: a page assembled from components, with a preview of the page">
+    <img class="shot-dark" src="./screenshots/page-builder-components-dark.webp" alt="The page builder: a page assembled from components, with a preview of the page">
+    <figcaption>Components: assemble a page from typed components and see a preview of the result</figcaption>
+  </figure>
+  <figure>
     <img class="shot-light" src="./screenshots/signing-keys-light.webp" alt="The signing keys page with the root trust anchor and the key registry">
     <img class="shot-dark" src="./screenshots/signing-keys-dark.webp" alt="The signing keys page with the root trust anchor and the key registry">
     <figcaption>Signing keys: the trust anchor your application uses to verify published pages</figcaption>
