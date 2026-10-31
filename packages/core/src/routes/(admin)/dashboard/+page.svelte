@@ -18,7 +18,7 @@
     <div class="block md:hidden me-2">
       <DarkMode />
     </div>
-    <Button preset="outlined" href="https://genoacms.github.io/docs" target="_blank" class="w-full">
+    <Button preset="outlined" href="https://genoacms.js.org" target="_blank" class="w-full">
       Read the docs
     </Button>
     <div class="block md:hidden ms-2">

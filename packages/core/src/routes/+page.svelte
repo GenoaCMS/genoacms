@@ -13,7 +13,7 @@
       </div>
     </div>
     <div class="flex flex-col">
-      <Button preset="outlined" class="mt-auto" href="https://genoacms.github.io/docs" target="_blank">
+      <Button preset="outlined" class="mt-auto" href="https://genoacms.js.org" target="_blank">
         Read documentation
       </Button>
       <Button preset="outlined" class="mt-3" href="/login">
