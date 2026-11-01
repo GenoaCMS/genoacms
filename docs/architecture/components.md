@@ -203,6 +203,7 @@ statements of RFC-0039 are not yet audited for falsification.
   entry. Publication (PUB-1 to PUB-5, PUB-7) on `publishComponent` with storage and the key stubbed,
   the real TypeScript adapter, and real ML-DSA-65 signatures. Deletion's dependants (CMP-10) on
   `listPagesPinning` with stored trees.
+- **`unit`, in Chromium** (vitest browser). The link editor (PGE-12), mounted on its own.
 - **Playwright** (`packages/core/tests/components.spec.ts`, `pages.spec.ts`,
   `pageComposition.spec.ts`, `revisionPinning.spec.ts`) drives the screens. They need the
   development credentials, do not run in CI, and are not a level of `docs/README.md`.
@@ -763,6 +764,17 @@ name fails with 400 `{ reason: 'pages/invalid-name' }`, and with a name an entry
 exists (`ifAbsent`).
 
 - Test: `packages/core/src/lib/script/components/page/edits.test.ts`, `packages/core/src/routes/(admin)/components/pages/actions.test.ts`
+- Level: unit
+
+#### PGE-12 · Editing a link
+
+In the node editor, each link of a `link` attribute switches between a page of the CMS and an
+external URL. Its value holds the member of the kind selected and no other: `{ isExternal: false,
+pageName }` with the page chosen, or `{ isExternal: true, url }` with the URL typed, each `''` until
+one is given. The other kind's member is kept while the editor is open, so switching back restores
+it. Choosing a page, typing a URL and switching the kind each change the attribute's value.
+
+- Test: `packages/core/src/routes/(admin)/components/pages/[pageName]/[nodeUid]/Editor/types/Link.browser.test.ts`
 - Level: unit
 
 ### Published page tree
