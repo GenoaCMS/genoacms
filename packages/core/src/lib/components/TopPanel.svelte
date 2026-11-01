@@ -12,7 +12,7 @@
 
 <div class="@container sticky top-0 z-10 bg-surface-50-950/90 backdrop-blur-md border-b border-surface-200-800 p-3">
     <div class="flex flex-wrap @min-[44rem]:flex-nowrap items-center gap-y-1">
-        <div class="order-1 flex-grow min-w-0 *:truncate">
+        <div class="order-1 flex-1 min-w-0 *:truncate">
             {@render children?.()}
         </div>
         {#if right}

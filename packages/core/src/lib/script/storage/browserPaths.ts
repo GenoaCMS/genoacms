@@ -49,6 +49,7 @@ const lastLevelOf = (name: string): string => name.slice(parentOf(name).length)
 const isDirectoryReference = (name: string): boolean => name.endsWith('/')
 
 export {
+  levelsOf,
   directoryOfRoute,
   routeOfDirectory,
   isAcceptedName,

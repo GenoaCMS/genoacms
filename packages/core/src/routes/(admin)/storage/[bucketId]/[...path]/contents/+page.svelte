@@ -69,7 +69,7 @@
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
-    <DirectoryTitle bucketId={data.bucketId} path={data.path} />
+    <DirectoryTitle bucketId={data.bucketId} path={data.path} delimiter={data.delimiter} />
     {#snippet right()}
         <!-- BD5 -->
         <PermissionGate permission="storage:bucket:write" resource={data.bucketId}>

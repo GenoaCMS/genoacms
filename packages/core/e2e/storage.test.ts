@@ -150,7 +150,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await page.waitForURL(url => decodeURIComponent(url.pathname).endsWith(`${DELIMITER}sub//contents`))
 
     expect(decodedLocation(page)).toBe(`/storage/${BUCKET}/${DELIMITER}${ROOT}${DELIMITER}sub//contents?selectionId=x`)
-    await shown(page.getByRole('heading', { name: `${BUCKET} / ${ROOT}sub/`, exact: true }))
+    await shown(page.getByRole('heading', { name: 'sub', exact: true }))
     await page.getByRole('link', { name: /back/i }).click()
     await page.waitForURL(url => decodeURIComponent(url.pathname) === `/storage/${BUCKET}/${DELIMITER}${ROOT}/contents`)
     await page.getByRole('link', { name: /back/i }).click()
@@ -182,16 +182,54 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await shown(page.getByRole('heading', { name: BUCKET, exact: true }))
   })
 
-  it('BRW-1, BRW-3: a directory is titled with its bucket and its name, the bucket linking to the root with the query string', async () => {
+  it('BRW-1, BRW-3: a directory is titled with its own name under a trail linking each level above it with the query string', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl(`${ROOT}sub/`, '?selectionId=x'))
-    const heading = page.getByRole('heading', { name: `${BUCKET} / ${ROOT}sub/`, exact: true })
-    await shown(heading)
-    await heading.getByRole('link', { name: BUCKET, exact: true }).click()
+    await shown(page.getByRole('heading', { name: 'sub', exact: true }))
+    const trail = page.getByRole('navigation', { name: 'Path', exact: true })
+    await trail.getByRole('link', { name: ROOT.slice(0, -1), exact: true }).click()
+    await page.waitForURL(url => decodeURIComponent(url.pathname) === `/storage/${BUCKET}/${DELIMITER}${ROOT}/contents`)
+
+    expect(decodedLocation(page)).toBe(`/storage/${BUCKET}/${DELIMITER}${ROOT}/contents?selectionId=x`)
+    await shown(page.getByRole('heading', { name: ROOT.slice(0, -1), exact: true }))
+    await trail.getByRole('link', { name: BUCKET, exact: true }).click()
     await page.waitForURL(url => url.pathname === `/storage/${BUCKET}/contents`)
 
     expect(decodedLocation(page)).toBe(`/storage/${BUCKET}/contents?selectionId=x`)
     await shown(page.getByRole('heading', { name: BUCKET, exact: true }))
+  })
+
+  it('BRW-3: in a narrow top panel the title and the trail are each cut to one line, and a control shows them whole; in a wide one they are whole', async () => {
+    const { page } = adaSession
+    const long = 'a-directory-whose-name-is-far-too-long-for-a-phone'
+    await write([`${ROOT}${long}/${long}/d.png`])
+    const heading = page.getByRole('heading', { name: long, exact: true })
+    const trail = page.getByRole('navigation', { name: 'Path', exact: true })
+    const isCut = async (locator: Locator): Promise<boolean> => await locator.evaluate(element => element.scrollWidth > element.clientWidth)
+    const heightOf = async (locator: Locator): Promise<number> => (await locator.boundingBox())?.height ?? 0
+    try {
+      await page.setViewportSize({ width: 360, height: 780 })
+      await visit(page, contentsUrl(`${ROOT}${long}/${long}/`))
+      await shown(heading)
+      const cutHeight = await heightOf(heading)
+
+      expect(await isCut(heading)).toBe(true)
+      expect(await isCut(trail)).toBe(true)
+      await button(page, 'Show the whole path').click()
+      expect(await isCut(heading)).toBe(false)
+      expect(await isCut(trail)).toBe(false)
+      expect(await heightOf(heading)).toBeGreaterThan(cutHeight)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+
+      await page.setViewportSize({ width: 1280, height: 720 })
+      await visit(page, contentsUrl(`${ROOT}${long}/${long}/`))
+      await shown(heading)
+      expect(await button(page, 'Show the whole path').isVisible()).toBe(false)
+      expect(await isCut(heading)).toBe(false)
+      expect(await isCut(trail)).toBe(false)
+    } finally {
+      await page.setViewportSize({ width: 1280, height: 720 })
+    }
   })
 
   it('BRW-4: the toolbar shows what the principal may use', async () => {
@@ -438,7 +476,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
   it('STS-5, BRW-16: .genoacms/ opens for reading, and an upload into it is refused', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl('.genoacms/'))
-    await shown(page.getByRole('heading', { name: `${BUCKET} / .genoacms/`, exact: true }))
+    await shown(page.getByRole('heading', { name: '.genoacms', exact: true }))
 
     await button(page, 'Upload object').click()
     await page.locator('input[type=file]').setInputFiles([{ name: `refused-${run}.txt`, mimeType: 'text/plain', buffer: Buffer.from('no') }])
