@@ -50,8 +50,8 @@
 </script>
 
 {#if layout === 'inline'}
-  <div class="flex items-center">
-    <div class="{SELECTION_GUTTER} shrink-0 flex items-center justify-center">
+  <div class="group flex items-center">
+    <div class="{SELECTION_GUTTER} shrink-0 self-stretch flex items-center justify-center sticky start-0 z-10 bg-surface-50-950 group-hover:bg-surface-100-900">
       {#if isShown}
         <SelectionBox {isSelected} {onselect} {label} />
       {/if}

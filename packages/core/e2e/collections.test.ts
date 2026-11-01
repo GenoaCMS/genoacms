@@ -258,6 +258,38 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(cellEdges).toEqual(labelEdges)
     })
 
+    it('LST-1: while the listing scrolls, the header stays at the top, and the checkboxes and the first column at the start', async () => {
+      const { page } = adaSession
+      await page.setViewportSize({ width: 360, height: 480 })
+      try {
+        await visit(page, '/collections/articles')
+        const row = page.getByRole('link').filter({ hasText: `${run} article` }).first()
+        await shown(row)
+        const cells = row.locator(':scope > *')
+        const edges = async (): Promise<Record<string, number | undefined>> => ({
+          header: (await page.getByTestId('listing-header').boundingBox())?.y,
+          checkbox: (await checkbox(page, articleId).boundingBox())?.x,
+          first: (await cells.first().boundingBox())?.x,
+          second: (await cells.nth(1).boundingBox())?.x
+        })
+        const before = await edges()
+        const scrolled = await page.getByTestId('listing').evaluate(listing => {
+          listing.scrollTo({ left: 120, top: 120 })
+          return { left: listing.scrollLeft, top: listing.scrollTop }
+        })
+        const after = await edges()
+
+        expect(scrolled.left).toBeGreaterThan(0)
+        expect(scrolled.top).toBeGreaterThan(0)
+        expect(after.header).toBe(before.header)
+        expect(after.checkbox).toBe(before.checkbox)
+        expect(after.first).toBe(before.first)
+        expect(after.second).toBeLessThan(before.second ?? 0)
+      } finally {
+        await page.setViewportSize({ width: 1280, height: 720 })
+      }
+    })
+
     it('LST-8: an object shows its fields, never [object Object]', async () => {
       const { page } = adaSession
       await visit(page, '/collections/articles')

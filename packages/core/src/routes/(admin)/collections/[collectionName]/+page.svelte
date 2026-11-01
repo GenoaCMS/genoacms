@@ -22,41 +22,43 @@
     const shownIds = $derived(shownRows.map(row => row.document.reference.id))
     const count = $derived(documentCount(shownRows.length, rows.length, query.trim() !== ''))
 </script>
-<TopPanel>
-  <h1 class="text-2xl">
-    Collection: {data.collectionReference.name}
-  </h1>
-  {#snippet right()}
-    <ConfirmSelection />
-    <!-- Deleting is offered only to a principal who may delete here. The service refuses it
-         regardless; hiding it keeps the toolbar honest about what it can do.
+<div class="h-full flex flex-col">
+  <TopPanel>
+    <h1 class="text-2xl">
+      Collection: {data.collectionReference.name}
+    </h1>
+    {#snippet right()}
+      <ConfirmSelection />
+      <!-- Deleting is offered only to a principal who may delete here. The service refuses it
+           regardless; hiding it keeps the toolbar honest about what it can do.
 
-         **Before the select-all control, never after it.** This group is anchored to the right, so a
-         control that appears extends it leftwards and every control before it shifts. Putting Delete
-         after would land it exactly where "select all" had just been clicked, turning a second click
-         in the same spot into a deletion. Ordered as the storage browser's toolbar is, for the same
-         reason. -->
-    <PermissionGate permission="db:collection:delete" resource={data.collectionReference.name}>
-      <Delete />
-    </PermissionGate>
-    <SelectAll documentIds={shownIds} />
-    <!-- Creating a document is a write on this collection, which is what the database service
-         demands when the form is submitted. -->
-    <PermissionGate permission="db:collection:write" resource={data.collectionReference.name}>
-      <NewDocument collectionReference={data.collectionReference}/>
-    </PermissionGate>
-  {/snippet}
-</TopPanel>
-<!-- LST-1, LST-7 -->
-<div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
-  <p class="text-sm text-surface-600-400">{count}</p>
-  <Filter bind:query />
-</div>
-<div class="relative overflow-x-auto">
-  <div style:min-width="calc({minimumWidth(columns)} + 2.5rem)">
-    <Header {columns} />
-    {#each shownRows as row (row.document.reference.id)}
-      <Document reference={row.document.reference} {columns} cells={row.cells} />
-    {/each}
+           **Before the select-all control, never after it.** This group is anchored to the right, so a
+           control that appears extends it leftwards and every control before it shifts. Putting Delete
+           after would land it exactly where "select all" had just been clicked, turning a second click
+           in the same spot into a deletion. Ordered as the storage browser's toolbar is, for the same
+           reason. -->
+      <PermissionGate permission="db:collection:delete" resource={data.collectionReference.name}>
+        <Delete />
+      </PermissionGate>
+      <SelectAll documentIds={shownIds} />
+      <!-- Creating a document is a write on this collection, which is what the database service
+           demands when the form is submitted. -->
+      <PermissionGate permission="db:collection:write" resource={data.collectionReference.name}>
+        <NewDocument collectionReference={data.collectionReference}/>
+      </PermissionGate>
+    {/snippet}
+  </TopPanel>
+  <!-- LST-1, LST-7 -->
+  <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
+    <p class="text-sm text-surface-600-400">{count}</p>
+    <Filter bind:query />
+  </div>
+  <div data-testid="listing" class="relative flex-1 min-h-0 overflow-auto">
+    <div style:min-width="calc({minimumWidth(columns)} + 2.5rem)">
+      <Header {columns} />
+      {#each shownRows as row (row.document.reference.id)}
+        <Document reference={row.document.reference} {columns} cells={row.cells} />
+      {/each}
+    </div>
   </div>
 </div>

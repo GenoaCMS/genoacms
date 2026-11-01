@@ -6,4 +6,7 @@
  */
 const SELECTION_GUTTER = 'w-10'
 
-export { SELECTION_GUTTER }
+/** Where a column pinned beside the gutter starts, so it stays clear of the checkbox while the row scrolls sideways. */
+const AFTER_SELECTION_GUTTER = 'start-10'
+
+export { SELECTION_GUTTER, AFTER_SELECTION_GUTTER }

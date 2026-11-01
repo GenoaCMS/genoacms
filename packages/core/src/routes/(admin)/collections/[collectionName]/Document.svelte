@@ -15,10 +15,10 @@
 <Selectable id={reference.id}>
   <!-- LST-1 -->
   <a href="{reference.collection.name}/{reference.id}"
-    class="grid items-center border-b border-surface-200-800 text-sm hover:bg-surface-100-900/60"
+    class="grid items-center border-b border-surface-200-800 text-sm group-hover:bg-surface-100-900"
     style:grid-template-columns={gridTemplate(columns)}>
     {#each columns as column, index (column.name)}
-      <Cell cell={cells[index]} isLead={column.isLead} isEndAligned={isEndAligned(column)} />
+      <Cell cell={cells[index]} isLead={column.isLead} isEndAligned={isEndAligned(column)} isPinned={index === 0} />
     {/each}
   </a>
 </Selectable>
