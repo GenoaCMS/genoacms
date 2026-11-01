@@ -10,13 +10,13 @@
   interface Props {
     value: string
   }
-  let { value }: Props = $props()
+  const { value }: Props = $props()
   let isModalOpen = $state(false)
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
   }
-  const enhanceEdit: SubmitFunction = ({ formData }) => {
+  const enhanceEdit: SubmitFunction = () => {
     const alert = alertPending('Editing')
     return async ({ result }) => {
       alert.close()
@@ -28,8 +28,6 @@
       await invalidate(pageEditorData)
       toastSuccess('Edit successful')
       isModalOpen = false
-      const nextValue = formData.get('value')
-      if (typeof nextValue === 'string') value = nextValue
     }
   }
 </script>

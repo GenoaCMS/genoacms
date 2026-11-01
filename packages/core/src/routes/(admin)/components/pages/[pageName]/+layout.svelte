@@ -33,7 +33,7 @@
       </PermissionGate>
       <PermissionGate permission="pages:content_edit">
         <SavePageContents />
-        <UpdatePreviewURL bind:value={data.page.previewURL}/>
+        <UpdatePreviewURL value={data.page.previewURL}/>
       </PermissionGate>
     {/snippet}
   </TopPanel>
