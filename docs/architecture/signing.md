@@ -86,7 +86,7 @@ learns it afterwards has already lost those signatures.
 linking to it only to a principal holding that permission. Loading creates the registry when the
 instance has none. A registry that cannot be read answers 503 with its reason, not an empty list.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### KEY-2 · What it shows
@@ -99,7 +99,7 @@ and shows its state, `current`, `superseded` or `revoked`, its algorithm and the
 (`created at`, `superseded at`, `revoked at`). Exactly one key is `current`. The current key comes
 first, the others newest first by creation.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### KEY-3 · Rotating
@@ -108,7 +108,7 @@ first, the others newest first by creation.
 outgoing key stays listed as `superseded`. It shows `Rotated. New signatures use the new key.`, or
 `Key not rotated` with the reason. A refusal fails with 409 `{ reason }`.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### KEY-4 · Revoking
@@ -123,5 +123,5 @@ with the reason. Revoking the current key first mints a new current key, so exac
 `current` afterwards. A missing or empty `keyId` fails with 400 `{ reason: 'key/id-required' }`, and
 a refusal with 409 `{ reason }`.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e

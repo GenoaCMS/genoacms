@@ -137,7 +137,7 @@ credential and, where the adapter can hold one, a disabled identity. It checks A
 AUTHN-3 needs a failing service, so each adapter checks it by fault injection in its own tests, and the
 array adapter has none. Core's part (AUTHN-5 to AUTHN-7) is tested at `unit`, with the host and the
 storage replaced, and at `e2e`, through the login form and the session cookie of core built and
-served with two array providers, the users of each server run given in its environment. The `e2e` run
+served with two array providers, the users of each server run given in its environment. AUTHN-12 is tested at `e2e` by requesting the admin area's pages without a cookie (RFC-0045). The `e2e` run
 cannot make a provider throttle (`too-many-attempts`), and does not remove a provider from the config.
 
 **CS1, falsification audit of RFC-0030's statements (WORKFLOW §6.3), AUTHN-2 to AUTHN-7 and CONF-4,
@@ -392,5 +392,5 @@ A page of the admin area, `/dashboard`, `/collections`, `/components`, `/configu
 `/storage` and every page under them, requested without a signed-in user, is answered with a 303
 redirect to `/`, and renders nothing of the page. `/` and `/login` are served without a session.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/signIn.test.ts`
 - Level: e2e

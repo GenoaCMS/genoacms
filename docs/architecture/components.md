@@ -194,10 +194,9 @@ record each step; this document starts from the state at `8161e000`.
 
 ### Verification
 
-RFC-0039 added tests that carry the IDs of CMP-8, HIS-2, PGE-2, PGE-4, PGE-5 and PGE-11. The other
-statements are checked by existing tests that do not carry their IDs, so each says `unverified` and
-names them. Adding the IDs to those titles is a change of tests only. HIS-2 and the changed
-statements of RFC-0039 are not yet audited for falsification.
+Every statement names the tests that carry its ID. The statements about the screens are also
+verified at `e2e` (RFC-0045). HIS-2, the changed statements of RFC-0039, and SRC-5 and CMP-9 as
+RFC-0045 changed them are not yet audited for falsification.
 
 - **`unit`, in Node.** Permissions (CMP-11, PGE-10) are tested on the `*User*` services with
   storage stubbed. The history (HIS-1) on the generic operations and on the header, body and page
@@ -211,6 +210,10 @@ statements of RFC-0039 are not yet audited for falsification.
   publication and deletion: the remote forms of saving a body, publishing and deleting (NF20), and,
   since RFC-0045, the flows of the old Playwright suite. `packages/core/e2e/pages.test.ts` covers
   page creation, composition, editing, building, revision pinning and deletion (RFC-0045).
+- **Demo content**, outside every level: `pnpm --filter @genoacms/core run demo` publishes the
+  pages the consumer demos render, through the screens as an author would, so the SDK verifies
+  documents the CMS signed, not ones a script wrote. `demo:clean` removes pages before components,
+  since a component a published page pins cannot be deleted (CMP-10).
 - *History.* Until RFC-0045 the screens were driven by a Playwright suite,
   `packages/core/tests/components.spec.ts`, `pages.spec.ts`, `pageComposition.spec.ts` and
   `revisionPinning.spec.ts`. It needed the development credentials, ran in no CI job and was no
@@ -282,7 +285,7 @@ it, is `schema.title`.
 Every schema has `title`, `description` and `required`. An unset constraint is an absent key: never
 `null`, `undefined`, `''` or `[]`.
 
-- Test: `packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts`, `packages/core/src/lib/script/components/componentHeader/component/constraints.test.ts`, `packages/core/src/lib/script/components/layout.test.ts` (unverified: the form of a link and storageResource `default`)
+- Test: `packages/core/src/lib/script/components/componentHeader/component/attributeInits.test.ts`, `packages/core/src/lib/script/components/componentHeader/component/constraints.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`, `packages/core/e2e/components.test.ts` (unverified: the form of a link and storageResource `default`)
 - Level: unit, e2e
 
 #### CMP-4 · A valid header
@@ -318,7 +321,7 @@ a source definition (SRC-1). It answers:
 | created | `{ status: 'success', text: 'Component created', uid }` |
 | a permission denial | thrown |
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### CMP-7 · Reading the catalog
@@ -328,7 +331,7 @@ shows one, with its history depth (HIS-1) and the time of its last publication, 
 `No such component` for a reference with no valid header. A header that cannot be read, for any
 reason, is absent (NF12).
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### CMP-8 · Saving a header
@@ -343,7 +346,7 @@ the error's message for a CMP-5 refusal, an unknown component or a conflict; and
 failure. The form actions `undo` and `redo` of `/components/registrar/<uid>` take the form field
 `version` and step its history (HIS-1, HIS-2).
 
-- Test: `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`
+- Test: `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### CMP-9 · Deleting a component
@@ -368,7 +371,7 @@ prebuilt component as SRC-2 does.
 The registrar's `Delete component` dialog asks `To confirm deletion, type "<name>":`, and its
 `Yes, delete <name>` stays disabled until the text typed equals the component's name.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`, `packages/core/e2e/components.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`, `packages/core/e2e/components.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### CMP-10 · The pages that pin a component
@@ -380,7 +383,7 @@ does not verify is reported as unreadable and does not refuse a deletion. The re
 `pagesPinningComponent(uid)` answers `{ status: 'success', pages: [{ name, nodes }], unreadable }`,
 or `{ status: 'fail', text, pages: [], unreadable: [] }`.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### CMP-11 · Component permissions
@@ -427,7 +430,7 @@ definition that does not match fails the read with `Invalid component definition
 reference with no header answers 404 `components/no-such-component: <uid> does not exist.`; a
 prebuilt component answers 404 `components/no-such-component: <uid> is a prebuilt component. …`.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/io.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/io.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### SRC-3 · The signature preview
@@ -436,7 +439,7 @@ The preview is the language adapter's `emitSignature` of the header's `attribute
 `attributeOrder`: the declaration a body is wrapped in, as text, and the diagnostics that stop the
 shape being emitted. It is returned, not raised, when it has diagnostics.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### SRC-4 · Saving a body
@@ -458,7 +461,7 @@ asks `You have unsaved changes. Leave this page and discard them?` and, when dec
 page with the body unchanged, and leaving the page (closing, reloading, an external link) triggers
 the browser's `beforeunload` prompt. The guard is the one EDT-3 describes (`collections.md` OD10).
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/components.test.ts`
 - Level: e2e
 
 ### History
@@ -475,7 +478,7 @@ last step of `future` and moves it back. Undo with an empty `history` and redo w
 anyway (PGE-7). The state is written before its history. An absent history is empty, and one whose
 `history` or `future` is not an array is replaced by an empty one, with a console warning.
 
-- Test: `packages/core/src/lib/script/components/componentHeader/editing.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`, `packages/core/src/lib/script/components/page/entry/history.test.ts`, `packages/core/src/lib/script/undoRedo/index.test.ts`
+- Test: `packages/core/src/lib/script/components/componentHeader/editing.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`, `packages/core/src/lib/script/components/layout.test.ts`, `packages/core/src/lib/script/components/page/entry/history.test.ts`, `packages/core/src/lib/script/undoRedo/index.test.ts`, `packages/core/e2e/components.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### HIS-2 · Saves are conditional
@@ -496,7 +499,7 @@ version cannot be saved: the save fails with an error whose message starts with
 | the page form actions (PGE-4 to PGE-7) | the form field `version`; the page reloads after a success | 409 `{ reason }` with the message; the screen shows the same text |
 | the undo and redo actions of the registrar and the editor | the form field `version` | 409 `{ reason }` with the message |
 
-- Test: `packages/core/src/lib/script/components/conflict.test.ts`
+- Test: `packages/core/src/lib/script/components/conflict.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 ### Publication
@@ -546,7 +549,7 @@ either refuses the publication with its message, followed by ` (line <l>)` or
 no fatal diagnostic with `The adapter for '<language>' returned no code and gave no reason`. The
 analysis's warnings are returned to the publisher (PUB-6).
 
-- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/e2e/components.test.ts`
 - Level: unit, e2e
 
 #### PUB-4 · The publication
@@ -579,7 +582,7 @@ Building it refuses, before signing: a blank `uid`, `publicationId`, `publisherI
 dynamic one with none; an empty `executableCode`; ceilings that are not three positive whole
 numbers; two executables for one platform. A dynamic component's publication has one executable.
 
-- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/payload.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/payload.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PUB-5 · Writing a publication
@@ -603,7 +606,7 @@ interface PublishedComponent {   // the pointer
 A pointer that cannot be read is no pointer (NF12); one that does not match fails the read with
 `Invalid publication record for component <uid>`.
 
-- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/e2e/components.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PUB-6 · What publishing answers
@@ -622,7 +625,7 @@ The components a page may be composed from are the valid headers whose component
 the catalog's order, of either kind. The page screens offer only these, filtered for a slot by its
 `items.enum` when that is a non-empty list.
 
-- Test: `packages/core/src/lib/script/components/publication/composition.test.ts`
+- Test: `packages/core/src/lib/script/components/publication/composition.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 ### Pages
@@ -673,7 +676,7 @@ and answers 307 to `pages/<name>`. A new node has a value for every attribute of
 stored header: the schema's `default` when it is truthy, otherwise `false`, `0`, `''`, or `[]` for
 `link`, `storageResource` and `components`.
 
-- Test: `packages/core/src/routes/(admin)/components/pages/actions.test.ts`
+- Test: `packages/core/src/routes/(admin)/components/pages/actions.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-3 · Opening a page
@@ -686,7 +689,7 @@ new value (PGE-2) otherwise, with the attribute's current name and schema; value
 header no longer has are dropped. An entry that cannot be read, or one with a node whose component
 has no header, answers 404 `No page named "<name>"`.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-4 · Editing a node
@@ -704,7 +707,7 @@ slot is removed from the page with every node below it. The action records one s
 the entry conditionally on `version` (HIS-2), and `updateAndGenerateTree` then builds the page
 (TRE-1). A node uid the page lacks fails with 404 `{ reason: 'pages/no-such-node' }`.
 
-- Test: `packages/core/src/lib/script/components/page/edits.test.ts`, `packages/core/src/routes/(admin)/components/pages/actions.test.ts`
+- Test: `packages/core/src/lib/script/components/page/edits.test.ts`, `packages/core/src/routes/(admin)/components/pages/actions.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-5 · Adding a child node
@@ -715,7 +718,7 @@ The form action `addChildNode` of `/components/pages/<name>/<nodeUid>` reads `co
 as TOL-10 adds one at the end of the slot, with TOL-10's refusals as 400 `{ reason }` (404 for
 `pages/no-such-node`), records the step and writes the entry conditionally on `version`.
 
-- Test: `packages/core/src/routes/(admin)/components/pages/actions.test.ts`
+- Test: `packages/core/src/routes/(admin)/components/pages/actions.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-6 · The preview URL and files
@@ -724,7 +727,7 @@ The form action `changePreviewURL` reads `value` and `version` and writes `value
 `previewURL` conditionally on `version`, without recording a step; without them, it fails with 400
 `{ reason: 'no-diff' }`.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-7 · Undoing and redoing a page
@@ -733,7 +736,7 @@ The form actions `undo` and `redo` of `/components/pages/<name>/<nodeUid>` read 
 entry's history (HIS-1) over `contents`, and write the entry conditionally on `version` (HIS-2),
 also when there was nothing to step.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-8 · Deleting pages
@@ -744,7 +747,7 @@ propagates. A failure to remove the tree is logged as a warning
 deletion succeeds. The form action `deleteSelected` of `/components/pages` deletes by name, with
 the input, refusals and answers of CMP-9's `deleteSelected`.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-9 · Pages and the components they use
@@ -752,7 +755,7 @@ the input, refusals and answers of CMP-9's `deleteSelected`.
 A page is not changed when a component it uses changes: reading it applies PGE-3, and building it
 applies TRE-2. Nothing records on a component which pages use it, except their published trees.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### PGE-10 · Page permissions
@@ -808,7 +811,7 @@ and writes it to `.genoacms/pages/readables/<name>`, replacing any tree there. T
 neither who built it nor when. Reading a tree back verifies it; one that does not verify fails with
 an error whose message starts with `pages/tree-unverifiable:`, and an absent one is none.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/io.server.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/io.server.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### TRE-2 · A node of the tree
@@ -828,7 +831,7 @@ type ReadableAttributeValue = boolean | number | string | string[] | ReadablePag
 A node of a component with a pointer carries its `uid` and the pointer's `publicationId`, read when
 the page is built. A node of a component never published carries neither.
 
-- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/index.test.ts`
+- Test: `packages/core/src/lib/script/components/page/pages.test.ts`, `packages/core/src/lib/script/components/page/tree/index.test.ts`, `packages/core/e2e/pages.test.ts`
 - Level: unit, e2e
 
 #### TRE-3 · Values in the tree

@@ -2,7 +2,9 @@
 type: rfc
 number: 45
 title: Every browser test of core at the e2e level
-status: draft
+status: auditing
+commits: [fa324c35, 25762709, eff3d075, 4c0a2edc, bf74fe72, 61d99168]
+audit: []
 depends: [39, 43]
 architecture: [architecture/authorization.md, architecture/signing.md, architecture/contracts/authentication.md, architecture/components.md, architecture/collections.md, architecture/build.md, README.md]
 changes: [ROL-1 added, ROL-2 added, ROL-3 added, ROL-4 added, ROL-5 added, KEY-1 added, KEY-2 added, KEY-3 added, KEY-4 added, AUTHN-12 added, SRC-5 added, CMP-9 compatible]
@@ -36,6 +38,12 @@ The author decided on 2026-11-01:
    (CMP-9), and SRC-5.
 6. No workflow change. A test file that no level runs is not refused by any checker (Non-goals).
 
+Found while porting: `removeInstance` emptied the bucket's `.genoacms/` and kept the run's
+secrets file, which holds the registry's high-water sequence mark. After a file that rotated keys,
+the next file's fresh registry started below the mark, core refused it as a rollback, and every
+sign-in of that file failed. Core was right; the harness now empties the secrets file with the
+bucket, so an instance is its `.genoacms/` and its secrets.
+
 Every new statement documents behavior the code already has. No code of core changes.
 
 What moves where:
@@ -62,10 +70,12 @@ What moves where:
 | `packages/core/e2e/pages.test.ts` | new: 18 tests |
 | `packages/core/e2e/configuration.test.ts` | new: 19 tests |
 | `packages/core/e2e/signIn.test.ts` | one test, AUTHN-12 |
+| `packages/core/e2e/bucket.ts` | `removeInstance` also empties the secrets file (`inject('secretsFile')`) |
 | `packages/core/demo/demo.ts` | new: the demo content, `publish` and `clean`, through the `playwright` library |
 | `packages/core/package.json` | remove `test`, `test:integration`, `test:demo`, `test:demo:clean` and `@playwright/test`; add `demo`: `node demo/demo.ts publish`, `demo:clean`: `node demo/demo.ts clean` |
 | `packages/core/tsconfig.json` | `include`: `demo/**/*.ts` in place of `tests/**` |
-| `packages/demo-support/src/page.ts` | the hint names `pnpm --filter @genoacms/core run demo` |
+| `packages/demo-support/src/page.ts`, `src/instance.ts` | the hint names `pnpm --filter @genoacms/core run demo`; the pages are kept in step with `core/demo/demo.ts` |
+| `packages/demo-{react,svelte,vanilla,vue}/README.md`, `.env.example` | `run demo` and `demo:clean`, and the variables the script reads |
 | `pnpm-lock.yaml` | follows `package.json` |
 | `packages/core/tests/` | removed, `README.md` and `support/` with it |
 | `packages/core/playwright.config.ts` | removed |
@@ -93,8 +103,8 @@ of a statement's text (WORKFLOW §11.3).
 
 ## Non-goals
 
-- **No checker refuses a test file that no level runs.** The author decided against a workflow
-  change on 2026-11-01. A new Playwright Test file, or a test outside the globs of
+- **No checker refuses a test file that no level runs.** The workflow change is deferred to a
+  separate change (decided 2026-11-01). A new Playwright Test file, or a test outside the globs of
   `test-level.mjs`, would again gate nothing unnoticed.
 - No change to core's code. A test that fails on reality is a finding, and this RFC is amended
   first (discovery rule).
@@ -110,8 +120,8 @@ of a statement's text (WORKFLOW §11.3).
 ## Tests
 
 All at level `e2e`, in `packages/core/e2e/`, run with `vitest run --mode e2e`, against core built
-with `genoa.config/e2e.ts` and served by `startServer`. Each file removes the instance before and
-after it (`removeInstance`), signs in through the login form (`signedInSession`), names its fixtures
+with `genoa.config/e2e.ts` and served by `startServer`. Each file removes the instance, its `.genoacms/` and the
+run's secrets file, before and after it (`removeInstance`), signs in through the login form (`signedInSession`), names its fixtures
 with a per-run suffix, and is skipped unless `GENOACMS_TEST_GCP=1`. Users: `ada`
 (`e2e-ada`, Administrator) and, in `configuration.test.ts`, `carol` (`e2e-carol`, TestReader). Old
 files are named for each test. The development config and the credential files are never read.
@@ -256,8 +266,9 @@ the tests, recorded as a Verification entry in the statement's document.
   collections only; a defect specific to bucket switches would pass.
 - AUTHN-12 covers page loads. Form actions and remote functions of the admin area do not pass
   through its layout's `load`, and their own checks are not stated here.
-- Revocation runs in the run's instance; that its keys are removed at the end relies on
-  `removeInstance`, and the secrets file `.genoacms/e2e-secrets.env` keeps the seeds across runs.
-- The drag test depends on pointer events reaching the drag library, which the old suite needed a
-  step-wise move for; it may prove flaky in headless CI.
+- Revocation runs in the run's instance, whose keys and secrets `removeInstance` removes. Two e2e
+  runs at once still share the bucket (`docs/README.md`, known gaps).
+- The drag test depends on pointer events reaching the drag library: it measures the drop target
+  before picking the card up, since the cards move once the drag starts, and moves step-wise. It
+  may still prove flaky in headless CI.
 - RFC-0043's wrong claim stays in a frozen RFC; only F32 and this RFC correct it.

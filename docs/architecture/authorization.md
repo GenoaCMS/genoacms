@@ -94,7 +94,7 @@ The screen lists each role as a card headed by its name. A role that can be admi
 and `Delete`; one declared in the config, or any role while administration is locked, has neither
 and is marked as declared. `New role` is offered to a holder of `config:roles:manage`.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### ROL-2 · A grant row
@@ -116,7 +116,7 @@ no resource.
 The editor holds a hidden form field `grants`, whose value is the JSON of the grants its rows
 describe (ROL-3), and changes as the rows are edited.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### ROL-3 · From rows to grants
@@ -144,14 +144,14 @@ Opening a role for editing turns its stored grants back into rows: grants sharin
 scope form one row, a grant over `*` forms a row of its own with `Any <scope>` on, and a role without
 grants opens with one new row.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### ROL-4 · Adding and removing rows
 
 `Add grant` appends a new row. Each row's `Remove grant` removes it and its grants.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
 
 #### ROL-5 · Creating, editing and deleting a role
@@ -171,5 +171,5 @@ array of grants; `updateRole` replaces the role's grants with those submitted. `
 with 400 `{ reason: 'role/name-required' }` for a missing `name`. A refusal by the authorization
 service fails with 409 `{ reason }`.
 
-- Test: unverified (no test carries the ID yet; RFC-0045)
+- Test: `packages/core/e2e/configuration.test.ts`
 - Level: e2e
