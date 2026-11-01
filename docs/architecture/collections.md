@@ -526,7 +526,8 @@ column `id` of each document's id instead. Every row is one line high: a cell sh
 says, cut short with an ellipsis when it does not fit. The header and the rows share one grid, so
 each field name stands over its column; a column of kind `boolean`, `number`, `list`,
 `references` or `files` is narrow, at most `8rem`, and the listing scrolls sideways when the columns do not fit.
-Each row links to `/collections/<name>/<id>`.
+While the listing scrolls, its header row stays at the top, and each row's checkbox and first column
+stay at the start. Each row links to `/collections/<name>/<id>`.
 
 - Test: `packages/core/src/routes/(admin)/collections/[collectionName]/listing.test.ts`, `packages/core/e2e/collections.test.ts`
 - Level: unit, e2e
