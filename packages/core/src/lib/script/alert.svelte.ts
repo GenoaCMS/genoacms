@@ -1,6 +1,8 @@
 import { createToaster } from '@skeletonlabs/skeleton-svelte'
 
-export const toaster = createToaster()
+export const toaster = createToaster({
+  offsets: { top: '1rem', right: '1rem', left: '1rem', bottom: 'var(--toast-offset-bottom)' }
+})
 
 export const pendingAlertState = $state({
   isOpen: false,

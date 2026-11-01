@@ -51,3 +51,14 @@ html,
 body {
   height: 100%;
 }
+
+:root {
+  --mobile-nav-height: 5.25rem;
+  --toast-offset-bottom: 1rem;
+}
+
+:root:has([data-mobile-nav]) {
+  @variant max-md {
+    --toast-offset-bottom: calc(var(--mobile-nav-height) + 1rem);
+  }
+}

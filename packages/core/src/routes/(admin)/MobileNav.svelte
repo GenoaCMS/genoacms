@@ -5,7 +5,7 @@
   import MobileNavItem from './MobileNavItem.svelte'
 </script>
 
-<Navigation layout="bar" class="shrink-0 md:hidden px-1 border-t border-surface-200-800">
+<Navigation layout="bar" data-mobile-nav class="shrink-0 md:hidden min-h-(--mobile-nav-height) px-1 border-t border-surface-200-800">
   <Navigation.Menu class="gap-0">
     {#each pages as page (page.route)}
       {#if page.permission}
