@@ -182,6 +182,7 @@ otherwise.
 | NF17 | **`setStorageResourceValue` stores one object where a list belongs (PGE-6).** It sets a `storageResource` value, a list (CMP-3), to the first item of the selection, so building the page then fails on it. No screen calls the action: the file control saves through `update` (PGE-4). | fixed, RFC-0039 |
 | NF18 | **Deleting through the registrar reads the component before the permission is checked (CMP-11).** The kind decides which service deletes, so the header is read for a principal who may then be refused. | open |
 | NF19 | **A published tree that cannot be read counts as no tree (CMP-10).** A tree file that is not JSON, or whose read fails for any reason other than absence, was left out of the unreadable pages, so the deletion dialog did not show it. | fixed |
+| NF20 | **Since SvelteKit 3.1 (RFC-0043), the remote forms of saving a body, publishing and deleting a dynamic component fail (SRC-4, PUB-1, CMP-9).** Their inputs were plain named fields; SvelteKit 3.1 requires every field of a remote form to come from `form.fields.<name>.as(...)`, so each keystroke threw `form_field_unbound` and no submission reached the server. The Playwright suite in `packages/core/tests/`, which covered publishing, runs in no CI job, though RFC-0043 says it runs on `main`. Found 2026-11-01 in use, reproduced in Chromium. | fixed, with a regression test at level `e2e` |
 
 ### History
 
@@ -204,6 +205,8 @@ statements of RFC-0039 are not yet audited for falsification.
   the real TypeScript adapter, and real ML-DSA-65 signatures. Deletion's dependants (CMP-10) on
   `listPagesPinning` with stored trees.
 - **`unit`, in Chromium** (vitest browser). The link editor (PGE-12), mounted on its own.
+- **`e2e`** (`packages/core/e2e/components.test.ts`) submits the remote forms of saving a body,
+  publishing and deleting through the running server against the test bucket (NF20).
 - **Playwright** (`packages/core/tests/components.spec.ts`, `pages.spec.ts`,
   `pageComposition.spec.ts`, `revisionPinning.spec.ts`) drives the screens. They need the
   development credentials, do not run in CI, and are not a level of `docs/README.md`.
@@ -357,8 +360,8 @@ names the pages. Removing an object that is already absent is not a failure.
 Comparing confirmations ignores spaces around the commas. The editor's `deleteSelected` refuses a
 prebuilt component as SRC-2 does.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`
-- Level: unit
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/componentHeader/io.server.test.ts`, `packages/core/src/lib/script/components/componentHeader/user.server.test.ts`, `packages/core/src/lib/script/components/page/tree/dependents.server.test.ts`, `packages/core/src/lib/script/components/registration.server.test.ts`, `packages/core/e2e/components.test.ts`
+- Level: unit, e2e
 
 #### CMP-10 · The pages that pin a component
 
@@ -437,8 +440,8 @@ futureLength, version }`, or `{ status: 'fail', text }` with `Invalid data` or a
 Saving does not touch `publishedBody` or `publishedSignature`. The form actions `undo` and `redo` of
 `/components/editor/<uid>` take the form field `version` and step its history.
 
-- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`
-- Level: unit
+- Test: `packages/core/src/lib/script/components/catalog.test.ts`, `packages/core/src/lib/script/components/editor/editing.server.test.ts`, `packages/core/e2e/components.test.ts`
+- Level: unit, e2e
 
 ### History
 
@@ -498,8 +501,8 @@ write the publication once, then the pointer and, for a dynamic component, the d
 
 The publisher is the principal's subject, never a value of the request.
 
-- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/src/lib/script/components/publication/user.server.test.ts`
-- Level: unit
+- Test: `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/src/lib/script/components/publication/user.server.test.ts`, `packages/core/e2e/components.test.ts`
+- Level: unit, e2e
 
 #### PUB-2 · No change, no publication
 
@@ -592,8 +595,8 @@ publishedAt, warnings }`, where each warning is `{ rule, message, line? }`. It a
 `{ status: 'fail', text: 'Invalid data' }` for an invalid argument, and `{ status: 'fail', text }`
 with the error's message for every failure, a permission denial included.
 
-- Test: `packages/core/src/lib/script/components/publication/publishing.test.ts`
-- Level: unit
+- Test: `packages/core/src/lib/script/components/publication/publishing.test.ts`, `packages/core/e2e/components.test.ts`
+- Level: unit, e2e
 
 #### PUB-7 · Composable components
 
