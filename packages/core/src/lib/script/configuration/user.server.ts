@@ -239,4 +239,3 @@ export {
 export type {
   GrantableResources
 }
-

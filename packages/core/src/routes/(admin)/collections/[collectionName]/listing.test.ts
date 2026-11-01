@@ -36,7 +36,7 @@ describe('columns', () => {
   })
 
   it('LST-1: a narrow column is at most 8rem, however long its name', () => {
-    const columns = columnsOf(collectionOf({ ['isAVeryLongBooleanFieldNameIndeed']: { type: 'boolean' } }))
+    const columns = columnsOf(collectionOf({ isAVeryLongBooleanFieldNameIndeed: { type: 'boolean' } }))
 
     expect(gridTemplate(columns)).toBe('8rem')
   })

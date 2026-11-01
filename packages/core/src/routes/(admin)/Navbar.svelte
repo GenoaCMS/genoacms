@@ -26,4 +26,3 @@
     <Logout />
   </Navigation.Footer>
 </Navigation>
-

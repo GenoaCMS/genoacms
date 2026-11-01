@@ -272,8 +272,15 @@ describe('the publication', () => {
       'attributeOrder', 'attributes', 'executables', 'name', 'note', 'publicationId', 'publishedAt', 'publisherId', 'type', 'uid'
     ])
     expect(envelope.payload).toMatchObject({
-      uid: dynamic.uid, publicationId: record.publicationId, publisherId: 'publisher-7', publishedAt: record.publishedAt,
-      note: '', type: 'dynamic', name: 'Hero', attributes: dynamic.attributes, attributeOrder: dynamic.attributeOrder
+      uid: dynamic.uid,
+      publicationId: record.publicationId,
+      publisherId: 'publisher-7',
+      publishedAt: record.publishedAt,
+      note: '',
+      type: 'dynamic',
+      name: 'Hero',
+      attributes: dynamic.attributes,
+      attributeOrder: dynamic.attributeOrder
     })
     expect(envelope.payload.executables).toHaveLength(1)
     expect(Object.keys(envelope.payload.executables[0]).sort()).toEqual(['ceilings', 'compiledAt', 'executableCode', 'platform'])
@@ -330,8 +337,12 @@ describe('writing a publication', () => {
 
     const first = await publishComponent(order(dynamic.uid), 'p')
     expect(readFlatted(pointerPath(dynamic.uid))).toEqual({
-      uid: dynamic.uid, publicationId: first.record.publicationId, publisherId: 'p', publishedAt: first.record.publishedAt,
-      note: 'a note', headerDigest: describingDigest(dynamic as never)
+      uid: dynamic.uid,
+      publicationId: first.record.publicationId,
+      publisherId: 'p',
+      publishedAt: first.record.publishedAt,
+      note: 'a note',
+      headerDigest: describingDigest(dynamic as never)
     })
     expect(storedDefinition(dynamic.uid)).toMatchObject({ publishedBody: 'return heading', publishedSignature: 'SIGNATURE', body: 'return heading' })
 

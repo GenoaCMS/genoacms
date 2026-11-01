@@ -15,7 +15,7 @@
 </TopPanel>
 
 <Grid>
-    {#each data.buckets as bucket}
+    {#each data.buckets as bucket (bucket.name)}
         <div class="col-span-1">
             <CardLink href="storage/{bucket.name}/contents{searchParams}" text={bucket.name} icon="bucket"/>
         </div>

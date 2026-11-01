@@ -13,7 +13,7 @@
 </TopPanel>
 
 <Grid>
-    {#each data.collectionReferences as collection}
+    {#each data.collectionReferences as collection (collection)}
         <div class="col-span-1">
             <CardLink href="/collections/{collection}" icon="collection" text={collection}/>
         </div>

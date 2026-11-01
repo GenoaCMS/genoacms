@@ -21,4 +21,3 @@
   <i class="bi bi-{icon} text-xl"></i>
   <Navigation.TriggerText>{name}</Navigation.TriggerText>
 </Navigation.TriggerAnchor>
-

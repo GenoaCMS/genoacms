@@ -2,14 +2,13 @@ import type {
   ComponentShape,
   CompilationResult,
   ExecutablePlatform,
-  SignaturePreview
+  SignaturePreview, Diagnostic
 } from '@genoacms/internal/languageAdapter'
 import type { GuardCeilings } from '@genoacms/internal/guards'
 import { budgetsFrom } from '@genoacms/internal/guards'
 import { getLanguageAdapter } from '#lib/script/components/language.server.js'
 import { ComponentCodeError } from './errors'
 import { raiseFatal } from './diagnostics'
-import type { Diagnostic } from '@genoacms/internal/languageAdapter'
 
 /**
  * Compiling a component into the bundle a consumer runs.

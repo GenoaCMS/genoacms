@@ -257,8 +257,15 @@ describe('attributes', () => {
 
   it('CMP-3: every schema a new attribute starts with has title, description and required, and the schema.type of its attribute type', () => {
     const schemaTypes: Record<string, string> = {
-      boolean: 'boolean', number: 'number', string: 'string', text: 'string', markdown: 'string', richText: 'string',
-      link: 'array', storageResource: 'array', components: 'array'
+      boolean: 'boolean',
+      number: 'number',
+      string: 'string',
+      text: 'string',
+      markdown: 'string',
+      richText: 'string',
+      link: 'array',
+      storageResource: 'array',
+      components: 'array'
     }
 
     expect(attributeTypeInits.map(init => init.name).sort()).toEqual(Object.keys(schemaTypes).sort())
