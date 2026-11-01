@@ -23,7 +23,7 @@
     const count = $derived(documentCount(shownRows.length, rows.length, query.trim() !== ''))
 </script>
 <TopPanel>
-  <h1 class="text-2xl truncate">
+  <h1 class="text-2xl">
     Collection: {data.collectionReference.name}
   </h1>
   {#snippet right()}
@@ -52,7 +52,7 @@
   <p class="text-sm text-surface-600-400">{count}</p>
   <Filter bind:query />
 </div>
-<div class="overflow-x-auto">
+<div class="relative overflow-x-auto">
   <div style:min-width="calc({minimumWidth(columns)} + 2.5rem)">
     <Header {columns} />
     {#each shownRows as row (row.document.reference.id)}

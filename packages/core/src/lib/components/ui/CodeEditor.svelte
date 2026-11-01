@@ -56,4 +56,8 @@
   }
 </script>
 
-<div use:cmEditor class="h-full w-full {additionalClasses}"></div>
+<div use:cmEditor class="h-full w-full
+  [&_.cm-gutters]:bg-surface-100-900! [&_.cm-gutters]:text-surface-600-400! [&_.cm-gutters]:border-surface-200-800!
+  [&_.cm-activeLine]:bg-surface-500/10! [&_.cm-activeLineGutter]:bg-surface-500/20!
+  [&_.cm-cursor]:border-surface-950-50! [&_.cm-selectionBackground]:bg-primary-500/30!
+  {additionalClasses}"></div>

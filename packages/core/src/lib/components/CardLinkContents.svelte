@@ -13,7 +13,7 @@
     <div class="flex-grow flex justify-center items-center {color ? `text-${color}` : 'text-surface-950-50'}">
         <i class="bi bi-{icon} text-6xl" aria-hidden="true"></i>
     </div>
-    <div class="text-center border-t border-surface-200-800 text-lg p-2 truncate font-medium text-surface-950-50">
+    <div class="text-center border-t border-surface-200-800 text-base sm:text-lg p-2 line-clamp-2 break-words font-medium text-surface-950-50">
         {text}
     </div>
 </div>

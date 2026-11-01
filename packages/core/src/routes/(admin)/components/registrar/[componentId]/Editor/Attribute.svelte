@@ -55,11 +55,11 @@
     </div>
   </div>
   <div class="flex items-center">
-    <Label class="flex-grow">
+    <Label class="flex-grow min-w-0">
       Name:
       <Input bind:value={value.schema.title}/>
     </Label>
-    <div class="ms-4 mt-auto">
+    <div class="ms-4 mt-auto shrink-0 whitespace-nowrap">
       <Checkbox bind:checked={value.schema.required}>
         Is required
       </Checkbox>

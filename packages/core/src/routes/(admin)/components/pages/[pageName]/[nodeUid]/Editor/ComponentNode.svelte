@@ -17,11 +17,11 @@
 </script>
 
 <div>
-  <div class="flex gap-2 items-center py-3">
+  <div class="flex flex-wrap gap-2 items-center py-3">
     <div class="me-3">
       <AttributeTypeIcon type="components" />
     </div>
-    <h3 class="text-2xl font-bold">
+    <h3 class="min-w-0 truncate text-2xl font-bold">
       {node.name}
     </h3>
     <span class="text-sm opacity-70">

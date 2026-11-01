@@ -39,7 +39,7 @@
   </TopPanel>
 
   <div class="flex-grow grid lg:grid-cols-6">
-    <div class="order-1 lg:order-0 lg:col-span-4 flex justify-center items-center bg-surface-100-900/30 border-x border-surface-200-800 p-4">
+    <div class="order-1 lg:order-0 lg:col-span-4 min-w-0 flex justify-center items-center bg-surface-100-900/30 border-x border-surface-200-800 p-4">
       {#if data.page.previewURL}
         <iframe src={data.page.previewURL} title="Preview" class="w-full h-full border border-surface-200-800 rounded"></iframe>
       {:else}
@@ -48,7 +48,7 @@
         </div>
       {/if}
     </div>
-    <div class="order-0 lg:order-1 lg:col-span-2">
+    <div class="order-0 lg:order-1 lg:col-span-2 min-w-0">
       {@render children?.()}
     </div>
   </div>

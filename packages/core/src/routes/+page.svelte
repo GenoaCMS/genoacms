@@ -2,8 +2,8 @@
   import { Button, Card, } from '#lib/components/ui/index.js'
 </script>
 
-<div class="h-full w-full flex items-center justify-center">
-  <Card class="flex-col min-w-[35%] min-h-[30%] flex p-4">
+<div class="h-full w-full flex items-center justify-center p-4">
+  <Card class="flex-col w-full max-w-md md:w-auto md:max-w-none md:min-w-[35%] min-h-[30%] flex p-4">
     <h1 class="text-xl">
       Welcome to <strong>GenoaCMS</strong>
     </h1>

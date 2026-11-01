@@ -18,7 +18,7 @@
 </script>
 
 <!-- LST-1, LST-8 -->
-<span title={cell.title} class="truncate px-3 py-2 {LOOKS[cell.look]} {isLead ? 'font-medium' : ''} {isEndAligned ? 'text-end' : ''}">
+<span title={cell.title} class="truncate px-3 py-3 md:py-2 {LOOKS[cell.look]} {isLead ? 'font-medium' : ''} {isEndAligned ? 'text-end' : ''}">
   {#if cell.look === 'check'}
     <i class="bi bi-check-lg" aria-hidden="true"></i><span class="sr-only">{cell.title}</span>
   {:else}

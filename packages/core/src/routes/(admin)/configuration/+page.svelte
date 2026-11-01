@@ -24,10 +24,10 @@
         </h1>
     </TopPanel>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 h-full content-center sm:p-5">
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-10 p-4 md:p-5 md:h-full content-start md:content-center">
         {#each sections as section (section.href)}
             <PermissionGate permission={section.permission}>
-                <div class="aspect-square m-auto {section.align} w-2/3 sm:w-1/2 md:w-full 2xl:w-1/2">
+                <div class="aspect-square m-auto {section.align} w-full 2xl:w-1/2">
                     <CardLink href={section.href} icon={section.icon} text={section.text} />
                 </div>
             </PermissionGate>

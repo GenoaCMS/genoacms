@@ -30,7 +30,7 @@
 </script>
 
 <div class="container mx-auto w-full h-full flex flex-col justify-center items-center">
-    <div class="flex mt-0 justify-center">
+    <div class="flex mt-0 justify-center px-5">
       <div class="m-auto w-auto max-w-[40rem]">
         <img src="/genoacms-narrow.png" alt="GenoaCMS logo" class="" />
       </div>
