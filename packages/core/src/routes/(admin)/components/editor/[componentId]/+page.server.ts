@@ -32,13 +32,15 @@ export const load = async ({ params, locals }) => {
   // information, so the two are fetched through their own checks rather than one broad read.
   try {
     const component = await getUserComponent(ctx, componentId)
-    const { definition: componentDefinition, version } = await getUserComponentDefinitionVersioned(ctx, component.uid)
     // What the body is wrapped in. Shown above the editor, because an author writing a body needs
     // to see the parameters it receives — and how each attribute's name became an identifier.
-    const signature = await getUserComponentSignature(ctx, component.uid)
     // How deep the history runs is what enables or disables the two controls. Without it they render
     // permanently disabled, which is how the registrar's undo appeared to exist without working.
-    const depth = await getUserComponentDefinitionDepth(ctx, component.uid)
+    const [{ definition: componentDefinition, version }, signature, depth] = await Promise.all([
+      getUserComponentDefinitionVersioned(ctx, component.uid),
+      getUserComponentSignature(ctx, component.uid),
+      getUserComponentDefinitionDepth(ctx, component.uid)
+    ])
 
     return {
       component,

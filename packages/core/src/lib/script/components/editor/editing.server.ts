@@ -86,8 +86,7 @@ const saveComponentBody = async (
   body: string,
   version: string
 ): Promise<BodySaved> => {
-  const previous = await getComponentDefiniton(reference)
-  const adjunct = await getComponentDefinitionHistory(reference)
+  const [previous, adjunct] = await Promise.all([getComponentDefiniton(reference), getComponentDefinitionHistory(reference)])
 
   // A copy, because `recordChange` diffs two objects and the stored one is about to be edited. The
   // header's equivalent is handed two distinct objects by its caller; here the caller supplies only
@@ -96,8 +95,8 @@ const saveComponentBody = async (
   await writeConditionally(async options => { await uploadComponentDefinition(saved, options) }, objectOf(reference), version)
 
   const recorded = recordChange(saved, adjunct, previous)
-  await uploadComponentDefinitionHistory(reference, recorded)
-  return { ...depthOf(recorded), version: await currentVersion(reference) }
+  const [, current] = await Promise.all([uploadComponentDefinitionHistory(reference, recorded), currentVersion(reference)])
+  return { ...depthOf(recorded), version: current }
 }
 
 /**
@@ -109,8 +108,7 @@ const saveComponentBody = async (
  */
 const step = (move: typeof undo) =>
   async (reference: ComponentReference, version: string): Promise<ComponentDefinition> => {
-    const definition = await getComponentDefiniton(reference)
-    const adjunct = await getComponentDefinitionHistory(reference)
+    const [definition, adjunct] = await Promise.all([getComponentDefiniton(reference), getComponentDefinitionHistory(reference)])
     const stepped = move(definition, adjunct)
     // Nothing to move through. Returned unchanged rather than written back, so that pressing undo at
     // the beginning of a history does not rewrite storage with what is already there.

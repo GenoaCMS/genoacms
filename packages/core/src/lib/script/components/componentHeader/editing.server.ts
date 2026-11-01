@@ -75,18 +75,17 @@ const saveComponentHeader = async (entry: ComponentHeader, version: string): Pro
   requireDistinctAttributeNames(entry)
   requireUnreservedAttributeNames(entry)
 
-  const previous = await getComponentHeader(entry.uid)
+  const [previous, adjunct] = await Promise.all([getComponentHeader(entry.uid), getComponentHeaderHistory(entry.uid)])
   if (previous === null) {
     throw new NoSuchComponentError(entry.uid, `components/no-such-component: ${entry.uid} does not exist.`)
   }
   const saved: ComponentHeader = { ...entry, type: previous.type }
-  const adjunct = await getComponentHeaderHistory(entry.uid)
 
   await writeConditionally(async options => { await uploadComponentHeader(saved, options) }, objectOf(entry.uid), version)
 
   const recorded = recordChange(saved, adjunct, previous)
-  await uploadComponentHeaderHistory(entry.uid, recorded)
-  return { ...depthOf(recorded), version: await currentVersion(entry.uid) }
+  const [, current] = await Promise.all([uploadComponentHeaderHistory(entry.uid, recorded), currentVersion(entry.uid)])
+  return { ...depthOf(recorded), version: current }
 }
 
 /**
@@ -98,10 +97,9 @@ const saveComponentHeader = async (entry: ComponentHeader, version: string): Pro
  */
 const step = (move: typeof undo) =>
   async (reference: ComponentHeaderReference, version: string): Promise<ComponentHeader | null> => {
-    const entry = await getComponentHeader(reference)
+    const [entry, adjunct] = await Promise.all([getComponentHeader(reference), getComponentHeaderHistory(reference)])
     if (entry === null) return null
 
-    const adjunct = await getComponentHeaderHistory(reference)
     const stepped = move(entry, adjunct)
     // Nothing to move through. Returned unchanged rather than written back, so that pressing undo
     // at the beginning of a history does not rewrite storage with what is already there.
