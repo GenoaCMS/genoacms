@@ -176,6 +176,12 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await shown(page.getByRole('link', { name: 'c.png', exact: true }))
   })
 
+  it('BRW-3: the root of a bucket is titled with the bucket\'s name', async () => {
+    const { page } = adaSession
+    await visit(page, `/storage/${BUCKET}/contents`)
+    await shown(page.getByRole('heading', { name: BUCKET, exact: true }))
+  })
+
   it('BRW-4: the toolbar shows what the principal may use', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl(ROOT))

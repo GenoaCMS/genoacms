@@ -19,6 +19,8 @@
   import type { PageData } from './$types'
 
   const { data } = $props()
+  // BRW-3
+  const title = $derived(data.path === '' ? data.bucketId : data.path)
 
   type Listing = PageData['contents']
   interface Loaded {
@@ -69,7 +71,7 @@
 
 <TopPanel hrefBack={data.parentPath}>
     <h1 class="text-2xl">
-        {data.path}
+        {title}
     </h1>
     {#snippet right()}
         <!-- BD5 -->
