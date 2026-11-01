@@ -3,7 +3,7 @@ type: architecture
 title: Collections
 prefix: O
 codes: [COL, DOC, LST, EDT, PCK]
-verified: 159aaffc
+verified: 260cf681
 ---
 
 # Collections
@@ -190,7 +190,7 @@ Found on 2026-10-10 by reading the code at `2fc5670`, and not reproduced, unless
 | OF3 | **The editor writes defaults into every document it opens (EDT-5).** A field missing from a stored document gets `''`, `0` or `false`, and a missing object an object of those, as soon as the editor mounts, and the next save stores it. A document saved once can no longer be told apart from one whose author entered those values. | open |
 | OF4 | **Some schemas render no control.** `type: 'integer'`, a type list such as `['string', 'null']`, and any schema matching no kind of EDT-4 render nothing, not even their label, and their value is kept unchanged. | open |
 | OF5 | **`primaryKey` is declared but not used by core.** Documents are addressed by the id the adapter assigns (DOC-6). A property named like `primaryKey.key` is an ordinary editable field, although the end-to-end helper `tests/support/collections.ts`, removed by RFC-0045, said the primary key was not editable. | open |
-| OF6 | **`uiSchema` is read but not declared.** The listing hides columns marked `uiSchema[<field>].showPreview === false` (LST-1), but `CollectionReference` has no `uiSchema`, so the option is invisible to a config author's types and is a type error in core. | open; decided in OU9, RFC-0044 |
+| OF6 | *History.* **`uiSchema` is read but not declared.** The listing hides columns marked `uiSchema[<field>].showPreview === false` (LST-1), but `CollectionReference` has no `uiSchema`, so the option is invisible to a config author's types and is a type error in core. | fixed, RFC-0044 (`260cf681`) |
 | OF7 | **A reference field keeps its target collection in the JSON Schema `description`** (COL-5). An author who documents the field with a description changes what it references. | open |
 | OF8 | **The listing reads the whole collection.** No query parameters reach the adapter (LST-1). The select-all control's comment says the listing is paginated; it is not. | open |
 | OF9 | **Dynamic collections are listed once, at process start (COL-1).** A definition added to `.genoacms/collections/` while the CMS runs can be opened by its URL, because a definition is resolved on demand (COL-2), but is missing from the catalog until a restart. A dynamic definition with the name of a configured collection replaces it on resolution, while the catalog lists the name twice. | open; the replacement and the repeated name fixed, RFC-0035 |
@@ -335,17 +335,8 @@ principal holds any grant whose resource is that collection, whatever its permis
 
 #### COL-4 · A collection definition
 
-A definition is a `CollectionReference` of `@genoacms/contracts/database`. Core reads `name`,
-`schema` and the optional `uiSchema`:
-
-```ts
-interface CollectionDefinition {
-  name: string
-  primaryKey: { key: string, schema: JsonSchema }
-  schema: JsonSchema
-  uiSchema?: Record<string, { showPreview?: boolean }>
-}
-```
+A definition is a `CollectionReference` of `@genoacms/contracts/database` (`contracts/database.md`
+DATA-1). Core reads `name`, `schema` and the optional `uiSchema`.
 
 The fields of a collection are the keys of `schema.properties`, in their declared order. A schema
 without `properties` has no fields.

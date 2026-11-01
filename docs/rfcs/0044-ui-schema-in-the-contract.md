@@ -2,7 +2,8 @@
 type: rfc
 number: 44
 title: uiSchema is declared in the contract's CollectionReference
-status: draft
+status: auditing
+commits: [260cf681]
 depends: [42]
 architecture: [architecture/contracts/database.md, architecture/collections.md]
 changes: [DATA-1 added]

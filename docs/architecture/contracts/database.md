@@ -2,7 +2,7 @@
 type: architecture
 title: Database contract
 codes: [DATA]
-verified: 159aaffc
+verified: 260cf681
 ---
 
 # Database contract
@@ -137,15 +137,18 @@ interface CollectionReference {
   name: string
   primaryKey: { key: string, schema: JsonSchema }
   schema: JsonSchema
+  uiSchema?: CollectionUiSchema
 }
+type CollectionUiSchema = Record<string, { showPreview?: boolean }>
 interface DocumentReference<C extends CollectionReference> { collection: C, id: string }
 interface DocumentSnapshot<C> { reference: DocumentReference<C>, data: Document<C> }
 interface CollectionPage<C> { documents: Array<DocumentSnapshot<C>>, next?: string }
 ```
 
-`primaryKey.key` names the one field holding a document's ID, and `id` is a string.
+`primaryKey.key` names the one field holding a document's ID, and `id` is a string. `uiSchema` is
+keyed by field name and tells the CMS how to show a field; an adapter ignores it.
 
-- Test: unverified (a type, checked by the compiler)
+- Test: `packages/contracts/src/database/types.test-d.ts` (unverified: the types other than `CollectionReference`, checked by the compiler)
 - Level: unit
 
 #### DATA-2 · Values
