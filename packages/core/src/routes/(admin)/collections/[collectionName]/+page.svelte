@@ -23,7 +23,7 @@
     const count = $derived(documentCount(shownRows.length, rows.length, query.trim() !== ''))
 </script>
 <TopPanel>
-  <h1 class="text-2xl">
+  <h1 class="text-2xl truncate">
     Collection: {data.collectionReference.name}
   </h1>
   {#snippet right()}

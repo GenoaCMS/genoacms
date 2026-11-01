@@ -7,7 +7,7 @@
   import PermissionGate from '#lib/components/PermissionGate.svelte'
 </script>
 
-<Navigation layout="rail" class="h-screen sticky top-0">
+<Navigation layout="rail" class="h-full">
   <Navigation.Content>
     <Navigation.Menu>
       {#each pages as page (page.route)}

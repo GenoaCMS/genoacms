@@ -48,10 +48,10 @@
             class="fixed inset-0 z-[100] flex items-center justify-center p-4"
         >
             <Dialog.Content
-                class="card preset-filled-surface-50-950 border border-surface-200-800 p-6 w-full {sizeClass} shadow-xl relative max-h-[90vh] overflow-y-auto {className}"
+                class="card preset-filled-surface-50-950 border border-surface-200-800 p-4 sm:p-6 w-full {sizeClass} shadow-xl relative max-h-[90dvh] overflow-y-auto {className}"
             >
                 <Dialog.CloseTrigger
-                    class="absolute top-4 right-4 text-surface-600-400 hover:text-surface-950-50 bg-transparent rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                    class="absolute top-4 right-4 text-surface-600-400 hover:text-surface-950-50 bg-transparent rounded-lg text-sm p-2.5 ml-auto inline-flex items-center"
                     aria-label="Close"
                 >
                     <i class="bi bi-x-lg"></i>
