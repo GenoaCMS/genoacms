@@ -24,7 +24,6 @@
   const { componentId, onpublished }: Props = $props()
 
   let isModalOpen = $state(false)
-  let note = $state('')
 
   const toggleModal = () => {
     isModalOpen = !isModalOpen
@@ -65,7 +64,7 @@
       reportWarnings(result.warnings as Warning[] | undefined)
       onpublished(result.publishedAt as number)
       isModalOpen = false
-      note = ''
+      publishComponentRemote.fields.note.set('')
     } catch (error) {
       toastError(error instanceof Error ? error.message : String(error))
     }
@@ -88,11 +87,9 @@
     </p>
     <form {...enhance} class="w-full space-y-2" enctype="multipart/form-data">
       <Label class="text-sm font-medium">Publication note:</Label>
-      <input type="hidden" name="componentId" value={componentId} />
+      <input {...publishComponentRemote.fields.componentId.as('hidden', componentId)} />
       <Input
-        type="text"
-        name="note"
-        bind:value={note}
+        {...publishComponentRemote.fields.note.as('text')}
         placeholder="Describe what you are releasing..."
         required
       />

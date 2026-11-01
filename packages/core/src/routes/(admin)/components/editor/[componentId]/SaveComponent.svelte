@@ -45,9 +45,9 @@
 </script>
 
 <form {...enhance} class="h-full" enctype="multipart/form-data">
-  <input type="hidden" name="uid" value={uid} />
-  <input type="hidden" name="body" value={body} />
-  <input type="hidden" name="version" value={version} />
+  <input {...saveComponentRemote.fields.uid.as('hidden', uid)} />
+  <input {...saveComponentRemote.fields.body.as('hidden', body)} />
+  <input {...saveComponentRemote.fields.version.as('hidden', version)} />
   <button
     type="submit"
     aria-label="Save"

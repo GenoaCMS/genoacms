@@ -8,7 +8,6 @@
 
     const { uid, name } = $props()
     let isModalOpen = $state(false)
-    let confirmationName = $state('')
 
     function toggleModal () {
       isModalOpen = !isModalOpen
@@ -64,9 +63,8 @@
           To confirm deletion, type "{name}":
         </Label>
 
-        <input type="hidden" name="uid" value={uid} />
-        <!-- Named, or the server receives no confirmation to compare and refuses every deletion. -->
-        <Input type="text" name="name" bind:value={confirmationName} required />
+        <input {...deleteComponentRemote.fields.uid.as('hidden', uid)} />
+        <Input {...deleteComponentRemote.fields.name.as('text')} required />
         <Button preset="filled" class="!bg-error-500 w-full mt-2" type="submit">
           Yes, delete {name}
         </Button>
