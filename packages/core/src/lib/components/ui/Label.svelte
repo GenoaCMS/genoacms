@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import type { HTMLLabelAttributes } from 'svelte/elements'
 
-    interface Props {
+    interface Props extends HTMLLabelAttributes {
       class?: string;
       children?: Snippet;
-      [key: string]: any;
     }
 
     const { class: className = '', children, ...rest }: Props = $props()

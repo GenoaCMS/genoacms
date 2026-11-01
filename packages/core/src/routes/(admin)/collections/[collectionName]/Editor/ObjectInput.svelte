@@ -72,7 +72,7 @@
 
   function pickUpSchemaFromValue () {
     if (!discriminator) return 0
-    const valueDiscriminator: string | undefined = value[discriminator]
+    const valueDiscriminator = value[discriminator]
     if (!valueDiscriminator) return 0
     const index = variants.findIndex(
       (variant) =>
@@ -108,7 +108,7 @@
       >
         <SegmentedControl.Control>
           <SegmentedControl.Indicator />
-          {#each variants as variant, index}
+          {#each variants as variant, index (index)}
             {@const itemValue = variantName(variant, index)}
             <SegmentedControl.Item value={itemValue}>
               <SegmentedControl.ItemText>{itemValue}</SegmentedControl.ItemText>

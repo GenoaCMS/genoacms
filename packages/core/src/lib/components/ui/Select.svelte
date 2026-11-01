@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import type { HTMLSelectAttributes } from 'svelte/elements'
 
-    interface Props {
+    interface Props extends HTMLSelectAttributes {
       value?: string
       class?: string
       children?: Snippet
-      [key: string]: any
     }
 
     let {

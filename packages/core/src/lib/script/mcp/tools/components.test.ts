@@ -85,7 +85,7 @@ describe('component tools', () => {
 
   it('TOL-2, TOL-4: a component read with get_component saves back through update_component unchanged', async () => {
     const read = await useTool(agent, 'get_component', { uid: card.uid })
-    expect(read.attributes).toEqual(card.attributeOrder.map(uid => {
+    expect(read.attributes).toEqual(card.attributeOrder.map((uid: string) => {
       const { type, schema } = card.attributes[uid]
       return { uid, type, schema }
     }))

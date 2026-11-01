@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import type { HTMLAttributes } from 'svelte/elements'
 
-  interface Props {
+  interface Props extends HTMLAttributes<HTMLDivElement> {
     children?: Snippet
-    [key: string]: any
   }
   const { children, ...restProps }: Props = $props()
 </script>

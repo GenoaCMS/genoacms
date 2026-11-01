@@ -1,8 +1,10 @@
 <script lang="ts">
-  interface Props {
+  import type { HTMLTextareaAttributes } from 'svelte/elements'
+
+  interface Props extends HTMLTextareaAttributes {
+    type?: string
     value?: string
     class?: string
-    [key: string]: any
   }
 
   let { value = $bindable(), class: className = '', ...rest }: Props = $props()

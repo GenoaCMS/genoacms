@@ -43,17 +43,17 @@
 {:else if kind === 'uuid'}
   <UuidInput {id} {value} {onvalue} />
 {:else if kind === 'text'}
-  <TextInput {id} {schema} {value} {onvalue} />
+  <TextInput {id} {value} {onvalue} />
 {:else if kind === 'markdown'}
   <MarkdownInput {value} {onvalue} />
 {:else if kind === 'enum'}
   <EnumInput {schema} {value} {onvalue} />
 {:else if kind === 'string'}
-  <StringInput {id} {schema} {value} {onvalue} />
+  <StringInput {id} {value} {onvalue} />
 {:else if kind === 'number'}
-  <NumberInput {id} {schema} {value} {onvalue} />
+  <NumberInput {id} {value} {onvalue} />
 {:else if kind === 'boolean'}
-  <BooleanInput {id} {schema} {value} {onvalue} />
+  <BooleanInput {id} {value} {onvalue} />
 {:else if kind === 'references' && items}
   <References schema={items} {value} {onvalue} />
 {:else if kind === 'files'}

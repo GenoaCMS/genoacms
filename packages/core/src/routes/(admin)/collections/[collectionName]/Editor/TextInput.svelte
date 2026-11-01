@@ -1,11 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import type { TextValue } from '#lib/components/editors/types.js'
-  import type { Schema } from '@exodus/schemasafe'
   import { Textarea } from '#lib/components/ui/index.js'
 
   interface Props {
-    schema: Schema
     value: TextValue
     onvalue: (e: TextValue) => void
     id?: string
@@ -20,4 +18,4 @@
   })
 </script>
 
-<Textarea {id} rows="4" {value} {oninput} />
+<Textarea {id} rows={4} {value} {oninput} />

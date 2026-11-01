@@ -34,7 +34,7 @@
   }
   onMount(markSaved)
 
-  function onvalue (value) {
+  function onvalue (value: typeof documentData) {
     documentData = value
   }
 
@@ -54,8 +54,8 @@
         toastError(result.text || 'Failed to update document')
         if (result.errors) console.error(result.errors)
       }
-    } catch (e: any) {
-      toastError(e.message || 'An error occurred')
+    } catch (e) {
+      toastError((e as { message?: string }).message || 'An error occurred')
     } finally {
       isSubmitting = false
     }

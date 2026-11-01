@@ -4,7 +4,7 @@ import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
 import { DocumentValidationError } from '#lib/script/database/errors.js'
 
-export const updateDoc = command('unchecked', async (data: { collectionName: string; documentId: string; documentData: any }) => {
+export const updateDoc = command('unchecked', async (data: { collectionName: string; documentId: string; documentData: Parameters<typeof updateUserDocument>[2] }) => {
   const { collectionName, documentId, documentData } = data
   if (!collectionName || !documentId || !documentData) return { status: 'fail', text: 'Invalid data format' }
 

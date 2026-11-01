@@ -6,7 +6,7 @@ import { validator } from '@exodus/schemasafe'
 import { componentDeletionSchema } from '#lib/script/components/editor/schemas.js'
 import { formats } from '#lib/script/database/validators.js'
 
-const validate = validator(componentDeletionSchema as any, { formats })
+const validate = validator(componentDeletionSchema, { formats })
 
 export const deleteComponentRemote = form('unchecked', async (data: { uid: string, name: string }) => {
   const isValid = validate(data)

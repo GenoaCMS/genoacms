@@ -8,7 +8,7 @@ type MarkdownValue = string
 type ResourceValue = ObjectReference | null
 type ResourcesValue = Array<ObjectReference>
 type ArrayValue = Array<InputValue>
-type ObjectValue = Record<string, InputValue>
+type ObjectValue = { [key: string]: InputValue }
 type InputValue = undefined
 | BooleanValue
 | NumberValue
@@ -20,8 +20,8 @@ type InputValue = undefined
 | ArrayValue
 | ObjectValue
 
-type Constraints = Record<string, Constraints> | Record<string, string> | undefined
-type Errors = Record<string, Errors> | Array<string> | undefined
+type Constraints = { [key: string]: Constraints } | Record<string, string> | undefined
+type Errors = { [key: string]: Errors } | Array<string> | undefined
 
 export type {
   BooleanValue,

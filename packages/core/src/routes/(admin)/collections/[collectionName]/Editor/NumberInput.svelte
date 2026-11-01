@@ -1,11 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import type { NumberValue } from '#lib/components/editors/types.js'
-  import type { Schema } from '@exodus/schemasafe'
   import { Input } from '#lib/components/ui/index.js'
 
   interface Props {
-    schema: Schema
     value: NumberValue
     onvalue: (e: NumberValue) => void
     id?: string

@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import type { HTMLAttributes } from 'svelte/elements'
     import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
 
-    interface Props {
+    interface Props extends HTMLAttributes<HTMLDivElement> {
       class?: string
       children?: Snippet
-      [key: string]: any
     }
 
     const {
@@ -24,7 +24,7 @@
 
 <Popover
   {open}
-  onOpenChange={(e: any) => {
+  onOpenChange={(e) => {
     open = e.open
   }}
 >

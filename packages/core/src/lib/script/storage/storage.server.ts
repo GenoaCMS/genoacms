@@ -89,9 +89,9 @@ const getInternalObjectFlattedVersioned = async (path: string): Promise<{ data: 
 
 const getInternalObjectJSON = (path: string) => getObjectJSON({ bucket: defaultBucketId, name: path })
 const getInternalObjectFlatted = (path: string) => getObjectFlatted({ bucket: defaultBucketId, name: path })
-const uploadInternalObjectJSON = async (path: string, data: any, options?: UploadOptions) =>
+const uploadInternalObjectJSON = async (path: string, data: unknown, options?: UploadOptions) =>
   uploadObject({ bucket: defaultBucketId, name: path }, JSON.stringify(data), options)
-const uploadInternalObjectFlatted = async (path: string, data: any, options?: UploadOptions) =>
+const uploadInternalObjectFlatted = async (path: string, data: unknown, options?: UploadOptions) =>
   uploadObject({ bucket: defaultBucketId, name: path }, stringifyFlatted(data), options)
 
 type ProcessedFile = StorageObject & { filename: string, signedURL: string }

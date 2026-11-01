@@ -19,7 +19,7 @@
     isModalOpen = !isModalOpen
   }
 
-  function onvalue (value) {
+  function onvalue (value: typeof newDocument) {
     newDocument = value
   }
 
@@ -40,8 +40,8 @@
         toastError(result.text || 'Failed to create document')
         if (result.errors) console.error(result.errors)
       }
-    } catch (e: any) {
-      toastError(e.message || 'An error occurred')
+    } catch (e) {
+      toastError((e as { message?: string }).message || 'An error occurred')
     } finally {
       isSubmitting = false
     }

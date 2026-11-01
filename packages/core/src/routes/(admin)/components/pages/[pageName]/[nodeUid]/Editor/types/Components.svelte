@@ -5,6 +5,7 @@
     ComponentHeader,
   } from '#lib/script/components/componentHeader/component/types.js'
   import type { Schema } from '@exodus/schemasafe'
+  import { asSchemaObject } from '#lib/script/schema.js'
   import { page } from '$app/state'
   import { enhance } from '$app/forms'
   import { toastError } from '#lib/script/alert.svelte.js'
@@ -40,7 +41,7 @@
     components: Array<ComponentHeader>,
     dataSchema: Schema
   ) => {
-    const allowed = (dataSchema as any).items?.enum
+    const allowed = asSchemaObject(asSchemaObject(dataSchema)?.items)?.enum
     if (!Array.isArray(allowed) || allowed.length === 0) return components
     return components.filter((component) => allowed.includes(component.name))
   }

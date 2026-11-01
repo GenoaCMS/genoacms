@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validator } from '@exodus/schemasafe'
+import { validator, type Schema } from '@exodus/schemasafe'
 import { formats } from './validators'
 import { collections } from '../../../../genoa.config/collections'
 
@@ -25,6 +25,14 @@ type Section = {
   callout?: { enabled: boolean, note: string }
 }
 
+type SchemaNode = {
+  properties?: Record<string, SchemaNode>
+  items?: SchemaNode
+  oneOf?: Array<SchemaNode>
+  const?: unknown
+  enum?: Array<unknown>
+}
+
 type Article = {
   id: string
   title: string
@@ -43,8 +51,8 @@ type Article = {
 describe('complex nested collections schema validation', () => {
   const articles = getCollection('articles')
   const authors = getCollection('authors')
-  const validateArticle = validator(articles.schema as any, { formats })
-  const validateAuthor = validator(authors.schema as any, { formats })
+  const validateArticle = validator(articles.schema as Schema, { formats })
+  const validateAuthor = validator(authors.schema as Schema, { formats })
 
   const validAuthor = {
     id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
@@ -152,7 +160,8 @@ describe('complex nested collections schema validation', () => {
 
   it('accepts valid enum values for button style and rejects unknown options', () => {
     const article = createValidArticle()
-    const cta = (article.sections[0] as any).cta
+    const { cta } = article.sections[0]
+    if (!cta) throw new Error('hero section has no cta')
 
     cta.style = 'secondary'
     expect(validateArticle(article)).toBe(true)
@@ -165,11 +174,10 @@ describe('complex nested collections schema validation', () => {
   })
 
   it('defines enum options on the button style schema', () => {
-    const hero = (articles.schema as any).properties.sections.items.oneOf.find(
-      (v: any) => v.properties?.type?.const === 'hero'
-    )
+    const sectionVariants = (articles.schema as SchemaNode).properties?.sections?.items?.oneOf ?? []
+    const hero = sectionVariants.find((variant) => variant.properties?.type?.const === 'hero')
     expect(hero).toBeDefined()
-    expect(hero.properties.cta.properties.style.enum).toEqual(['primary', 'secondary', 'outline'])
+    expect(hero?.properties?.cta?.properties?.style?.enum).toEqual(['primary', 'secondary', 'outline'])
   })
 
   it('rejects an unknown polymorphic discriminator type in sections', () => {
@@ -177,7 +185,7 @@ describe('complex nested collections schema validation', () => {
     article.sections.push({
       type: 'unsupportedType',
       data: 'sample'
-    } as any)
+    } as unknown as Section)
 
     expect(validateArticle(article)).toBe(false)
   })
@@ -186,31 +194,31 @@ describe('complex nested collections schema validation', () => {
     const article = createValidArticle()
     article.sections.push({
       headline: 'Missing type discriminator'
-    } as any)
+    } as unknown as Section)
 
     expect(validateArticle(article)).toBe(false)
   })
 
   it('rejects invalid types in deeply nested sub-arrays', () => {
     const article = createValidArticle()
-    const featureGrid = article.sections[2] as any
+    const featureGrid = article.sections[2]
     expect(featureGrid.type).toBe('featureGrid')
 
-    featureGrid.features[0].icon = 12345
+    Object.assign(featureGrid.features?.[0] ?? {}, { icon: 12345 })
     expect(validateArticle(article)).toBe(false)
   })
 
   it('rejects malformed storage resources with invalid property types', () => {
     const article = createValidArticle()
-    const gallery = article.sections[1] as any
+    const gallery = article.sections[1]
     expect(gallery.type).toBe('gallery')
 
     // bucket must be a string, not a number
-    gallery.images[0] = { bucket: 12345, name: 'orphaned-file.png' }
+    gallery.images?.splice(0, 1, { bucket: 12345, name: 'orphaned-file.png' } as unknown as StorageReference)
     expect(validateArticle(article)).toBe(false)
 
     // image must be an object, not a string
-    gallery.images[0] = 'not-an-object'
+    gallery.images?.splice(0, 1, 'not-an-object' as unknown as StorageReference)
     expect(validateArticle(article)).toBe(false)
   })
 })

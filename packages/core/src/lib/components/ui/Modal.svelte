@@ -35,7 +35,7 @@
 
 <Dialog
     {open}
-    onOpenChange={(e: any) => {
+    onOpenChange={(e) => {
       open = e.open
       if (!e.open && onclose) onclose()
     }}

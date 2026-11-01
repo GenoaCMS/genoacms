@@ -1,12 +1,14 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements'
 
-  interface Props {
+  interface OwnProps {
     preset?: 'filled' | 'tonal' | 'outlined'
     class?: string
     children?: Snippet
-    [key: string]: any
   }
+
+  type Props = OwnProps & HTMLButtonAttributes & HTMLAnchorAttributes
 
   const {
     preset = 'filled',

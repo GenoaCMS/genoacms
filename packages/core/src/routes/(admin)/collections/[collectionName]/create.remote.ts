@@ -4,7 +4,7 @@ import { requireAuthContext } from '#lib/script/authorization/request.server.js'
 import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
 import { DocumentValidationError } from '#lib/script/database/errors.js'
 
-export const createDoc = command('unchecked', async (data: { collectionName: string; documentData: any }) => {
+export const createDoc = command('unchecked', async (data: { collectionName: string; documentData: Parameters<typeof createUserDocument>[2] }) => {
   const { collectionName, documentData } = data
   if (!collectionName || !documentData) return { status: 'fail', text: 'Invalid data format' }
 
@@ -13,7 +13,7 @@ export const createDoc = command('unchecked', async (data: { collectionName: str
 
   try {
     const collectionReference = await getUserCollectionReference(ctx, collectionName)
-    const documentInfo: any = await createUserDocument(ctx, collectionReference, documentData)
+    const documentInfo: { reference?: { id: string }, id?: string } = await createUserDocument(ctx, collectionReference, documentData)
     return { status: 'success', text: 'Document created', id: documentInfo.reference?.id || documentInfo.id }
   } catch (error) {
     // A denial is not a failure to create; reporting it as one would hide an authorization result

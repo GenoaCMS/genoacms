@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { flushSync, mount, unmount } from 'svelte'
-import type { CollectionReference } from '@genoacms/contracts/database'
+import type { CollectionReference, JsonSchema } from '@genoacms/contracts/database'
 import { storageResource, nullableStorageResource, reference } from '@genoacms/contracts/schemas'
 import { page } from 'vitest/browser'
 import Editor from './Editor.svelte'
@@ -20,10 +20,10 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-const collectionOf = (properties: Record<string, unknown>): CollectionReference =>
+const collectionOf = (properties: Record<string, JsonSchema>): CollectionReference =>
   ({ name: 'articles', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object', properties } })
 
-function openEditor (properties: Record<string, unknown>, value: Data = {}): { latest: () => Data } {
+function openEditor (properties: Record<string, JsonSchema>, value: Data = {}): { latest: () => Data } {
   let latest: Data = snapshot(value)
   mounted = mount(Editor, {
     target: document.body,
