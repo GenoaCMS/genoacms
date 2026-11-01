@@ -78,6 +78,7 @@ function URL every request carries the Web Adapter's context, and a client's own
 | WF18 | **Dependencies are installed for the operator's platform.** `npm install --omit=dev` runs on the operator's machine, so a native binary is the host's, which Lambda (Linux x64) cannot load. | fixed, RFC-0026 |
 | WF20 | **Empty and non-string options passed LMB-3** (WS5). `functionName`, `memory`, `timeoutSeconds` and `origin` set to `""` were accepted: an empty `functionName` named the archive `.genoacms/deployment/.zip`, and an empty `origin` set `ORIGIN=""` without the forwarded headers. A `role` that was not a string got two reasons, where LMB-3 allows one. | fixed, RFC-0026 |
 | WF25 | **The client address can be forged** (LMB-10, WS2). With `ADDRESS_HEADER=x-forwarded-for` and `XFF_DEPTH=1`, RFC-0026's contract test sent `X-Forwarded-For: 203.0.113.9` and the server received exactly `203.0.113.9`: the function URL does not append the client's address, so `getClientAddress()` returned the forged one. | fixed, RFC-0026 |
+| WF29 | **Every function is created on `nodejs22.x` (LMB-9).** The runtime is fixed, not an option, and is one the project no longer tests on: since 2026-11-01 CI runs Node 26, and Node 22 reaches its end of life on 2027-04-30. Which runtimes Lambda offers now was not checked. Found 2026-11-01 while raising CI's Node. | open |
 
 ### History
 

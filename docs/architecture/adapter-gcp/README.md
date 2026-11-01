@@ -248,6 +248,7 @@ Every `G` ID, where it lives, and its state.
 | GF37 | STO-3 is tested through `getObject` only | fixed, RFC-0033 | [`storage.md`](storage.md) |
 | GF38 | Deleting a directory of more than one page never ends | fixed | [`storage.md`](storage.md) |
 | GF39 | A read right after an overwrite can return the previous value | open | [`secrets.md`](secrets.md) |
+| GF40 | The runtime default `nodejs22` is one CI no longer tests on | open; decided to raise, RFC to come | [`deployment.md`](deployment.md) |
 | GS1 | Identity Platform behavior | partly run, by the contract tests | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GS2 | A failing build fails the deploy (live) | automated, RFC-0025 | [`deployment.md`](deployment.md) |
 | GS3 | Signed URLs work under the runtime identity | not run | [`storage.md`](storage.md) |
