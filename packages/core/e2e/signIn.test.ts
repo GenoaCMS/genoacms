@@ -84,6 +84,23 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
     })
   })
 
+  describe('without a session', () => {
+    beforeAll(async () => { await serve({ primary: [ada] }) }, BUILD_TIMEOUT_MS)
+
+    it('AUTHN-12: every page of the admin area redirects to / without a session, and / and /login answer 200', async () => {
+      for (const path of ['/dashboard', '/collections', '/components/registrar', '/components/pages', '/configuration', '/configuration/iam', '/configuration/keys', '/storage']) {
+        const response = await fetch(`${server.origin}${path}`, { redirect: 'manual' })
+        expect({ path, status: response.status, location: response.headers.get('location'), body: (await response.text()).trim() })
+          .toStrictEqual({ path, status: 303, location: '/', body: '' })
+      }
+      for (const path of ['/', '/login']) {
+        const response = await fetch(`${server.origin}${path}`, { redirect: 'manual' })
+        await response.arrayBuffer()
+        expect({ path, status: response.status }).toStrictEqual({ path, status: 200 })
+      }
+    })
+  })
+
   describe('with the second provider failing', () => {
     beforeAll(async () => { await serve({ primary: [ada] }) }, BUILD_TIMEOUT_MS)
 
