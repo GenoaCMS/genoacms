@@ -3,7 +3,7 @@ type: architecture
 title: The page shell in core
 prefix: V
 codes: [SHL]
-verified: a6383223
+verified: 7493f44f
 ---
 
 # The page shell in core
@@ -46,7 +46,7 @@ component loads after mounting, so a test still waits for what it reads.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| VF1 | **The e2e tests spend about a third of their time waiting for the network to fall quiet.** Each page load waited for `networkidle`, at least 500 ms after the last request. Measured on 2026-11-02 against core built with `genoa.config/e2e.ts`: the registrar reached `load` in 173 ms and `networkidle` in 681 ms, the code editor in 350 ms and 857 ms. `components.test.ts` opens about 70 pages in its 104 s. | open; RFC-0046 |
+| VF1 | **The e2e tests spend about a third of their time waiting for the network to fall quiet.** Each page load waited for `networkidle`, at least 500 ms after the last request. Measured on 2026-11-02 against core built with `genoa.config/e2e.ts`: the registrar reached `load` in 173 ms and `networkidle` in 681 ms, the code editor in 350 ms and 857 ms. `components.test.ts` opens about 70 pages in its 104 s. | *History.* fixed (RFC-0046): every page load waits for SHL-1's mark; on 2026-11-02 `components.test.ts` took 61 s and the whole core run 294 s, from 408 s |
 
 ### History
 
@@ -54,8 +54,8 @@ component loads after mounting, so a test still waits for what it reads.
 
 ### Verification
 
-- **`e2e`.** `packages/core/e2e/signIn.test.ts` reads the server's HTML of `/login` and opens it in
-  Chromium.
+- **`e2e`.** `packages/core/e2e/signIn.test.ts` reads the server's HTML of `/`, opens it in Chromium and follows its link
+  to `/login` inside the application.
 
 ## Specification
 
@@ -68,6 +68,5 @@ page is hydrated, and every component of it is mounted, `<html>` has `data-hydra
 value. The attribute stays until the document is replaced: a navigation inside the application
 keeps it.
 
-- Test: none yet
+- Test: `packages/core/e2e/signIn.test.ts`
 - Level: e2e
-- State: new (RFC-0046)

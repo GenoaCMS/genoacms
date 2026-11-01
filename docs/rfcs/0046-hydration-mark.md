@@ -2,7 +2,9 @@
 type: rfc
 number: 46
 title: The page marks when it is interactive, and the e2e tests wait for the mark
-status: draft
+status: auditing
+commits: [27f8eacd, 7493f44f]
+audit: []
 depends: [45]
 architecture: [architecture/shell.md, README.md]
 changes: [SHL-1 added]
