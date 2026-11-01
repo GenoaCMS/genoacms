@@ -1,23 +1,41 @@
 <script lang="ts">
-  import type { AttributeData } from '#lib/script/components/page/entry/types.js'
-  import type { LinkAttributeType } from '#lib/script/components/componentHeader/component/types.js'
+  import type { LinkAttributeValue } from '#lib/script/components/componentHeader/component/types.js'
+  import { untrack } from 'svelte'
   import { Input, Select, Toggle } from '#lib/components/ui/index.js'
-  import { page } from '$app/state'
 
   interface Props {
-    data: AttributeData<LinkAttributeType>,
-    onvalue: (v: LinkAttributeType) => void
+    value: LinkAttributeValue,
+    pages: string[],
+    onvalue: (value: LinkAttributeValue) => void
   }
-  const { data, onvalue }: Props = $props()
-  const link = $state(data)
+  const { value, pages, onvalue }: Props = $props()
+  const initial = untrack(() => value)
+  const draft = $state({
+    isExternal: initial.isExternal,
+    url: initial.isExternal ? initial.url : '',
+    pageName: initial.isExternal ? '' : initial.pageName
+  })
 
-  function selectType (e: CustomEvent<boolean>) {
-    link.isExternal = e.target.checked
-    onvalue(link)
+  // PGE-12
+  function selectedLink (): LinkAttributeValue {
+    return draft.isExternal
+      ? { isExternal: true, url: draft.url }
+      : { isExternal: false, pageName: draft.pageName }
   }
-  function updateURL (e: InputEvent) {
-    link.url = (e.target as HTMLInputElement).value
-    onvalue(link)
+  function sendLink () {
+    onvalue(selectedLink())
+  }
+  function selectKind (event: Event) {
+    draft.isExternal = (event.currentTarget as HTMLInputElement).checked
+    sendLink()
+  }
+  function updateURL (event: Event) {
+    draft.url = (event.currentTarget as HTMLInputElement).value
+    sendLink()
+  }
+  function selectPage (event: Event) {
+    draft.pageName = (event.currentTarget as HTMLSelectElement).value
+    sendLink()
   }
 </script>
 
@@ -25,16 +43,16 @@
   <div class="w-auto">
     Local
   </div>
-  <Toggle checked={link.isExternal} onchange={selectType} class="w-auto"/>
+  <Toggle checked={draft.isExternal} onchange={selectKind} aria-label="External" class="w-auto"/>
   <div class="w-auto">
     External
   </div>
 </div>
-{#if link.isExternal}
-  <Input type="url" value={link.url} placeholder="https://example.com" oninput={updateURL} />
+{#if draft.isExternal}
+  <Input type="url" value={draft.url} placeholder="https://example.com" oninput={updateURL} />
 {:else}
-  <Select bind:value={link.pageName}>
-    {#each page.data.pages as pageName}
+  <Select value={draft.pageName} onchange={selectPage}>
+    {#each pages as pageName (pageName)}
       <option value={pageName}>{pageName}</option>
     {/each}
   </Select>

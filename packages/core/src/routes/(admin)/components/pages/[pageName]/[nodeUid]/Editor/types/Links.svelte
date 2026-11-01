@@ -5,10 +5,11 @@
   import Link from './Link.svelte'
   import { Card } from '#lib/components/ui/index.js'
   import AttributeTypeIcon from '#lib/components/components/AttributeTypeIcon.svelte'
+  import { page } from '$app/state'
 
   interface Props {
     data: AttributeData<LinkAttributeType>,
-    onvalue: (v: LinkAttributeType) => void
+    onvalue: (value: LinkAttributeValue[]) => void
   }
   const { data, onvalue }: Props = $props()
   const links = $state(data.value)
@@ -37,8 +38,8 @@
       {data.name}
     </h3>
   </div>
-  {#each links as link, i}
-    <Link data={link} onvalue={(v) => updateLink(i, v)} />
+  {#each links as link, i (i)}
+    <Link value={link} pages={page.data.pages} onvalue={(value) => updateLink(i, value)} />
     {#if i < links.length - 1}
       <hr class="my-4" />
     {/if}
