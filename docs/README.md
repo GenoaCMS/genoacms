@@ -34,6 +34,7 @@ Check the documents from the repository root with `pnpm run docs:check`
 | [`architecture/components.md`](architecture/components.md) | `N` | `CMP`, `SRC`, `HIS`, `PUB`, `PGE`, `TRE` | components and pages in core: the catalog of headers, dynamic components' source, the editing history, publication, page entries and the published page tree | yes. 40 current statements, all naming a test, 1 of them partly verified (CMP-3); RFC-0045 gave the screens' statements `e2e` tests. |
 | [`architecture/authorization.md`](architecture/authorization.md) | `Z` | `ROL` | authorization in core: the roles screen and its grant editor only | yes. 5 statements, all naming a test at `e2e` (RFC-0045). |
 | [`architecture/signing.md`](architecture/signing.md) | `Y` | `KEY` | signing keys in core: the key registry screen only | yes. 4 statements, all naming a test at `e2e` (RFC-0045). |
+| [`architecture/shell.md`](architecture/shell.md) | `V` | `SHL` | the page shell in core: the mark that a page is interactive only | yes. 1 statement, **New** (RFC-0046). |
 | [`architecture/agent-access.md`](architecture/agent-access.md) | `T` | `AGT`, `MCP`, `TOL` | agents: their declaration, tokens and ceiling, the MCP endpoint, and the tools for components, pages, documents and objects | yes. 38 current statements, all naming a test (RFC-0039; TOL-18 to TOL-29 RFC-0041 `auditing`); MCP-3 is **New** (no RFC yet). |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
@@ -55,6 +56,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: authentication and sessions | `core` (`auth/`) | `contracts/authentication.md`: sign-in, session revalidation and the admin area's guard (AUTHN-12); the session family, tokens and cookie: none | partial |
 | Core: authorization, roles, grants | `core` (`authorization/`) | `authorization.md`: the roles screen (ROL) | partial: the grant model, resolution, manifests, accounts, agents and assignment: none |
 | Core: signing, keys, root rotation, manifests | `core` (`signing/`, `bootstrap`) | `signing.md`: the key registry screen (KEY); `secrets.md`, *Bootstrap ordering* | partial: the envelope, algorithms, the registry document and its verification: none |
+| Core: the page shell | `core` (`routes/+layout.svelte`, `(admin)/+layout.svelte`) | `shell.md`: the interactivity mark (SHL) | partial: the layouts, navigation, progress bar, toasts and alerts: none |
 | Core: security policy | `core` (`securityPolicy/`) | none | none |
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
 | Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 22 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF12 (RFC-0040), BF7 mitigated |
