@@ -150,7 +150,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await page.waitForURL(url => decodeURIComponent(url.pathname).endsWith(`${DELIMITER}sub//contents`))
 
     expect(decodedLocation(page)).toBe(`/storage/${BUCKET}/${DELIMITER}${ROOT}${DELIMITER}sub//contents?selectionId=x`)
-    await shown(page.getByRole('heading', { name: `${ROOT}sub/`, exact: true }))
+    await shown(page.getByRole('heading', { name: `${BUCKET} / ${ROOT}sub/`, exact: true }))
     await page.getByRole('link', { name: /back/i }).click()
     await page.waitForURL(url => decodeURIComponent(url.pathname) === `/storage/${BUCKET}/${DELIMITER}${ROOT}/contents`)
     await page.getByRole('link', { name: /back/i }).click()
@@ -179,6 +179,18 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
   it('BRW-3: the root of a bucket is titled with the bucket\'s name', async () => {
     const { page } = adaSession
     await visit(page, `/storage/${BUCKET}/contents`)
+    await shown(page.getByRole('heading', { name: BUCKET, exact: true }))
+  })
+
+  it('BRW-1, BRW-3: a directory is titled with its bucket and its name, the bucket linking to the root with the query string', async () => {
+    const { page } = adaSession
+    await visit(page, contentsUrl(`${ROOT}sub/`, '?selectionId=x'))
+    const heading = page.getByRole('heading', { name: `${BUCKET} / ${ROOT}sub/`, exact: true })
+    await shown(heading)
+    await heading.getByRole('link', { name: BUCKET, exact: true }).click()
+    await page.waitForURL(url => url.pathname === `/storage/${BUCKET}/contents`)
+
+    expect(decodedLocation(page)).toBe(`/storage/${BUCKET}/contents?selectionId=x`)
     await shown(page.getByRole('heading', { name: BUCKET, exact: true }))
   })
 
@@ -426,7 +438,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
   it('STS-5, BRW-16: .genoacms/ opens for reading, and an upload into it is refused', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl('.genoacms/'))
-    await shown(page.getByRole('heading', { name: '.genoacms/', exact: true }))
+    await shown(page.getByRole('heading', { name: `${BUCKET} / .genoacms/`, exact: true }))
 
     await button(page, 'Upload object').click()
     await page.locator('input[type=file]').setInputFiles([{ name: `refused-${run}.txt`, mimeType: 'text/plain', buffer: Buffer.from('no') }])

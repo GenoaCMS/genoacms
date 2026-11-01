@@ -14,13 +14,12 @@
   import ShowMore from './ShowMore.svelte'
   import Grid from '#lib/components/Grid.svelte'
   import Delete from './Delete.svelte'
+  import DirectoryTitle from './DirectoryTitle.svelte'
   import PermissionGate from '#lib/components/PermissionGate.svelte'
   import { nextPage } from './listing.remote'
   import type { PageData } from './$types'
 
   const { data } = $props()
-  // BRW-3
-  const title = $derived(data.path === '' ? data.bucketId : data.path)
 
   type Listing = PageData['contents']
   interface Loaded {
@@ -70,9 +69,7 @@
 </script>
 
 <TopPanel hrefBack={data.parentPath}>
-    <h1 class="text-2xl">
-        {title}
-    </h1>
+    <DirectoryTitle bucketId={data.bucketId} path={data.path} />
     {#snippet right()}
         <!-- BD5 -->
         <PermissionGate permission="storage:bucket:write" resource={data.bucketId}>
