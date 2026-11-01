@@ -67,6 +67,7 @@ own before starting the next.
 | [0043](0043-sveltekit-3.md) | SvelteKit 3, with the origin fixed at build time and the Cloud Run adapter 2.0.0 (`build.md` U15 to U19, D10, D11, F21 to F27) | `packages/core`, `packages/config`, `packages/contracts`, `packages/sveltekit-adapter-cloud-run-functions`, `packages/adapter-gcp`, `packages/adapter-aws`, `packages/adapter-node`, `packages/demo-svelte`, every package on Vitest |
 | [0044](0044-ui-schema-in-the-contract.md) | `uiSchema` declared in the contract's `CollectionReference` (`contracts/database.md` DATA-1; `collections.md` OU9, OF6) | `packages/contracts`, `packages/core`, `packages/docs` |
 | [0045](0045-browser-tests-at-e2e.md) | Every browser test of core at the `e2e` level, with the roles and key registry screens specified (`authorization.md` ZU1; `signing.md` YU1; `build.md` F32). Auditing. | `packages/core`, `packages/demo-support` |
+| [0046](0046-hydration-mark.md) | The page marks when it is interactive, and the `e2e` tests wait for the mark (`shell.md` VU1, VD1). Draft. | `packages/core` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 
