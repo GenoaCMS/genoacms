@@ -29,7 +29,6 @@ const {
 const child = (uid: string): ComponentNode<IsSerializable> => ({
   uid,
   entryReference: 'component-child',
-  name: 'Card',
   data: {}
 })
 

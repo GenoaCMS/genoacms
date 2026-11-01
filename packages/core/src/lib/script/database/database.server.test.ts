@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as storageContract from '@genoacms/contracts/storage'
+import type { CollectionReference } from '@genoacms/contracts/database'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
 import { deriveKeyId } from '#lib/script/signing/keyId.js'
 import { sign, type SigningKey } from '#lib/script/signing/envelope.js'
@@ -239,7 +240,7 @@ describe('the database of a collection', () => {
     const expected: Array<{ database: string, operation: string, reference: unknown }> = []
 
     for (const [name, database] of [['articles', 'main'], ['legacy', 'main'], ['logs', 'archive']]) {
-      const collection = { ...articles, name }
+      const collection: CollectionReference = { ...articles, name }
       const document = { collection, id: 'one' }
       await service.createDocument(collection, {})
       await service.getCollection(collection)

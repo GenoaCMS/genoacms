@@ -1,5 +1,5 @@
 import { command, getRequestEvent } from '$app/server'
-import { validator } from '@exodus/schemasafe'
+import { validator, type Json } from '@exodus/schemasafe'
 import { componentHeaderSchema } from '#lib/script/components/componentHeader/component/schemas.js'
 import { updateUserComponentHeader } from '#lib/script/components/componentHeader/user.server.js'
 import { requireAuthContext } from '#lib/script/authorization/request.server.js'
@@ -14,7 +14,7 @@ import { NoSuchComponentError } from '#lib/script/components/editor/errors.js'
 const validate = validator(componentHeaderSchema)
 
 export const updateComponent = command('unchecked', async (data: { header: ComponentHeader, version: string }) => {
-  const isValid = typeof data?.version === 'string' && validate(data.header)
+  const isValid = typeof data?.version === 'string' && validate(data.header as unknown as Json)
   if (!isValid) return { status: 'fail' as const, text: 'Invalid data' }
   // A remote function has no `locals` parameter; the request context is fetched rather than passed.
   const ctx = requireAuthContext(getRequestEvent().locals)

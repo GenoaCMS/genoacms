@@ -75,7 +75,8 @@
     version = result.version ?? version
     toastSuccess(result.text)
   }
-  function addAttribute (attribute: AttributeT) {
+  function addAttribute (attributeInit: Record<string, unknown>) {
+    const attribute = attributeInit as unknown as AttributeT
     form.attributes[attribute.uid] = attribute
     form.attributeOrder.push(attribute.uid)
   }

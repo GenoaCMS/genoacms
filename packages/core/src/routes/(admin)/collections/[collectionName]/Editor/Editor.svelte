@@ -1,4 +1,4 @@
-<script lang="ts" generics="T extends Record<string, unknown>">
+<script lang="ts">
   import type { CollectionReference } from '@genoacms/contracts/database'
   import type { InputValue } from '#lib/components/editors/types.js'
   import { asSchemaObject } from '#lib/script/schema.js'
@@ -7,8 +7,8 @@
 
   interface Props {
     collectionReference: CollectionReference;
-    value?: T,
-    onvalue?: (value: T) => unknown
+    value?: Record<string, unknown>,
+    onvalue: (value: Record<string, unknown>) => unknown
   }
   const { collectionReference, value = {}, onvalue }: Props = $props()
   const fields = $derived(
