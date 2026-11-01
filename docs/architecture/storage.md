@@ -267,11 +267,14 @@ to the parent directory, and from the root to `/storage`.
 
 #### BRW-3 · A directory
 
-The page is titled `<bucket> / <directory>`, with the directory's name, where the bucket's name
-links to its root; at the root, whose name is empty, with the bucket's name alone. It shows the
-directories loaded, then the files loaded (BRW-15), each in the order the adapter lists them
-(`contracts/storage.md` STOR-11). A directory shows its own level's name, its trailing `/`
-removed, and opens it. A file shows its `filename` and opens its signed URL in a new tab.
+The page is titled with the directory's own level's name, its trailing `/` removed, under a trail
+of the bucket's name and the name of each level above it, each linking to its directory, the bucket's
+to its root; at the root, whose name is empty, with the bucket's name alone. In a top panel narrower
+than 44rem, the title and the trail are each cut to one line, and a control shows them whole; in a
+wider one, they wrap. It shows the directories loaded, then the files loaded (BRW-15), each in the
+order the adapter lists them (`contracts/storage.md` STOR-11). A directory shows its own level's
+name, its trailing `/` removed, and opens it. A file shows its `filename` and opens its signed URL
+in a new tab.
 
 - Test: `packages/core/e2e/storage.test.ts`
 - Level: e2e
