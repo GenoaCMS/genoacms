@@ -4,7 +4,7 @@ import type { Locator, Page } from 'playwright'
 import runtime from '@genoacms/adapter-gcp/storage/runtime'
 import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance } from './bucket'
-import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
+import { launchBrowser, closeBrowser, signedInSession, visit, hydrated, type Session } from './browser'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -34,11 +34,6 @@ let session: Session
 const shown = async (locator: Locator): Promise<void> => { await locator.first().waitFor({ state: 'visible', timeout: SLOW_MS }) }
 const reported = async (page: Page, text: string | RegExp): Promise<void> => { await shown(page.getByText(text)) }
 const button = (page: Page, name: string | RegExp): Locator => page.getByRole('button', { name })
-
-async function visit (page: Page, url: string): Promise<void> {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
 
 async function storage (): Promise<Awaited<ReturnType<typeof runtime.create>>> {
   return await runtime.create({ projectId: PROJECT }, { name: 'e2e', resources: [BUCKET] })
@@ -129,7 +124,6 @@ async function createPage (page: Page, name: string, component: string): Promise
   await dialog.getByLabel('Component:').selectOption({ label: component })
   await dialog.getByRole('button', { name: 'Create', exact: true }).click()
   await page.waitForURL(url => url.pathname.startsWith(`/components/pages/${encodeURIComponent(name)}/`), { timeout: SLOW_MS })
-  await page.waitForLoadState('networkidle')
   await shown(page.getByRole('heading', { name }))
 }
 
@@ -169,7 +163,7 @@ async function pressAndWait (page: Page, name: string, outcome: string): Promise
 
 async function namesAfterReload (page: Page): Promise<string[]> {
   await page.reload()
-  await page.waitForLoadState('networkidle')
+  await hydrated(page)
   await shown(page.getByText(SLOT, { exact: true }))
   return await nestedNames(page)
 }
@@ -242,7 +236,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       await pressAndWait(page, 'Save', 'Saved')
 
       await page.reload()
-      await page.waitForLoadState('networkidle')
+      await hydrated(page)
       await shown(page.getByText(valueOf('string'), { exact: true }))
       expect(await page.locator('.card').filter({ hasText: valueOf('string') }).getByRole('textbox').inputValue()).toBe(text)
     })

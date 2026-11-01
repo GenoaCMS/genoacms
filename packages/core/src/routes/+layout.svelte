@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import '../app.css'
   import 'bootstrap-icons/font/bootstrap-icons.css'
   import { toaster } from '#lib/script/alert.svelte.js'
@@ -12,6 +12,9 @@
     children?: Snippet;
   }
   const { children }: Props = $props()
+
+  // SHL-1
+  onMount(() => { document.documentElement.dataset.hydrated = '' })
 </script>
 
 {@render children?.()}

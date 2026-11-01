@@ -4,7 +4,7 @@ import type { Locator, Page } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import runtime from '@genoacms/adapter-gcp/storage/runtime'
 import { enabled, removeInstance } from './bucket'
-import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
+import { launchBrowser, closeBrowser, signedInSession, visit, hydrated, type Session } from './browser'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -29,12 +29,6 @@ const reported = async (page: Page, text: string | RegExp): Promise<void> => { a
 const card = (page: Page, name: string): Locator => page.getByRole('link', { name })
 const button = (page: Page, name: string | RegExp): Locator => page.getByRole('button', { name })
 
-/** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
-async function visit (page: Page, url: string): Promise<void> {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
-
 async function register (page: Page, name: string, kind: 'Already coded in my app' | 'Code it here'): Promise<string> {
   await visit(page, '/components/registrar')
   await page.getByRole('button', { name: 'Register component' }).click()
@@ -57,13 +51,13 @@ async function writeBody (page: Page, uid: string, body: string): Promise<void> 
 
 async function registerPrebuilt (page: Page, name: string): Promise<string> {
   const uid = await register(page, name, 'Already coded in my app')
-  await visit(page, `/components/registrar/${uid}`)
+  await shown(page.getByText(`Component: ${name}`))
   return uid
 }
 
 async function registerDynamic (page: Page, name: string): Promise<string> {
   const uid = await register(page, name, 'Code it here')
-  await visit(page, `/components/registrar/${uid}`)
+  await shown(page.getByText(`Component: ${name}`))
   return uid
 }
 
@@ -216,6 +210,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await rename(page, renamed)
 
     await page.reload()
+    await hydrated(page)
     await shown(page.getByText(`Component: ${renamed}`))
   })
 
@@ -238,7 +233,6 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
 
     await publishRegistered(page)
     await reported(page, 'Component published')
-    await page.getByText('Component published').first().waitFor({ state: 'detached', timeout: SLOW_MS })
 
     await publishRegistered(page)
     await reported(page, /Nothing has changed/)
@@ -253,6 +247,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await reported(page, /updated|saved/i)
 
     await page.reload()
+    await hydrated(page)
     await shown(page.getByRole('textbox'))
   })
 
@@ -274,6 +269,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await rename(page, renamed)
 
     await page.reload()
+    await hydrated(page)
     const undo = button(page, 'Undo')
     await expect.poll(async () => await undo.isEnabled(), { timeout: SLOW_MS }).toBe(true)
 
@@ -310,6 +306,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await reported(page, /updated|saved/i)
 
     await page.reload()
+    await hydrated(page)
     await expect.poll(async () => await page.getByLabel('Minimum value:').inputValue(), { timeout: SLOW_MS }).toBe('')
   })
 
@@ -379,6 +376,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await writeAndSave(page, 'const answer = 42\nreturn answer\n')
 
     await page.reload()
+    await hydrated(page)
     await expect.poll(async () => await page.locator('.cm-content').first().innerText(), { timeout: SLOW_MS }).toContain('answer')
   })
 
@@ -397,6 +395,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await expect.poll(async () => await editor.innerText(), { timeout: SLOW_MS }).toContain('return 2')
 
     await page.reload()
+    await hydrated(page)
     await expect.poll(async () => await page.locator('.cm-content').first().innerText(), { timeout: SLOW_MS }).toContain('return 2')
   })
 

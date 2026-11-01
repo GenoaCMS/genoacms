@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
+import { chromium, type Browser, type BrowserContext, type Page, type Response } from 'playwright'
 import type { RunningServer, User } from './server'
 
 export interface Session {
@@ -7,6 +7,20 @@ export interface Session {
 }
 
 let browser: Browser | undefined
+
+const HYDRATED = 'html[data-hydrated]'
+
+/** SHL-1: resolves once the page in `page` is hydrated. */
+export async function hydrated (page: Page): Promise<void> {
+  await page.locator(HYDRATED).waitFor({ state: 'attached' })
+}
+
+/** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
+export async function visit (page: Page, url: string): Promise<Response | null> {
+  const response = await page.goto(url)
+  await hydrated(page)
+  return response
+}
 
 export async function launchBrowser (): Promise<void> {
   browser ??= await chromium.launch()

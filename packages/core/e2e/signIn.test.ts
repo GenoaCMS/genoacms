@@ -102,7 +102,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       }
     })
 
-    it.fails('SHL-1: a page is served without data-hydrated, and has it once hydrated, after an in-app navigation too', async () => {
+    it('SHL-1: a page is served without data-hydrated, and has it once hydrated, after an in-app navigation too', async () => {
       const served = await (await fetch(`${server.origin}/`)).text()
       expect(served.match(/<html[^>]*>/)?.[0]).not.toContain('data-hydrated')
 

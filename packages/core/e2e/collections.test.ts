@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import type { Dialog, Locator, Page } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance, writeCollectionDefinition, writeObject, deleteObjects } from './bucket'
-import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
+import { launchBrowser, closeBrowser, signedInSession, visit, type Session } from './browser'
 import { createDocument, readDocument, deleteDocuments } from './database'
 import { signCollectionDefinition } from './signing'
 
@@ -73,12 +73,6 @@ const left = async (locator: Locator): Promise<number> => (await locator.boundin
 async function confirmWith (page: Page, question: string): Promise<void> {
   await shown(page.getByText(question, { exact: true }))
   await button(page, 'Yes').click()
-}
-
-/** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
-async function visit (page: Page, url: string): Promise<void> {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
 }
 
 const pause = async (ms: number): Promise<void> => { await new Promise(resolve => setTimeout(resolve, ms)) }
@@ -212,7 +206,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await visit(page, '/collections/dynamic')
       await page.getByRole('link').filter({ hasText: `${run} dynamic` }).click()
       await page.waitForURL('**/collections/dynamic/*')
-      await page.waitForLoadState('networkidle')
+      await page.getByRole('textbox', { name: 'name', exact: true }).waitFor()
 
       expect(await page.getByRole('textbox', { name: 'name', exact: true }).inputValue()).toBe(`${run} dynamic`)
     })

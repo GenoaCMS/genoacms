@@ -4,7 +4,7 @@ import type { Locator, Page } from 'playwright'
 import runtime from '@genoacms/adapter-gcp/storage/runtime'
 import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance, writeObject } from './bucket'
-import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
+import { launchBrowser, closeBrowser, signedInSession, visit, hydrated, type Session } from './browser'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -62,12 +62,6 @@ const button = (page: Page, name: string): Locator => page.getByRole('button', {
 const checkbox = (page: Page, name: string): Locator => page.getByRole('button', { name: `select-${name}`, exact: true })
 const toast = (page: Page, text: string): Locator => page.getByText(text, { exact: true })
 const pause = async (ms: number): Promise<void> => { await new Promise(resolve => setTimeout(resolve, ms)) }
-
-/** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
-async function visit (page: Page, url: string): Promise<void> {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
 
 /** The route of a directory: each level, with its trailing slash, after the delimiter. */
 const contentsUrl = (directory: string, query = ''): string => {
@@ -387,7 +381,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     const opened = adaSession.context.waitForEvent('page')
     await opener.evaluate(url => { window.open(url, '_blank') }, contentsUrl(ROOT, `?selectionId=${selectionId}`))
     const picker = await opened
-    await picker.waitForLoadState('networkidle')
+    await hydrated(picker)
     await shown(checkbox(picker, `${ROOT}a.png`))
     expect(await checkbox(picker, `${ROOT}sub/`).count()).toBe(0)
     await checkbox(picker, `${ROOT}a.png`).click()

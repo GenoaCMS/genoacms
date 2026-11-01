@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import type { Locator, Page } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance } from './bucket'
-import { launchBrowser, closeBrowser, signedInSession, type Session } from './browser'
+import { launchBrowser, closeBrowser, signedInSession, visit, type Session } from './browser'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -25,11 +25,6 @@ let session: Session
 const shown = async (locator: Locator): Promise<void> => { await locator.first().waitFor({ state: 'visible', timeout: SLOW_MS }) }
 const hidden = async (locator: Locator): Promise<void> => { await locator.waitFor({ state: 'hidden', timeout: SLOW_MS }) }
 const button = (scope: Page | Locator, name: string | RegExp): Locator => scope.getByRole('button', { name })
-
-async function visit (page: Page, url: string): Promise<void> {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
 
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&')
 
