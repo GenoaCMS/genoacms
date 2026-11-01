@@ -59,7 +59,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: collections, database UI | `core` (`database/`, `collections/` routes, `@genoacms/contracts/schemas`) | `collections.md` | specified; all 38 statements name tests; open findings among OF1 to OF29 |
 | Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 22 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF12 (RFC-0040), BF7 mitigated |
 | MinIO | `adapter-minio` | `adapter-minio.md` | specified; conforms (RFC-0037), tested against RustFS, in CI too |
-| Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; all 40 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16 and NF18; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
+| Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; all 40 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16, NF18 and NF21; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
 | Consumer SDK and demos | `sdk`, `demo-*` | `demo-deploy/README.md` (deployment only) | none |
 
 ## Test levels
