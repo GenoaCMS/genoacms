@@ -15,7 +15,10 @@ interface CollectionReference {
     schema: JsonSchema
   },
   schema: JsonSchema
+  uiSchema?: CollectionUiSchema
 }
+/** How the CMS shows each field, keyed by field name. Adapters ignore it. */
+type CollectionUiSchema = Record<string, { showPreview?: boolean }>
 interface DocumentReference<C extends CollectionReference> {
   collection: C
   id: string
@@ -47,6 +50,7 @@ interface CollectionPage<C extends CollectionReference> {
 export type {
   JsonSchema,
   CollectionReference,
+  CollectionUiSchema,
   DocumentReference,
   Comparable,
   Condition,

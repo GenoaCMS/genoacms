@@ -1,4 +1,4 @@
-import type { CollectionReference } from '@genoacms/contracts/database'
+import type { CollectionReference, CollectionUiSchema } from '@genoacms/contracts/database'
 import { lexer, type Token } from 'marked'
 import { asSchemaObject } from '#lib/script/schema.js'
 import { fieldKindOf, type FieldKind } from './Editor/fieldKind'
@@ -28,9 +28,8 @@ const MONO_KINDS: ReadonlySet<FieldKind> = new Set(['uuid', 'reference'])
 const EMPTY_CELL: Cell = { text: '—', title: 'empty', look: 'muted', isEmpty: true }
 const DOCUMENT_ID_COLUMN: Column = { name: 'id', kind: 'string', isLead: true, isDocumentId: true }
 
-// OF6
-const uiSchemaOf = (reference: CollectionReference): Record<string, { showPreview?: boolean }> =>
-  (reference as CollectionReference & { uiSchema?: Record<string, { showPreview?: boolean }> }).uiSchema ?? {}
+// LST-1
+const uiSchemaOf = (reference: CollectionReference): CollectionUiSchema => reference.uiSchema ?? {}
 
 // LST-1
 function columnsOf (reference: CollectionReference): Column[] {

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import type { CollectionReference } from '@genoacms/contracts/database'
+import type { CollectionReference, CollectionUiSchema, JsonSchema } from '@genoacms/contracts/database'
 import { columnsOf, cellOf, cellsOf, gridTemplate, minimumWidth, matchesFilter, documentCount } from './listing'
 
-const collectionOf = (properties: Record<string, unknown>, uiSchema?: Record<string, { showPreview?: boolean }>): CollectionReference =>
-  ({ name: 'articles', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object', properties }, uiSchema }) as CollectionReference
+const collectionOf = (properties: Record<string, JsonSchema>, uiSchema?: CollectionUiSchema): CollectionReference =>
+  ({ name: 'articles', primaryKey: { key: 'id', schema: { type: 'string' } }, schema: { type: 'object', properties }, uiSchema })
 
 const empty = { text: '—', title: 'empty', look: 'muted', isEmpty: true }
 

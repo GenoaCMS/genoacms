@@ -99,6 +99,7 @@ export const collections: CollectionReference[] = [
 - `name` is the collection's or table's name in the database.
 - `primaryKey.key` is the field that identifies a document, and `primaryKey.schema` its type. The AWS adapter accepts only string keys.
 - `schema` is a [JSON Schema](https://json-schema.org/) object describing a document; the contract types it as `JsonSchema`.
+- `uiSchema`, optional, tells the CMS how to show each field, keyed by field name: `{ body: { showPreview: false } }` leaves `body` out of the collection listing.
 
 `@genoacms/contracts/schemas` adds fields that point outside the document: `storageResource` and
 `nullableStorageResource` for an object in a bucket, and `reference({ collection })` for a document
