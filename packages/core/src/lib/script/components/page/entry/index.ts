@@ -84,32 +84,32 @@ const createPageEntry = async (values: {
  * The write-back is not optional: `future` is cleared by reassignment, so relying on the operations
  * to edit the page in place would silently miss it.
  */
-const historyOf = (page: PageEntry<IsSerializable>): UndoRedoAdjunct<PageContents<IsSerializable>> => ({
+const historyOf = (page: PageEntry<boolean>): UndoRedoAdjunct<PageContents<boolean>> => ({
   history: page.history,
   future: page.future
 })
 
 const withHistory = (
-  page: PageEntry<IsSerializable>,
-  adjunct: UndoRedoAdjunct<PageContents<IsSerializable>>
+  page: PageEntry<boolean>,
+  adjunct: UndoRedoAdjunct<PageContents<boolean>>
 ) => {
   page.history = adjunct.history
   page.future = adjunct.future
   return page
 }
 
-const pushPageEntryState = (oldContents: PageContents<IsSerializable>, page: PageEntry<IsSerializable>) =>
+const pushPageEntryState = (oldContents: PageContents<boolean>, page: PageEntry<boolean>) =>
   withHistory(page, recordChange(page.contents, historyOf(page), oldContents))
 
-const undoPageEntryState = (page: PageEntry<IsSerializable>) =>
+const undoPageEntryState = (page: PageEntry<boolean>) =>
   withHistory(page, undo(page.contents, historyOf(page)))
 
-const redoPageEntryState = (page: PageEntry<IsSerializable>) =>
+const redoPageEntryState = (page: PageEntry<boolean>) =>
   withHistory(page, redo(page.contents, historyOf(page)))
 
 /** TOL-16: swaps in edited contents and records the one step from the contents it replaces. */
-const recordPageEdit = (page: PageEntry<IsSerializable>, contents: PageContents<IsSerializable>) => {
-  const before: PageContents<IsSerializable> = duplicateObject(page.contents)
+const recordPageEdit = (page: PageEntry<boolean>, contents: PageContents<boolean>) => {
+  const before: PageContents<boolean> = duplicateObject(page.contents)
   page.contents = contents
   return pushPageEntryState(before, page)
 }
@@ -139,7 +139,7 @@ const addChildNodeToNodeInPage = (page: PageEntry<IsSerializable>, node: Compone
   return page
 }
 
-const serializeComponentNodeData = (nodeData: ComponentNodeData): ComponentNodeData<IsSerializable> => {
+const serializeComponentNodeData = (nodeData: ComponentNodeData<boolean>): ComponentNodeData<IsSerializable> => {
   const serializableData: ComponentNodeData<IsSerializable> = {}
   for (const [uid, data] of Object.entries(nodeData)) {
     serializableData[uid] = {
@@ -152,7 +152,7 @@ const serializeComponentNodeData = (nodeData: ComponentNodeData): ComponentNodeD
   return serializableData
 }
 
-const serializeComponentNode = (node: ComponentNode): ComponentNode<IsSerializable> => {
+const serializeComponentNode = (node: ComponentNode<boolean>): ComponentNode<IsSerializable> => {
   return {
     uid: node.uid,
     entryReference: node.entryReference,
@@ -160,7 +160,7 @@ const serializeComponentNode = (node: ComponentNode): ComponentNode<IsSerializab
   }
 }
 
-const serializePageContents = (contents: PageContents): PageContents<IsSerializable> => {
+const serializePageContents = (contents: PageContents<boolean>): PageContents<IsSerializable> => {
   const serializableNodes: ComponentNodes<IsSerializable> = {}
   for (const [uid, node] of Object.entries(contents.nodes)) {
     serializableNodes[uid] = serializeComponentNode(node)
@@ -170,7 +170,7 @@ const serializePageContents = (contents: PageContents): PageContents<IsSerializa
     rootNodeUid: contents.rootNodeUid
   }
 }
-const serializePageEntry = (page: PageEntry): PageEntry<IsSerializable> => {
+const serializePageEntry = (page: PageEntry<boolean>): PageEntry<IsSerializable> => {
   return {
     ...page,
     contents: serializePageContents(page.contents)

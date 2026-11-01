@@ -5,7 +5,7 @@ import { isNotFound } from '@genoacms/contracts/storage'
 import { getComponentHeader } from '#lib/script/components/componentHeader/io.server.js'
 import type { ComponentHeader } from '#lib/script/components/componentHeader/component/types.js'
 import { PageEditError, subtreeOf } from '#lib/script/components/page/edits.js'
-import type { IsSerializable, PageEntry } from '#lib/script/components/page/entry/types.js'
+import type { PageEntry } from '#lib/script/components/page/entry/types.js'
 import {
   addUserChildNode,
   createUserPage,
@@ -31,7 +31,7 @@ async function readPage (ctx: AuthContext, name: string) {
   }
 }
 
-async function viewOf (page: PageEntry<IsSerializable>, version: string | undefined) {
+async function viewOf (page: PageEntry, version: string | undefined) {
   const readHeader = readingOnceEach(getComponentHeader)
   const reachable = subtreeOf(page.contents, page.contents.rootNodeUid)
   const nodes = await Promise.all(reachable.map(async uid => {

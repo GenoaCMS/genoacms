@@ -1,19 +1,19 @@
-import type { SchemaObject } from '#lib/script/schema.js'
 import type { Diff } from 'deep-diff'
-import type { AttributeReference, AttributeType, ComponentHeaderReference } from '#lib/script/components/componentHeader/component/types.js'
+import type { Attribute, AttributeReference, AttributeType, ComponentHeaderReference } from '#lib/script/components/componentHeader/component/types.js'
 import type { AttributeValue, ComponentNodeReference } from '#lib/script/components/componentHeader/attribute/types.js'
 
 type IsSerializable = true
 
-interface AttributeData<T extends AttributeType = AttributeType,
+type AttributeSchemas = { [A in Attribute as A['type']]: A['schema'] }
+
+type AttributeData<T extends AttributeType = AttributeType,
   isSerializable extends boolean = false,
-  V extends AttributeValue<T> = AttributeValue<T>> {
-  uid: AttributeReference,
-  name: string,
-  type: T,
-  schema: isSerializable extends true ? undefined : SchemaObject,
-  value: V
-}
+  V extends AttributeValue<T> = AttributeValue<T>> = {
+    uid: AttributeReference,
+    name: string,
+    type: T,
+    value: V
+  } & (isSerializable extends true ? { schema?: undefined } : { schema: AttributeSchemas[T] })
 
 type ComponentNodeData<isSerializable extends boolean = false> =
   Record<AttributeReference, AttributeData<AttributeType, isSerializable>>

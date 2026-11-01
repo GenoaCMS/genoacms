@@ -6,8 +6,8 @@ import type {
 import type { AttributeValue } from '#lib/script/components/componentHeader/attribute/types.js'
 import type { ComponentNode, ComponentNodeData, IsSerializable, PageContents } from './entry/types'
 
-type Contents = PageContents<IsSerializable>
-type Node = ComponentNode<IsSerializable>
+type Contents = PageContents<boolean>
+type Node = ComponentNode<boolean>
 type Headers = Map<string, ComponentHeader>
 
 type Refusal = { ok: false, code: string, message: string }
@@ -54,7 +54,7 @@ function defaultValueOf (attribute: Attribute): AttributeValue {
 }
 
 /** PGE-2: a node of a stored header, with a value for every one of its attributes. */
-function newNode (header: ComponentHeader): Node {
+function newNode (header: ComponentHeader): ComponentNode<IsSerializable> {
   const data: ComponentNodeData<IsSerializable> = {}
   for (const attribute of Object.values(header.attributes)) {
     data[attribute.uid] = { uid: attribute.uid, name: attribute.schema.title, type: attribute.type, schema: undefined, value: defaultValueOf(attribute) }

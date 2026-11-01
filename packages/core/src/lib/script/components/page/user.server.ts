@@ -1,6 +1,6 @@
 import { requirePermission } from '#lib/script/authorization/enforce.js'
 import type { AuthContext } from '#lib/script/authorization/context.js'
-import type { IsSerializable, PageEntry } from '#lib/script/components/page/entry/types.js'
+import type { PageEntry } from '#lib/script/components/page/entry/types.js'
 import {
   listOrCreatePageList,
   listPageSummaries,
@@ -40,7 +40,7 @@ const listUserPages = async (ctx: AuthContext) => {
   return await listOrCreatePageList()
 }
 
-const getUserPageEntry = async (ctx: AuthContext, name: string): Promise<PageEntry<IsSerializable>> => {
+const getUserPageEntry = async (ctx: AuthContext, name: string): Promise<PageEntry> => {
   requirePermission(ctx, 'pages:read')
   return await getPageEntry(name)
 }
@@ -63,13 +63,13 @@ const openUserPageEntry = async (ctx: AuthContext, name: string) => {
 }
 
 /** Editing values on a page: attributes, storage resources, the preview URL. Conditional on `version` (HIS-2). */
-const saveUserPageContent = async (ctx: AuthContext, page: PageEntry<IsSerializable>, version: string) => {
+const saveUserPageContent = async (ctx: AuthContext, page: PageEntry<boolean>, version: string) => {
   requirePermission(ctx, 'pages:content_edit')
   return await savePageEntry(page, version)
 }
 
 /** Changing a page's shape: creating it, adding or rearranging nodes. Conditional on `version` (HIS-2). */
-const saveUserPageStructure = async (ctx: AuthContext, page: PageEntry<IsSerializable>, version: string) => {
+const saveUserPageStructure = async (ctx: AuthContext, page: PageEntry<boolean>, version: string) => {
   requirePermission(ctx, 'pages:structure_edit')
   return await savePageEntry(page, version)
 }
@@ -147,7 +147,7 @@ const setUserPreviewURL = async (ctx: AuthContext, name: string, version: string
  * the entry being reverted does not record which. Demanding only one would let a structure editor
  * revert a content change they could not have made.
  */
-const revertUserPageEntry = async (ctx: AuthContext, page: PageEntry<IsSerializable>, version: string) => {
+const revertUserPageEntry = async (ctx: AuthContext, page: PageEntry<boolean>, version: string) => {
   requirePermission(ctx, 'pages:content_edit')
   requirePermission(ctx, 'pages:structure_edit')
   return await savePageEntry(page, version)
@@ -167,7 +167,7 @@ const stepUserPage = async (ctx: AuthContext, name: string, version: string, dir
  * Demands the edit that produced it **and** `pages:publish`: publishing someone else's saved draft
  * is still publishing, and the tree is the artifact a visitor sees.
  */
-const generateUserReadablePageTree = async (ctx: AuthContext, page: PageEntry<IsSerializable>) => {
+const generateUserReadablePageTree = async (ctx: AuthContext, page: PageEntry<boolean>) => {
   requirePermission(ctx, 'pages:content_edit')
   requirePermission(ctx, 'pages:publish')
   return await generateReadablePageTree(page)

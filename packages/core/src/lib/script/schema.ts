@@ -26,7 +26,7 @@ function asSchemaObject (schema: Schema | Schema[] | undefined): SchemaObject | 
  * among the allowed types — there is no `nullable` keyword (that is OpenAPI 3.0,
  * which @exodus/schemasafe does not implement and would silently ignore).
  */
-function isNullable (schema: SchemaObject): boolean {
+function isNullable (schema: Pick<SchemaObject, 'type'>): boolean {
   const { type } = schema
   return Array.isArray(type) ? type.includes('null') : type === 'null'
 }
