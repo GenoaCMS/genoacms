@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { randomBytes } from 'node:crypto'
+import { chromium } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import { signIn, openLoginPage, withExpiredAccessToken, accessClaims } from './client'
 import { enabled, removeInstance } from './bucket'
@@ -15,6 +16,7 @@ const secrets = [ada.password, adaElsewhere.password, bob.password, stranger.pas
 
 const BUILD_TIMEOUT_MS = 300_000
 const REQUEST_TIMEOUT_MS = 60_000
+const HYDRATION_TIMEOUT_MS = 30_000
 
 let server: RunningServer
 let viaPrimary: string
@@ -97,6 +99,28 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
         const response = await fetch(`${server.origin}${path}`, { redirect: 'manual' })
         await response.arrayBuffer()
         expect({ path, status: response.status }).toStrictEqual({ path, status: 200 })
+      }
+    })
+
+    it.fails('SHL-1: a page is served without data-hydrated, and has it once hydrated, after an in-app navigation too', async () => {
+      const served = await (await fetch(`${server.origin}/`)).text()
+      expect(served.match(/<html[^>]*>/)?.[0]).not.toContain('data-hydrated')
+
+      const browser = await chromium.launch()
+      try {
+        const page = await (await browser.newContext({ baseURL: server.origin })).newPage()
+        await page.goto('/')
+        const html = page.locator('html[data-hydrated]')
+        await html.waitFor({ state: 'attached', timeout: HYDRATION_TIMEOUT_MS })
+        expect(await html.getAttribute('data-hydrated')).toBe('')
+
+        await page.evaluate(() => { (window as unknown as Record<string, unknown>).kept = true })
+        await page.getByRole('link', { name: /log ?in/i }).click()
+        await page.waitForURL(url => url.pathname === '/login', { timeout: HYDRATION_TIMEOUT_MS })
+        expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).kept)).toBe(true)
+        expect(await page.locator('html').getAttribute('data-hydrated')).toBe('')
+      } finally {
+        await browser.close()
       }
     })
   })
