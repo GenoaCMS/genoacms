@@ -10,7 +10,7 @@
  * which is Node.
  */
 
-/** The pages the demo scenario publishes. Kept in step with `core/tests/support/demo.ts`. */
+/** The pages the demo scenario publishes. Kept in step with `core/demo/demo.ts`. */
 const PAGES = {
   /** Depth four, siblings, and one component used twice. What the demos show by default. */
   home: 'demoHome',

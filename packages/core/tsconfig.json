@@ -25,9 +25,7 @@
 		"test/**/*.js",
 		"test/**/*.ts",
 		"test/**/*.svelte",
-		"tests/**/*.js",
-		"tests/**/*.ts",
-		"tests/**/*.svelte",
+		"demo/**/*.ts",
 		"evidence/**/*.ts",
 		"scripts/**/*.ts"
 	]

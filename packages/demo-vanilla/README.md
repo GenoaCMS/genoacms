@@ -26,8 +26,8 @@ pnpm --filter @genoacms/demo-vanilla dev
 ```
 
 You need the instance's root public key (CMS → *Configuration → Keys → Root trust anchor*) and a
-published page. `pnpm --filter @genoacms/core run test:demo` publishes `demoHome`, `demoFlat` and
-`demoEmpty`; `test:demo:clean` removes them again.
+published page. `pnpm --filter @genoacms/core run demo` publishes `demoHome`, `demoFlat` and
+`demoEmpty`; `demo:clean` removes them again. Both drive a running CMS at `GENOACMS_DEMO_ORIGIN` (default `http://localhost:5173`), signed in as `GENOACMS_DEMO_EMAIL` with `GENOACMS_DEMO_PASSWORD`.
 
 If a setting is missing, or the page is not published, or a component is not in your map, the page
 says so and says what to do about it rather than rendering blank.

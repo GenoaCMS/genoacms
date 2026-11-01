@@ -69,7 +69,7 @@ const fetchAndResolve = async (settings: InstanceSettings): Promise<Outcome> => 
   if (tree === undefined) {
     return refused(
       `Nothing is published at "${settings.page}".`,
-      'Publish it with `pnpm --filter @genoacms/core run test:demo`, or name a page that exists.'
+      'Publish it with `pnpm --filter @genoacms/core run demo`, or name a page that exists.'
     )
   }
   if (!tree.valid) {
