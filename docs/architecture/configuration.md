@@ -32,7 +32,7 @@ moved ID keeps a pointer in its old place.
 | The service contracts, starting with authentication (U14, F20, Q5, Q6) | [`contracts/`](contracts/README.md) |
 | The host and provider construction (D3) | [`host.md`](host.md) |
 | Secret references, resolution, bootstrap, the development store (U3, U11, D5) | [`secrets.md`](secrets.md) |
-| The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9); SvelteKit 3 (U15 to U19, D10, D11, F21 to F27, since 2026-10-30) | [`build.md`](build.md) |
+| The artifact, vendoring, targets, the lifecycle (U2, U6, U10, D6 to D9); SvelteKit 3 (U15 to U19, D10, D11, F21 to F27, since 2026-10-30); continuous integration (F32, since 2026-11-01) | [`build.md`](build.md) |
 | The CLI's commands, flags and messages (since 2026-10-02, before this split) | [`cli.md`](cli.md) |
 | Authentication on GCP, and self-owned identity stores (U13) | [`adapter-gcp/authentication-identity-platform.md`](adapter-gcp/authentication-identity-platform.md), [`identities.md`](identities.md) |
 | Everything else: the config, the manifest and the loader (D1), the reality before the redesign (F1 to F19, R1 to R8), goals, preserved functionality (C, A, K, P), spikes (S-1 to S-8), the RFC list | here |

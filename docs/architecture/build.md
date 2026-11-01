@@ -158,7 +158,15 @@ their published packages on 2026-10-30. Paths are inside each package.
 | F30 | **adapter-node 6 assumes `https` without `PROTOCOL_HEADER`.** With no `paths.origin` and no protocol header, the request origin is `https://<host>`. A server reached over plain HTTP, such as `node build` on `http://localhost`, then fails SvelteKit's CSRF check on every form post, because the browser's `Origin` is `http://…`. `ORIGIN`, which used to fix this, is ignored. Core's end-to-end harness passed `ORIGIN`, and its sign-in failed on SvelteKit 3. | `@sveltejs/adapter-node/src/handler.js:153-183` |
 | F31 | **A remote module inside `node_modules` counts only when its package peers on SvelteKit.** `is_remote_module` accepts a `*.remote.*` file whose path contains `node_modules` only when a `package.json` in one of the directories above it, up to the enclosing `node_modules`, lists `@sveltejs/kit` in `peerDependencies`. Otherwise the file is an ordinary module, its server-only imports reach the client build, and the guard fails it with `server_only_import`. Core lists `@sveltejs/kit` only in `dependencies`, so its remote functions work in the repository and fail wherever core is installed (`cli.md` LF19). | `@sveltejs/kit/src/exports/vite/utils.js:152-192`, `src/exports/vite/plugins/guard.js` |
 
-## The artifact
+## Continuous integration
+
+`.github/workflows/ci.yml` runs every level of `docs/README.md` through `scripts/test-level.mjs`,
+which writes the JUnit reports `record.mjs` counts (WORKFLOW §11). A test that no level runs gates
+nothing.
+
+| Id | Finding | Evidence |
+| :-- | :-- | :-- |
+| F32 | **Core's Playwright Test suite gated nothing.** `packages/core/tests/*.spec.ts` (`pnpm test:integration`, `playwright.config.ts`) built with `genoa.config/development.ts`, which imports gitignored credential files, so no runner could load it. It was no level of `docs/README.md`, its titles carried no statement IDs, and no CI job ran it. RFC-0043's critique says it "runs in CI on `main`"; it never did. On 2026-11-01 the SvelteKit 3.1 `form_field_unbound` regression broke saving, publishing and deleting components (`components.md` NF20), although `tests/components.spec.ts` covered publishing. Found the same day. RFC-0045 moves the suite into `e2e/`. Nothing yet refuses a test file that no level runs. | `.github/workflows/ci.yml`, `scripts/test-level.mjs`, `packages/core/playwright.config.ts`, `docs/rfcs/0043-sveltekit-3.md` *Critique* |
 
 ```
 <project>/.genoacms/

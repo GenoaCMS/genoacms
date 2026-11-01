@@ -385,3 +385,12 @@ range is refused as the policy's other values are.
 - Test: none yet
 - Level: unit
 - State: new (RFC-0031)
+
+#### AUTHN-12 · The admin area needs a session
+
+A page of the admin area, `/dashboard`, `/collections`, `/components`, `/configuration` and
+`/storage` and every page under them, requested without a signed-in user, is answered with a 303
+redirect to `/`, and renders nothing of the page. `/` and `/login` are served without a session.
+
+- Test: unverified (no test carries the ID yet; RFC-0045)
+- Level: e2e
