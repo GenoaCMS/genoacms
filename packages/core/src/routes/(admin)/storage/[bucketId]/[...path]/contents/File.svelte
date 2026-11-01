@@ -33,7 +33,7 @@
   </PermissionGate>
 </ContextMenu>
 
-<div class="transition-all hover:scale-105">
+<div class="h-full transition-all hover:scale-105">
   <Selectable {name}>
     <CardLink
       href={signedURL}

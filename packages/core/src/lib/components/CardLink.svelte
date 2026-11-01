@@ -17,11 +17,11 @@
 </script>
 
 {#if href}
-    <a {href} {onclick} {oncontextmenu} class={className} {...rest}>
+    <a {href} {onclick} {oncontextmenu} class="block h-full {className}" {...rest}>
         <CardLinkContents {icon} {text} {color} {noscale} />
     </a>
 {:else}
-    <button type="button" {onclick} {oncontextmenu} class={className} {...rest}>
+    <button type="button" {onclick} {oncontextmenu} class="block h-full {className}" {...rest}>
         <CardLinkContents {icon} {text} {color} {noscale} />
     </button>
 {/if}

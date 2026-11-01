@@ -61,8 +61,8 @@
     </div>
   </div>
 {:else}
-  <div class={scaleOnHover ? 'transition-all hover:scale-105' : ''}>
-    <div class="w-auto h-auto relative z-[1]">
+  <div class="h-full {scaleOnHover ? 'transition-all hover:scale-105' : ''}">
+    <div class="w-auto h-full relative z-[1]">
       {@render children()}
       {#if isShown}
         <div class="absolute top-0 start-0">

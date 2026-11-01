@@ -37,7 +37,7 @@
   </PermissionGate>
 </ContextMenu>
 
-<div class="transition-all hover:scale-105">
+<div class="h-full transition-all hover:scale-105">
   <Selectable name={reference.name} isDirectory>
     <CardLink
       text={prettyName}
