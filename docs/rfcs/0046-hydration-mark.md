@@ -31,7 +31,7 @@ the first toast to disappear before publishing again.
 | :-- | :-- |
 | `packages/core/src/routes/+layout.svelte` | `onMount(() => { document.documentElement.dataset.hydrated = '' })`, with a `// SHL-1` reference |
 | `packages/core/e2e/browser.ts` | new export `visit (page: Page, url: string): Promise<Response \| null>` |
-| `packages/core/e2e/components.test.ts`, `pages.test.ts`, `configuration.test.ts`, `collections.test.ts`, `storage.test.ts` | the local `visit` and every `waitForLoadState('networkidle')` replaced by `visit` or `hydrated` from `browser.ts` |
+| `packages/core/e2e/components.test.ts`, `pages.test.ts`, `configuration.test.ts`, `collections.test.ts`, `storage.test.ts` | the local `visit` replaced by the one from `browser.ts`; each `waitForLoadState('networkidle')` after a page load (a reload, a new window) replaced by `hydrated`; after a navigation inside the application, by a wait for the element the test reads next |
 | `packages/core/e2e/components.test.ts` | `registerPrebuilt`, `registerDynamic` and PUB-2, as in the Summary |
 | `packages/core/e2e/signIn.test.ts` | one test, SHL-1 |
 | `docs/architecture/shell.md`, `docs/README.md` | the statement; Test line and Verification once the test passes |
@@ -47,6 +47,11 @@ export async function hydrated (page: Page): Promise<void>
 /** Navigates, then waits until the page has hydrated, so a click lands on the live page. */
 export async function visit (page: Page, url: string): Promise<Response | null>
 ```
+
+A `networkidle` that waits for the requests of an action to end, not for a page to load, stays:
+`pressAndWait` and the drag test in `pages.test.ts`, `rotate` in `configuration.test.ts`. The page is
+already marked when they run, so the mark says nothing about the action (found while implementing,
+2026-11-02).
 
 `hydrated` waits for `HYDRATED` to be attached, with Playwright's default timeout of the call.
 `visit` is `page.goto(url)` followed by `hydrated(page)`, and returns what `goto` returned. A
@@ -69,6 +74,7 @@ New statement, as written in `shell.md`:
   it already does with `shown` or `expect.poll`.
 - No other speed-up of the tests: they keep registering components through the registrar's dialog
   (decided 2026-11-02), and the server keeps starting once per file.
+- The three waits for an action's requests keep `networkidle` (Files).
 - The demo script, `packages/core/demo/demo.ts`, keeps `networkidle`; it runs against a dev server
   whose build may predate SHL-1.
 - The rest of the shell stays unspecified.
