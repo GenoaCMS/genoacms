@@ -1,5 +1,12 @@
 # @genoacms/contracts
 
+## 0.2.1
+
+### Patch Changes
+
+- [`260cf68`](https://github.com/GenoaCMS/genoacms/commit/260cf6815bba942244d7a0bd2a0ec461ff75e082) Thanks [@Hejtmus](https://github.com/Hejtmus)! - `CollectionReference` declares the optional `uiSchema`, keyed by field name, with `showPreview`.
+  The collection listing already honoured it; config authors now get its type.
+
 ## 0.2.0
 
 ### Minor Changes
