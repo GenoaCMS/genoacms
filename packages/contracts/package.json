@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/contracts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Service contracts, adapter descriptors and secret reference types for GenoaCMS adapters",
   "type": "module",
   "author": {
