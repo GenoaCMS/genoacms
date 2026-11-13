@@ -247,3 +247,4 @@ const noUnrestrictedNetworkCalls = (
 ]
 
 export { noModuleImport, noDynamicImports, noUnrestrictedNetworkCalls }
+export { NETWORK }

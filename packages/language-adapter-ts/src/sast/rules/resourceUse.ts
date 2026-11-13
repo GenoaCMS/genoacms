@@ -184,3 +184,4 @@ const noGlobalSideEffects = (sourceFile: SourceFile): SecurityRuleDiagnostic[] =
 }
 
 export { noUnboundedLoops, noUnboundedRecursion, boundMemoryAllocation, noGlobalSideEffects }
+export { SIZED }

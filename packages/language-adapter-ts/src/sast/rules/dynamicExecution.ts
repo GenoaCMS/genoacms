@@ -177,3 +177,4 @@ const noPrototypeManipulation = (sourceFile: SourceFile): SecurityRuleDiagnostic
 }
 
 export { noDynamicEvaluation, noGlobalScopeAccess, noPrototypeManipulation }
+export { EVALUATORS, DEFERRED, BANNED_GLOBALS, MUTATORS as PROTOTYPE_MUTATORS }

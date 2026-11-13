@@ -145,3 +145,4 @@ const { compileBundle } = adapter
 export default adapter
 export { adapter, analyze, emitSignature, compileBundle, createLanguageAdapter }
 export { DEFAULT_TARGET } from './target.js'
+export { SAST_BINDING } from './sast/binding.js'
