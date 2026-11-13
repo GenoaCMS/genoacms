@@ -1,5 +1,5 @@
 /**
- * The SAST ruleset of GenoaCMS, as identity rather than as logic.
+ * The SAST ruleset of GenoaCMS, as identity and intent rather than as logic.
  *
  * The ruleset is eleven rules across four domain groups. This is that table: what each rule is
  * called, how much it matters, whether firing blocks a commit, and — for the three that cannot decide
@@ -10,6 +10,23 @@
  * implementation. What does not differ is the ruleset: an adapter implements *these* rules, reports
  * *these* identifiers, and is measured against them. Splitting identity from detection is what lets
  * a coverage report compare two adapters at all.
+ *
+ * ## Intent here, binding in the adapter
+ *
+ * Each rule states a property of the component (`intent`), never a construct of one language.
+ * What breaks that property in a given language — `eval` in JavaScript, `system()` in C — is the
+ * adapter's **binding** of the rule, and lives in the adapter. Coverage is therefore a fact about a
+ * binding: an evasion corpus measures one adapter's binding of a rule, not the rule itself.
+ *
+ * ## Precondition: a memory-safe language
+ *
+ * The rules constrain what code may name and how much it may run. They say nothing about memory,
+ * and assume a language in which code cannot read or write outside the values it holds. One
+ * out-of-bounds write reaches the host process without naming anything a rule bans, so every intent
+ * below can be defeated in a language without that guarantee. Deciding memory safety of arbitrary
+ * code statically is an open problem rather than a missing rule, so the ruleset does not attempt it.
+ * An adapter for C or C++ can bind every rule and still not deliver what the rules intend; whoever
+ * registers one accepts that its components may not be memory safe.
  *
  * ## Why the vocabulary lives here
  *
@@ -44,7 +61,9 @@ const dynamicExecutionRules = {
     group: 'dynamic-execution',
     severity: 'CRITICAL',
     enforcement: 'fatal',
-    description: 'Rejects calls to eval(), Function(), setTimeout(string), and setInterval(string).'
+    intent:
+      'A component executes only code present in the signed artifact. No construct may turn data ' +
+      'into code while the component runs.'
   },
   'SAST-02': {
     id: 'SAST-02',
@@ -52,9 +71,10 @@ const dynamicExecutionRules = {
     group: 'dynamic-execution',
     severity: 'CRITICAL',
     enforcement: 'fatal',
-    description:
-      'Rejects direct access to global environment objects (globalThis, window, global, process, ' +
-      'document.cookie, localStorage).'
+    intent:
+      'A component reaches the environment it runs in only through its parameters. What reaches ' +
+      'the environment is rejected by name rather than by member, because a member of a runtime ' +
+      'value is reachable by computed access.'
   },
   'SAST-03': {
     id: 'SAST-03',
@@ -62,9 +82,9 @@ const dynamicExecutionRules = {
     group: 'dynamic-execution',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description:
-      'Blocks prototype pollution vectors (__proto__, Object.defineProperty on prototypes, ' +
-      'constructor manipulation).'
+    intent:
+      'A component may not change the behavior of values it did not create, including the shared ' +
+      'definitions that every value of a type inherits, nor reach the means of building code from them.'
   }
 }
 
@@ -82,10 +102,10 @@ const moduleIsolationRules = {
     group: 'module-isolation',
     severity: 'CRITICAL',
     enforcement: 'fatal',
-    description:
-      'A component may not import at all — every specifier, and both the static and the dynamic ' +
-      'form. Native OS/system modules (fs, child_process, net, http, os, cluster) are the sharpest ' +
-      'case rather than the boundary.'
+    intent:
+      'The artifact is self-contained: it holds all the code it executes and depends on no module ' +
+      'resolved outside it. A declaration that leaves nothing in the artifact, such as a type, is ' +
+      'not a dependency.'
   },
   'SAST-05': {
     id: 'SAST-05',
@@ -93,9 +113,9 @@ const moduleIsolationRules = {
     group: 'module-isolation',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description:
-      'Blocks un-allowlisted network primitives (fetch, XMLHttpRequest, WebSocket) inside component ' +
-      'render logic.'
+    intent:
+      'A component reaches the network only through the data bridge, and only to an origin the ' +
+      'instance allows.'
   },
   'SAST-06': {
     id: 'SAST-06',
@@ -103,7 +123,7 @@ const moduleIsolationRules = {
     group: 'module-isolation',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description: 'Rejects non-static or runtime-evaluated imports (import(variable) and require(variable)).'
+    intent: 'No code is located or loaded after the artifact was signed.'
   }
 }
 
@@ -122,9 +142,9 @@ const algorithmicComplexityRules = {
     group: 'algorithmic-complexity',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description:
-      'Rejects a numeric attribute reaching a loop condition, allocation size, or recursion bound ' +
-      'unless the author has declared a maximum in its schema. A minimum bounds nothing a loop ' +
+    intent:
+      'Every numeric attribute that decides how much work runs or how much memory is allocated ' +
+      'declares a maximum in its schema. A minimum bounds nothing a loop ' +
       'cares about. No bound is ever inferred or injected. A value arriving through passthrough has ' +
       'no schema to declare one on, so it is permitted, statically unbounded, and warned about.'
   },
@@ -134,10 +154,9 @@ const algorithmicComplexityRules = {
     group: 'algorithmic-complexity',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description:
-      'Rejects an infinite loop construct with no exit in it — while(true) or for(;;) containing ' +
-      'neither a break nor a return. One with a reachable exit is accepted; whether it is reached ' +
-      'is undecidable and is carried by the fuel guard.',
+    intent:
+      'Every loop can end. A loop with no way out is rejected; whether a loop with one ever takes ' +
+      'it is undecidable and is carried by the fuel guard.',
     residue: 'fuel'
   },
   'SAST-09': {
@@ -146,7 +165,9 @@ const algorithmicComplexityRules = {
     group: 'algorithmic-complexity',
     severity: 'HIGH',
     enforcement: 'fatal',
-    description: 'Rejects recursive calls lacking a statically provable depth bound.',
+    intent:
+      'Every recursion can end. Recursion with no condition that could stop it is rejected; ' +
+      'whether the condition ever holds is undecidable and is carried by the depth guard.',
     residue: 'depth'
   },
   'SAST-10': {
@@ -157,9 +178,9 @@ const algorithmicComplexityRules = {
     // The one rule that reports without blocking. An allocation's size is a runtime value, so
     // rejecting here would refuse correct components for a fact nothing can know yet.
     enforcement: 'warning',
-    description:
-      'Flags dynamic array/buffer allocations (new Array(n)) whose size is not statically bounded. ' +
-      'Warning, not rejection — enforcement is delegated to the L2 allocation guard.',
+    intent:
+      'Every allocation is bounded. A size known only at run time is reported rather than ' +
+      'rejected, and the allocation guard enforces the limit.',
     residue: 'allocation'
   }
 }
@@ -177,7 +198,7 @@ const componentContractRules = {
     group: 'component-contract',
     severity: 'MEDIUM',
     enforcement: 'fatal',
-    description:
+    intent:
       'A component may not write to what it was given: the capability object, a slot, or an ' +
       'attribute\'s contents. That state is shared with the host application and with sibling ' +
       'components on the same page.'

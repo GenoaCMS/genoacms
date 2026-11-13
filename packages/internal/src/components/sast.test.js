@@ -44,8 +44,15 @@ describe('the ruleset matches the specification', () => {
         .toContain(rule.group)
       expect(['CRITICAL', 'HIGH', 'MEDIUM']).toContain(rule.severity)
       expect(['fatal', 'warning']).toContain(rule.enforcement)
-      expect(rule.description.length).toBeGreaterThan(20)
+      expect(rule.intent.length).toBeGreaterThan(20)
     }
+  })
+
+  it.each([
+    ['eval'], ['Function('], ['globalThis'], ['window'], ['__proto__'], ['prototype'],
+    ['require'], ['import('], ['fetch'], ['while('], ['for('], ['new Array'], ['system(']
+  ])('states no intent in the terms of one language, such as %s', (construct) => {
+    for (const rule of Object.values(SAST_RULES)) expect(rule.intent).not.toContain(construct)
   })
 
   it('names every rule distinctly', () => {

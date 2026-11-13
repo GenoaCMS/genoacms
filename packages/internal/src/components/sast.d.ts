@@ -61,12 +61,13 @@ export interface SastRule {
    */
   enforcement: 'fatal' | 'warning'
   /**
-   * What the rule rejects, in the specification's words.
+   * The property of a component the rule protects, in no particular language's terms.
    *
-   * Held here so a diagnostic can quote the rule an author violated, and so coverage can be reported
-   * against a description rather than against a bare identifier.
+   * What breaks the property in a given language is that language adapter's binding of the rule.
+   * Held here so that two adapters bind the same rule, and coverage can be reported against a
+   * property rather than against a bare identifier.
    */
-  description: string
+  intent: string
   /**
    * Named only for the rules whose undecidable residue is carried at runtime.
    *
