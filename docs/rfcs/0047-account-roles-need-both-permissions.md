@@ -1,0 +1,336 @@
+---
+type: rfc
+number: 47
+title: The roles of accounts and agents change only with both configuration permissions
+status: draft
+commits: []
+audit: []
+depends: []
+architecture: [architecture/authorization.md, architecture/agent-access.md]
+changes: [ENF-3 breaking, AGT-3 breaking]
+commit-subject: "fix(core): require config:roles:manage to give accounts and agents other roles (RFC-0047)"
+---
+
+# RFC-0047: The roles of accounts and agents change only with both configuration permissions
+
+## Summary
+
+`authorization.md` ZF5: a holder of `config:users:manage` alone can give any account any role, a
+wildcard role and their own account included, so that permission is full authority. Changing an
+account's roles through `assignUserAccountRoles` requires both `config:users:manage` and
+`config:roles:manage` (ZU10), but `upsertUserAccount`, which creates or replaces an account, writes
+the roles it is given and requires only `config:users:manage`.
+
+Agents have the same gap. `agent-access.md` AGT-3 lets `config:users:manage` alone create an agent
+with roles, or change an agent's roles, and the token of a new agent goes to whoever created it. The
+ceiling (AGT-5) keeps configuration permissions and the `*` permission away from agents, but not
+`components:code` or `pages:publish` over every resource.
+
+The author decided on 2026-11-20 (ZU13) that setting the roles of an account or an agent, or issuing
+a token to an agent holding roles, needs both permissions on every path. This RFC:
+
+1. Has `upsertUserAccount` also demand `config:roles:manage` when the write changes the account's
+   roles: a new account with at least one role, or a stored account whose set of roles differs
+   from the one submitted.
+2. Has `createAgent` and `updateAgent` demand it the same way: a new agent with at least one role,
+   or a stored agent whose set of roles differs.
+3. Has `reissueAgentToken` demand it when the agent holds at least one role: a new token is the
+   agent's authority, handed to whoever reissued it.
+4. Decides each against the stored record the write replaces, read once for both the decision and
+   the conditional write, so a concurrent change cannot slip a role change past the check.
+5. Leaves to `config:users:manage` alone: an account or agent with no roles, a change of email or
+   label that keeps the roles, reissuing the token of an agent with no roles, removing an account and
+   revoking an agent.
+
+## Files
+
+**Modify or create only:**
+
+| File | Change |
+| :-- | :-- |
+| `packages/core/src/lib/script/authorization/administration.ts` | add and export `sameRoleSet` and `changesRoles` |
+| `packages/core/src/lib/script/authorization/administration.server.ts` | `upsertAccount` takes `authorizeRoleChange` and calls it before the rule |
+| `packages/core/src/lib/script/configuration/user.server.ts` | `upsertUserAccount` passes the demand for `config:roles:manage`; its doc comment names ENF-3 |
+| `packages/core/src/lib/script/agents/administration.server.ts` | `createAgent` and `updateAgent` demand `config:roles:manage` when the roles change, `reissueAgentToken` when the agent holds roles, in the order below |
+| `packages/core/src/lib/script/authorization/administration.test.ts` | the `sameRoleSet` and `changesRoles` tests |
+| `packages/core/src/lib/script/configuration/accounts.server.test.ts` | new: the account service through the real manifests, on in-memory storage |
+| `packages/core/src/lib/script/configuration/user.server.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
+| `packages/core/src/lib/script/agents/administration.server.test.ts` | the new agent tests; two existing tests create, and reissue for, agents with roles as a holder of both permissions |
+| `packages/core/evidence/permissionMatrix.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
+| `docs/architecture/authorization.md` | after the code: ENF-3 to the text below, ZU13 current, ZF5 fixed, test files named, `verified` |
+| `docs/architecture/agent-access.md` | after the code: AGT-3 to the text below, `verified` |
+| `docs/rfcs/README.md` | the row of this RFC |
+
+## Specification
+
+**ENF-3, changed** (`breaking`: a caller holding only `config:users:manage` that creates or replaces
+an account with other roles is now denied). New text:
+
+> #### ENF-3 · Configuration permissions
+>
+> | Operation | Permission |
+> | :-- | :-- |
+> | listing roles and accounts, listing the buckets, collections and fields a grant can name | `config:roles:manage` |
+> | creating, replacing or deleting a role | `config:roles:manage` |
+> | creating an account with no roles, replacing an account with the same set of roles, removing an account | `config:users:manage` |
+> | creating an account with roles, replacing an account with another set of roles, changing an account's roles | `config:users:manage` and `config:roles:manage` |
+> | reading or changing the security policy | `config:security:manage` |
+>
+> Whether creating or replacing an account changes its roles is decided against the stored account
+> the write replaces, none for a new account, comparing the roles as sets, so order does not count.
+> `config:users:manage` is demanded first, then the lock (TIR-4), then `config:roles:manage` when
+> the roles change; a denial writes nothing. A write that the decision no longer matches when it
+> lands fails with `manifest/conflict` (ADM-1). Agents follow the same rule (`agent-access.md`
+> AGT-3).
+>
+> The catalog of grantable resources gives names only: every configured bucket, and every collection
+> with the names of its fields, a collection whose definition cannot be read with none.
+>
+> - Test: `packages/core/src/lib/script/authorization/administration.test.ts`, `packages/core/src/lib/script/configuration/accounts.server.test.ts`, `packages/core/src/lib/script/configuration/user.server.test.ts`, `packages/core/evidence/permissionMatrix.test.ts`
+> - Level: unit
+
+A declared subject is never stored, so for it the decision compares with no roles; the write is then
+refused with `user/declared-in-configuration` (ADM-3) by a holder of both, and denied by a holder of
+`config:users:manage` alone when the submission names roles.
+
+**AGT-3, changed** (`breaking`: a caller holding only `config:users:manage` that creates an agent
+with roles, changes an agent's roles, or reissues the token of an agent holding roles, is now
+denied). New text; only the paragraph after the
+table is new:
+
+> #### AGT-3 · Administering agents
+>
+> The Agents section of `/configuration/iam` lists every agent, declared and stored, by subject,
+> label and roles, the declared ones marked as declared in `genoa.config`. With
+> `config:users:manage` a principal may:
+>
+> | Action | Effect |
+> | :-- | :-- |
+> | create, with a name, a label and roles | a stored agent `agent:<name>`, `<name>` matching `^[a-z0-9][a-z0-9-]{0,62}$` and not taken by any agent; a new token |
+> | issue a new token | the agent's previous token stops working |
+> | change label or roles | as given, subject to AGT-5 |
+> | revoke | the stored agent is removed |
+>
+> Creating an agent with at least one role, changing a stored agent to another set of roles, and
+> issuing a new token to a stored agent that holds at least one role also need
+> `config:roles:manage` (`authorization.md` ZU13, ENF-3): a token is the agent's authority, given
+> to whoever issued it. The roles are compared as sets with the stored agent the write replaces,
+> none for a new agent. The checks run in this order, and a failed one writes nothing and leaves the
+> previous token working: `config:users:manage`; the name (creating) or the agent's existence and
+> that it is not declared (changing, issuing a token); `config:roles:manage` when it is needed; the
+> roles exist and stay within the ceiling (AGT-5), when they are given. The write is conditional on
+> the stored agents that were read.
+>
+> A new token is `gat_` followed by the base64url, without padding, of 32 random bytes. It is shown
+> once, with a note that it cannot be shown again, and only its hash is stored. Any action on a
+> declared agent is refused with `agents/declared: <subject> is declared in genoa.config.` Tokens do
+> not expire.
+>
+> - Test: `packages/core/src/lib/script/agents/administration.server.test.ts`, `packages/core/src/lib/script/agents/tokens.test.ts`
+> - Level: unit
+
+**Signatures.**
+
+```ts
+// administration.ts
+/** ENF-3, AGT-3: whether two lists name the same roles, in any order. */
+function sameRoleSet (a: string[], b: string[]): boolean
+/** ENF-3: whether writing `record` gives its subject another set of roles than the stored one. */
+function changesRoles (users: UserRecord[], record: UserRecord): boolean
+
+// administration.server.ts
+const upsertAccount = async (
+  record: UserRecord,
+  authorizeRoleChange: (changesRoles: boolean) => void
+): Promise<AdministrationResult<void>>
+```
+
+`upsertAccount` passes `applyToUsers` a rule that first calls
+`authorizeRoleChange(changesRoles(state.users, record))` and then `upsertUser(...)` as today. A
+`PermissionDeniedError` thrown by `authorizeRoleChange` propagates out of `applyToUsers` before
+`saveUsers` runs. `upsertUserAccount` becomes:
+
+```ts
+const upsertUserAccount = async (ctx: AuthContext, record: UserRecord): Promise<AdministrationResult<void>> => {
+  requirePermission(ctx, 'config:users:manage')
+  if (isAdministrationLocked()) return LOCKED
+  return await upsertAccount(record, changes => {
+    if (changes) requirePermission(ctx, 'config:roles:manage')
+  })
+}
+```
+
+In `agents/administration.server.ts`, `createAgent` and `updateAgent` follow the order of AGT-3:
+`requireAdministrator`, then `readStoredAgentsForAdministration`, then `requireValidName` and
+`requireUnclaimed`, or `requireStored`, then `requirePermission(ctx, 'config:roles:manage')` when
+`input.roles` is not empty (creating) or `!sameRoleSet(agent.roles, input.roles)` (changing), then
+`requireAssignableRoles`, then `writeStoredAgents(..., version)` with the version of that one read.
+`requireAssignableRoles` moves after the read; its refusals do not change. `reissueAgentToken`
+follows the same order without the roles: `requireAdministrator`, the read, `requireStored`, then
+`requirePermission(ctx, 'config:roles:manage')` when the stored agent's `roles` is not empty, then
+the write with the version of that read.
+
+The denial is the existing one (GRT-5): `permission-denied: '<subject>' lacks config:roles:manage`.
+The routes `createAccount`, `createAgent` and `updateAgent` are unchanged; a denial propagates as
+today (ZF6).
+
+## Non-goals
+
+- Revoking an agent stays with `config:users:manage` alone: it removes authority, and gives none.
+- ZF6: the denial still reaches the user as 500 outside storage.
+- ZF12: listing accounts still needs `config:roles:manage`.
+- The lock (TIR-4) does not start applying to agents.
+- The roles screen (ROL-1, `CreateAccount.svelte`, `CreateAgent.svelte`): the screen loads only for
+  `config:roles:manage`, so nothing it offers changes.
+- `permission_matrix.md` in the thesis: the matrix's account record has no roles and it calls no
+  agent function, so its table does not change.
+
+## Tests
+
+`authorization/administration.test.ts` (unit):
+
+- `ENF-3, AGT-3: the same roles in another order are the same set`: `sameRoleSet(['Editor',
+  'Publisher'], ['Publisher', 'Editor'])` is `true`; `sameRoleSet(['Editor'], ['Editor',
+  'Publisher'])` and `sameRoleSet(['Editor'], [])` are `false`.
+- `ENF-3: a new account with no roles changes no roles`: given no stored accounts, when the record
+  of `s-1` has no roles, then `changesRoles` is `false`.
+- `ENF-3: a new account with roles changes roles`: given no stored accounts, when the record of
+  `s-1` has `['Editor']`, then `true`.
+- `ENF-3: a stored account's roles in another order change no roles`: given `s-1` stored with
+  `['Editor', 'Publisher']`, when the record has `['Publisher', 'Editor']`, then `false`.
+- `ENF-3: a role added or removed changes roles`: given `s-1` stored with `['Editor']`, when the
+  record has `['Editor', 'Publisher']`, then `true`; when it has no roles, then `true`.
+- `ENF-3: another subject's roles do not count`: given `s-2` stored with `['Editor']`, when the
+  record of `s-1` has `['Editor']`, then `true`.
+
+`configuration/accounts.server.test.ts` (unit), new, on the harness of
+`agents/administration.server.test.ts`: in-memory storage, test signing keys, test declarations.
+Before each test, `roles.json` holds `Editor` and `Publisher`, and `users.json` holds `s-1` with
+`['Editor']`. `accountAdmin` holds `config:users:manage`, `bothAdmin` also `config:roles:manage`.
+
+- `ENF-3, ZF5: an account manager cannot create an account with roles`: when `accountAdmin` upserts
+  `s-2` with `['Editor']`, then `PermissionDeniedError` naming `config:roles:manage`, and storage is
+  unchanged.
+- `ENF-3, ZF5: an account manager cannot change an account's roles by replacing it`: when
+  `accountAdmin` upserts `s-1` with `['Editor', 'Publisher']`, then `PermissionDeniedError`, and
+  storage is unchanged.
+- `ENF-3, ZF5: an account manager cannot clear an account's roles by replacing it`: when
+  `accountAdmin` upserts `s-1` with no roles, then `PermissionDeniedError`, and storage is unchanged.
+- `ENF-3: an account manager creates an account with no roles`: when `accountAdmin` upserts `s-2`
+  with no roles, then `{ ok: true }` and `users.json` holds `s-2` with no roles.
+- `ENF-3: an account manager replaces an email when the roles stay`: when `accountAdmin` upserts
+  `s-1` with a new email and `['Editor']`, then `{ ok: true }` and `s-1` has the new email and
+  `['Editor']`.
+- `ENF-3: a holder of both creates an account with roles`: when `bothAdmin` upserts `s-2` with
+  `['Publisher']`, then `{ ok: true }` and `s-2` holds `['Publisher']`.
+- `ENF-3: the role change is decided against the accounts the write replaces`: given the in-memory
+  storage writes `users.json` with `s-1` holding no roles right after `users.json` is next read, when
+  `accountAdmin` upserts `s-1` with `['Editor']`, then `{ ok: false, reason: 'manifest/conflict' }`
+  and `s-1` holds no roles.
+- `ENF-3, TIR-4: the lock is reported before the role check`: given the lock, when `accountAdmin`
+  upserts `s-2` with `['Editor']`, then `{ ok: false, reason: 'administration/locked-by-configuration' }`.
+
+`agents/administration.server.test.ts` (unit). `administrator` stays `config:users:manage` only;
+a new `bothAdministrator` also holds `config:roles:manage`. The tests `AGT-3: creating an agent
+stores its hash, never its token, and shows the token once` and `AGT-3: a reissued token replaces the
+old one, and a revoked agent is gone` create `agent:writer` with `['Builder']`, so they create it as
+`bothAdministrator`. The second also reissues as `bothAdministrator`. Their other calls and every
+assertion stay. New tests:
+
+- `AGT-3, ZF5: an account manager cannot create an agent with roles`: when `administrator` creates
+  `writer` with `['Builder']`, then `PermissionDeniedError` naming `config:roles:manage`, no token is
+  returned, and storage is unchanged.
+- `AGT-3: an account manager creates an agent with no roles`: when `administrator` creates `writer`
+  with no roles, then a token is returned and `agent:writer` is stored with no roles.
+- `AGT-3, ZF5: an account manager cannot change an agent's roles`: given `agent:writer` stored with
+  no roles by `administrator`, when `administrator` updates it to `['Builder']`, then
+  `PermissionDeniedError`, and storage is unchanged; given it stored with `['Builder']` by
+  `bothAdministrator`, when `administrator` updates it to no roles, then the same.
+- `AGT-3: an account manager changes an agent's label when the roles stay`: given `agent:writer`
+  stored with `['Builder']` by `bothAdministrator`, when `administrator` updates it to label `W2`
+  and `['Builder']`, then the stored agent has label `W2` and `['Builder']`.
+- `AGT-3: the role check comes before the roles are checked`: when `administrator` creates `writer`
+  with `['NoSuchRole']`, then `PermissionDeniedError`, not `user/unknown-roles`.
+- `AGT-3, ZF5: an account manager cannot reissue the token of an agent with roles`: given
+  `agent:writer` stored with `['Builder']` by `bothAdministrator`, when `administrator` reissues
+  its token, then `PermissionDeniedError` naming `config:roles:manage`, no token is returned,
+  storage is unchanged, and the token from creation still resolves to `agent:writer`.
+- `AGT-3: an account manager reissues the token of an agent with no roles`: given `agent:writer`
+  stored with no roles, when `administrator` reissues its token, then the new token resolves to
+  `agent:writer` and the old one to nothing.
+- `AGT-3: an account manager revokes an agent with roles`: given `agent:writer` stored with
+  `['Builder']` by `bothAdministrator`, when `administrator` revokes it, then it is no longer
+  stored and its token resolves to nothing.
+- `AGT-3: a holder of both creates and changes an agent's roles`: when `bothAdministrator` creates
+  `writer` with `['Builder']` and then updates it to no roles, then both succeed and `agent:writer`
+  holds no roles.
+
+`configuration/user.server.test.ts` (unit): the stub `upsertAccount(record, authorizeRoleChange)`
+calls `authorizeRoleChange(changesRoles(stored.users, record))` with the real `changesRoles`, then
+records the call. Existing titles and assertions do not change; `account` has no roles, so they
+still pass.
+
+`evidence/permissionMatrix.test.ts` (unit): the same stub change over its empty state. No title or
+expected cell changes.
+
+## Steps
+
+1. Baseline: `pnpm --filter @genoacms/core test` and `node docs/tools/check-docs.mjs docs`; record
+   the counts.
+2. Tests: write the tests above from this RFC, those that fail today marked `it.fails`, in a session
+   that has not seen the implementation; change the principal of the two existing agent tests as listed.
+   Commit them: `test(core): roles of accounts and agents need both permissions (RFC-0047)`.
+3. Code: `sameRoleSet`, `changesRoles`, `upsertAccount`, `upsertUserAccount`, `createAgent`,
+   `updateAgent`, `reissueAgentToken`, the two stubs. Remove the `it.fails` markers and change no assertion. Commit with
+   `commit-subject`.
+4. Run §Verification. Update `authorization.md` (ENF-3 with its `Test:` line, ZU13 without
+   **New**, ZF5 *History.* and `fixed, RFC-0047`, `verified`) and `agent-access.md` (AGT-3,
+   `verified`). Set this RFC to `auditing` with `commits`. Commit: `docs: RFC-0047's statements to
+   current`.
+5. Audit ENF-3 and AGT-3 (WORKFLOW §6.3). Findings amend this RFC through steps 2 to 4; then
+   `implemented` with `audit`.
+
+## Verification
+
+```bash
+pnpm --filter @genoacms/core exec vitest run src/lib/script/authorization/administration.test.ts src/lib/script/configuration src/lib/script/agents evidence/permissionMatrix.test.ts
+# all pass, none marked it.fails
+pnpm --filter @genoacms/core test
+# all pass; the count is the baseline plus the new tests
+node docs/tools/check-docs.mjs docs
+# 0 error(s)
+```
+
+A falsification audit of ENF-3 and AGT-3, by an agent that did not write the code, recorded as a
+Verification entry of `authorization.md` and named in `audit`.
+
+## Critique
+
+**Pros**
+- Closes the gap ZU10 was written to close, on both paths that bypassed it, and keeps the lifecycle
+  of accounts and agents with `config:users:manage` alone, as GCP separates user administration
+  from granting roles.
+- The decision and the write share one read and one conditional write, so no interleaving changes
+  roles past the check.
+- The new tests run the real manifests, so a check moved after the write fails them.
+
+**Cons & trade-offs**
+- The demand depends on stored data, so whether a write is denied cannot be known from the request
+  alone; the interface cannot gate the role selection on it beyond `config:roles:manage`.
+- A holder of `config:users:manage` alone cannot change an email or label and the roles in one
+  write; it takes two people or both permissions.
+- Comparing as sets means a reordering is not a change; a rule that gave order a meaning would have
+  to revisit it.
+- Agent checks move before `requireAssignableRoles`, so an account manager submitting an unknown
+  role is now denied instead of told the role is unknown.
+- An account manager can no longer replace a leaked token of an agent that holds roles; they can
+  revoke the agent, and a holder of both recreates it with a new subject or reissues the token.
+
+**Blindspots & missed edge cases**
+- An agent created with no roles by an account manager and given roles later by a holder of both
+  keeps the token the account manager saw at creation. The check covers giving roles, not who
+  already holds the token; a holder of both who gives an agent roles should reissue its token.
+- The permission matrix still calls `upsertUserAccount` with no roles only and no agent function; a
+  regression of ZF5 shows only in `accounts.server.test.ts` and the agent tests.
+- Agent administration still ignores `authorization.lockRoles`; on a locked instance an account
+  manager holding both permissions can still change agents' roles.
