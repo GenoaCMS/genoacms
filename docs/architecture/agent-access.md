@@ -70,6 +70,9 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
 | TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | TOL-27, TOL-28 |
 | TU17 | 2026-11-20, RFC-0047: creating an agent with roles, changing its roles, and issuing a new token to an agent holding roles also need `config:roles:manage`, as for accounts (`authorization.md` ZU13). TU6 still holds for an agent with no roles. | AGT-3 |
+| TU18 | 2026-11-21: **New**, RFC-0047. An agent's roles are refused when a name repeats, with `user/duplicate-roles` as an account's are, so a stored list of roles is a set (TF5). | AGT-3 |
+| TF5 | **An agent can be stored with a role named twice, and a comparison that miscounted it would let an account manager change the agent's roles with every test passing.** Breaks AGT-3: the roles are compared as sets. Cause: `createAgent` and `updateAgent` accept a repeated name, which accounts refuse (`authorization.md` ADM-3), and no test repeats one; comparing by length lets `['Editor', 'Editor']` become `['Editor', 'Publisher']` without `config:roles:manage`. Decided by TU18. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | open |
+| TF6 | **A change to an agent that loses a race could restore its old roles or issue a token to an agent now holding roles, and no test would notice; nor would most of AGT-3's order reversed.** Breaks AGT-3: the write is conditional on the stored agents that were read, and the checks run in the stated order. Cause: no test changes `agents.json` between the read and the write, and the order is tested only for creating with an unknown role, by a principal holding `config:users:manage`. The code holds today: the write fails with `conflict/modified-since`. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | open |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -163,6 +166,9 @@ with probes through the tool registry, `protocol.ts` and the user layers over th
 Permissions (TOL-29), the unreadable-field refusal (TOL-19), key immutability, not-found answers,
 names, `.genoacms/`, the upload limit counted in bytes, overwrite and STS-7 held. Counterexamples:
 TF2 to TF4, `collections.md` OF30 to OF35, `storage.md` BF13.
+
+**TS2.** 2026-11-21, the falsification audit of AGT-3 as RFC-0047 changed it is `authorization.md`
+ZS1. Counterexamples: TF5, TF6, `authorization.md` ZF15.
 
 Not yet done: the falsification audit of the statements RFC-0039 added, with the tokens of two agents, one under the ceiling and one whose role was made to exceed it in storage. Until it is, no statement here is audited.
 
