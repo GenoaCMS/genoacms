@@ -56,6 +56,7 @@ a token to an agent holding roles, needs both permissions on every path. This RF
 | `packages/core/src/lib/script/configuration/accounts.server.test.ts` | new: the account service through the real manifests, on in-memory storage |
 | `packages/core/src/lib/script/configuration/user.server.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
 | `packages/core/src/lib/script/agents/administration.server.test.ts` | the new agent tests; two existing tests create, and reissue for, agents with roles as a holder of both permissions |
+| `packages/core/src/lib/script/agents/authenticate.server.test.ts`, `packages/core/src/lib/script/agents/manifest.test.ts` | the principal that creates an agent with roles as a fixture holds both permissions; no assertion changes |
 | `packages/core/evidence/permissionMatrix.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
 | `docs/architecture/authorization.md` | after the code: ENF-3 to the text below, ZU13 current, ZF5 fixed, test files named, `verified` |
 | `docs/architecture/agent-access.md` | after the code: AGT-3 to the text below, `verified` |
@@ -115,11 +116,12 @@ table is new:
 > issuing a new token to a stored agent that holds at least one role also need
 > `config:roles:manage` (`authorization.md` ZU13, ENF-3): a token is the agent's authority, given
 > to whoever issued it. The roles are compared as sets with the stored agent the write replaces,
-> none for a new agent. The checks run in this order, and a failed one writes nothing and leaves the
-> previous token working: `config:users:manage`; the name (creating) or the agent's existence and
-> that it is not declared (changing, issuing a token); `config:roles:manage` when it is needed; the
-> roles exist and stay within the ceiling (AGT-5), when they are given. The write is conditional on
-> the stored agents that were read.
+> none for a new agent. The checks run in this order, and a failed one changes no stored agent and
+> leaves the previous token working. Creating: `config:users:manage`; the name matches; `config:roles:manage`
+> when roles are given; the name is not taken; the roles exist and stay within the ceiling (AGT-5).
+> Changing and issuing a token: `config:users:manage`; the agent is stored and not declared;
+> `config:roles:manage` when it is needed; the roles exist and stay within the ceiling, when they
+> are given. The write is conditional on the stored agents that were read.
 >
 > A new token is `gat_` followed by the base64url, without padding, of 32 random bytes. It is shown
 > once, with a note that it cannot be shown again, and only its hash is stored. Any action on a
@@ -160,13 +162,25 @@ const upsertUserAccount = async (ctx: AuthContext, record: UserRecord): Promise<
 }
 ```
 
-In `agents/administration.server.ts`, `createAgent` and `updateAgent` follow the order of AGT-3:
-`requireAdministrator`, then `readStoredAgentsForAdministration`, then `requireValidName` and
-`requireUnclaimed`, or `requireStored`, then `requirePermission(ctx, 'config:roles:manage')` when
-`input.roles` is not empty (creating) or `!sameRoleSet(agent.roles, input.roles)` (changing), then
-`requireAssignableRoles`, then `writeStoredAgents(..., version)` with the version of that one read.
-`requireAssignableRoles` moves after the read; its refusals do not change. `reissueAgentToken`
-follows the same order without the roles: `requireAdministrator`, the read, `requireStored`, then
+In `agents/administration.server.ts`, `createAgent` and `updateAgent` follow the order of AGT-3.
+`requireAssignableRoles` splits in two: `loadKnownRoles(): Promise<Map<string, Role>>` loads the
+authorization source and returns its roles by name, and `requireAssignableRoles(subject, names,
+known)` checks against them, with refusals that do not change. `createAgent`:
+`requireAdministrator`, `requireValidName`, `requirePermission(ctx, 'config:roles:manage')` when
+`input.roles` is not empty, `loadKnownRoles`, `readStoredAgentsForAdministration`,
+`requireUnclaimed`, `requireAssignableRoles`, then `writeStoredAgents(..., version)` with the
+version of that one read. `updateAgent`: `requireAdministrator`, the read, `requireStored`,
+`requirePermission(ctx, 'config:roles:manage')` when `!sameRoleSet(agent.roles, input.roles)`,
+`loadKnownRoles` and `requireAssignableRoles`, then the write with the version of that read.
+
+Loading the source creates an absent `agents.json` (AGT-2, as MAN-2 does for the users manifest).
+`createAgent` therefore loads before it reads: read first, a first agent's write would be
+conditional on an absence the load had already ended, and fail with `conflict/modified-since`. Its
+role-permission check depends on the request alone, so it still runs before the load, and a denial
+writes nothing; "name taken" moves after it. `updateAgent` reads first: the agent it changes is
+stored, so the load cannot create `agents.json`.
+
+`reissueAgentToken` has no roles to check: `requireAdministrator`, the read, `requireStored`, then
 `requirePermission(ctx, 'config:roles:manage')` when the stored agent's `roles` is not empty, then
 the write with the version of that read.
 
@@ -322,7 +336,8 @@ Verification entry of `authorization.md` and named in `audit`.
 - Comparing as sets means a reordering is not a change; a rule that gave order a meaning would have
   to revisit it.
 - Agent checks move before `requireAssignableRoles`, so an account manager submitting an unknown
-  role is now denied instead of told the role is unknown.
+  role is now denied instead of told the role is unknown; creating with roles under a taken name,
+  they are denied instead of told the name is taken.
 - An account manager can no longer replace a leaked token of an agent that holds roles; they can
   revoke the agent, and a holder of both recreates it with a new subject or reissues the token.
 
@@ -334,3 +349,7 @@ Verification entry of `authorization.md` and named in `audit`.
   regression of ZF5 shows only in `accounts.server.test.ts` and the agent tests.
 - Agent administration still ignores `authorization.lockRoles`; on a locked instance an account
   manager holding both permissions can still change agents' roles.
+- Creating an agent loads the authorization source before the name and the roles are checked, so on
+  an instance whose manifests are absent, a creation refused as a taken name or an unknown role
+  still leaves the empty manifests MAN-2 creates. A denial of `config:roles:manage` comes before the
+  load and leaves storage as it was.
