@@ -1,0 +1,154 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { verify } from '#lib/script/signing/envelope.js'
+import { PermissionDeniedError } from '#lib/script/authorization/enforce.js'
+import type { ObjectReference } from '@genoacms/contracts/storage'
+import { memory } from '#lib/script/testing/memoryStorage.js'
+import { clearDeclarations } from '#lib/script/testing/host.js'
+import { testKeyResolution, signingKey } from '#lib/script/testing/signingKeys.js'
+import { importModule, principal, type Parsed } from '#lib/script/testing/requests.js'
+
+const hooks = vi.hoisted(() => ({
+  locked: false,
+  afterRead: undefined as ((reference: ObjectReference) => Promise<void>) | undefined
+}))
+
+vi.mock('#lib/script/host.server.js', async (importOriginal) => {
+  const { withDeclarations } = await import('#lib/script/testing/host.js')
+  const { host } = await importOriginal<typeof import('#lib/script/host.server.js')>()
+  return { host: withDeclarations(host) }
+})
+vi.mock('#lib/script/storage/providers.server.js', async () => {
+  const { memoryProviders } = await import('#lib/script/testing/memoryStorage.js')
+  return {
+    ...memoryProviders,
+    getObject: async (reference: ObjectReference) => {
+      const object = await memoryProviders.getObject(reference)
+      const afterRead = hooks.afterRead
+      if (afterRead !== undefined) await afterRead(reference)
+      return object
+    }
+  }
+})
+vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
+vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
+  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
+}))
+vi.mock('#lib/script/authorization/declared.server.js', async (importOriginal) => ({
+  ...await importOriginal<typeof import('#lib/script/authorization/declared.server.js')>(),
+  isAdministrationLocked: () => hooks.locked
+}))
+vi.mock('#lib/script/database/database.server.js', () => ({
+  getCollectionReferences: () => [],
+  getCollectionReference: async () => { throw new Error('collection/not-found') }
+}))
+
+const USERS_PATH = '.genoacms/security/users.json'
+
+const configuration = async () => await importModule('#lib/script/configuration/user.server.js')
+const manifests = async () => await importModule('#lib/script/authorization/manifests.server.js')
+
+const accountAdmin = principal(['config:users:manage'], 'admin-1')
+const bothAdmin = principal(['config:users:manage', 'config:roles:manage'], 'admin-2')
+
+async function storedUsers (): Promise<Record<string, Parsed>> {
+  const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
+  const verified = verify(memory.json(USERS_PATH), 'genoacms.users.v1' as never, publicKey as Uint8Array)
+  if (!verified.valid) throw new Error(`users.json does not verify: ${verified.reason}`)
+  return (verified.payload as Parsed).users
+}
+
+async function expectRoleManagementDenied (attempt: Promise<unknown>): Promise<void> {
+  const error = await attempt.then(() => undefined, (caught: unknown) => caught)
+  expect(error).toBeInstanceOf(PermissionDeniedError)
+  expect(error).toMatchObject({ permission: 'config:roles:manage' })
+}
+
+beforeEach(async () => {
+  memory.clear()
+  clearDeclarations()
+  hooks.locked = false
+  hooks.afterRead = undefined
+  const { writeRolesManifest, writeUsersManifest } = await manifests()
+  await writeRolesManifest([
+    { name: 'Editor', grants: [{ permission: 'pages:content_edit', resource: '*' }] },
+    { name: 'Publisher', grants: [{ permission: 'pages:publish', resource: '*' }] }
+  ])
+  await writeUsersManifest([{ subject: 's-1', email: 's-1@example.com', roles: ['Editor'] }])
+})
+
+describe('creating and replacing accounts', () => {
+  it.fails('ENF-3, ZF5: an account manager cannot create an account with roles', async () => {
+    const { upsertUserAccount } = await configuration()
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(upsertUserAccount(accountAdmin, { subject: 's-2', email: 's-2@example.com', roles: ['Editor'] }))
+
+    expect(memory.snapshot()).toEqual(before)
+  })
+
+  it.fails("ENF-3, ZF5: an account manager cannot change an account's roles by replacing it", async () => {
+    const { upsertUserAccount } = await configuration()
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(upsertUserAccount(accountAdmin, { subject: 's-1', email: 's-1@example.com', roles: ['Editor', 'Publisher'] }))
+
+    expect(memory.snapshot()).toEqual(before)
+  })
+
+  it.fails("ENF-3, ZF5: an account manager cannot clear an account's roles by replacing it", async () => {
+    const { upsertUserAccount } = await configuration()
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(upsertUserAccount(accountAdmin, { subject: 's-1', email: 's-1@example.com', roles: [] }))
+
+    expect(memory.snapshot()).toEqual(before)
+  })
+
+  it('ENF-3: an account manager creates an account with no roles', async () => {
+    const { upsertUserAccount } = await configuration()
+
+    expect(await upsertUserAccount(accountAdmin, { subject: 's-2', email: 's-2@example.com', roles: [] })).toEqual({ ok: true, value: undefined })
+
+    expect((await storedUsers())['s-2']).toEqual({ email: 's-2@example.com', roles: [] })
+  })
+
+  it('ENF-3: an account manager replaces an email when the roles stay', async () => {
+    const { upsertUserAccount } = await configuration()
+
+    expect(await upsertUserAccount(accountAdmin, { subject: 's-1', email: 'new@example.com', roles: ['Editor'] })).toEqual({ ok: true, value: undefined })
+
+    expect((await storedUsers())['s-1']).toEqual({ email: 'new@example.com', roles: ['Editor'] })
+  })
+
+  it('ENF-3: a holder of both creates an account with roles', async () => {
+    const { upsertUserAccount } = await configuration()
+
+    expect(await upsertUserAccount(bothAdmin, { subject: 's-2', email: 's-2@example.com', roles: ['Publisher'] })).toEqual({ ok: true, value: undefined })
+
+    expect((await storedUsers())['s-2']).toEqual({ email: 's-2@example.com', roles: ['Publisher'] })
+  })
+
+  it('ENF-3: the role change is decided against the accounts the write replaces', async () => {
+    const { upsertUserAccount } = await configuration()
+    const { writeUsersManifest } = await manifests()
+    hooks.afterRead = async (reference) => {
+      if (reference.name !== USERS_PATH) return
+      hooks.afterRead = undefined
+      await writeUsersManifest([{ subject: 's-1', email: 's-1@example.com', roles: [] }], memory.versionOf(USERS_PATH))
+    }
+
+    expect(await upsertUserAccount(accountAdmin, { subject: 's-1', email: 's-1@example.com', roles: ['Editor'] }))
+      .toEqual({ ok: false, reason: 'manifest/conflict' })
+
+    expect((await storedUsers())['s-1'].roles).toEqual([])
+  })
+
+  it('ENF-3, TIR-4: the lock is reported before the role check', async () => {
+    const { upsertUserAccount } = await configuration()
+    hooks.locked = true
+
+    expect(await upsertUserAccount(accountAdmin, { subject: 's-2', email: 's-2@example.com', roles: ['Editor'] }))
+      .toEqual({ ok: false, reason: 'administration/locked-by-configuration' })
+  })
+})

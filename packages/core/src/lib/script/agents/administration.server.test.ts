@@ -26,6 +26,7 @@ const administration = async () => await importModule('#lib/script/agents/admini
 const authentication = async () => await importModule('#lib/script/agents/authenticate.server.js')
 
 const administrator = principal(['config:users:manage'], 'admin-1')
+const bothAdministrator = principal(['config:users:manage', 'config:roles:manage'], 'admin-1')
 
 async function storedAgents (): Promise<Record<string, Parsed>> {
   const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
@@ -45,7 +46,7 @@ describe('administering agents', () => {
   it('AGT-3: creating an agent stores its hash, never its token, and shows the token once', async () => {
     const { createAgent } = await administration()
 
-    const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    const created = await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
 
     expect(created.token).toMatch(/^gat_[A-Za-z0-9_-]{43}$/)
     expect((await storedAgents())['agent:writer']).toEqual({
@@ -72,9 +73,9 @@ describe('administering agents', () => {
   it('AGT-3: a reissued token replaces the old one, and a revoked agent is gone', async () => {
     const { createAgent, reissueAgentToken, revokeAgent } = await administration()
     const { agentForToken } = await authentication()
-    const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    const created = await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
 
-    const reissued = await reissueAgentToken(administrator, 'agent:writer')
+    const reissued = await reissueAgentToken(bothAdministrator, 'agent:writer')
 
     expect(reissued.token).not.toBe(created.token)
     expect(await agentForToken(created.token)).toBeUndefined()
@@ -106,5 +107,101 @@ describe('administering agents', () => {
     await expect(updateAgent(others, 'agent:writer', { label: 'O', roles: [] })).rejects.toBeInstanceOf(PermissionDeniedError)
     await expect(revokeAgent(others, 'agent:writer')).rejects.toBeInstanceOf(PermissionDeniedError)
     expect(memory.snapshot()).toEqual(before)
+  })
+})
+
+describe('the roles of agents', () => {
+  async function expectRoleManagementDenied (attempt: Promise<unknown>): Promise<void> {
+    const error = await attempt.then(() => undefined, (caught: unknown) => caught)
+    expect(error).toBeInstanceOf(PermissionDeniedError)
+    expect(error).toMatchObject({ permission: 'config:roles:manage' })
+  }
+
+  it.fails('AGT-3, ZF5: an account manager cannot create an agent with roles', async () => {
+    const { createAgent } = await administration()
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(createAgent(administrator, { name: 'writer', label: 'W', roles: ['Builder'] }))
+
+    expect(memory.snapshot()).toEqual(before)
+  })
+
+  it('AGT-3: an account manager creates an agent with no roles', async () => {
+    const { createAgent } = await administration()
+
+    const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
+
+    expect(created.token).toMatch(/^gat_/)
+    expect((await storedAgents())['agent:writer'].roles).toEqual([])
+  })
+
+  it.fails("AGT-3, ZF5: an account manager cannot change an agent's roles", async () => {
+    const { createAgent, updateAgent } = await administration()
+    await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
+    await createAgent(bothAdministrator, { name: 'reader', label: 'R', roles: ['Builder'] })
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(updateAgent(administrator, 'agent:writer', { label: 'W', roles: ['Builder'] }))
+    await expectRoleManagementDenied(updateAgent(administrator, 'agent:reader', { label: 'R', roles: [] }))
+
+    expect(memory.snapshot()).toEqual(before)
+  })
+
+  it("AGT-3: an account manager changes an agent's label when the roles stay", async () => {
+    const { createAgent, updateAgent } = await administration()
+    await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+
+    await updateAgent(administrator, 'agent:writer', { label: 'W2', roles: ['Builder'] })
+
+    expect((await storedAgents())['agent:writer']).toMatchObject({ label: 'W2', roles: ['Builder'] })
+  })
+
+  it.fails('AGT-3: the role check comes before the roles are checked', async () => {
+    const { createAgent } = await administration()
+
+    await expectRoleManagementDenied(createAgent(administrator, { name: 'writer', label: 'W', roles: ['NoSuchRole'] }))
+  })
+
+  it.fails('AGT-3, ZF5: an account manager cannot reissue the token of an agent with roles', async () => {
+    const { createAgent, reissueAgentToken } = await administration()
+    const { agentForToken } = await authentication()
+    const created = await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    const before = memory.snapshot()
+
+    await expectRoleManagementDenied(reissueAgentToken(administrator, 'agent:writer'))
+
+    expect(memory.snapshot()).toEqual(before)
+    expect(await agentForToken(created.token)).toBe('agent:writer')
+  })
+
+  it('AGT-3: an account manager reissues the token of an agent with no roles', async () => {
+    const { createAgent, reissueAgentToken } = await administration()
+    const { agentForToken } = await authentication()
+    const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
+
+    const reissued = await reissueAgentToken(administrator, 'agent:writer')
+
+    expect(await agentForToken(reissued.token)).toBe('agent:writer')
+    expect(await agentForToken(created.token)).toBeUndefined()
+  })
+
+  it('AGT-3: an account manager revokes an agent with roles', async () => {
+    const { createAgent, revokeAgent } = await administration()
+    const { agentForToken } = await authentication()
+    const created = await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+
+    await revokeAgent(administrator, 'agent:writer')
+
+    expect(await storedAgents()).not.toHaveProperty('agent:writer')
+    expect(await agentForToken(created.token)).toBeUndefined()
+  })
+
+  it("AGT-3: a holder of both creates and changes an agent's roles", async () => {
+    const { createAgent, updateAgent } = await administration()
+
+    await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    await updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: [] })
+
+    expect((await storedAgents())['agent:writer'].roles).toEqual([])
   })
 })
