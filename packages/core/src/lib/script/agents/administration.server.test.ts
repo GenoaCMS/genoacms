@@ -117,7 +117,7 @@ describe('the roles of agents', () => {
     expect(error).toMatchObject({ permission: 'config:roles:manage' })
   }
 
-  it.fails('AGT-3, ZF5: an account manager cannot create an agent with roles', async () => {
+  it('AGT-3, ZF5: an account manager cannot create an agent with roles', async () => {
     const { createAgent } = await administration()
     const before = memory.snapshot()
 
@@ -135,7 +135,7 @@ describe('the roles of agents', () => {
     expect((await storedAgents())['agent:writer'].roles).toEqual([])
   })
 
-  it.fails("AGT-3, ZF5: an account manager cannot change an agent's roles", async () => {
+  it("AGT-3, ZF5: an account manager cannot change an agent's roles", async () => {
     const { createAgent, updateAgent } = await administration()
     await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
     await createAgent(bothAdministrator, { name: 'reader', label: 'R', roles: ['Builder'] })
@@ -156,13 +156,13 @@ describe('the roles of agents', () => {
     expect((await storedAgents())['agent:writer']).toMatchObject({ label: 'W2', roles: ['Builder'] })
   })
 
-  it.fails('AGT-3: the role check comes before the roles are checked', async () => {
+  it('AGT-3: the role check comes before the roles are checked', async () => {
     const { createAgent } = await administration()
 
     await expectRoleManagementDenied(createAgent(administrator, { name: 'writer', label: 'W', roles: ['NoSuchRole'] }))
   })
 
-  it.fails('AGT-3, ZF5: an account manager cannot reissue the token of an agent with roles', async () => {
+  it('AGT-3, ZF5: an account manager cannot reissue the token of an agent with roles', async () => {
     const { createAgent, reissueAgentToken } = await administration()
     const { agentForToken } = await authentication()
     const created = await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })

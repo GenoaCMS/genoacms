@@ -35,7 +35,7 @@ describe('the agents manifest', () => {
     captureConsole()
     const { createAgent } = await administration()
     const { agentForToken } = await authentication()
-    const created = await createAgent(principal(['config:users:manage']), { name: 'writer', label: 'W', roles: ['Builder'] })
+    const created = await createAgent(principal(['config:users:manage', 'config:roles:manage']), { name: 'writer', label: 'W', roles: ['Builder'] })
     expect(memory.json(AGENTS_PATH)).toMatchObject({ type: 'genoacms.agents.v1' })
     expect(await agentForToken(created.token)).toBe('agent:writer')
 

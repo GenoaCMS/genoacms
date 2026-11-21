@@ -274,7 +274,7 @@ describe('changesRoles', () => {
   const rules = async (): Promise<Parsed> => await importModule('#lib/script/authorization/administration.js')
   const account = (subject: string, roles: string[]): UserRecord => ({ subject, email: `${subject}@example.com`, roles })
 
-  it.fails('ENF-3, AGT-3: the same roles in another order are the same set', async () => {
+  it('ENF-3, AGT-3: the same roles in another order are the same set', async () => {
     const { sameRoleSet } = await rules()
 
     expect(sameRoleSet(['Editor', 'Publisher'], ['Publisher', 'Editor'])).toBe(true)
@@ -282,25 +282,25 @@ describe('changesRoles', () => {
     expect(sameRoleSet(['Editor'], [])).toBe(false)
   })
 
-  it.fails('ENF-3: a new account with no roles changes no roles', async () => {
+  it('ENF-3: a new account with no roles changes no roles', async () => {
     const { changesRoles } = await rules()
 
     expect(changesRoles([], account('s-1', []))).toBe(false)
   })
 
-  it.fails('ENF-3: a new account with roles changes roles', async () => {
+  it('ENF-3: a new account with roles changes roles', async () => {
     const { changesRoles } = await rules()
 
     expect(changesRoles([], account('s-1', ['Editor']))).toBe(true)
   })
 
-  it.fails("ENF-3: a stored account's roles in another order change no roles", async () => {
+  it("ENF-3: a stored account's roles in another order change no roles", async () => {
     const { changesRoles } = await rules()
 
     expect(changesRoles([account('s-1', ['Editor', 'Publisher'])], account('s-1', ['Publisher', 'Editor']))).toBe(false)
   })
 
-  it.fails('ENF-3: a role added or removed changes roles', async () => {
+  it('ENF-3: a role added or removed changes roles', async () => {
     const { changesRoles } = await rules()
     const stored = [account('s-1', ['Editor'])]
 
@@ -308,7 +308,7 @@ describe('changesRoles', () => {
     expect(changesRoles(stored, account('s-1', []))).toBe(true)
   })
 
-  it.fails("ENF-3: another subject's roles do not count", async () => {
+  it("ENF-3: another subject's roles do not count", async () => {
     const { changesRoles } = await rules()
 
     expect(changesRoles([account('s-2', ['Editor'])], account('s-1', ['Editor']))).toBe(true)

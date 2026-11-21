@@ -21,6 +21,7 @@ import {
   removeRole,
   upsertUser,
   setUserRoles,
+  changesRoles,
   removeUser,
   type AdministrationResult
 } from './administration'
@@ -193,8 +194,15 @@ const updateRole = async (role: Role): Promise<AdministrationResult<void>> =>
 const deleteRole = async (name: string): Promise<AdministrationResult<void>> =>
   await applyToRoles(state => removeRole(state.roles, state.users, name, declaredRoleNames(state.declared)))
 
-const upsertAccount = async (record: UserRecord): Promise<AdministrationResult<void>> =>
-  await applyToUsers(state => upsertUser(state.users, state.roles, record, declaredSubjects(state.declared)))
+// ENF-3
+const upsertAccount = async (
+  record: UserRecord,
+  authorizeRoleChange: (changesRoles: boolean) => void
+): Promise<AdministrationResult<void>> =>
+  await applyToUsers(state => {
+    authorizeRoleChange(changesRoles(state.users, record))
+    return upsertUser(state.users, state.roles, record, declaredSubjects(state.declared))
+  })
 
 const assignAccountRoles = async (subject: string, names: string[]): Promise<AdministrationResult<void>> =>
   await applyToUsers(state => setUserRoles(state.users, state.roles, subject, names, declaredSubjects(state.declared)))

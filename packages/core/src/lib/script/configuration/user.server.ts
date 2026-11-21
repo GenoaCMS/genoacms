@@ -189,13 +189,19 @@ const deleteUserRole = async (ctx: AuthContext, name: string): Promise<Administr
   return await deleteRole(name)
 }
 
+/**
+ * Creates or replaces an account. Changing its roles, against the stored account the write
+ * replaces, also needs `config:roles:manage` (ENF-3, ZU13).
+ */
 const upsertUserAccount = async (
   ctx: AuthContext,
   record: UserRecord
 ): Promise<AdministrationResult<void>> => {
   requirePermission(ctx, 'config:users:manage')
   if (isAdministrationLocked()) return LOCKED
-  return await upsertAccount(record)
+  return await upsertAccount(record, changes => {
+    if (changes) requirePermission(ctx, 'config:roles:manage')
+  })
 }
 
 /**

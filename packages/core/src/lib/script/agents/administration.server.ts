@@ -7,6 +7,7 @@ import type { Role } from '#lib/script/authorization/roles.js'
 import { readStoredAgentsForAdministration, writeStoredAgents } from './manifest.server'
 import type { AgentRecord } from './manifest'
 import { AgentCeilingError, exceedsAgentCeiling } from './ceiling'
+import { sameRoleSet } from '#lib/script/authorization/administration.js'
 import { generateAgentToken, hashAgentToken } from './tokens'
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/
@@ -31,9 +32,13 @@ function requireStored (subject: string, stored: AgentRecord[]): AgentRecord {
   return agent
 }
 
-async function requireAssignableRoles (subject: string, names: string[]): Promise<void> {
+// AGT-2, MAN-2
+async function loadKnownRoles (): Promise<Map<string, Role>> {
   const { source } = await loadAuthorizationSource()
-  const known = new Map<string, Role>((source.available ? source.roles : []).map(role => [role.name, role]))
+  return new Map<string, Role>((source.available ? source.roles : []).map(role => [role.name, role]))
+}
+
+function requireAssignableRoles (subject: string, names: string[], known: Map<string, Role>): void {
   const unknown = names.filter(name => !known.has(name))
   if (unknown.length > 0) throw new Error(`user/unknown-roles: ${unknown.join(', ')}`)
   const exceeding = names.find(name => exceedsAgentCeiling((known.get(name) as Role).grants))
@@ -42,6 +47,11 @@ async function requireAssignableRoles (subject: string, names: string[]): Promis
 
 function requireAdministrator (ctx: AuthContext): void {
   requirePermission(ctx, 'config:users:manage')
+}
+
+// AGT-3, ZU13
+function requireRoleAdministratorWhen (ctx: AuthContext, needed: boolean): void {
+  if (needed) requirePermission(ctx, 'config:roles:manage')
 }
 
 interface AgentListing {
@@ -68,9 +78,11 @@ async function createAgent (
 ): Promise<{ subject: string, token: string }> {
   requireAdministrator(ctx)
   const subject = requireValidName(input.name)
-  await requireAssignableRoles(subject, input.roles)
+  requireRoleAdministratorWhen(ctx, input.roles.length > 0)
+  const known = await loadKnownRoles()
   const { agents, version } = await readStoredAgentsForAdministration()
   requireUnclaimed(subject, agents)
+  requireAssignableRoles(subject, input.roles, known)
   const token = generateAgentToken()
   const record: AgentRecord = { subject, label: input.label, tokenHash: hashAgentToken(token), roles: input.roles, createdAt: Date.now(), createdBy: ctx.subject }
   await writeStoredAgents([...agents, record], version)
@@ -82,7 +94,8 @@ async function createAgent (
 async function reissueAgentToken (ctx: AuthContext, subject: string): Promise<{ token: string }> {
   requireAdministrator(ctx)
   const { agents, version } = await readStoredAgentsForAdministration()
-  requireStored(subject, agents)
+  const stored = requireStored(subject, agents)
+  requireRoleAdministratorWhen(ctx, stored.roles.length > 0)
   const token = generateAgentToken()
   await writeStoredAgents(agents.map(agent => agent.subject === subject ? { ...agent, tokenHash: hashAgentToken(token) } : agent), version)
   return { token }
@@ -91,9 +104,10 @@ async function reissueAgentToken (ctx: AuthContext, subject: string): Promise<{ 
 /** AGT-3, AGT-5 */
 async function updateAgent (ctx: AuthContext, subject: string, input: { label: string, roles: string[] }): Promise<void> {
   requireAdministrator(ctx)
-  await requireAssignableRoles(subject, input.roles)
   const { agents, version } = await readStoredAgentsForAdministration()
-  requireStored(subject, agents)
+  const stored = requireStored(subject, agents)
+  requireRoleAdministratorWhen(ctx, !sameRoleSet(stored.roles, input.roles))
+  requireAssignableRoles(subject, input.roles, await loadKnownRoles())
   await writeStoredAgents(agents.map(agent => agent.subject === subject ? { ...agent, label: input.label, roles: input.roles } : agent), version)
   await forgetSubject(subject)
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Grant } from '#lib/script/authorization/grants.js'
 import type { Permission } from '#lib/script/authorization/permissions.js'
 import type { AuthContext } from '#lib/script/authorization/context.js'
+import type { UserRecord } from '#lib/script/authorization/manifests.js'
 
 /**
  * Enforcement in the configuration service.
@@ -34,18 +35,25 @@ vi.mock('#lib/script/authorization/declared.server.js', () => ({
   isAdministrationLocked: () => locked.value
 }))
 
-vi.mock('#lib/script/authorization/administration.server.js', () => ({
-  loadAdministrationState: async () => {
-    calls.push('load')
-    return { ok: true, value: { roles: stored.roles, users: stored.users, declared: stored.declared } }
-  },
-  createRole: async (role: { name: string }) => { calls.push(`createRole:${role.name}`); return { ok: true } },
-  updateRole: async (role: { name: string }) => { calls.push(`updateRole:${role.name}`); return { ok: true } },
-  deleteRole: async (name: string) => { calls.push(`deleteRole:${name}`); return { ok: true } },
-  upsertAccount: async (record: { subject: string }) => { calls.push(`upsert:${record.subject}`); return { ok: true } },
-  assignAccountRoles: async (subject: string) => { calls.push(`assign:${subject}`); return { ok: true } },
-  removeAccount: async (subject: string) => { calls.push(`remove:${subject}`); return { ok: true } }
-}))
+vi.mock('#lib/script/authorization/administration.server.js', async () => {
+  const { changesRoles } = await import('#lib/script/authorization/administration.js')
+  return {
+    loadAdministrationState: async () => {
+      calls.push('load')
+      return { ok: true, value: { roles: stored.roles, users: stored.users, declared: stored.declared } }
+    },
+    createRole: async (role: { name: string }) => { calls.push(`createRole:${role.name}`); return { ok: true } },
+    updateRole: async (role: { name: string }) => { calls.push(`updateRole:${role.name}`); return { ok: true } },
+    deleteRole: async (name: string) => { calls.push(`deleteRole:${name}`); return { ok: true } },
+    upsertAccount: async (record: UserRecord, authorizeRoleChange: (changes: boolean) => void) => {
+      authorizeRoleChange(changesRoles(stored.users, record))
+      calls.push(`upsert:${record.subject}`)
+      return { ok: true }
+    },
+    assignAccountRoles: async (subject: string) => { calls.push(`assign:${subject}`); return { ok: true } },
+    removeAccount: async (subject: string) => { calls.push(`remove:${subject}`); return { ok: true } }
+  }
+})
 
 vi.mock('#lib/script/storage/storage.server.js', () => ({
   getBucketReferences: () => [{ name: 'media' }, { name: 'invoices' }]

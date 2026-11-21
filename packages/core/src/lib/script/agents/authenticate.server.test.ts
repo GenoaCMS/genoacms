@@ -21,7 +21,7 @@ const DECLARED_TOKEN = 'declared-token-of-the-e2e-builder-0123456789'
 const administration = async () => await importModule('#lib/script/agents/administration.server.js')
 const authentication = async () => await importModule('#lib/script/agents/authenticate.server.js')
 
-const administrator = principal(['config:users:manage'], 'admin-1')
+const administrator = principal(['config:users:manage', 'config:roles:manage'], 'admin-1')
 
 beforeEach(() => {
   memory.clear()

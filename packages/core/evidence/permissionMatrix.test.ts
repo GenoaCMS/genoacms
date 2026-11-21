@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BUCKET, COLLECTION, matrixOperations, rolesUnderTest } from './permissionMatrix'
 import type { AuthContext } from '#lib/script/authorization/context.js'
 import type { Grant } from '#lib/script/authorization/grants.js'
+import type { UserRecord } from '#lib/script/authorization/manifests.js'
 
 /**
  * **The exhaustive permission matrix.**
@@ -207,18 +208,24 @@ vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
   writePolicy: async () => undefined
 }))
 
-vi.mock('#lib/script/authorization/administration.server.js', () => ({
-  loadAdministrationState: async () => ({
-    ok: true,
-    value: { roles: [], users: [], declared: { roles: [], users: [] } }
-  }),
-  createRole: async () => ({ ok: true }),
-  updateRole: async () => ({ ok: true }),
-  deleteRole: async () => ({ ok: true }),
-  upsertAccount: async () => ({ ok: true }),
-  assignAccountRoles: async () => ({ ok: true }),
-  removeAccount: async () => ({ ok: true })
-}))
+vi.mock('#lib/script/authorization/administration.server.js', async () => {
+  const { changesRoles } = await import('#lib/script/authorization/administration.js')
+  return {
+    loadAdministrationState: async () => ({
+      ok: true,
+      value: { roles: [], users: [], declared: { roles: [], users: [] } }
+    }),
+    createRole: async () => ({ ok: true }),
+    updateRole: async () => ({ ok: true }),
+    deleteRole: async () => ({ ok: true }),
+    upsertAccount: async (record: UserRecord, authorizeRoleChange: (changes: boolean) => void) => {
+      authorizeRoleChange(changesRoles([], record))
+      return { ok: true }
+    },
+    assignAccountRoles: async () => ({ ok: true }),
+    removeAccount: async () => ({ ok: true })
+  }
+})
 
 const { createAuthContext } = await import('#lib/script/authorization/context.js')
 const { WILDCARD } = await import('#lib/script/authorization/grants.js')

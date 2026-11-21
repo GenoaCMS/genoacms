@@ -97,6 +97,17 @@ function removeRole (
   return { ok: true, value: roles.filter(role => role.name !== name) }
 }
 
+/** ENF-3, AGT-3: whether two lists name the same roles, in any order. */
+function sameRoleSet (a: string[], b: string[]): boolean {
+  const left = new Set(a)
+  const right = new Set(b)
+  return left.size === right.size && [...left].every(name => right.has(name))
+}
+
+/** ENF-3: whether writing `record` gives its subject another set of roles than the stored one. */
+const changesRoles = (users: UserRecord[], record: UserRecord): boolean =>
+  !sameRoleSet(findUser(users, record.subject)?.roles ?? [], record.roles)
+
 const unknownRoles = (roles: Role[], names: string[]): string[] =>
   names.filter(name => findRole(roles, name) === undefined)
 
@@ -176,7 +187,9 @@ export {
   upsertUser,
   setUserRoles,
   removeUser,
-  holdersOf
+  holdersOf,
+  sameRoleSet,
+  changesRoles
 }
 
 export type {

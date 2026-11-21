@@ -78,7 +78,7 @@ beforeEach(async () => {
 })
 
 describe('creating and replacing accounts', () => {
-  it.fails('ENF-3, ZF5: an account manager cannot create an account with roles', async () => {
+  it('ENF-3, ZF5: an account manager cannot create an account with roles', async () => {
     const { upsertUserAccount } = await configuration()
     const before = memory.snapshot()
 
@@ -87,7 +87,7 @@ describe('creating and replacing accounts', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails("ENF-3, ZF5: an account manager cannot change an account's roles by replacing it", async () => {
+  it("ENF-3, ZF5: an account manager cannot change an account's roles by replacing it", async () => {
     const { upsertUserAccount } = await configuration()
     const before = memory.snapshot()
 
@@ -96,7 +96,7 @@ describe('creating and replacing accounts', () => {
     expect(memory.snapshot()).toEqual(before)
   })
 
-  it.fails("ENF-3, ZF5: an account manager cannot clear an account's roles by replacing it", async () => {
+  it("ENF-3, ZF5: an account manager cannot clear an account's roles by replacing it", async () => {
     const { upsertUserAccount } = await configuration()
     const before = memory.snapshot()
 
