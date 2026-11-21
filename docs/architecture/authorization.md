@@ -3,7 +3,7 @@ type: architecture
 title: Authorization in core
 prefix: Z
 codes: [ROL, GRT, MAN, TIR, RES, ADM, ENF]
-verified: 77afa578
+verified: 095cc7e6
 ---
 
 # Authorization in core
@@ -74,7 +74,7 @@ grant editor: rows ──(ROL-3)──▶ hidden field `grants` (JSON of Grant[]
 | ZU10 | 2026-08 (step 14): changing an account's roles needs both `config:users:manage` and `config:roles:manage`, so that managing accounts does not amount to granting any role. | ENF-3 |
 | ZU11 | 2026-08-19 (changes C and D): `db:collection:schema` and `storage:bucket:list` are not permissions; a field list on `read` and `write` grants replaces the first, the filtered catalog the second. Declarations live in the `authorization` stanza, policy seeds in `security`. | GRT-1, TIR-1 |
 | ZU12 | 2026-08-25: one set of four component permissions, `components:read`, `register`, `modify` and `code`, for prebuilt and dynamic components alike, replacing `components:prebuilt:*` and `components:dynamic:*`. | GRT-1, CMP-11 |
-| ZU13 | 2026-11-20: **New**, RFC-0047. Setting the roles of an account or an agent needs both `config:users:manage` and `config:roles:manage` on every path. Creating or replacing an account, and creating or changing an agent, are no exception when the roles change, and neither is issuing a new token to an agent holding roles: account management alone covers the account, never the authority it holds (ZF5). | ENF-3, ADM-3, `agent-access.md` AGT-3 |
+| ZU13 | 2026-11-20, RFC-0047. Setting the roles of an account or an agent needs both `config:users:manage` and `config:roles:manage` on every path. Creating or replacing an account, and creating or changing an agent, are no exception when the roles change, and neither is issuing a new token to an agent holding roles: account management alone covers the account, never the authority it holds (ZF5). | ENF-3, ADM-3, `agent-access.md` AGT-3 |
 
 **ZD1. A grant row holds one permission over a set of resources (ROL-2, ROL-3).** A stored grant
 carries one permission over one resource. The editor shows a row per permission, with a switch per
@@ -166,7 +166,7 @@ than its record suggests, and only a warning says so.
 | ZF2 | *History.* **Reopening a role after a save showed the grants from before it (ZD3).** Found by the Playwright suite in 2026-08. | fixed |
 | ZF3 | **Declared administrators cannot sign in during a storage outage, the case they exist for.** Breaks ZU5 and ZD9: the thesis (§4.2.4, §4.2.7.3) promises that a declared principal signs in while the manifests are unreadable. Cause: when the primary bucket, the secret store or the key registry cannot be reached, resolution throws instead of falling back to the declarations, so a sign-in with valid credentials, and every request carrying a session, is answered 500. Only a verdict (MAN-3) leaves the declarations in effect (TIR-3). Found 2026-11-20. TIR-3, RES-3. | open |
 | ZF4 | **A momentary read error signs every stored account out of its permissions, silently, for the whole cache window.** Breaks ZD8 (an outage is not a verdict) and RES-2 (degraded operation is reported). Cause: any failure to read `roles.json` or `users.json` is taken for absence. The create that follows requires absence, fails its precondition because the object exists, and that failure is taken as a lost race, so the manifest resolves as empty, with no alert, and the result is cached (RES-4). Found 2026-11-20. MAN-2, RES-4. | open |
-| ZF5 | **An account manager can give anyone any role, a wildcard role and themselves included, so `config:users:manage` alone is full authority.** Breaks ZU10, which requires both `config:users:manage` and `config:roles:manage` to change an account's roles. Cause: changing roles requires both, but creating or replacing an account also writes its roles, and requires only `config:users:manage` (ENF-3, ADM-3). The double check guards one door and leaves the other open. Agents have the same gap: `config:users:manage` alone creates an agent with roles or changes its roles (`agent-access.md` AGT-3), within the ceiling (AGT-5), and receives a new agent's token. The permission matrix allows `AccountAdministrator` to call `upsertUserAccount` without checking the roles it writes. Decided by ZU13, fixed by RFC-0047. Found 2026-11-20. ENF-3, ADM-3. | open |
+| ZF5 | *History.* **An account manager can give anyone any role, a wildcard role and themselves included, so `config:users:manage` alone is full authority.** Breaks ZU10, which requires both `config:users:manage` and `config:roles:manage` to change an account's roles. Cause: changing roles requires both, but creating or replacing an account also writes its roles, and requires only `config:users:manage` (ENF-3, ADM-3). The double check guards one door and leaves the other open. Agents have the same gap: `config:users:manage` alone creates an agent with roles or changes its roles (`agent-access.md` AGT-3), within the ceiling (AGT-5), and receives a new agent's token. The permission matrix allows `AccountAdministrator` to call `upsertUserAccount` without checking the roles it writes. Decided by ZU13. Found 2026-11-20. ENF-3, ADM-3. | fixed, RFC-0047 (`095cc7e6`) |
 | ZF6 | **A user refused permission sees a server error, everywhere outside storage.** Breaks ZD11 and the thesis (§4.2.6): a denial and a fault must be reported differently. Cause: only the storage routes turn `PermissionDeniedError` into 403; in collections, pages, components, configuration, keys and the security policy it propagates and SvelteKit answers 500. Found 2026-11-20. GRT-5. | open |
 | ZF7 | **A role can be deleted while an agent or a declared assignment still holds it, and a declared principal's authority can be changed at runtime.** Breaks ZU9 (no account names a missing role) and ZU6 (declarations are immutable at runtime). Cause: deleting a role looks for holders among stored accounts only, not stored agents (AGT-2) or declared assignments (TIR-1); and a declared assignment may name a stored role, which administration can edit. Found 2026-11-20. ADM-2, TIR-2. | open |
 | ZF8 | **A role named `SuperAdmin` can be created but never changed or deleted.** Breaks ZU5: no role is special any more. Cause: update and delete refuse that name (`role/super-admin-immutable`), left from the provisioned role that change A removed, while create accepts it. Found 2026-11-20. ADM-2. | open |
@@ -204,7 +204,7 @@ record where they disagree.
   submit nothing. The ones that save create a role of their own, named with the run's suffix, in the
   run's instance, which the run removes. The e2e config declares one bucket, so the case of several
   named resources in one row is checked on collections.
-- **Not yet carrying IDs.** No test carries a GRT, MAN, TIR, RES, ADM or ENF ID yet. The suites that
+- **Not yet carrying IDs.** No test carries a GRT, MAN, TIR, RES or ADM ID yet, nor an ENF ID but ENF-3's (RFC-0047). The suites that
   check them today are, in `packages/core/src/lib/script/authorization/`: `permissions.test.ts`
   and `packages/internal/src/authorization/permissions.test.js` (GRT-1), `enforce.test.ts` (GRT-3
   to GRT-5), `fields.test.ts` (GRT-6), `manifests.test.ts` and `signedManifests.test.ts` (MAN-1,
@@ -622,14 +622,21 @@ AUTHN-12).
 | :-- | :-- |
 | listing roles and accounts, listing the buckets, collections and fields a grant can name | `config:roles:manage` |
 | creating, replacing or deleting a role | `config:roles:manage` |
-| creating or replacing an account, removing an account | `config:users:manage` |
-| changing an account's roles | `config:users:manage` and `config:roles:manage` |
+| creating an account with no roles, replacing an account with the same set of roles, removing an account | `config:users:manage` |
+| creating an account with roles, replacing an account with another set of roles, changing an account's roles | `config:users:manage` and `config:roles:manage` |
 | reading or changing the security policy | `config:security:manage` |
+
+Whether creating or replacing an account changes its roles is decided against the stored account
+the write replaces, none for a new account, comparing the roles as sets, so order does not count.
+`config:users:manage` is demanded first, then the lock (TIR-4), then `config:roles:manage` when
+the roles change; a denial writes nothing. A write that the decision no longer matches when it
+lands fails with `manifest/conflict` (ADM-1). Agents follow the same rule (`agent-access.md`
+AGT-3).
 
 The catalog of grantable resources gives names only: every configured bucket, and every collection
 with the names of its fields, a collection whose definition cannot be read with none.
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/authorization/administration.test.ts`, `packages/core/src/lib/script/configuration/accounts.server.test.ts`
 - Level: unit
 
 #### ENF-4 · Interface gates

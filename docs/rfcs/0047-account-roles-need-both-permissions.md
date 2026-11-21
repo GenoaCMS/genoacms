@@ -2,8 +2,8 @@
 type: rfc
 number: 47
 title: The roles of accounts and agents change only with both configuration permissions
-status: draft
-commits: []
+status: auditing
+commits: [d38c6d9e, 095cc7e6]
 audit: []
 depends: []
 architecture: [architecture/authorization.md, architecture/agent-access.md]
@@ -117,11 +117,11 @@ table is new:
 > `config:roles:manage` (`authorization.md` ZU13, ENF-3): a token is the agent's authority, given
 > to whoever issued it. The roles are compared as sets with the stored agent the write replaces,
 > none for a new agent. The checks run in this order, and a failed one changes no stored agent and
-> leaves the previous token working. Creating: `config:users:manage`; the name matches; `config:roles:manage`
-> when roles are given; the name is not taken; the roles exist and stay within the ceiling (AGT-5).
-> Changing and issuing a token: `config:users:manage`; the agent is stored and not declared;
-> `config:roles:manage` when it is needed; the roles exist and stay within the ceiling, when they
-> are given. The write is conditional on the stored agents that were read.
+> leaves the previous token working. Creating: `config:users:manage`; the name matches;
+> `config:roles:manage` when roles are given; the name is not taken; the roles exist and stay within
+> the ceiling (AGT-5). Changing and issuing a token: `config:users:manage`; the agent is stored and
+> not declared; `config:roles:manage` when it is needed; the roles exist and stay within the
+> ceiling, when they are given. The write is conditional on the stored agents that were read.
 >
 > A new token is `gat_` followed by the base64url, without padding, of 32 random bytes. It is shown
 > once, with a note that it cannot be shown again, and only its hash is stored. Any action on a

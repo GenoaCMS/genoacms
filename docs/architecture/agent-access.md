@@ -3,12 +3,12 @@ type: architecture
 title: Agent access
 prefix: T
 codes: [AGT, MCP, TOL]
-verified: 159aaffc
+verified: 095cc7e6
 ---
 
 # Agent access
 
-Implemented by RFC-0039, except MCP-3, which is **New** and follows RFC-0031.
+Implemented by RFC-0039, with AGT-3 as RFC-0047 changed it, except MCP-3, which is **New** and follows RFC-0031.
 
 ## Design
 
@@ -69,6 +69,7 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU14 | 2026-10-28: an agent reads an object through a signed URL, and uploads its contents inline, at most 4 MiB. Larger uploads, through a signed upload URL, are a later RFC. | TD8; TOL-25, TOL-26 |
 | TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
 | TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | TOL-27, TOL-28 |
+| TU17 | 2026-11-20, RFC-0047: creating an agent with roles, changing its roles, and issuing a new token to an agent holding roles also need `config:roles:manage`, as for accounts (`authorization.md` ZU13). TU6 still holds for an agent with no roles. | AGT-3 |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -241,6 +242,17 @@ label and roles, the declared ones marked as declared in `genoa.config`. With
 | issue a new token | the agent's previous token stops working |
 | change label or roles | as given, subject to AGT-5 |
 | revoke | the stored agent is removed |
+
+Creating an agent with at least one role, changing a stored agent to another set of roles, and
+issuing a new token to a stored agent that holds at least one role also need
+`config:roles:manage` (`authorization.md` ZU13, ENF-3): a token is the agent's authority, given
+to whoever issued it. The roles are compared as sets with the stored agent the write replaces,
+none for a new agent. The checks run in this order, and a failed one changes no stored agent and
+leaves the previous token working. Creating: `config:users:manage`; the name matches;
+`config:roles:manage` when roles are given; the name is not taken; the roles exist and stay within
+the ceiling (AGT-5). Changing and issuing a token: `config:users:manage`; the agent is stored and
+not declared; `config:roles:manage` when it is needed; the roles exist and stay within the
+ceiling, when they are given. The write is conditional on the stored agents that were read.
 
 A new token is `gat_` followed by the base64url, without padding, of 32 random bytes. It is shown
 once, with a note that it cannot be shown again, and only its hash is stored. Any action on a
