@@ -3,7 +3,7 @@ type: architecture
 title: Agent access
 prefix: T
 codes: [AGT, MCP, TOL]
-verified: 095cc7e6
+verified: 471437ff
 ---
 
 # Agent access
@@ -70,9 +70,9 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 | TU15 | 2026-10-28: `delete_directory` deletes everything under the directory, as the storage contract does. | TOL-28 |
 | TU16 | 2026-10-28: `move_object` and `move_directory` refuse an existing destination with `storage/exists` unless given `overwrite: true`, as `upload_object` does; a directory is never moved into itself (TF2). | TOL-27, TOL-28 |
 | TU17 | 2026-11-20, RFC-0047: creating an agent with roles, changing its roles, and issuing a new token to an agent holding roles also need `config:roles:manage`, as for accounts (`authorization.md` ZU13). TU6 still holds for an agent with no roles. | AGT-3 |
-| TU18 | 2026-11-21: **New**, RFC-0047. An agent's roles are refused when a name repeats, with `user/duplicate-roles` as an account's are, so a stored list of roles is a set (TF5). | AGT-3 |
-| TF5 | **An agent can be stored with a role named twice, and a comparison that miscounted it would let an account manager change the agent's roles with every test passing.** Breaks AGT-3: the roles are compared as sets. Cause: `createAgent` and `updateAgent` accept a repeated name, which accounts refuse (`authorization.md` ADM-3), and no test repeats one; comparing by length lets `['Editor', 'Editor']` become `['Editor', 'Publisher']` without `config:roles:manage`. Decided by TU18. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | open |
-| TF6 | **A change to an agent that loses a race could restore its old roles or issue a token to an agent now holding roles, and no test would notice; nor would most of AGT-3's order reversed.** Breaks AGT-3: the write is conditional on the stored agents that were read, and the checks run in the stated order. Cause: no test changes `agents.json` between the read and the write, and the order is tested only for creating with an unknown role, by a principal holding `config:users:manage`. The code holds today: the write fails with `conflict/modified-since`. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | open |
+| TU18 | 2026-11-21, RFC-0047. An agent's roles are refused when a name repeats, with `user/duplicate-roles` as an account's are, so a stored list of roles is a set (TF5). | AGT-3 |
+| TF5 | *History.* **An agent can be stored with a role named twice, and a comparison that miscounted it would let an account manager change the agent's roles with every test passing.** Breaks AGT-3: the roles are compared as sets. Cause: `createAgent` and `updateAgent` accept a repeated name, which accounts refuse (`authorization.md` ADM-3), and no test repeats one; comparing by length lets `['Editor', 'Editor']` become `['Editor', 'Publisher']` without `config:roles:manage`. Decided by TU18. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | fixed, RFC-0047 (`471437ff`) |
+| TF6 | *History.* **A change to an agent that loses a race could restore its old roles or issue a token to an agent now holding roles, and no test would notice; nor would most of AGT-3's order reversed.** Breaks AGT-3: the write is conditional on the stored agents that were read, and the checks run in the stated order. Cause: no test changes `agents.json` between the read and the write, and the order is tested only for creating with an unknown role, by a principal holding `config:users:manage`. The code holds today: the write fails with `conflict/modified-since`. Found 2026-11-21 by the falsification audit of RFC-0047 (`authorization.md` ZS1). | fixed, RFC-0047 (`46209b50`) |
 
 **TD1. An agent is a principal of its own kind, known by core and not by a provider (AGT-1,
 AGT-2, AGT-4).** Its subject and token live in core's configuration or core's signed manifest.
@@ -253,12 +253,17 @@ Creating an agent with at least one role, changing a stored agent to another set
 issuing a new token to a stored agent that holds at least one role also need
 `config:roles:manage` (`authorization.md` ZU13, ENF-3): a token is the agent's authority, given
 to whoever issued it. The roles are compared as sets with the stored agent the write replaces,
-none for a new agent. The checks run in this order, and a failed one changes no stored agent and
-leaves the previous token working. Creating: `config:users:manage`; the name matches;
-`config:roles:manage` when roles are given; the name is not taken; the roles exist and stay within
-the ceiling (AGT-5). Changing and issuing a token: `config:users:manage`; the agent is stored and
-not declared; `config:roles:manage` when it is needed; the roles exist and stay within the
-ceiling, when they are given. The write is conditional on the stored agents that were read.
+none for a new agent. The checks run in this order. Creating: `config:users:manage`; the name
+matches; `config:roles:manage` when roles are given; the name is not taken; no role repeats
+(`user/duplicate-roles`), and the roles exist and stay within the ceiling (AGT-5). Changing and
+issuing a token: `config:users:manage`; the agent is stored and not declared;
+`config:roles:manage` when it is needed; no role repeats, and the roles exist and stay within the
+ceiling, when they are given. A failed check changes no stored agent and leaves the previous token
+working; creating may still leave the empty manifests that loading the roles creates
+(`authorization.md` MAN-2). The write is conditional on the stored agents that were read: one
+that loses the condition changes nothing and fails with `conflict/modified-since: agents has
+changed since version <version>; read it again.`, `absent` standing for the version when there
+was no `agents.json`.
 
 A new token is `gat_` followed by the base64url, without padding, of 32 random bytes. It is shown
 once, with a note that it cannot be shown again, and only its hash is stored. Any action on a
@@ -291,7 +296,7 @@ does.
 | administration: assigning such a role to an agent, or changing a role an agent holds so it exceeds it | refused with the same message |
 | resolution: an agent whose roles exceed it anyway, such as a declared assignment of a stored role | the agent resolves with no grants, every tool call is denied, and the error is logged |
 
-- Test: `packages/config/src/load/agents.test.ts`, `packages/core/src/lib/script/agents/ceiling.test.ts`, `packages/core/src/lib/script/authorization/administration.test.ts`
+- Test: `packages/config/src/load/agents.test.ts`, `packages/core/src/lib/script/agents/ceiling.test.ts`, `packages/core/src/lib/script/authorization/administration.test.ts`, `packages/core/src/lib/script/agents/administration.server.test.ts`
 - Level: unit
 
 #### AGT-6 · An agent's authority

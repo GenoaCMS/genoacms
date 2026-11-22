@@ -3,7 +3,7 @@ type: architecture
 title: Authorization in core
 prefix: Z
 codes: [ROL, GRT, MAN, TIR, RES, ADM, ENF]
-verified: 095cc7e6
+verified: 471437ff
 ---
 
 # Authorization in core
@@ -75,9 +75,9 @@ grant editor: rows ──(ROL-3)──▶ hidden field `grants` (JSON of Grant[]
 | ZU11 | 2026-08-19 (changes C and D): `db:collection:schema` and `storage:bucket:list` are not permissions; a field list on `read` and `write` grants replaces the first, the filtered catalog the second. Declarations live in the `authorization` stanza, policy seeds in `security`. | GRT-1, TIR-1 |
 | ZU12 | 2026-08-25: one set of four component permissions, `components:read`, `register`, `modify` and `code`, for prebuilt and dynamic components alike, replacing `components:prebuilt:*` and `components:dynamic:*`. | GRT-1, CMP-11 |
 | ZU13 | 2026-11-20, RFC-0047. Setting the roles of an account or an agent needs both `config:users:manage` and `config:roles:manage` on every path. Creating or replacing an account, and creating or changing an agent, are no exception when the roles change, and neither is issuing a new token to an agent holding roles: account management alone covers the account, never the authority it holds (ZF5). | ENF-3, ADM-3, `agent-access.md` AGT-3 |
-| ZU14 | 2026-11-21: **New**, RFC-0047. A subject starting with `agent:` is never an account. Account administration refuses it with `user/agent-subject`, and resolution ignores a stored account with such a subject and reports it, so a stored agent's roles live in `agents.json` alone (ZF15). | ADM-3, RES-1, RES-2, `agent-access.md` AGT-4 |
-| ZU15 | 2026-11-21: **New**, RFC-0047. Assigning an account's roles checks in the order creating and replacing do: `config:users:manage`, then the lock, then `config:roles:manage` (ZF17). | ENF-3, TIR-4 |
-| ZU16 | 2026-11-21: **New**, RFC-0047. Agents follow the permission rule of ENF-3, not its lock; the lock leaving agents changeable stays open (ZF16). | ENF-3 |
+| ZU14 | 2026-11-21, RFC-0047. A subject starting with `agent:` is never an account. Account administration refuses it with `user/agent-subject`, and resolution ignores a stored account with such a subject and reports it, so a stored agent's roles live in `agents.json` alone (ZF15). | ADM-3, RES-1, RES-2, `agent-access.md` AGT-4 |
+| ZU15 | 2026-11-21, RFC-0047. Assigning an account's roles checks in the order creating and replacing do: `config:users:manage`, then the lock, then `config:roles:manage` (ZF17). | ENF-3, TIR-4 |
+| ZU16 | 2026-11-21, RFC-0047. Agents follow the permission rule of ENF-3, not its lock; the lock leaving agents changeable stays open (ZF16). | ENF-3 |
 
 **ZD1. A grant row holds one permission over a set of resources (ROL-2, ROL-3).** A stored grant
 carries one permission over one resource. The editor shows a row per permission, with a switch per
@@ -179,9 +179,9 @@ than its record suggests, and only a warning says so.
 | ZF12 | **An account manager can create and remove accounts but cannot see them.** Breaks no decision, but makes `config:users:manage` unusable on its own. Cause: listing accounts requires `config:roles:manage`, and the roles screen loads only for it. Found 2026-11-20. ENF-3. | open |
 | ZF13 | **The code and its README describe a design that no longer exists, and an operator is told so in the log.** Breaks WORKFLOW §6.4 (the reason lives in the document, not in comments). Cause: comments in `roles.ts`, `context.ts`, `administration.ts`, `resolution.server.ts`, `bootstrap.server.ts`, `auth/auth.server.ts` and `configuration/user.server.ts` speak of a seed administrator, of `SuperAdmin` provisioned on first run, of grants carried in the token or resolved at login; the alert on a rejected manifest says permissions are "seed-administrator-only"; `authorization/README.md` says no request-time `AuthContext` exists and lists service-layer enforcement as not here yet. Found 2026-11-20. | open |
 | ZF14 | **Users of two authentication providers who share a subject share its roles.** Breaks the reasoning behind ZU3: an identifier that another party can issue again carries authority it was not given. Cause: a subject is unique within its provider, not across providers (`identities.md` ID4), and resolution looks up the subject alone (RES-1), in stored accounts and declared assignments alike (TIR-1); the provider recorded with a session (`contracts/authentication.md` AUTHN-6) takes no part. A user whose provider issues, or whose administrator chooses, the subject of an administrator of another provider of the same instance signs in with that administrator's roles. Agents are not affected: their subjects carry the reserved prefix `agent:` (`agent-access.md` TU4). Found 2026-11-21. RES-1, TIR-1. | open |
-| ZF15 | **An account manager alone can strip a stored agent of its roles, and get a token for an agent that holds roles.** Breaks ZU13 and `agent-access.md` AGT-3: an agent's roles change, and a token is issued to an agent holding roles, only with both permissions. Cause: account administration accepts a subject starting with `agent:`. Resolution merges the accounts of `users.json` before the agents of `agents.json` and takes the first record of a subject, so such an account shadows the agent: an account `agent:writer` with no roles strips the stored agent's, and one with roles, written by a holder of both, gives `agent:writer` roles that `createAgent` and `reissueAgentToken` do not see, so an account manager alone creates it and reissues its token. `changesRoles` compares with `users.json` alone. Decided by ZU14. Found 2026-11-21 by the falsification audit of RFC-0047 (ZS1). ADM-3, RES-1, ENF-3. | open |
+| ZF15 | *History.* **An account manager alone can strip a stored agent of its roles, and get a token for an agent that holds roles.** Breaks ZU13 and `agent-access.md` AGT-3: an agent's roles change, and a token is issued to an agent holding roles, only with both permissions. Cause: account administration accepts a subject starting with `agent:`. Resolution merges the accounts of `users.json` before the agents of `agents.json` and takes the first record of a subject, so such an account shadows the agent: an account `agent:writer` with no roles strips the stored agent's, and one with roles, written by a holder of both, gives `agent:writer` roles that `createAgent` and `reissueAgentToken` do not see, so an account manager alone creates it and reissues its token. `changesRoles` compares with `users.json` alone. Decided by ZU14. Found 2026-11-21 by the falsification audit of RFC-0047 (ZS1). ADM-3, RES-1, ENF-3. | fixed, RFC-0047 (`471437ff`) |
 | ZF16 | **On a locked instance, the roles of agents can still be changed.** Breaks the purpose of TIR-4: `authorization.lockRoles` freezes roles and accounts, but a holder of both permissions still creates agents with roles and changes their roles. Cause: agent administration never consults the lock. A non-goal of RFC-0047 (ZU16). Found 2026-11-21 by the falsification audit of RFC-0047 (ZS1). TIR-4, `agent-access.md` AGT-3. | open |
-| ZF17 | **On a locked instance, an account manager assigning roles is told they lack a permission, not that the instance is locked; and no test would notice the other checks reordered.** Breaks ENF-3: `config:users:manage` first, then the lock, then `config:roles:manage`. Cause: `assignUserAccountRoles` demands `config:roles:manage` before it consults the lock. No test runs the lock against a principal without `config:users:manage`, nor the role check against a refusal of ADM-3, so reversing either order in `upsertUserAccount` passes every test. Decided by ZU15. Found 2026-11-21 by the falsification audit of RFC-0047 (ZS1). ENF-3, TIR-4. | open |
+| ZF17 | *History.* **On a locked instance, an account manager assigning roles is told they lack a permission, not that the instance is locked; and no test would notice the other checks reordered.** Breaks ENF-3: `config:users:manage` first, then the lock, then `config:roles:manage`. Cause: `assignUserAccountRoles` demands `config:roles:manage` before it consults the lock. No test runs the lock against a principal without `config:users:manage`, nor the role check against a refusal of ADM-3, so reversing either order in `upsertUserAccount` passes every test. Decided by ZU15. Found 2026-11-21 by the falsification audit of RFC-0047 (ZS1). ENF-3, TIR-4. | fixed, RFC-0047 (`471437ff`) |
 
 ### History
 
@@ -210,7 +210,8 @@ record where they disagree.
   submit nothing. The ones that save create a role of their own, named with the run's suffix, in the
   run's instance, which the run removes. The e2e config declares one bucket, so the case of several
   named resources in one row is checked on collections.
-- **Not yet carrying IDs.** No test carries a GRT, MAN, TIR, RES or ADM ID yet, nor an ENF ID but ENF-3's (RFC-0047). The suites that
+- **Not yet carrying IDs.** Apart from RFC-0047's tests, which carry ENF-3, ADM-3, RES-1 and RES-2, and TIR-4 without
+  verifying all of it, no test carries a GRT, MAN, TIR, RES, ADM or ENF ID yet. The suites that
   check them today are, in `packages/core/src/lib/script/authorization/`: `permissions.test.ts`
   and `packages/internal/src/authorization/permissions.test.js` (GRT-1), `enforce.test.ts` (GRT-3
   to GRT-5), `fields.test.ts` (GRT-6), `manifests.test.ts` and `signedManifests.test.ts` (MAN-1,
@@ -528,23 +529,26 @@ nothing, and the listing marks every role and account not editable.
 #### RES-1 · Resolving a subject
 
 A subject is known exactly when the merged authorization data (TIR-2, TIR-3) has an account, a
-declared assignment or a stored agent (`agent-access.md` AGT-2) for it. A known subject holds the
-grants of the roles its record names (GRT-7); a name that is no role contributes nothing, and the
-others still apply. An unknown subject holds nothing. An agent whose roles exceed the ceiling holds
+declared assignment or a stored agent (`agent-access.md` AGT-2) for it. A stored account whose
+subject starts with `agent:` is not part of the merged data (`agent-access.md` AGT-4). A known
+subject holds the grants of the roles its record names (GRT-7); a name that is no role contributes
+nothing, and the others still apply. An unknown subject holds nothing. An agent whose roles exceed the ceiling holds
 nothing (`agent-access.md` AGT-5). Only the subject is looked up; no email takes part.
 
 Sign-in admits only a known subject (`contracts/authentication.md` AUTHN-5).
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/configuration/accounts.server.test.ts`
 - Level: unit
 
 #### RES-2 · Resolution reports what it worked around
 
 Each resolution logs, with the prefix `[genoacms:authorization]`, every role name that resolved to
 nothing (`unknown-role: '<name>' referenced by subject '<subject>'`), a rejected manifest (MAN-3),
-declarations used alone (TIR-3), and an agent refused for its ceiling.
+declarations used alone (TIR-3), an agent refused for its ceiling, and a stored account left out by
+RES-1 (`account-agent-subject: '<subject>' in users.json is ignored; agents are stored in
+agents.json.`).
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/configuration/accounts.server.test.ts`
 - Level: unit
 
 #### RES-3 · Every request is resolved
@@ -598,13 +602,14 @@ refused, changing nothing, with the first reason that applies:
 
 | Change | Refused with |
 | :-- | :-- |
-| creating or replacing an account, with its email and roles | `user/subject-empty`; `user/declared-in-configuration` for a declared subject; `user/duplicate-roles`; `user/unknown-roles: <names>` |
-| changing an account's roles | `user/declared-in-configuration`; `user/not-found`; `user/duplicate-roles`; `user/unknown-roles: <names>`; the ceiling refusal for an agent's subject |
+| creating or replacing an account, with its email and roles | `user/subject-empty`; `user/declared-in-configuration` for a declared subject; `user/agent-subject` for a subject starting with `agent:`; `user/duplicate-roles`; `user/unknown-roles: <names>` |
+| changing an account's roles | `user/declared-in-configuration`; `user/agent-subject`; `user/not-found`; `user/duplicate-roles`; `user/unknown-roles: <names>` |
 | removing an account | `user/declared-in-configuration`; `user/not-found` |
 
-Nothing refuses removing the last account that can administer.
+Nothing refuses removing the last account that can administer, nor a stored account with an
+`agent:` subject.
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/authorization/administration.test.ts`
 - Level: unit
 
 ### Enforcement
@@ -641,10 +646,12 @@ AUTHN-12).
 
 Whether creating or replacing an account changes its roles is decided against the stored account
 the write replaces, none for a new account, comparing the roles as sets, so order does not count.
-`config:users:manage` is demanded first, then the lock (TIR-4), then `config:roles:manage` when
-the roles change; a denial writes nothing. A write that the decision no longer matches when it
-lands fails with `manifest/conflict` (ADM-1). Agents follow the same rule (`agent-access.md`
-AGT-3).
+A subject starting with `agent:` is never an account (ADM-3). Creating, replacing and assigning
+demand `config:users:manage` first, then the lock (TIR-4), then `config:roles:manage` (when the
+roles change for creating and replacing, always for assigning), then the refusals of ADM-3; a
+denial writes nothing. A write that the decision no longer matches when it lands fails with
+`manifest/conflict` (ADM-1). Agents follow the same permission rule (`agent-access.md` AGT-3),
+but not the lock (ZF16).
 
 The catalog of grantable resources gives names only: every configured bucket, and every collection
 with the names of its fields, a collection whose definition cannot be read with none.

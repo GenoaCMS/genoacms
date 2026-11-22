@@ -2,9 +2,9 @@
 type: rfc
 number: 47
 title: The roles of accounts and agents change only with both configuration permissions
-status: auditing
-commits: [d38c6d9e, 095cc7e6]
-audit: []
+status: implemented
+commits: [d38c6d9e, 095cc7e6, 46209b50, 471437ff]
+audit: [ZS1]
 depends: []
 architecture: [architecture/authorization.md, architecture/agent-access.md]
 changes: [ENF-3 breaking, AGT-3 breaking, ADM-3 breaking, RES-1 breaking, RES-2 compatible]
