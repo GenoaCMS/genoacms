@@ -39,6 +39,7 @@ async function loadKnownRoles (): Promise<Map<string, Role>> {
 }
 
 function requireAssignableRoles (subject: string, names: string[], known: Map<string, Role>): void {
+  if (new Set(names).size !== names.length) throw new Error('user/duplicate-roles')
   const unknown = names.filter(name => !known.has(name))
   if (unknown.length > 0) throw new Error(`user/unknown-roles: ${unknown.join(', ')}`)
   const exceeding = names.find(name => exceedsAgentCeiling((known.get(name) as Role).grants))

@@ -13,6 +13,7 @@ import { peekUnverifiedHeader, verify, type DocumentType } from '#lib/script/sig
 import { resolveVerificationKey } from '#lib/script/signing/keyResolution.server.js'
 import { resolveSubject, type AuthorizationSource, type Resolution } from './resolution'
 import { AGENTS_DOCUMENT, EMPTY_AGENTS, agentsManifestPath } from '#lib/script/agents/manifest.server.js'
+import { isAgentSubject } from '#lib/script/agents/ceiling.js'
 import { parseAgentsManifest, type AgentRecord } from '#lib/script/agents/manifest.js'
 import { mergeDeclarations, declarationsOnly } from './declared'
 import { readDeclarations } from './declared.server'
@@ -144,6 +145,10 @@ async function loadManifest<T> (
   return { ok: true, value: parsed.value }
 }
 
+// RES-1, RES-2, ZU14
+const agentSubjectWarning = (account: UserRecord): string =>
+  `account-agent-subject: '${account.subject}' in users.json is ignored; agents are stored in agents.json.`
+
 /** AGT-2: a stored agent is a user the source knows, with no email. */
 const asUserRecord = (agent: AgentRecord): UserRecord => ({ subject: agent.subject, email: '', roles: agent.roles })
 
@@ -181,10 +186,12 @@ async function loadAuthorizationSource (): Promise<{ source: AuthorizationSource
   }
 
   const agents = await loadStoredAgents()
-  const merged = mergeDeclarations(declared, { roles: roles.value, users: [...users.value, ...agents.map(asUserRecord)] })
+  const accounts = users.value.filter(account => !isAgentSubject(account.subject))
+  const ignored = users.value.filter(account => isAgentSubject(account.subject))
+  const merged = mergeDeclarations(declared, { roles: roles.value, users: [...accounts, ...agents.map(asUserRecord)] })
   return {
     source: { available: true, roles: merged.roles, users: merged.users },
-    warnings: []
+    warnings: ignored.map(agentSubjectWarning)
   }
 }
 

@@ -54,15 +54,6 @@ function addRole (roles: Role[], role: Role, declared: Set<string>): Administrat
  * principal holding full authority — recoverable only through the Tier-1 seed administrator, which
  * is a recovery path, not a management strategy.
  */
-/** AGT-5: the first role in `names` that exceeds the ceiling, as a refusal. */
-function ceilingRefusal (subject: string, roles: Role[], names: string[]): { ok: false, reason: string } | undefined {
-  const exceeding = names.find(name => {
-    const role = findRole(roles, name)
-    return role !== undefined && exceedsAgentCeiling(role.grants)
-  })
-  return exceeding === undefined ? undefined : { ok: false, reason: ceilingMessage(subject, exceeding) }
-}
-
 function replaceRole (roles: Role[], role: Role, declared: Set<string>, users: UserRecord[] = []): AdministrationResult<Role[]> {
   if (declared.has(role.name)) return { ok: false, reason: 'role/declared-in-configuration' }
   if (role.name === SUPER_ADMIN_ROLE_NAME) return { ok: false, reason: 'role/super-admin-immutable' }
@@ -120,6 +111,9 @@ function validateAssignment (roles: Role[], names: string[]): AdministrationResu
   return { ok: true, value: names }
 }
 
+// ADM-3, ZU14
+const AGENT_SUBJECT = { ok: false, reason: 'user/agent-subject' } as const
+
 /** Adds a user, or replaces the record for a subject already present. */
 function upsertUser (
   users: UserRecord[],
@@ -129,6 +123,7 @@ function upsertUser (
 ): AdministrationResult<UserRecord[]> {
   if (record.subject.length === 0) return { ok: false, reason: 'user/subject-empty' }
   if (declared.has(record.subject)) return { ok: false, reason: 'user/declared-in-configuration' }
+  if (isAgentSubject(record.subject)) return AGENT_SUBJECT
 
   const assignment = validateAssignment(roles, record.roles)
   if (!assignment.ok) return assignment
@@ -148,13 +143,12 @@ function setUserRoles (
   // The declared assignment is the authority for this subject; changing it here would produce a
   // stored record the merge then discards.
   if (declared.has(subject)) return { ok: false, reason: 'user/declared-in-configuration' }
+  if (isAgentSubject(subject)) return AGENT_SUBJECT
   const user = findUser(users, subject)
   if (user === undefined) return { ok: false, reason: 'user/not-found' }
 
   const assignment = validateAssignment(roles, names)
   if (!assignment.ok) return assignment
-  const exceeding = isAgentSubject(subject) ? ceilingRefusal(subject, roles, names) : undefined
-  if (exceeding !== undefined) return exceeding
 
   return {
     ok: true,

@@ -217,8 +217,8 @@ const assignUserAccountRoles = async (
   names: string[]
 ): Promise<AdministrationResult<void>> => {
   requirePermission(ctx, 'config:users:manage')
-  requirePermission(ctx, 'config:roles:manage')
   if (isAdministrationLocked()) return LOCKED
+  requirePermission(ctx, 'config:roles:manage')
   return await assignAccountRoles(subject, names)
 }
 

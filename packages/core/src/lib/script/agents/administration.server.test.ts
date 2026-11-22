@@ -257,7 +257,7 @@ describe('the roles of agents, after the audit', () => {
     expect(memory.snapshot()).toEqual(stored)
   })
 
-  it.fails('AGT-3, TF5: a repeated role is refused', async () => {
+  it('AGT-3, TF5: a repeated role is refused', async () => {
     const { createAgent, updateAgent } = await administration()
     await createAgent(bothAdministrator, { name: 'seed', label: 'S', roles: [] })
     const empty = memory.snapshot()

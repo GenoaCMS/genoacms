@@ -166,7 +166,7 @@ describe('creating and replacing accounts', () => {
 })
 
 describe('accounts and agents', () => {
-  it.fails("ENF-3, ZF15: an account manager cannot strip a stored agent's roles through an account", async () => {
+  it("ENF-3, ZF15: an account manager cannot strip a stored agent's roles through an account", async () => {
     const { upsertUserAccount } = await configuration()
     const { createAgent } = await agents()
     await createAgent(bothAdmin, { name: 'writer', label: 'W', roles: ['Editor'] })
@@ -179,7 +179,7 @@ describe('accounts and agents', () => {
     expect(await permissionsOf('agent:writer')).toContain('pages:content_edit')
   })
 
-  it.fails('ENF-3, ZF15: a holder of both cannot give an agent roles through an account', async () => {
+  it('ENF-3, ZF15: a holder of both cannot give an agent roles through an account', async () => {
     const { upsertUserAccount } = await configuration()
 
     expect(await upsertUserAccount(bothAdmin, { subject: 'agent:writer', email: '', roles: ['Editor'] }))
@@ -188,7 +188,7 @@ describe('accounts and agents', () => {
     expect(Object.keys(await storedUsers()).filter(subject => subject.startsWith('agent:'))).toEqual([])
   })
 
-  it.fails('RES-1, RES-2, ZF15: a stored account with an agent subject is ignored and reported', async () => {
+  it('RES-1, RES-2, ZF15: a stored account with an agent subject is ignored and reported', async () => {
     const { createAgent } = await agents()
     const { writeUsersManifest } = await manifests()
     const { resolvePrincipal } = await resolution()
@@ -206,7 +206,7 @@ describe('accounts and agents', () => {
 })
 
 describe('the order of the checks', () => {
-  it.fails('ENF-3, TIR-4, ZF17: assigning roles reports the lock before config:roles:manage', async () => {
+  it('ENF-3, TIR-4, ZF17: assigning roles reports the lock before config:roles:manage', async () => {
     const { assignUserAccountRoles } = await configuration()
     hooks.locked = true
 

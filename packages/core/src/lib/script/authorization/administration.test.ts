@@ -262,7 +262,7 @@ describe('the agent ceiling in administration', () => {
 describe('accounts and agent subjects', () => {
   const agentAccount = (names: string[]): UserRecord => ({ subject: 'agent:writer', email: '', roles: names })
 
-  it.fails('ADM-3, ZF15: an account is never created or given roles with an agent subject', () => {
+  it('ADM-3, ZF15: an account is never created or given roles with an agent subject', () => {
     expect(upsertUser([], roles(), agentAccount([]), none)).toEqual({ ok: false, reason: 'user/agent-subject' })
     expect(setUserRoles([agentAccount(['Editor'])], roles(), 'agent:writer', [], none)).toEqual({ ok: false, reason: 'user/agent-subject' })
   })
