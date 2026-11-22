@@ -6,13 +6,29 @@ import { memory } from '#lib/script/testing/memoryStorage.js'
 import { declared, declareAgent, clearDeclarations } from '#lib/script/testing/host.js'
 import { testKeyResolution, signingKey } from '#lib/script/testing/signingKeys.js'
 import { importModule, principal, type Parsed } from '#lib/script/testing/requests.js'
+import type { ObjectReference } from '@genoacms/contracts/storage'
+
+const hooks = vi.hoisted(() => ({
+  afterRead: undefined as ((reference: ObjectReference) => Promise<void>) | undefined
+}))
 
 vi.mock('#lib/script/host.server.js', async (importOriginal) => {
   const { withDeclarations } = await import('#lib/script/testing/host.js')
   const { host } = await importOriginal<typeof import('#lib/script/host.server.js')>()
   return { host: withDeclarations(host) }
 })
-vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#lib/script/testing/memoryStorage.js')).memoryProviders)
+vi.mock('#lib/script/storage/providers.server.js', async () => {
+  const { memoryProviders } = await import('#lib/script/testing/memoryStorage.js')
+  return {
+    ...memoryProviders,
+    getObject: async (reference: ObjectReference) => {
+      const object = await memoryProviders.getObject(reference)
+      const afterRead = hooks.afterRead
+      if (afterRead !== undefined) await afterRead(reference)
+      return object
+    }
+  }
+})
 vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
   ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
@@ -27,6 +43,7 @@ const authentication = async () => await importModule('#lib/script/agents/authen
 
 const administrator = principal(['config:users:manage'], 'admin-1')
 const bothAdministrator = principal(['config:users:manage', 'config:roles:manage'], 'admin-1')
+const nobody = principal([], 'nobody-1')
 
 async function storedAgents (): Promise<Record<string, Parsed>> {
   const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
@@ -38,6 +55,7 @@ async function storedAgents (): Promise<Record<string, Parsed>> {
 beforeEach(() => {
   memory.clear()
   clearDeclarations()
+  hooks.afterRead = undefined
   declared.roles.Builder = [{ permission: 'pages:read', resource: '*' }, { permission: 'components:read', resource: '*' }]
   declareAgent('agent:e2e-builder', DECLARED_TOKEN, ['Builder'])
 })
@@ -203,5 +221,87 @@ describe('the roles of agents', () => {
     await updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: [] })
 
     expect((await storedAgents())['agent:writer'].roles).toEqual([])
+  })
+})
+
+describe('the roles of agents, after the audit', () => {
+  const KEYS_CEILING = 'authorization/agent-ceiling: agent:writer is assigned Keys, which grants permissions an agent cannot hold.'
+
+  function changeAfterRead (read: number, change: () => Promise<unknown>): void {
+    let reads = 0
+    hooks.afterRead = async (reference) => {
+      if (reference.name !== AGENTS_PATH || ++reads < read) return
+      hooks.afterRead = undefined
+      await change()
+    }
+  }
+
+  async function expectDenied (permission: string, attempt: Promise<unknown>): Promise<void> {
+    const error = await attempt.then(() => undefined, (caught: unknown) => caught)
+    expect(error).toBeInstanceOf(PermissionDeniedError)
+    expect(error).toMatchObject({ permission })
+  }
+
+  it('AGT-5: assigning an agent a role beyond the ceiling is refused', async () => {
+    const { createAgent, updateAgent } = await administration()
+    declared.roles.Keys = [{ permission: 'pages:read', resource: '*' }, { permission: 'config:keys:manage', resource: '*' }]
+    await createAgent(bothAdministrator, { name: 'seed', label: 'S', roles: [] })
+    const empty = memory.snapshot()
+
+    await expect(createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Keys'] })).rejects.toThrow(KEYS_CEILING)
+    expect(memory.snapshot()).toEqual(empty)
+
+    await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    const stored = memory.snapshot()
+    await expect(updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: ['Builder', 'Keys'] })).rejects.toThrow(KEYS_CEILING)
+    expect(memory.snapshot()).toEqual(stored)
+  })
+
+  it.fails('AGT-3, TF5: a repeated role is refused', async () => {
+    const { createAgent, updateAgent } = await administration()
+    await createAgent(bothAdministrator, { name: 'seed', label: 'S', roles: [] })
+    const empty = memory.snapshot()
+
+    await expect(createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder', 'Builder'] })).rejects.toThrow('user/duplicate-roles')
+    expect(memory.snapshot()).toEqual(empty)
+
+    await createAgent(bothAdministrator, { name: 'writer', label: 'W', roles: ['Builder'] })
+    await expect(updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: ['Builder', 'Builder'] })).rejects.toThrow('user/duplicate-roles')
+    expect((await storedAgents())['agent:writer'].roles).toEqual(['Builder'])
+  })
+
+  it('AGT-3, TF6: a change that loses a race writes nothing', async () => {
+    const { createAgent, reissueAgentToken, updateAgent } = await administration()
+    const { agentForToken } = await authentication()
+    const created = await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
+    const giveBuilder = async (): Promise<unknown> => await updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: ['Builder'] })
+
+    changeAfterRead(1, giveBuilder)
+    await expect(updateAgent(administrator, 'agent:writer', { label: 'W2', roles: [] })).rejects.toThrow('conflict/modified-since')
+    expect((await storedAgents())['agent:writer']).toMatchObject({ label: 'W', roles: ['Builder'] })
+
+    await updateAgent(bothAdministrator, 'agent:writer', { label: 'W', roles: [] })
+    changeAfterRead(1, giveBuilder)
+    await expect(reissueAgentToken(administrator, 'agent:writer')).rejects.toThrow('conflict/modified-since')
+    expect((await storedAgents())['agent:writer'].roles).toEqual(['Builder'])
+    expect(await agentForToken(created.token)).toBe('agent:writer')
+
+    changeAfterRead(2, async () => await createAgent(administrator, { name: 'third', label: 'T', roles: [] }))
+    await expect(createAgent(administrator, { name: 'other', label: 'O', roles: [] })).rejects.toThrow('conflict/modified-since')
+    expect(Object.keys(await storedAgents()).sort()).toEqual(['agent:third', 'agent:writer'])
+  })
+
+  it('AGT-3, TF6: the checks run in the stated order', async () => {
+    const { createAgent, reissueAgentToken, updateAgent } = await administration()
+
+    await expectDenied('config:users:manage', createAgent(nobody, { name: 'Bad!', label: 'B', roles: ['Builder'] }))
+    await expectDenied('config:users:manage', updateAgent(nobody, 'agent:nobody', { label: 'N', roles: [] }))
+    await expectDenied('config:users:manage', reissueAgentToken(nobody, 'agent:nobody'))
+    await expect(createAgent(administrator, { name: 'Bad!', label: 'B', roles: ['Builder'] })).rejects.toThrow('agents/invalid-name')
+    await expectDenied('config:roles:manage', createAgent(administrator, { name: 'e2e-builder', label: 'E', roles: ['Builder'] }))
+    await expect(updateAgent(administrator, 'agent:e2e-builder', { label: 'E', roles: [] })).rejects.toThrow('agents/declared')
+
+    await createAgent(administrator, { name: 'writer', label: 'W', roles: [] })
+    await expectDenied('config:roles:manage', updateAgent(administrator, 'agent:writer', { label: 'W', roles: ['NoSuchRole'] }))
   })
 })

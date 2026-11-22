@@ -47,9 +47,12 @@ const USERS_PATH = '.genoacms/security/users.json'
 
 const configuration = async () => await importModule('#lib/script/configuration/user.server.js')
 const manifests = async () => await importModule('#lib/script/authorization/manifests.server.js')
+const agents = async () => await importModule('#lib/script/agents/administration.server.js')
+const resolution = async () => await importModule('#lib/script/authorization/resolution.server.js')
 
 const accountAdmin = principal(['config:users:manage'], 'admin-1')
 const bothAdmin = principal(['config:users:manage', 'config:roles:manage'], 'admin-2')
+const nobody = principal([], 'nobody-1')
 
 async function storedUsers (): Promise<Record<string, Parsed>> {
   const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
@@ -58,10 +61,19 @@ async function storedUsers (): Promise<Record<string, Parsed>> {
   return (verified.payload as Parsed).users
 }
 
-async function expectRoleManagementDenied (attempt: Promise<unknown>): Promise<void> {
+async function expectDeniedFor (permission: string, attempt: Promise<unknown>): Promise<void> {
   const error = await attempt.then(() => undefined, (caught: unknown) => caught)
   expect(error).toBeInstanceOf(PermissionDeniedError)
-  expect(error).toMatchObject({ permission: 'config:roles:manage' })
+  expect(error).toMatchObject({ permission })
+}
+
+async function expectRoleManagementDenied (attempt: Promise<unknown>): Promise<void> {
+  await expectDeniedFor('config:roles:manage', attempt)
+}
+
+async function permissionsOf (subject: string): Promise<string[]> {
+  const { resolvePrincipal } = await resolution()
+  return (await resolvePrincipal(subject)).context.grants.map((grant: Parsed) => grant.permission)
 }
 
 beforeEach(async () => {
@@ -150,5 +162,69 @@ describe('creating and replacing accounts', () => {
 
     expect(await upsertUserAccount(accountAdmin, { subject: 's-2', email: 's-2@example.com', roles: ['Editor'] }))
       .toEqual({ ok: false, reason: 'administration/locked-by-configuration' })
+  })
+})
+
+describe('accounts and agents', () => {
+  it.fails("ENF-3, ZF15: an account manager cannot strip a stored agent's roles through an account", async () => {
+    const { upsertUserAccount } = await configuration()
+    const { createAgent } = await agents()
+    await createAgent(bothAdmin, { name: 'writer', label: 'W', roles: ['Editor'] })
+    const before = memory.json(USERS_PATH)
+
+    expect(await upsertUserAccount(accountAdmin, { subject: 'agent:writer', email: '', roles: [] }))
+      .toEqual({ ok: false, reason: 'user/agent-subject' })
+
+    expect(memory.json(USERS_PATH)).toEqual(before)
+    expect(await permissionsOf('agent:writer')).toContain('pages:content_edit')
+  })
+
+  it.fails('ENF-3, ZF15: a holder of both cannot give an agent roles through an account', async () => {
+    const { upsertUserAccount } = await configuration()
+
+    expect(await upsertUserAccount(bothAdmin, { subject: 'agent:writer', email: '', roles: ['Editor'] }))
+      .toEqual({ ok: false, reason: 'user/agent-subject' })
+
+    expect(Object.keys(await storedUsers()).filter(subject => subject.startsWith('agent:'))).toEqual([])
+  })
+
+  it.fails('RES-1, RES-2, ZF15: a stored account with an agent subject is ignored and reported', async () => {
+    const { createAgent } = await agents()
+    const { writeUsersManifest } = await manifests()
+    const { resolvePrincipal } = await resolution()
+    await createAgent(bothAdmin, { name: 'writer', label: 'W', roles: [] })
+    await writeUsersManifest([
+      { subject: 's-1', email: 's-1@example.com', roles: ['Editor'] },
+      { subject: 'agent:writer', email: '', roles: ['Editor'] }
+    ], memory.versionOf(USERS_PATH))
+
+    const resolved = await resolvePrincipal('agent:writer')
+
+    expect(resolved.context.grants).toEqual([])
+    expect(resolved.warnings).toContain("account-agent-subject: 'agent:writer' in users.json is ignored; agents are stored in agents.json.")
+  })
+})
+
+describe('the order of the checks', () => {
+  it.fails('ENF-3, TIR-4, ZF17: assigning roles reports the lock before config:roles:manage', async () => {
+    const { assignUserAccountRoles } = await configuration()
+    hooks.locked = true
+
+    expect(await assignUserAccountRoles(accountAdmin, 's-1', ['Editor']))
+      .toEqual({ ok: false, reason: 'administration/locked-by-configuration' })
+  })
+
+  it('ENF-3, TIR-4, ZF17: on a locked instance a principal without config:users:manage is denied', async () => {
+    const { upsertUserAccount, assignUserAccountRoles } = await configuration()
+    hooks.locked = true
+
+    await expectDeniedFor('config:users:manage', upsertUserAccount(nobody, { subject: 's-2', email: 's-2@example.com', roles: [] }))
+    await expectDeniedFor('config:users:manage', assignUserAccountRoles(nobody, 's-1', []))
+  })
+
+  it('ENF-3, ZF17: the role check comes before the refusals of ADM-3', async () => {
+    const { upsertUserAccount } = await configuration()
+
+    await expectRoleManagementDenied(upsertUserAccount(accountAdmin, { subject: 's-2', email: 's-2@example.com', roles: ['NoSuchRole'] }))
   })
 })

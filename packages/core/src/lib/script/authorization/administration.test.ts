@@ -244,21 +244,10 @@ describe('Tier-1 declarations are immutable', () => {
 })
 
 describe('the agent ceiling in administration', () => {
-  const elevated: Role = { name: 'Elevated', grants: [{ permission: 'config:users:manage', resource: WILDCARD }] }
-  const wildcard: Role = { name: 'Everything', grants: [{ permission: WILDCARD, resource: WILDCARD }] }
   const agent = (names: string[]): UserRecord => ({ subject: 'agent:writer', email: '', roles: names })
   const ceilingMessage = (role: string): string =>
     `authorization/agent-ceiling: agent:writer is assigned ${role}, which grants permissions an agent cannot hold.`
   const replaceRoleHeldBy = replaceRole as unknown as (roles: Role[], role: Role, declared: Set<string>, users: UserRecord[]) => ReturnType<typeof replaceRole>
-
-  it('AGT-5: assigning an agent a role beyond the ceiling is refused', () => {
-    const all = [...roles(), elevated, wildcard]
-    expect(setUserRoles([agent([])], all, 'agent:writer', ['Editor', 'Elevated'], none))
-      .toEqual({ ok: false, reason: ceilingMessage('Elevated') })
-    expect(setUserRoles([agent([])], all, 'agent:writer', ['Everything'], none))
-      .toEqual({ ok: false, reason: ceilingMessage('Everything') })
-    expect(unwrap(setUserRoles([agent([])], all, 'agent:writer', ['Editor'], none))).toEqual([agent(['Editor'])])
-  })
 
   it('AGT-5: a role an agent holds cannot gain a configuration permission', () => {
     const gaining: Role = { name: 'Editor', grants: [...editor.grants, { permission: 'config:keys:manage', resource: WILDCARD }] }
@@ -267,6 +256,19 @@ describe('the agent ceiling in administration', () => {
       .toEqual({ ok: false, reason: ceilingMessage('Editor') })
     expect(unwrap(replaceRoleHeldBy(roles(), gaining, none, [user('person', ['Editor'])])))
       .toContainEqual(gaining)
+  })
+})
+
+describe('accounts and agent subjects', () => {
+  const agentAccount = (names: string[]): UserRecord => ({ subject: 'agent:writer', email: '', roles: names })
+
+  it.fails('ADM-3, ZF15: an account is never created or given roles with an agent subject', () => {
+    expect(upsertUser([], roles(), agentAccount([]), none)).toEqual({ ok: false, reason: 'user/agent-subject' })
+    expect(setUserRoles([agentAccount(['Editor'])], roles(), 'agent:writer', [], none)).toEqual({ ok: false, reason: 'user/agent-subject' })
+  })
+
+  it('ADM-3: a stored account with an agent subject can be removed', () => {
+    expect(unwrap(removeUser([agentAccount(['Editor']), user('s-1', [])], 'agent:writer', none))).toEqual([user('s-1', [])])
   })
 })
 
