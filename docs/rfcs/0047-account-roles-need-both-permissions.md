@@ -60,10 +60,10 @@ TU18):
 | `packages/core/src/lib/script/authorization/administration.server.ts` | `upsertAccount` takes `authorizeRoleChange` and calls it before the rule |
 | `packages/core/src/lib/script/configuration/user.server.ts` | `upsertUserAccount` passes the demand for `config:roles:manage`; its doc comment names ENF-3; by the amendment, `assignUserAccountRoles` consults the lock before `config:roles:manage` |
 | `packages/core/src/lib/script/agents/administration.server.ts` | `createAgent` and `updateAgent` demand `config:roles:manage` when the roles change, `reissueAgentToken` when the agent holds roles, in the order below; by the amendment, a repeated role is refused |
-| `packages/core/src/lib/script/authorization/administration.test.ts` | the `sameRoleSet` and `changesRoles` tests |
+| `packages/core/src/lib/script/authorization/administration.test.ts` | the `sameRoleSet` and `changesRoles` tests; by the amendment, the ADM-3 tests, and its AGT-5 assignment test moves out |
 | `packages/core/src/lib/script/configuration/accounts.server.test.ts` | new: the account service through the real manifests, on in-memory storage |
 | `packages/core/src/lib/script/configuration/user.server.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
-| `packages/core/src/lib/script/agents/administration.server.test.ts` | the new agent tests, and by the amendment its storage mock gains the `afterRead` hook of `accounts.server.test.ts`; two existing tests create, and reissue for, agents with roles as a holder of both permissions |
+| `packages/core/src/lib/script/agents/administration.server.test.ts` | the new agent tests, and by the amendment its storage mock gains the `afterRead` hook of `accounts.server.test.ts`, and it receives the AGT-5 test that moves; two existing tests create, and reissue for, agents with roles as a holder of both permissions |
 | `packages/core/src/lib/script/agents/authenticate.server.test.ts`, `packages/core/src/lib/script/agents/manifest.test.ts` | the principal that creates an agent with roles as a fixture holds both permissions; no assertion changes |
 | `packages/core/evidence/permissionMatrix.test.ts` | the `upsertAccount` stub takes and calls `authorizeRoleChange` |
 | `packages/core/src/lib/script/authorization/resolution.server.ts` | by the amendment: `loadAuthorizationSource` leaves out and reports a stored account with an `agent:` subject |
@@ -382,8 +382,17 @@ finding. `administrator` and `accountAdmin` hold `config:users:manage`, `bothAdm
 | same | `ENF-3, TIR-4, ZF17: on a locked instance a principal without config:users:manage is denied` | locked, `nobody` upserting and assigning gets `PermissionDeniedError` naming `config:users:manage`. Passes today |
 | same | `ENF-3, ZF17: the role check comes before the refusals of ADM-3` | `accountAdmin` upserting `s-2` with `['NoSuchRole']` gets `PermissionDeniedError` naming `config:roles:manage`, not `user/unknown-roles`. Passes today |
 | `core/src/lib/script/agents/administration.server.test.ts` | `AGT-3, TF5: a repeated role is refused` | `bothAdministrator` creating `writer` with `['Builder', 'Builder']` fails with `user/duplicate-roles` and storage is unchanged; updating a stored `writer` with `['Builder']` to `['Builder', 'Builder']` fails the same, and it keeps `['Builder']` |
-| same | `AGT-3, TF6: a change that loses a race writes nothing` | with `agents.json` changed right after it is read (the `afterRead` hook: `writer` given `['Builder']` by `bothAdministrator`, or another agent created), `administrator`'s label update and token reissue of `writer` and creation of `other` fail with `conflict/modified-since`; `writer` keeps `['Builder']` and its first token still resolves. Passes today |
+| same | `AGT-3, TF6: a change that loses a race writes nothing` | with `agents.json` changed right after the read the decision rests on (the `afterRead` hook, run once after the first read of `agents.json` when updating and reissuing, and after the second when creating, which loads the roles first: `writer`, holding no roles, given `['Builder']` by `bothAdministrator`, or another agent created), `administrator`'s label update and token reissue of `writer` and creation of `other` fail with `conflict/modified-since`; `writer` then holds `['Builder']` and its first token still resolves. Passes today |
 | same | `AGT-3, TF6: the checks run in the stated order` | `nobody` creating `Bad!` with roles, and updating or reissuing `agent:nobody`, gets `PermissionDeniedError` naming `config:users:manage`; `administrator` creating `Bad!` with `['Builder']` gets `agents/invalid-name`; creating `e2e-builder` with `['Builder']` gets `PermissionDeniedError` naming `config:roles:manage`; updating the declared `agent:e2e-builder` to other roles gets `agents/declared`; updating a stored `writer` with no roles to `['NoSuchRole']` gets `PermissionDeniedError` naming `config:roles:manage`. Passes today |
+
+**An existing test that moves.** `authorization/administration.test.ts` `AGT-5: assigning an agent a
+role beyond the ceiling is refused` calls `setUserRoles` for `agent:writer`, which the amendment
+refuses with `user/agent-subject` before the ceiling (ADM-3). It moves, with its title, to
+`agents/administration.server.test.ts`, where agents are assigned roles: given the declared role
+`Keys` granting `config:keys:manage`, `bothAdministrator` creating `writer` with `['Keys']`, and
+updating a stored `writer` holding `['Builder']` to `['Builder', 'Keys']`, fail with
+`authorization/agent-ceiling: agent:writer is assigned Keys, which grants permissions an agent
+cannot hold.` and storage is unchanged. Passes today.
 
 ## Steps
 
