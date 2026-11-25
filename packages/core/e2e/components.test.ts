@@ -154,7 +154,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     pageErrors = []
   })
 
-  it('PUB-1, PUB-6: a note typed into the registrar\'s dialog publishes the component', async () => {
+  it('NJ3c, PUB-1, PUB-6: a note typed into the registrar\'s dialog publishes the component', async () => {
     const { page } = session
     await register(page, `E2E published ${run}`, 'Already coded in my app')
     await page.getByRole('button', { name: 'Publish', exact: true }).click()
@@ -166,7 +166,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect(pageErrors).toStrictEqual([])
   })
 
-  it('SRC-4: a body saved from the editor is stored and read back', async () => {
+  it('NJ2a, SRC-4: a body saved from the editor is stored and read back', async () => {
     const { page } = session
     const uid = await register(page, `E2EStored${run}`, 'Code it here')
     await writeBody(page, uid, "return 'stored'")
@@ -178,7 +178,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect(pageErrors).toStrictEqual([])
   })
 
-  it('CMP-9: a dynamic component is deleted from the editor once its name is typed', async () => {
+  it('NJ4a, CMP-9: a dynamic component is deleted from the editor once its name is typed', async () => {
     const { page } = session
     const name = `E2EDeleted${run}`
     const uid = await register(page, name, 'Code it here')
@@ -192,7 +192,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await page.waitForURL(url => url.pathname === '/components/editor', { timeout: SLOW_MS })
     expect(pageErrors).toStrictEqual([])
   })
-  it('CMP-6, CMP-7: a registered prebuilt component appears in the catalog', async () => {
+  it('NJ1a, CMP-6, CMP-7: a registered prebuilt component appears in the catalog', async () => {
     const { page } = session
     const name = `E2EPrebuilt${run}a`
     await registerPrebuilt(page, name)
@@ -201,7 +201,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(card(page, name))
   })
 
-  it('CMP-8, CMP-7: a prebuilt component can be renamed, and the new name persists', async () => {
+  it('NJ1a, CMP-8, CMP-7: a prebuilt component can be renamed, and the new name persists', async () => {
     const { page } = session
     const name = `E2EPrebuilt${run}b`
     await registerPrebuilt(page, name)
@@ -214,7 +214,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(page.getByText(`Component: ${renamed}`))
   })
 
-  it('PUB-1, PUB-5, PUB-6: a prebuilt component publishes a signed header, and no executable', async () => {
+  it('NJ3c, PUB-1, PUB-5, PUB-6: a prebuilt component publishes a signed header, and no executable', async () => {
     const { page } = session
     const uid = await registerPrebuilt(page, `E2EPrebuilt${run}c`)
     await shown(page.getByText('Unpublished'))
@@ -238,7 +238,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await reported(page, /Nothing has changed/)
   })
 
-  it('CMP-3, CMP-8: a prebuilt component takes an attribute, which survives saving', async () => {
+  it('NJ1a, CMP-3, CMP-8: a prebuilt component takes an attribute, which survives saving', async () => {
     const { page } = session
     await registerPrebuilt(page, `E2EPrebuilt${run}e`)
 
@@ -251,7 +251,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(page.getByRole('textbox'))
   })
 
-  it('HIS-1, CMP-8: undo is enabled as soon as a change is saved, without a reload', async () => {
+  it('NJ1b, HIS-1, CMP-8: undo is enabled as soon as a change is saved, without a reload', async () => {
     const { page } = session
     const name = `E2EPrebuilt${run}f`
     await registerPrebuilt(page, name)
@@ -261,7 +261,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await expect.poll(async () => await button(page, 'Undo').isEnabled(), { timeout: SLOW_MS }).toBe(true)
   })
 
-  it('HIS-1: a rename is undone, and redone, without leaving the page', async () => {
+  it('NJ1b, HIS-1: a rename is undone, and redone, without leaving the page', async () => {
     const { page } = session
     const original = `E2EPrebuilt${run}g`
     const renamed = `${original}-undone`
@@ -286,7 +286,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(page.getByText(`Component: ${renamed}`))
   })
 
-  it('HIS-1: a component that was only just created has nothing to undo or redo', async () => {
+  it('NJ1b, HIS-1: a component that was only just created has nothing to undo or redo', async () => {
     const { page } = session
     await registerPrebuilt(page, `E2EPrebuilt${run}h`)
 
@@ -317,7 +317,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect(response?.status()).toBe(404)
   })
 
-  it('CMP-9: the registrar\'s Yes, delete stays disabled until the name is typed in full', async () => {
+  it('NJ4a, CMP-9: the registrar\'s Yes, delete stays disabled until the name is typed in full', async () => {
     const { page } = session
     const name = `E2EPrebuilt${run}x`
     await registerPrebuilt(page, name)
@@ -339,7 +339,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(button(page, 'Add attribute'))
   })
 
-  it('SRC-2: the registrar links a dynamic component to its code', async () => {
+  it('NJ2a, SRC-2: the registrar links a dynamic component to its code', async () => {
     const { page } = session
     const uid = await registerDynamic(page, `E2EDynamic${run}b`)
 
@@ -348,7 +348,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await page.waitForURL(url => url.pathname === `/components/editor/${uid}`, { timeout: SLOW_MS })
   })
 
-  it('SRC-3: the editor shows the signature the body is wrapped in', async () => {
+  it('NJ2a, SRC-3: the editor shows the signature the body is wrapped in', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}c`, 'Code it here')
     await openCode(page, uid)
@@ -369,7 +369,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await shown(page.getByText('heading: string'))
   })
 
-  it('SRC-4: a saved draft is kept', async () => {
+  it('NJ2a, SRC-4: a saved draft is kept', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}e`, 'Code it here')
     await openCode(page, uid)
@@ -380,7 +380,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await expect.poll(async () => await page.locator('.cm-content').first().innerText(), { timeout: SLOW_MS }).toContain('answer')
   })
 
-  it('SRC-4, HIS-1: the body steps back and forward through saved states', async () => {
+  it('NJ2a, SRC-4, HIS-1: the body steps back and forward through saved states', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}f`, 'Code it here')
     await openCode(page, uid)
@@ -399,7 +399,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await expect.poll(async () => await page.locator('.cm-content').first().innerText(), { timeout: SLOW_MS }).toContain('return 2')
   })
 
-  it('HIS-2: a save from an editor opened before another save is refused, and the other save is kept', async () => {
+  it('NJ2c, HIS-2: a save from an editor opened before another save is refused, and the other save is kept', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}conflict`, 'Code it here')
     await openCode(page, uid)
@@ -431,7 +431,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect(await button(page, 'Redo').isDisabled()).toBe(true)
   })
 
-  it('SRC-5: an editor with unsaved changes asks before leaving, and declining keeps the body', async () => {
+  it('NJ2b, SRC-5: an editor with unsaved changes asks before leaving, and declining keeps the body', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}h`, 'Code it here')
     await openCode(page, uid)
@@ -454,7 +454,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await saveBody(page)
   })
 
-  it('PUB-1, PUB-3, PUB-5, PUB-6: a dynamic component publishes, which compiles and signs it into one object', async () => {
+  it('NJ3a, PUB-1, PUB-3, PUB-5, PUB-6: a dynamic component publishes, which compiles and signs it into one object', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}i`, 'Code it here')
     await openCode(page, uid)
@@ -468,7 +468,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect((await publishedObjects(uid))[0]).toMatch(/[0-9a-f-]{36}\.json$/)
   })
 
-  it('PUB-3, PUB-5, PUB-6: a refused publication is reported with its line and writes nothing', async () => {
+  it('NJ3b, PUB-3, PUB-5, PUB-6: a refused publication is reported with its line and writes nothing', async () => {
     const { page } = session
     const uid = await register(page, `E2EDynamic${run}j`, 'Code it here')
     await openCode(page, uid)
@@ -489,7 +489,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     expect(uid).toMatch(/^[0-9a-f-]{36}$/)
   })
 
-  it('CMP-9: several dynamic components are removed in one action', async () => {
+  it('NJ4c, CMP-9: several dynamic components are removed in one action', async () => {
     const { page } = session
     const names = [`E2EDynamic${run}l`, `E2EDynamic${run}m`]
     for (const name of names) await register(page, name, 'Code it here')
@@ -505,7 +505,7 @@ describe.skipIf(!enabled).sequential('the component remote forms through the run
     await absentFrom(page, '/components/editor', names)
   })
 
-  it('CMP-9: a bulk confirmation that does not name everything selected is refused', async () => {
+  it('NJ4c, CMP-9: a bulk confirmation that does not name everything selected is refused', async () => {
     const { page } = session
     const names = [`E2EDynamic${run}n`, `E2EDynamic${run}o`]
     for (const name of names) await register(page, name, 'Code it here')

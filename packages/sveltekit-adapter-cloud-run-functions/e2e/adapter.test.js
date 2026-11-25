@@ -231,7 +231,7 @@ afterEach(() => {
 });
 
 describe('the adapter output', () => {
-	it('ADP-1, ADP-2: writes client assets, prerendered pages and the runtime files into out, precompressed', () => {
+	it('GJ1a, ADP-1, ADP-2: writes client assets, prerendered pages and the runtime files into out, precompressed', () => {
 		const files = filesUnder(buildA);
 		const immutable = files.filter((file) => file.includes(join('client', '_app', 'immutable')));
 		expect(immutable.some((file) => file.endsWith('.js'))).toBe(true);
@@ -250,7 +250,7 @@ describe('the adapter output', () => {
 		expect(compressed).toEqual([]);
 	});
 
-	it("ADP-3: bundles the server, keeping the app's dependencies external", async () => {
+	it("GJ1a, ADP-3: bundles the server, keeping the app's dependencies external", async () => {
 		const { server: app, prerendered, base } = await import(join(buildA, 'adapter.js'));
 		expect(app.init).toBeTypeOf('function');
 		expect(app.respond).toBeTypeOf('function');
@@ -315,13 +315,13 @@ describe('the adapter output', () => {
 });
 
 describe('the served function', () => {
-	it('ADP-4: serves a server-rendered page through the exported handler', async () => {
+	it('GJ3a, ADP-4: serves a server-rendered page through the exported handler', async () => {
 		const response = await fetch(`${await serve(buildA)}/`);
 		expect(response.status).toBe(200);
 		expect(await response.text()).toContain('<h1>server-rendered</h1>');
 	});
 
-	it('ADP-5: serves immutable client assets with a one-year cache, precompressed on request', async () => {
+	it('GJ3a, ADP-5: serves immutable client assets with a one-year cache, precompressed on request', async () => {
 		const url = await serve(buildA);
 		const asset = filesUnder(join(buildA, 'client'))
 			.find((file) => file.includes(join('_app', 'immutable')) && file.endsWith('.js'))
@@ -345,7 +345,7 @@ describe('the served function', () => {
 		expect(redirect.headers.get('location')).toBe('/about');
 	});
 
-	it('ADP-5: builds the request URL from forwarded headers and passes the body', async () => {
+	it('GJ3a, ADP-5: builds the request URL from forwarded headers and passes the body', async () => {
 		const response = await echo(await serve(buildA), FORWARDED);
 		expect(response.href).toBe('https://cms.example/echo');
 		expect(response.body).toBe('{"sent":true}');
@@ -357,7 +357,7 @@ describe('the served function', () => {
 		expect(response.href).toBe('https://origin.example/echo');
 	}, 120_000);
 
-	it('ADP-6: returns the X-Forwarded-For entry XFF_DEPTH positions from the right', async () => {
+	it('GJ3a, ADP-6: returns the X-Forwarded-For entry XFF_DEPTH positions from the right', async () => {
 		const address = async (/** @type {Record<string, string>} */ env) =>
 			fetch(`${await serve(buildA, env)}/address`, { headers: { 'x-forwarded-for': XFF } });
 		expect(await (await address({})).text()).toBe('198.51.100.7');
@@ -370,7 +370,7 @@ describe('the served function', () => {
 		expect(['127.0.0.1', '::1', '::ffff:127.0.0.1']).toContain(await response.text());
 	});
 
-	it('ADP-7: fails at startup on an XFF_DEPTH that is not a positive integer', async () => {
+	it('GJ3b, ADP-7: fails at startup on an XFF_DEPTH that is not a positive integer', async () => {
 		const { code, output } = await startupFailure(buildA, { XFF_DEPTH: 'abc' });
 		expect(code).not.toBe(0);
 		expect(output).toContain("XFF_DEPTH must be a positive integer, not 'abc'");
@@ -384,7 +384,7 @@ describe('the served function', () => {
 		expect(code).not.toBe(0);
 	});
 
-	it('ADP-8: fails at startup when ORIGIN is set', async () => {
+	it('GJ3b, ADP-8: fails at startup when ORIGIN is set', async () => {
 		const { code, stderr } = await startupOutcome(buildA, { ORIGIN: 'https://origin.example' });
 		expect(code).not.toBe(0);
 		expect(stderr).toContain(ORIGIN_REFUSED);
@@ -403,7 +403,7 @@ describe('the served function', () => {
 		});
 	});
 
-	it('DEP-10, ADP-5: with IGNORED_ROUTES empty, serves /favicon.ico and /robots.txt through the handler', async () => {
+	it('GJ3a, DEP-10, ADP-5: with IGNORED_ROUTES empty, serves /favicon.ico and /robots.txt through the handler', async () => {
 		const served = await serve(buildA, { IGNORED_ROUTES: '' });
 		for (const [path, content] of STATIC_FILES) {
 			const response = await fetch(`${served}${path}`);
