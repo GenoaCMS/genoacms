@@ -15,6 +15,9 @@ import AgendaItem from './site/AgendaItem.svelte'
 import TicketTier from './site/TicketTier.svelte'
 import FaqItem from './site/FaqItem.svelte'
 import ContactCard from './site/ContactCard.svelte'
+import GalaxySection from './site/GalaxySection.svelte'
+import Duo from './site/Duo.svelte'
+import Carousel from './site/Carousel.svelte'
 import type { Bindings } from '../genoa/context'
 
 /**
@@ -33,11 +36,14 @@ const bindings: Bindings = {
   demoCard: { component: DemoCard as never, props: ['title', 'body'] },
   demoNote: { component: DemoNote as never, props: ['text', 'order'] },
   sitePage: { component: SitePage as never, props: ['brand', 'tagline', 'ctaLabel', 'ctaLink', 'body', 'footer'] },
-  siteHero: { component: Hero as never, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside'] },
+  siteHero: { component: Hero as never, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside', 'background'] },
   siteStats: { component: StatsBand as never, props: ['stats'] },
   siteStat: { component: Stat as never, props: ['value', 'label'] },
   siteMarquee: { component: Marquee as never, props: ['text'] },
   siteSection: { component: Section as never, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteGalaxy: { component: GalaxySection as never, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteDuo: { component: Duo as never, props: ['anchor', 'startEyebrow', 'startHeading', 'startIntro', 'start', 'endEyebrow', 'endHeading', 'endIntro', 'end'] },
+  siteCarousel: { component: Carousel as never, props: ['label', 'perView', 'items'] },
   siteGrid: { component: Grid as never, props: ['columns', 'items'] },
   siteFeature: { component: FeatureCard as never, props: ['tag', 'title', 'body'] },
   siteSpeaker: { component: SpeakerCard as never, props: ['name', 'role', 'photo', 'talk'] },

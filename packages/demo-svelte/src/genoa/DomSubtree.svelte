@@ -1,5 +1,6 @@
 <script lang="ts">
   import { renderResolved, type ResolvedNode } from '@genoacms/sdk'
+  import { renderOptionsOf } from './context'
 
   /**
    * A subtree the CMS compiled, rendered by the SDK and placed as it stands.
@@ -8,10 +9,11 @@
    * discard every event handler the component attached.
    */
   const { node }: { node: ResolvedNode } = $props()
+  const options = renderOptionsOf()
 
   const place = (host: HTMLElement) => {
     let cancelled = false
-    void renderResolved(node).then(rendered => {
+    void renderResolved(node, options).then(rendered => {
       if (cancelled) return
       host.replaceChildren(rendered.ok ? rendered.value : document.createComment(rendered.reason))
     })

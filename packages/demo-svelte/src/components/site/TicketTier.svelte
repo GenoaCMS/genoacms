@@ -1,5 +1,6 @@
 <script lang="ts">
   import { linesOf } from '@genoacms/demo-support/site'
+  import { ui } from '@genoacms/demo-support/ui'
 
   const { name, price, perks, highlighted, ctaLabel, ctaLink }: {
     name: string, price: string, perks: string, highlighted: boolean, ctaLabel: string, ctaLink: string
@@ -8,12 +9,12 @@
   const perkList = $derived(linesOf(perks))
 </script>
 
-<article class={['site-ticket', highlighted && 'site-ticket--highlighted']}>
-  {#if highlighted}<span class="site-ticket__badge">Most popular</span>{/if}
-  <p class="site-ticket__name">{name}</p>
-  <p class="site-ticket__price">{price}</p>
-  <ul class="site-ticket__perks">
-    {#each perkList as perk (perk)}<li>{perk}</li>{/each}
+<article class={highlighted ? ui.ticketHighlighted : ui.ticket}>
+  {#if highlighted}<span class={ui.ticketBadge}>Most popular</span>{/if}
+  <p class={ui.ticketName}>{name}</p>
+  <p class={ui.ticketPrice}>{price}</p>
+  <ul class={ui.ticketPerks}>
+    {#each perkList as perk (perk)}<li class={ui.ticketPerk}>{perk}</li>{/each}
   </ul>
-  <a class={['site-button', !highlighted && 'site-button--ghost']} href={ctaLink}>{ctaLabel}</a>
+  <a class={highlighted ? ui.ticketCta : ui.ticketCtaGhost} href={ctaLink}>{ctaLabel}</a>
 </article>

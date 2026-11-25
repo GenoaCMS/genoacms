@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ResolvedNode } from '@genoacms/sdk'
+  import { ui } from '@genoacms/demo-support/ui'
   import GenoaChildren from '../../genoa/GenoaChildren.svelte'
 
   const { anchor, eyebrow, heading, intro, content }: {
@@ -7,11 +8,11 @@
   } = $props()
 </script>
 
-<section class="site-section" id={anchor === '' ? undefined : anchor}>
-  <div class="site-container">
-    {#if eyebrow !== ''}<p class="site-section__eyebrow">{eyebrow}</p>{/if}
-    <h2 class="site-section__heading">{heading}</h2>
-    {#if intro !== ''}<p class="site-section__intro">{intro}</p>{/if}
-    <div class="site-section__content"><GenoaChildren nodes={content} /></div>
+<section class={ui.section} id={anchor === '' ? undefined : anchor}>
+  <div class={ui.sectionInner}>
+    {#if eyebrow !== ''}<p class={ui.eyebrow}>{eyebrow}</p>{/if}
+    <h2 class={ui.heading}>{heading}</h2>
+    {#if intro !== ''}<p class={ui.intro}>{intro}</p>{/if}
+    <div class={ui.content}><GenoaChildren nodes={content} /></div>
   </div>
 </section>

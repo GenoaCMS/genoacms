@@ -12,7 +12,7 @@
 
 /** The pages the demo scenarios publish. Kept in step with `core/demo/demo.ts` and `core/demo/site.ts`. */
 const PAGES = {
-  /** The Kiln & Steel conference site, with prebuilt and dynamic components. What the demos show by default. */
+  /** The Sagittarius Line voyage site, with prebuilt and dynamic components. What the demos show by default. */
   site: 'siteHome',
   /** Depth four, siblings, and one component used twice. */
   home: 'demoHome',

@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import type { Bindings } from '../genoa/GenoaComponent'
+import { ui } from '@genoacms/demo-support/ui'
 import { SitePage, Hero, StatsBand, Stat, Marquee, Section, Grid, FeatureCard, SpeakerCard, AgendaItem, TicketTier, FaqItem, ContactCard } from './site'
+import { GalaxySection } from './GalaxySection'
+import { Duo } from './Duo'
+import { Carousel } from './Carousel'
 
 /**
  * This consumer's components — ordinary React components, which is the point.
@@ -17,24 +21,24 @@ import { SitePage, Hero, StatsBand, Stat, Marquee, Section, Grid, FeatureCard, S
  */
 
 const DemoPage = ({ body }: { body: ReactNode }): ReactNode =>
-  <main className="page">{body}</main>
+  <main className={ui.demoPage}>{body}</main>
 
 const DemoSection = ({ heading, content }: { heading: string, content: ReactNode }): ReactNode =>
-  <section className="section">
-    <h2 className="section-heading">{heading}</h2>
+  <section className={ui.demoSection}>
+    <h2 className={ui.demoSectionHeading}>{heading}</h2>
     {content}
   </section>
 
 const DemoCard = ({ title, body }: { title: string, body: string }): ReactNode =>
-  <article className="card">
-    <h3 className="card-title">{title}</h3>
-    <p className="card-body">{body}</p>
+  <article className={ui.demoCard}>
+    <h3 className={ui.demoCardTitle}>{title}</h3>
+    <p className={ui.demoCardBody}>{body}</p>
   </article>
 
 const DemoNote = ({ text, order }: { text: string, order: number }): ReactNode =>
-  <aside className="note">
-    <span className="note-order">{order}</span>
-    <p className="note-text">{text}</p>
+  <aside className={ui.demoNote}>
+    <span className={ui.demoNoteOrder}>{order}</span>
+    <p className={ui.demoNoteText}>{text}</p>
   </aside>
 
 const bindings: Bindings = {
@@ -43,11 +47,14 @@ const bindings: Bindings = {
   demoCard: { component: DemoCard as never, props: ['title', 'body'] },
   demoNote: { component: DemoNote as never, props: ['text', 'order'] },
   sitePage: { component: SitePage as never, props: ['brand', 'tagline', 'ctaLabel', 'ctaLink', 'body', 'footer'] },
-  siteHero: { component: Hero as never, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside'] },
+  siteHero: { component: Hero as never, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside', 'background'] },
   siteStats: { component: StatsBand as never, props: ['stats'] },
   siteStat: { component: Stat as never, props: ['value', 'label'] },
   siteMarquee: { component: Marquee as never, props: ['text'] },
   siteSection: { component: Section as never, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteGalaxy: { component: GalaxySection as never, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteDuo: { component: Duo as never, props: ['anchor', 'startEyebrow', 'startHeading', 'startIntro', 'start', 'endEyebrow', 'endHeading', 'endIntro', 'end'] },
+  siteCarousel: { component: Carousel as never, props: ['label', 'perView', 'items'] },
   siteGrid: { component: Grid as never, props: ['columns', 'items'] },
   siteFeature: { component: FeatureCard as never, props: ['tag', 'title', 'body'] },
   siteSpeaker: { component: SpeakerCard as never, props: ['name', 'role', 'photo', 'talk'] },

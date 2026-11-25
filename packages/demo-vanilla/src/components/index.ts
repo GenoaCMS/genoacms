@@ -1,4 +1,5 @@
 import type { PrebuiltComponents } from '@genoacms/sdk'
+import { ui } from '@genoacms/demo-support/ui'
 import * as site from './site'
 
 /**
@@ -29,19 +30,19 @@ const element = (tag: string, className: string, ...children: Array<Node | strin
 }
 
 /** The page root: a slot and nothing else. */
-const demoPage = (body: readonly Node[]): Node => element('main', 'page', ...body)
+const demoPage = (body: readonly Node[]): Node => element('main', ui.demoPage, ...body)
 
 /** A titled region holding other components — what makes the tree nest. */
 const demoSection = (heading: string, content: readonly Node[]): Node =>
-  element('section', 'section', element('h2', 'section-heading', heading), ...content)
+  element('section', ui.demoSection, element('h2', ui.demoSectionHeading, heading), ...content)
 
 /** Two text values, so a wrapper putting them in the wrong parameters is visible on screen. */
 const demoCard = (title: string, body: string): Node =>
-  element('article', 'card', element('h3', 'card-title', title), element('p', 'card-body', body))
+  element('article', ui.demoCard, element('h3', ui.demoCardTitle, title), element('p', ui.demoCardBody, body))
 
 /** Text and a number, so a renderer that stringifies everything shows itself. */
 const demoNote = (text: string, order: number): Node =>
-  element('aside', 'note', element('span', 'note-order', String(order)), element('p', 'note-text', text))
+  element('aside', ui.demoNote, element('span', ui.demoNoteOrder, String(order)), element('p', ui.demoNoteText, text))
 
 const components: PrebuiltComponents = {
   demoPage: demoPage as PrebuiltComponents[string],
@@ -54,6 +55,9 @@ const components: PrebuiltComponents = {
   siteStat: site.siteStat as PrebuiltComponents[string],
   siteMarquee: site.siteMarquee as PrebuiltComponents[string],
   siteSection: site.siteSection as PrebuiltComponents[string],
+  siteGalaxy: site.siteGalaxy as PrebuiltComponents[string],
+  siteDuo: site.siteDuo as PrebuiltComponents[string],
+  siteCarousel: site.siteCarousel as PrebuiltComponents[string],
   siteGrid: site.siteGrid as PrebuiltComponents[string],
   siteFeature: site.siteFeature as PrebuiltComponents[string],
   siteSpeaker: site.siteSpeaker as PrebuiltComponents[string],

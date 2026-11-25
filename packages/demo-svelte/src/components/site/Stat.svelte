@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { ui } from '@genoacms/demo-support/ui'
+
   const { value, label }: { value: string, label: string } = $props()
 </script>
 
-<div class="site-stat">
-  <span class="site-stat__value">{value}</span>
-  <span class="site-stat__label">{label}</span>
+<div class={ui.stat}>
+  <span class={ui.statValue}>{value}</span>
+  <span class={ui.statLabel}>{label}</span>
 </div>

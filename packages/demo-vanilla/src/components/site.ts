@@ -1,6 +1,8 @@
-import { columnsOf, initialsOf, linesOf } from '@genoacms/demo-support/site'
+import { columnsOf, cssImageOf, initialsOf, linesOf, perViewOf, turnCarousel } from '@genoacms/demo-support/site'
+import { slideBasisOf, ui } from '@genoacms/demo-support/ui'
+import { galaxy } from '../galaxy'
 
-/** The conference site's components, as plain functions taking their values positionally. */
+/** The voyage site's components, as plain functions taking their values positionally. */
 
 type Child = Node | string
 
@@ -19,17 +21,20 @@ const link = (className: string, href: string, label: string): HTMLElement => {
 
 const optional = (present: boolean, build: () => Node): Node[] => present ? [build()] : []
 
+const withId = <T extends HTMLElement>(node: T, id: string): T => {
+  if (id !== '') node.id = id
+  return node
+}
+
 const sitePage = (brand: string, tagline: string, ctaLabel: string, ctaLink: string, body: readonly Node[], footer: string): Node => {
-  const brandLink = link('site-brand', '#top', '')
-  brandLink.append(element('span', 'site-brand__name', brand), element('span', 'site-brand__tagline', tagline))
-  const main = element('main', 'site-main', ...body)
-  main.id = 'top'
+  const brandLink = link(ui.brand, '#top', '')
+  brandLink.append(element('span', ui.brandName, brand), element('span', ui.brandTagline, tagline))
   const page = document.createDocumentFragment()
   page.append(
-    element('header', 'site-header',
-      element('div', 'site-container site-header__inner', brandLink, link('site-button', ctaLink, ctaLabel))),
-    main,
-    element('footer', 'site-footer', element('div', 'site-container', element('p', '', footer)))
+    link(ui.skipLink, '#content', 'Skip to content'),
+    withId(element('header', ui.header, element('div', ui.headerInner, brandLink, link(ui.headerCta, ctaLink, ctaLabel))), 'top'),
+    withId(element('main', ui.main, ...body), 'content'),
+    element('footer', ui.footer, element('p', ui.footerText, footer))
   )
   return page
 }
@@ -37,63 +42,115 @@ const sitePage = (brand: string, tagline: string, ctaLabel: string, ctaLink: str
 const siteHero = (
   eyebrow: string, heading: string, lead: string,
   primaryLabel: string, primaryLink: string, secondaryLabel: string, secondaryLink: string,
-  aside: readonly Node[]
-): Node =>
-  element('section', 'site-hero',
-    element('div', 'site-container site-hero__grid',
-      element('div', '',
-        element('span', 'site-hero__eyebrow', eyebrow),
-        element('h1', 'site-hero__heading', heading),
-        element('p', 'site-hero__lead', lead),
-        element('div', 'site-hero__actions',
-          link('site-button', primaryLink, primaryLabel),
-          ...optional(secondaryLabel !== '', () => link('site-button site-button--ghost', secondaryLink, secondaryLabel)))),
-      element('div', 'site-hero__aside', ...aside)))
+  aside: readonly Node[], background: readonly string[]
+): Node => {
+  const image = cssImageOf(background)
+  const hero = element('section', ui.hero,
+    element('div', ui.heroGrid,
+      element('div', ui.heroText,
+        element('span', ui.heroEyebrow, eyebrow),
+        element('h1', ui.heroHeading, heading),
+        element('p', ui.heroLead, lead),
+        element('div', ui.heroActions,
+          link(ui.buttonPrimary, primaryLink, primaryLabel),
+          ...optional(secondaryLabel !== '', () => link(ui.buttonGhost, secondaryLink, secondaryLabel)))),
+      element('div', ui.heroAside, ...aside)))
+  if (image !== '') hero.style.setProperty('--hero-image', image)
+  return hero
+}
 
 const siteStats = (stats: readonly Node[]): Node =>
-  element('section', 'site-stats', element('div', 'site-container site-stats__inner', ...stats))
+  element('section', ui.stats, element('div', ui.statsInner, ...stats))
 
 const siteStat = (value: string, label: string): Node =>
-  element('div', 'site-stat', element('span', 'site-stat__value', value), element('span', 'site-stat__label', label))
+  element('div', ui.stat, element('span', ui.statValue, value), element('span', ui.statLabel, label))
 
 const siteMarquee = (text: string): Node => {
-  const track = element('div', 'site-marquee__track', ...Array.from({ length: 8 }, () => element('span', 'site-marquee__item', text)))
+  const track = element('div', ui.marqueeTrack, ...Array.from({ length: 8 }, () => element('span', ui.marqueeItem, text)))
   track.setAttribute('aria-hidden', 'true')
-  const marquee = element('div', 'site-marquee', track)
+  const marquee = element('div', ui.marquee, track)
+  marquee.setAttribute('role', 'img')
   marquee.setAttribute('aria-label', text)
   return marquee
 }
 
-const siteSection = (anchor: string, eyebrow: string, heading: string, intro: string, content: readonly Node[]): Node => {
-  const section = element('section', 'site-section',
-    element('div', 'site-container',
-      ...optional(eyebrow !== '', () => element('p', 'site-section__eyebrow', eyebrow)),
-      element('h2', 'site-section__heading', heading),
-      ...optional(intro !== '', () => element('p', 'site-section__intro', intro)),
-      element('div', 'site-section__content', ...content)))
-  if (anchor !== '') section.id = anchor
-  return section
+const siteSection = (anchor: string, eyebrow: string, heading: string, intro: string, content: readonly Node[]): Node =>
+  withId(element('section', ui.section,
+    element('div', ui.sectionInner,
+      ...optional(eyebrow !== '', () => element('p', ui.eyebrow, eyebrow)),
+      element('h2', ui.heading, heading),
+      ...optional(intro !== '', () => element('p', ui.intro, intro)),
+      element('div', ui.content, ...content))), anchor)
+
+const siteGalaxy = (anchor: string, eyebrow: string, heading: string, intro: string, content: readonly Node[]): Node => {
+  const canvas = element('canvas', ui.galaxyCanvas) as HTMLCanvasElement
+  galaxy.mount(canvas)
+  return withId(element('section', ui.galaxy,
+    element('div', ui.galaxyHead,
+      ...optional(eyebrow !== '', () => element('p', ui.eyebrow, eyebrow)),
+      element('h2', ui.heading, heading),
+      ...optional(intro !== '', () => element('p', ui.intro, intro))),
+    element('div', ui.galaxyStage, canvas, element('div', ui.galaxyOverlay, ...content))), anchor)
+}
+
+const duoColumn = (eyebrow: string, heading: string, intro: string, content: readonly Node[]): Node =>
+  element('div', ui.duoColumn,
+    ...optional(eyebrow !== '', () => element('p', ui.eyebrow, eyebrow)),
+    element('h2', ui.duoHeading, heading),
+    ...optional(intro !== '', () => element('p', ui.duoIntro, intro)),
+    element('div', ui.content, ...content))
+
+const siteDuo = (
+  anchor: string,
+  startEyebrow: string, startHeading: string, startIntro: string, start: readonly Node[],
+  endEyebrow: string, endHeading: string, endIntro: string, end: readonly Node[]
+): Node =>
+  withId(element('section', ui.section,
+    element('div', ui.duoGrid,
+      duoColumn(startEyebrow, startHeading, startIntro, start),
+      duoColumn(endEyebrow, endHeading, endIntro, end))), anchor)
+
+const carouselButton = (track: HTMLElement, label: string, symbol: string, direction: 1 | -1): Node => {
+  const button = element('button', ui.carouselButton, symbol)
+  button.setAttribute('type', 'button')
+  button.setAttribute('aria-label', label)
+  button.addEventListener('click', () => turnCarousel(track, direction))
+  return button
+}
+
+const siteCarousel = (label: string, perView: number, items: readonly Node[]): Node => {
+  const track = element('div', ui.carouselTrack, ...items)
+  track.style.setProperty('--slide-basis', slideBasisOf(perViewOf(perView)))
+  const carousel = element('div', ui.carousel,
+    track,
+    element('div', ui.carouselControls,
+      carouselButton(track, 'Previous', '‹', -1),
+      carouselButton(track, 'Next', '›', 1)))
+  carousel.setAttribute('role', 'region')
+  carousel.setAttribute('aria-roledescription', 'carousel')
+  carousel.setAttribute('aria-label', label)
+  return carousel
 }
 
 const siteGrid = (columns: number, items: readonly Node[]): Node => {
-  const grid = element('div', 'site-grid', ...items)
-  grid.style.setProperty('--site-columns', String(columnsOf(columns)))
+  const grid = element('div', ui.grid, ...items)
+  grid.style.setProperty('--grid-columns', String(columnsOf(columns)))
   return grid
 }
 
 const siteFeature = (tag: string, title: string, body: string): Node =>
-  element('article', 'site-feature',
-    ...optional(tag !== '', () => element('span', 'site-feature__tag', tag)),
-    element('h3', 'site-feature__title', title),
-    element('p', 'site-feature__body', body))
+  element('article', ui.feature,
+    ...optional(tag !== '', () => element('span', ui.featureTag, tag)),
+    element('h3', ui.featureTitle, title),
+    element('p', ui.featureBody, body))
 
 const speakerPhoto = (name: string, photo: string): Node => {
   if (photo === '') {
-    const placeholder = element('div', 'site-speaker__photo', initialsOf(name))
+    const placeholder = element('div', ui.speakerPhoto, initialsOf(name))
     placeholder.setAttribute('aria-hidden', 'true')
     return placeholder
   }
-  const image = element('img', 'site-speaker__photo') as HTMLImageElement
+  const image = element('img', ui.speakerPhoto) as HTMLImageElement
   image.src = photo
   image.alt = name
   image.loading = 'lazy'
@@ -101,38 +158,38 @@ const speakerPhoto = (name: string, photo: string): Node => {
 }
 
 const siteSpeaker = (name: string, role: string, photo: string, talk: string): Node =>
-  element('article', 'site-speaker',
+  element('article', ui.speaker,
     speakerPhoto(name, photo),
-    element('div', '', element('h3', 'site-speaker__name', name), element('p', 'site-speaker__role', role)),
-    ...optional(talk !== '', () => element('p', 'site-speaker__talk', talk)))
+    element('div', '', element('h3', ui.speakerName, name), element('p', ui.speakerRole, role)),
+    ...optional(talk !== '', () => element('p', ui.speakerTalk, talk)))
 
 const siteAgendaItem = (time: string, title: string, speaker: string, track: string): Node =>
-  element('div', 'site-agenda',
-    element('span', 'site-agenda__time', time),
+  element('div', ui.agenda,
+    element('span', ui.agendaTime, time),
     element('div', '',
-      element('p', 'site-agenda__title', title),
-      ...optional(speaker !== '', () => element('p', 'site-agenda__speaker', speaker))),
-    track !== '' ? element('span', 'site-agenda__track', track) : element('span', ''))
+      element('p', ui.agendaTitle, title),
+      ...optional(speaker !== '', () => element('p', ui.agendaSpeaker, speaker))),
+    track !== '' ? element('span', ui.agendaTrack, track) : element('span', ''))
 
 const siteTicket = (name: string, price: string, perks: string, highlighted: boolean, ctaLabel: string, ctaLink: string): Node =>
-  element('article', highlighted ? 'site-ticket site-ticket--highlighted' : 'site-ticket',
-    ...optional(highlighted, () => element('span', 'site-ticket__badge', 'Most popular')),
-    element('p', 'site-ticket__name', name),
-    element('p', 'site-ticket__price', price),
-    element('ul', 'site-ticket__perks', ...linesOf(perks).map(perk => element('li', '', perk))),
-    link(highlighted ? 'site-button' : 'site-button site-button--ghost', ctaLink, ctaLabel))
+  element('article', highlighted ? ui.ticketHighlighted : ui.ticket,
+    ...optional(highlighted, () => element('span', ui.ticketBadge, 'Most popular')),
+    element('p', ui.ticketName, name),
+    element('p', ui.ticketPrice, price),
+    element('ul', ui.ticketPerks, ...linesOf(perks).map(perk => element('li', ui.ticketPerk, perk))),
+    link(highlighted ? ui.ticketCta : ui.ticketCtaGhost, ctaLink, ctaLabel))
 
 const siteFaq = (question: string, answer: string): Node =>
-  element('details', 'site-faq', element('summary', '', question), element('p', '', answer))
+  element('details', ui.faq, element('summary', ui.faqQuestion, question), element('p', ui.faqAnswer, answer))
 
 const siteContact = (heading: string, lines: string, email: string, phone: string): Node =>
-  element('article', 'site-contact',
-    element('h3', 'site-contact__heading', heading),
-    ...optional(lines !== '', () => element('p', 'site-contact__lines', lines)),
-    ...optional(email !== '', () => link('site-contact__link', `mailto:${email}`, email)),
-    ...optional(phone !== '', () => link('site-contact__link', `tel:${phone.replaceAll(' ', '')}`, phone)))
+  element('article', ui.contact,
+    element('h3', ui.contactHeading, heading),
+    ...optional(lines !== '', () => element('p', ui.contactLines, lines)),
+    ...optional(email !== '', () => link(ui.contactLink, `mailto:${email}`, email)),
+    ...optional(phone !== '', () => link(ui.contactLink, `tel:${phone.replaceAll(' ', '')}`, phone)))
 
 export {
-  sitePage, siteHero, siteStats, siteStat, siteMarquee, siteSection, siteGrid,
+  sitePage, siteHero, siteStats, siteStat, siteMarquee, siteSection, siteGalaxy, siteDuo, siteCarousel, siteGrid,
   siteFeature, siteSpeaker, siteAgendaItem, siteTicket, siteFaq, siteContact
 }

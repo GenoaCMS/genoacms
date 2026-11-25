@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ui } from '@genoacms/demo-support/ui'
   import type { ResolvedNode } from '@genoacms/sdk'
   import GenoaChildren from '../genoa/GenoaChildren.svelte'
 
@@ -6,4 +7,4 @@
   const { body }: { body: readonly ResolvedNode[] } = $props()
 </script>
 
-<main class="page"><GenoaChildren nodes={body} /></main>
+<main class={ui.demoPage}><GenoaChildren nodes={body} /></main>

@@ -10,4 +10,19 @@ const linesOf = (text: string): string[] =>
 const columnsOf = (columns: number): number =>
   Math.min(4, Math.max(1, Math.round(Number.isFinite(columns) ? columns : 3)))
 
-export { initialsOf, linesOf, columnsOf }
+/** The CSS image of the first of a storageResource value's URLs, or '' when it has none. */
+const cssImageOf = (urls: readonly string[] | undefined): string => {
+  const first = urls?.find(url => url !== '')
+  return first === undefined ? '' : `url(${JSON.stringify(first)})`
+}
+
+/** How many slides a carousel shows at once, kept to what the layout supports. */
+const perViewOf = (perView: number): number =>
+  Math.min(3, Math.max(1, Math.round(Number.isFinite(perView) ? perView : 1)))
+
+/** Turns a carousel's track by one view: `1` forward, `-1` back. */
+const turnCarousel = (track: HTMLElement | null | undefined, direction: 1 | -1): void => {
+  track?.scrollBy({ left: direction * track.clientWidth, behavior: 'smooth' })
+}
+
+export { initialsOf, linesOf, columnsOf, perViewOf, cssImageOf, turnCarousel }

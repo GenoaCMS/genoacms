@@ -1,5 +1,6 @@
 <script lang="ts">
   import { isChildren, type ResolvedNode } from '@genoacms/sdk'
+  import { ui } from '@genoacms/demo-support/ui'
   import DomSubtree from './DomSubtree.svelte'
   import { bindingsOf } from './context'
 
@@ -61,7 +62,7 @@
     Refused rather than skipped. A page naming a component this application does not have is a page
     it cannot render, and a gap would serve a page quietly missing part of itself.
   -->
-  <div class="refusal">
+  <div class={ui.refusal}>
     <h2>component-not-supplied</h2>
     <pre>This application has no component for '{node.name}'.</pre>
   </div>

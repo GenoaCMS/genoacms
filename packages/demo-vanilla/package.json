@@ -11,10 +11,14 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@genoacms/demo-support": "workspace:*",
     "@genoacms/sdk": "workspace:*",
-    "@genoacms/demo-support": "workspace:*"
+    "three": "^0.181.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/three": "^0.181.0",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }

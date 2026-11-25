@@ -1,26 +1,30 @@
 <script setup lang="ts">
-import type { VNode } from 'vue'
+import { computed, type VNode } from 'vue'
+import { cssImageOf } from '@genoacms/demo-support/site'
+import { ui } from '@genoacms/demo-support/ui'
 
-defineProps<{
+const props = defineProps<{
   eyebrow: string, heading: string, lead: string,
   primaryLabel: string, primaryLink: string, secondaryLabel: string, secondaryLink: string,
-  aside: VNode[]
+  aside: VNode[], background: string[]
 }>()
+
+const image = computed(() => cssImageOf(props.background))
 </script>
 
 <template>
-  <section class="site-hero">
-    <div class="site-container site-hero__grid">
-      <div>
-        <span class="site-hero__eyebrow">{{ eyebrow }}</span>
-        <h1 class="site-hero__heading">{{ heading }}</h1>
-        <p class="site-hero__lead">{{ lead }}</p>
-        <div class="site-hero__actions">
-          <a class="site-button" :href="primaryLink">{{ primaryLabel }}</a>
-          <a v-if="secondaryLabel !== ''" class="site-button site-button--ghost" :href="secondaryLink">{{ secondaryLabel }}</a>
+  <section :class="ui.hero" :style="image === '' ? undefined : { '--hero-image': image }">
+    <div :class="ui.heroGrid">
+      <div :class="ui.heroText">
+        <span :class="ui.heroEyebrow">{{ eyebrow }}</span>
+        <h1 :class="ui.heroHeading">{{ heading }}</h1>
+        <p :class="ui.heroLead">{{ lead }}</p>
+        <div :class="ui.heroActions">
+          <a :class="ui.buttonPrimary" :href="primaryLink">{{ primaryLabel }}</a>
+          <a v-if="secondaryLabel !== ''" :class="ui.buttonGhost" :href="secondaryLink">{{ secondaryLabel }}</a>
         </div>
       </div>
-      <div class="site-hero__aside">
+      <div :class="ui.heroAside">
         <component :is="child" v-for="(child, i) in aside" :key="i" />
       </div>
     </div>

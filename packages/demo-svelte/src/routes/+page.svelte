@@ -2,8 +2,10 @@
   import { settings } from '@genoacms/demo-support/instance'
   import { loadPage, type Outcome } from '@genoacms/demo-support/page'
   import GenoaComponent from '../genoa/GenoaComponent.svelte'
-  import { provideBindings } from '../genoa/context'
+  import { provideBindings, provideRenderOptions } from '../genoa/context'
+  import { passthrough } from '../galaxy'
   import { bindings } from '../components/bindings'
+  import { ui } from '@genoacms/demo-support/ui'
   import '@genoacms/demo-support/site.css'
 
   /**
@@ -21,6 +23,7 @@
    * Components also build DOM nodes, so rendering needs a document. Both reasons point the same way.
    */
   provideBindings(bindings)
+  provideRenderOptions({ passthrough })
 
   let outcome = $state<Outcome | undefined>(undefined)
 
@@ -31,11 +34,14 @@
 </script>
 
 {#if outcome === undefined}
-  <p class="waiting">Fetching and verifying…</p>
+  <div class={ui.status} role="status">
+    <div class={ui.spinner} aria-hidden="true"></div>
+    <p>Fetching and verifying…</p>
+  </div>
 {:else if outcome.ok}
   <GenoaComponent node={outcome.tree} />
 {:else}
-  <div class="refusal">
+  <div class={ui.refusal}>
     <h2>{outcome.reason}</h2>
     {#if outcome.detail}<pre>{outcome.detail}</pre>{/if}
   </div>

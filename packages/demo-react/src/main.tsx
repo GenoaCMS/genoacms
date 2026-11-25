@@ -4,6 +4,8 @@ import { settings } from '@genoacms/demo-support/instance'
 import { loadPage, type Outcome } from '@genoacms/demo-support/page'
 import { GenoaComponent } from './genoa/GenoaComponent'
 import { bindings } from './components/index'
+import { passthrough } from './galaxy'
+import { ui } from '@genoacms/demo-support/ui'
 import '@genoacms/demo-support/site.css'
 
 /**
@@ -17,10 +19,18 @@ import '@genoacms/demo-support/site.css'
  * that arrived already rendered would have had that done on its behalf by something it cannot check.
  */
 
+const RENDER_OPTIONS = { passthrough }
+
 const Refusal = ({ reason, detail }: { reason: string, detail?: string }): ReactNode =>
-  <div className="refusal">
+  <div className={ui.refusal}>
     <h2>{reason}</h2>
     {detail !== undefined && <pre>{detail}</pre>}
+  </div>
+
+const Loading = (): ReactNode =>
+  <div className={ui.status} role="status">
+    <div className={ui.spinner} aria-hidden="true" />
+    <p>Fetching and verifying…</p>
   </div>
 
 const App = (): ReactNode => {
@@ -33,9 +43,9 @@ const App = (): ReactNode => {
     return () => { cancelled = true }
   }, [])
 
-  if (outcome === undefined) return <p className="waiting">Fetching and verifying…</p>
+  if (outcome === undefined) return <Loading />
   if (!outcome.ok) return <Refusal reason={outcome.reason} detail={outcome.detail} />
-  return <GenoaComponent node={outcome.tree} bindings={bindings} />
+  return <GenoaComponent node={outcome.tree} bindings={bindings} options={RENDER_OPTIONS} />
 }
 
 createRoot(document.querySelector('#app') as HTMLElement).render(

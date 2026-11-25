@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { ui } from '@genoacms/demo-support/ui'
+
 defineProps<{ time: string, title: string, speaker: string, track: string }>()
 </script>
 
 <template>
-  <div class="site-agenda">
-    <span class="site-agenda__time">{{ time }}</span>
+  <div :class="ui.agenda">
+    <span :class="ui.agendaTime">{{ time }}</span>
     <div>
-      <p class="site-agenda__title">{{ title }}</p>
-      <p v-if="speaker !== ''" class="site-agenda__speaker">{{ speaker }}</p>
+      <p :class="ui.agendaTitle">{{ title }}</p>
+      <p v-if="speaker !== ''" :class="ui.agendaSpeaker">{{ speaker }}</p>
     </div>
-    <span v-if="track !== ''" class="site-agenda__track">{{ track }}</span>
+    <span v-if="track !== ''" :class="ui.agendaTrack">{{ track }}</span>
     <span v-else />
   </div>
 </template>

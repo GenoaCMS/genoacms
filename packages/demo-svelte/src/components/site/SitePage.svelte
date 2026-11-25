@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ResolvedNode } from '@genoacms/sdk'
+  import { ui } from '@genoacms/demo-support/ui'
   import GenoaChildren from '../../genoa/GenoaChildren.svelte'
 
   const { brand, tagline, ctaLabel, ctaLink, body, footer }: {
@@ -7,14 +8,15 @@
   } = $props()
 </script>
 
-<header class="site-header">
-  <div class="site-container site-header__inner">
-    <a class="site-brand" href="#top">
-      <span class="site-brand__name">{brand}</span>
-      <span class="site-brand__tagline">{tagline}</span>
+<a class={ui.skipLink} href="#content">Skip to content</a>
+<header class={ui.header} id="top">
+  <div class={ui.headerInner}>
+    <a class={ui.brand} href="#top">
+      <span class={ui.brandName}>{brand}</span>
+      <span class={ui.brandTagline}>{tagline}</span>
     </a>
-    <a class="site-button" href={ctaLink}>{ctaLabel}</a>
+    <a class={ui.headerCta} href={ctaLink}>{ctaLabel}</a>
   </div>
 </header>
-<main id="top" class="site-main"><GenoaChildren nodes={body} /></main>
-<footer class="site-footer"><div class="site-container"><p>{footer}</p></div></footer>
+<main class={ui.main} id="content"><GenoaChildren nodes={body} /></main>
+<footer class={ui.footer}><p class={ui.footerText}>{footer}</p></footer>

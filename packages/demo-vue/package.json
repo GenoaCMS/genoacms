@@ -11,14 +11,18 @@
     "check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@genoacms/sdk": "workspace:*",
     "@genoacms/demo-support": "workspace:*",
+    "@genoacms/sdk": "workspace:*",
+    "three": "^0.181.0",
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/three": "^0.181.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "@vitejs/plugin-vue": "^5.2.1",
     "vue-tsc": "^2.2.0"
   }
 }

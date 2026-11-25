@@ -1,5 +1,5 @@
 import { createElement, useEffect, useRef, type ReactNode, type ComponentType } from 'react'
-import { renderResolved, isChildren, type ResolvedNode, type ResolvedValue } from '@genoacms/sdk'
+import { renderResolved, isChildren, type RenderOptions, type ResolvedNode, type ResolvedValue } from '@genoacms/sdk'
 
 /**
  * Rendering a GenoaCMS page as **React components**.
@@ -45,17 +45,17 @@ type Bindings = Record<string, Binding>
  * `useRef` and an effect rather than `dangerouslySetInnerHTML`: the SDK produces a live node, and
  * serializing it to markup would throw away every event handler the component attached.
  */
-const DomSubtree = ({ node }: { node: ResolvedNode }): ReactNode => {
+const DomSubtree = ({ node, options }: { node: ResolvedNode, options?: RenderOptions }): ReactNode => {
   const host = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    void renderResolved(node).then(rendered => {
+    void renderResolved(node, options).then(rendered => {
       if (cancelled || host.current === null) return
       host.current.replaceChildren(rendered.ok ? rendered.value : document.createComment(rendered.reason))
     })
     return () => { cancelled = true }
-  }, [node])
+  }, [node, options])
 
   return createElement('div', { ref: host })
 }
@@ -66,8 +66,8 @@ const DomSubtree = ({ node }: { node: ResolvedNode }): ReactNode => {
  * Recurses into slots first, so a parent is given its children already built — the same shape the
  * SDK's own renderer uses, expressed in React's terms.
  */
-const GenoaComponent = ({ node, bindings }: { node: ResolvedNode, bindings: Bindings }): ReactNode => {
-  if (node.executable !== undefined) return createElement(DomSubtree, { node })
+const GenoaComponent = ({ node, bindings, options }: { node: ResolvedNode, bindings: Bindings, options?: RenderOptions }): ReactNode => {
+  if (node.executable !== undefined) return createElement(DomSubtree, { node, options })
 
   const binding = bindings[node.name]
   if (binding === undefined) {
@@ -82,7 +82,7 @@ const GenoaComponent = ({ node, bindings }: { node: ResolvedNode, bindings: Bind
     return [
       name,
       value.map((child, position) =>
-        createElement(GenoaComponent, { node: child, bindings, key: `${child.name}-${position}` }))
+        createElement(GenoaComponent, { node: child, bindings, options, key: `${child.name}-${position}` }))
     ]
   }
 

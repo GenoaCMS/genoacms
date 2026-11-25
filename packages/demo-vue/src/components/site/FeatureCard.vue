@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { ui } from '@genoacms/demo-support/ui'
+
 defineProps<{ tag: string, title: string, body: string }>()
 </script>
 
 <template>
-  <article class="site-feature">
-    <span v-if="tag !== ''" class="site-feature__tag">{{ tag }}</span>
-    <h3 class="site-feature__title">{{ title }}</h3>
-    <p class="site-feature__body">{{ body }}</p>
+  <article :class="ui.feature">
+    <span v-if="tag !== ''" :class="ui.featureTag">{{ tag }}</span>
+    <h3 :class="ui.featureTitle">{{ title }}</h3>
+    <p :class="ui.featureBody">{{ body }}</p>
   </article>
 </template>

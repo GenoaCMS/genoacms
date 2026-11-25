@@ -14,13 +14,17 @@
     "@google-cloud/storage": "^7.7.0"
   },
   "devDependencies": {
-    "@genoacms/sdk": "workspace:*",
     "@genoacms/demo-support": "workspace:*",
+    "@genoacms/sdk": "workspace:*",
     "@genoacms/sveltekit-adapter-cloud-run-functions": "workspace:*",
     "@sveltejs/kit": "^3.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/three": "^0.181.0",
     "svelte": "^5.57.1",
     "svelte-check": "^4.7.7",
+    "tailwindcss": "^4.3.5",
+    "three": "^0.181.0",
     "typescript": "^6.0.0",
     "vite": "^8.0.12"
   }

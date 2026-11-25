@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { ui } from '@genoacms/demo-support/ui'
+
 defineProps<{ value: string, label: string }>()
 </script>
 
 <template>
-  <div class="site-stat">
-    <span class="site-stat__value">{{ value }}</span>
-    <span class="site-stat__label">{{ label }}</span>
+  <div :class="ui.stat">
+    <span :class="ui.statValue">{{ value }}</span>
+    <span :class="ui.statLabel">{{ label }}</span>
   </div>
 </template>

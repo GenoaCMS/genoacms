@@ -1,5 +1,5 @@
 import { defineComponent, h, onMounted, ref, type Component, type VNode } from 'vue'
-import { renderResolved, isChildren, type ResolvedNode, type ResolvedValue } from '@genoacms/sdk'
+import { renderResolved, isChildren, type RenderOptions, type ResolvedNode, type ResolvedValue } from '@genoacms/sdk'
 
 /**
  * Rendering a GenoaCMS page as **Vue components**.
@@ -46,11 +46,14 @@ type Bindings = Record<string, Binding>
  */
 const DomSubtree = defineComponent({
   name: 'GenoaDomSubtree',
-  props: { node: { type: Object as () => ResolvedNode, required: true } },
+  props: {
+    node: { type: Object as () => ResolvedNode, required: true },
+    options: { type: Object as () => RenderOptions, required: false }
+  },
   setup (props) {
     const host = ref<HTMLElement | null>(null)
     onMounted(() => {
-      void renderResolved(props.node).then(rendered => {
+      void renderResolved(props.node, props.options).then(rendered => {
         host.value?.replaceChildren(
           rendered.ok ? rendered.value : document.createComment(rendered.reason)
         )
@@ -69,12 +72,13 @@ const GenoaComponent = defineComponent({
   name: 'GenoaComponent',
   props: {
     node: { type: Object as () => ResolvedNode, required: true },
-    bindings: { type: Object as () => Bindings, required: true }
+    bindings: { type: Object as () => Bindings, required: true },
+    options: { type: Object as () => RenderOptions, required: false }
   },
   setup (props) {
     return (): VNode => {
-      const { node, bindings } = props
-      if (node.executable !== undefined) return h(DomSubtree, { node })
+      const { node, bindings, options } = props
+      if (node.executable !== undefined) return h(DomSubtree, { node, options })
 
       const binding = bindings[node.name]
       if (binding === undefined) {
@@ -87,7 +91,7 @@ const GenoaComponent = defineComponent({
         const name = binding.props[index] ?? `value${index}`
         if (!isChildren(value)) return [name, value]
         return [name, value.map((child, position) =>
-          h(GenoaComponent, { node: child, bindings, key: `${child.name}-${position}` }))]
+          h(GenoaComponent, { node: child, bindings, options, key: `${child.name}-${position}` }))]
       }
 
       return h(binding.component, Object.fromEntries(node.values.map(asProp)))

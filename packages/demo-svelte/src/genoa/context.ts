@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte'
 import type { Component } from 'svelte'
+import type { RenderOptions } from '@genoacms/sdk'
 
 /**
  * How the wrapper reaches its bindings without every component passing them on.
@@ -27,10 +28,16 @@ interface Binding {
 type Bindings = Record<string, Binding>
 
 const KEY = Symbol('genoacms.bindings')
+const OPTIONS_KEY = Symbol('genoacms.renderOptions')
 
 const provideBindings = (bindings: Bindings): void => { setContext(KEY, bindings) }
 
 const bindingsOf = (): Bindings => getContext<Bindings>(KEY) ?? {}
 
-export { provideBindings, bindingsOf }
+/** What the application grants dynamic components: `passthrough`, `document`, `fetch`. */
+const provideRenderOptions = (options: RenderOptions): void => { setContext(OPTIONS_KEY, options) }
+
+const renderOptionsOf = (): RenderOptions => getContext<RenderOptions>(OPTIONS_KEY) ?? {}
+
+export { provideBindings, bindingsOf, provideRenderOptions, renderOptionsOf }
 export type { Binding, Bindings }

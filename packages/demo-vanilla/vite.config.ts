@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { artifactProxy } from '@genoacms/demo-support/server'
 
@@ -10,6 +11,6 @@ import { artifactProxy } from '@genoacms/demo-support/server'
  * guard is three that will drift.
  */
 export default defineConfig({
-  plugins: [artifactProxy()],
+  plugins: [tailwindcss(), artifactProxy()],
   server: { port: 5184 }
 })

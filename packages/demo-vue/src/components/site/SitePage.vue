@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import type { VNode } from 'vue'
+import { ui } from '@genoacms/demo-support/ui'
 
 defineProps<{ brand: string, tagline: string, ctaLabel: string, ctaLink: string, body: VNode[], footer: string }>()
 </script>
 
 <template>
-  <header class="site-header">
-    <div class="site-container site-header__inner">
-      <a class="site-brand" href="#top">
-        <span class="site-brand__name">{{ brand }}</span>
-        <span class="site-brand__tagline">{{ tagline }}</span>
+  <a :class="ui.skipLink" href="#content">Skip to content</a>
+  <header id="top" :class="ui.header">
+    <div :class="ui.headerInner">
+      <a :class="ui.brand" href="#top">
+        <span :class="ui.brandName">{{ brand }}</span>
+        <span :class="ui.brandTagline">{{ tagline }}</span>
       </a>
-      <a class="site-button" :href="ctaLink">{{ ctaLabel }}</a>
+      <a :class="ui.headerCta" :href="ctaLink">{{ ctaLabel }}</a>
     </div>
   </header>
-  <main id="top" class="site-main">
+  <main id="content" :class="ui.main">
     <component :is="child" v-for="(child, i) in body" :key="i" />
   </main>
-  <footer class="site-footer"><div class="site-container"><p>{{ footer }}</p></div></footer>
+  <footer :class="ui.footer"><p :class="ui.footerText">{{ footer }}</p></footer>
 </template>

@@ -3,6 +3,8 @@ import { settings } from '@genoacms/demo-support/instance'
 import { loadPage, type Outcome } from '@genoacms/demo-support/page'
 import { GenoaComponent } from './genoa/GenoaComponent'
 import { bindings } from './components/index'
+import { passthrough } from './galaxy'
+import { ui } from '@genoacms/demo-support/ui'
 import '@genoacms/demo-support/site.css'
 
 /**
@@ -15,6 +17,8 @@ import '@genoacms/demo-support/site.css'
  * **In `onMounted`, not at build time.** The whole claim is that a consumer verifies for itself; a
  * page that arrived already rendered would have had that done for it by something it cannot check.
  */
+const RENDER_OPTIONS = { passthrough }
+
 const App = defineComponent({
   setup () {
     const outcome = ref<Outcome | undefined>(undefined)
@@ -25,14 +29,19 @@ const App = defineComponent({
 
     return () => {
       const result = outcome.value
-      if (result === undefined) return h('p', { class: 'waiting' }, 'Fetching and verifying…')
+      if (result === undefined) {
+        return h('div', { class: ui.status, role: 'status' }, [
+          h('div', { class: ui.spinner, 'aria-hidden': 'true' }),
+          h('p', 'Fetching and verifying…')
+        ])
+      }
       if (!result.ok) {
-        return h('div', { class: 'refusal' }, [
+        return h('div', { class: ui.refusal }, [
           h('h2', result.reason),
           ...(result.detail === undefined ? [] : [h('pre', result.detail)])
         ])
       }
-      return h(GenoaComponent, { node: result.tree, bindings })
+      return h(GenoaComponent, { node: result.tree, bindings, options: RENDER_OPTIONS })
     }
   }
 })

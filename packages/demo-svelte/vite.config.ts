@@ -1,5 +1,6 @@
 import adapter from '@genoacms/sveltekit-adapter-cloud-run-functions'
 import { sveltekit } from '@sveltejs/kit/vite'
+import tailwindcss from '@tailwindcss/vite'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vite'
 
@@ -25,6 +26,6 @@ import { defineConfig } from 'vite'
  * Both go through the same `serveArtifact` and the same allowlist.
  */
 export default defineConfig({
-  plugins: [await sveltekit({ preprocess: vitePreprocess(), adapter: adapter() })],
+  plugins: [tailwindcss(), await sveltekit({ preprocess: vitePreprocess(), adapter: adapter() })],
   server: { port: 5181 }
 })

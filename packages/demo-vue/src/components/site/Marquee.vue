@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { ui } from '@genoacms/demo-support/ui'
+
 defineProps<{ text: string }>()
 </script>
 
 <template>
-  <div class="site-marquee" :aria-label="text">
-    <div class="site-marquee__track" aria-hidden="true">
-      <span v-for="i in 8" :key="i" class="site-marquee__item">{{ text }}</span>
+  <div :class="ui.marquee" role="img" :aria-label="text">
+    <div :class="ui.marqueeTrack" aria-hidden="true">
+      <span v-for="i in 8" :key="i" :class="ui.marqueeItem">{{ text }}</span>
     </div>
   </div>
 </template>

@@ -1,12 +1,11 @@
 <script lang="ts">
+  import { ui } from '@genoacms/demo-support/ui'
+
   const { text }: { text: string } = $props()
-  const repeats = Array.from({ length: 8 }, (_, index) => index)
 </script>
 
-<div class="site-marquee" aria-label={text}>
-  <div class="site-marquee__track" aria-hidden="true">
-    {#each repeats as index (index)}
-      <span class="site-marquee__item">{text}</span>
-    {/each}
+<div class={ui.marquee} role="img" aria-label={text}>
+  <div class={ui.marqueeTrack} aria-hidden="true">
+    {#each { length: 8 }, index (index)}<span class={ui.marqueeItem}>{text}</span>{/each}
   </div>
 </div>
