@@ -6,12 +6,19 @@ const SITE_BUILDER_PERMISSIONS: Permission[] = [
   'pages:read', 'pages:content_edit', 'pages:structure_edit', 'pages:publish', 'pages:delete'
 ]
 
+const SITE_MEDIA_PERMISSIONS: Permission[] = ['storage:bucket:read', 'storage:bucket:write']
+
+const SITE_MEDIA_BUCKET = 'genoacms-public'
+
 // Authority: immutable at runtime, merged when authorization is read rather than written into
 // the manifests, and deleting one revokes what it granted.
 export const authorization: AuthorizationConfig = {
   roles: {
     Administrator: [{ permission: '*', resource: '*' }],
-    'Site builder': SITE_BUILDER_PERMISSIONS.map(permission => ({ permission, resource: '*' }))
+    'Site builder': [
+      ...SITE_BUILDER_PERMISSIONS.map(permission => ({ permission, resource: '*' as const })),
+      ...SITE_MEDIA_PERMISSIONS.map(permission => ({ permission, resource: { scope: 'bucket' as const, id: SITE_MEDIA_BUCKET } }))
+    ]
   },
   assignments: {
     cc0Xb1senAPCfF7oKfErZjXSeT03: ['Administrator'],
