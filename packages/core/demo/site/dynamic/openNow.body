@@ -1,9 +1,9 @@
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 const NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-const styled = (tag: string, style: string): Element => {
+const classed = (tag: string, classes: string): Element => {
   const node = dom.element(tag)
-  node.setAttribute('style', style)
+  node.setAttribute('class', classes)
   return node
 }
 
@@ -51,8 +51,8 @@ const status = (): { open: boolean, text: string } => {
   return { open: false, text: 'Closed · opens ' + when + ' ' + clockOf(next.slot.open) }
 }
 
-const card = styled('div', 'background:var(--site-surface, #0d1326);color:var(--site-ink, #e8ecf8);border:1px solid var(--site-line, #1f2a48);border-radius:14px;padding:1.8rem')
-const heading = styled('h3', 'margin:0 0 .8rem;font-size:1.15rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em')
+const card = classed('div', 'min-w-0 rounded-card border border-line bg-surface p-5 text-ink sm:p-8')
+const heading = classed('h3', 'mt-0 mb-3 font-display text-lg font-extrabold uppercase tracking-wide')
 heading.append(dom.text(label))
 const pill = dom.element('p')
 const dot = dom.element('span')
@@ -60,25 +60,27 @@ const words = dom.element('span')
 pill.append(dot, words)
 card.append(heading, pill)
 
-const list = styled('dl', 'display:grid;grid-template-columns:auto 1fr;gap:.25rem 1.2rem;margin:1rem 0 0;font-size:.9rem;color:var(--site-ink-soft, #a3adc8)')
+const list = classed('dl', 'mt-4 mb-0 grid max-w-sm gap-1 text-sm text-ink-soft')
 ;[1, 2, 3, 4, 5, 6, 0].forEach(day => {
   const name = dom.element('dt')
   name.append(dom.text(NAMES[day]))
   const slot = schedule[day]
-  const value = styled('dd', 'margin:0;font-variant-numeric:tabular-nums')
+  const value = classed('dd', 'm-0 tabular-nums')
   value.append(dom.text(slot === undefined ? 'Closed' : clockOf(slot.open) + ' – ' + clockOf(slot.close)))
-  list.append(name, value)
+  const entry = classed('div', 'flex justify-between gap-4')
+  entry.append(name, value)
+  list.append(entry)
 })
 card.append(list)
-const zone = styled('p', 'margin:.8rem 0 0;font-size:.75rem;color:var(--site-ink-soft, #a3adc8);opacity:.8')
+const zone = classed('p', 'mt-3 mb-0 text-xs text-ink-soft opacity-80')
 zone.append(dom.text('Times in ' + timeZone.replace('_', ' ')))
 card.append(zone)
 
 const refresh = (): void => {
   const { open, text } = status()
-  const colour = open ? '#34d399' : '#f87171'
-  pill.setAttribute('style', 'display:inline-flex;align-items:center;gap:.55rem;margin:0;padding:.45rem .9rem;border-radius:999px;font-weight:700;font-size:.9rem;background:' + (open ? 'rgba(52,211,153,.14)' : 'rgba(248,113,113,.14)') + ';color:' + colour)
-  dot.setAttribute('style', 'width:.6rem;height:.6rem;border-radius:50%;background:' + colour)
+  const tone = open ? 'go' : 'halt'
+  pill.setAttribute('class', 'm-0 inline-flex max-w-full items-center gap-2 rounded-full px-4 py-2 text-sm font-bold bg-' + tone + '/15 text-' + tone)
+  dot.setAttribute('class', 'size-2.5 shrink-0 rounded-full bg-' + tone)
   words.replaceChildren(dom.text(text))
 }
 

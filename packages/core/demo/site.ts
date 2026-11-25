@@ -37,12 +37,15 @@ async function tool<T> (name: string, args: Record<string, unknown>): Promise<T>
   return result.structuredContent as T
 }
 
+const OBJECT_REFERENCE = { type: 'object', properties: { bucket: { type: 'string' }, name: { type: 'string' } }, required: ['bucket', 'name'] }
+
 const schemaOf = (spec: AttributeSpec): Record<string, unknown> => {
   const common = { title: spec.name, description: '', required: false }
   switch (spec.type) {
     case 'components': return { ...common, type: 'array', items: { type: 'string' } }
     case 'number': return { ...common, type: 'number' }
     case 'boolean': return { ...common, type: 'boolean' }
+    case 'storageResource': return { ...common, type: 'array', items: OBJECT_REFERENCE }
     default: return { ...common, type: 'string' }
   }
 }
@@ -74,7 +77,7 @@ async function writeSource (uid: string, spec: ComponentSpec): Promise<void> {
 
 async function publishComponent (uid: string, spec: ComponentSpec): Promise<void> {
   try {
-    const { warnings } = await tool<{ warnings: Array<{ message: string }> }>('publish_component', { uid, note: 'Kiln & Steel demo site' })
+    const { warnings } = await tool<{ warnings: Array<{ message: string }> }>('publish_component', { uid, note: 'Sagittarius Line demo site' })
     for (const warning of warnings) console.warn(`${spec.name}: ${warning.message}`)
   } catch (error) {
     if (!(error as Error).message.includes(NOTHING_CHANGED)) throw error
