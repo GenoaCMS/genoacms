@@ -10,9 +10,11 @@
  * which is Node.
  */
 
-/** The pages the demo scenario publishes. Kept in step with `core/demo/demo.ts`. */
+/** The pages the demo scenarios publish. Kept in step with `core/demo/demo.ts` and `core/demo/site.ts`. */
 const PAGES = {
-  /** Depth four, siblings, and one component used twice. What the demos show by default. */
+  /** The Kiln & Steel conference site, with prebuilt and dynamic components. What the demos show by default. */
+  site: 'siteHome',
+  /** Depth four, siblings, and one component used twice. */
   home: 'demoHome',
   /** Siblings and no nesting. */
   flat: 'demoFlat',
@@ -38,7 +40,7 @@ interface InstanceSettings {
 /** What the browser was built with. Every value here is public. */
 const settings = (env: Record<string, string | undefined>): InstanceSettings => ({
   rootPublicKey: env.VITE_GENOACMS_ROOT_PUBLIC_KEY ?? '',
-  page: env.VITE_GENOACMS_PAGE ?? PAGES.home,
+  page: env.VITE_GENOACMS_PAGE ?? PAGES.site,
   // Pointing this at a published mirror is the whole of what changes when there is one: the SDK is
   // given a place to fetch from, and nothing else moves.
   origin: env.VITE_GENOACMS_ORIGIN ?? '/artifacts'

@@ -19,6 +19,8 @@
 		"adapters": "pnpm --filter @genoacms/config --filter @genoacms/language-adapter-ts --filter @genoacms/adapter-gcp run build",
 		"demo": "node demo/demo.ts publish",
 		"demo:clean": "node demo/demo.ts clean",
+		"demo:site": "node demo/site.ts publish",
+		"demo:site:clean": "node demo/site.ts clean",
 		"dev": "pnpm run adapters && vite dev --host",
 		"build": "pnpm run adapters && GENOA_MODE=development vite build",
 		"build:genoa": "vite build --config genoa.vite.config.ts",

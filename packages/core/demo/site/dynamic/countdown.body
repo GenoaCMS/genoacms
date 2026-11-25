@@ -1,0 +1,57 @@
+const styled = (tag: string, style: string): Element => {
+  const node = dom.element(tag)
+  node.setAttribute('style', style)
+  return node
+}
+
+const end = Date.parse(target)
+const card = styled('div', 'background:rgba(3,5,12,.55);border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:1.6rem;color:#fff;backdrop-filter:blur(6px)')
+const caption = styled('p', 'margin:0 0 1rem;font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.75')
+caption.append(dom.text(label))
+card.append(caption)
+
+const units: Array<[string, number]> = [['Days', 86400000], ['Hours', 3600000], ['Minutes', 60000], ['Seconds', 1000]]
+const row = styled('div', 'display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;text-align:center')
+const digits = units.map(([name]) => {
+  const cell = styled('div', 'background:rgba(255,255,255,.08);border-radius:12px;padding:.9rem .3rem')
+  const value = styled('span', 'display:block;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:var(--site-accent, #ffb547)')
+  const unit = styled('span', 'display:block;margin-top:.4rem;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;opacity:.7')
+  value.append(dom.text('--'))
+  unit.append(dom.text(name))
+  cell.append(value, unit)
+  row.append(cell)
+  return value
+})
+card.append(row)
+
+const done = styled('p', 'display:none;margin:0;font-size:1.4rem;font-weight:800')
+done.append(dom.text(doneMessage))
+card.append(done)
+
+const showDone = (): void => {
+  row.setAttribute('style', 'display:none')
+  done.setAttribute('style', 'margin:0;font-size:1.4rem;font-weight:800')
+}
+
+const update = (): boolean => {
+  const left = end - Date.now()
+  if (!(left > 0)) {
+    showDone()
+    return false
+  }
+  digits.forEach((value, index) => {
+    const [, size] = units[index]
+    const whole = index === 0 ? Math.floor(left / size) : Math.floor(left / size) % (index === 1 ? 24 : 60)
+    value.replaceChildren(dom.text(String(whole).padStart(2, '0')))
+  })
+  return true
+}
+
+let placed = false
+const timer = setInterval(() => {
+  if (card.isConnected) placed = true
+  if (!update() || (placed && !card.isConnected)) clearInterval(timer)
+}, 1000)
+update()
+
+return card

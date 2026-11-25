@@ -1,0 +1,96 @@
+const styled = (tag: string, style: string): Element => {
+  const node = dom.element(tag)
+  node.setAttribute('style', style)
+  return node
+}
+
+const textOf = (tag: string, style: string, value: string): Element => {
+  const node = styled(tag, style)
+  node.append(dom.text(value))
+  return node
+}
+
+const money = (amount: number): string =>
+  currency + ' ' + (Math.round(amount / 100) * 100).toLocaleString('en-GB')
+
+const ACCENT = 'var(--site-accent, #ffb547)'
+const LABEL = 'display:block;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem;color:var(--site-ink-soft, #a3adc8)'
+const card = styled('div', 'background:var(--site-surface, #0d1326);color:var(--site-ink, #e8ecf8);border:1px solid var(--site-line, #1f2a48);border-radius:14px;padding:1.8rem;display:grid;gap:1.3rem')
+card.append(textOf('h3', 'margin:0;font-size:1.35rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em', 'Estimate your fare'))
+
+const low = Math.max(1, minArea)
+const high = Math.max(low, maxArea)
+const sizeBlock = dom.element('label')
+const sizeHeading = styled('span', LABEL)
+const sizeValue = dom.element('span')
+sizeHeading.append(dom.text('Cabin size: '), sizeValue)
+const size = dom.element('input')
+size.setAttribute('type', 'range')
+size.setAttribute('min', String(low))
+size.setAttribute('max', String(high))
+size.setAttribute('step', '2')
+size.setAttribute('value', String(Math.min(high, Math.max(low, 18))))
+size.setAttribute('style', 'width:100%;accent-color:' + ACCENT)
+sizeBlock.append(sizeHeading, size)
+card.append(sizeBlock)
+
+const deckBlock = dom.element('label')
+deckBlock.append(textOf('span', LABEL, 'Deck'))
+const deck = dom.element('select')
+deck.setAttribute('style', 'width:100%;padding:.7rem;border:1px solid var(--site-line, #1f2a48);border-radius:10px;font:inherit;background:var(--site-paper, #060914);color:inherit')
+const decks: Array<[string, string]> = [['crew', 'Crew deck, inboard cabin'], ['observation', 'Observation deck, forward viewport']]
+decks.forEach(([value, text]) => {
+  const option = dom.element('option')
+  option.setAttribute('value', value)
+  option.append(dom.text(text))
+  deck.append(option)
+})
+deckBlock.append(deck)
+card.append(deckBlock)
+
+const toggle = (text: string): Element => {
+  const row = styled('label', 'display:flex;gap:.6rem;align-items:center;cursor:pointer')
+  const box = dom.element('input')
+  box.setAttribute('type', 'checkbox')
+  box.setAttribute('style', 'width:1.1rem;height:1.1rem;accent-color:' + ACCENT)
+  row.append(box, dom.text(text))
+  card.append(row)
+  return box
+}
+const cryo = toggle('Cryo-sleep through the transit legs (−' + cryoDiscount + '%)')
+const eva = toggle('Shuttle excursion at the Arches Cluster')
+
+const result = styled('div', 'background:var(--site-night, #03050c);border:1px solid var(--site-line, #1f2a48);border-radius:12px;padding:1.3rem 1.4rem')
+const total = dom.element('span')
+const detail = dom.element('span')
+const totalLine = styled('p', 'margin:0;font-size:2rem;font-weight:900;line-height:1.1;color:' + ACCENT)
+totalLine.append(total)
+const detailLine = styled('p', 'margin:.4rem 0 0;font-size:.85rem;opacity:.75')
+detailLine.append(detail)
+result.append(textOf('p', 'margin:0 0 .3rem;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.7', 'Estimated round-trip fare'), totalLine, detailLine)
+card.append(result)
+
+const cta = textOf('a', 'display:inline-flex;justify-content:center;padding:.8rem 1.4rem;border-radius:999px;background:' + ACCENT + ';color:var(--site-accent-ink, #1a1203);font-weight:700;text-decoration:none', 'Hold this berth')
+cta.setAttribute('href', contactLink)
+card.append(cta)
+
+const checked = (box: Element): boolean => (box as HTMLInputElement).checked
+
+const recalculate = (): void => {
+  const metres = Number((size as HTMLInputElement).value)
+  const rate = (deck as HTMLSelectElement).value === 'observation' ? observationRate : standardRate
+  const cabin = metres * rate
+  const afterCryo = checked(cryo) ? cabin * (1 - cryoDiscount / 100) : cabin
+  const fare = afterCryo + (checked(eva) ? evaFee : 0)
+  sizeValue.replaceChildren(dom.text(metres + ' m²'))
+  total.replaceChildren(dom.text(money(fare)))
+  detail.replaceChildren(dom.text(metres + ' m² × ' + money(rate) + ' per m²' + (checked(cryo) ? ', cryo-sleep' : '') + (checked(eva) ? ', shuttle excursion' : '')))
+}
+
+;[size, deck, cryo, eva].forEach(control => {
+  control.addEventListener('input', recalculate)
+  control.addEventListener('change', recalculate)
+})
+recalculate()
+
+return card

@@ -1,0 +1,93 @@
+const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+const NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+const styled = (tag: string, style: string): Element => {
+  const node = dom.element(tag)
+  node.setAttribute('style', style)
+  return node
+}
+
+const minutesOf = (clock: string): number => {
+  const [h, m] = clock.split(':').map(Number)
+  return h * 60 + (m || 0)
+}
+
+const daysIn = (spec: string): number[] => spec.toLowerCase().split(',').flatMap(part => {
+  const [from, to] = part.trim().split('-').map(day => DAYS.indexOf(day.trim().slice(0, 3)))
+  if (from < 0) return []
+  if (to === undefined || to < 0) return [from]
+  const span = (to - from + 7) % 7
+  return Array.from({ length: span + 1 }, (_, offset) => (from + offset) % 7)
+})
+
+const schedule: Array<{ open: number, close: number } | undefined> = DAYS.map(() => undefined)
+hours.split('\n').map(line => line.trim()).filter(line => line !== '').forEach(line => {
+  const [spec, range] = line.split(/\s+/)
+  const times = (range ?? '').split('-')
+  const slot = times.length === 2 ? { open: minutesOf(times[0]), close: minutesOf(times[1]) } : undefined
+  daysIn(spec ?? '').forEach(day => { schedule[day] = slot })
+})
+
+const clockOf = (minutes: number): string =>
+  String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0')
+
+const now = (): { day: number, minutes: number } => {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date())
+  const part = (type: string): string => parts.find(p => type === p.type)?.value ?? '0'
+  return { day: DAYS.indexOf(part('weekday').toLowerCase().slice(0, 3)), minutes: Number(part('hour')) * 60 + Number(part('minute')) }
+}
+
+const status = (): { open: boolean, text: string } => {
+  const { day, minutes } = now()
+  const today = schedule[day]
+  if (today !== undefined && minutes >= today.open && minutes < today.close) {
+    return { open: true, text: 'Open now · closes ' + clockOf(today.close) }
+  }
+  const next = Array.from({ length: 8 }, (_, offset) => (day + offset) % 7)
+    .map((candidate, offset) => ({ candidate, offset, slot: schedule[candidate] }))
+    .find(({ offset, slot }) => slot !== undefined && (offset > 0 || minutes < slot.open))
+  if (next === undefined || next.slot === undefined) return { open: false, text: 'Closed' }
+  const when = next.offset === 0 ? 'today' : next.offset === 1 ? 'tomorrow' : NAMES[next.candidate]
+  return { open: false, text: 'Closed · opens ' + when + ' ' + clockOf(next.slot.open) }
+}
+
+const card = styled('div', 'background:var(--site-surface, #0d1326);color:var(--site-ink, #e8ecf8);border:1px solid var(--site-line, #1f2a48);border-radius:14px;padding:1.8rem')
+const heading = styled('h3', 'margin:0 0 .8rem;font-size:1.15rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em')
+heading.append(dom.text(label))
+const pill = dom.element('p')
+const dot = dom.element('span')
+const words = dom.element('span')
+pill.append(dot, words)
+card.append(heading, pill)
+
+const list = styled('dl', 'display:grid;grid-template-columns:auto 1fr;gap:.25rem 1.2rem;margin:1rem 0 0;font-size:.9rem;color:var(--site-ink-soft, #a3adc8)')
+;[1, 2, 3, 4, 5, 6, 0].forEach(day => {
+  const name = dom.element('dt')
+  name.append(dom.text(NAMES[day]))
+  const slot = schedule[day]
+  const value = styled('dd', 'margin:0;font-variant-numeric:tabular-nums')
+  value.append(dom.text(slot === undefined ? 'Closed' : clockOf(slot.open) + ' – ' + clockOf(slot.close)))
+  list.append(name, value)
+})
+card.append(list)
+const zone = styled('p', 'margin:.8rem 0 0;font-size:.75rem;color:var(--site-ink-soft, #a3adc8);opacity:.8')
+zone.append(dom.text('Times in ' + timeZone.replace('_', ' ')))
+card.append(zone)
+
+const refresh = (): void => {
+  const { open, text } = status()
+  const colour = open ? '#34d399' : '#f87171'
+  pill.setAttribute('style', 'display:inline-flex;align-items:center;gap:.55rem;margin:0;padding:.45rem .9rem;border-radius:999px;font-weight:700;font-size:.9rem;background:' + (open ? 'rgba(52,211,153,.14)' : 'rgba(248,113,113,.14)') + ';color:' + colour)
+  dot.setAttribute('style', 'width:.6rem;height:.6rem;border-radius:50%;background:' + colour)
+  words.replaceChildren(dom.text(text))
+}
+
+let placed = false
+const timer = setInterval(() => {
+  if (card.isConnected) placed = true
+  if (placed && !card.isConnected) clearInterval(timer)
+  else refresh()
+}, 60000)
+refresh()
+
+return card

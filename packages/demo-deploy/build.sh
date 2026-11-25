@@ -20,7 +20,7 @@ public="$here/public"
 functions="$here/functions"
 
 : "${VITE_GENOACMS_ROOT_PUBLIC_KEY:?set it to the instance root anchor, from Configuration -> Keys}"
-: "${VITE_GENOACMS_PAGE:=demoHome}"
+: "${VITE_GENOACMS_PAGE:=siteHome}"
 : "${GENOACMS_BUCKET:=genoacms}"
 export VITE_GENOACMS_ROOT_PUBLIC_KEY VITE_GENOACMS_PAGE
 
