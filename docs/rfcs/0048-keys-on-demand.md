@@ -2,8 +2,8 @@
 type: rfc
 number: 48
 title: Keys on demand, bound by their full digest, with a consumer's rollback mark
-status: draft
-commits: []
+status: auditing
+commits: [0d2fa496]
 audit: []
 depends: []
 architecture: [architecture/signing.md]
@@ -52,6 +52,8 @@ about 200 bytes and the root signature's 10,476), and one key file of about 2.7 
 | :-- | :-- |
 | `packages/core/src/lib/script/signing/envelope.ts` | `DOCUMENT_TYPES` replaces `'genoacms.keyRegistry.v1'` with `'genoacms.keyRegistry.v2'`; `verify` takes a `VerificationKey` instead of a bare public key and checks ENV-6 |
 | `packages/core/src/lib/script/signing/registry.ts` | the v2 manifest: `KeyManifest`, `RegisteredKey`, `parseKeyManifest`; `withRotatedKey`, `withRevokedKey`, `currentKey`, `findKey`, `isRevoked`, `toPayload` on the manifest; `findPublicKey` removed |
+| `packages/core/src/lib/script/signing/algorithms.ts` | `SUBORDINATE_ALGORITHM` has the literal type `'ML-DSA-65'`, so a `RegisteredKey` can be built from it |
+| `packages/core/src/lib/script/signing/keyAdministration.test.ts` | its fixtures typed as `KeyManifest` and `RegisteredKey`; no assertion changes |
 | `packages/core/src/lib/script/signing/keyFile.ts` | new: `KeyFile`, `keyFilePath`, `toKeyFile`, `parseKeyFile` (REG-2) |
 | `packages/core/src/lib/script/signing/keyFile.server.ts` | new: `writeKeyFile`, `readKeyFile`, `deleteKeyFile` |
 | `packages/core/src/lib/script/signing/registry.server.ts` | v2; REG-6's refusal; REG-3's write orders |
@@ -64,7 +66,7 @@ about 200 bytes and the root signature's 10,476), and one key file of about 2.7 
 | `packages/core/src/lib/script/testing/signingKeys.ts` | `testKeyResolution.resolveVerificationKey` answers `KeyResolution` |
 | `packages/core/scripts/generate-conformance.ts` | `verify` with a `VerificationKey`; the corpus it prints stays byte for byte the same |
 | `packages/core/src/lib/script/signing/README.md` | the manifest and the key files |
-| `packages/core/src/lib/script/signing/envelope.test.ts`, `canonical.test.ts`, `algorithms.test.ts`, `keyId.test.ts` | the tests below; existing tests gain the ENV IDs in their titles and `VerificationKey` arguments; one assertion changes (§Tests) |
+| `packages/core/src/lib/script/signing/envelope.test.ts`, `canonical.test.ts`, `algorithms.test.ts`, `keyId.test.ts` | the tests below; existing tests gain the ENV IDs in their titles and `VerificationKey` arguments; two assertions change (§Tests) |
 | `packages/core/src/lib/script/signing/registry.test.ts`, `keyResolver.test.ts` | rewritten for the manifest, by §Tests |
 | `packages/core/src/lib/script/signing/keyFile.test.ts`, `registry.server.test.ts`, `registrySequence.server.test.ts` | new, by §Tests |
 | `packages/core/src/lib/script/bootstrap.test.ts`, `authorization/signedManifests.test.ts`, `agents/administration.server.test.ts`, `components/publication/publishing.test.ts`, `components/publication/index.test.ts`, `components/page/tree/io.server.test.ts`, `configuration/accounts.server.test.ts`, `database/database.server.test.ts`, `signing/subordinateKey.test.ts` | `verify` and `resolveVerificationKey` with their new arguments and answers; no assertion changes |
@@ -315,7 +317,8 @@ ENV ID of what it checks in its title: the round trip and the canonical form ENV
 before the signature ENV-1, the rest ENV-5. `rejects a rewritten algorithm` becomes
 `ENV-6: rejects a rewritten algorithm before checking the signature`, and its assertion changes
 from `valid: false` to `{ valid: false, reason: 'envelope-algorithm-mismatch: <keyId> is registered for ML-DSA-65, the envelope names SLH-DSA-SHA2-128s' }`.
-New:
+`ENV-1: recognizes the three documents that are signed` asserts `genoacms.keyRegistry.v2` a
+document type and `genoacms.keyRegistry.v1` not one, where it asserted v1 one. New:
 
 - `ENV-6: a signature by a key registered for another algorithm does not verify`: given an envelope
   signed with an SLH-DSA-SHA2-128s key, when verified with that key's public key and
@@ -413,7 +416,12 @@ root key:
 `readRegistry` reports it, and `VFY-3: refuses a manifest of the type genoacms.keyRegistry.v1`.
 
 `packages/sdk/src/verify/client.test.ts` (unit). The fixture source publishes a v2 manifest and the
-key files. New:
+key files. Two existing tests change with it. `refuses one signed by anything but the root` signs
+the manifest with another SLH-DSA-SHA2-128s key rather than with the subordinate key, which ENV-6
+would now refuse before the signature; its assertion stays `envelope-signature-invalid`.
+`refuses an entry whose id does not derive from its own key` gives the entry the digest of another
+key, and its assertion changes from a reason containing `key-id-mismatch` to one containing
+`digest-mismatch`, since a v2 entry carries no public key to derive an id from. New:
 
 - `VFY-1: a revoked or unknown key is refused before any key file is fetched`: then the source was
   asked for the manifest and the document only.
@@ -455,7 +463,7 @@ characters are not published.
    record the counts.
 2. Tests: written from the Specification and this RFC, those that fail today marked `it.fails`, in
    a session that has not seen the implementation; the ENV IDs added to existing titles; no existing
-   assertion changed but the one §Tests names. Commit:
+   assertion changed but the two §Tests names. Commit:
    `test(core,sdk): keys on demand and the consumer's mark (RFC-0048)`.
 3. Code, in the Files' order: core's envelope, manifest, key files, storage and resolution;
    the SDK; demo-support; the Svelte demo; the user docs; the changeset. Remove

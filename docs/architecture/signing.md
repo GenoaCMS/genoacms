@@ -3,7 +3,7 @@ type: architecture
 title: Signing in core
 prefix: Y
 codes: [KEY, ENV, REG, VFY, POL]
-verified: 82c42e6c
+verified: 0d2fa496
 ---
 
 # Signing in core
@@ -86,7 +86,7 @@ sequenceDiagram
 **YJ1b. A principal without the permission sees no card.** KEY-1. The configuration index shows no
 `Signing keys` card, and the screen and its actions refuse.
 
-**YJ2a. An administrator rotates the current key.** KEY-3.
+**YJ2a. An administrator rotates the current key.** KEY-3, REG-3.
 
 ```mermaid
 sequenceDiagram
@@ -94,13 +94,14 @@ sequenceDiagram
   participant C as Core
   participant S as Storage
   A->>C: Rotate (?/rotate)
-  C->>S: write the registry with a new current key, the outgoing one superseded
+  C->>S: write the new key's file (REG-3)
+  C->>S: write the manifest with a new current key, the outgoing one superseded
   C-->>A: "Rotated. New signatures use the new key." (KEY-3)
 ```
 
 **YJ3a. An administrator declines to revoke.** KEY-4. `No` in the confirmation submits nothing.
 
-**YJ3b. An administrator revokes a key.** KEY-4.
+**YJ3b. An administrator revokes a key.** KEY-4, REG-3.
 
 ```mermaid
 sequenceDiagram
@@ -113,7 +114,7 @@ sequenceDiagram
   opt the key is current
     C->>S: rotate first (KEY-3)
   end
-  C->>S: write the registry with the key revoked
+  C->>S: write the manifest with the key revoked, then delete the key's file (REG-3)
   C-->>A: "Key revoked", the key listed as revoked, one key current (KEY-4)
 ```
 
@@ -228,11 +229,11 @@ by deleting its documents.
 | # | Finding | State |
 | :-- | :-- | :-- |
 | YF1 | **A secret write may restart the dev server mid-request.** In 2026-08 the development secrets adapter wrote `.env`, Vite restarted on the change and killed the request: rotating reported a failure, and revoking succeeded while reporting one. It was fixed with `envDir: false` in `packages/core/vite.config.ts` (`b0760979`), which `f9a432c6` removed when the development store moved to `.genoacms/secrets.env`. The guard test `tests/README.md` names does not exist. Whether a secret write restarts the dev server today is not verified; the e2e suite serves the build and cannot see it. | open: not verified |
-| YF2 | **A verifier checks a signature with the algorithm the envelope names, not the one its key was registered with.** The key registry records each key's `alg`, but neither the core verifier (`verify` in `packages/core/src/lib/script/signing/envelope.ts`, called by `signedDocument.server.ts` for subordinate keys and the root) nor the SDK's (`verifyEnvelope` in `packages/sdk/src/verify/envelope.ts`, called by `client.ts`) compares the envelope's `alg` with it. Signing `alg` with the payload does not close this: under an algorithm whose signatures can be produced without the private key, the forger signs the rewritten header too. Not exploitable today, because the only registered algorithms are ML-DSA-65 and SLH-DSA-SHA2-128s, neither can be forged without the private key, and a key read under the other scheme fails to verify. Registering a weaker algorithm would open it. No statement specified the check until YU2 (ENV-6). Found 2026-11-20 by reading both verifiers. | open, RFC-0048 |
+| YF2 | **A verifier checks a signature with the algorithm the envelope names, not the one its key was registered with.** The key registry records each key's `alg`, but neither the core verifier (`verify` in `packages/core/src/lib/script/signing/envelope.ts`, called by `signedDocument.server.ts` for subordinate keys and the root) nor the SDK's (`verifyEnvelope` in `packages/sdk/src/verify/envelope.ts`, called by `client.ts`) compares the envelope's `alg` with it. Signing `alg` with the payload does not close this: under an algorithm whose signatures can be produced without the private key, the forger signs the rewritten header too. Not exploitable today, because the only registered algorithms are ML-DSA-65 and SLH-DSA-SHA2-128s, neither can be forged without the private key, and a key read under the other scheme fails to verify. Registering a weaker algorithm would open it. No statement specified the check until YU2 (ENV-6). Found 2026-11-20 by reading both verifiers. | fixed, RFC-0048 (`0d2fa496`) |
 | YF3 | **An older security policy verifies until the root key is replaced.** The policy document (`.genoacms/security/policy.json`) carries no sequence number, unlike the key registry, and `readStoredPolicy` in `packages/core/src/lib/script/securityPolicy/policy.server.ts` checks only the root signature, the document type and the bounds (`readRootSignedDocument` in `signing/signedDocument.server.ts`). Anyone who can write the storage can put back a policy the root signed earlier, with a longer rotation interval or token lifetime, higher guard ceilings or a wider fetch origin allowlist, and the instance uses it; the next publication compiles its ceilings and allowlist into a signed artifact. The root key is replaced rarely, so in practice every policy an instance has ever stored stays valid. No statement specified the policy until YU3 (POL-2). Found 2026-11-21 by reading `policy.server.ts` and `signedDocument.server.ts`. | open, RFC-0049 |
 | YF4 | **Damaging the security policy puts the instance on the configured defaults, which may be looser than the stored values.** A stored policy that is not JSON, fails its root signature or fails `parseSecurityPolicy` is left in place and `readStoredPolicy` returns `defaultPolicy()`, the `security` stanza of `genoa.config` with its own defaults, logging a warning and reporting `degraded` to the administration screen. Anyone who can write the storage can therefore undo every value an administrator tightened at runtime by corrupting one object, without any key; the module's own reason for not replacing the document (a relaxed setting the administrator did not choose) applies to the fallback as well. No statement specified the policy until YU3 (POL-3). Found 2026-11-21 by reading `policy.server.ts`. | open, RFC-0049 |
-| YF5 | **Every consumer downloads every key the instance ever made, 161 KB, to verify a page signed by one.** On 2026-11-25 the live registry held 55 keys (1 current, 30 superseded, 24 revoked) at sequence 80, and measured 160,892 bytes; the root signature is 10,476 of them and the public keys, 2604 base64 characters each, almost all the rest. Rotation never removes an entry and revocation keeps one, so the document only grows, and a revoked key, which verifies nothing, costs as much as the current one. The page the demos render is signed by one key. No statement constrained the registry's form. Found 2026-11-25 profiling the demos' page load. | open, RFC-0048 |
-| YF6 | **A consumer accepts an older key registry on every fresh load, undoing every revocation made since.** The SDK keeps the highest sequence it has seen in the `Verifier` instance only (`#highWaterMark` in `packages/sdk/src/verify/client.ts`), so a browser that loads a page starts from 0 and accepts any registry the root ever signed. Anyone who can write the storage, or answer for it, and kept an older registry can serve it, and every key revoked since verifies again. Core is not affected: it checks the registry against the mark in the secrets service (`registrySequence.server.ts`). No statement specified the SDK until YU2 (VFY-2). Found 2026-11-25 while designing YU2. | open, RFC-0048 narrows it to consumers that pass no mark (YD9) |
+| YF5 | **Every consumer downloads every key the instance ever made, 161 KB, to verify a page signed by one.** On 2026-11-25 the live registry held 55 keys (1 current, 30 superseded, 24 revoked) at sequence 80, and measured 160,892 bytes; the root signature is 10,476 of them and the public keys, 2604 base64 characters each, almost all the rest. Rotation never removes an entry and revocation keeps one, so the document only grows, and a revoked key, which verifies nothing, costs as much as the current one. The page the demos render is signed by one key. No statement constrained the registry's form. Found 2026-11-25 profiling the demos' page load. | fixed, RFC-0048 (`0d2fa496`) |
+| YF6 | **A consumer accepts an older key registry on every fresh load, undoing every revocation made since.** The SDK keeps the highest sequence it has seen in the `Verifier` instance only (`#highWaterMark` in `packages/sdk/src/verify/client.ts`), so a browser that loads a page starts from 0 and accepts any registry the root ever signed. Anyone who can write the storage, or answer for it, and kept an older registry can serve it, and every key revoked since verifies again. Core is not affected: it checks the registry against the mark in the secrets service (`registrySequence.server.ts`). No statement specified the SDK until YU2 (VFY-2). Found 2026-11-25 while designing YU2. | narrowed, RFC-0048 (`0d2fa496`): open for a consumer that passes no mark (YD9) |
 | YF7 | **Running core with its development config rotates and revokes the production instance's keys, and leaves the production instance a current key whose seed it does not have.** `packages/core/genoa.config/development.ts` and `test.ts` name the bucket `genoacms`, which `production.ts` serves, with `@genoacms/adapter-secrets-env` as the secrets store instead of Secret Manager. A key minted from the dev server is published to the production registry while its seed is written to the developer's `.genoacms/secrets.env`, so production cannot sign with it (`signing/current-key-unavailable`) until it rotates again, and the registry sequence's mark is kept twice, in the local file and in Secret Manager, each catching up on its own. The 55 keys of YF5 were made from 2026-08-16 to 2026-08-29, rotated and then revoked 2 to 3 seconds later, the pattern of the key screen's browser test. `test.ts` reaches no service under the unit tests (`docs/README.md`, *Test levels*). No statement is contradicted. Found 2026-11-25 tracing YF5. | open |
 | YF8 | **A failed read of the security policy runs the instance on the configured defaults and reports nothing.** `readStoredPolicy` treats every failure of `getInternalObjectStringVersioned` as an absent document and calls `createDefaultPolicy`, which writes with `ifAbsent`; when the document exists, the write's precondition fails, the error is swallowed, and `defaultPolicy()` is returned with no `degraded` reason and no warning. A storage outage, a permission error or a timeout therefore has the effect of YF4 without its notice. Found 2026-11-25 reading `policy.server.ts` for YU3. | open, RFC-0049 |
 
@@ -289,7 +290,7 @@ key id (`envelope-missing-key-id`), names a type the verifier does not know
 (`envelope-unknown-type: <type>`), has no string `signature` (`envelope-missing-signature`) or has
 no `payload` (`envelope-missing-payload`).
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/signing/envelope.test.ts`
 - Level: unit
 
 #### ENV-2 · What the signature covers
@@ -301,7 +302,7 @@ given, with `unsignable-payload: <path> …`: `undefined` anywhere, a number tha
 function, symbol or bigint, an object that is neither a plain object nor an array, and a circular
 reference. An unset optional member is omitted, never `undefined` or `null`.
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/signing/envelope.test.ts`, `packages/core/src/lib/script/signing/canonical.test.ts`
 - Level: unit
 
 #### ENV-3 · The algorithms
@@ -316,7 +317,7 @@ derived from a seed, which is all that is kept secret:
 | SLH-DSA-SHA2-128s | 32 bytes | 7856 bytes | 48 bytes |
 | ML-DSA-65 | 1952 bytes | 3309 bytes | 32 bytes |
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/signing/algorithms.test.ts`
 - Level: unit
 
 #### ENV-4 · Key ids
@@ -324,7 +325,7 @@ derived from a seed, which is all that is kept secret:
 A key id is the first 16 characters of the lowercase hexadecimal SHA-256 of the raw public key: 64
 bits. It names a key and is never assigned.
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/signing/keyId.test.ts`
 - Level: unit
 
 #### ENV-5 · Verifying an envelope
@@ -337,26 +338,25 @@ envelope's algorithm and the given key over the digest of ENV-2 (`envelope-signa
 Only then is the payload read. A malformed key or signature is a signature that does not verify,
 never an exception.
 
-- Test: unverified (no test carries the ID yet)
+- Test: `packages/core/src/lib/script/signing/envelope.test.ts`
 - Level: unit
 
 #### ENV-6 · The registered algorithm
 
-**New.** A verifier also refuses an envelope whose `alg` is not the algorithm its key was
+A verifier also refuses an envelope whose `alg` is not the algorithm its key was
 registered with, after the type and before the signature:
 `envelope-algorithm-mismatch: <keyId> is registered for <registered>, the envelope names <alg>`. A
 subordinate key is registered with the `alg` of its manifest entry (REG-1); the root with
 SLH-DSA-SHA2-128s.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/envelope.test.ts`, `packages/sdk/src/verify/client.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 ### The key manifest and the key files
 
 #### REG-1 · The key manifest
 
-**New.** `.genoacms/keys/public.json` holds the key manifest: an envelope signed by the root with
+`.genoacms/keys/public.json` holds the key manifest: an envelope signed by the root with
 the type `genoacms.keyRegistry.v2`, whose payload is
 
 ```ts
@@ -386,13 +386,12 @@ characters beginning with its `keyId`; each moment an integer of at least 0, or 
 stays listed; a key is current, superseded (`supersededAt`, it still verifies) or revoked
 (`revokedAt`, it verifies nothing).
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/registry.test.ts`, `packages/sdk/src/verify/registry.test.ts`, `packages/sdk/src/verify/interop.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### REG-2 · The key files
 
-**New.** The public key of each listed key that is not revoked is in
+The public key of each listed key that is not revoked is in
 `.genoacms/keys/public/<keyId>.json`, an unsigned JSON object with exactly these members:
 
 ```ts
@@ -411,13 +410,12 @@ the entry's `digest`; otherwise it is refused with
 and its bytes never change, so a consumer MAY cache it without expiry. The manifest changes with
 every rotation and revocation.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/keyFile.test.ts`, `packages/sdk/src/verify/attacks.test.ts`, `packages/sdk/src/verify/interop.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### REG-3 · Rotating and revoking
 
-**New.** Rotating mints a key, then writes its key file only when no file is at its path, then the
+Rotating mints a key, then writes its key file only when no file is at its path, then the
 manifest with the new key current and the outgoing one superseded, conditional on the version of
 the manifest it read, then the mark (REG-4). An existing key file with the same bytes counts as
 written; one with other bytes fails the rotation with `registry/key-file-conflict: <keyId>` and
@@ -426,13 +424,12 @@ read, then the mark, then deletes the key's file and its seed; a key file alread
 error. Revoking the current key rotates first (KEY-4). A failed conditional write leaves the
 manifest as it was and fails with the storage's precondition error.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/registry.server.test.ts`, `packages/core/e2e/configuration.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0048)
 
 #### REG-4 · The sequence and its mark
 
-**New.** Every change of the manifest raises `sequence` by exactly 1. The secret
+Every change of the manifest raises `sequence` by exactly 1. The secret
 `GENOACMS_KEY_REGISTRY_SEQUENCE` holds the highest sequence the instance has published or read, as
 a decimal integer matching `^(0|[1-9][0-9]*)$`; absent, it is 0. The manifest is written before the
 mark. Loading the manifest refuses one whose sequence is below the mark with
@@ -441,36 +438,33 @@ a higher one. A mark of any other form fails every load with
 `registry-sequence/unreadable: GENOACMS_KEY_REGISTRY_SEQUENCE is '<value>'`. The secret's name and
 format are part of the contract with consumers (VFY-2).
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/registrySequence.server.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### REG-5 · What root rotation writes
 
-**New.** Rotating the root writes, unconditionally, a manifest signed by the new root that lists one
+Rotating the root writes, unconditionally, a manifest signed by the new root that lists one
 fresh current key, with the sequence the mark holds plus 1, and that key's file before it, then the
 mark. The keys of the previous manifest are no longer listed, so nothing verifies under them.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/registry.server.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### REG-6 · A manifest of the earlier type
 
-**New.** Core does not read a manifest of the type `genoacms.keyRegistry.v1` and never rewrites
+Core does not read a manifest of the type `genoacms.keyRegistry.v1` and never rewrites
 one: loading it fails with
 `registry/needs-migration: .genoacms/keys/public.json is genoacms.keyRegistry.v1, which this version of core does not read`,
 so the instance signs and verifies nothing until the manifest is migrated outside it (YD10).
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/registry.server.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 ### Verification by a consumer
 
 #### VFY-1 · Resolving a key
 
-**New.** To verify a document signed by a subordinate key, a verifier, core's and the SDK's alike,
+To verify a document signed by a subordinate key, a verifier, core's and the SDK's alike,
 finds the envelope's `keyId` in the manifest and refuses a key the manifest does not list or has
 revoked with `key-unresolvable: <keyId> is unknown or revoked`, and one whose `alg` differs with
 ENV-6, both before it fetches a key file. It then reads the key's file, refusing an absent one with
@@ -478,13 +472,12 @@ ENV-6, both before it fetches a key file. It then reads the key's file, refusing
 signature (ENV-5). A verifier reads each key's file at most once, and remembers its verdict, but
 not a failure to read it.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/signing/keyResolver.test.ts`, `packages/core/src/lib/script/signing/registry.server.test.ts`, `packages/sdk/src/verify/client.test.ts`, `packages/sdk/src/verify/attacks.test.ts`, `packages/sdk/src/verify/interop.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### VFY-2 · The consumer's mark
 
-**New.** `new Verifier({ rootPublicKey, source, minimumRegistrySequence })` takes an optional
+`new Verifier({ rootPublicKey, source, minimumRegistrySequence })` takes an optional
 `minimumRegistrySequence`, an integer of at least 0, which the consumer reads from the secret
 `GENOACMS_KEY_REGISTRY_SEQUENCE` (REG-4); any other value fails the constructor with
 `TypeError: minimumRegistrySequence must be a non-negative integer`. The verifier refuses a manifest
@@ -493,18 +486,16 @@ whose sequence is below the highest of that value and every sequence it has acce
 loaded by the same verifier are compared. A manifest that a cache serves from before the mark was
 written is refused, so a consumer that passes the mark reads the manifest uncached.
 
-- Test: none yet
+- Test: `packages/sdk/src/verify/client.test.ts`, `packages/sdk/src/verify/attacks.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 #### VFY-3 · The SDK reads the manifest by REG-1
 
-**New.** The SDK accepts a manifest only of the type `genoacms.keyRegistry.v2`, signed by the root
+The SDK accepts a manifest only of the type `genoacms.keyRegistry.v2`, signed by the root
 it was given, and by every rule of REG-1, refusing it whole otherwise.
 
-- Test: none yet
+- Test: `packages/sdk/src/verify/registry.test.ts`, `packages/sdk/src/verify/interop.test.ts`
 - Level: unit
-- State: new (RFC-0048)
 
 ### The security policy
 

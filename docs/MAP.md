@@ -403,7 +403,7 @@ flowchart LR
 | ENV-3 · The algorithms | unit | — | [architecture/signing.md](architecture/signing.md) |
 | ENV-4 · Key ids | unit | — | [architecture/signing.md](architecture/signing.md) |
 | ENV-5 · Verifying an envelope | unit | — | [architecture/signing.md](architecture/signing.md) |
-| ENV-6 · The registered algorithm (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
+| ENV-6 · The registered algorithm | unit | — | [architecture/signing.md](architecture/signing.md) |
 | FAUTH-1 · Descriptor (new) | unit | — | [architecture/adapter-gcp/authentication-firestore.md](architecture/adapter-gcp/authentication-firestore.md) |
 | FAUTH-2 · Layout (new) | unit, contract | — | [architecture/adapter-gcp/authentication-firestore.md](architecture/adapter-gcp/authentication-firestore.md) |
 | FAUTH-3 · Sign-in and lookup (new) | unit, contract | — | [architecture/adapter-gcp/authentication-firestore.md](architecture/adapter-gcp/authentication-firestore.md) |
@@ -515,12 +515,12 @@ flowchart LR
 | PWH-4 · Verification (new) | unit, conformance | — | [architecture/identities.md](architecture/identities.md) |
 | PWH-5 · Rehash on sign-in (new) | unit, conformance | — | [architecture/identities.md](architecture/identities.md) |
 | PWH-6 · Test vectors (new) | unit, conformance | — | [architecture/identities.md](architecture/identities.md) |
-| REG-1 · The key manifest (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| REG-2 · The key files (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| REG-3 · Rotating and revoking (new) | unit, e2e | — | [architecture/signing.md](architecture/signing.md) |
-| REG-4 · The sequence and its mark (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| REG-5 · What root rotation writes (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| REG-6 · A manifest of the earlier type (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
+| REG-1 · The key manifest | unit | — | [architecture/signing.md](architecture/signing.md) |
+| REG-2 · The key files | unit | — | [architecture/signing.md](architecture/signing.md) |
+| REG-3 · Rotating and revoking | unit, e2e | YJ2a, YJ3b | [architecture/signing.md](architecture/signing.md) |
+| REG-4 · The sequence and its mark | unit | — | [architecture/signing.md](architecture/signing.md) |
+| REG-5 · What root rotation writes | unit | — | [architecture/signing.md](architecture/signing.md) |
+| REG-6 · A manifest of the earlier type | unit | — | [architecture/signing.md](architecture/signing.md) |
 | RES-1 · Resolving a subject | unit | — | [architecture/authorization.md](architecture/authorization.md) |
 | RES-2 · Resolution reports what it worked around | unit | — | [architecture/authorization.md](architecture/authorization.md) |
 | RES-3 · Every request is resolved | integration, e2e | ZJ2a | [architecture/authorization.md](architecture/authorization.md) |
@@ -618,9 +618,9 @@ flowchart LR
 | TRE-1 · Building a page | unit, e2e | NJ6a, TJ3a | [architecture/components.md](architecture/components.md) |
 | TRE-2 · A node of the tree | unit, e2e | NJ6a | [architecture/components.md](architecture/components.md) |
 | TRE-3 · Values in the tree | unit | — | [architecture/components.md](architecture/components.md) |
-| VFY-1 · Resolving a key (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| VFY-2 · The consumer's mark (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| VFY-3 · The SDK reads the manifest by REG-1 (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
+| VFY-1 · Resolving a key | unit | — | [architecture/signing.md](architecture/signing.md) |
+| VFY-2 · The consumer's mark | unit | — | [architecture/signing.md](architecture/signing.md) |
+| VFY-3 · The SDK reads the manifest by REG-1 | unit | — | [architecture/signing.md](architecture/signing.md) |
 
 ## Levels
 
@@ -632,11 +632,6 @@ flowchart LR
 | ENF-1 · Every operation is checked first | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | ENF-2 · No principal, no operation |  | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | ENF-4 · Interface gates | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
-| ENV-1 · The envelope | unverified |  |  |  |  | [architecture/signing.md](architecture/signing.md) |
-| ENV-2 · What the signature covers | unverified |  |  |  |  | [architecture/signing.md](architecture/signing.md) |
-| ENV-3 · The algorithms | unverified |  |  |  |  | [architecture/signing.md](architecture/signing.md) |
-| ENV-4 · Key ids | unverified |  |  |  |  | [architecture/signing.md](architecture/signing.md) |
-| ENV-5 · Verifying an envelope | unverified |  |  |  |  | [architecture/signing.md](architecture/signing.md) |
 | GRT-1 · The vocabulary | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | GRT-2 · A grant | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | GRT-3 · A grant meets a demand | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
