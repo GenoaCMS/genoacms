@@ -37,6 +37,10 @@
     "./ui": {
       "types": "./dist/ui.d.ts",
       "import": "./dist/ui.js"
+    },
+    "./brand": {
+      "types": "./dist/brand.d.ts",
+      "import": "./dist/brand.js"
     }
   },
   "scripts": {

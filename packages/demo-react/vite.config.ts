@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
-import { artifactProxy } from '@genoacms/demo-support/server'
+import { artifactProxy, brandAssets } from '@genoacms/demo-support/server'
 
 /**
  * The same configuration in all four demos, differing only in the framework plugin.
@@ -12,6 +12,6 @@ import { artifactProxy } from '@genoacms/demo-support/server'
  * guard is three that will drift.
  */
 export default defineConfig({
-  plugins: [react(), tailwindcss(), artifactProxy()],
+  plugins: [react(), tailwindcss(), artifactProxy(), brandAssets()],
   server: { port: 5182 }
 })

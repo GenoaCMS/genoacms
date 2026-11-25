@@ -1,4 +1,6 @@
+import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
+import { BRAND_HEAD } from './brand.js'
 import { isPublishedDocument } from './artifacts.js'
 import { serveArtifact } from './bucket.js'
 
@@ -73,6 +75,16 @@ const artifactProxy = (): Plugin => {
   }
 }
 
-export { artifactProxy }
+/** The directory holding the favicon, the app icons and the web manifest, served at the site root. */
+const BRAND_ASSETS = fileURLToPath(new URL('../brand', import.meta.url))
+
+/** Serves `BRAND_ASSETS` as the public directory and puts `BRAND_HEAD` into `index.html`. */
+const brandAssets = (): Plugin => ({
+  name: 'genoacms-demo-brand',
+  config: () => ({ publicDir: BRAND_ASSETS }),
+  transformIndexHtml: () => BRAND_HEAD.map(({ tag, attrs }) => ({ tag, attrs, injectTo: 'head' as const }))
+})
+
+export { artifactProxy, brandAssets, BRAND_ASSETS }
 export { readObject, serveArtifact } from './bucket.js'
 export { isPublishedDocument, REGISTRY } from './artifacts.js'

@@ -3,6 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vite'
+import { BRAND_ASSETS } from '@genoacms/demo-support/server'
 
 /**
  * Built for a Cloud Run Function, with the CMS's own adapter.
@@ -26,6 +27,6 @@ import { defineConfig } from 'vite'
  * Both go through the same `serveArtifact` and the same allowlist.
  */
 export default defineConfig({
-  plugins: [tailwindcss(), await sveltekit({ preprocess: vitePreprocess(), adapter: adapter() })],
+  plugins: [tailwindcss(), await sveltekit({ preprocess: vitePreprocess(), adapter: adapter(), files: { assets: BRAND_ASSETS } })],
   server: { port: 5181 }
 })
