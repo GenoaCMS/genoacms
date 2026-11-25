@@ -1,6 +1,6 @@
 import {
   defineConfig, storageProvider, databaseProvider, authenticationProvider,
-  secretsProvider, deploymentTarget, inline
+  secretsProvider, deploymentTarget, inline, secret
 } from '@genoacms/config'
 import type {} from '@genoacms/adapter-gcp/storage'
 import type {} from '@genoacms/adapter-gcp/database'
@@ -25,6 +25,9 @@ export default defineConfig({
     cookieName: '__session',
     providers: {
       'identity-platform': authenticationProvider('@genoacms/adapter-gcp/authentication/identity-platform', { projectId: 'genoacms' })
+    },
+    agents: {
+      'agent:claude': { label: 'Claude', token: secret('GENOACMS_AGENT_CLAUDE') }
     }
   },
   secrets: {
@@ -49,6 +52,7 @@ export default defineConfig({
       gcp: deploymentTarget('@genoacms/adapter-gcp/deployment', {
         projectId: 'genoacms',
         region: 'europe-west3',
+        memory: '1Gi',
         credentials: inline(serviceAccount)
       })
     }
