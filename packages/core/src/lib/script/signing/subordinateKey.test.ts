@@ -49,7 +49,7 @@ describe('a key recovered from its seed', () => {
 
     const reloaded = keyFromSeed(seed)
     expect(reloaded.keyId).toBe(keyId)
-    expect(verify(envelope, 'genoacms.roles.v1', reloaded.keypair.publicKey))
+    expect(verify(envelope, 'genoacms.roles.v1', { alg: SUBORDINATE_ALGORITHM, publicKey: reloaded.keypair.publicKey }))
       .toEqual({ valid: true, payload: { roles: {} } })
   })
 
@@ -59,7 +59,7 @@ describe('a key recovered from its seed', () => {
     const envelope = sign('genoacms.roles.v1', { roles: {} }, {
       alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey
     })
-    expect(verify(envelope, 'genoacms.roles.v1', other.keypair.publicKey).valid).toBe(false)
+    expect(verify(envelope, 'genoacms.roles.v1', { alg: SUBORDINATE_ALGORITHM, publicKey: other.keypair.publicKey }).valid).toBe(false)
   })
 
   it('is the subordinate algorithm, not the root one', () => {

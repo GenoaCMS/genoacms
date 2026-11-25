@@ -12,6 +12,8 @@ import { REGISTRY_SEQUENCE_SECRET } from './secretNames'
  * beside the registry it could be rolled back along with it, attesting to nothing.
  */
 
+const MARK_FORMAT = /^(0|[1-9][0-9]*)$/
+
 type SequenceVerdict =
   | { ok: true, advanced: boolean }
   | { ok: false, seen: number, mark: number }
@@ -20,13 +22,11 @@ async function readHighWaterMark (): Promise<number> {
   const stored = await getSecret(REGISTRY_SEQUENCE_SECRET)
   if (stored === undefined) return 0
 
-  const parsed = Number(stored)
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    // Refusing beats guessing: reading a corrupt mark as 0 would silently disable rollback
-    // detection, which is exactly what an adversary who could corrupt it would want.
+  // REG-4
+  if (!MARK_FORMAT.test(stored)) {
     throw new Error(`registry-sequence/unreadable: ${REGISTRY_SEQUENCE_SECRET} is '${stored}'`)
   }
-  return parsed
+  return Number(stored)
 }
 
 /**
@@ -59,6 +59,7 @@ async function recordPublished (sequence: number): Promise<void> {
 }
 
 export {
+  MARK_FORMAT,
   readHighWaterMark,
   checkAndAdvance,
   recordPublished

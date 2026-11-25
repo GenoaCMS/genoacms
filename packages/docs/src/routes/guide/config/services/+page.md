@@ -161,14 +161,14 @@ the configuration changes. How a config refers to a secret is under [secrets](/g
 | :--- | :--- |
 | `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
 | `GENOACMS_SUBORDINATE_KEY_SEED_…` | One per signing key, named by its key id. |
-| `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key registry being restored. |
+| `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key manifest being restored. A consumer with a server may read it and pass it to the SDK as `minimumRegistrySequence`. Its value is a non-negative integer in decimal, with no leading zeros. |
 
 GenoaCMS creates all of these itself. Nothing here has to be set by hand.
 
 :::note[Subordinate seeds accumulate]
 Keys rotate on an interval, so a new `GENOACMS_SUBORDINATE_KEY_SEED_…` appears each time. A seed is
 only needed to *sign*, so seeds for superseded keys can be removed — the public key stays in
-`.genoacms/keys/public.json`, and everything that key signed keeps verifying. Removing the seed of
+`.genoacms/keys/public/{keyId}.json`, and everything that key signed keeps verifying. Removing the seed of
 the **current** key breaks signing until the next rotation, so check
 [`keys/public.json`](/guide/storage-layout) for which key is current before pruning.
 :::

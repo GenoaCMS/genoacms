@@ -1,6 +1,8 @@
 import { ROOT_ALGORITHM, getAlgorithm } from './algorithms.js'
-import { peekUnverifiedHeader, verifyEnvelope } from './envelope.js'
-import { KEY_REGISTRY_DOCUMENT, readRegistry, resolveKey, type KeyRegistry } from './registry.js'
+import { peekUnverifiedHeader, rejectBeforeKey, verifyEnvelope } from './envelope.js'
+import {
+  KEY_REGISTRY_DOCUMENT, readRegistry, readKeyFile, type KeyRegistry, type RegistryKey, type ResolvedKey
+} from './registry.js'
 import { PAGE_TREE_DOCUMENT, readPageTree, type ReadablePageNode } from './pageTree.js'
 import {
   PUBLICATION_DOCUMENT,
@@ -38,15 +40,14 @@ import type { JsonValue } from './canonical.js'
  *
  * ## Stateful about rollback, and it says so
  *
- * A signature says a document came from the instance, **not when**. So an older registry replays a
+ * A signature says a document came from the instance, **not when**. So an older manifest replays a
  * valid signature and undoes whatever a newer one recorded — a revocation, above all. This verifier
- * keeps the highest `sequence` it has seen and refuses anything below it.
+ * keeps the highest `sequence` it has seen and refuses anything below it (VFY-2).
  *
- * The specification notes that a stateless verifier cannot do this and is correspondingly weaker,
- * and asks each implementation to say which it is. This one is stateful **for the lifetime of the
- * instance it is used through**: a fresh page load starts with no high-water mark, so the protection
- * holds within a session and not across one. Persisting it is the consumer's to add, and needs
- * storage this SDK deliberately does not assume.
+ * Without `minimumRegistrySequence` that protection holds for the lifetime of the instance it is
+ * used through, and not across one. A consumer that can read the instance's secret mark
+ * `GENOACMS_KEY_REGISTRY_SEQUENCE` passes it, and then a restored older manifest is refused on the
+ * first load too.
  *
  * ## Two answers, and a third thing that is not an answer
  *
@@ -96,6 +97,11 @@ interface VerifierOptions {
    * something else says so here rather than being told what it is.
    */
   platforms?: readonly string[]
+  /**
+   * The value of the secret `GENOACMS_KEY_REGISTRY_SEQUENCE`, read by the consumer where it can be.
+   * A manifest with a lower sequence is refused (VFY-2).
+   */
+  minimumRegistrySequence?: number
 }
 
 /**
@@ -129,6 +135,9 @@ class UnreachableError extends Error {
 /** Where the registry lives. Fixed by the specification, not configurable. */
 const REGISTRY_PATH = '.genoacms/keys/public.json'
 
+/** Where a key's public key lives (REG-2). Fetched only when a document it signed is verified. */
+const keyFilePath = (keyId: string): string => `.genoacms/keys/public/${keyId}.json`
+
 /** Where a published page lives. The CMS's layout, which is why a consumer never assembles one. */
 const pageTreePath = (name: string): string => `.genoacms/pages/readables/${name}`
 
@@ -156,15 +165,28 @@ interface PublishedComponent {
 
 const ignoreUntilAwaited = (): void => {}
 
+const isMark = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+
+const initialMark = (minimumRegistrySequence: number | undefined): number => {
+  if (minimumRegistrySequence === undefined) return 0
+  if (!isMark(minimumRegistrySequence)) {
+    throw new TypeError('minimumRegistrySequence must be a non-negative integer')
+  }
+  return minimumRegistrySequence
+}
+
 class Verifier {
   readonly #rootPublicKey: Uint8Array
   readonly #source: Source
   readonly #platforms: readonly string[]
 
-  /** The highest registry sequence seen. See the note on rollback above. */
-  #highWaterMark = 0
+  /** The highest manifest sequence seen, or the consumer's mark. See the note on rollback above. */
+  #highWaterMark: number
   #registry: KeyRegistry | undefined
   #registryLoad: Promise<Verdict<KeyRegistry>> | undefined
+  /** VFY-1: one resolution per key id and digest; one that rejects is dropped. */
+  readonly #resolutions = new Map<string, Promise<ResolvedKey | string>>()
 
   constructor (options: VerifierOptions) {
     if (getAlgorithm(ROOT_ALGORITHM) === undefined) {
@@ -173,6 +195,7 @@ class Verifier {
     this.#rootPublicKey = options.rootPublicKey
     this.#source = options.source
     this.#platforms = options.platforms ?? [WEB_ESMODULE]
+    this.#highWaterMark = initialMark(options.minimumRegistrySequence)
   }
 
   /**
@@ -204,7 +227,7 @@ class Verifier {
     // is a failure to reach rather than a document that did not verify.
     if (candidate === undefined) throw new UnreachableError('registry-absent', REGISTRY_PATH)
 
-    const verified = verifyEnvelope(candidate, KEY_REGISTRY_DOCUMENT, this.#rootPublicKey)
+    const verified = verifyEnvelope(candidate, KEY_REGISTRY_DOCUMENT, { alg: ROOT_ALGORITHM, publicKey: this.#rootPublicKey })
     if (!verified.valid) return { valid: false, reason: verified.reason }
 
     const registry = readRegistry(verified.payload)
@@ -213,7 +236,7 @@ class Verifier {
     if (registry.sequence < this.#highWaterMark) {
       return {
         valid: false,
-        reason: `registry-rollback: sequence ${registry.sequence} is below ${this.#highWaterMark}, already seen`
+        reason: `registry-rollback: sequence ${registry.sequence} is below ${this.#highWaterMark}`
       }
     }
 
@@ -237,6 +260,24 @@ class Verifier {
     }
   }
 
+  /** VFY-1, REG-2 */
+  async #keyFor (entry: RegistryKey): Promise<ResolvedKey | string> {
+    const cacheKey = `${entry.keyId}:${entry.digest}`
+    let resolution = this.#resolutions.get(cacheKey)
+    if (resolution === undefined) {
+      resolution = this.#resolveKeyFile(entry)
+      this.#resolutions.set(cacheKey, resolution)
+      resolution.catch(() => this.#resolutions.delete(cacheKey))
+    }
+    return await resolution
+  }
+
+  async #resolveKeyFile (entry: RegistryKey): Promise<ResolvedKey | string> {
+    const candidate = await this.#readJSON(keyFilePath(entry.keyId))
+    if (candidate === undefined) return `key-file-absent: ${entry.keyId}`
+    return readKeyFile(entry, candidate)
+  }
+
   #startLoadingRegistry (): void {
     this.registry().catch(ignoreUntilAwaited)
   }
@@ -254,12 +295,17 @@ class Verifier {
     const registry = await this.registry()
     if (!registry.valid) return registry
 
-    const publicKey = resolveKey(registry.value, header.keyId)
-    if (publicKey === undefined) {
+    const entry = registry.value.keys.find(key => key.keyId === header.keyId)
+    if (entry === undefined || entry.revokedAt !== undefined) {
       return { valid: false, reason: `key-unresolvable: ${header.keyId} is unknown or revoked` }
     }
+    const premature = rejectBeforeKey(candidate, expectedType, entry.alg)
+    if (premature !== undefined) return { valid: false, reason: premature }
 
-    const verified = verifyEnvelope(candidate, expectedType, publicKey)
+    const key = await this.#keyFor(entry)
+    if (typeof key === 'string') return { valid: false, reason: key }
+
+    const verified = verifyEnvelope(candidate, expectedType, key)
     if (!verified.valid) return { valid: false, reason: verified.reason }
     return { valid: true, value: verified.payload }
   }
@@ -357,6 +403,6 @@ class Verifier {
 }
 
 export {
-  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, publicationPath, httpSource
+  Verifier, UnreachableError, REGISTRY_PATH, keyFilePath, pageTreePath, publicationPath, httpSource
 }
 export type { VerifierOptions, Verdict, Source, PublishedComponent }

@@ -93,10 +93,17 @@ Verified end to end: with a key planted in `public/react`, `firebase deploy` sto
 
 ## Configuration the functions read
 
-`build.sh` writes `functions/.env` with `GENOACMS_BUCKET`, and `firebase deploy` turns it into
+`build.sh` writes `functions/.env` with `GENOACMS_BUCKET` and `GENOACMS_REGISTRY_SEQUENCE_SECRET`, and `firebase deploy` turns it into
 runtime environment variables. It is generated rather than committed because `.env` is gitignored
 across this repository — a checked-in one would be missing from a fresh clone and the deploy would
-come up unconfigured. It holds no secret: a bucket name, and an identity is still needed to read it.
+come up unconfigured. It holds no secret: a bucket name and a secret's name, and an identity is
+still needed to read either.
+
+`GENOACMS_REGISTRY_SEQUENCE_SECRET` names the Secret Manager version of the instance's key registry
+mark, defaulting to
+`projects/genoacms/secrets/GENOACMS_KEY_REGISTRY_SEQUENCE/versions/latest`. `demoSvelte` reads it on
+every page load and passes it to the SDK as `minimumRegistrySequence`, so a restored older key
+manifest is refused (VFY-2). When the mark cannot be read the page answers `503`.
 
 ## Building
 
@@ -113,7 +120,7 @@ Output:
 - `public/{svelte,react,vue,vanilla}` — one Hosting root per site.
 - `functions/svelte` — the adapter's server output, minus what Hosting serves.
 - `functions/artifacts.js`, `functions/bucket.js` — the copied allowlist and reader.
-- `functions/.env` — `GENOACMS_BUCKET`.
+- `functions/.env` — `GENOACMS_BUCKET`, `GENOACMS_REGISTRY_SEQUENCE_SECRET`.
 
 `public/svelte` has **no `index.html`**, and should not: the HTML comes from `demoSvelte`. Hosting
 serves the assets under `_app/` and everything else falls through to the function.
@@ -144,3 +151,7 @@ was necessary — the functions run as the default compute service account, whic
 needs `roles/storage.objectViewer` on the bucket. Without it every artifact request answers `502` and
 the demos report that storage could not be reached — which is the honest answer, and is what tells
 you the grant is missing.
+
+`demoSvelte` also needs `roles/secretmanager.secretAccessor` on the secret
+`GENOACMS_KEY_REGISTRY_SEQUENCE`. Without it the Svelte demo answers `503`, *The key registry mark
+could not be read.* The other three demos do not read the mark.

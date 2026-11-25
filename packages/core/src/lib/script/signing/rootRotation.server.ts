@@ -6,8 +6,8 @@ import { deriveKeyId } from './keyId'
 import { sign, toBase64, type SigningKey } from './envelope'
 import { ROOT_SEED_SECRET } from './secretNames'
 import { createSubordinateKey } from './subordinateKey.server'
-import { registryPath } from './registry.server'
-import { toPayload, type KeyRegistry } from './registry'
+import { registryPath, MANIFEST_DOCUMENT, publishKeyFile, registeredKeyOf } from './registry.server'
+import { toPayload, type KeyManifest } from './registry'
 import { readHighWaterMark, recordPublished } from './registrySequence.server'
 import { policyPath, POLICY_DOCUMENT, defaultPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import type { JsonValue } from './canonical'
@@ -56,20 +56,13 @@ async function rotateRootKey (): Promise<RootRotationResult> {
   // continuing from it preserves rollback detection across the rotation.
   const sequence = await readHighWaterMark() + 1
 
-  const registry: KeyRegistry = {
-    sequence,
-    current: subordinate.keyId,
-    keys: [{
-      keyId: subordinate.keyId,
-      alg: subordinate.alg,
-      publicKey: toBase64(subordinate.publicKey),
-      createdAt: Date.now()
-    }]
-  }
+  const registry: KeyManifest = { sequence, current: subordinate.keyId, keys: [registeredKeyOf(subordinate, Date.now())] }
 
   // Unconditional: this replaces a document that exists and can no longer be verified, and the
   // procedure is a single operator running a single command.
-  await uploadInternalObjectJSON(registryPath, sign('genoacms.keyRegistry.v1', toPayload(registry), signingKey), {})
+  // REG-5
+  await publishKeyFile(subordinate)
+  await uploadInternalObjectJSON(registryPath, sign(MANIFEST_DOCUMENT, toPayload(registry), signingKey), {})
   await recordPublished(sequence)
 
   // The policy is root-signed too, so it must be reissued under the new anchor or it stops

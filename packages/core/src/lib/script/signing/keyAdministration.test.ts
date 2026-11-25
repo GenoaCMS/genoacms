@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { keyState, describeKey, describeKeys } from './keyAdministration'
-import type { KeyRegistry, SubordinateKeyEntry } from './registry'
+import type { KeyManifest, RegisteredKey } from './registry'
 
 /**
  * What the registry's two optional timestamps mean to an administrator.
@@ -11,16 +11,16 @@ import type { KeyRegistry, SubordinateKeyEntry } from './registry'
 
 const entry = (
   keyId: string,
-  fields: Partial<SubordinateKeyEntry> = {}
-): SubordinateKeyEntry => ({
+  fields: Partial<RegisteredKey> = {}
+): RegisteredKey => ({
   keyId,
   alg: 'ML-DSA-65',
-  publicKey: 'AA==',
+  digest: `${keyId}`.padEnd(64, '0'),
   createdAt: 1,
   ...fields
-} as SubordinateKeyEntry)
+} as RegisteredKey)
 
-const registry = (current: string, keys: SubordinateKeyEntry[]): KeyRegistry =>
+const registry = (current: string, keys: RegisteredKey[]): KeyManifest =>
   ({ sequence: 1, current, keys })
 
 describe('key state', () => {

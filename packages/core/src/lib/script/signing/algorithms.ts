@@ -118,7 +118,7 @@ const algorithms: Record<AlgorithmName, SignatureAlgorithm> = {
 const ROOT_ALGORITHM: AlgorithmName = 'SLH-DSA-SHA2-128s'
 
 /** Subordinate operational keys, which sign everything else. Fast, stateless, lattice-based. */
-const SUBORDINATE_ALGORITHM: AlgorithmName = 'ML-DSA-65'
+const SUBORDINATE_ALGORITHM = 'ML-DSA-65' satisfies AlgorithmName
 
 /**
  * Algorithm names arrive from signed payloads and stored registries, so this is where an untrusted

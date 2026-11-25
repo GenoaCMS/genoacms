@@ -4,6 +4,7 @@ import { ml_dsa65 as subordinateScheme } from '@noble/post-quantum/ml-dsa.js'
 import { Verifier, UnreachableError, REGISTRY_PATH } from './client.js'
 import { digest, type JsonValue } from './canonical.js'
 import { deriveKeyId } from './registry.js'
+import * as keys from '../../test/keyManifests.js'
 
 /**
  * The verifier, against real signatures.
@@ -54,7 +55,7 @@ const registryPayload = (overrides: Record<string, unknown> = {}): JsonValue => 
     {
       keyId: subordinateId,
       alg: 'ML-DSA-65',
-      publicKey: toBase64(subordinate.publicKey),
+      digest: keys.digestOf(subordinate.publicKey),
       createdAt: 1_700_000_000_000
     }
   ],
@@ -66,7 +67,7 @@ const signedRegistries = new Map<string, ReturnType<typeof sign>>()
 const signedRegistry = (payload: JsonValue = registryPayload()) => {
   const key = JSON.stringify(payload)
   if (!signedRegistries.has(key)) {
-    signedRegistries.set(key, sign('SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v1', payload, root.secretKey, rootScheme))
+    signedRegistries.set(key, sign('SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v2', payload, root.secretKey, rootScheme))
   }
   return structuredClone(signedRegistries.get(key)!)
 }
@@ -82,7 +83,11 @@ const verifier = (): Verifier => new Verifier({
 })
 
 beforeEach(() => {
-  served = { [REGISTRY_PATH]: signedRegistry() }
+  served = {
+    [REGISTRY_PATH]: signedRegistry(),
+    [keys.keyFilePathOf(subordinateId)]: keys.keyFileOf(subordinate),
+    [keys.keyFilePathOf(otherId)]: keys.keyFileOf(other)
+  }
 })
 
 describe('loading the registry', () => {
@@ -97,9 +102,10 @@ describe('loading the registry', () => {
   it('refuses one signed by anything but the root', async () => {
     // The registry is what makes every other key resolvable, so it cannot be resolved through the
     // thing it defines. Verifying against the anchor is what makes the chain terminate.
+    const impostor = keys.rootKeypair(9)
     served[REGISTRY_PATH] = sign(
-      'ML-DSA-65', subordinateId, 'genoacms.keyRegistry.v1',
-      registryPayload(), subordinate.secretKey, subordinateScheme
+      'SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v2',
+      registryPayload(), impostor.secretKey, rootScheme
     )
 
     expect(await verifier().loadRegistry())
@@ -113,13 +119,13 @@ describe('loading the registry', () => {
       keys: [{
         keyId: subordinateId,
         alg: 'ML-DSA-65',
-        publicKey: toBase64(other.publicKey),
+        digest: keys.digestOf(other.publicKey),
         createdAt: 1
       }]
     }))
 
     expect(await verifier().loadRegistry())
-      .toMatchObject({ valid: false, reason: expect.stringContaining('key-id-mismatch') })
+      .toMatchObject({ valid: false, reason: expect.stringContaining('digest-mismatch') })
   })
 
   it('refuses the whole registry when one entry is bad', async () => {
@@ -127,8 +133,8 @@ describe('loading the registry', () => {
     // survive.
     served[REGISTRY_PATH] = signedRegistry(registryPayload({
       keys: [
-        { keyId: subordinateId, alg: 'ML-DSA-65', publicKey: toBase64(subordinate.publicKey), createdAt: 1 },
-        { keyId: 'deadbeefdeadbeef', alg: 'ML-DSA-65', publicKey: toBase64(other.publicKey), createdAt: 1 }
+        { keyId: subordinateId, alg: 'ML-DSA-65', digest: keys.digestOf(subordinate.publicKey), createdAt: 1 },
+        { keyId: 'deadbeefdeadbeef', alg: 'ML-DSA-65', digest: keys.digestOf(other.publicKey), createdAt: 1 }
       ]
     }))
 
@@ -136,7 +142,7 @@ describe('loading the registry', () => {
   })
 
   it('refuses a duplicated key id', async () => {
-    const entry = { keyId: subordinateId, alg: 'ML-DSA-65', publicKey: toBase64(subordinate.publicKey), createdAt: 1 }
+    const entry = { keyId: subordinateId, alg: 'ML-DSA-65', digest: keys.digestOf(subordinate.publicKey), createdAt: 1 }
     served[REGISTRY_PATH] = signedRegistry(registryPayload({ keys: [entry, entry] }))
 
     expect(await verifier().loadRegistry())
@@ -231,8 +237,8 @@ describe('verifying a document', () => {
     served[REGISTRY_PATH] = signedRegistry(registryPayload({
       current: otherId,
       keys: [
-        { keyId: subordinateId, alg: 'ML-DSA-65', publicKey: toBase64(subordinate.publicKey), createdAt: 1, revokedAt: 2 },
-        { keyId: otherId, alg: 'ML-DSA-65', publicKey: toBase64(other.publicKey), createdAt: 2 }
+        { keyId: subordinateId, alg: 'ML-DSA-65', digest: keys.digestOf(subordinate.publicKey), createdAt: 1, revokedAt: 2 },
+        { keyId: otherId, alg: 'ML-DSA-65', digest: keys.digestOf(other.publicKey), createdAt: 2 }
       ]
     }))
 
@@ -245,8 +251,8 @@ describe('verifying a document', () => {
     served[REGISTRY_PATH] = signedRegistry(registryPayload({
       current: otherId,
       keys: [
-        { keyId: subordinateId, alg: 'ML-DSA-65', publicKey: toBase64(subordinate.publicKey), createdAt: 1, supersededAt: 2 },
-        { keyId: otherId, alg: 'ML-DSA-65', publicKey: toBase64(other.publicKey), createdAt: 2 }
+        { keyId: subordinateId, alg: 'ML-DSA-65', digest: keys.digestOf(subordinate.publicKey), createdAt: 1, supersededAt: 2 },
+        { keyId: otherId, alg: 'ML-DSA-65', digest: keys.digestOf(other.publicKey), createdAt: 2 }
       ]
     }))
 
@@ -553,7 +559,7 @@ describe('unreachable is neither answer', () => {
       source: { read: async () => { throw new UnreachableError('storage-down') } }
     })
 
-    await expect(client.verifyDocument(signedRegistry(), 'genoacms.keyRegistry.v1'))
+    await expect(client.verifyDocument(signedRegistry(), 'genoacms.keyRegistry.v2'))
       .rejects.toBeInstanceOf(UnreachableError)
   })
 })
@@ -647,4 +653,158 @@ describe('loading the registry alongside a fetch', () => {
     await expect(instance.registry()).rejects.toThrow()
     expect(await instance.registry()).toMatchObject({ valid: true })
   })
+})
+
+describe('keys on demand', () => {
+  const v2Root = keys.rootKeypair(1)
+  const current = keys.subordinateKeypair(2)
+  const older = keys.subordinateKeypair(3)
+  const stranger = keys.subordinateKeypair(4)
+  const currentId = keys.keyIdOf(current.publicKey)
+  const olderId = keys.keyIdOf(older.publicKey)
+  const strangerId = keys.keyIdOf(stranger.publicKey)
+  const PAGE = '.genoacms/pages/readables/home'
+
+  const manifest = (sequence = 3, olderMoments: { supersededAt?: number, revokedAt?: number } = { supersededAt: 2 }) =>
+    keys.signedManifest(v2Root, {
+      sequence,
+      current: currentId,
+      keys: [keys.entryOf(older, { createdAt: 1, ...olderMoments }), keys.entryOf(current, { createdAt: 2 })]
+    } as JsonValue)
+
+  const treePayload = { component: 'Page', type: 'dynamic', uid: 'component-1', publicationId: 'publication-1', data: {} } as JsonValue
+
+  const published = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+    [keys.MANIFEST_PATH]: manifest(),
+    [keys.keyFilePathOf(currentId)]: keys.keyFileOf(current),
+    [keys.keyFilePathOf(olderId)]: keys.keyFileOf(older),
+    ...overrides
+  })
+
+  const verifierOver = (bucket: Record<string, unknown>, minimumRegistrySequence?: number) => {
+    const { source, reads } = keys.recordingSource(bucket)
+    const options = minimumRegistrySequence === undefined ? {} : { minimumRegistrySequence }
+    return { client: new Verifier({ rootPublicKey: v2Root.publicKey, source, ...options }), reads }
+  }
+
+  const keyFileReads = (reads: string[]): string[] => reads.filter(path => path.startsWith('.genoacms/keys/public/'))
+
+  it('VFY-1: a revoked or unknown key is refused before any key file is fetched', async () => {
+    for (const [key, keyId] of [[older, olderId], [stranger, strangerId]] as const) {
+      const { client, reads } = verifierOver(published({
+        [keys.MANIFEST_PATH]: manifest(3, { revokedAt: 2 }),
+        [PAGE]: keys.signedBySubordinate(key, 'genoacms.pageTree.v1', treePayload)
+      }))
+
+      expect(await client.fetchVerified(PAGE, 'genoacms.pageTree.v1'))
+        .toEqual({ valid: false, reason: `key-unresolvable: ${keyId} is unknown or revoked` })
+      expect([...reads].sort()).toEqual([PAGE, keys.MANIFEST_PATH].sort())
+    }
+  }, 60_000)
+
+  it('VFY-1, ENV-6: an envelope naming another algorithm than its entry is refused before the key file is fetched', async () => {
+    const slh = keys.rootKeypair(7)
+    const envelope = keys.signEnvelope('SLH-DSA-SHA2-128s', currentId, 'genoacms.pageTree.v1', treePayload, slh.secretKey, rootScheme)
+    const { client, reads } = verifierOver(published())
+
+    expect(await client.verifyDocument(envelope, 'genoacms.pageTree.v1')).toEqual({
+      valid: false,
+      reason: `envelope-algorithm-mismatch: ${currentId} is registered for ML-DSA-65, the envelope names SLH-DSA-SHA2-128s`
+    })
+    expect(keyFileReads(reads)).toEqual([])
+  }, 60_000)
+
+  it('VFY-1: a verifier fetches each key file once, for any number of documents', async () => {
+    const names = Array.from({ length: 10 }, (_, index) => `page-${index}`)
+    const bucket = published(Object.fromEntries(names.map(name => [
+      `.genoacms/pages/readables/${name}`,
+      keys.signedBySubordinate(current, 'genoacms.pageTree.v1', { ...treePayload as object, uid: name } as JsonValue)
+    ])))
+    const { client, reads } = verifierOver(bucket)
+
+    const verdicts = await Promise.all(names.map(async name => await client.pageTree(name)))
+
+    expect(verdicts.map(verdict => verdict?.valid)).toEqual(names.map(() => true))
+    expect(keyFileReads(reads)).toEqual([keys.keyFilePathOf(currentId)])
+  }, 60_000)
+
+  it('VFY-1: a key file that fails to load is fetched again, and a mismatch is not', async () => {
+    const document = keys.signedBySubordinate(current, 'genoacms.pageTree.v1', treePayload)
+    const bucket = published()
+    let failures = 1
+    const reads: string[] = []
+    const flaky = new Verifier({
+      rootPublicKey: v2Root.publicKey,
+      source: {
+        read: async (path) => {
+          reads.push(path)
+          if (path === keys.keyFilePathOf(currentId) && failures-- > 0) throw new UnreachableError('storage-down')
+          return path in bucket ? JSON.stringify(bucket[path]) : undefined
+        }
+      }
+    })
+
+    await expect(flaky.verifyDocument(structuredClone(document), 'genoacms.pageTree.v1')).rejects.toThrow()
+    expect(await flaky.verifyDocument(structuredClone(document), 'genoacms.pageTree.v1'))
+      .toEqual({ valid: true, value: treePayload })
+    expect(keyFileReads(reads)).toEqual([keys.keyFilePathOf(currentId), keys.keyFilePathOf(currentId)])
+
+    const mismatch = { valid: false, reason: `key-file-mismatch: ${currentId} publicKey does not match the key manifest` }
+    const { client, reads: mismatchReads } = verifierOver(published({ [keys.keyFilePathOf(currentId)]: keys.keyFileOf(stranger, currentId) }))
+    expect(await client.verifyDocument(structuredClone(document), 'genoacms.pageTree.v1')).toEqual(mismatch)
+    const readsAfterFirst = mismatchReads.length
+    expect(await client.verifyDocument(structuredClone(document), 'genoacms.pageTree.v1')).toEqual(mismatch)
+    expect(mismatchReads.length).toBe(readsAfterFirst)
+  }, 60_000)
+
+  it('VFY-1: an absent key file is the verdict key-file-absent', async () => {
+    const bucket = published()
+    delete bucket[keys.keyFilePathOf(currentId)]
+    const { client } = verifierOver(bucket)
+
+    expect(await client.verifyDocument(keys.signedBySubordinate(current, 'genoacms.pageTree.v1', treePayload), 'genoacms.pageTree.v1'))
+      .toEqual({ valid: false, reason: `key-file-absent: ${currentId}` })
+  }, 60_000)
+
+  it('VFY-2: a manifest below the consumer\'s mark is refused', async () => {
+    const { client } = verifierOver(published({ [keys.MANIFEST_PATH]: manifest(79) }), 80)
+
+    expect(await client.loadRegistry()).toEqual({ valid: false, reason: 'registry-rollback: sequence 79 is below 80' })
+  }, 60_000)
+
+  it('VFY-2: a manifest at or above the consumer\'s mark is accepted', async () => {
+    for (const sequence of [80, 81]) {
+      const { client } = verifierOver(published({ [keys.MANIFEST_PATH]: manifest(sequence) }), 80)
+      const verdict = await client.loadRegistry()
+
+      expect(verdict).toMatchObject({ valid: true })
+      expect(verdict.valid && verdict.value.sequence).toBe(sequence)
+    }
+  }, 60_000)
+
+  it('VFY-2: an invalid mark fails the constructor', () => {
+    for (const mark of [-1, 1.5, Number.NaN, '80', 2 ** 53]) {
+      const construct = () => new Verifier({
+        rootPublicKey: v2Root.publicKey,
+        source: { read: async () => undefined },
+        minimumRegistrySequence: mark as number
+      })
+
+      expect(construct).toThrow(TypeError)
+      expect(construct).toThrow('minimumRegistrySequence must be a non-negative integer')
+    }
+  })
+
+  it('VFY-2: without a mark, only manifests the same verifier loaded are compared', async () => {
+    const bucket = published({ [keys.MANIFEST_PATH]: manifest(81) })
+    const { client: first } = verifierOver(bucket)
+    expect(await first.loadRegistry()).toMatchObject({ valid: true })
+
+    bucket[keys.MANIFEST_PATH] = manifest(80)
+    expect(await first.loadRegistry()).toEqual({ valid: false, reason: 'registry-rollback: sequence 80 is below 81' })
+
+    const { client: second } = verifierOver(bucket)
+    const verdict = await second.loadRegistry()
+    expect(verdict.valid && verdict.value.sequence).toBe(80)
+  }, 60_000)
 })

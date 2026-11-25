@@ -1,7 +1,7 @@
 import { canonicalString, digest, type JsonValue } from '../src/lib/script/signing/canonical'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '../src/lib/script/signing/algorithms'
 import { deriveKeyId } from '../src/lib/script/signing/keyId'
-import { sign, verify, toBase64 } from '../src/lib/script/signing/envelope'
+import { sign, verify, toBase64, type SigningKey } from '../src/lib/script/signing/envelope'
 import { PUBLICATION_DOCUMENT } from '../src/lib/script/components/publication/payload'
 
 /**
@@ -102,7 +102,7 @@ const envelopeVectors: EnvelopeVector[] = [
 
 // Every expected verdict is produced by the implementation, not asserted by hand.
 const checked = envelopeVectors.map(vector => {
-  const observed = verify(vector.envelope, 'genoacms.roles.v1', keypair.publicKey).valid
+  const observed = verify(vector.envelope, 'genoacms.roles.v1', { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey }).valid
   if (observed !== vector.accept) {
     throw new Error(`conformance/disagreement: '${vector.name}' expected ${String(vector.accept)}, implementation says ${String(observed)}`)
   }
@@ -164,7 +164,7 @@ const publicationPayload: JsonValue = {
 const { executables: _noCode, ...prebuiltRest } = publicationPayload as Record<string, unknown>
 const prebuiltPayload = { ...prebuiltRest, type: 'prebuilt' } as JsonValue
 
-const componentKey = { alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey }
+const componentKey: SigningKey = { alg: SUBORDINATE_ALGORITHM, keyId, secretKey: keypair.secretKey }
 const signedPublication = sign(PUBLICATION_DOCUMENT, publicationPayload, componentKey, REPRODUCIBLE)
 const signedPrebuilt = sign(PUBLICATION_DOCUMENT, prebuiltPayload, componentKey, REPRODUCIBLE)
 
@@ -222,7 +222,7 @@ const documentVectors: DocumentVector[] = [
 ]
 
 const checkedDocuments = documentVectors.map(vector => {
-  const observed = verify(vector.envelope, vector.expectedType as never, keypair.publicKey).valid
+  const observed = verify(vector.envelope, vector.expectedType as never, { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey }).valid
   if (observed !== vector.accept) {
     throw new Error(`conformance/disagreement: '${vector.name}' expected ${String(vector.accept)}, implementation says ${String(observed)}`)
   }

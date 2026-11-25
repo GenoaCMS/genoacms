@@ -2,8 +2,9 @@
 title: Documents a consumer receives
 ---
 
-Three signed documents, and nothing else. A consumer fetches the **key registry**, a **published page
-tree**, and one **component publication** per pinned node.
+Three signed documents, and nothing else. A consumer fetches the **key manifest**, a **published page
+tree**, and one **component publication** per pinned node — plus, the first time it meets a key, that
+key's unsigned **key file**, which the manifest binds.
 
 Every one arrives inside a signed envelope. The shapes below are the *payloads*, after verification.
 
@@ -30,9 +31,9 @@ malformed payload, so every reader below re-checks the shape after verifying. `r
 is still unusable.
 :::
 
-## The key registry
+## The key manifest
 
-`.genoacms/keys/public.json`, document type `genoacms.keyRegistry.v1`. Verified against the **root
+`.genoacms/keys/public.json`, document type `genoacms.keyRegistry.v2`. Verified against the **root
 public key** rather than through itself — it is what makes every other key resolvable, so resolving
 it through what it defines is what would make the chain never terminate.
 
@@ -44,9 +45,9 @@ interface KeyRegistry {
 }
 
 interface RegistryKey {
-  keyId: string             // derived from the public key, and re-derived on read
-  alg: string
-  publicKey: string         // base64
+  keyId: string             // the first 16 characters of digest
+  alg: 'ML-DSA-65'
+  digest: string            // lowercase hex SHA-256 of the raw public key
   createdAt: number
   supersededAt?: number     // rotated away from; its signatures remain valid
   revokedAt?: number        // withdrawn; its signatures are refused
@@ -58,11 +59,40 @@ invalidate every document written before the last rotation. Refusing a revoked k
 point of revoking it — including for documents it signed *before* revocation, since the reason to
 revoke is usually that you no longer know what it signed.
 
-`keyId` is re-derived from `publicKey` on read. That is what stops a tampered registry publishing an
-attacker's key under an id your documents already name.
+The whole manifest is refused if any one entry is bad, or if it has a member the specification does
+not name — keeping the entries that happen to validate would let whoever corrupted one choose which
+keys survive. A `genoacms.keyRegistry.v1` registry is not read.
 
-The whole registry is refused if any one entry is bad — keeping the entries that happen to validate
-would let whoever corrupted one choose which keys survive.
+### Key files
+
+`.genoacms/keys/public/{keyId}.json`, unsigned, one per key that is not revoked:
+
+```ts
+interface KeyFile {
+  keyId: string
+  alg: 'ML-DSA-65'
+  publicKey: string         // base64
+}
+```
+
+The verifier fetches a key's file only when a document that key signed is verified, and only after
+the manifest lists the key unrevoked. The file is accepted only if the SHA-256 of its key equals the
+entry's `digest`, so the file needs no signature of its own. A key file is never rewritten, so it
+may be cached without bound; each verifier fetches it at most once.
+
+### Rollback across page loads
+
+A verifier refuses a manifest with a lower `sequence` than one it has loaded. A fresh verifier has
+loaded none, so a consumer that can read the instance's secret `GENOACMS_KEY_REGISTRY_SEQUENCE` —
+on its own server, say — passes it:
+
+```ts
+new Verifier({ rootPublicKey, source, minimumRegistrySequence: 81 })
+```
+
+A manifest below it is then refused with `registry-rollback` on the first load too, which is what
+stops a restored older manifest from un-revoking a key. The value is a non-negative integer; anything
+else throws a `TypeError` from the constructor.
 
 ## The published page tree
 
@@ -172,8 +202,11 @@ values and is meant to be read.
 | :--- | :--- |
 | `envelope-signature-invalid` | The bytes were edited after signing, or signed by a different key |
 | `envelope-wrong-type` | Genuine document, genuinely signed — the wrong kind for what was asked |
-| `key-unresolvable` | The signing key is not in the registry, or is revoked |
-| `registry-rollback` | An older registry than one already seen |
+| `key-unresolvable` | The signing key is not in the manifest, or is revoked |
+| `envelope-algorithm-mismatch` | The envelope names another algorithm than its key was registered for |
+| `key-file-absent` | The manifest lists the key, and its key file is not stored |
+| `key-file-mismatch` | The key file does not match the manifest's entry for it |
+| `registry-rollback` | A manifest older than one already seen, or than `minimumRegistrySequence` |
 | `not-an-envelope` | Not envelope-shaped, or names an algorithm the SDK does not have |
 | `node-publication-absent` | A node pins a publication that was never written, or was deleted |
 | `publication-*` | Verified and malformed — the suffix says which rule |

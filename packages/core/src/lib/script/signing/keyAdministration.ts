@@ -1,4 +1,4 @@
-import type { KeyRegistry, SubordinateKeyEntry } from './registry'
+import type { KeyManifest, RegisteredKey } from './registry'
 
 /**
  * The key registry as an administration screen needs to see it.
@@ -68,13 +68,13 @@ interface KeyAdministrationView {
  * A key can be superseded and later revoked, and the two are true at once. Reporting the milder one
  * would describe a key that verifies nothing as merely retired.
  */
-function keyState (entry: SubordinateKeyEntry, currentKeyId: string): KeyState {
+function keyState (entry: RegisteredKey, currentKeyId: string): KeyState {
   if (entry.revokedAt !== undefined) return 'revoked'
   if (entry.keyId === currentKeyId) return 'current'
   return 'superseded'
 }
 
-function describeKey (entry: SubordinateKeyEntry, currentKeyId: string): AdministrableKey {
+function describeKey (entry: RegisteredKey, currentKeyId: string): AdministrableKey {
   const state = keyState(entry, currentKeyId)
   return {
     keyId: entry.keyId,
@@ -95,7 +95,7 @@ function describeKey (entry: SubordinateKeyEntry, currentKeyId: string): Adminis
  * newest: that happens to be true of every registry rotation produces, and a display that assumed
  * it would quietly mis-order any registry that was not.
  */
-function describeKeys (registry: KeyRegistry): AdministrableKey[] {
+function describeKeys (registry: KeyManifest): AdministrableKey[] {
   return registry.keys
     .map(entry => describeKey(entry, registry.current))
     .sort((left, right) => {

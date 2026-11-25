@@ -46,8 +46,9 @@ const bothAdministrator = principal(['config:users:manage', 'config:roles:manage
 const nobody = principal([], 'nobody-1')
 
 async function storedAgents (): Promise<Record<string, Parsed>> {
-  const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
-  const verified = verify(memory.json(AGENTS_PATH), 'genoacms.agents.v1' as never, publicKey as Uint8Array)
+  const resolution = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
+  if (!resolution.ok) throw new Error(resolution.reason)
+  const verified = verify(memory.json(AGENTS_PATH), 'genoacms.agents.v1' as never, resolution.key)
   if (!verified.valid) throw new Error(`agents.json does not verify: ${verified.reason}`)
   return (verified.payload as Parsed).agents
 }

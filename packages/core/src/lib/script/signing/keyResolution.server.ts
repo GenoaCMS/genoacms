@@ -1,11 +1,12 @@
-import { KeyResolver } from './keyResolver'
+import { KeyResolver, type KeyResolution } from './keyResolver'
+import { readKeyFile } from './keyFile.server'
 import {
   loadOrBootstrapRegistry,
   rotateSubordinateKey as rotateAndPublish,
   revokeSubordinateKey as revokeAndPublish
 } from './registry.server'
 import { loadSubordinateKey, toSigningKey } from './subordinateKey.server'
-import { currentKey, type KeyRegistry } from './registry'
+import { currentKey, type KeyManifest } from './registry'
 import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import { isRotationDue } from '#lib/script/securityPolicy/policy.js'
 import type { SigningKey } from './envelope'
@@ -18,7 +19,7 @@ import type { SigningKey } from './envelope'
  * name a key; they do not fetch, verify or parse anything.
  */
 
-const resolver = new KeyResolver(async () => (await loadOrBootstrapRegistry()).registry)
+const resolver = new KeyResolver(async () => (await loadOrBootstrapRegistry()).registry, readKeyFile)
 
 /**
  * The public key that verifies signatures made under `keyId`, or `undefined` when the registry does
@@ -27,7 +28,7 @@ const resolver = new KeyResolver(async () => (await loadOrBootstrapRegistry()).r
  * `undefined` means the signature cannot be verified — it must never be read as "verified". A caller
  * that treated an unresolvable key as acceptable would accept every forgery.
  */
-async function resolveVerificationKey (keyId: string): Promise<Uint8Array | undefined> {
+async function resolveVerificationKey (keyId: string): Promise<KeyResolution> {
   return await resolver.resolve(keyId)
 }
 
@@ -43,7 +44,7 @@ async function getCurrentSigningKey (): Promise<SigningKey> {
   return await signingKeyOf(await currentRegistryAfterDueRotation())
 }
 
-async function signingKeyOf (registry: KeyRegistry): Promise<SigningKey> {
+async function signingKeyOf (registry: KeyManifest): Promise<SigningKey> {
   const entry = currentKey(registry)
   const key = await loadSubordinateKey(entry.keyId)
   if (key === undefined) {
@@ -55,7 +56,7 @@ async function signingKeyOf (registry: KeyRegistry): Promise<SigningKey> {
   return toSigningKey(key)
 }
 
-async function getRegistry (): Promise<KeyRegistry> {
+async function getRegistry (): Promise<KeyManifest> {
   return await resolver.getRegistry()
 }
 
@@ -70,7 +71,7 @@ async function getRegistry (): Promise<KeyRegistry> {
  * could still sign is in a worse state if it refuses — a key slightly past its interval is a hygiene
  * matter, where refusing to sign stops the CMS working.
  */
-async function currentRegistryAfterDueRotation (): Promise<KeyRegistry> {
+async function currentRegistryAfterDueRotation (): Promise<KeyManifest> {
   const registry = await resolver.getRegistry()
   const entry = currentKey(registry)
 
@@ -94,7 +95,7 @@ async function currentRegistryAfterDueRotation (): Promise<KeyRegistry> {
 }
 
 /** Rotates, then drops the cache so this instance sees its own new key without waiting. */
-async function rotateSubordinateKey (): Promise<KeyRegistry> {
+async function rotateSubordinateKey (): Promise<KeyManifest> {
   const rotated = await rotateAndPublish()
   resolver.invalidate()
   return rotated
@@ -108,7 +109,7 @@ async function rotateSubordinateKey (): Promise<KeyRegistry> {
  * made by a key it has just published as untrusted, for as long as the cache lives. The revocation
  * has to bite in the process that performed it, not merely in the document it wrote.
  */
-async function revokeSubordinateKey (keyId: string): Promise<KeyRegistry> {
+async function revokeSubordinateKey (keyId: string): Promise<KeyManifest> {
   const revoked = await revokeAndPublish(keyId)
   resolver.invalidate()
   return revoked

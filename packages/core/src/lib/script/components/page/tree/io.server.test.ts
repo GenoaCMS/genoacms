@@ -27,7 +27,9 @@ vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
     secretKey: keypair.secretKey
   }),
   resolveVerificationKey: async (candidate: string) =>
-    candidate === keyId ? keypair.publicKey : undefined
+    candidate === keyId
+      ? { ok: true, key: { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey } }
+      : { ok: false, reason: `key-unresolvable: ${candidate} is unknown or revoked` }
 }))
 
 let stored: unknown
@@ -76,7 +78,7 @@ describe('publishing a tree', () => {
     await uploadReadablePageTree('home', tree)
 
     expect(stored).toMatchObject({ type: PAGE_TREE_DOCUMENT, keyId })
-    expect(verify(stored, PAGE_TREE_DOCUMENT, keypair.publicKey).valid).toBe(true)
+    expect(verify(stored, PAGE_TREE_DOCUMENT, { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey }).valid).toBe(true)
   })
 
   it('signs the publication pins and the kinds, not only the component names', async () => {

@@ -34,6 +34,12 @@ interface UnverifiedHeader {
   type: string
 }
 
+/** The key a document is verified against: its public half, and the algorithm it was registered for. */
+interface VerificationKey {
+  alg: string
+  publicKey: Uint8Array
+}
+
 type VerificationResult =
   | { valid: true, payload: JsonValue }
   | { valid: false, reason: string }
@@ -86,20 +92,35 @@ const peekUnverifiedHeader = (candidate: unknown): UnverifiedHeader | undefined 
   return { alg: envelope.alg, keyId: envelope.keyId, type: envelope.type }
 }
 
+const rejectHeader = (envelope: SignedEnvelope, expectedType: string, alg: string): string | undefined => {
+  if (envelope.type !== expectedType) return `envelope-wrong-type: expected ${expectedType}, found ${envelope.type}`
+  // ENV-6
+  if (envelope.alg !== alg) {
+    return `envelope-algorithm-mismatch: ${envelope.keyId} is registered for ${alg}, the envelope names ${envelope.alg}`
+  }
+  return undefined
+}
+
+/**
+ * Why an envelope would be refused before its key is needed (ENV-1, ENV-5, ENV-6), or `undefined`.
+ * Lets a verifier refuse it without fetching the key (VFY-1).
+ */
+const rejectBeforeKey = (candidate: unknown, expectedType: string, alg: string): string | undefined => {
+  const envelope = readEnvelope(candidate)
+  if (typeof envelope === 'string') return envelope
+  return rejectHeader(envelope, expectedType, alg)
+}
+
 const verifyEnvelope = (
   candidate: unknown,
   expectedType: string,
-  publicKey: Uint8Array
+  key: VerificationKey
 ): VerificationResult => {
   const envelope = readEnvelope(candidate)
   if (typeof envelope === 'string') return { valid: false, reason: envelope }
 
-  if (envelope.type !== expectedType) {
-    return {
-      valid: false,
-      reason: `envelope-wrong-type: expected ${expectedType}, found ${envelope.type}`
-    }
-  }
+  const rejected = rejectHeader(envelope, expectedType, key.alg)
+  if (rejected !== undefined) return { valid: false, reason: rejected }
 
   const signature = fromBase64(envelope.signature)
   if (signature === undefined) return { valid: false, reason: 'envelope-signature-not-base64' }
@@ -121,11 +142,11 @@ const verifyEnvelope = (
 
   const algorithm = getAlgorithm(envelope.alg)
   if (algorithm === undefined) return { valid: false, reason: `envelope-unknown-algorithm: ${envelope.alg}` }
-  if (!algorithm.verify(signature, signed, publicKey)) {
+  if (!algorithm.verify(signature, signed, key.publicKey)) {
     return { valid: false, reason: 'envelope-signature-invalid' }
   }
   return { valid: true, payload: envelope.payload }
 }
 
-export { readEnvelope, peekUnverifiedHeader, verifyEnvelope, fromBase64 }
-export type { SignedEnvelope, UnverifiedHeader, VerificationResult }
+export { readEnvelope, peekUnverifiedHeader, rejectBeforeKey, verifyEnvelope, fromBase64 }
+export type { SignedEnvelope, UnverifiedHeader, VerificationKey, VerificationResult }

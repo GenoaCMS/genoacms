@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { randomBytes } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
 import type { Locator, Page } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import { enabled, removeInstance } from './bucket'
 import { launchBrowser, closeBrowser, signedInSession, visit, type Session } from './browser'
+import { readKeyFile, readManifestPayload } from './signing'
 
 const password = (): string => randomBytes(18).toString('base64url')
 const run = randomBytes(4).toString('hex')
@@ -311,6 +312,23 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await currentKeyId(page)).not.toBe(before)
     })
 
+    it('YJ2a, KEY-3, REG-3: rotating publishes the new key\'s file', async () => {
+      const { page } = session
+      await openKeys(page)
+      const before = await currentKeyId(page)
+
+      await rotate(page)
+      await expect.poll(async () => await currentKeyId(page), { timeout: SLOW_MS }).not.toBe(before)
+      const rotated = await currentKeyId(page)
+
+      const file = await readKeyFile(rotated)
+      expect(file).toMatchObject({ keyId: rotated, alg: 'ML-DSA-65' })
+      const digest = createHash('sha256').update(Buffer.from(file?.publicKey ?? '', 'base64')).digest('hex')
+      const manifest = await readManifestPayload()
+      expect(manifest.current).toBe(rotated)
+      expect(manifest.keys.find(entry => entry.keyId === rotated)).toMatchObject({ digest })
+    })
+
     it('YJ3a, KEY-4: Revoke states that earlier signatures stop verifying, and No changes nothing', async () => {
       const { page } = session
       await openKeys(page)
@@ -338,6 +356,23 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       await shown(keyCard(page, superseded).getByText('revoked', { exact: true }))
       expect(await button(keyCard(page, superseded), 'Revoke').count()).toBe(0)
       expect(await keyCards(page).filter({ has: page.getByText('current', { exact: true }) }).count()).toBe(1)
+    })
+
+    it('YJ3b, KEY-4, REG-3: revoking deletes the key\'s file', async () => {
+      const { page } = session
+      await openKeys(page)
+      const superseded = await currentKeyId(page)
+      await rotate(page)
+      await expect.poll(async () => await currentKeyId(page), { timeout: SLOW_MS }).not.toBe(superseded)
+      expect(await readKeyFile(superseded)).toMatchObject({ keyId: superseded })
+
+      await button(keyCard(page, superseded), 'Revoke').click()
+      await button(page, 'Yes').click()
+      await shown(page.getByText('Key revoked'))
+
+      expect(await readKeyFile(superseded)).toBeUndefined()
+      const manifest = await readManifestPayload()
+      expect(manifest.keys.find(entry => entry.keyId === superseded)).toMatchObject({ revokedAt: expect.any(Number) })
     })
   })
 })

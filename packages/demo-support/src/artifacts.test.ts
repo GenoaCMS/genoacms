@@ -125,3 +125,18 @@ describe('traversal, in the forms it actually arrives in', () => {
     expect(isPublishedDocument('.genoacms/keys/')).toBe(false)
   })
 })
+
+describe('the key files', () => {
+  it('serves the key file of a key', () => {
+    expect(isPublishedDocument('.genoacms/keys/public/0123456789abcdef.json')).toBe(true)
+  })
+
+  it('refuses a traversal out of the key files', () => {
+    expect(isPublishedDocument('.genoacms/keys/public/../secrets.json')).toBe(false)
+  })
+
+  it('refuses a key id of 15 or 17 characters', () => {
+    expect(isPublishedDocument('.genoacms/keys/public/0123456789abcde.json')).toBe(false)
+    expect(isPublishedDocument('.genoacms/keys/public/0123456789abcdef0.json')).toBe(false)
+  })
+})

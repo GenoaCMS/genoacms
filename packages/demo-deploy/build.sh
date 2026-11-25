@@ -22,6 +22,7 @@ functions="$here/functions"
 : "${VITE_GENOACMS_ROOT_PUBLIC_KEY:?set it to the instance root anchor, from Configuration -> Keys}"
 : "${VITE_GENOACMS_PAGE:=siteHome}"
 : "${GENOACMS_BUCKET:=genoacms}"
+: "${GENOACMS_REGISTRY_SEQUENCE_SECRET:=projects/genoacms/secrets/GENOACMS_KEY_REGISTRY_SEQUENCE/versions/latest}"
 export VITE_GENOACMS_ROOT_PUBLIC_KEY VITE_GENOACMS_PAGE
 
 # Each demo is its own site, so each fetches from its own origin at the root. No base path, and
@@ -47,7 +48,8 @@ cp "$packages/demo-support/dist/bucket.js" "$functions/bucket.js"
 # Generated rather than committed, because `.env` is gitignored repository-wide -- a checked-in one
 # would be absent from a fresh clone and the deploy would come up unconfigured. It holds no secret:
 # the name of a bucket, and an identity is still required to read it.
-printf 'GENOACMS_BUCKET=%s\n' "$GENOACMS_BUCKET" > "$functions/.env"
+printf 'GENOACMS_BUCKET=%s\nGENOACMS_REGISTRY_SEQUENCE_SECRET=%s\n' \
+  "$GENOACMS_BUCKET" "$GENOACMS_REGISTRY_SEQUENCE_SECRET" > "$functions/.env"
 
 for demo in react vue vanilla; do
   echo "--- building $demo"

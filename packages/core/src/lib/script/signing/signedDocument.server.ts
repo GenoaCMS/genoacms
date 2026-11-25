@@ -1,6 +1,7 @@
 import { peekUnverifiedHeader, verify, type DocumentType } from './envelope'
 import { resolveVerificationKey } from './keyResolution.server'
 import { loadRootKey } from './rootKey.server'
+import { ROOT_ALGORITHM } from './algorithms'
 import type { JsonValue } from './canonical'
 
 /**
@@ -29,12 +30,11 @@ async function readSignedDocument (candidate: unknown, expectedType: DocumentTyp
   if (header === undefined) return { ok: false, reason: 'not a signed envelope' }
 
   // Throws when the registry cannot be read. That is deliberately not caught here.
-  const publicKey = await resolveVerificationKey(header.keyId)
-  if (publicKey === undefined) {
-    return { ok: false, reason: `signing key ${header.keyId} is unknown or revoked` }
-  }
+  // VFY-1, ENV-6
+  const resolution = await resolveVerificationKey(header.keyId)
+  if (!resolution.ok) return { ok: false, reason: resolution.reason }
 
-  const verified = verify(candidate, expectedType, publicKey)
+  const verified = verify(candidate, expectedType, resolution.key)
   if (!verified.valid) return { ok: false, reason: `signature: ${verified.reason}` }
 
   return { ok: true, payload: verified.payload }
@@ -49,7 +49,7 @@ async function readSignedDocument (candidate: unknown, expectedType: DocumentTyp
  */
 async function readRootSignedDocument (candidate: unknown, expectedType: DocumentType): Promise<SignedReadResult> {
   const root = await loadRootKey()
-  const verified = verify(candidate, expectedType, root.publicKey)
+  const verified = verify(candidate, expectedType, { alg: ROOT_ALGORITHM, publicKey: root.publicKey })
   if (!verified.valid) return { ok: false, reason: `signature: ${verified.reason}` }
   return { ok: true, payload: verified.payload }
 }

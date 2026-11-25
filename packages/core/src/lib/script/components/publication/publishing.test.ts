@@ -288,8 +288,9 @@ describe('the publication', () => {
     expect(Object.keys(envelope.payload.executables[0].ceilings).sort()).toEqual(['maxAllocation', 'maxDepth', 'maxFuel'])
     expect(JSON.stringify(envelope)).toContain('genoacms.componentPublication.v1')
     expect(envelope.keyId).toBe(signingKey.keyId)
-    const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId) as Uint8Array
-    expect(verify(envelope, 'genoacms.componentPublication.v1', publicKey).valid).toBe(true)
+    const resolution = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
+    if (!resolution.ok) throw new Error(resolution.reason)
+    expect(verify(envelope, 'genoacms.componentPublication.v1', resolution.key).valid).toBe(true)
   })
 
   it('PUB-4: a prebuilt component\'s publication has no executables key', async () => {

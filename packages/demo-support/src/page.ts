@@ -37,9 +37,14 @@ const refused = (reason: string, detail?: string): Outcome =>
  * meant to be run from a clean checkout by somebody who has not seen them before — and a demo that
  * renders a blank screen when a setting is missing teaches nobody anything.
  */
-const loadPage = async (settings: InstanceSettings): Promise<Outcome> => {
+/** What a consumer with a server of its own adds: the instance's secret mark (VFY-2). */
+interface LoadOptions {
+  minimumRegistrySequence?: number
+}
+
+const loadPage = async (settings: InstanceSettings, options: LoadOptions = {}): Promise<Outcome> => {
   try {
-    return await fetchAndResolve(settings)
+    return await fetchAndResolve(settings, options)
   } catch (error) {
     /*
      * **Failing to fetch is the one thing the SDK throws**, and deliberately: an outage is not a
@@ -56,13 +61,14 @@ const loadPage = async (settings: InstanceSettings): Promise<Outcome> => {
   }
 }
 
-const fetchAndResolve = async (settings: InstanceSettings): Promise<Outcome> => {
+const fetchAndResolve = async (settings: InstanceSettings, options: LoadOptions): Promise<Outcome> => {
   const missing = unconfigured(settings)
   if (missing !== undefined) return refused('This application is not configured yet.', missing)
 
   const verifier = new Verifier({
     rootPublicKey: rootPublicKey(settings.rootPublicKey),
-    source: httpSource(settings.origin)
+    source: httpSource(settings.origin),
+    ...options
   })
 
   const tree = await verifier.pageTree(settings.page)
@@ -87,4 +93,4 @@ const fetchAndResolve = async (settings: InstanceSettings): Promise<Outcome> => 
 }
 
 export { loadPage }
-export type { Outcome }
+export type { Outcome, LoadOptions }

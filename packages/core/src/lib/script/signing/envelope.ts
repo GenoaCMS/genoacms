@@ -17,7 +17,7 @@ import { digest, type JsonValue } from './canonical'
 const DOCUMENT_TYPES = [
   'genoacms.roles.v1',
   'genoacms.users.v1',
-  'genoacms.keyRegistry.v1',
+  'genoacms.keyRegistry.v2',
   'genoacms.securityPolicy.v1',
   'genoacms.session.v1',
   'genoacms.componentPublication.v1',
@@ -108,6 +108,11 @@ function sign<T extends JsonValue> (
   }
 }
 
+interface VerificationKey {
+  alg: AlgorithmName
+  publicKey: Uint8Array
+}
+
 type VerificationResult<T extends JsonValue> =
   | { valid: true, payload: T }
   | { valid: false, reason: string }
@@ -154,13 +159,21 @@ function peekUnverifiedHeader (candidate: unknown): { alg: AlgorithmName, keyId:
 function verify<T extends JsonValue> (
   candidate: unknown,
   expectedType: DocumentType,
-  publicKey: Uint8Array
+  key: VerificationKey
 ): VerificationResult<T> {
   const envelope = readEnvelope(candidate)
   if (typeof envelope === 'string') return { valid: false, reason: envelope }
 
   if (envelope.type !== expectedType) {
     return { valid: false, reason: `envelope-wrong-type: expected ${expectedType}, found ${envelope.type}` }
+  }
+
+  // ENV-6
+  if (envelope.alg !== key.alg) {
+    return {
+      valid: false,
+      reason: `envelope-algorithm-mismatch: ${envelope.keyId} is registered for ${key.alg}, the envelope names ${envelope.alg}`
+    }
   }
 
   const signature = fromBase64(envelope.signature)
@@ -175,8 +188,8 @@ function verify<T extends JsonValue> (
     return { valid: false, reason: `envelope-payload-uncanonicalizable: ${(error as Error).message}` }
   }
 
-  const algorithm = getAlgorithm(envelope.alg)
-  if (!algorithm.verify(signature, signed, publicKey)) {
+  const algorithm = getAlgorithm(key.alg)
+  if (!algorithm.verify(signature, signed, key.publicKey)) {
     return { valid: false, reason: 'envelope-signature-invalid' }
   }
   return { valid: true, payload: envelope.payload as T }
@@ -197,5 +210,6 @@ export type {
   DocumentType,
   SignedEnvelope,
   SigningKey,
+  VerificationKey,
   VerificationResult
 }

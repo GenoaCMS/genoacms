@@ -199,7 +199,7 @@ describe('publishing a prebuilt component', () => {
     await publishComponent(order, 'user-1')
     const envelope = published_()
 
-    expect(verify(envelope, PUBLICATION_DOCUMENT, keypair.publicKey).valid).toBe(true)
+    expect(verify(envelope, PUBLICATION_DOCUMENT, { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey }).valid).toBe(true)
     expect(envelope.payload.type).toBe('prebuilt')
     expect(envelope.payload.publisherId).toBe('user-1')
   })
@@ -240,7 +240,7 @@ describe('publishing a dynamic component', () => {
     await publishComponent(order, 'user-1')
     const envelope = published_()
 
-    expect(verify(envelope, PUBLICATION_DOCUMENT, keypair.publicKey).valid).toBe(true)
+    expect(verify(envelope, PUBLICATION_DOCUMENT, { alg: SUBORDINATE_ALGORITHM, publicKey: keypair.publicKey }).valid).toBe(true)
     expect(envelope.payload.attributeOrder).toEqual(['attr-1'])
     expect(bundles()).toHaveLength(1)
   })

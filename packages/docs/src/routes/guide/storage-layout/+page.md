@@ -9,7 +9,8 @@ files from unexpected ones.
 ```text
 .genoacms/
 ├── keys/
-│   └── public.json            registry of signing keys
+│   ├── public.json            manifest of signing keys
+│   └── public/{keyId}.json    one public key per key that is not revoked
 ├── security/
 │   ├── policy.json            security settings
 │   ├── roles.json             what each role may do
@@ -39,13 +40,20 @@ the bucket, which is what makes them a way back in.
 
 ### `keys/public.json`
 
-The registry of signing keys: which key is current, and every key whose signatures still verify. It
-is signed by the **root trust anchor**, and it is the one document a consumer SDK fetches — from the
-root public key it has embedded plus this file, everything else follows.
+The manifest of signing keys: which key is current, and every key whose signatures still verify,
+each with the SHA-256 of its public key. It is signed by the **root trust anchor**, and it is the
+first document a consumer SDK fetches — from the root public key it has embedded plus this file,
+everything else follows.
 
 Superseded keys stay listed, so rotating does not invalidate what earlier keys signed. Revoked keys
 stay listed too, marked as revoked, so that a revocation is a published fact rather than an absence
 someone has to notice.
+
+### `keys/public/{keyId}.json`
+
+One key's public key, unsigned: the manifest binds it by its digest. Written once when the key is
+created and never rewritten. Revoking a key deletes its file, and a verifier fetches a file only for a
+key that signed a document it is verifying.
 
 ### `security/policy.json`
 
@@ -105,7 +113,7 @@ difference between "storage corrupted a file" and "someone edited our permission
 ## After a key rotation
 
 Subordinate keys rotate on an interval, so over time `keys/public.json` lists more keys than it
-started with. That is expected. Documents signed by an earlier key keep verifying, because the key
+started with, and `keys/public/` holds one more file. That is expected. Documents signed by an earlier key keep verifying, because the key
 remains listed.
 
 Rotating the **root** is different and is never automatic — see

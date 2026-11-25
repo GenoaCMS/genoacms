@@ -57,7 +57,10 @@ vi.mock('../storage/storage.server', async () => {
 vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   resolveVerificationKey: async (keyId: string) => {
     if (registry.isUnreachable) throw new Error('registry/unreachable')
-    return registry.keys.get(keyId)
+    const publicKey = registry.keys.get(keyId)
+    return publicKey === undefined
+      ? { ok: false, reason: `key-unresolvable: ${keyId} is unknown or revoked` }
+      : { ok: true, key: { alg: 'ML-DSA-65', publicKey } }
   }
 }))
 

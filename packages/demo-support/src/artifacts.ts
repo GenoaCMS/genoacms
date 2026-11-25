@@ -15,9 +15,10 @@
  *
  * ## What a consumer is allowed to read
  *
- * Exactly the three things the SDK fetches, and nothing else:
+ * Exactly the four things the SDK fetches, and nothing else:
  *
- * - the **key registry**, at one fixed path;
+ * - the **key manifest**, at one fixed path;
+ * - a **key file**, by key id (REG-2);
  * - a **published page tree**, by name;
  * - a **publication**, by component and release.
  *
@@ -49,6 +50,7 @@ const REGISTRY = '.genoacms/keys/public.json'
 const SEGMENT = '[A-Za-z0-9][A-Za-z0-9._-]*'
 
 const PAGE_TREE = new RegExp(`^\\.genoacms/pages/readables/${SEGMENT}$`)
+const KEY_FILE = /^\.genoacms\/keys\/public\/[0-9a-f]{16}\.json$/
 const PUBLICATION = new RegExp(`^\\.genoacms/components/public/${SEGMENT}/${SEGMENT}\\.json$`)
 
 /**
@@ -72,7 +74,7 @@ const PUBLICATION = new RegExp(`^\\.genoacms/components/public/${SEGMENT}/${SEGM
  */
 const isPublishedDocument = (path: string): boolean => {
   if (path === REGISTRY) return true
-  return PAGE_TREE.test(path) || PUBLICATION.test(path)
+  return KEY_FILE.test(path) || PAGE_TREE.test(path) || PUBLICATION.test(path)
 }
 
-export { isPublishedDocument, REGISTRY }
+export { isPublishedDocument, REGISTRY, KEY_FILE }

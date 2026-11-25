@@ -1,319 +1,146 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseKeyRegistry,
+  parseKeyManifest,
+  digestOf,
   findKey,
-  findPublicKey,
   isRevoked,
   currentKey,
   withRotatedKey,
   withRevokedKey,
-  type KeyRegistry
+  type KeyManifest,
+  type RegisteredKey
 } from './registry'
-import { getAlgorithm, SUBORDINATE_ALGORITHM, ROOT_ALGORITHM } from './algorithms'
+import { getAlgorithm, SUBORDINATE_ALGORITHM } from './algorithms'
 import { deriveKeyId } from './keyId'
-import { toBase64, sign, verify } from './envelope'
+import { toBase64 } from './envelope'
 
 const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 
-/** A real keypair, so keyId genuinely derives from publicKey. */
-const makeEntry = (fill: number, createdAt = 1_000) => {
-  const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(fill))
-  return {
-    keyId: deriveKeyId(keypair.publicKey),
-    alg: SUBORDINATE_ALGORITHM,
-    publicKey: toBase64(keypair.publicKey),
-    createdAt,
-    keypair
-  }
+const keypairOf = (fill: number) => algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(fill))
+
+const entryOf = (fill: number, createdAt: number): RegisteredKey => {
+  const { publicKey } = keypairOf(fill)
+  return { keyId: deriveKeyId(publicKey), alg: SUBORDINATE_ALGORITHM, digest: digestOf(publicKey), createdAt }
 }
 
-const first = makeEntry(1, 1_000)
-const second = makeEntry(2, 2_000)
+const first = (): RegisteredKey => entryOf(1, 1_000)
+const second = (): RegisteredKey => entryOf(2, 2_000)
+const third = (): RegisteredKey => entryOf(3, 3_000)
 
-const entry = ({ keypair: _k, ...rest }: ReturnType<typeof makeEntry>) => rest
+const manifestOf = (...keys: RegisteredKey[]): KeyManifest => ({ sequence: 1, current: keys[keys.length - 1].keyId, keys })
 
-const validRegistry = (): unknown => ({ sequence: 1, current: first.keyId, keys: [entry(first)] })
+const parsed = (payload: unknown): KeyManifest => {
+  const result = parseKeyManifest(payload)
+  if (!result.ok) throw new Error(result.reason)
+  return result.manifest
+}
 
-describe('a valid registry', () => {
-  it('parses', () => {
-    const result = parseKeyRegistry(validRegistry())
-    expect(result.ok).toBe(true)
+const refusal = (payload: unknown) => parseKeyManifest(payload)
+
+describe('the key manifest', () => {
+  it('REG-1: accepts a manifest of one current key', () => {
+    const manifest = manifestOf(first())
+    expect(parseKeyManifest(structuredClone(manifest))).toEqual({ ok: true, manifest })
   })
 
-  it('accepts a superseded key alongside the current one', () => {
-    const result = parseKeyRegistry({
-      sequence: 1,
-      current: second.keyId,
-      keys: [{ ...entry(first), supersededAt: 2_000 }, entry(second)]
-    })
-    expect(result.ok).toBe(true)
+  it('REG-1: refuses a v1 entry that still carries its public key', () => {
+    const entry = { ...first(), publicKey: toBase64(keypairOf(1).publicKey) }
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [entry] }))
+      .toEqual({ ok: false, reason: 'keys[0] has unexpected fields: publicKey' })
   })
 
-  it('finds a key and decodes its public key', () => {
-    const result = parseKeyRegistry(validRegistry())
-    if (!result.ok) throw new Error(result.reason)
-    expect(findKey(result.registry, first.keyId)?.keyId).toBe(first.keyId)
-    expect(Array.from(findPublicKey(result.registry, first.keyId) ?? []))
-      .toEqual(Array.from(first.keypair.publicKey))
+  it('REG-1: refuses a digest that is not 64 lowercase hexadecimal characters', () => {
+    const entry = first()
+    for (const digest of [entry.digest.slice(0, 63), `${entry.digest}0`, entry.digest.toUpperCase()]) {
+      expect(refusal({ sequence: 1, current: entry.keyId, keys: [{ ...entry, digest }] }))
+        .toEqual({ ok: false, reason: 'keys[0].digest is not 64 lowercase hexadecimal characters' })
+    }
   })
 
-  it('returns nothing for a key it does not list', () => {
-    const result = parseKeyRegistry(validRegistry())
-    if (!result.ok) throw new Error(result.reason)
-    expect(findPublicKey(result.registry, second.keyId)).toBeUndefined()
+  it('REG-1: refuses a key id that is not the beginning of the digest', () => {
+    const entry = { ...first(), digest: second().digest }
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [entry] }))
+      .toEqual({ ok: false, reason: 'keys[0].digest does not begin with its keyId' })
   })
 
-  it('reports the current entry', () => {
-    const result = parseKeyRegistry(validRegistry())
-    if (!result.ok) throw new Error(result.reason)
-    expect(currentKey(result.registry).keyId).toBe(first.keyId)
-  })
-})
-
-describe('entries that must be rejected', () => {
-  const rejects = (payload: unknown, pattern: RegExp): void => {
-    const result = parseKeyRegistry(payload)
-    expect(result.ok).toBe(false)
-    if (result.ok) return
-    expect(result.reason).toMatch(pattern)
-  }
-
-  it('rejects a keyId that does not derive from its public key', () => {
-    // The substitution this check exists for: an attacker's key published under an id that existing
-    // signed artifacts already reference.
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: second.publicKey }] },
-      /does not derive/)
+  it('REG-1: refuses any algorithm but ML-DSA-65', () => {
+    const entry = { ...first(), alg: 'SLH-DSA-SHA2-128s' }
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [entry] }))
+      .toEqual({ ok: false, reason: 'keys[0].alg must be ML-DSA-65, not SLH-DSA-SHA2-128s' })
   })
 
-  it('rejects a public key of the wrong size for its algorithm', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: toBase64(new Uint8Array(10)) }] },
-      /expected 1952|does not derive/)
+  it('REG-1: refuses null for an unset moment', () => {
+    const entry = first()
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [{ ...entry, supersededAt: null }] }))
+      .toEqual({ ok: false, reason: 'keys[0].supersededAt must be a timestamp or omitted' })
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [{ ...entry, revokedAt: null }] }))
+      .toEqual({ ok: false, reason: 'keys[0].revokedAt must be a timestamp or omitted' })
   })
 
-  it('rejects a public key that is not base64', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), publicKey: 'not base64!!' }] }, /not base64/)
+  it('REG-1: refuses an empty key list', () => {
+    expect(refusal({ sequence: 1, current: first().keyId, keys: [] }))
+      .toEqual({ ok: false, reason: 'registry.keys is empty' })
   })
 
-  it('rejects an unknown algorithm', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), alg: 'RSA-2048' }] }, /not a known algorithm/)
+  it('REG-1: refuses a key listed twice', () => {
+    const entry = first()
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [entry, entry] }))
+      .toEqual({ ok: false, reason: `registry lists ${entry.keyId} twice` })
   })
 
-  it('rejects a current key that is marked superseded', () => {
-    // A key cannot both be the one to sign with and one that has stopped signing.
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), supersededAt: 5_000 }] }, /marked superseded/)
+  it('REG-1: refuses a current key that is superseded or revoked', () => {
+    const entry = first()
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [{ ...entry, supersededAt: 5_000 }] }))
+      .toEqual({ ok: false, reason: `registry.current ${entry.keyId} is marked superseded` })
+    expect(refusal({ sequence: 1, current: entry.keyId, keys: [{ ...entry, revokedAt: 5_000 }] }))
+      .toEqual({ ok: false, reason: `registry.current ${entry.keyId} is revoked` })
   })
 
-  it('rejects a current key that is not listed', () => {
-    rejects({ sequence: 1, current: second.keyId, keys: [entry(first)] }, /not among its keys/)
+  it('REG-1: refuses a sequence below 1', () => {
+    const entry = first()
+    for (const sequence of [0, -1]) {
+      expect(refusal({ sequence, current: entry.keyId, keys: [entry] }))
+        .toEqual({ ok: false, reason: 'registry.sequence is not a positive integer' })
+    }
   })
 
-  it('rejects a duplicated keyId', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [entry(first), entry(first)] }, /twice/)
-  })
-
-  it('rejects null supersededAt rather than treating it as omitted', () => {
-    // Omitted and null are different documents with different digests.
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), supersededAt: null }] }, /supersededAt/)
-  })
-
-  it('rejects unexpected fields on an entry', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), trusted: true }] }, /unexpected fields/)
-  })
-
-  it('rejects unexpected fields on the registry', () => {
-    rejects({ ...(validRegistry() as object), rootOverride: 'x' }, /unexpected fields/)
-  })
-
-  it('rejects an empty key list', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [] }, /empty/)
-  })
-
-  it.each([null, 'a string', 42, []])('rejects the non-registry value %s', (payload) => {
-    expect(parseKeyRegistry(payload).ok).toBe(false)
-  })
-
-  it('fails whole when one entry of several is bad', () => {
-    // Keeping the entries that happen to validate would let whoever corrupted one choose which
-    // keys survive.
-    rejects({ sequence: 1, current: first.keyId, keys: [entry(first), { ...entry(second), publicKey: 'nope!' }] },
-      /keys\[1\]/)
-  })
-
-  it('rejects a non-integer timestamp', () => {
-    rejects({ sequence: 1, current: first.keyId, keys: [{ ...entry(first), createdAt: 'yesterday' }] }, /createdAt/)
+  it('REG-1: refuses an unexpected member of the manifest', () => {
+    expect(refusal({ ...manifestOf(first()), rootOverride: 'x' }))
+      .toEqual({ ok: false, reason: 'registry has unexpected fields: rootOverride' })
   })
 })
 
-describe('rotation', () => {
-  const base = (): KeyRegistry => {
-    const result = parseKeyRegistry(validRegistry())
-    if (!result.ok) throw new Error(result.reason)
-    return result.registry
-  }
+describe('changing the key manifest', () => {
+  it('REG-1: a rotation supersedes the current key and keeps every entry', () => {
+    const once = withRotatedKey(parsed(manifestOf(first())), second(), 2_000)
 
-  it('makes the new key current', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(rotated.current).toBe(second.keyId)
+    expect(once.current).toBe(second().keyId)
+    expect(once.sequence).toBe(2)
+    expect(once.keys).toHaveLength(2)
+    expect(findKey(once, first().keyId)?.supersededAt).toBe(2_000)
+    expect(findKey(once, second().keyId)).not.toHaveProperty('supersededAt')
+    expect(currentKey(once).keyId).toBe(second().keyId)
+    expect(parseKeyManifest(JSON.parse(JSON.stringify(once))).ok).toBe(true)
+
+    const twice = withRotatedKey(once, third(), 3_000)
+    expect(findKey(twice, first().keyId)?.supersededAt).toBe(2_000)
+    expect(findKey(twice, second().keyId)?.supersededAt).toBe(3_000)
+    expect(twice.keys.map(entry => entry.keyId)).toEqual([first().keyId, second().keyId, third().keyId])
   })
 
-  it('retains the outgoing key so its signatures still verify', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(findKey(rotated, first.keyId)).toBeDefined()
-    expect(rotated.keys).toHaveLength(2)
-  })
+  it('REG-1: a revocation keeps the entry and refuses the current key', () => {
+    const rotated = withRotatedKey(parsed(manifestOf(first())), second(), 2_000)
+    const revoked = withRevokedKey(rotated, first().keyId, 3_000)
 
-  it('marks the outgoing key superseded at the rotation time', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(findKey(rotated, first.keyId)?.supersededAt).toBe(2_000)
-  })
+    expect(revoked.sequence).toBe(3)
+    expect(revoked.keys).toHaveLength(2)
+    expect(findKey(revoked, first().keyId)?.revokedAt).toBe(3_000)
+    expect(isRevoked(findKey(revoked, first().keyId) as RegisteredKey)).toBe(true)
+    expect(isRevoked(findKey(revoked, second().keyId) as RegisteredKey)).toBe(false)
+    expect(parseKeyManifest(JSON.parse(JSON.stringify(revoked))).ok).toBe(true)
+    expect(findKey(withRevokedKey(revoked, first().keyId, 9_000), first().keyId)?.revokedAt).toBe(3_000)
 
-  it('leaves the incoming key without a supersededAt', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(findKey(rotated, second.keyId)).not.toHaveProperty('supersededAt')
-  })
-
-  it('produces a registry that still parses', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(parseKeyRegistry(JSON.parse(JSON.stringify(rotated))).ok).toBe(true)
-  })
-
-  it('does not re-supersede a key that was already superseded', () => {
-    const third = makeEntry(3, 3_000)
-    const once = withRotatedKey(base(), entry(second), 2_000)
-    const twice = withRotatedKey(once, entry(third), 3_000)
-    expect(findKey(twice, first.keyId)?.supersededAt).toBe(2_000)
-    expect(findKey(twice, second.keyId)?.supersededAt).toBe(3_000)
-  })
-})
-
-describe('algorithm agility', () => {
-  it('records the algorithm per key, so a registry can hold keys of two algorithms', () => {
-    // What lets the subordinate algorithm change without invalidating keys issued under the old one.
-    const rootAlg = getAlgorithm(ROOT_ALGORITHM)
-    const legacy = rootAlg.generateKeypair(new Uint8Array(rootAlg.lengths.seed).fill(9))
-    const result = parseKeyRegistry({
-      sequence: 1,
-      current: first.keyId,
-      keys: [
-        { keyId: deriveKeyId(legacy.publicKey), alg: ROOT_ALGORITHM, publicKey: toBase64(legacy.publicKey), createdAt: 1, supersededAt: 2 },
-        entry(first)
-      ]
-    })
-    expect(result.ok).toBe(true)
-  })
-})
-
-describe('revocation', () => {
-  const rotated = (): KeyRegistry => {
-    const parsed = parseKeyRegistry(validRegistry())
-    if (!parsed.ok) throw new Error(parsed.reason)
-    return withRotatedKey(parsed.registry, entry(second), 2_000)
-  }
-
-  it('stops a revoked key resolving, so nothing it signed verifies', () => {
-    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
-    expect(findPublicKey(revoked, first.keyId)).toBeUndefined()
-  })
-
-  it('rejects a forged artifact signed by a leaked key after rotation', () => {
-    // The attack: rotation alone leaves the old key verifying, so whoever holds it can sign a new
-    // roles.json granting themselves everything. Revocation is what actually stops it.
-    const forged = sign('genoacms.roles.v1',
-      { roles: { SuperAdmin: [{ permission: '*', resource: '*' }] } },
-      { alg: SUBORDINATE_ALGORITHM, keyId: first.keyId, secretKey: first.keypair.secretKey })
-
-    const superseded = rotated()
-    const beforeRevocation = findPublicKey(superseded, first.keyId)
-    expect(beforeRevocation).toBeDefined()
-    expect(verify(forged, 'genoacms.roles.v1', beforeRevocation as Uint8Array).valid).toBe(true)
-
-    const revoked = withRevokedKey(superseded, first.keyId, 3_000)
-    expect(findPublicKey(revoked, first.keyId)).toBeUndefined()
-  })
-
-  it('keeps the entry, so the revocation is published rather than inferred from absence', () => {
-    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
-    expect(findKey(revoked, first.keyId)?.revokedAt).toBe(3_000)
-    expect(isRevoked(findKey(revoked, first.keyId) as never)).toBe(true)
-  })
-
-  it('leaves other keys resolving', () => {
-    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
-    expect(findPublicKey(revoked, second.keyId)).toBeDefined()
-  })
-
-  it('refuses to revoke the current key, which would leave nothing able to sign the registry', () => {
-    const parsed = parseKeyRegistry(validRegistry())
-    if (!parsed.ok) throw new Error(parsed.reason)
-    expect(() => withRevokedKey(parsed.registry, first.keyId, 3_000)).toThrow(/cannot-revoke-current/)
-  })
-
-  it('refuses to revoke a key it does not list', () => {
-    expect(() => withRevokedKey(rotated(), 'deadbeefdeadbeef', 3_000)).toThrow(/unknown-key/)
-  })
-
-  it('produces a registry that still parses', () => {
-    const revoked = withRevokedKey(rotated(), first.keyId, 3_000)
-    expect(parseKeyRegistry(JSON.parse(JSON.stringify(revoked))).ok).toBe(true)
-  })
-
-  it('rejects a registry whose current key is revoked', () => {
-    const result = parseKeyRegistry({
-      sequence: 1,
-      current: first.keyId,
-      keys: [{ ...entry(first), revokedAt: 3_000 }]
-    })
-    expect(result.ok).toBe(false)
-  })
-
-  it('rejects null revokedAt rather than treating it as omitted', () => {
-    const result = parseKeyRegistry({ current: first.keyId, keys: [{ ...entry(first), revokedAt: null }] })
-    expect(result.ok).toBe(false)
-  })
-
-  it('does not re-date an already revoked key', () => {
-    const once = withRevokedKey(rotated(), first.keyId, 3_000)
-    const twice = withRevokedKey(once, first.keyId, 9_000)
-    expect(findKey(twice, first.keyId)?.revokedAt).toBe(3_000)
-  })
-})
-
-describe('the monotonic sequence', () => {
-  const base = (): KeyRegistry => {
-    const parsed = parseKeyRegistry(validRegistry())
-    if (!parsed.ok) throw new Error(parsed.reason)
-    return parsed.registry
-  }
-
-  it('advances on rotation', () => {
-    expect(withRotatedKey(base(), entry(second), 2_000).sequence).toBe(2)
-  })
-
-  it('advances on revocation', () => {
-    const rotated = withRotatedKey(base(), entry(second), 2_000)
-    expect(withRevokedKey(rotated, first.keyId, 3_000).sequence).toBe(3)
-  })
-
-  it('never decreases across a series of changes', () => {
-    // The property rollback detection rests on: a later registry always carries a higher sequence.
-    const third = makeEntry(3, 3_000)
-    const one = base()
-    const two = withRotatedKey(one, entry(second), 2_000)
-    const three = withRevokedKey(two, first.keyId, 2_500)
-    const four = withRotatedKey(three, entry(third), 3_000)
-    expect([one.sequence, two.sequence, three.sequence, four.sequence]).toEqual([1, 2, 3, 4])
-  })
-
-  it('is carried inside the signed payload, so it cannot be edited without breaking the signature', () => {
-    // Asserted structurally: the sequence is a field of the registry, which is what gets signed.
-    expect(Object.keys(base())).toContain('sequence')
-  })
-
-  it.each([0, -1, 1.5, '1', null])('rejects the invalid sequence %s', (sequence) => {
-    expect(parseKeyRegistry({ sequence, current: first.keyId, keys: [entry(first)] }).ok).toBe(false)
-  })
-
-  it('rejects a registry with no sequence at all', () => {
-    expect(parseKeyRegistry({ current: first.keyId, keys: [entry(first)] }).ok).toBe(false)
+    expect(() => withRevokedKey(revoked, second().keyId, 4_000)).toThrow(/cannot-revoke-current/)
+    expect(() => withRevokedKey(revoked, 'deadbeefdeadbeef', 4_000)).toThrow(/unknown-key/)
   })
 })

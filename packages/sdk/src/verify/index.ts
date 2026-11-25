@@ -9,7 +9,7 @@
  */
 
 export {
-  Verifier, UnreachableError, REGISTRY_PATH, pageTreePath, publicationPath, httpSource
+  Verifier, UnreachableError, REGISTRY_PATH, keyFilePath, pageTreePath, publicationPath, httpSource
 } from './client.js'
 export type { VerifierOptions, Verdict, Source, PublishedComponent } from './client.js'
 
@@ -19,11 +19,11 @@ export type { JsonValue } from './canonical.js'
 export { ALGORITHMS, ROOT_ALGORITHM, isAlgorithmName, getAlgorithm } from './algorithms.js'
 export type { VerificationAlgorithm } from './algorithms.js'
 
-export { readEnvelope, peekUnverifiedHeader, verifyEnvelope, fromBase64 } from './envelope.js'
-export type { SignedEnvelope, UnverifiedHeader, VerificationResult } from './envelope.js'
+export { readEnvelope, peekUnverifiedHeader, rejectBeforeKey, verifyEnvelope, fromBase64 } from './envelope.js'
+export type { SignedEnvelope, UnverifiedHeader, VerificationKey, VerificationResult } from './envelope.js'
 
-export { KEY_REGISTRY_DOCUMENT, deriveKeyId, readRegistry, resolveKey } from './registry.js'
-export type { KeyRegistry, RegistryKey } from './registry.js'
+export { KEY_REGISTRY_DOCUMENT, deriveKeyId, readRegistry, readKeyFile } from './registry.js'
+export type { KeyRegistry, RegistryKey, KeyFile, ResolvedKey } from './registry.js'
 
 export { PAGE_TREE_DOCUMENT, readPageTree, readNode, walkTree, pinnedPublications } from './pageTree.js'
 export type { ReadablePageNode, ReadableAttributeValue, PublicationPin, Read } from './pageTree.js'

@@ -4,6 +4,7 @@ import { ml_dsa65 as subordinateScheme } from '@noble/post-quantum/ml-dsa.js'
 import { Verifier, REGISTRY_PATH, pageTreePath, publicationPath } from './client.js'
 import { digest, type JsonValue } from './canonical.js'
 import { deriveKeyId } from './registry.js'
+import * as keys from '../../test/keyManifests.js'
 import { renderPage } from '../execute/render.js'
 import { resolvePage } from '../execute/resolve.js'
 
@@ -147,19 +148,20 @@ beforeEach(() => {
 
   bucket = {
     [REGISTRY_PATH]: sign(
-      'SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v1',
+      'SLH-DSA-SHA2-128s', rootKeyId, 'genoacms.keyRegistry.v2',
       {
         sequence: 1,
         current: instanceKeyId,
         keys: [{
           keyId: instanceKeyId,
           alg: 'ML-DSA-65',
-          publicKey: toBase64(instance.publicKey),
+          digest: keys.digestOf(instance.publicKey),
           createdAt: 1_700_000_000_000
         }]
       } as JsonValue,
       root.secretKey, rootScheme
     ),
+    [keys.keyFilePathOf(instanceKeyId)]: keys.keyFileOf(instance),
     [publicationPath(UID, PUBLICATION_ID)]: signed('genoacms.componentPublication.v1', publication()),
     [pageTreePath(PAGE)]: signed('genoacms.pageTree.v1', pageTree())
   }
@@ -282,14 +284,14 @@ describe('attack 2 — an artifact signed by an unknown key', () => {
     // anchor the consumer was built with, so this is where the chain terminates.
     const client = verifier()
     bucket[REGISTRY_PATH] = sign(
-      'ML-DSA-65', attackerKeyId, 'genoacms.keyRegistry.v1',
+      'ML-DSA-65', attackerKeyId, 'genoacms.keyRegistry.v2',
       {
         sequence: 2,
         current: attackerKeyId,
         keys: [{
           keyId: attackerKeyId,
           alg: 'ML-DSA-65',
-          publicKey: toBase64(attacker.publicKey),
+          digest: keys.digestOf(attacker.publicKey),
           createdAt: 1_700_000_000_001
         }]
       } as JsonValue,
@@ -384,4 +386,50 @@ describe('attack 3 — repointing a published page in the bucket', () => {
     expect(verdict?.valid).toBe(false)
     expect(verdict).not.toHaveProperty('value')
   })
+})
+
+describe('attacks on the key files and the manifest', () => {
+  const k = keys.subordinateKeypair(5)
+  const kId = keys.keyIdOf(k.publicKey)
+  const successor = keys.subordinateKeypair(6)
+  const successorId = keys.keyIdOf(successor.publicKey)
+
+  const manifestAt = (sequence: number, moments: { supersededAt?: number, revokedAt?: number }) =>
+    keys.signedManifest(root, {
+      sequence,
+      current: successorId,
+      keys: [keys.entryOf(k, { createdAt: 1, ...moments }), keys.entryOf(successor, { createdAt: 2 })]
+    } as JsonValue)
+
+  const verifierWith = (minimumRegistrySequence?: number): Verifier => new Verifier({
+    rootPublicKey: root.publicKey,
+    source: { read: async (path) => path in bucket ? JSON.stringify(bucket[path]) : undefined },
+    ...(minimumRegistrySequence === undefined ? {} : { minimumRegistrySequence })
+  })
+
+  it('VFY-1, REG-2: a replaced key file under the same key id is refused', async () => {
+    bucket = {
+      [REGISTRY_PATH]: manifestAt(1, { supersededAt: 2 }),
+      [keys.keyFilePathOf(kId)]: keys.keyFileOf(attacker, kId),
+      [keys.keyFilePathOf(successorId)]: keys.keyFileOf(successor),
+      [pageTreePath(PAGE)]: keys.signedBySubordinate(attacker, 'genoacms.pageTree.v1', pageTree(), kId)
+    }
+
+    const verdict = await verifierWith().pageTree(PAGE)
+
+    expect(verdict).toEqual({ valid: false, reason: `key-file-mismatch: ${kId} publicKey does not match the key manifest` })
+    expect(loader).not.toHaveBeenCalled()
+  }, 60_000)
+
+  it('VFY-2: a restored older manifest that un-revokes a key is refused with the consumer\'s mark', async () => {
+    bucket = {
+      [REGISTRY_PATH]: manifestAt(10, { supersededAt: 2 }),
+      [keys.keyFilePathOf(kId)]: keys.keyFileOf(k),
+      [keys.keyFilePathOf(successorId)]: keys.keyFileOf(successor),
+      [pageTreePath(PAGE)]: keys.signedBySubordinate(k, 'genoacms.pageTree.v1', pageTree())
+    }
+
+    expect(await verifierWith(11).pageTree(PAGE)).toEqual({ valid: false, reason: 'registry-rollback: sequence 10 is below 11' })
+    expect(await verifierWith().pageTree(PAGE)).toMatchObject({ valid: true })
+  }, 60_000)
 })

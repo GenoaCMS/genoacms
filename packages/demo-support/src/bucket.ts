@@ -1,4 +1,5 @@
 import { Storage } from '@google-cloud/storage'
+import { KEY_FILE } from './artifacts.js'
 
 /**
  * Reading the instance's bucket, with no build tool involved.
@@ -63,8 +64,9 @@ const readObject = async (
   }
 }
 
-/** A publication is written once and never rewritten, so its bytes can be cached without bound. */
-const isImmutable = (path: string): boolean => path.startsWith('.genoacms/components/public/')
+/** A publication and a key file are written once and never rewritten (REG-3), so their bytes can be cached without bound. */
+const isImmutable = (path: string): boolean =>
+  path.startsWith('.genoacms/components/public/') || KEY_FILE.test(path)
 
 /**
  * What to answer for a published document, as data rather than as a response.

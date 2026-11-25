@@ -131,12 +131,11 @@ async function loadManifest<T> (
   if (header === undefined) return await rejected('not a signed envelope')
 
   // Throws when the registry cannot be read — an outage, not a verdict, and must not replace.
-  const publicKey = await resolveVerificationKey(header.keyId)
-  if (publicKey === undefined) {
-    return await rejected(`signing key ${header.keyId} is unknown or revoked`)
-  }
+  // VFY-1, ENV-6
+  const resolution = await resolveVerificationKey(header.keyId)
+  if (!resolution.ok) return await rejected(resolution.reason)
 
-  const verified = verify(candidate, type, publicKey)
+  const verified = verify(candidate, type, resolution.key)
   if (!verified.valid) return await rejected(`signature: ${verified.reason}`)
 
   const parsed = parse(verified.payload)

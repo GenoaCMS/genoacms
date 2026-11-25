@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
 import { deriveKeyId } from '#lib/script/signing/keyId.js'
-import { sign, verify, toBase64, peekUnverifiedHeader } from '#lib/script/signing/envelope.js'
-import { parseKeyRegistry, findPublicKey, withRotatedKey, withRevokedKey, type KeyRegistry } from '#lib/script/signing/registry.js'
+import { sign, verify, peekUnverifiedHeader } from '#lib/script/signing/envelope.js'
+import { parseKeyManifest, digestOf, findKey, isRevoked, withRotatedKey, withRevokedKey, type KeyManifest } from '#lib/script/signing/registry.js'
+import { parseKeyFile, toKeyFile } from '#lib/script/signing/keyFile.js'
 import { parseRolesManifest, serializeRolesManifest } from './manifests'
 import type { Role } from './roles'
 import type { JsonValue } from '#lib/script/signing/canonical.js'
@@ -23,19 +24,15 @@ const makeKey = (fill: number) => {
 const signer = makeKey(1)
 const successor = makeKey(2)
 
-const registryWith = (...keys: Array<typeof signer>): KeyRegistry => {
-  const parsed = parseKeyRegistry({
-    sequence: 1,
-    current: keys[0].keyId,
-    keys: keys.map(key => ({
-      keyId: key.keyId,
-      alg: SUBORDINATE_ALGORITHM,
-      publicKey: toBase64(key.keypair.publicKey),
-      createdAt: 1_000
-    }))
-  })
+const entryOf = (key: typeof signer, createdAt: number) =>
+  ({ keyId: key.keyId, alg: 'ML-DSA-65' as const, digest: digestOf(key.keypair.publicKey), createdAt })
+
+const keyFiles = new Map([signer, successor].map(key => [key.keyId, toKeyFile(key.keyId, 'ML-DSA-65', key.keypair.publicKey)]))
+
+const registryWith = (...keys: Array<typeof signer>): KeyManifest => {
+  const parsed = parseKeyManifest({ sequence: 1, current: keys[0].keyId, keys: keys.map(key => entryOf(key, 1_000)) })
   if (!parsed.ok) throw new Error(parsed.reason)
-  return parsed.registry
+  return parsed.manifest
 }
 
 const roles: Role[] = [
@@ -50,12 +47,14 @@ const signedRoles = (key: typeof signer) =>
   })
 
 /** What resolution.server does, with storage and the registry supplied directly. */
-const readManifest = (candidate: unknown, registry: KeyRegistry) => {
+const readManifest = (candidate: unknown, registry: KeyManifest) => {
   const header = peekUnverifiedHeader(candidate)
   if (header === undefined) return { ok: false as const, reason: 'not an envelope' }
-  const publicKey = findPublicKey(registry, header.keyId)
-  if (publicKey === undefined) return { ok: false as const, reason: 'key unknown or revoked' }
-  const verified = verify(candidate, 'genoacms.roles.v1', publicKey)
+  const entry = findKey(registry, header.keyId)
+  if (entry === undefined || isRevoked(entry)) return { ok: false as const, reason: 'key unknown or revoked' }
+  const resolution = parseKeyFile(entry, keyFiles.get(entry.keyId))
+  if (!resolution.ok) return { ok: false as const, reason: resolution.reason }
+  const verified = verify(candidate, 'genoacms.roles.v1', resolution.key)
   if (!verified.valid) return { ok: false as const, reason: verified.reason }
   return parseRolesManifest(verified.payload)
 }
@@ -70,24 +69,14 @@ describe('a signed manifest end to end', () => {
   it('still verifies after the signing key is superseded by a rotation', () => {
     // Rotation must not invalidate manifests already written.
     const stored = JSON.parse(JSON.stringify(signedRoles(signer)))
-    const rotated = withRotatedKey(registryWith(signer), {
-      keyId: successor.keyId,
-      alg: SUBORDINATE_ALGORITHM,
-      publicKey: toBase64(successor.keypair.publicKey),
-      createdAt: 2_000
-    }, 2_000)
+    const rotated = withRotatedKey(registryWith(signer), entryOf(successor, 2_000), 2_000)
     expect(readManifest(stored, rotated).ok).toBe(true)
   })
 
   it('stops verifying once that key is revoked', () => {
     // And revocation must invalidate them, which is the whole difference between the two states.
     const stored = JSON.parse(JSON.stringify(signedRoles(signer)))
-    const rotated = withRotatedKey(registryWith(signer), {
-      keyId: successor.keyId,
-      alg: SUBORDINATE_ALGORITHM,
-      publicKey: toBase64(successor.keypair.publicKey),
-      createdAt: 2_000
-    }, 2_000)
+    const rotated = withRotatedKey(registryWith(signer), entryOf(successor, 2_000), 2_000)
     const revoked = withRevokedKey(rotated, signer.keyId, 3_000)
     expect(readManifest(stored, revoked))
       .toMatchObject({ ok: false, reason: expect.stringContaining('unknown or revoked') })

@@ -55,8 +55,9 @@ const bothAdmin = principal(['config:users:manage', 'config:roles:manage'], 'adm
 const nobody = principal([], 'nobody-1')
 
 async function storedUsers (): Promise<Record<string, Parsed>> {
-  const publicKey = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
-  const verified = verify(memory.json(USERS_PATH), 'genoacms.users.v1' as never, publicKey as Uint8Array)
+  const resolution = await testKeyResolution.resolveVerificationKey(signingKey.keyId)
+  if (!resolution.ok) throw new Error(resolution.reason)
+  const verified = verify(memory.json(USERS_PATH), 'genoacms.users.v1' as never, resolution.key)
   if (!verified.valid) throw new Error(`users.json does not verify: ${verified.reason}`)
   return (verified.payload as Parsed).users
 }

@@ -149,6 +149,7 @@ interface AttributeNameVector {
  * "not covered yet", which is the honest answer and not the same as a disagreement.
  */
 interface Corpus {
+  algorithm?: string
   key?: { publicKey: string }
   canonicalization?: CanonicalVector[]
   envelopes?: EnvelopeVector[]
@@ -226,7 +227,7 @@ describe.skipIf(vectors.length === 0)('the conformance corpus', () => {
 })
 
 describe.skipIf(documents.length === 0)('component documents in the corpus', () => {
-  const publicKey = fromBase64(corpus?.key?.publicKey ?? '')
+  const publicKey = { alg: corpus?.algorithm ?? '', publicKey: fromBase64(corpus?.key?.publicKey ?? '') ?? new Uint8Array() }
 
   it.each(documents.map(vector => [vector.name, vector] as const))(
     'reaches the signer\'s verdict on %s',
@@ -316,7 +317,7 @@ describe.skipIf(pins.length === 0)('checking a header against what a page pinned
 })
 
 describe.skipIf(envelopes.length === 0)('the envelope, checked against the signer', () => {
-  const publicKey = fromBase64(corpus?.key?.publicKey ?? '')
+  const publicKey = { alg: corpus?.algorithm ?? '', publicKey: fromBase64(corpus?.key?.publicKey ?? '') ?? new Uint8Array() }
 
   /*
    * The corpus does not record what type each envelope vector was read as, because every one of them
@@ -384,4 +385,45 @@ describe.skipIf(attributes.length === 0)('reaching a component\'s parameters', (
 
     expect(read.ok && read.value).toEqual(vector.names)
   })
+})
+
+describe('what core writes, read by this SDK', () => {
+  const coreSigning = new URL('../../../core/src/lib/script/signing/', import.meta.url)
+  const fromCore = async <T>(module: string): Promise<T> => await import(/* @vite-ignore */ new URL(module, coreSigning).pathname) as T
+
+  it('REG-1, REG-2, VFY-1, VFY-3: the manifest and key files core writes are read by the SDK, and a page tree core signs verifies in it', async () => {
+    type Core = Record<string, (...parameters: never[]) => never>
+    const { getAlgorithm } = await fromCore<Core>('algorithms.ts')
+    const { deriveKeyId } = await fromCore<Core>('keyId.ts')
+    const { sign } = await fromCore<Core>('envelope.ts')
+    const { digestOf, toPayload } = await fromCore<Core>('registry.ts')
+    const { toKeyFile, keyFilePath } = await fromCore<Core>('keyFile.ts')
+    const { Verifier } = await import('./client.js')
+
+    const rootAlgorithm = (getAlgorithm as (name: string) => { generateKeypair: (seed: Uint8Array) => { publicKey: Uint8Array, secretKey: Uint8Array }, lengths: { seed: number } })('SLH-DSA-SHA2-128s')
+    const subordinateAlgorithm = (getAlgorithm as (name: string) => typeof rootAlgorithm)('ML-DSA-65')
+    const root = rootAlgorithm.generateKeypair(new Uint8Array(rootAlgorithm.lengths.seed).fill(1))
+    const subordinate = subordinateAlgorithm.generateKeypair(new Uint8Array(subordinateAlgorithm.lengths.seed).fill(2))
+    const keyIdOf = deriveKeyId as (publicKey: Uint8Array) => string
+    const signed = sign as (type: string, payload: unknown, key: { alg: string, keyId: string, secretKey: Uint8Array }) => unknown
+    const keyId = keyIdOf(subordinate.publicKey)
+    const manifest = {
+      sequence: 1,
+      current: keyId,
+      keys: [{ keyId, alg: 'ML-DSA-65', digest: (digestOf as (key: Uint8Array) => string)(subordinate.publicKey), createdAt: 1_700_000_000_000 }]
+    }
+    const tree = { component: 'Page', type: 'dynamic', uid: 'component-1', publicationId: 'publication-1', data: {} }
+
+    const storage = new Map<string, string>([
+      [(keyFilePath as (id: string) => string)(keyId), JSON.stringify((toKeyFile as (id: string, alg: string, key: Uint8Array) => unknown)(keyId, 'ML-DSA-65', subordinate.publicKey))],
+      ['.genoacms/keys/public.json', JSON.stringify(signed('genoacms.keyRegistry.v2', (toPayload as (value: unknown) => unknown)(manifest), {
+        alg: 'SLH-DSA-SHA2-128s', keyId: keyIdOf(root.publicKey), secretKey: root.secretKey
+      }))],
+      ['.genoacms/pages/readables/home', JSON.stringify(signed('genoacms.pageTree.v1', tree, { alg: 'ML-DSA-65', keyId, secretKey: subordinate.secretKey }))]
+    ])
+    const verifier = new Verifier({ rootPublicKey: root.publicKey, source: { read: async (path) => storage.get(path) } })
+
+    expect(await verifier.loadRegistry()).toEqual({ valid: true, value: manifest })
+    expect(await verifier.pageTree('home')).toMatchObject({ valid: true, value: { component: 'Page', uid: 'component-1' } })
+  }, 60_000)
 })

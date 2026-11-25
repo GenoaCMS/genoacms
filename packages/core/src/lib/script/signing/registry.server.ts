@@ -7,8 +7,15 @@ import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { loadRootKey, getRootSigningKey } from './rootKey.server'
 import { createSubordinateKey, forgetSubordinateKey } from './subordinateKey.server'
 import { sign, verify } from './envelope'
-import { parseKeyRegistry, toPayload, withRotatedKey, withRevokedKey, type KeyRegistry } from './registry'
+import { ROOT_ALGORITHM } from './algorithms'
+import {
+  digestOf, parseKeyManifest, toPayload, withRotatedKey, withRevokedKey,
+  type KeyManifest, type RegisteredKey
+} from './registry'
+import { toKeyFile } from './keyFile'
+import { writeKeyFile, deleteKeyFile } from './keyFile.server'
 import { checkAndAdvance, recordPublished } from './registrySequence.server'
+import type { SubordinateKey } from './subordinateKey.server'
 
 /**
  * Reading and writing `.genoacms/keys/public.json`.
@@ -20,9 +27,25 @@ import { checkAndAdvance, recordPublished } from './registrySequence.server'
  */
 
 const registryPath = join('.genoacms', 'keys', 'public.json')
+const MANIFEST_DOCUMENT = 'genoacms.keyRegistry.v2'
+const EARLIER_DOCUMENT = 'genoacms.keyRegistry.v1'
+const NEEDS_MIGRATION = `registry/needs-migration: ${registryPath} is ${EARLIER_DOCUMENT}, which this version of core does not read`
+
+function isEarlierManifest (candidate: unknown): boolean {
+  return typeof candidate === 'object' && candidate !== null && (candidate as Record<string, unknown>).type === EARLIER_DOCUMENT
+}
+
+function registeredKeyOf (key: SubordinateKey, at: number): RegisteredKey {
+  return { keyId: key.keyId, alg: 'ML-DSA-65', digest: digestOf(key.publicKey), createdAt: at }
+}
+
+/** REG-2, REG-3: the key file of a freshly minted key. */
+async function publishKeyFile (key: SubordinateKey): Promise<void> {
+  await writeKeyFile(toKeyFile(key.keyId, 'ML-DSA-65', key.publicKey))
+}
 
 interface LoadedRegistry {
-  registry: KeyRegistry
+  registry: KeyManifest
   /** For a conditional write, so a rotation cannot overwrite one it did not see. */
   version?: string
 }
@@ -57,18 +80,21 @@ async function loadRegistry (): Promise<RegistryLoadResult> {
     return { ok: false, reason: 'registry-not-json', absent: false }
   }
 
+  // REG-6
+  if (isEarlierManifest(candidate)) return { ok: false, reason: NEEDS_MIGRATION, absent: false }
+
   const root = await loadRootKey()
-  const verified = verify(candidate, 'genoacms.keyRegistry.v1', root.publicKey)
+  const verified = verify(candidate, MANIFEST_DOCUMENT, { alg: ROOT_ALGORITHM, publicKey: root.publicKey })
   if (!verified.valid) {
     return { ok: false, reason: `registry-signature: ${verified.reason}`, absent: false }
   }
 
-  const parsed = parseKeyRegistry(verified.payload)
+  const parsed = parseKeyManifest(verified.payload)
   if (!parsed.ok) return { ok: false, reason: `registry-invalid: ${parsed.reason}`, absent: false }
 
   // A valid signature does not date a document. Without this an adversary who kept an older
   // registry could restore it and undo a revocation, replaying a signature that still verifies.
-  const sequence = await checkAndAdvance(parsed.registry.sequence)
+  const sequence = await checkAndAdvance(parsed.manifest.sequence)
   if (!sequence.ok) {
     return {
       ok: false,
@@ -77,7 +103,7 @@ async function loadRegistry (): Promise<RegistryLoadResult> {
     }
   }
 
-  return { ok: true, value: { registry: parsed.registry, version } }
+  return { ok: true, value: { registry: parsed.manifest, version } }
 }
 
 /**
@@ -87,8 +113,8 @@ async function loadRegistry (): Promise<RegistryLoadResult> {
  * exists, and the write is conditional on that — so two instances bootstrapping together cannot
  * both create one, and a rotation cannot silently overwrite a rotation it never saw.
  */
-async function writeRegistry (registry: KeyRegistry, expected?: string): Promise<void> {
-  const envelope = sign('genoacms.keyRegistry.v1', toPayload(registry), await getRootSigningKey())
+async function writeRegistry (registry: KeyManifest, expected?: string): Promise<void> {
+  const envelope = sign(MANIFEST_DOCUMENT, toPayload(registry), await getRootSigningKey())
   await uploadInternalObjectJSON(
     registryPath,
     envelope,
@@ -118,16 +144,8 @@ async function loadOrBootstrapRegistry (): Promise<LoadedRegistry> {
   }
 
   const key = await createSubordinateKey()
-  const registry: KeyRegistry = {
-    sequence: 1,
-    current: key.keyId,
-    keys: [{
-      keyId: key.keyId,
-      alg: key.alg,
-      publicKey: Buffer.from(key.publicKey).toString('base64'),
-      createdAt: Date.now()
-    }]
-  }
+  const registry: KeyManifest = { sequence: 1, current: key.keyId, keys: [registeredKeyOf(key, Date.now())] }
+  await publishKeyFile(key)
 
   try {
     await writeRegistry(registry)
@@ -144,16 +162,14 @@ async function loadOrBootstrapRegistry (): Promise<LoadedRegistry> {
 }
 
 /** Appends a freshly generated key, marks the outgoing one superseded, and publishes the result. */
-async function rotateSubordinateKey (): Promise<KeyRegistry> {
+async function rotateSubordinateKey (): Promise<KeyManifest> {
   const { registry, version } = await loadOrBootstrapRegistry()
   const key = await createSubordinateKey()
-  const rotated = withRotatedKey(registry, {
-    keyId: key.keyId,
-    alg: key.alg,
-    publicKey: Buffer.from(key.publicKey).toString('base64'),
-    createdAt: Date.now()
-  }, Date.now())
+  const at = Date.now()
+  const rotated = withRotatedKey(registry, registeredKeyOf(key, at), at)
 
+  // REG-3
+  await publishKeyFile(key)
   await writeRegistry(rotated, version)
   return rotated
 }
@@ -169,7 +185,7 @@ async function rotateSubordinateKey (): Promise<KeyRegistry> {
  * **Everything the revoked key signed stops verifying**, so any document it signed must be re-signed
  * with the live key. The manifests are re-signed by the caller once manifest signing exists.
  */
-async function revokeSubordinateKey (keyId: string): Promise<KeyRegistry> {
+async function revokeSubordinateKey (keyId: string): Promise<KeyManifest> {
   let { registry, version } = await loadOrBootstrapRegistry()
 
   if (registry.current === keyId) {
@@ -180,13 +196,18 @@ async function revokeSubordinateKey (keyId: string): Promise<KeyRegistry> {
   }
 
   const revoked = withRevokedKey(registry, keyId, Date.now())
+  // REG-3
   await writeRegistry(revoked, version)
+  await deleteKeyFile(keyId)
   await forgetSubordinateKey(keyId)
   return revoked
 }
 
 export {
   registryPath,
+  MANIFEST_DOCUMENT,
+  publishKeyFile,
+  registeredKeyOf,
   loadRegistry,
   writeRegistry,
   loadOrBootstrapRegistry,
