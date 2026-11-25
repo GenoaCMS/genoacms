@@ -365,3 +365,96 @@ describe('telling a slot from a list of URLs', () => {
     expect(isChildren(true)).toBe(false)
   })
 })
+
+describe('fetching a page\'s publications at once', () => {
+  interface Pending { pin: string, answer: (verdict: unknown) => void, fail: (error: Error) => void }
+
+  const held = (): { verifier: Verifier, pending: Pending[] } => {
+    const pending: Pending[] = []
+    return {
+      pending,
+      verifier: {
+        component: async ({ uid, publicationId }: { uid: string, publicationId: string }) =>
+          await new Promise((resolve, reject) => {
+            pending.push({ pin: `${uid}/${publicationId}`, answer: resolve, fail: reject })
+          })
+      } as unknown as Verifier
+    }
+  }
+
+  const settle = async (): Promise<void> => { await new Promise(resolve => setTimeout(resolve, 0)) }
+
+  const nested = (): ReadablePageNode => {
+    const leaf = node({ component: 'Leaf', uid: 'leaf', publicationId: 'p' })
+    const card = (uid: string) => node({ component: 'Card', uid, publicationId: 'p', data: { Body: [leaf] } as never })
+    return node({ uid: 'root', publicationId: 'p', data: { Body: [card('first'), card('second')] } as never })
+  }
+
+  const withBody = (uid: string) => ({
+    valid: true,
+    value: { publication: publicationOf({ uid, publicationId: 'p', attributes: [{ reference: 'a', title: 'Body' }] }) }
+  })
+
+  it('asks for every publication at every depth before any has answered', async () => {
+    const { verifier, pending } = held()
+
+    void resolvePage(verifier, nested())
+    await settle()
+
+    expect(pending.map(one => one.pin).sort()).toEqual(['first/p', 'leaf/p', 'root/p', 'second/p'])
+  })
+
+  it('asks for a publication pinned in several places once, even while it is in flight', async () => {
+    const { verifier, pending } = held()
+
+    void resolvePage(verifier, nested())
+    await settle()
+
+    expect(pending.filter(one => one.pin === 'leaf/p')).toHaveLength(1)
+  })
+
+  it('reports the first fault in page order, not the first to arrive', async () => {
+    const { verifier, pending } = held()
+    const answer = (pin: string, verdict: unknown): void => { pending.find(one => one.pin === pin)?.answer(verdict) }
+
+    const resolving = resolvePage(verifier, nested())
+    await settle()
+    answer('second/p', { valid: false, reason: 'second-fault' })
+    await settle()
+    answer('first/p', { valid: false, reason: 'first-fault' })
+    answer('root/p', withBody('root'))
+    answer('leaf/p', withBody('leaf'))
+
+    expect(await resolving).toEqual({ ok: false, reason: 'first-fault' })
+  })
+
+  it('reports a refusal earlier in the page over a fetch that throws later in it', async () => {
+    const { verifier, pending } = held()
+    const unhandled: unknown[] = []
+    const record = (reason: unknown): void => { unhandled.push(reason) }
+    process.on('unhandledRejection', record)
+
+    const resolving = resolvePage(verifier, nested())
+    await settle()
+    pending.find(one => one.pin === 'second/p')?.fail(new Error('storage-down'))
+    pending.find(one => one.pin === 'root/p')?.answer(withBody('root'))
+    pending.find(one => one.pin === 'first/p')?.answer({ valid: false, reason: 'first-fault' })
+    pending.find(one => one.pin === 'leaf/p')?.answer(withBody('leaf'))
+    const resolved = await resolving
+    await settle()
+    process.off('unhandledRejection', record)
+
+    expect({ resolved, unhandled }).toEqual({ resolved: { ok: false, reason: 'first-fault' }, unhandled: [] })
+  })
+
+  it('throws what an earlier fetch threw, as before', async () => {
+    const { verifier, pending } = held()
+
+    const resolving = resolvePage(verifier, nested())
+    await settle()
+    pending.find(one => one.pin === 'root/p')?.fail(new Error('storage-down'))
+    pending.forEach(one => { if (one.pin !== 'root/p') one.answer(withBody(one.pin.split('/')[0])) })
+
+    await expect(resolving).rejects.toThrow('storage-down')
+  })
+})

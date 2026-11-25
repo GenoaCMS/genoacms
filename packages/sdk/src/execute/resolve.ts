@@ -99,6 +99,8 @@ type Publication =
 
 const refuse = (reason: string): Resolved => ({ ok: false, reason })
 
+const ignoreUntilAwaited = (): void => {}
+
 /** Whether a resolved value is a slot — children — rather than text or a list of URLs. */
 const isChildren = (value: ResolvedValue): value is readonly ResolvedNode[] =>
   Array.isArray(value) && value.every(member => typeof member === 'object' && member !== null)
@@ -155,6 +157,10 @@ const missingComponents = (root: ResolvedNode, supplied: Iterable<string>): stri
  *
  * Each publication is fetched and verified **once**, however many nodes pin it. A page placing one
  * card twenty times is one signature check, not twenty.
+ *
+ * Every publication the page pins is requested at once, whatever its depth, so a page costs one wave
+ * of fetches rather than one per node. The answer does not depend on which arrives first: a page with
+ * several faults reports the first in depth-first page order.
  */
 const resolvePage = async (verifier: Verifier, tree: ReadablePageNode): Promise<Resolved> => {
   /**
@@ -165,7 +171,7 @@ const resolvePage = async (verifier: Verifier, tree: ReadablePageNode): Promise<
    * render the second with the first's content. A failure is cached too — the same broken
    * publication pinned twenty times is one answer, not twenty round trips to reach it.
    */
-  const cache = new Map<string, Publication>()
+  const cache = new Map<string, Promise<Publication>>()
 
   const publicationFor = async (node: ReadablePageNode): Promise<Publication> => {
     if (node.uid === undefined || node.publicationId === undefined) {
@@ -177,11 +183,18 @@ const resolvePage = async (verifier: Verifier, tree: ReadablePageNode): Promise<
 
     const key = `${node.uid}/${node.publicationId}`
     const remembered = cache.get(key)
-    if (remembered !== undefined) return remembered
+    if (remembered !== undefined) return await remembered
 
-    const answer = await fetchPublication(node, node.uid, node.publicationId)
-    cache.set(key, answer)
-    return answer
+    const pending = fetchPublication(node, node.uid, node.publicationId)
+    cache.set(key, pending)
+    return await pending
+  }
+
+  const startFetching = (node: ReadablePageNode): void => {
+    publicationFor(node).catch(ignoreUntilAwaited)
+    for (const value of Object.values(node.data)) {
+      if (isSlot(value)) value.forEach(startFetching)
+    }
   }
 
   const fetchPublication = async (
@@ -255,6 +268,7 @@ const resolvePage = async (verifier: Verifier, tree: ReadablePageNode): Promise<
     }
   }
 
+  startFetching(tree)
   return await resolveNode(tree)
 }
 

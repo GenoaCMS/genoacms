@@ -557,3 +557,94 @@ describe('unreachable is neither answer', () => {
       .rejects.toBeInstanceOf(UnreachableError)
   })
 })
+
+describe('loading the registry alongside a fetch', () => {
+  const PAGE = '.genoacms/somewhere/page.json'
+  const signedPage = () => sign('ML-DSA-65', subordinateId, 'genoacms.pageTree.v1', { hello: 'world' }, subordinate.secretKey, subordinateScheme)
+
+  const recording = (respond: (path: string) => Promise<string | undefined>) => {
+    const reads: string[] = []
+    const held = new Map<string, () => void>()
+    const instance = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: {
+        read: async (path) => {
+          reads.push(path)
+          if (path === PAGE) await new Promise<void>(resolve => held.set(path, resolve))
+          return await respond(path)
+        }
+      }
+    })
+    return { instance, reads, release: () => held.get(PAGE)?.() }
+  }
+
+  const fromServed = async (path: string): Promise<string | undefined> =>
+    path in served ? JSON.stringify(served[path]) : undefined
+
+  const settle = async (): Promise<void> => { await new Promise(resolve => setTimeout(resolve, 0)) }
+
+  it('asks for the registry while the document is still on its way', async () => {
+    served[PAGE] = signedPage()
+    const { instance, reads, release } = recording(fromServed)
+
+    const fetching = instance.fetchVerified(PAGE, 'genoacms.pageTree.v1')
+    await settle()
+    const readBeforeArrival = [...reads]
+    release()
+
+    expect({ readBeforeArrival: readBeforeArrival.sort(), verdict: await fetching }).toEqual({
+      readBeforeArrival: [PAGE, REGISTRY_PATH].sort(),
+      verdict: { valid: true, value: { hello: 'world' } }
+    })
+  })
+
+  it('reads the registry once for documents verified at the same time', async () => {
+    const reads: string[] = []
+    const instance = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: { read: async (path) => { reads.push(path); return await fromServed(path) } }
+    })
+    const envelope = signedPage()
+
+    await Promise.all([1, 2, 3].map(async () => await instance.verifyDocument(structuredClone(envelope), 'genoacms.pageTree.v1')))
+
+    expect(reads.filter(path => path === REGISTRY_PATH)).toHaveLength(1)
+  })
+
+  it('still answers that a document is absent when the registry cannot be reached', async () => {
+    const instance = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: {
+        read: async (path) => {
+          if (path === REGISTRY_PATH) throw new UnreachableError('storage-down')
+          return undefined
+        }
+      }
+    })
+    const unhandled: unknown[] = []
+    const record = (reason: unknown): void => { unhandled.push(reason) }
+    process.on('unhandledRejection', record)
+
+    const verdict = await instance.fetchVerified(PAGE, 'genoacms.pageTree.v1')
+    await settle()
+    process.off('unhandledRejection', record)
+
+    expect({ verdict, unhandled }).toEqual({ verdict: undefined, unhandled: [] })
+  })
+
+  it('tries the registry again after a load that failed', async () => {
+    let attempts = 0
+    const instance = new Verifier({
+      rootPublicKey: root.publicKey,
+      source: {
+        read: async (path) => {
+          if (path === REGISTRY_PATH && ++attempts === 1) throw new UnreachableError('storage-down')
+          return await fromServed(path)
+        }
+      }
+    })
+
+    await expect(instance.registry()).rejects.toThrow()
+    expect(await instance.registry()).toMatchObject({ valid: true })
+  })
+})

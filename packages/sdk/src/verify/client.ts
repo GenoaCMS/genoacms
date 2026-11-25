@@ -154,6 +154,8 @@ interface PublishedComponent {
   executable?: PublishedExecutable
 }
 
+const ignoreUntilAwaited = (): void => {}
+
 class Verifier {
   readonly #rootPublicKey: Uint8Array
   readonly #source: Source
@@ -162,6 +164,7 @@ class Verifier {
   /** The highest registry sequence seen. See the note on rollback above. */
   #highWaterMark = 0
   #registry: KeyRegistry | undefined
+  #registryLoad: Promise<Verdict<KeyRegistry>> | undefined
 
   constructor (options: VerifierOptions) {
     if (getAlgorithm(ROOT_ALGORITHM) === undefined) {
@@ -219,10 +222,23 @@ class Verifier {
     return { valid: true, value: registry }
   }
 
-  /** The established registry, loading it on first use. */
+  /** The established registry, loading it on first use. Callers asking at once share one load. */
   async registry (): Promise<Verdict<KeyRegistry>> {
     if (this.#registry !== undefined) return { valid: true, value: this.#registry }
-    return await this.loadRegistry()
+    this.#registryLoad ??= this.#loadRegistryOnce()
+    return await this.#registryLoad
+  }
+
+  async #loadRegistryOnce (): Promise<Verdict<KeyRegistry>> {
+    try {
+      return await this.loadRegistry()
+    } finally {
+      this.#registryLoad = undefined
+    }
+  }
+
+  #startLoadingRegistry (): void {
+    this.registry().catch(ignoreUntilAwaited)
   }
 
   /**
@@ -304,11 +320,13 @@ class Verifier {
 
 
   /**
-   * Fetches a path and verifies it as the document type the caller expects.
+   * Fetches a path and verifies it as the document type the caller expects. The registry starts loading
+   * alongside the fetch, so verifying does not wait for it afterwards.
    *
    * Throws if the object cannot be fetched; returns a verdict about it otherwise.
    */
   async fetchVerified (path: string, expectedType: string): Promise<Verdict<JsonValue> | undefined> {
+    this.#startLoadingRegistry()
     const candidate = await this.#readJSON(path)
     if (candidate === undefined) return undefined
     return await this.verifyDocument(candidate, expectedType)
