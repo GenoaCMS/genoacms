@@ -30,6 +30,49 @@ genoa <command> [target] [flags]
   failure   message to stderr, exit 1
 ```
 
+### Use cases
+
+```mermaid
+flowchart LR
+  operator[Operator]
+  subgraph cli [genoa]
+    LJ1([Start a project])
+    LJ2([Run it locally])
+    LJ3([Build and deploy])
+    LJ4([Rotate the root key])
+    LJ5([Compose a role])
+    LJ6([Delete a dynamic collection])
+  end
+  operator --- LJ1 & LJ2 & LJ3 & LJ4 & LJ5 & LJ6
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| LJ1 | Start a project | Operator | CLI-12, CLI-13 |
+| LJ2 | Run it locally | Operator | CLI-6 |
+| LJ3 | Build and deploy | Operator | |
+| LJ4 | Rotate the root key | Operator | CLI-9 |
+| LJ5 | Compose a role | Operator | CLI-11 |
+| LJ6 | Delete a dynamic collection | Operator | CLI-10 |
+
+### Scenarios
+
+**LJ3a. An operator builds and deploys from the published packages.** CLI-7, CLI-8, CLI-21.
+
+```mermaid
+sequenceDiagram
+  actor O as Operator
+  participant G as genoa
+  participant C as Core's Vite
+  participant T as Target's procedure
+  O->>G: genoa deploy <target>
+  G->>G: load the config, pick the target (CLI-7)
+  G->>C: vite build in core, then write the artifact's package.json (CLI-7)
+  G->>G: resolve the target's options through a host (CLI-8)
+  G->>T: run with projectRoot, buildDir, workDir, target (CLI-8)
+  T-->>O: deployed, needing no devDependency of a GenoaCMS package (CLI-21)
+```
+
 ### Decisions
 
 | # | Decision | Where |

@@ -21,6 +21,26 @@ These documents follow the Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md
 `C`. The adapter model is not restructured yet, and its unprefixed IDs are those of the 2026-09
 redesign ([`configuration.md`](../configuration.md)).
 
+```mermaid
+flowchart LR
+  core[GenoaCMS core] -->|consumes| authentication & storage & database
+  adapters[Adapters] -->|implement| authentication & storage & database
+  adapters -->|follow| model
+  subgraph contracts ["@genoacms/contracts"]
+    model[Adapter model]
+    authentication[Authentication]
+    storage[Storage]
+    database[Database]
+  end
+  conformance["@genoacms/conformance"] -->|runs against| adapters
+  conformance -.->|checks| storage & database & authentication
+  click model "adapter-model.md"
+  click authentication "authentication.md"
+  click storage "storage.md"
+  click database "database.md"
+  click conformance "conformance.md"
+```
+
 ### Documents
 
 | Document | Codes | Covers | State |
@@ -168,6 +188,9 @@ Every `C` ID, where it lives, and its state.
 | CS7 | Review and falsification audit of AUTHN-3, AUTHN-4 and CONF-4 as changed by RFC-0033 | recorded | [`authentication.md`](authentication.md) |
 | CQ1 | Where are failed sign-ins limited? | answered by CU4, CD7 | [`authentication.md`](authentication.md) |
 | CQ2 | How are users created and changed from the CMS? | recommendation: an optional capability | [`authentication.md`](authentication.md) |
+| CJ1 | Sign in | current | [`authentication.md`](authentication.md) |
+| CJ2 | Stay signed in | current | [`authentication.md`](authentication.md) |
+| CJ3 | Reach the admin area | current | [`authentication.md`](authentication.md) |
 
 ## Specification
 

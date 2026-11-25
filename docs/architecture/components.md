@@ -45,6 +45,184 @@ uses the same envelope); the grant model behind the permissions named here (no d
 consumer SDK's verification and rendering (no document yet); the storage browser that answers file
 pickers ([`storage.md`](storage.md)).
 
+### Use cases
+
+```mermaid
+flowchart LR
+  user[User]
+  site[Consuming site]
+  subgraph core [GenoaCMS core]
+    NJ1([Describe a component])
+    NJ2([Code a dynamic component])
+    NJ3([Publish a component])
+    NJ4([Delete a component])
+    NJ5([Compose a page])
+    NJ6([Build a page])
+    NJ7([Delete pages])
+  end
+  user --- NJ1 & NJ2 & NJ3 & NJ4 & NJ5 & NJ6 & NJ7
+  NJ6 --- site
+  NJ3 --- site
+  NJ5 -. includes .-> NJ3
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| NJ1 | Describe a component | User | |
+| NJ2 | Code a dynamic component | User | |
+| NJ3 | Publish a component | User, Consuming site | |
+| NJ4 | Delete a component | User | |
+| NJ5 | Compose a page | User | |
+| NJ6 | Build a page | User, Consuming site | |
+| NJ7 | Delete pages | User | |
+
+### Scenarios
+
+**NJ1a. A user registers a component and gives it attributes.** CMP-6, CMP-7, CMP-3, CMP-8.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant R as Registrar
+  participant S as Default bucket
+  U->>R: createComponent name, type (CMP-6)
+  R->>S: write the header, and a source definition when dynamic (CMP-1, CMP-6)
+  R-->>U: Component created, uid
+  U->>R: /components/registrar
+  R-->>U: every valid header (CMP-7)
+  U->>R: add an attribute, rename, updateComponent with version (CMP-3, CMP-8)
+  R->>S: write the header if its version still matches (HIS-2)
+  R-->>U: Component updated, the history depth, the new version (CMP-8)
+```
+
+**NJ1b. A user undoes and redoes a change of the header.** HIS-1, CMP-8. Undo is enabled as soon as
+the save answers; undo and redo step the stored header without leaving the page, and a component
+just created has nothing to step.
+
+**NJ2a. A user codes a dynamic component.** SRC-2, SRC-3, SRC-4, HIS-1.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant R as Registrar
+  participant E as Code editor
+  participant L as Language adapter
+  participant S as Default bucket
+  U->>R: the component's code link (SRC-2)
+  R->>E: /components/editor/<uid>
+  E->>L: emitSignature of the attributes (SRC-3)
+  E-->>U: the body, the signature it is wrapped in, the history depth (SRC-2, SRC-3)
+  U->>E: saveComponentRemote body, version (SRC-4)
+  E->>S: write the body if its version still matches, record the step (HIS-1, HIS-2)
+  E-->>U: Code saved
+  U->>E: undo, then redo (HIS-1)
+```
+
+**NJ2b. A user leaves the code editor with unsaved changes.** SRC-5. A navigation within the CMS
+asks first, and declining keeps the body.
+
+**NJ2c. Two editors save the same body.** HIS-2. The save from the editor opened before the other
+save fails with `conflict/modified-since: …`, and the other save is kept.
+
+**NJ3a. A user publishes a dynamic component.** PUB-1, PUB-3, PUB-4, PUB-5, PUB-6.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant P as Publishing
+  participant L as Language adapter
+  participant K as Current subordinate key
+  participant S as Default bucket
+  U->>P: publishComponentRemote componentId, note (PUB-1)
+  P->>S: read the header, the definition and the pointer (PUB-1)
+  P->>P: something changed since the last publication (PUB-2)
+  P->>S: read the security policy once (PUB-3)
+  P->>L: analyze, then compile with the ceilings and origins (PUB-3)
+  L-->>P: the code, and warnings
+  P->>K: sign the publication (PUB-4)
+  P->>S: write it once, at its own uid and publicationId (PUB-5)
+  P->>S: write the pointer and the definition (PUB-5)
+  P-->>U: Component published, publicationId, publishedAt, warnings (PUB-6)
+```
+
+**NJ3b. The language adapter refuses the body.** PUB-3, PUB-6. The first fatal diagnostic is
+reported with its line, and nothing is written.
+
+**NJ3c. A user publishes a prebuilt component.** PUB-1, PUB-5, PUB-6. The publication carries the
+signed header and no executable, and the registrar's dialog passes the note typed into it.
+
+**NJ4a. A user deletes a component.** CMP-9. `Yes, delete` stays disabled until the component's
+name is typed in full; the header, its history, the source directory, the publications and the
+pointer are removed, and the component leaves the catalog.
+
+**NJ4b. A published page pins the component.** CMP-10, CMP-9.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant R as Registrar
+  participant S as Default bucket
+  U->>R: Delete
+  R->>S: list .genoacms/pages/readables/, read each tree verified (CMP-10)
+  R-->>U: the pages pinning it, with their node counts (CMP-10)
+  U->>R: Yes, delete
+  R-->>U: components/in-use: <pages>, and nothing is removed (CMP-9)
+```
+
+**NJ4c. A user deletes several components at once.** CMP-9. `deleteSelected` removes each named in
+the confirmation, and a confirmation that does not name everything selected is refused.
+
+**NJ5a. A user creates a page from a published component.** PUB-7, PGE-2, PGE-3.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant G as Page screens
+  participant S as Default bucket
+  G-->>U: only components with a publication (PUB-7)
+  U->>G: createPage name, componentUID (PGE-2)
+  G->>S: write the entry with one root node, if none of that name (PGE-2)
+  G-->>U: 307 to pages/<name>, then to its root node (PGE-3)
+```
+
+**NJ5b. A user composes the page's nodes.** PGE-5, PGE-4, PGE-6, PGE-3.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant G as Node editor
+  participant S as Default bucket
+  U->>G: addChildNode componentUID, attributeUID, version (PGE-5)
+  G->>S: write the entry if its version still matches (HIS-2)
+  U->>G: a nested node (PGE-3)
+  U->>G: update componentNode, version, with values and a reordered slot (PGE-4)
+  G->>S: write the entry, record the step (PGE-4, HIS-1)
+  U->>G: changePreviewURL value, version (PGE-6)
+  G-->>U: kept across a reload (PGE-3)
+```
+
+**NJ5c. A user undoes and redoes a page.** PGE-7, HIS-1. Undo removes the node added last and redo
+restores it, on the screen and in storage.
+
+**NJ6a. A user builds a page, and a consuming site reads it.** TRE-1, TRE-2, PGE-9.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant G as Page screens
+  participant K as Current subordinate key
+  participant S as Default bucket
+  participant C as Consuming site
+  U->>G: Build
+  G->>S: read the entry and each component's pointer (TRE-2)
+  G->>K: sign the tree, each node pinning its publication (TRE-1, TRE-2)
+  G->>S: write .genoacms/pages/readables/<name> (TRE-1)
+  C->>S: read the tree and the publications it pins, and verify
+  Note over U,C: a newer publication leaves the built tree as it is, until the page is built again (PGE-9)
+```
+
+**NJ7a. A user deletes pages.** PGE-8. `deleteSelected` removes each entry, then its tree.
+
 ### Decisions
 
 | # | Decision | Where |

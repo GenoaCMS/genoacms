@@ -30,6 +30,31 @@ These documents cover only what is specific to GCP. If they disagree on the adap
 contract, those documents win. If they disagree on a GCP detail, these documents win, and the other
 is corrected to point here.
 
+```mermaid
+flowchart LR
+  core[GenoaCMS core] -->|service contracts| storage & database & secrets & idp & fauth
+  operator[Operator] -->|genoa deploy gcp| deploy
+  subgraph gcp ["@genoacms/adapter-gcp"]
+    storage[Cloud Storage]
+    database[Firestore]
+    secrets[Secret Manager]
+    idp[Identity Platform]
+    fauth[Firestore identity store]
+    deploy[Deploy procedure]
+  end
+  adapter["SvelteKit adapter for Cloud Run functions"]
+  fauth --> database
+  deploy -->|stages the build of| adapter
+  deploy --> fn[Cloud Run function]
+  click storage "storage.md"
+  click database "database.md"
+  click secrets "secrets.md"
+  click idp "authentication-identity-platform.md"
+  click fauth "authentication-firestore.md"
+  click deploy "deployment.md"
+  click adapter "deployment.md"
+```
+
 ### Documents
 
 | Document | Codes | Covers |
@@ -266,6 +291,9 @@ Every `G` ID, where it lives, and its state.
 | GS15 | Review and falsification audit of ADP-5 and ADP-6 as changed by RFC-0033 | run 2026-10-09; gaps closed before `c357deb` | README |
 | GQ1 | Which function settings become options | answered by GD3 | [`deployment.md`](deployment.md) |
 | GQ2 | Should the deploy check IAM grants? | recommendation: no | [`deployment.md`](deployment.md) |
+| GJ1 | Build the function | current | [`deployment.md`](deployment.md) |
+| GJ2 | Deploy the function | current | [`deployment.md`](deployment.md) |
+| GJ3 | Serve a request | current | [`deployment.md`](deployment.md) |
 
 ---
 

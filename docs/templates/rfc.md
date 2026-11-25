@@ -28,7 +28,8 @@ The problem, with the findings it fixes, and the change in a few numbered points
 
 The target state, by statement: which statements are added, changed or removed, and their exact
 new text. `changes` in the front matter classifies each change and removal (WORKFLOW §11.3). Then
-everything the implementer needs: signatures, types, error messages, defaults.
+everything the implementer needs: signatures, types, error messages, defaults. A change to the
+system's structure or to a scenario shows the target diagram, with what changes marked (WORKFLOW §5.4).
 
 ## Non-goals
 
@@ -36,11 +37,12 @@ everything the implementer needs: signatures, types, error messages, defaults.
 
 ## Tests
 
-Each test by file, level and exact title, the title carrying the statement IDs it checks, and its assertion
-as *given / when / then*, in terms of behavior. The author reviews these descriptions, not the test
+Each test by file, level and exact title, the title carrying the statement IDs it checks, and the ID of
+the scenario it walks if any, and its assertion as *given / when / then*, in terms of behavior. The author reviews these descriptions, not the test
 code.
 
 - `<test file>` (<level>) › `<CODE>-1: <title>`: given …, when …, then ….
+- `<test file>` (e2e) › `<PREFIX>J1a, <CODE>-1: <title>`: given …, when …, then ….
 
 ## Steps
 

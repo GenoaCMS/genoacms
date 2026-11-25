@@ -175,7 +175,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
   })
 
   describe('the catalog', () => {
-    it('COL-1: lists the configured collections, then each dynamic one, and no directory of another database', async () => {
+    it('OJ1a, COL-1: lists the configured collections, then each dynamic one, and no directory of another database', async () => {
       expect(await catalog(adaSession.page)).toEqual(['test', 'authors', 'articles', 'dynamic', 'unsigned'])
     })
 
@@ -187,20 +187,20 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByText('shadowField', { exact: true }).count()).toBe(0)
     })
 
-    it('COL-2, COL-7: a signed dynamic collection resolves to its definition', async () => {
+    it('OJ1c, COL-2, COL-7: a signed dynamic collection resolves to its definition', async () => {
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
       await shown(page.getByText('shadowField', { exact: true }))
     })
 
-    it('COL-2, COL-7: an unsigned dynamic definition is refused with collection/unverifiable', async () => {
+    it('OJ1d, COL-2, COL-7: an unsigned dynamic definition is refused with collection/unverifiable', async () => {
       const response = await adaSession.page.goto('/collections/unsigned')
 
       expect(response?.status()).toBe(500)
       expect(server.output()).toContain('collection/unverifiable')
     })
 
-    it('COL-6: a dynamic collection is served by the database of its directory', async () => {
+    it('OJ1c, COL-6: a dynamic collection is served by the database of its directory', async () => {
       await fixture('dynamic', { name: `${run} dynamic` })
       const { page } = adaSession
       await visit(page, '/collections/dynamic')
@@ -211,11 +211,11 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByRole('textbox', { name: 'name', exact: true }).inputValue()).toBe(`${run} dynamic`)
     })
 
-    it('COL-3: lists only the collections the principal holds a grant on', async () => {
+    it('OJ1a, COL-3: lists only the collections the principal holds a grant on', async () => {
       expect(new Set(await catalog(carolSession.page))).toEqual(new Set(['test']))
     })
 
-    it('COL-2: a name that resolves to nothing fails with collection/not-found', async () => {
+    it('OJ1d, COL-2: a name that resolves to nothing fails with collection/not-found', async () => {
       const response = await adaSession.page.goto(`/collections/missing-${run}`)
 
       expect(response?.status()).toBe(500)
@@ -284,7 +284,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       }
     })
 
-    it('LST-8: an object shows its fields, never [object Object]', async () => {
+    it('OJ1a, LST-8: an object shows its fields, never [object Object]', async () => {
       const { page } = adaSession
       await visit(page, '/collections/articles')
       const row = page.getByRole('link').filter({ hasText: `${run} article` }).first()
@@ -294,7 +294,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByText('[object Object]').count()).toBe(0)
     })
 
-    it('LST-7, LST-3: the filter narrows the rows, the count follows, Select all selects only the rows shown, and another collection opens unfiltered', async () => {
+    it('OJ1b, LST-7, LST-3: the filter narrows the rows, the count follows, Select all selects only the rows shown, and another collection opens unfiltered', async () => {
       const { page } = adaSession
       await visit(page, '/collections/authors')
       await shown(checkbox(page, authorId))
@@ -321,7 +321,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByLabel('Filter documents').inputValue()).toBe('')
     })
 
-    it('LST-1: shows a header of field names and a row per document linking to it', async () => {
+    it('OJ1a, LST-1: shows a header of field names and a row per document linking to it', async () => {
       const { page } = adaSession
       await visit(page, '/collections/authors')
       await shown(page.getByRole('heading', { name: 'Collection: authors' }))
@@ -346,7 +346,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(articleId).not.toBe('')
     })
 
-    it('LST-2, LST-3: Delete appears before the selection control once something is selected', async () => {
+    it('OJ4a, LST-2, LST-3: Delete appears before the selection control once something is selected', async () => {
       const { page } = adaSession
       await visit(page, '/collections/authors')
       await shown(checkbox(page, authorId))
@@ -385,7 +385,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await button(page, 'New document').count()).toBe(0)
     })
 
-    it('LST-4, DOC-7: deleting the selection asks with the count and removes the documents', async () => {
+    it('OJ4a, LST-4, DOC-7: deleting the selection asks with the count and removes the documents', async () => {
       const first = await author('doomed one')
       const second = await author('doomed two')
       const { page } = adaSession
@@ -401,7 +401,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await expect.poll(async () => await page.getByRole('link').filter({ hasText: `${run} doomed` }).count(), { timeout: 30_000 }).toBe(0)
     })
 
-    it('LST-6, DOC-5: New document creates the document and opens it', async () => {
+    it('OJ2a, LST-6, DOC-5: New document creates the document and opens it', async () => {
       const { page } = adaSession
       await visit(page, '/collections/authors')
       await button(page, 'New document').click()
@@ -416,7 +416,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await readDocument('authors', id)).toMatchObject({ name: `${run} created` })
     })
 
-    it('DOC-6, EDT-3: deleting from the document page removes it, returns to the listing, and asks nothing about unsaved changes', async () => {
+    it('OJ4b, DOC-6, EDT-3: deleting from the document page removes it, returns to the listing, and asks nothing about unsaved changes', async () => {
       const id = await author('deleted alone')
       const { page } = adaSession
       const dialogs: string[] = []
@@ -447,7 +447,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await left(button(page, 'Delete'))).toBeLessThan(await left(button(page, 'Unselect all')))
     })
 
-    it('LST-4: shows Deleting while deleting, and a failed deletion reports Deletion failed and keeps the documents', async () => {
+    it('OJ4c, LST-4: shows Deleting while deleting, and a failed deletion reports Deletion failed and keeps the documents', async () => {
       const id = await author('kept on failure')
       const { page } = adaSession
       await failDeletion(page, '/collections/authors')
@@ -482,7 +482,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       created.authors.push(page.url().split('/').pop() ?? '')
     })
 
-    it('LST-6: a failed result reports its text, or Failed to create document, and a failed request An error occurred', async () => {
+    it('OJ2b, LST-6: a failed result reports its text, or Failed to create document, and a failed request An error occurred', async () => {
       const { page } = adaSession
       await answerCommand(page, 'createDoc', { result: { status: 'fail', text: 'Refused by the test' } })
       const dialog = await openNewDocument(page)
@@ -513,7 +513,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       articleId = await article(authorId, authorId)
     })
 
-    it('EDT-1: names the collection and the document, offers Delete and Save, and records the visit', async () => {
+    it('OJ3a, EDT-1: names the collection and the document, offers Delete and Save, and records the visit', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       const heading = page.getByRole('heading', { level: 1 }).filter({ hasText: articleId })
@@ -535,7 +535,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await button(page, 'Delete').count()).toBe(0)
     })
 
-    it('EDT-2, DOC-5: shows unsaved changes, and Ctrl+S saves them', async () => {
+    it('OJ3a, EDT-2, DOC-5: shows unsaved changes, and Ctrl+S saves them', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       await shown(page.getByText('Saved', { exact: true }))
@@ -548,7 +548,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await readDocument('articles', articleId)).toMatchObject({ slug: `${run}-edited` })
     })
 
-    it('EDT-3: leaving with unsaved changes asks, and declining stays', async () => {
+    it('OJ3b, EDT-3: leaving with unsaved changes asks, and declining stays', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       await page.getByLabel('slug', { exact: true }).fill(`${run}-unsaved`)
@@ -569,7 +569,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await page.waitForURL(/\/collections\/articles\/?$/)
     })
 
-    it('EDT-4, EDT-6: each field gets its control, labelled with its name and hint', async () => {
+    it('OJ3a, EDT-4, EDT-6: each field gets its control, labelled with its name and hint', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
 
@@ -585,7 +585,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await page.getByRole('textbox', { name: 'id', exact: true }).inputValue()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     })
 
-    it('EDT-10: shows the markdown rendered as soon as the page is interactive', async () => {
+    it('OJ3a, EDT-10: shows the markdown rendered as soon as the page is interactive', async () => {
       const id = await article(authorId, authorId)
       const { page } = adaSession
       await openDocument(page, 'articles', id)
@@ -593,7 +593,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(page.getByRole('heading', { name: 'Rendered heading', exact: true }))
     })
 
-    it('EDT-11: list items are cards of position, variant and summary, and removing one asks first', async () => {
+    it('OJ3c, EDT-11: list items are cards of position, variant and summary, and removing one asks first', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       await shown(page.getByRole('button', { name: `#1 hero ${run} headline` }))
@@ -630,7 +630,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await limited.getByRole('button', { name: 'Add item' }).isDisabled()).toBe(true)
     })
 
-    it('EDT-12, DOC-5: choosing a variant keeps only its fields and sets the discriminator', async () => {
+    it('OJ3c, EDT-12, DOC-5: choosing a variant keeps only its fields and sets the discriminator', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       const sections = page.getByRole('group', { name: /^sections\b/ })
@@ -644,7 +644,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(stored.sections[0]).not.toHaveProperty('headline')
     })
 
-    it('PCK-1, PCK-2, LST-5: references are picked in a second tab, which starts from the current value', async () => {
+    it('OJ5a, PCK-1, PCK-2, LST-5: references are picked in a second tab, which starts from the current value', async () => {
       const { context, page } = adaSession
       await openDocument(page, 'articles', articleId)
       const contributors = page.getByRole('group', { name: /^contributors\b/ })
@@ -666,7 +666,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(contributors.getByText(authorId, { exact: true }))
     })
 
-    it('LST-3, LST-5, PCK-4: a single reference is picked alone, shown with a link to it, and removed', async () => {
+    it('OJ5a, LST-3, LST-5, PCK-4: a single reference is picked alone, shown with a link to it, and removed', async () => {
       const { context, page } = adaSession
       await openDocument(page, 'articles', articleId)
       const field = page.getByRole('group', { name: /^author\b/ })
@@ -688,7 +688,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(field.getByText(otherAuthorId, { exact: true }))
     })
 
-    it('PCK-1, PCK-4: a file is shown by name and bucket, and removing it offers storage', async () => {
+    it('OJ5b, PCK-1, PCK-4: a file is shown by name and bucket, and removing it offers storage', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       const field = page.getByRole('group', { name: /^socialShareImage\b/ })
@@ -700,7 +700,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await choose.getAttribute('href')).toMatch(/^\/storage\?selectionId=[0-9a-f-]{36}$/)
     })
 
-    it('EDT-1: a failed deletion reports Document deletion failed and keeps the document', async () => {
+    it('OJ4c, EDT-1: a failed deletion reports Document deletion failed and keeps the document', async () => {
       const id = await author('kept on page failure')
       const { page } = adaSession
       await failDeletion(page, `/collections/authors/${id}`)
@@ -726,7 +726,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await readDocument('articles', articleId)).toMatchObject({ slug: `${run}-meta` })
     })
 
-    it('EDT-2: a failed result reports its text, or Failed to update document, and a failed request An error occurred', async () => {
+    it('OJ3d, EDT-2: a failed result reports its text, or Failed to update document, and a failed request An error occurred', async () => {
       const { page } = adaSession
       await openDocument(page, 'articles', articleId)
       await page.getByLabel('slug', { exact: true }).fill(`${run}-refused`)
@@ -745,7 +745,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       expect(await readDocument('articles', articleId)).not.toMatchObject({ slug: `${run}-refused` })
     })
 
-    it('EDT-3: leaving the page with unsaved changes asks the browser to prompt', async () => {
+    it('OJ3b, EDT-3: leaving the page with unsaved changes asks the browser to prompt', async () => {
       const page = await adaSession.context.newPage()
       await openDocument(page, 'articles', articleId)
       await page.getByLabel('slug', { exact: true }).fill(`${run}-abandoned`)
@@ -790,7 +790,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       return picker
     }
 
-    it('PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
+    it('OJ5b, PCK-2, PCK-4: files are picked in the storage browser up to maxItems, then edited and cleared', async () => {
       const id = await fixture('dynamic', { name: `${run} gallery`, gallery: [] })
       const { page } = adaSession
       await openDocument(page, 'dynamic', id)
@@ -811,7 +811,7 @@ describe.skipIf(!enabled).sequential('collections through the running server', {
       await shown(gallery.getByRole('link', { name: 'Choose files from storage' }))
     })
 
-    it('PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
+    it('OJ5c, PCK-2: a picker whose field is gone is not answered, and stays open', async () => {
       const id = await fixture('dynamic', { name: `${run} abandoned picker`, gallery: [] })
       const { page } = adaSession
       await openDocument(page, 'dynamic', id)

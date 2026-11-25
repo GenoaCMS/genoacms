@@ -119,7 +119,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await adaSession?.page.evaluate(() => { sessionStorage.clear() }).catch(() => {})
   })
 
-  it('STS-1, BRW-1: the bucket list shows the buckets the principal holds a grant on, and opens a bucket\'s root', async () => {
+  it('BJ1a, STS-1, BRW-1: the bucket list shows the buckets the principal holds a grant on, and opens a bucket\'s root', async () => {
     const { page } = adaSession
     await visit(page, '/storage')
     await shown(page.getByRole('heading', { name: 'Buckets', exact: true }))
@@ -135,7 +135,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await carolSession.page.locator(`a[href$="${BUCKET}/contents"]`).count()).toBe(0)
   })
 
-  it('BRW-1, BRW-2: links keep the query string, and the path names each level', async () => {
+  it('BJ1a, BRW-1, BRW-2: links keep the query string, and the path names each level', async () => {
     const { page } = adaSession
     await visit(page, `/storage/${BUCKET}/contents?selectionId=x`)
     await page.getByRole('link', { name: ROOT.slice(0, -1), exact: true }).click()
@@ -153,7 +153,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await page.waitForURL('**/storage')
   })
 
-  it('BRW-3: directories, then files, each opening', async () => {
+  it('BJ1a, BRW-3: directories, then files, each opening', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl(ROOT))
     await shown(page.getByRole('link', { name: 'sub', exact: true }))
@@ -226,7 +226,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     }
   })
 
-  it('BRW-4: the toolbar shows what the principal may use', async () => {
+  it('BJ2a, BRW-4: the toolbar shows what the principal may use', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl(ROOT))
     await shown(checkbox(page, `${ROOT}a.png`))
@@ -248,7 +248,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await reader.getByRole('menuitem', { name: 'Rename', exact: true }).count()).toBe(0)
   })
 
-  it('BRW-5: select all, unselect all, and a selection that follows navigation', async () => {
+  it('BJ2d, BRW-5: select all, unselect all, and a selection that follows navigation', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl(ROOT))
     await shown(checkbox(page, `${ROOT}a.png`))
@@ -268,7 +268,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await button(page, 'Unselect all').click()
   })
 
-  it('BRW-6, BRW-14: uploading two files lists both, and replaces one of the same name', async () => {
+  it('BJ2a, BRW-6, BRW-14: uploading two files lists both, and replaces one of the same name', async () => {
     const { page } = adaSession
     const directory = `${ROOT}upload/`
     await write([`${directory}existing.txt`])
@@ -288,7 +288,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await contentOf(`${directory}existing.txt`)).toBe('replaced')
   })
 
-  it('BRW-7, BRW-13: a directory is created, and a name with / is refused', async () => {
+  it('BJ2b, BRW-7, BRW-13: a directory is created, and a name with / is refused', async () => {
     const { page } = adaSession
     const directory = `${ROOT}creating/`
     await write([`${directory}keep.txt`])
@@ -306,7 +306,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await page.getByRole('link', { name: 'a', exact: true }).count()).toBe(0)
   })
 
-  it('BRW-8: renaming a directory leaves its sibling of a longer name in place', async () => {
+  it('BJ2c, BRW-8: renaming a directory leaves its sibling of a longer name in place', async () => {
     const { page } = adaSession
     const directory = `${ROOT}renaming/`
     await write([`${directory}2024/x.txt`, `${directory}2024-old/y.txt`])
@@ -322,7 +322,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await exists(`${directory}2025-old/y.txt`)).toBe(false)
   })
 
-  it('BRW-9: moving here moves the selection, and leaves what is already here', async () => {
+  it('BJ2d, BRW-9: moving here moves the selection, and leaves what is already here', async () => {
     const { page } = adaSession
     const source = `${ROOT}moving-from/`
     const target = `${ROOT}moving-to/`
@@ -344,7 +344,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await button(page, 'Move here').count()).toBe(0)
   })
 
-  it('BRW-10: deleting asks with the counts, and declining deletes nothing', async () => {
+  it('BJ2e, BRW-10: deleting asks with the counts, and declining deletes nothing', async () => {
     const { page } = adaSession
     const directory = `${ROOT}deleting/`
     await write([`${directory}1.txt`, `${directory}2.txt`, `${directory}dir/3.txt`])
@@ -361,7 +361,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     for (const name of ['1.txt', '2.txt', 'dir/3.txt']) expect(await exists(`${directory}${name}`), name).toBe(false)
   })
 
-  it('BRW-12: as a picker, directories have no checkbox and Confirm selection returns the selection', async () => {
+  it('BJ3a, BRW-12: as a picker, directories have no checkbox and Confirm selection returns the selection', async () => {
     const selectionId = randomUUID()
     const opener = await adaSession.context.newPage()
     await opener.goto('/dashboard')
@@ -394,7 +394,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await opener.close()
   })
 
-  it('BRW-12: a picker takes maxItems and the current value from the opener, and a full selection can still be undone', async () => {
+  it('BJ3a, BRW-12: a picker takes maxItems and the current value from the opener, and a full selection can still be undone', async () => {
     const selectionId = randomUUID()
     const opener = await adaSession.context.newPage()
     await opener.goto('/dashboard')
@@ -418,7 +418,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     await opener.close()
   })
 
-  it('BRW-14: a partial failure names the failed items and keeps only them selected', async () => {
+  it('BJ2f, BRW-14: a partial failure names the failed items and keeps only them selected', async () => {
     const { page } = adaSession
     const directory = `${ROOT}partial/`
     await write([`${directory}a.png`, `${directory}b.png`])
@@ -434,7 +434,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await checkbox(page, `${directory}a.png`).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('BRW-15: Show more loads the next page into the view', async () => {
+  it('BJ1b, BRW-15: Show more loads the next page into the view', async () => {
     const { page } = adaSession
     const directory = `${ROOT}many/`
     await write(Array.from({ length: PAGE_OF_1000 + 1 }, (_, index) => `${directory}${String(index).padStart(4, '0')}.txt`))
@@ -447,7 +447,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await button(page, 'Show more').count()).toBe(0)
   }, 180_000)
 
-  it('STS-2, BRW-16: a principal without a permission is refused with 403, and nothing changes', async () => {
+  it('BJ2g, STS-2, BRW-16: a principal without a permission is refused with 403, and nothing changes', async () => {
     const directory = `${ROOT}sts2/`
     await write([`${directory}x.txt`])
 
@@ -467,7 +467,7 @@ describe.skipIf(!enabled).sequential('the storage browser through the running se
     expect(await exists(`${directory}x.txt`)).toBe(true)
   })
 
-  it('STS-5, BRW-16: .genoacms/ opens for reading, and an upload into it is refused', async () => {
+  it('BJ2h, STS-5, BRW-16: .genoacms/ opens for reading, and an upload into it is refused', async () => {
     const { page } = adaSession
     await visit(page, contentsUrl('.genoacms/'))
     await shown(page.getByRole('heading', { name: '.genoacms', exact: true }))

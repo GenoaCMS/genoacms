@@ -25,6 +25,30 @@ server HTML ── <html> without data-hydrated
 Out of scope, and not yet specified: the layouts, the navigation bar and its mobile variant, the
 navigation progress bar, the toasts and the alert dialogs. Today only the code describes them.
 
+### Use cases
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| VJ1 | Act on a page once it is interactive | Browser automation | |
+
+The actor is anything that drives core's pages in a browser and must wait until they respond: the
+`e2e` tests above all.
+
+### Scenarios
+
+**VJ1a. A page is marked interactive, and stays marked after an in-app navigation.** SHL-1.
+
+```mermaid
+sequenceDiagram
+  actor B as Browser automation
+  participant C as Core
+  B->>C: GET a page
+  C-->>B: HTML whose <html> has no data-hydrated (SHL-1)
+  B->>B: wait for data-hydrated, set once every component is mounted (SHL-1)
+  B->>C: follow a link inside the application
+  C-->>B: the next page's data; data-hydrated stays (SHL-1)
+```
+
 ### Decisions
 
 | # | Decision | Where |

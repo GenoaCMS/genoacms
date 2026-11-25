@@ -32,6 +32,85 @@ has no document yet.
 Not part of the contract: managing users from the CMS (CQ2, `identities.md` IU4), multi-factor
 sign-in, and password reset by email (CU1: not every adapter can).
 
+### Use cases
+
+```mermaid
+flowchart LR
+  user[User]
+  provider[Authentication provider]
+  subgraph core [GenoaCMS core]
+    CJ1([Sign in])
+    CJ2([Stay signed in])
+    CJ3([Reach the admin area])
+  end
+  user --- CJ1 & CJ2 & CJ3
+  CJ1 & CJ2 --- provider
+  CJ3 -. includes .-> CJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| CJ1 | Sign in | User, Authentication provider | |
+| CJ2 | Stay signed in | User, Authentication provider | |
+| CJ3 | Reach the admin area | User | |
+
+### Scenarios
+
+**CJ1a. The first provider that knows the credentials signs the user in.** AUTHN-5, AUTHN-6.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant C as Core
+  participant P as Authentication providers
+  U->>C: email and password on /login
+  loop each provider, in key order
+    C->>P: authenticate
+    alt a credentials rejection, or a failure
+      P-->>C: move on to the next provider (AUTHN-5)
+    else an Identity the authorization data knows
+      P-->>C: the Identity
+    end
+  end
+  C->>C: start a session family recording that provider (AUTHN-6)
+  C-->>U: signed in, the session cookie set (AUTHN-5)
+```
+
+**CJ1b. No provider accepts the credentials.** AUTHN-5. Credentials every provider rejects, and an
+identity the authorization data does not know, fail alike as `invalid-credentials`; no line the
+server writes holds the email or the password.
+
+**CJ1c. A provider fails.** AUTHN-5. When no provider admits the user and one of them failed, the
+sign-in is unavailable, not invalid.
+
+**CJ2a. A refresh revalidates with the provider that signed the user in.** AUTHN-6, AUTHN-7.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant C as Core
+  participant P as Recorded provider
+  U->>C: a request whose access token expired
+  C->>P: getIdentity(subject), on the recorded provider only (AUTHN-7)
+  alt an Identity
+    P-->>C: the Identity
+    C-->>U: a rotated refresh token, an access token with the email it returned (AUTHN-7)
+  else null
+    P-->>C: null
+    C-->>U: the session ends, though another provider still knows the user (AUTHN-7)
+  else the provider fails
+    P-->>C: a failure
+    C-->>U: the request fails, the cookie stays (AUTHN-6, AUTHN-7)
+  end
+```
+
+**CJ2b. The recorded provider no longer knows the user.** AUTHN-7. The session ends.
+
+**CJ2c. The recorded provider fails.** AUTHN-6, AUTHN-7. The request fails and the cookie stays.
+
+**CJ3a. A visitor without a session asks for the admin area.** AUTHN-12. Every page of the admin
+area answers 303 to `/` and renders nothing; `/` and `/login` answer 200.
+
 ### Decisions
 
 | # | Decision | Where |

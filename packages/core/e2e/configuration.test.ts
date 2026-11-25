@@ -103,7 +103,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
     await removeInstance()
   }, TEARDOWN_TIMEOUT_MS)
 
-  it('ROL-1, KEY-1: the configuration index links an administrator to Roles and access and Signing keys, and shows neither to a reader', async () => {
+  it('ZJ1e, YJ1b, ROL-1, KEY-1: the configuration index links an administrator to Roles and access and Signing keys, and shows neither to a reader', async () => {
     const { page } = session
     for (const [text, path] of [['Roles and access', '/configuration/iam'], ['Signing keys', '/configuration/keys']]) {
       await visit(page, '/configuration')
@@ -225,7 +225,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await grantsOf(dialog)).toStrictEqual([])
     })
 
-    it('ROL-5: New role closed without creating reopens with one new row', async () => {
+    it('ZJ1d, ROL-5: New role closed without creating reopens with one new row', async () => {
       const { page } = session
       const dialog = await openNewRole(page)
       await choose(dialog, 'Storage', 'storage:bucket:read')
@@ -242,7 +242,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
   })
 
   describe('a role', () => {
-    it('ROL-5: a created role reopens with its grants, without a reload', async () => {
+    it('ZJ1a, ROL-5: a created role reopens with its grants, without a reload', async () => {
       const { page } = session
       const dialog = await openNewRole(page)
       await dialog.getByPlaceholder('Copywriter').fill(ROLE)
@@ -256,7 +256,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       ])
     })
 
-    it('ROL-5: a role saved again reopens with the grants of the second save', async () => {
+    it('ZJ1b, ROL-5: a role saved again reopens with the grants of the second save', async () => {
       const { page } = session
       await visit(page, '/configuration/iam')
       const first = await openRole(page)
@@ -267,7 +267,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await grantsOf(await openRole(page))).toStrictEqual([{ permission: 'storage:bucket:read', resource: '*' }])
     })
 
-    it('ROL-5: Delete asks, and Yes removes the role', async () => {
+    it('ZJ1c, ROL-5: Delete asks, and Yes removes the role', async () => {
       const { page } = session
       await visit(page, '/configuration/iam')
       await button(roleCard(page), 'Delete').click()
@@ -289,7 +289,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await page.getByRole('button', { name: /rotate.*root|root.*rotate/i }).count()).toBe(0)
     })
 
-    it('KEY-2: the registry shows its sequence, and exactly one current key, listed first', async () => {
+    it('YJ1a, KEY-2: the registry shows its sequence, and exactly one current key, listed first', async () => {
       const { page } = session
       await openKeys(page)
       const summary = page.locator('.card', { has: page.getByRole('heading', { name: 'Registry' }) })
@@ -299,7 +299,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await keyIdOf(keyCards(page).first())).toBe(current)
     })
 
-    it('KEY-3: Rotate mints a new current key, and keeps the outgoing one as superseded', async () => {
+    it('YJ2a, KEY-3: Rotate mints a new current key, and keeps the outgoing one as superseded', async () => {
       const { page } = session
       await openKeys(page)
       const before = await currentKeyId(page)
@@ -311,7 +311,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await currentKeyId(page)).not.toBe(before)
     })
 
-    it('KEY-4: Revoke states that earlier signatures stop verifying, and No changes nothing', async () => {
+    it('YJ3a, KEY-4: Revoke states that earlier signatures stop verifying, and No changes nothing', async () => {
       const { page } = session
       await openKeys(page)
       const current = await currentKeyId(page)
@@ -325,7 +325,7 @@ describe.skipIf(!enabled).sequential('the configuration screens through the runn
       expect(await currentKeyId(page)).toBe(current)
     })
 
-    it('KEY-4: a revoked key stays listed as revoked, without Revoke, and one key stays current', async () => {
+    it('YJ3b, KEY-4: a revoked key stays listed as revoked, without Revoke, and one key stays current', async () => {
       const { page } = session
       await openKeys(page)
       await rotate(page)

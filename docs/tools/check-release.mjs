@@ -198,13 +198,42 @@ function workflowOf (analysis) {
   return index === undefined ? null : parseVersion(index.front.workflow)
 }
 
+const isComparable = (baseline, id) => !baseline.codes.other.has(id.split('-')[0])
+
+/** What a current statement of the baseline has lost since: a level, its test files, or being current (WORKFLOW §11.2). */
+function statementWeakenings (before, after) {
+  if (after.state === 'new') return [{ id: after.id, change: 'current again new' }]
+  if (after.state !== 'current') return []
+  const levels = before.levels.filter(level => !after.levels.includes(level)).map(level => ({ id: after.id, change: `level ${level} lowered` }))
+  return before.test?.kind === 'files' && after.test?.kind !== 'files' ? [...levels, { id: after.id, change: 'test files dropped' }] : levels
+}
+
+/** The edits since `baseline` that shrink what a release proves, none of which the statement's text shows (WORKFLOW §11.2). */
+function weakenings (baseline, head) {
+  const kept = [...head.statements.values()].filter(s => baseline.statements.get(s.id)?.state === 'current' && isComparable(baseline, s.id))
+  const scenarios = [...baseline.useCases.keys()].filter(id => /[a-z]$/.test(id) && !head.useCases.has(id))
+  const narrowed = baseline.scenarioLevels.filter(level => !head.scenarioLevels.includes(level))
+  return [
+    ...kept.flatMap(s => statementWeakenings(baseline.statements.get(s.id), s)),
+    ...scenarios.map(id => ({ id, change: 'scenario removed' })),
+    ...narrowed.map(level => ({ id: 'scenario-levels', change: `${level} dropped` }))
+  ]
+}
+
+const baselineTags = (plan) => [...new Set(plan.map(entry => entry.baseline).filter(Boolean))]
+
+function weakeningsOf (plan, context) {
+  const baselines = baselineTags(plan).map(tag => baselineAt(tag, context)).filter(Boolean)
+  const all = baselines.flatMap(baseline => weakenings(baseline, context.head))
+  return [...new Map(all.map(w => [`${w.id} ${w.change}`, w])).values()]
+}
+
 /** Statements added, changed or removed between two analyses (WORKFLOW §11.3). */
 function statementChanges (baseline, head) {
   const wasCurrent = (id) => baseline.statements.get(id)?.state === 'current'
-  const comparable = (id) => !baseline.codes.other.has(id.split('-')[0])
   const changes = []
   for (const s of head.statements.values()) {
-    if (!comparable(s.id)) continue
+    if (!isComparable(baseline, s.id)) continue
     if (s.state === 'current' && !wasCurrent(s.id)) changes.push({ statement: s, change: 'added' })
     else if (s.state === 'current' && s.text !== baseline.statements.get(s.id).text) changes.push({ statement: s, change: 'changed' })
     else if (s.state === 'removed' && wasCurrent(s.id)) changes.push({ statement: s, change: 'removed' })
@@ -290,14 +319,14 @@ function checkRelease (docsDir) {
   const root = dirname(resolve(docsDir))
   if (!gitSucceeds(root, ['rev-parse', '--git-dir'])) {
     report.error(docsDir, 1, 'release', `releases are read with git, and ${root} is not a git repository`)
-    return { report, plan: [], packages: [] }
+    return { report, plan: [], packages: [], weakened: [], weakenedSince: [] }
   }
   const packages = readPackages(root)
   const context = { root, docsDir, docsPath: relative(root, resolve(docsDir)), head: analyze(docsDir), packages, publishable: packages.filter(p => !p.private), tags: listTags(root), baselines: new Map(), unclassified: new Set(), report }
   context.rfcs = landedRfcs(context)
   const plan = context.publishable.map(pkg => planPackage(pkg, context)).filter(Boolean)
   const pending = new Set(plan.map(entry => entry.name))
-  return { report, plan, packages: context.publishable.map(p => ({ name: p.name, version: p.version, released: !pending.has(p.name) })) }
+  return { report, plan, weakened: weakeningsOf(plan, context), weakenedSince: baselineTags(plan), packages: context.publishable.map(p => ({ name: p.name, version: p.version, released: !pending.has(p.name) })) }
 }
 
 function main () {

@@ -202,7 +202,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
   describe('a page', () => {
     const name = `e2e-${run}-page`
 
-    it('PGE-2, PGE-3: a page created from a published component is listed, and opens on its root node', async () => {
+    it('NJ5a, PGE-2, PGE-3: a page created from a published component is listed, and opens on its root node', async () => {
       const { page } = session
       await createPage(page, name, PAGE_COMPONENT)
       await shown(page.getByText(SLOT, { exact: true }))
@@ -211,7 +211,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       await shown(page.getByRole('link', { name }))
     })
 
-    it('PGE-6: a preview URL is saved and kept across a reload', async () => {
+    it('NJ5b, PGE-6: a preview URL is saved and kept across a reload', async () => {
       const { page } = session
       await openPage(page, name)
       await button(page, 'Update preview URL').click()
@@ -225,7 +225,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       expect(await page.locator('iframe').getAttribute('src')).toBe('https://example.com/preview')
     })
 
-    it('PGE-4: a value edited in the node editor is saved and kept across a reload', async () => {
+    it('NJ5b, PGE-4: a value edited in the node editor is saved and kept across a reload', async () => {
       const { page } = session
       const text = `edited ${run}`
       await openPage(page, name)
@@ -241,7 +241,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       expect(await page.locator('.card').filter({ hasText: valueOf('string') }).getByRole('textbox').inputValue()).toBe(text)
     })
 
-    it('TRE-1: Build writes the page\'s tree to .genoacms/pages/readables/<name> as a genoacms.pageTree.v1 envelope', async () => {
+    it('NJ6a, TRE-1: Build writes the page\'s tree to .genoacms/pages/readables/<name> as a genoacms.pageTree.v1 envelope', async () => {
       const { page } = session
       await build(page, name)
 
@@ -250,7 +250,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
   })
 
   describe('composing a page', () => {
-    it('PUB-7: a component never published is offered neither as the root of a new page nor for a slot', async () => {
+    it('NJ5a, PUB-7: a component never published is offered neither as the root of a new page nor for a slot', async () => {
       const { page } = session
       const unpublished = `E2EUnpublished${run}`
       await registerPrebuilt(page, unpublished, 'string', 'headline')
@@ -267,7 +267,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       expect(await picker.getByText(unpublished, { exact: true }).count()).toBe(0)
     })
 
-    it('PGE-5, PGE-3: components added to a slot are listed in the order added, and kept across a reload', async () => {
+    it('NJ5b, PGE-5, PGE-3: components added to a slot are listed in the order added, and kept across a reload', async () => {
       const { page } = session
       await createPage(page, composed, PAGE_COMPONENT)
       for (const type of ATTRIBUTE_TYPES) await nest(page, componentFor(type))
@@ -284,7 +284,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       await shown(page.getByText(valueOf('boolean'), { exact: true }))
     })
 
-    it('PGE-7, HIS-1: undo removes the node added last, and redo restores it, on the screen and in storage', async () => {
+    it('NJ5c, PGE-7, HIS-1: undo removes the node added last, and redo restores it, on the screen and in storage', async () => {
       const { page } = session
       const before = await pageWithThree(page, 'undo')
 
@@ -338,7 +338,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
   })
 
   describe('deleting a component a page depends on', () => {
-    it('CMP-10, CMP-9: deleting a component a published page pins names the page and is refused, and the component stays', async () => {
+    it('NJ4b, CMP-10, CMP-9: deleting a component a published page pins names the page and is refused, and the component stays', async () => {
       const { page } = session
       const pinned = `e2e-${run}-pinned`
       const used = componentFor('boolean')
@@ -356,7 +356,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       await shown(page.getByText(`Component: ${used}`))
     })
 
-    it('CMP-10: the delete dialog of a component no published page pins says so', async () => {
+    it('NJ4b, CMP-10: the delete dialog of a component no published page pins says so', async () => {
       const { page } = session
       const uid = await registerPrebuilt(page, `E2EUnused${run}`, 'string', 'headline')
 
@@ -371,7 +371,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
     let uid = ''
     let first: string | undefined
 
-    it('TRE-2, PGE-9: a built page pins its component\'s publication, and a newer publication leaves the built tree unchanged', async () => {
+    it('NJ6a, TRE-2, PGE-9: a built page pins its component\'s publication, and a newer publication leaves the built tree unchanged', async () => {
       const { page } = session
       uid = await register(page, component, 'Code it here')
       await publishBody(page, uid, "return 'first'\n")
@@ -384,7 +384,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       expect((await readTree(pinning)).payload.publicationId).toBe(first)
     })
 
-    it('TRE-2: building the page again pins the newer publication', async () => {
+    it('NJ6a, TRE-2: building the page again pins the newer publication', async () => {
       const { page } = session
       await build(page, pinning)
 
@@ -393,11 +393,11 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       expect(republished).not.toBe(first)
     })
 
-    it('PUB-4, PUB-5: each publication of a dynamic component keeps its own executable', async () => {
+    it('NJ3a, PUB-4, PUB-5: each publication of a dynamic component keeps its own executable', async () => {
       expect(await objectsUnder(`.genoacms/components/public/${uid}/`)).toHaveLength(2)
     })
 
-    it('PGE-8: deleting pages in one action removes their entries and trees', async () => {
+    it('NJ7a, PGE-8: deleting pages in one action removes their entries and trees', async () => {
       const { page } = session
       const names = [pinning, `e2e-${run}-pinned`]
       await visit(page, '/components/pages')
@@ -418,7 +418,7 @@ describe.skipIf(!enabled).sequential('pages through the running server', { timeo
       }
     })
 
-    it('CMP-9: deleting a dynamic component removes its source, its header and every publication', async () => {
+    it('NJ4a, CMP-9: deleting a dynamic component removes its source, its header and every publication', async () => {
       const { page } = session
       await visit(page, `/components/editor/${uid}`)
       await button(page, 'Delete component').click()

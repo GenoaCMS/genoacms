@@ -33,6 +33,141 @@ the picker protocol ([`collections.md`](collections.md) PCK-1 to PCK-4); the lay
 state under `.genoacms/`, written by the services that own it; the grant model behind the permissions
 named here (no document yet); the dashboard's list of recent directories.
 
+### Use cases
+
+```mermaid
+flowchart LR
+  user[User]
+  field[Document editor]
+  subgraph core [GenoaCMS core]
+    BJ1([Browse a bucket])
+    BJ2([Manage files and directories])
+    BJ3([Pick files for a field])
+  end
+  user --- BJ1 & BJ2 & BJ3
+  BJ3 --- field
+  BJ2 -. extends .-> BJ1
+  BJ3 -. extends .-> BJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| BJ1 | Browse a bucket | User | |
+| BJ2 | Manage files and directories | User | |
+| BJ3 | Pick files for a field | User, Document editor | |
+
+### Scenarios
+
+**BJ1a. A user opens a bucket and walks its directories.** STS-1, BRW-1, BRW-2, BRW-3.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant B as Storage browser
+  participant L as User layer
+  participant A as Adapter
+  U->>B: /storage
+  B->>L: the buckets of the configuration
+  L-->>B: those the principal holds a grant on (STS-1)
+  B-->>U: Buckets, each linking to its root (BRW-1)
+  U->>B: a bucket, then a directory
+  B->>L: list the directory, storage:bucket:read (STS-2)
+  L->>A: list one page
+  A-->>L: directories, files, next
+  L-->>B: files with signed URLs (STS-4)
+  B-->>U: the title under its trail, directories then files (BRW-2, BRW-3)
+  U->>B: a file
+  B-->>U: its signed URL in a new tab (BRW-3)
+```
+
+**BJ1b. A long directory shows more.** BRW-15. `Show more` lists the next page with `pageToken:
+next` and appends it to what is shown.
+
+**BJ2a. A user uploads files.** BRW-4, BRW-6, BRW-13, BRW-14.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant B as Storage browser
+  participant L as User layer
+  participant A as Adapter
+  B-->>U: the toolbar the principal's permissions allow (BRW-4)
+  U->>B: Upload object, two files
+  B->>B: refuse a name of more than one level (BRW-13)
+  B->>L: upload each, storage:bucket:write (STS-2)
+  loop each file, in order (BRW-14)
+    L->>A: write <directory><filename>, replacing one of that name (BRW-6)
+  end
+  B-->>U: Uploading, then Upload successful, and the directory reloads (BRW-6)
+```
+
+**BJ2b. A user creates a directory.** BRW-7, BRW-13. A name with `/` is refused with
+`invalid-name`; an accepted one becomes `<directory><name>/`, and the browser shows `Directory
+created`.
+
+**BJ2c. A user renames a directory.** BRW-8. Every object under `<directory><name>/` moves to
+`<directory><newName>/`, and a sibling whose name only starts with the same characters stays.
+
+**BJ2d. A user selects across directories and moves the selection here.** BRW-5, BRW-9.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant B as Storage browser
+  participant L as User layer
+  U->>B: select items in one directory (BRW-5)
+  U->>B: open another directory, the selection kept (BRW-5)
+  U->>B: Move here
+  B->>L: move each item of this bucket not already here (BRW-9)
+  L-->>B: done
+  B-->>U: Moving, then Moved, the selection emptied, the directory reloaded (BRW-9)
+```
+
+**BJ2e. A user deletes the selection.** BRW-10.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant B as Storage browser
+  participant L as User layer
+  U->>B: Delete
+  B-->>U: Do you want to delete one directory and 2 files? (BRW-10)
+  alt confirmed
+    B->>L: delete each, a directory with everything under it, storage:bucket:delete (STS-2)
+    B-->>U: Deleting, then Deleted, the selection emptied (BRW-10)
+  else cancelled
+    B-->>U: nothing deleted (BRW-10)
+  end
+```
+
+**BJ2f. Some items of an action fail.** BRW-14. The action answers 500 with `{ done, failed }`; the
+browser shows `<done> of <n> <past participle>. Failed: <names>` and keeps only the failed items
+selected.
+
+**BJ2g. A principal without the permission is refused.** STS-2, BRW-16. The user layer checks every
+item before acting on any; the action answers 403 `permission-denied`, and nothing changes.
+
+**BJ2h. A user writes into the CMS's own state.** STS-5, BRW-16. `.genoacms/` lists as any
+directory; an upload into it answers 403 `internal-read-only`, and the adapter is not called.
+
+**BJ3a. A files field picks files through the browser.** BRW-12, PCK-2.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant F as Files field (document editor)
+  participant B as Storage browser
+  U->>F: Select files
+  F->>B: open /storage?selectionId=<id> in a new tab (PCK-2)
+  B->>F: ready, on the channel <id>
+  F-->>B: maxItems and the current value (BRW-12)
+  U->>B: walk directories, select files, no checkbox on directories (BRW-12)
+  U->>B: Confirm selection
+  B->>F: the selection (PCK-2)
+  F-->>B: acknowledged
+  B-->>U: the tab closes (BRW-12)
+```
+
 ### Decisions
 
 | # | Decision | Where |

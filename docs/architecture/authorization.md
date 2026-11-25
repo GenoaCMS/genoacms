@@ -58,6 +58,72 @@ role stores:
 grant editor: rows ──(ROL-3)──▶ hidden field `grants` (JSON of Grant[])
 ```
 
+### Use cases
+
+```mermaid
+flowchart LR
+  admin[Administrator]
+  user[User]
+  subgraph core [GenoaCMS core]
+    ZJ1([Manage roles])
+    ZJ2([Act with the grants held now])
+  end
+  admin --- ZJ1
+  user --- ZJ2
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| ZJ1 | Manage roles | Administrator | |
+| ZJ2 | Act with the grants held now | User | |
+
+### Scenarios
+
+**ZJ1a. An administrator creates a role with its grants.** ROL-1 to ROL-5.
+
+```mermaid
+sequenceDiagram
+  actor A as Administrator
+  participant C as Core
+  participant S as Storage
+  A->>C: GET /configuration/iam
+  C-->>A: the roles, accounts and agents (ROL-1)
+  A->>C: New role, a name
+  loop each grant row
+    A->>C: a permission by category and value, then its resources switched on (ROL-2)
+    opt Add grant or Remove grant
+      A->>C: a row more, or one less with its grants (ROL-4)
+    end
+  end
+  C->>C: the rows become the grants of the field grants (ROL-3)
+  A->>C: Create (?/createRole)
+  C->>S: write roles.json, signed (ENF-3)
+  C-->>A: the role listed, and reopening it shows its grants without a reload (ROL-5)
+```
+
+**ZJ1b. An administrator edits a role.** ROL-5. Saving again replaces its grants, and reopening it
+shows the grants of the last save.
+
+**ZJ1c. An administrator deletes a role.** ROL-5. `Delete` asks, and `Yes` removes it.
+
+**ZJ1d. An administrator closes New role without creating it.** ROL-5. Nothing is written, and
+New role opens again with one empty row.
+
+**ZJ1e. A principal without the permission sees no card.** ROL-1. The configuration index shows no
+`Roles and access` card.
+
+**ZJ2a. A role changed by an administrator applies to the user's next request.** RES-3.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant C as Core
+  participant S as Storage
+  U->>C: a request with an access token
+  C->>S: resolve the subject's grants now, not those of the token (RES-3)
+  C-->>U: answered with those grants
+```
+
 ### Decisions
 
 | # | Decision | Where |

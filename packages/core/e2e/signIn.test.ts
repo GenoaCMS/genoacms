@@ -51,7 +51,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
   describe('with both providers', () => {
     beforeAll(async () => { await serve({ primary: [ada, stranger], secondary: [adaElsewhere, bob] }) }, BUILD_TIMEOUT_MS)
 
-    it('AUTHN-5: the first provider that knows the credentials signs the user in', async () => {
+    it('CJ1a, AUTHN-5: the first provider that knows the credentials signs the user in', async () => {
       const answer = await signIn(server, ada.email, ada.password)
 
       expect(answer.outcome).toBe('signed-in')
@@ -68,7 +68,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       expect(server.output()).toContain('[genoacms:auth] provider primary rejected the sign-in: credentials')
     })
 
-    it('AUTHN-5: credentials no provider accepts fail as invalid-credentials', async () => {
+    it('CJ1b, AUTHN-5: credentials no provider accepts fail as invalid-credentials', async () => {
       expect(await signIn(server, ada.email, `${ada.password}-wrong`)).toEqual({ outcome: 'failed', status: 400, reason: 'invalid-credentials' })
     })
 
@@ -76,7 +76,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       expect(await signIn(server, stranger.email, stranger.password)).toEqual({ outcome: 'failed', status: 400, reason: 'invalid-credentials' })
     })
 
-    it('AUTHN-7: a refresh revalidates with the recorded provider and carries the email it returned', async () => {
+    it('CJ2a, AUTHN-7: a refresh revalidates with the recorded provider and carries the email it returned', async () => {
       const page = await refreshed(viaSecondary)
 
       expect(page.signedIn).toBe(true)
@@ -89,7 +89,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
   describe('without a session', () => {
     beforeAll(async () => { await serve({ primary: [ada] }) }, BUILD_TIMEOUT_MS)
 
-    it('AUTHN-12: every page of the admin area redirects to / without a session, and / and /login answer 200', async () => {
+    it('CJ3a, AUTHN-12: every page of the admin area redirects to / without a session, and / and /login answer 200', async () => {
       for (const path of ['/dashboard', '/collections', '/components/registrar', '/components/pages', '/configuration', '/configuration/iam', '/configuration/keys', '/storage']) {
         const response = await fetch(`${server.origin}${path}`, { redirect: 'manual' })
         expect({ path, status: response.status, location: response.headers.get('location'), body: (await response.text()).trim() })
@@ -102,7 +102,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       }
     })
 
-    it('SHL-1: a page is served without data-hydrated, and has it once hydrated, after an in-app navigation too', async () => {
+    it('VJ1a, SHL-1: a page is served without data-hydrated, and has it once hydrated, after an in-app navigation too', async () => {
       const served = await (await fetch(`${server.origin}/`)).text()
       expect(served.match(/<html[^>]*>/)?.[0]).not.toContain('data-hydrated')
 
@@ -128,12 +128,12 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
   describe('with the second provider failing', () => {
     beforeAll(async () => { await serve({ primary: [ada] }) }, BUILD_TIMEOUT_MS)
 
-    it('AUTHN-5: a provider that fails makes the sign-in unavailable, not invalid', async () => {
+    it('CJ1c, AUTHN-5: a provider that fails makes the sign-in unavailable, not invalid', async () => {
       expect(await signIn(server, bob.email, bob.password)).toEqual({ outcome: 'failed', status: 400, reason: 'sign-in-unavailable' })
       expect(server.output()).toMatch(/\[genoacms:auth\] provider secondary failed: /)
     })
 
-    it('AUTHN-6, AUTHN-7: a refresh whose provider fails fails the request and leaves the cookie', async () => {
+    it('CJ2c, AUTHN-6, AUTHN-7: a refresh whose provider fails fails the request and leaves the cookie', async () => {
       const page = await refreshed(viaSecondary)
 
       expect(page.status).toBe(500)
@@ -156,7 +156,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
   describe('with the user gone from the second provider only', () => {
     beforeAll(async () => { await serve({ primary: [ada], secondary: [bob] }) }, BUILD_TIMEOUT_MS)
 
-    it('AUTHN-6, AUTHN-7: the session the second provider signed in ends, though the first still knows the user', async () => {
+    it('CJ2b, AUTHN-6, AUTHN-7: the session the second provider signed in ends, though the first still knows the user', async () => {
       const page = await refreshed(viaSecondary)
 
       expect(page.signedIn).toBe(false)

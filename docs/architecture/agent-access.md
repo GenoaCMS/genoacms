@@ -46,6 +46,85 @@ NF4 to NF8, NF11 and NF17. Limiting failed tokens (MCP-3) builds on the counters
 [`contracts/authentication.md`](contracts/authentication.md) AUTHN-8 to AUTHN-10, themselves New
 (RFC-0031), and is not part of RFC-0039 (TU11).
 
+### Use cases
+
+```mermaid
+flowchart LR
+  agent[AI agent]
+  subgraph core [GenoaCMS core]
+    TJ1([Connect to the MCP endpoint])
+    TJ2([Build a component])
+    TJ3([Compose a page])
+  end
+  agent --- TJ1 & TJ2 & TJ3
+  TJ2 -. includes .-> TJ1
+  TJ3 -. includes .-> TJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| TJ1 | Connect to the MCP endpoint | AI agent | |
+| TJ2 | Build a component | AI agent | |
+| TJ3 | Compose a page | AI agent | |
+
+### Scenarios
+
+**TJ1a. An agent connects with its token.** MCP-1, MCP-2.
+
+```mermaid
+sequenceDiagram
+  actor G as AI agent
+  participant C as Core
+  G->>C: POST /mcp initialize, Authorization: Bearer token
+  alt the token's hash is an agent's
+    C-->>G: the server's capabilities (MCP-1, MCP-2)
+    G->>C: tools/list
+    C-->>G: the tools its grants allow (MCP-1)
+  else no token, or an unknown one
+    C-->>G: 401, WWW-Authenticate: Bearer (MCP-2)
+  end
+```
+
+**TJ1b. An agent's subject cannot sign in as a person.** AGT-4. A sign-in whose identity has an
+`agent:` subject fails with `invalid-credentials`.
+
+**TJ2a. An agent registers, describes, codes and publishes a component.** TOL-3 to TOL-6.
+
+```mermaid
+sequenceDiagram
+  actor G as AI agent
+  participant C as Core
+  participant S as Storage
+  G->>C: create_component (TOL-3)
+  C->>S: register the component (CMP-6)
+  C-->>G: uid, version
+  G->>C: describe_component with version (TOL-4)
+  G->>C: set_component_source with version (TOL-5)
+  G->>C: publish_component (TOL-6)
+  C->>S: compile, sign and write the publication (PUB-1)
+  C-->>G: publicationId, publishedAt, warnings (TOL-6)
+```
+
+**TJ2b. A person changed the component since the agent read it.** TOL-1. The agent's write, made
+on the version it read, is refused, and the person's change is kept.
+
+**TJ3a. An agent composes a page and builds it.** TOL-9, TOL-10, TOL-11, TOL-15.
+
+```mermaid
+sequenceDiagram
+  actor G as AI agent
+  participant C as Core
+  participant S as Storage
+  G->>C: create_page from a published component (TOL-9)
+  loop each node
+    G->>C: add_node into a slot (TOL-10)
+    G->>C: set_values with version (TOL-11)
+  end
+  G->>C: build_page (TOL-15)
+  C->>S: write the signed page tree (TRE-1)
+  C-->>G: the tree, which verifies
+```
+
 ### Decisions
 
 | # | Decision | Where |

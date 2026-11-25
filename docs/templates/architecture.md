@@ -16,6 +16,42 @@ verified: <commit>
 
 What this component is for, who uses it, and where its boundaries are.
 
+<!-- Optional: a Mermaid flowchart of the component's parts and dependencies (WORKFLOW §5.4). -->
+
+<!-- Use cases and Scenarios: keep them when users or external systems use this component directly (WORKFLOW §5.4); templates/example-architecture.md shows them filled in. -->
+
+### Use cases
+
+```mermaid
+flowchart LR
+  %% PJ1 is <P>J1, the use case's ID; the labels are placeholders
+  actor[Actor]
+  subgraph component [Subject]
+    PJ1([Use case])
+  end
+  actor --- PJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| <P>J1 | <Use case>, a goal of the actor | <Actor> | |
+
+### Scenarios
+
+**<P>J1a. One way the use case runs, as the actor tells it apart.**
+
+```mermaid
+sequenceDiagram
+  actor A as Actor
+  participant C as Subject
+  A->>C: the request
+  alt one outcome
+    C-->>A: what the actor observes (CODE-1)
+  else another outcome
+    C-->>A: what the actor observes then
+  end
+```
+
 ### Decisions
 
 | # | Decision | Where |

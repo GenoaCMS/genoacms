@@ -1,9 +1,10 @@
 ---
 type: docs-index
-workflow: 3.3.0
+workflow: 5.0.0
 levels: [unit, integration, e2e, contract, conformance]
 sources: [packages]
 audit-from: 41
+scenario-levels: [e2e]
 ---
 
 # GenoaCMS documentation
@@ -14,6 +15,103 @@ two. The user-facing documentation site is a separate package, `packages/docs`.
 
 Check the documents from the repository root with `pnpm run docs:check`
 (`node docs/tools/check-docs.mjs docs`). It runs in CI.
+
+## System
+
+```mermaid
+flowchart LR
+  user[User, in a browser]
+  agent[AI agent]
+  operator[Operator]
+  site[Consuming site]
+  subgraph core [GenoaCMS core]
+    shell[Page shell]
+    signin[Sign-in and sessions]
+    authz[Authorization]
+    signing[Signing keys]
+    collections[Collections]
+    storage[Storage browser]
+    components[Components and pages]
+    mcp[MCP endpoint]
+    host[Host]
+  end
+  cli[genoa CLI]
+  config[Configuration]
+  secrets[Secrets]
+  build[Build and targets]
+  contracts[Service contracts]
+  identities[Identity stores]
+  gcp[GCP adapters]
+  aws[AWS adapters]
+  minio[MinIO adapter]
+  sdk[SDK]
+  user --> shell
+  shell --> signin & authz & signing & collections & storage & components
+  agent -->|bearer token| mcp
+  mcp --> components & collections & storage
+  collections -->|file pickers| storage
+  collections & components & authz -->|verify, sign| signing
+  authz --> signing
+  signin & collections & storage & components & signing --> host
+  operator --> cli
+  cli --> config & build
+  build -->|deployment target| gcp
+  config & secrets --> host
+  host --> contracts
+  contracts -->|implemented by| gcp & aws & minio & identities
+  site --> sdk
+  sdk -->|signed trees and publications| components
+  click shell "architecture/shell.md"
+  click signin "architecture/contracts/authentication.md"
+  click authz "architecture/authorization.md"
+  click signing "architecture/signing.md"
+  click collections "architecture/collections.md"
+  click storage "architecture/storage.md"
+  click components "architecture/components.md"
+  click mcp "architecture/agent-access.md"
+  click host "architecture/host.md"
+  click cli "architecture/cli.md"
+  click config "architecture/configuration.md"
+  click secrets "architecture/secrets.md"
+  click build "architecture/build.md"
+  click contracts "architecture/contracts/README.md"
+  click identities "architecture/identities.md"
+  click gcp "architecture/adapter-gcp/README.md"
+  click aws "architecture/adapter-aws/README.md"
+  click minio "architecture/adapter-minio.md"
+```
+
+The SDK and the demos have no document yet (see Coverage).
+
+## Placement
+
+```mermaid
+flowchart LR
+  browser[Browser: core's screens, the demos]
+  agentHost[AI agent: MCP over HTTPS]
+  laptop[Operator's machine: genoa build, deploy, rotate-root]
+  npm[(npm: the published packages)]
+  subgraph project [GCP project genoacms, europe-west3]
+    fn[Cloud Run function genoacms: core, built from packages/core]
+    buckets[(Cloud Storage: genoacms, genoacms-public)]
+    firestore[(Firestore default)]
+    sm[Secret Manager]
+    idp[Identity Platform]
+    hosting[Firebase Hosting: four demo sites]
+    demofn[Functions demoSvelte and artifacts]
+  end
+  browser --> fn & hosting
+  agentHost --> fn
+  laptop -->|deploy| fn
+  fn --> buckets & firestore & sm & idp
+  hosting --> demofn
+  demofn -->|reads published documents| buckets
+  npm -.->|installed by| laptop
+```
+
+The production instance is the one function above. Every package is published to npm from CI
+(Testing and release). The demos read the instance's published documents through the two demo
+functions and verify every signature in the browser (`packages/demo-deploy/README.md`).
 
 ## Documents
 
@@ -64,7 +162,23 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; all 40 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16, NF18 and NF21; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
 | Consumer SDK and demos | `sdk`, `demo-*` | `signing.md`: verification by a consumer (VFY); `demo-deploy/README.md` (deployment only) | partial: VFY **New** (RFC-0048); rendering, resolution and publications: none |
 
-## Test levels
+## Testing and release
+
+```mermaid
+flowchart LR
+  trigger[Push to main, or a pull request into it] --> docs[check-docs] --> build[Build]
+  build --> unit[unit] & integration[integration and conformance, with Postgres and RustFS] & e2e[e2e, against GCP]
+  build --> contract[contract, against GCP and AWS: on main only]
+  unit & integration & e2e & contract --> record[record.mjs: verification.json]
+  record -->|releasable, on main| release[changesets: version or publish to npm]
+```
+
+A release happens only from a push to `main` whose `verification.json` is of that commit and
+releasable: the build passed, every test passed, every scenario is covered at the levels it requires
+(`scenario-levels`), and the version rises enough for the RFCs' `changes` (WORKFLOW §11). On a pull
+request, the contract level is deferred, not run.
+
+### Test levels
 
 `node scripts/test-level.mjs <level>` runs one level and writes its JUnit reports to `reports/<level>/`.
 
