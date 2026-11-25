@@ -2,6 +2,19 @@ import DemoPage from './DemoPage.vue'
 import DemoSection from './DemoSection.vue'
 import DemoCard from './DemoCard.vue'
 import DemoNote from './DemoNote.vue'
+import SitePage from './site/SitePage.vue'
+import Hero from './site/Hero.vue'
+import StatsBand from './site/StatsBand.vue'
+import Stat from './site/Stat.vue'
+import Marquee from './site/Marquee.vue'
+import Section from './site/Section.vue'
+import Grid from './site/Grid.vue'
+import FeatureCard from './site/FeatureCard.vue'
+import SpeakerCard from './site/SpeakerCard.vue'
+import AgendaItem from './site/AgendaItem.vue'
+import TicketTier from './site/TicketTier.vue'
+import FaqItem from './site/FaqItem.vue'
+import ContactCard from './site/ContactCard.vue'
 import type { Bindings } from '../genoa/GenoaComponent'
 
 /**
@@ -18,7 +31,20 @@ const bindings: Bindings = {
   demoPage: { component: DemoPage, props: ['body'] },
   demoSection: { component: DemoSection, props: ['heading', 'content'] },
   demoCard: { component: DemoCard, props: ['title', 'body'] },
-  demoNote: { component: DemoNote, props: ['text', 'order'] }
+  demoNote: { component: DemoNote, props: ['text', 'order'] },
+  sitePage: { component: SitePage, props: ['brand', 'tagline', 'ctaLabel', 'ctaLink', 'body', 'footer'] },
+  siteHero: { component: Hero, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside'] },
+  siteStats: { component: StatsBand, props: ['stats'] },
+  siteStat: { component: Stat, props: ['value', 'label'] },
+  siteMarquee: { component: Marquee, props: ['text'] },
+  siteSection: { component: Section, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteGrid: { component: Grid, props: ['columns', 'items'] },
+  siteFeature: { component: FeatureCard, props: ['tag', 'title', 'body'] },
+  siteSpeaker: { component: SpeakerCard, props: ['name', 'role', 'photo', 'talk'] },
+  siteAgendaItem: { component: AgendaItem, props: ['time', 'title', 'speaker', 'track'] },
+  siteTicket: { component: TicketTier, props: ['name', 'price', 'perks', 'highlighted', 'ctaLabel', 'ctaLink'] },
+  siteFaq: { component: FaqItem, props: ['question', 'answer'] },
+  siteContact: { component: ContactCard, props: ['heading', 'lines', 'email', 'phone'] }
 }
 
 export { bindings }

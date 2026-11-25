@@ -24,7 +24,12 @@
     "./bucket": {
       "types": "./dist/bucket.d.ts",
       "import": "./dist/bucket.js"
-    }
+    },
+    "./site": {
+      "types": "./dist/site.d.ts",
+      "import": "./dist/site.js"
+    },
+    "./site.css": "./styles/site.css"
   },
   "scripts": {
     "build": "rimraf dist && tsc",

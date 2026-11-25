@@ -4,6 +4,7 @@
   import GenoaComponent from '../genoa/GenoaComponent.svelte'
   import { provideBindings } from '../genoa/context'
   import { bindings } from '../components/bindings'
+  import '@genoacms/demo-support/site.css'
 
   /**
    * A SvelteKit consumer.

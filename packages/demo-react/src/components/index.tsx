@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Bindings } from '../genoa/GenoaComponent'
+import { SitePage, Hero, StatsBand, Stat, Marquee, Section, Grid, FeatureCard, SpeakerCard, AgendaItem, TicketTier, FaqItem, ContactCard } from './site'
 
 /**
  * This consumer's components — ordinary React components, which is the point.
@@ -40,7 +41,20 @@ const bindings: Bindings = {
   demoPage: { component: DemoPage as never, props: ['body'] },
   demoSection: { component: DemoSection as never, props: ['heading', 'content'] },
   demoCard: { component: DemoCard as never, props: ['title', 'body'] },
-  demoNote: { component: DemoNote as never, props: ['text', 'order'] }
+  demoNote: { component: DemoNote as never, props: ['text', 'order'] },
+  sitePage: { component: SitePage as never, props: ['brand', 'tagline', 'ctaLabel', 'ctaLink', 'body', 'footer'] },
+  siteHero: { component: Hero as never, props: ['eyebrow', 'heading', 'lead', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink', 'aside'] },
+  siteStats: { component: StatsBand as never, props: ['stats'] },
+  siteStat: { component: Stat as never, props: ['value', 'label'] },
+  siteMarquee: { component: Marquee as never, props: ['text'] },
+  siteSection: { component: Section as never, props: ['anchor', 'eyebrow', 'heading', 'intro', 'content'] },
+  siteGrid: { component: Grid as never, props: ['columns', 'items'] },
+  siteFeature: { component: FeatureCard as never, props: ['tag', 'title', 'body'] },
+  siteSpeaker: { component: SpeakerCard as never, props: ['name', 'role', 'photo', 'talk'] },
+  siteAgendaItem: { component: AgendaItem as never, props: ['time', 'title', 'speaker', 'track'] },
+  siteTicket: { component: TicketTier as never, props: ['name', 'price', 'perks', 'highlighted', 'ctaLabel', 'ctaLink'] },
+  siteFaq: { component: FaqItem as never, props: ['question', 'answer'] },
+  siteContact: { component: ContactCard as never, props: ['heading', 'lines', 'email', 'phone'] }
 }
 
 export { bindings, DemoPage, DemoSection, DemoCard, DemoNote }

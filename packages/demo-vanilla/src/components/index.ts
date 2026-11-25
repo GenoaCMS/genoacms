@@ -1,4 +1,5 @@
 import type { PrebuiltComponents } from '@genoacms/sdk'
+import * as site from './site'
 
 /**
  * This consumer's components, as plain functions returning DOM nodes.
@@ -46,7 +47,20 @@ const components: PrebuiltComponents = {
   demoPage: demoPage as PrebuiltComponents[string],
   demoSection: demoSection as PrebuiltComponents[string],
   demoCard: demoCard as PrebuiltComponents[string],
-  demoNote: demoNote as PrebuiltComponents[string]
+  demoNote: demoNote as PrebuiltComponents[string],
+  sitePage: site.sitePage as PrebuiltComponents[string],
+  siteHero: site.siteHero as PrebuiltComponents[string],
+  siteStats: site.siteStats as PrebuiltComponents[string],
+  siteStat: site.siteStat as PrebuiltComponents[string],
+  siteMarquee: site.siteMarquee as PrebuiltComponents[string],
+  siteSection: site.siteSection as PrebuiltComponents[string],
+  siteGrid: site.siteGrid as PrebuiltComponents[string],
+  siteFeature: site.siteFeature as PrebuiltComponents[string],
+  siteSpeaker: site.siteSpeaker as PrebuiltComponents[string],
+  siteAgendaItem: site.siteAgendaItem as PrebuiltComponents[string],
+  siteTicket: site.siteTicket as PrebuiltComponents[string],
+  siteFaq: site.siteFaq as PrebuiltComponents[string],
+  siteContact: site.siteContact as PrebuiltComponents[string]
 }
 
 export { components, demoPage, demoSection, demoCard, demoNote }

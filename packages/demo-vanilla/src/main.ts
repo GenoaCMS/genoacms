@@ -2,6 +2,7 @@ import { settings } from '@genoacms/demo-support/instance'
 import { loadPage } from '@genoacms/demo-support/page'
 import { renderResolved } from '@genoacms/sdk'
 import { components } from './components/index'
+import '@genoacms/demo-support/site.css'
 
 /**
  * A consumer with no framework at all.

@@ -3,6 +3,7 @@ import { settings } from '@genoacms/demo-support/instance'
 import { loadPage, type Outcome } from '@genoacms/demo-support/page'
 import { GenoaComponent } from './genoa/GenoaComponent'
 import { bindings } from './components/index'
+import '@genoacms/demo-support/site.css'
 
 /**
  * A Vue consumer.
