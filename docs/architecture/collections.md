@@ -38,6 +38,173 @@ database provider ([`host.md`](host.md)), what each database adapter stores
 model behind the permissions this document names (no document yet). The storage browser, which
 answers the file pickers of PCK, is [`storage.md`](storage.md).
 
+### Use cases
+
+```mermaid
+flowchart LR
+  user[User]
+  storage[Storage browser]
+  subgraph core [GenoaCMS core]
+    OJ1([Find a document])
+    OJ2([Create a document])
+    OJ3([Edit a document])
+    OJ4([Delete documents])
+    OJ5([Reference documents or files])
+  end
+  user --- OJ1 & OJ2 & OJ3 & OJ4 & OJ5
+  OJ5 --- storage
+  OJ3 -. includes .-> OJ1
+  OJ5 -. extends .-> OJ3
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| OJ1 | Find a document | User | |
+| OJ2 | Create a document | User | |
+| OJ3 | Edit a document | User | |
+| OJ4 | Delete documents | User | |
+| OJ5 | Reference documents or files | User, Storage browser | |
+
+### Scenarios
+
+**OJ1a. A user opens a configured collection.** COL-1, COL-3, LST-1, LST-8.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant P as Collection pages
+  participant D as Document service
+  participant A as Database adapter
+  U->>P: /collections
+  P-->>U: the catalog's names the principal holds a grant on (COL-1, COL-3)
+  U->>P: /collections/<name>
+  P->>D: read the collection, db:collection:read (DOC-1)
+  D->>A: read through the collection's database (COL-6)
+  A-->>D: the documents
+  D-->>P: only the readable fields (DOC-2)
+  P-->>U: Collection: <name>, the count, one line per document (LST-1, LST-8)
+```
+
+**OJ1b. A user filters the listing.** LST-7, LST-3. The rows narrow as the text is typed, the count
+reads `<shown> of <n> documents`, Select all selects only the rows shown, and another collection
+opens unfiltered.
+
+**OJ1c. A signed dynamic collection opens.** COL-1, COL-2, COL-6, COL-7.
+
+```mermaid
+sequenceDiagram
+  participant C as Catalog
+  participant S as Default bucket
+  participant K as Key registry
+  participant A as Database adapter
+  C->>S: list .genoacms/databases/<db>/collections/, at start (COL-1)
+  S-->>C: one file per dynamic collection
+  Note over C: a user opens one
+  C->>S: read the file (COL-2)
+  C->>K: verify its envelope (COL-7)
+  K-->>C: a key listed and not revoked
+  C->>A: read through the database of its directory (COL-6)
+```
+
+**OJ1d. A definition does not resolve.** COL-2, COL-7. An unsigned file fails with
+`collection/unverifiable`, and a name neither configured nor dynamic with `collection/not-found`.
+
+**OJ2a. A user creates a document.** LST-2, LST-6, DOC-5.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant L as Listing
+  participant D as Document service
+  U->>L: New document, shown with db:collection:write (LST-2)
+  L-->>U: the dialog New document with the editor (LST-6)
+  U->>L: Create
+  L->>D: createDoc (DOC-5)
+  D->>D: drop unwritable fields, validate (DOC-4, DOC-8)
+  D-->>L: success, Document created, id (DOC-5)
+  L-->>U: the dialog closes, the page moves to the new document (LST-6)
+```
+
+**OJ2b. Creating fails.** LST-6. A failed result reports its text, or `Failed to create document`,
+and a failed request the error's message, or `An error occurred`.
+
+**OJ3a. A user edits and saves a document.** EDT-1, EDT-4, EDT-6, EDT-10, EDT-2, DOC-5.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant E as Document page
+  participant D as Document service
+  U->>E: /collections/<name>/<id>
+  E-->>U: <name> / <id>, Delete and Save as the grants allow, the visit recorded (EDT-1)
+  E-->>U: a labelled control per field, markdown rendered (EDT-4, EDT-6, EDT-10)
+  U->>E: change a field
+  E-->>U: Unsaved changes (EDT-2)
+  U->>E: Ctrl+S
+  E->>D: updateDoc (DOC-5)
+  D->>D: merge the writable fields, validate (DOC-3, DOC-8)
+  D-->>E: success, Document updated (DOC-5)
+  E-->>U: Saved (EDT-2)
+```
+
+**OJ3b. A user leaves with unsaved changes.** EDT-3. A navigation within the CMS asks first and
+stays when declined; leaving the page triggers the browser's `beforeunload` prompt.
+
+**OJ3c. A user edits a list of variants.** EDT-11, EDT-12. Items are cards of position, variant and
+summary, reordered by their handles; choosing another variant keeps only its fields and sets the
+discriminator.
+
+**OJ3d. Saving fails.** EDT-2. A failed result reports its text, or `Failed to update document`, and
+a failed request the error's message, or `An error occurred`.
+
+**OJ4a. A user deletes the selection from the listing.** LST-2, LST-3, LST-4, DOC-7.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant L as Listing
+  participant D as Document service
+  U->>L: select rows (LST-3)
+  L-->>U: Delete, with db:collection:delete (LST-2)
+  U->>L: Delete
+  L-->>U: Do you want to delete 2 documents? (LST-4)
+  U->>L: confirm
+  L->>D: action delete, documents (DOC-7)
+  D-->>L: each deleted
+  L-->>U: Deleted, the selection cleared, the listing reloaded (LST-4)
+```
+
+**OJ4b. A user deletes the document open.** EDT-1, DOC-6, EDT-3. After the confirmation, the page's
+action deletes it and redirects, 307, to the listing, and nothing asks about unsaved changes.
+
+**OJ4c. A deletion fails.** LST-4, EDT-1. The listing reports `Deletion failed`, the document page
+`Document deletion failed`, and the documents stay.
+
+**OJ5a. A user picks references in a second tab.** PCK-1, PCK-2, LST-5, PCK-3, PCK-4.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant F as References field
+  participant L as Listing as a picker
+  U->>F: Choose from <collection> (PCK-4)
+  F->>L: open /collections/<collection>?selectionId=<id> (PCK-1)
+  L->>F: selectionInit (PCK-2)
+  F-->>L: selectionInitData, maxItems and the current value (PCK-2)
+  L-->>U: the current value preselected (LST-5)
+  U->>L: select, Confirm selection
+  L->>F: selectionDone (PCK-2)
+  F-->>L: selectionKill, and the tab closes (PCK-2)
+  F-->>U: the field holds the selection, each with Remove and Open (PCK-3, PCK-4)
+```
+
+**OJ5b. A user picks files.** PCK-1, PCK-2, PCK-4. The field opens `/storage?selectionId=<id>`,
+which answers as `storage.md` BJ3a says; the files picked show by name and bucket, with `Edit
+selection` and `Clear all`.
+
+**OJ5c. The field is gone before the picker confirms.** PCK-2. The opener's channel is closed, so
+`selectionDone` is not answered, and the picker stays open.
+
 ### Decisions
 
 | # | Decision | Where |

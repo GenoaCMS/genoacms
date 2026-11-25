@@ -29,6 +29,78 @@ key ids, the registry document and its verification, root rotation (`genoa rotat
 seeds are kept, and the security policy's rotation interval. Today only the code and
 `packages/core/src/lib/script/signing/README.md` describe them.
 
+### Use cases
+
+```mermaid
+flowchart LR
+  admin[Administrator]
+  subgraph core [GenoaCMS core]
+    YJ1([See the signing keys])
+    YJ2([Rotate the current key])
+    YJ3([Revoke a key])
+  end
+  admin --- YJ1 & YJ2 & YJ3
+  YJ2 -. extends .-> YJ1
+  YJ3 -. extends .-> YJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| YJ1 | See the signing keys | Administrator | |
+| YJ2 | Rotate the current key | Administrator | |
+| YJ3 | Revoke a key | Administrator | |
+
+### Scenarios
+
+**YJ1a. An administrator opens the key screen.** KEY-1, KEY-2.
+
+```mermaid
+sequenceDiagram
+  actor A as Administrator
+  participant C as Core
+  participant S as Storage
+  A->>C: GET /configuration
+  C-->>A: the Signing keys card, for config:keys:manage (KEY-1)
+  A->>C: GET /configuration/keys
+  C->>S: read the key registry, creating it when absent
+  S-->>C: the registry
+  C-->>A: the root anchor, the sequence, the keys, current first (KEY-2)
+```
+
+**YJ1b. A principal without the permission sees no card.** KEY-1. The configuration index shows no
+`Signing keys` card, and the screen and its actions refuse.
+
+**YJ2a. An administrator rotates the current key.** KEY-3.
+
+```mermaid
+sequenceDiagram
+  actor A as Administrator
+  participant C as Core
+  participant S as Storage
+  A->>C: Rotate (?/rotate)
+  C->>S: write the registry with a new current key, the outgoing one superseded
+  C-->>A: "Rotated. New signatures use the new key." (KEY-3)
+```
+
+**YJ3a. An administrator declines to revoke.** KEY-4. `No` in the confirmation submits nothing.
+
+**YJ3b. An administrator revokes a key.** KEY-4.
+
+```mermaid
+sequenceDiagram
+  actor A as Administrator
+  participant C as Core
+  participant S as Storage
+  A->>C: Revoke a key
+  C-->>A: what revoking costs; for the current key, that a new one is minted first (KEY-4)
+  A->>C: Yes (?/revoke keyId)
+  opt the key is current
+    C->>S: rotate first (KEY-3)
+  end
+  C->>S: write the registry with the key revoked
+  C-->>A: "Key revoked", the key listed as revoked, one key current (KEY-4)
+```
+
 ### Decisions
 
 | # | Decision | Where |

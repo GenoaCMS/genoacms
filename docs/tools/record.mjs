@@ -8,14 +8,14 @@
  * writes the record. Prints what each checker found, and exits 1 unless every check passed.
  */
 import { writeFileSync, existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { analyze, printReport } from './check-docs.mjs'
 import { checkResults, parseReport } from './check-results.mjs'
 import { checkRelease } from './check-release.mjs'
 
-const SCHEMA = 1
+const SCHEMA = 2
 const STATUSES = ['passed', 'failed']
 const USAGE = 'usage: record.mjs <docsDir> --junit <level>=<report.xml> … [--defer <level>] … --build passed|failed [--out verification.json]'
 
@@ -50,6 +50,12 @@ function statementSummary (statements, verified) {
   }
 }
 
+/** The architecture documents, and those changed since their review or never reviewed (WORKFLOW §5.6). */
+function documentSummary (reviews, docsDir) {
+  const unreviewed = reviews.filter(r => r.reviewed === null || r.changed.length > 0).map(r => relative(docsDir, r.path)).sort()
+  return { total: reviews.length, reviewed: reviews.length - unreviewed.length, unreviewed }
+}
+
 const workflowOf = (docs) => String(docs.find(d => d.front?.type === 'docs-index')?.front.workflow ?? '')
 
 /** The verification record of the working tree, and the reports of the checkers behind it. */
@@ -72,7 +78,13 @@ function record ({ docsDir, junit, deferred = [], build }) {
       commit: headCommit(dirname(resolve(docsDir))),
       created: new Date().toISOString(),
       checks,
-      statements: statementSummary(docs.statements, results.verified),
+      statements: { ...statementSummary(docs.statements, results.verified), without_scenario: [...docs.withoutScenario].sort(byId), level_gaps: results.levelGaps.sort((a, b) => byId(a.id, b.id)), known_failures: results.knownFailures.sort((a, b) => byId(a.id, b.id)) },
+      documents: documentSummary(docs.reviews, resolve(docsDir)),
+      use_cases: results.useCases,
+      scenarios: results.scenarios,
+      scenario_levels: docs.scenarioLevels,
+      weakened: release.weakened,
+      weakened_since: release.weakenedSince,
       tests,
       packages: release.packages,
       deferred,

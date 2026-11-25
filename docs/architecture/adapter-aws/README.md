@@ -34,6 +34,23 @@ here says otherwise (WD1).
 package. The code predated the workflow and diverged from the contracts in many places; each
 divergence was a finding, and RFC-0026 brought the code to the Specification.
 
+```mermaid
+flowchart LR
+  core[GenoaCMS core] -->|service contracts| storage & database & secrets
+  operator[Operator] -->|genoa deploy| deploy
+  subgraph aws ["@genoacms/adapter-aws"]
+    storage[S3]
+    database[DynamoDB]
+    secrets[Secrets Manager]
+    deploy[Deploy procedure]
+  end
+  deploy --> fn[Lambda and its function URL]
+  click storage "storage.md"
+  click database "database.md"
+  click secrets "secrets.md"
+  click deploy "deployment.md"
+```
+
 ### Documents
 
 | Document | Codes | Covers |

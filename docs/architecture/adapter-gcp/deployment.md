@@ -30,6 +30,92 @@ The SvelteKit adapter is a fork of `@sveltejs/adapter-node`'s shape for a functi
 server of its own to start: the Functions Framework calls an exported handler. From 2.0.0 it follows
 adapter-node 6 on SvelteKit 3 (`build.md` U15, U18, U19).
 
+### Use cases
+
+```mermaid
+flowchart LR
+  operator[Operator]
+  visitor[Visitor]
+  gcp[Google Cloud]
+  subgraph target [The gcp target]
+    GJ1([Build the function])
+    GJ2([Deploy the function])
+    GJ3([Serve a request])
+  end
+  operator --- GJ1 & GJ2
+  GJ2 --- gcp
+  visitor --- GJ3
+  GJ2 -. includes .-> GJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| GJ1 | Build the function | Operator | |
+| GJ2 | Deploy the function | Operator, Google Cloud | |
+| GJ3 | Serve a request | Visitor | |
+
+### Scenarios
+
+**GJ1a. An operator builds the function.** ADP-1, ADP-2, ADP-3, ADP-4.
+
+```mermaid
+sequenceDiagram
+  actor O as Operator
+  participant V as Vite and SvelteKit
+  participant A as SvelteKit adapter
+  O->>V: genoa build gcp
+  V->>A: adapt(), with out, precompress, envPrefix (ADP-1)
+  A->>A: empty out, write client assets and prerendered pages, compressed (ADP-2)
+  V->>V: bundle the server once, the app's dependencies external (ADP-3)
+  A->>A: write <out>/index.js exporting handler (ADP-4)
+```
+
+**GJ2a. An operator deploys the function.** DEP-6, DEP-7, DEP-8, DEP-9, DEP-10, DEP-11, DEP-12.
+
+```mermaid
+sequenceDiagram
+  actor O as Operator
+  participant P as Deploy procedure
+  participant F as Cloud Functions API
+  O->>P: genoa deploy gcp
+  P->>P: stage the build in <workDir>/app, with function.js (DEP-6)
+  P->>P: zip exactly the staged directory (DEP-7)
+  P->>F: generateUploadUrl, then PUT the zip (DEP-8)
+  P->>F: getFunction (DEP-9)
+  alt it exists
+    P->>F: update, NODE_ENV production, IGNORED_ROUTES empty (DEP-10)
+  else NOT_FOUND
+    P->>F: create, the same settings (DEP-10)
+  end
+  F-->>P: the operation, awaited (DEP-11)
+  P-->>O: Function URL: <url> (DEP-12)
+```
+
+**GJ3a. A visitor's request is served.** ADP-4, ADP-5, ADP-6, DEP-10.
+
+```mermaid
+sequenceDiagram
+  actor B as Visitor
+  participant R as Cloud Run
+  participant H as handler
+  participant K as SvelteKit
+  B->>R: GET a path
+  R->>H: every route, IGNORED_ROUTES empty (DEP-10)
+  alt an immutable asset
+    H-->>B: 200, a year's immutable cache, .br or .gz on request (ADP-5)
+  else a prerendered page
+    H-->>B: the page, or 308 to the other trailing-slash form (ADP-5)
+  else
+    H->>K: respond, the URL from paths.origin or the forwarded headers (ADP-4, ADP-5)
+    K->>H: getClientAddress, XFF_DEPTH from the right (ADP-6)
+    K-->>B: the response
+  end
+```
+
+**GJ3b. The function refuses to start.** ADP-7, ADP-8. An `XFF_DEPTH` that is not a positive
+integer, an unknown prefixed variable, or any `ORIGIN` throws at startup, so the function serves
+nothing.
+
 ### Decisions
 
 **GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).** DEP-9 to DEP-12.
@@ -209,7 +295,7 @@ The procedure never reads `process.cwd()`. It works only from the build director
 **Create or update** with `{ functionId: functionName, parent: projects/<p>/locations/<r>, function: { name, buildConfig: { entryPoint: 'genoacms', runtime, source: { storageSource } }, serviceConfig } }`. `serviceConfig` always carries the instance counts, the ingress and `environmentVariables` holding `NODE_ENV: 'production'` and `IGNORED_ROUTES: ''` (GD8), plus DEP-14's variables when set, and nothing else, and carries `availableMemory`, `timeoutSeconds` and `serviceAccountEmail` only when set. No update mask.
 
 - Test: `packages/adapter-gcp/src/deployment/procedure.test.ts`, `packages/adapter-gcp/src/deployment/settings.test.ts`, `packages/adapter-gcp/test/contract/deployment.test.ts`, `packages/sveltekit-adapter-cloud-run-functions/e2e/adapter.test.js`
-- Level: unit, contract, e2e
+- Level: unit, contract (wanted e2e: no e2e run deploys to GCP yet, #34)
 
 #### DEP-11 · Completion
 
