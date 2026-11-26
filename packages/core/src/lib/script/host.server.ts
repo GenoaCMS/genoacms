@@ -7,7 +7,7 @@ import { manifest } from 'virtual:genoa/manifest'
  * adapter, and its cloud SDK, into the server bundle. At runtime the specifier resolves from the
  * artifact's node_modules, which the generated package.json provides.
  *
- * Refuses while SvelteKit analyses the build (architecture D8). Module-scope code that reaches a
+ * Refuses while SvelteKit analyses the build (build.md PD8). Module-scope code that reaches a
  * provider must check `building` itself; this makes forgetting to do so fail the build by name,
  * rather than read from or write to a live instance.
  */

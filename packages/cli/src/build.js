@@ -25,7 +25,7 @@ function reportBlindImports (blind) {
   for (const entry of blind) log.warn(entry)
 }
 
-/** Packed packages install from the artifact, not the registry (architecture D9). */
+/** Packed packages install from the artifact, not the registry (build.md PD9). */
 function reportVendored (vendored) {
   if (vendored.length === 0) return
   log.info(`Packed into the artifact: ${vendored.join(', ')}`)

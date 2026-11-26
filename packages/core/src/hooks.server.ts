@@ -10,7 +10,7 @@ import type { JWTPayload } from 'jose'
 // that a fresh instance has its signing keys and manifests in place before the first login, not
 // after whichever request first happens to need them — which, for an instance whose only user is
 // the seed administrator, is never. Skipped while SvelteKit runs the app to analyse the build
-// (architecture D8): a build must not bootstrap the instance it is built for.
+// (build.md PD8): a build must not bootstrap the instance it is built for.
 if (!building) await ensureInstanceInitialized()
 
 /**

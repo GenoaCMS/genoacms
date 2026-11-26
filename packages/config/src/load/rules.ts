@@ -14,7 +14,7 @@ interface RuleContext {
   readonly slots: readonly ProviderSlot[]
 }
 
-/** A well-formed provider entry whose descriptor loaded; the only kind rules 3 to 7 and 13 look at. */
+/** A well-formed provider entry whose descriptor loaded; the only kind LDR-3 to LDR-7 and LDR-13 look at. */
 interface ResolvedSlot {
   readonly slot: ProviderSlot
   readonly entry: WellFormedEntry
@@ -62,17 +62,17 @@ const recordAt = (config: Record<string, unknown>, stanza: string, key: string):
   return isPlainObject(parent[key]) ? parent[key] : undefined
 }
 
-// Rule 1
+// LDR-1
 const missingStanzas = (ctx: RuleContext): ConfigIssue[] => REQUIRED_STANZAS
   .filter(stanza => !isPlainObject(ctx.config[stanza]))
   .map(stanza => issue('config/missing-stanza', stanza, 'is required and must be an object'))
 
-// Rule 1b
+// LDR-1
 const invalidProviderEntries = (ctx: RuleContext): ConfigIssue[] => ctx.slots
   .filter(slot => !isWellFormedEntry(slot.value))
   .map(slot => issue('config/invalid-provider-entry', slot.path, "must be { adapter: '<descriptor specifier>', options: { … } }"))
 
-// Rule 2
+// LDR-2
 function serializationProblem (value: unknown): string | undefined {
   if (value === undefined) return 'is undefined: remove the key or give it a value'
   if (value === null || typeof value === 'boolean' || typeof value === 'string') return undefined
@@ -88,13 +88,13 @@ const unserializableValues = (ctx: RuleContext): ConfigIssue[] =>
   collect(ctx.config, '', value => serializationProblem(value) !== undefined)
     .map(({ value, path }) => issue('config/not-serializable', path, serializationProblem(value) as string))
 
-// Rule 3
+// LDR-3
 const kindMismatches = (ctx: RuleContext): ConfigIssue[] => resolvedSlots(ctx)
   .filter(({ slot, loaded }) => loaded.descriptor.kind !== slot.kind)
   .map(({ slot, loaded }) => issue('config/kind-mismatch', `${slot.path}.adapter`,
     `${loaded.specifier} is a ${loaded.descriptor.kind} adapter, configured under ${slot.stanza}`))
 
-// Rule 4
+// LDR-4
 function validationReasons ({ entry, loaded }: ResolvedSlot): string[] {
   if (loaded.descriptor.validate === undefined) return []
   try {
@@ -108,14 +108,14 @@ const invalidOptions = (ctx: RuleContext): ConfigIssue[] => resolvedSlots(ctx)
   .flatMap(resolved => validationReasons(resolved)
     .map(reason => issue('config/invalid-options', `${resolved.slot.path}.options`, reason)))
 
-// Rule 5
+// LDR-5
 const bareSecrets = (ctx: RuleContext): ConfigIssue[] => resolvedSlots(ctx)
   .flatMap(({ slot, entry, loaded }) => Object.keys(loaded.descriptor.secretOptions ?? {})
     .filter(key => Object.hasOwn(entry.options, key) && !isReference(entry.options[key]))
     .map(key => issue('config/bare-secret', `${slot.path}.options.${key}`,
       'is a credential field: use secret(), env() or inline(), not a bare value')))
 
-// Rule 6
+// LDR-6
 function referencePlaces (ctx: RuleContext): { allowed: Set<string>, skipped: Set<string> } {
   const allowed = new Set<string>()
   const skipped = new Set(ctx.slots.map(slot => slot.path))
@@ -139,19 +139,19 @@ function misplacedReferences (ctx: RuleContext): ConfigIssue[] {
   return found
 }
 
-// Rule 7
+// LDR-7
 const bootstrapSecrets = (ctx: RuleContext): ConfigIssue[] => resolvedSlots(ctx)
   .filter(({ slot }) => slot.stanza === 'secrets')
   .flatMap(({ slot, entry }) => collect(entry.options, `${slot.path}.options`, isSecretRef))
   .map(({ path }) => issue('config/bootstrap-secret', path,
     'the secrets provider cannot be configured with secret(): nothing exists yet to resolve it; use env() or inline()'))
 
-// Rule 8
+// LDR-8
 const invalidSecretKeys = (ctx: RuleContext): ConfigIssue[] => collect(ctx.config, '', isSecretRef)
   .filter(({ value }) => !SECRET_KEY_PATTERN.test((value as { $secret: string }).$secret))
   .map(({ path }) => issue('config/invalid-secret-key', path, `secret key must match ${SECRET_KEY_PATTERN.source}`))
 
-// Rule 9
+// LDR-9
 function secretsProviderCount (ctx: RuleContext): ConfigIssue[] {
   const providers = recordAt(ctx.config, 'secrets', 'providers')
   if (providers === undefined || Object.keys(providers).length === 1) return []
@@ -159,7 +159,7 @@ function secretsProviderCount (ctx: RuleContext): ConfigIssue[] {
     `exactly one provider is allowed, found ${Object.keys(providers).length}`)]
 }
 
-// Rule 10
+// LDR-10
 function unknownReferences (records: Record<string, unknown> | undefined, recordPath: string, known: Record<string, unknown> | undefined, knownPath: string): ConfigIssue[] {
   if (records === undefined) return []
   return Object.entries(records)
@@ -179,7 +179,7 @@ function unknownProviders (ctx: RuleContext): ConfigIssue[] {
   ]
 }
 
-// Rule 11
+// LDR-11
 function unknownDefaultBucket (ctx: RuleContext): ConfigIssue[] {
   const storage = ctx.config.storage
   if (!isPlainObject(storage)) return []
@@ -188,7 +188,7 @@ function unknownDefaultBucket (ctx: RuleContext): ConfigIssue[] {
   return known ? [] : [issue('config/unknown-bucket', 'storage.defaultBucket', 'must name a key of storage.buckets')]
 }
 
-// Rule 12
+// LDR-12
 function integerKeys (ctx: RuleContext): ConfigIssue[] {
   const keyed = [
     ...ctx.slots.map(slot => ({ key: slot.key, path: slot.path })),
@@ -201,7 +201,7 @@ function integerKeys (ctx: RuleContext): ConfigIssue[] {
       'integer-like keys are reordered by JavaScript, which would change the order providers are tried in; use a name'))
 }
 
-// Rule 13
+// LDR-13
 const developmentOnlyInProduction = (ctx: RuleContext): ConfigIssue[] => ctx.mode !== 'production'
   ? []
   : resolvedSlots(ctx)
@@ -209,7 +209,7 @@ const developmentOnlyInProduction = (ctx: RuleContext): ConfigIssue[] => ctx.mod
     .map(({ slot, loaded }) => issue('config/development-only', `${slot.path}.adapter`,
       `${loaded.specifier} is for development only; a production build cannot use it`))
 
-// Rule 14
+// LDR-14
 function inlineValues (ctx: RuleContext): ConfigIssue[] {
   if (ctx.mode !== 'production') return []
   const code = ctx.forbidInline ? 'config/inline-forbidden' : 'config/inline'
@@ -218,7 +218,7 @@ function inlineValues (ctx: RuleContext): ConfigIssue[] {
     .map(({ path }) => issue(code, path, 'is inline: this value is written into the build'))
 }
 
-// Rule 15
+// AGT-1, AGT-5
 const agentRules = (ctx: RuleContext): ConfigIssue[] => agentIssues(ctx)
 
 const RULES: ReadonlyArray<(ctx: RuleContext) => ConfigIssue[]> = [

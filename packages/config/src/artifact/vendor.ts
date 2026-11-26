@@ -89,7 +89,7 @@ function localDependencies (realDir: string): Array<[string, string]> {
 
 /**
  * Adapters are vendored however they were installed, because yarn v1 hides a local `file:` package
- * inside node_modules (S-8). Everything else is vendored only when local.
+ * inside node_modules (KS8). Everything else is vendored only when local.
  */
 function seeds (request: VendorRequest): Map<string, string> {
   const collected = new Map<string, string>()
@@ -156,7 +156,7 @@ function checkNoSecrets (packed: PackResult): void {
   if (secret !== undefined) throw new Error(`build/vendor-secret: ${packed.name} would ship ${secret}`)
 }
 
-/** npm cannot parse these protocols; overrides replace them only for names that are vendored (S-8). */
+/** npm cannot parse these protocols; overrides replace them only for names that are vendored (KS8). */
 function checkProtocols (pkg: PackageJson, vendoredNames: Set<string>): void {
   const specs = { ...pkg.peerDependencies, ...pkg.optionalDependencies, ...pkg.dependencies }
   const bad = Object.entries(specs).find(([dep, spec]) => UNINSTALLABLE_PROTOCOL.test(spec) && !vendoredNames.has(dep))

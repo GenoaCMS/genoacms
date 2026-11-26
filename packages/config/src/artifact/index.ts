@@ -20,7 +20,7 @@ interface RuntimePackage {
   private: true
   type: 'module'
   dependencies: Record<string, string>
-  /** Every vendored package → its tarball; present only when something was vendored (architecture D9). */
+  /** Every vendored package → its tarball; present only when something was vendored (build.md PD9). */
   overrides?: Record<string, string>
 }
 
@@ -63,7 +63,7 @@ function applyVendored (dependencies: Record<string, string>, specs: Record<stri
  * Writes the artifact's package.json: exactly what the server bundle imports, plus the adapters it
  * loads at runtime, pinned to the installed versions. Core's build tooling never appears in it,
  * because nothing in the server output imports it. Adapters, and local packages reachable from them
- * or from the bundle, are packed into `vendor/` and installed from there (architecture D9).
+ * or from the bundle, are packed into `vendor/` and installed from there (build.md PD9).
  */
 async function createRuntimePackage (request: RuntimePackageRequest): Promise<RuntimePackageResult> {
   const scanned = scanServerOutput(request.buildDir)

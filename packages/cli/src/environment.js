@@ -1,5 +1,5 @@
 /**
- * The facts the CLI hands across the process boundary to Vite and SvelteKit (architecture D7). Only
+ * The facts the CLI hands across the process boundary to Vite and SvelteKit (build.md PD7). Only
  * defined values are set, so an unset key means "use the default lookup", never an empty string.
  *
  * @param {{ root: string, file?: string, target?: string, mode: 'development'|'production' }} facts

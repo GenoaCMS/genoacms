@@ -40,7 +40,7 @@ async function adapterOf (descriptor: Descriptor, options: unknown, root: string
  * The SvelteKit adapter and origin for a deployment target, or neither when the config declares
  * no target: the dev server needs no adapter, and a `vite build` without a target only gets
  * SvelteKit's usual warning. Options reach the descriptor unresolved; credentials never influence
- * the build (build.md D10, D11).
+ * the build (build.md PD10, PD11).
  */
 async function resolveKitTarget (request: KitAdapterRequest): Promise<KitTarget> {
   const manifest = await loadConfig({ root: request.root, file: request.file, mode: request.mode })
