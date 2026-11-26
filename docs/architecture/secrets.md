@@ -3,7 +3,7 @@ type: architecture
 title: Secret references and the secrets provider
 prefix: S
 codes: [REF, DST]
-verified: f18f6205
+verified: a003d616
 ---
 
 # Secret references and the secrets provider
@@ -84,7 +84,7 @@ sequenceDiagram
 | :-- | :-- | :-- |
 | SU3 | Inline credentials stay allowed, but only when written explicitly. | `inline()` exists, and a production build warns once per inline field (LDR-14). |
 | SU11 | `packages/core/.env` held the dev instance's signing seeds. The author moved it once, by hand, to `packages/core/.genoacms/secrets.env` when core switched stores. | No path override and no fallback in code. Agents never read or move secret files. |
-| SU12 | **New.** Several instances share one secrets store, each under a prefix of its own: `secrets.prefix`, joined to a key as `<prefix>__<key>`, applied to every key the host gives the store and never to an `env()` variable. A prefix set on an instance that already holds secrets is not migrated. Decided 2026-11-26, issue #28; RFC-0050. | REF-9, LDR-22. An instance that sets or changes its prefix meets an empty store: it mints a new root key, and nothing signed before verifies. |
+| SU12 | Several instances share one secrets store, each under a prefix of its own: `secrets.prefix`, joined to a key as `<prefix>__<key>`, applied to every key the host gives the store and never to an `env()` variable. A prefix set on an instance that already holds secrets is not migrated. Decided 2026-11-26, issue #28; RFC-0050. | REF-9, LDR-22. An instance that sets or changes its prefix meets an empty store: it mints a new root key, and nothing signed before verifies. |
 
 **SD5. Secrets are typed references, resolved by the host just before construction.**
 `secret('KEY')`, `env('VAR')` and `inline(value)` are the only ways to fill a credential option.
@@ -117,7 +117,7 @@ deploy does.
 attack surface.
 *Cost:* no live rotation, and a key missing at the first read stays missing until restart (SF1).
 
-**SD8. The host applies the prefix, not the adapters.** **New** (RFC-0050). `host.secrets()` returns
+**SD8. The host applies the prefix, not the adapters.** `host.secrets()` returns
 the configured store wrapped, so that each key its caller names reaches the adapter as
 `<prefix>__<key>` (REF-9). Core's own names, such as `GENOACMS_ROOT_KEY_SEED`
 ([`signing.md`](signing.md)), and the config's `secret()` keys keep their spelling; only the stored
@@ -190,10 +190,11 @@ When the host constructs a provider, it resolves each option the descriptor list
 never decoded. An `env()` option resolves to the variable of the host's environment, or fails with
 `secrets/env-missing: <path> reads <variable>, which is not set`. A `secret()` option resolves to the
 store's `getSecret(key)`, or fails, when that is `undefined`, with `secrets/missing: <path> points
-at '<key>', which the configured secret store does not hold. Set it before starting GenoaCMS.` A
-listed option present without a reference fails with `config/bare-secret: <path> is a credential
-field and holds no reference`. `<path>` is `<service>.providers.<name>.options.<option>`. The options
-of one provider are resolved concurrently.
+at '<key>', which the configured secret store does not hold. Set it before starting GenoaCMS.`,
+which REF-9 extends under an instance prefix. A listed option present without a reference fails
+with `config/bare-secret: <path> is a credential field and holds no reference`. `<path>` is
+`<service>.providers.<name>.options.<option>`. The options of one provider are resolved
+concurrently.
 
 - Test: `packages/config/src/host/host.test.ts`
 - Level: unit
@@ -260,7 +261,7 @@ must match ^[A-Za-z_][A-Za-z0-9_]*$` and never normalizes a key.
 
 #### REF-9 · An instance prefix
 
-**New.** When the config sets `secrets.prefix` to `<prefix>`, the store that `host.secrets()`
+When the config sets `secrets.prefix` to `<prefix>`, the store that `host.secrets()`
 returns calls its adapter with `<prefix>__<key>` wherever its caller passes `<key>`, in
 `getSecret`, `setSecret`, `setSecretIfAbsent` and `deleteSecret`, and the value passes
 unchanged. Each call resolves to what the adapter's call resolves to, and rejects with what it rejects
@@ -269,9 +270,8 @@ then ends `It is stored as '<prefix>__<key>'.` Without `secrets.prefix`, each ke
 adapter as given. An `env()` reference is never prefixed. For any two prefixes that differ, no
 pair of keys gives the same stored name.
 
-- Test: none yet
+- Test: `packages/config/src/host/prefixedStore.test.ts`, `packages/config/src/host/host.test.ts`, `packages/core/e2e/signIn.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0050)
 
 ### The development store
 

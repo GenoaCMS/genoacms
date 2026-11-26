@@ -2,7 +2,8 @@
 type: rfc
 number: 50
 title: Several instances share one secrets store, each under its own prefix
-status: draft
+status: auditing
+commits: [d23d4379, d02c414d, dd483463, a003d616]
 depends: []
 architecture: [architecture/secrets.md, architecture/configuration.md]
 changes: [REF-9 added, LDR-22 added, REF-2 compatible, CFG-3 compatible]

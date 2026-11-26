@@ -21,7 +21,7 @@ through it directly: the root seed, the two sequence marks and the subordinate s
 **Who overwrites.** `setSecret` is called by root rotation (`GENOACMS_ROOT_KEY_SEED`, once per
 rotation), by the key manifest's mark (`GENOACMS_KEY_REGISTRY_SEQUENCE`, on every change to the key
 manifest, `signing.md` REG-4) and by the security policy's mark (`GENOACMS_SECURITY_POLICY_SEQUENCE`,
-on every write of the policy, `signing.md` POL-2). Subordinate seeds are claimed with `setSecretIfAbsent` and never overwritten.
+on every write of the policy, `signing.md` POL-2). Subordinate seeds are claimed with `setSecretIfAbsent` and never overwritten. Under an instance prefix, each of these is stored as `<prefix>__<name>` (`secrets.md` REF-9); the adapter receives that name and stores it verbatim.
 
 ### Decisions
 

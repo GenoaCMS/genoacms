@@ -3,7 +3,7 @@ type: architecture
 title: Configuration
 prefix: K
 codes: [CFG, LDR]
-verified: f18f6205
+verified: d02c414d
 ---
 
 # Configuration
@@ -226,7 +226,7 @@ interface Config<AP extends Providers, DP extends Providers, SP extends Provider
     defaultBucket: string
     pathDelimiter?: string            // segment separator in storage browser URLs; default '|->'
   }
-  secrets: { providers: XP }          // exactly one provider
+  secrets: { providers: XP, prefix?: string }   // exactly one provider; prefix by REF-9
   languages: { providers: LP }        // keyed by the language name a component records
   deployment?: { targets: TP, default?: keyof TP & string }   // a build requires a target
   authorization: AuthorizationConfig
@@ -350,16 +350,15 @@ found <n>` (KF29).
 
 #### LDR-22 · The secrets prefix
 
-**New.** `secrets.prefix` is absent, or a string of at most 64 characters matching
+`secrets.prefix` is absent, or a string of at most 64 characters matching
 `^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$`: it starts with a letter, holds no `__`, and does not end
 in `_`. Any other value gives the issue `config/invalid-secrets-prefix` at `secrets.prefix`,
 reading `must match ^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$ and be at most 64 characters`. The
 manifest carries it in `config.secrets.prefix` (LDR-17), and the host applies it (`secrets.md`
 REF-9).
 
-- Test: none yet
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
-- State: new (RFC-0050)
 
 #### LDR-10 · Names that must exist
 
