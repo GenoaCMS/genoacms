@@ -31,6 +31,9 @@ The author decided on 2026-11-26 (`secrets.md` SU12):
 
 The host applies it, wrapping the store it constructs (SD8), so no adapter changes.
 
+Amended on 2026-11-26, after the implementation: REF-9 is verified at e2e, so the use case SJ1 and
+its scenario SJ1a are added to `secrets.md`, and the e2e test carries SJ1a.
+
 ## Files
 
 **Modify or create only:**
@@ -93,6 +96,43 @@ name.
 
 - Test: `packages/config/src/host/prefixedStore.test.ts`, `packages/config/src/host/host.test.ts`, `packages/core/e2e/signIn.test.ts`
 - Level: unit, e2e
+
+#### Use case SJ1 and scenario SJ1a (added)
+
+`secrets.md` gains the use case SJ1, *Run several instances on one store* (Operator), and its
+scenario SJ1a, *An instance under a prefix keeps its secrets apart*, which names REF-9. The
+project's `scenario-levels` is `[e2e]`, so REF-9, verified at e2e, must be named by a scenario.
+Found when bringing `secrets.md` to current; added by amendment.
+
+```mermaid
+flowchart LR
+  operator[Operator]
+  subgraph secrets [Secrets]
+    SJ1([Run several instances on one store])
+  end
+  operator --- SJ1
+  classDef new stroke:#1a7f37,stroke-width:3px
+  class SJ1 new
+```
+
+```mermaid
+sequenceDiagram
+  actor O as Operator
+  participant C as GenoaCMS core
+  participant H as Host
+  participant S as Secrets store
+  rect rgba(26,127,55,0.15)
+  O->>C: start the instance whose config sets secrets.prefix: 'SHOP'
+  C->>H: getSecret('GENOACMS_ROOT_KEY_SEED')
+  H->>S: getSecret('SHOP__GENOACMS_ROOT_KEY_SEED') (REF-9)
+  S-->>H: undefined
+  C->>H: setSecretIfAbsent('GENOACMS_ROOT_KEY_SEED', seed)
+  H->>S: setSecretIfAbsent('SHOP__GENOACMS_ROOT_KEY_SEED', seed) (REF-9)
+  C->>H: resolve env('ADMIN_USERS')
+  H-->>C: the variable ADMIN_USERS, not prefixed (REF-9)
+  C-->>O: the store holds only SHOP__ names for this instance (REF-9)
+  end
+```
 
 ### `architecture/configuration.md`
 
@@ -180,7 +220,7 @@ in-memory adapter:
 `packages/core/e2e/signIn.test.ts` (e2e), in its running instance, whose e2e config sets the prefix
 `E2E`:
 
-- `REF-9: the instance's own secrets are stored under its prefix, and env() credentials are not`:
+- `SJ1a, REF-9: the instance's own secrets are stored under its prefix, and env() credentials are not`:
   given a user signed in through credentials read with `env()`, then the secrets file holds
   `E2E__GENOACMS_ROOT_KEY_SEED`, `E2E__GENOACMS_KEY_REGISTRY_SEQUENCE` and an
   `E2E__GENOACMS_SUBORDINATE_KEY_SEED_<keyId>` for the key manifest's current key, and no key that
