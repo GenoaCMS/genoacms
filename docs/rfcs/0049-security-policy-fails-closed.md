@@ -2,8 +2,8 @@
 type: rfc
 number: 49
 title: The security policy has a sequence, and a damaged one fails closed
-status: draft
-commits: []
+status: auditing
+commits: [15f94f50]
 audit: []
 depends: [48]
 architecture: [architecture/signing.md]
@@ -54,12 +54,13 @@ The author decided on 2026-11-25 (YU3):
 | `packages/core/src/lib/script/bootstrap.server.ts` | `governingPolicy()`, so a damaged policy does not stop the start |
 | `packages/core/src/lib/script/signing/rootRotation.server.ts` | POL-4 |
 | `packages/core/src/routes/(admin)/configuration/security/DegradedNotice.svelte` | POL-3's text |
-| `packages/core/src/lib/script/testing/signingKeys.ts` | `testSecurityPolicy` gains `sequence: 1` |
+| `packages/core/src/lib/script/testing/signingKeys.ts` | `testPolicyReaders` (§Tests) |
 | `packages/core/src/lib/script/securityPolicy/policy.test.ts`, `policy.server.test.ts` (new), `user.server.test.ts` | by §Tests |
-| `packages/core/src/lib/script/signing/sequenceMark.server.test.ts` | new, by §Tests |
-| `packages/core/src/lib/script/auth/*.test.ts`, `components/publication/*.test.ts`, `signing/user.server.test.ts`, `bootstrap.test.ts` | the policy mocks answer `accessPolicy` and `governingPolicy`; no assertion changes |
+| `packages/core/src/lib/script/signing/sequenceMark.server.test.ts`, `signing/keyResolution.server.test.ts` | new, by §Tests |
+| `packages/core/src/lib/script/auth/*.test.ts`, `components/publication/*.test.ts`, `signing/user.server.test.ts`, `bootstrap.test.ts`, and every other unit test that mocks `policy.server` | the policy mocks answer `accessPolicy` and `governingPolicy`; no assertion changes but the two §Tests names |
 | `packages/core/e2e/securityPolicy.test.ts` | new, by §Tests |
 | `docs/architecture/adapter-gcp/secrets.md` | its *Role* names the second mark |
+| `packages/docs/src/routes/guide/storage-layout/+page.md`, `guide/cli/+page.md` | the policy's sequence and damage; root rotation resets the policy |
 | `packages/docs/src/routes/guide/config/services/+page.md` | the second mark |
 | `.changeset/security-policy-fails-closed.md` | `@genoacms/core` minor |
 | `docs/architecture/signing.md` | after the code: POL-1 to POL-4 current, YF3, YF4 and YF8 fixed, test files named, `verified` |
@@ -223,6 +224,27 @@ Publication and sign-in (unit), in their existing test files:
   `POL-3: a session started while the policy is damaged lasts one day`.
 - `POL-3: the current key does not rotate when due while the policy is damaged`: given a key past
   any interval, then `getCurrentSigningKey` returns it and nothing rotates.
+
+`signing/keyResolution.server.test.ts` (unit), new, holds the rotation test above, since no test
+file of `keyResolution.server.ts` existed.
+
+`bootstrap.test.ts` (unit), in the root rotation's tests: `POL-4: root rotation writes the configured policy under the new root at the policy mark plus 1`:
+given a bootstrapped instance, whose policy mark is 1, when the root rotates, then the policy is a
+v2 envelope signed by the new root with the configured values and `sequence: 2`, and the mark is 2.
+`creates the security policy document from the Tier-1 default` asserts the type
+`genoacms.securityPolicy.v2`, where it asserted v1.
+
+Existing tests whose doubles change, with no assertion changed:
+
+- `securityPolicy/user.server.test.ts`: `readStoredPolicy` answers `{ state, policy | reason,
+  version }`, `defaultPolicy` is mocked, and the `writePolicy` double is called with the policy and
+  the version of the `stored` it is given, so its two `toHaveBeenCalledWith` assertions stand.
+- The storage doubles of `auth/session.server.test.ts` and `bootstrap.test.ts` throw an error named
+  `ObjectNotFoundError` for an absent object, since only a not-found creates the policy (POL-1).
+- `testing/signingKeys.ts` gains `testPolicyReaders`, `accessPolicy` and `governingPolicy` over a
+  trusted `testSecurityPolicy`, which the policy mocks of the other unit tests spread in place of
+  `loadSecurityPolicy`; `testSecurityPolicy` itself stays without `sequence`, since
+  `governingPolicy` answers a policy without one.
 
 `packages/core/e2e/securityPolicy.test.ts` (e2e), new, in an instance of its own:
 

@@ -3,7 +3,7 @@ type: architecture
 title: Signing in core
 prefix: Y
 codes: [KEY, ENV, REG, VFY, POL]
-verified: 0d2fa496
+verified: 15f94f50
 ---
 
 # Signing in core
@@ -54,8 +54,9 @@ flowchart LR
     YJ1([See the signing keys])
     YJ2([Rotate the current key])
     YJ3([Revoke a key])
+    YJ4([Repair a damaged security policy])
   end
-  admin --- YJ1 & YJ2 & YJ3
+  admin --- YJ1 & YJ2 & YJ3 & YJ4
   YJ2 -. extends .-> YJ1
   YJ3 -. extends .-> YJ1
 ```
@@ -65,6 +66,7 @@ flowchart LR
 | YJ1 | See the signing keys | Administrator | |
 | YJ2 | Rotate the current key | Administrator | |
 | YJ3 | Revoke a key | Administrator | |
+| YJ4 | Repair a damaged security policy | Administrator | POL-2, POL-3 |
 
 ### Scenarios
 
@@ -117,6 +119,31 @@ sequenceDiagram
   C->>S: write the manifest with the key revoked, then delete the key's file (REG-3)
   C-->>A: "Key revoked", the key listed as revoked, one key current (KEY-4)
 ```
+
+**YJ4a. An administrator repairs a damaged policy.** POL-3.
+
+```mermaid
+sequenceDiagram
+  actor A as Administrator
+  participant C as Core
+  participant S as Storage
+  A->>C: sign in
+  C->>S: read the policy
+  S-->>C: a damaged policy (POL-3)
+  C-->>A: signed in, on the strictest token lifetimes (POL-3)
+  A->>C: publish a component
+  C-->>A: security-policy/damaged: <reason> (POL-3)
+  A->>C: GET /configuration/security
+  C-->>A: the stored policy could not be read, and the configured defaults (POL-3)
+  A->>C: save
+  C->>S: write the policy one above the mark, then the mark (POL-2)
+  A->>C: publish a component
+  C-->>A: published
+```
+
+**YJ4b. A restored older policy is detected.** POL-2, POL-3. Someone puts back a policy the root
+signed before the last save; the security screen shows `policy-rollback: …` and the instance runs as
+in YJ4a until the administrator saves.
 
 ### Decisions
 
@@ -230,12 +257,13 @@ by deleting its documents.
 | :-- | :-- | :-- |
 | YF1 | **A secret write may restart the dev server mid-request.** In 2026-08 the development secrets adapter wrote `.env`, Vite restarted on the change and killed the request: rotating reported a failure, and revoking succeeded while reporting one. It was fixed with `envDir: false` in `packages/core/vite.config.ts` (`b0760979`), which `f9a432c6` removed when the development store moved to `.genoacms/secrets.env`. The guard test `tests/README.md` names does not exist. Whether a secret write restarts the dev server today is not verified; the e2e suite serves the build and cannot see it. | open: not verified |
 | YF2 | *History.* **A verifier checks a signature with the algorithm the envelope names, not the one its key was registered with.** The key registry records each key's `alg`, but neither the core verifier (`verify` in `packages/core/src/lib/script/signing/envelope.ts`, called by `signedDocument.server.ts` for subordinate keys and the root) nor the SDK's (`verifyEnvelope` in `packages/sdk/src/verify/envelope.ts`, called by `client.ts`) compares the envelope's `alg` with it. Signing `alg` with the payload does not close this: under an algorithm whose signatures can be produced without the private key, the forger signs the rewritten header too. Not exploitable today, because the only registered algorithms are ML-DSA-65 and SLH-DSA-SHA2-128s, neither can be forged without the private key, and a key read under the other scheme fails to verify. Registering a weaker algorithm would open it. No statement specified the check until YU2 (ENV-6). Found 2026-11-20 by reading both verifiers. | fixed, RFC-0048 (`0d2fa496`) |
-| YF3 | **An older security policy verifies until the root key is replaced.** The policy document (`.genoacms/security/policy.json`) carries no sequence number, unlike the key registry, and `readStoredPolicy` in `packages/core/src/lib/script/securityPolicy/policy.server.ts` checks only the root signature, the document type and the bounds (`readRootSignedDocument` in `signing/signedDocument.server.ts`). Anyone who can write the storage can put back a policy the root signed earlier, with a longer rotation interval or token lifetime, higher guard ceilings or a wider fetch origin allowlist, and the instance uses it; the next publication compiles its ceilings and allowlist into a signed artifact. The root key is replaced rarely, so in practice every policy an instance has ever stored stays valid. No statement specified the policy until YU3 (POL-2). Found 2026-11-21 by reading `policy.server.ts` and `signedDocument.server.ts`. | open, RFC-0049 |
-| YF4 | **Damaging the security policy puts the instance on the configured defaults, which may be looser than the stored values.** A stored policy that is not JSON, fails its root signature or fails `parseSecurityPolicy` is left in place and `readStoredPolicy` returns `defaultPolicy()`, the `security` stanza of `genoa.config` with its own defaults, logging a warning and reporting `degraded` to the administration screen. Anyone who can write the storage can therefore undo every value an administrator tightened at runtime by corrupting one object, without any key; the module's own reason for not replacing the document (a relaxed setting the administrator did not choose) applies to the fallback as well. No statement specified the policy until YU3 (POL-3). Found 2026-11-21 by reading `policy.server.ts`. | open, RFC-0049 |
+| YF3 | *History.* **An older security policy verifies until the root key is replaced.** The policy document (`.genoacms/security/policy.json`) carries no sequence number, unlike the key registry, and `readStoredPolicy` in `packages/core/src/lib/script/securityPolicy/policy.server.ts` checks only the root signature, the document type and the bounds (`readRootSignedDocument` in `signing/signedDocument.server.ts`). Anyone who can write the storage can put back a policy the root signed earlier, with a longer rotation interval or token lifetime, higher guard ceilings or a wider fetch origin allowlist, and the instance uses it; the next publication compiles its ceilings and allowlist into a signed artifact. The root key is replaced rarely, so in practice every policy an instance has ever stored stays valid. No statement specified the policy until YU3 (POL-2). Found 2026-11-21 by reading `policy.server.ts` and `signedDocument.server.ts`. | fixed, RFC-0049 (`15f94f50`) |
+| YF4 | *History.* **Damaging the security policy puts the instance on the configured defaults, which may be looser than the stored values.** A stored policy that is not JSON, fails its root signature or fails `parseSecurityPolicy` is left in place and `readStoredPolicy` returns `defaultPolicy()`, the `security` stanza of `genoa.config` with its own defaults, logging a warning and reporting `degraded` to the administration screen. Anyone who can write the storage can therefore undo every value an administrator tightened at runtime by corrupting one object, without any key; the module's own reason for not replacing the document (a relaxed setting the administrator did not choose) applies to the fallback as well. No statement specified the policy until YU3 (POL-3). Found 2026-11-21 by reading `policy.server.ts`. | fixed, RFC-0049 (`15f94f50`) |
 | YF5 | *History.* **Every consumer downloads every key the instance ever made, 161 KB, to verify a page signed by one.** On 2026-11-25 the live registry held 55 keys (1 current, 30 superseded, 24 revoked) at sequence 80, and measured 160,892 bytes; the root signature is 10,476 of them and the public keys, 2604 base64 characters each, almost all the rest. Rotation never removes an entry and revocation keeps one, so the document only grows, and a revoked key, which verifies nothing, costs as much as the current one. The page the demos render is signed by one key. No statement constrained the registry's form. Found 2026-11-25 profiling the demos' page load. | fixed, RFC-0048 (`0d2fa496`) |
 | YF6 | **A consumer accepts an older key registry on every fresh load, undoing every revocation made since.** The SDK keeps the highest sequence it has seen in the `Verifier` instance only (`#highWaterMark` in `packages/sdk/src/verify/client.ts`), so a browser that loads a page starts from 0 and accepts any registry the root ever signed. Anyone who can write the storage, or answer for it, and kept an older registry can serve it, and every key revoked since verifies again. Core is not affected: it checks the registry against the mark in the secrets service (`registrySequence.server.ts`). No statement specified the SDK until YU2 (VFY-2). Found 2026-11-25 while designing YU2. | narrowed, RFC-0048 (`0d2fa496`): open for a consumer that passes no mark (YD9) |
 | YF7 | **Running core with its development config rotates and revokes the production instance's keys, and leaves the production instance a current key whose seed it does not have.** `packages/core/genoa.config/development.ts` and `test.ts` name the bucket `genoacms`, which `production.ts` serves, with `@genoacms/adapter-secrets-env` as the secrets store instead of Secret Manager. A key minted from the dev server is published to the production registry while its seed is written to the developer's `.genoacms/secrets.env`, so production cannot sign with it (`signing/current-key-unavailable`) until it rotates again, and the registry sequence's mark is kept twice, in the local file and in Secret Manager, each catching up on its own. The 55 keys of YF5 were made from 2026-08-16 to 2026-08-29, rotated and then revoked 2 to 3 seconds later, the pattern of the key screen's browser test. `test.ts` reaches no service under the unit tests (`docs/README.md`, *Test levels*). No statement is contradicted. Found 2026-11-25 tracing YF5. | open |
-| YF8 | **A failed read of the security policy runs the instance on the configured defaults and reports nothing.** `readStoredPolicy` treats every failure of `getInternalObjectStringVersioned` as an absent document and calls `createDefaultPolicy`, which writes with `ifAbsent`; when the document exists, the write's precondition fails, the error is swallowed, and `defaultPolicy()` is returned with no `degraded` reason and no warning. A storage outage, a permission error or a timeout therefore has the effect of YF4 without its notice. Found 2026-11-25 reading `policy.server.ts` for YU3. | open, RFC-0049 |
+| YF8 | *History.* **A failed read of the security policy runs the instance on the configured defaults and reports nothing.** `readStoredPolicy` treats every failure of `getInternalObjectStringVersioned` as an absent document and calls `createDefaultPolicy`, which writes with `ifAbsent`; when the document exists, the write's precondition fails, the error is swallowed, and `defaultPolicy()` is returned with no `degraded` reason and no warning. A storage outage, a permission error or a timeout therefore has the effect of YF4 without its notice. Found 2026-11-25 reading `policy.server.ts` for YU3. | fixed, RFC-0049 (`15f94f50`) |
+| YF9 | **A malformed policy mark leaves the policy damaged with no repair from the security screen.** Breaks POL-3: saving on `/configuration/security` is to end the damage. Cause: when `GENOACMS_SECURITY_POLICY_SEQUENCE` does not match REG-4's format, reading the policy is damaged with `policy-sequence/unreadable`, as POL-3 says, but `writePolicy` in `packages/core/src/lib/script/securityPolicy/policy.server.ts` reads the mark to compute the next sequence (POL-2) and refuses with the same error, so the screen reports it and writes nothing; only rewriting the secret by hand ends it. No statement says what a write does with a malformed mark. Found 2026-11-26 implementing RFC-0049. | open |
 
 ### History
 
@@ -501,7 +529,7 @@ it was given, and by every rule of REG-1, refusing it whole otherwise.
 
 #### POL-1 · The policy document
 
-**New.** `.genoacms/security/policy.json` holds the security policy: an envelope signed by the root
+`.genoacms/security/policy.json` holds the security policy: an envelope signed by the root
 with the type `genoacms.securityPolicy.v2`, whose payload has exactly these members, each an
 integer within its bounds except `fetchOrigins`:
 
@@ -522,26 +550,24 @@ policy of the `security` stanza of `genoa.config`, with sequence 1, only if stil
 When nothing is stored and the mark is above 0, the policy is damaged (POL-3) with
 `policy-absent: nothing is stored, but the mark is <mark>`. Any other failure to read it propagates.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/securityPolicy/policy.test.ts`, `packages/core/src/lib/script/securityPolicy/policy.server.test.ts`
 - Level: unit
-- State: new (RFC-0049)
 
 #### POL-2 · The policy's sequence and mark
 
-**New.** Every write of the policy raises `sequence` to 1 more than the highest of the stored
+Every write of the policy raises `sequence` to 1 more than the highest of the stored
 policy's sequence, when that verifies, and the mark, and is conditional on the version of the
 document it read. The secret `GENOACMS_SECURITY_POLICY_SEQUENCE` is the mark, in REG-4's format,
 written after the policy. Reading a policy whose sequence is below the mark makes it damaged
 (POL-3) with `policy-rollback: sequence <sequence> is below the highest seen (<mark>)`; a higher one
 raises the mark.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/securityPolicy/policy.server.test.ts`, `packages/core/src/lib/script/signing/sequenceMark.server.test.ts`, `packages/core/e2e/securityPolicy.test.ts`
 - Level: unit
-- State: new (RFC-0049)
 
 #### POL-3 · A damaged policy
 
-**New.** A stored policy is damaged when it is not JSON, does not verify with the root, is of
+A stored policy is damaged when it is not JSON, does not verify with the root, is of
 another type, `genoacms.securityPolicy.v1` included, breaks POL-1, is below the mark, is absent
 while the mark is above 0 (POL-1), or when the mark cannot be read; the reason says which. A damaged policy is left in place and never replaced
 except by an administrator. While it is damaged:
@@ -557,18 +583,16 @@ except by an administrator. While it is damaged:
   `Until it is rewritten, sign-in runs on the strictest token lifetimes and nothing can be published. The values below are the defaults from genoa.config. Saving here replaces the stored document.`,
   offers those defaults to edit, and saving writes a policy by POL-2, which ends the damage.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/securityPolicy/policy.test.ts`, `packages/core/src/lib/script/securityPolicy/policy.server.test.ts`, `packages/core/src/lib/script/auth/auth.server.test.ts`, `packages/core/src/lib/script/auth/session.server.test.ts`, `packages/core/src/lib/script/components/publication/index.test.ts`, `packages/core/src/lib/script/signing/keyResolution.server.test.ts`, `packages/core/e2e/securityPolicy.test.ts`
 - Level: unit, e2e
-- State: new (RFC-0049)
 
 #### POL-4 · What root rotation writes to the policy
 
-**New.** Rotating the root writes, unconditionally, the policy of the `security` stanza signed by the
+Rotating the root writes, unconditionally, the policy of the `security` stanza signed by the
 new root, with the mark plus 1 as its sequence, then the mark.
 
-- Test: none yet
+- Test: `packages/core/src/lib/script/bootstrap.test.ts`
 - Level: unit
-- State: new (RFC-0049)
 
 ### The key registry screen
 

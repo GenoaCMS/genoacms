@@ -20,12 +20,14 @@ flowchart LR
     YJ1(["See the signing keys"])
     YJ2(["Rotate the current key"])
     YJ3(["Revoke a key"])
+    YJ4(["Repair a damaged security policy"])
   end
-  actor --- ZJ1 & YJ1 & YJ2 & YJ3
+  actor --- ZJ1 & YJ1 & YJ2 & YJ3 & YJ4
   click ZJ1 "architecture/authorization.md"
   click YJ1 "architecture/signing.md"
   click YJ2 "architecture/signing.md"
   click YJ3 "architecture/signing.md"
+  click YJ4 "architecture/signing.md"
 ```
 
 ### AI agent
@@ -498,10 +500,10 @@ flowchart LR
 | PGE-10 · Page permissions | unit | — | [architecture/components.md](architecture/components.md) |
 | PGE-11 · Page names | unit | — | [architecture/components.md](architecture/components.md) |
 | PGE-12 · Editing a link | unit | — | [architecture/components.md](architecture/components.md) |
-| POL-1 · The policy document (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| POL-2 · The policy's sequence and mark (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
-| POL-3 · A damaged policy (new) | unit, e2e | — | [architecture/signing.md](architecture/signing.md) |
-| POL-4 · What root rotation writes to the policy (new) | unit | — | [architecture/signing.md](architecture/signing.md) |
+| POL-1 · The policy document | unit | — | [architecture/signing.md](architecture/signing.md) |
+| POL-2 · The policy's sequence and mark | unit | YJ4, YJ4a, YJ4b | [architecture/signing.md](architecture/signing.md) |
+| POL-3 · A damaged policy | unit, e2e | YJ4, YJ4a, YJ4b | [architecture/signing.md](architecture/signing.md) |
+| POL-4 · What root rotation writes to the policy | unit | — | [architecture/signing.md](architecture/signing.md) |
 | PUB-1 · Publishing | unit, e2e | NJ3a, NJ3c, TJ2a | [architecture/components.md](architecture/components.md) |
 | PUB-2 · No change, no publication | unit | NJ3a | [architecture/components.md](architecture/components.md) |
 | PUB-3 · Analysis and compilation | unit, e2e | NJ3a, NJ3b | [architecture/components.md](architecture/components.md) |

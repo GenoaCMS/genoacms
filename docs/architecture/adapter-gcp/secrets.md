@@ -15,12 +15,13 @@ Part of the [GCP adapter architecture](README.md). Markers, IDs and test referen
 
 `@genoacms/adapter-gcp/secrets` is the production secrets store on GCP. The host resolves `secret()`
 references through it (`secrets.md`), and core reads and writes its own signing material
-through it directly: the root seed, the registry sequence and the subordinate seeds
+through it directly: the root seed, the two sequence marks and the subordinate seeds
 (`secrets.md`, *Bootstrap ordering*). Only one secrets provider may be configured (`secrets.md`, non-goal).
 
 **Who overwrites.** `setSecret` is called by root rotation (`GENOACMS_ROOT_KEY_SEED`, once per
-rotation) and by the registry sequence (`GENOACMS_KEY_REGISTRY_SEQUENCE`, on every change to the key
-registry). Subordinate seeds are claimed with `setSecretIfAbsent` and never overwritten.
+rotation), by the key manifest's mark (`GENOACMS_KEY_REGISTRY_SEQUENCE`, on every change to the key
+manifest, `signing.md` REG-4) and by the security policy's mark (`GENOACMS_SECURITY_POLICY_SEQUENCE`,
+on every write of the policy, `signing.md` POL-2). Subordinate seeds are claimed with `setSecretIfAbsent` and never overwritten.
 
 ### Decisions
 
