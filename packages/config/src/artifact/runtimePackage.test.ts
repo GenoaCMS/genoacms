@@ -30,7 +30,7 @@ function fixture (adapterVersion = '0.9.0') {
 }
 
 describe('createRuntimePackage', { timeout: 30_000 }, () => {
-  it('writes the scanned externals pinned, plus the runtime adapters vendored, and nothing else', async () => {
+  it('ART-1, ART-2, VND-2: writes the scanned externals pinned, plus the runtime adapters vendored, and nothing else', async () => {
     const { root, coreDir, buildDir, manifest } = fixture()
     const { pkg, blind, vendored } = await createRuntimePackage({ buildDir, coreDir, root, manifest })
     const tarball = 'file:vendor/genoacms-adapter-x-0.9.0.tgz'
@@ -47,7 +47,7 @@ describe('createRuntimePackage', { timeout: 30_000 }, () => {
     expect(blind).toEqual(['server/index.js: import(<Identifier>)'])
   })
 
-  it('refuses an adapter whose manifest version differs from the installed one', async () => {
+  it('ART-2: refuses an adapter whose manifest version differs from the installed one', async () => {
     const { root, coreDir, buildDir, manifest } = fixture('0.1.0')
     await expect(createRuntimePackage({ buildDir, coreDir, root, manifest })).rejects.toThrow(/^build\/version-conflict: @genoacms\/adapter-x/)
   })

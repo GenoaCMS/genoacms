@@ -36,7 +36,7 @@ const withTargets = (deployment: unknown): Record<string, any> => ({ ...baseConf
 const resolveKitTarget = async (request: kit.KitAdapterRequest): Promise<any> => await kit.resolveKitTarget(request)
 
 describe('resolveKitTarget', () => {
-  it("gives the descriptor's SvelteKit adapter the artifact directory and the unresolved options", async () => {
+  it("BLD-2: gives the descriptor's SvelteKit adapter the artifact directory and the unresolved options", async () => {
     const credentials = { $secret: 'DEPLOY_SA' }
     const { root } = project(withTargets({ targets: { one: { adapter: 'kit-one', options: { credentials } } } }))
     const { adapter } = await resolveKitTarget({ root, mode: 'development' })
@@ -44,7 +44,7 @@ describe('resolveKitTarget', () => {
     expect(adapter.options).toEqual({ out: join(root, '.genoacms', 'build'), received: { credentials }, target: 'one' })
   })
 
-  it('chooses the requested target, then the default, then the first key', async () => {
+  it('BLD-2: chooses the requested target, then the default, then the first key', async () => {
     const targets = { one: { adapter: 'kit-one', options: {} }, two: { adapter: 'kit-two', options: {} } }
     const first = project(withTargets({ targets }))
     expect((await resolveKitTarget({ root: first.root, mode: 'development' })).adapter.options.target).toBe('one')
@@ -54,7 +54,7 @@ describe('resolveKitTarget', () => {
     expect((await resolveKitTarget({ root: byDefault.root, mode: 'development' })).adapter.options.target).toBe('two')
   })
 
-  it('refuses an unknown target and a target requested from a config without any', async () => {
+  it('BLD-2: refuses an unknown target and a target requested from a config without any', async () => {
     const withOne = project(withTargets({ targets: { one: { adapter: 'kit-one', options: {} } } }))
     await expect(resolveKitTarget({ root: withOne.root, mode: 'development', target: 'nowhere' })).rejects.toMatchObject({ code: 'config/unknown-target' })
     const config = baseConfig()
@@ -64,21 +64,21 @@ describe('resolveKitTarget', () => {
     expect((await resolveKitTarget({ root: withNone.root, mode: 'development' })).adapter).toBeUndefined()
   })
 
-  it("returns the descriptor's origin for the target's unresolved options", async () => {
+  it("BLD-2: returns the descriptor's origin for the target's unresolved options", async () => {
     const targets = { with: { adapter: 'kit-origin', options: { site: 'https://cms.example' } }, without: { adapter: 'kit-origin', options: {} } }
     const { root } = project(withTargets({ targets }))
     expect((await resolveKitTarget({ root, mode: 'development', target: 'with' })).origin).toBe('https://cms.example')
     expect((await resolveKitTarget({ root, mode: 'development', target: 'without' })).origin).toBeUndefined()
   })
 
-  it('returns no origin from a descriptor that declares none', async () => {
+  it('BLD-2: returns no origin from a descriptor that declares none', async () => {
     const { root } = project(withTargets({ targets: { one: { adapter: 'kit-one', options: {} } } }))
     const target = await resolveKitTarget({ root, mode: 'development' })
     expect(target.origin).toBeUndefined()
     expect(target.adapter.name).toBe('fake-kit')
   })
 
-  it('returns neither adapter nor origin without targets', async () => {
+  it('BLD-2: returns neither adapter nor origin without targets', async () => {
     const config = baseConfig()
     delete config.deployment
     const { root } = project(config)

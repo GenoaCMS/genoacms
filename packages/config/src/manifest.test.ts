@@ -14,19 +14,19 @@ const manifest = (): Manifest => ({
 })
 
 describe('toRuntimeManifest', () => {
-  it('drops the deployment stanza, deployment adapters and the watch list', () => {
+  it('LDR-19: drops the deployment stanza, deployment adapters and the watch list', () => {
     const runtime = toRuntimeManifest(manifest())
     expect('deployment' in runtime.config).toBe(false)
     expect(Object.keys(runtime.adapters)).toEqual(['fake-storage'])
     expect(runtime.source).toEqual({ root: '/project', file: '/project/genoa.config.ts' })
   })
 
-  it('omits source for a production manifest', () => {
+  it('LDR-19: omits source for a production manifest', () => {
     const { source, ...production } = manifest()
     expect(toRuntimeManifest({ ...production, mode: 'production' }).source).toBeUndefined()
   })
 
-  it('does not mutate its input', () => {
+  it('LDR-19: does not mutate its input', () => {
     const input = manifest()
     const before = structuredClone(input)
     toRuntimeManifest(input)

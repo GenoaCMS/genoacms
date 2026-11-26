@@ -33,7 +33,7 @@ async function issuesOf (config: unknown, mode: 'development' | 'production' = '
 const codesAt = (issues: ConfigIssue[]): string[] => issues.map(issue => `${issue.code} ${issue.path}`)
 
 describe('loading a valid config', () => {
-  it('produces one adapter record per distinct descriptor, without loading any runtime', async () => {
+  it('LDR-16, LDR-17: produces one adapter record per distinct descriptor, without loading any runtime', async () => {
     const { root } = project({ config: configSource(baseConfig()) })
     const manifest = await loadConfig({ root, mode: 'development' })
     expect(Object.keys(manifest.adapters).sort()).toEqual(['fake-auth', 'fake-database', 'fake-deployment', 'fake-language', 'fake-secrets', 'fake-storage'])
@@ -44,7 +44,7 @@ describe('loading a valid config', () => {
     expect(manifest.config.storage.providers.gcs.options).toEqual({ projectId: 'p', credentials: { $secret: 'GCS_SA' } })
   })
 
-  it('finds genoa.config/development.ts when genoa.config.ts is absent, and prefers genoa.config.ts', async () => {
+  it('CFG-1: finds genoa.config/development.ts when genoa.config.ts is absent, and prefers genoa.config.ts', async () => {
     const nested = project({ config: configSource(baseConfig()), configName: 'genoa.config/development.ts' })
     expect((await loadConfig({ root: nested.root, mode: 'production', onWarning: silent })).mode).toBe('production')
 
@@ -52,7 +52,7 @@ describe('loading a valid config', () => {
     await expect(loadConfig({ root: both.root, mode: 'development' })).resolves.toBeDefined()
   })
 
-  it('does not take index.ts or production.ts in genoa.config/ as the default', async () => {
+  it('CFG-1: does not take index.ts or production.ts in genoa.config/ as the default', async () => {
     // A production config is always named explicitly, so the lookup must never land on one.
     for (const configName of ['genoa.config/index.ts', 'genoa.config/production.ts']) {
       const { root } = project({ config: configSource(baseConfig()), configName })
@@ -60,7 +60,7 @@ describe('loading a valid config', () => {
     }
   })
 
-  it('records the config file and everything it imports, in development only', async () => {
+  it('CFG-2, LDR-17: records the config file and everything it imports, in development only', async () => {
     const { root, file } = project({
       config: [
         "import credentials from './credentials.json' with { type: 'json' }",
@@ -84,13 +84,13 @@ describe('loading a valid config', () => {
     expect((await loadConfig({ root, mode: 'production', onWarning: silent })).source).toBeUndefined()
   })
 
-  it('erases a type-only import of an adapter module', async () => {
+  it('CFG-2: erases a type-only import of an adapter module', async () => {
     const packages = { ...fakeAdapters(), 'typed-adapter': adapterPackage(THROWING_RUNTIME) }
     const { root } = project({ config: `import type {} from 'typed-adapter'\n${configSource(baseConfig())}`, packages })
     await expect(loadConfig({ root, mode: 'development' })).resolves.toBeDefined()
   })
 
-  it('evaluates helpers imported from @genoacms/config', async () => {
+  it('CFG-2, CFG-4: evaluates helpers imported from @genoacms/config', async () => {
     const source = [
       "import { defineConfig, secret, env, inline } from '@genoacms/config'",
       `const config = ${JSON.stringify(baseConfig())}`,
@@ -108,22 +108,22 @@ describe('loading a valid config', () => {
 })
 
 describe('file-level failures', () => {
-  it('reports a missing config file', async () => {
+  it('CFG-1: reports a missing config file', async () => {
     const { root } = project({ config: '', configName: 'not-a-config.ts' })
     await expect(loadConfig({ root, mode: 'development' })).rejects.toMatchObject({ code: 'config/not-found' })
   })
 
-  it('reports a config that throws while evaluating', async () => {
+  it('CFG-2: reports a config that throws while evaluating', async () => {
     const { root } = project({ config: "throw new Error('boom')" })
     await expect(loadConfig({ root, mode: 'development' })).rejects.toMatchObject({ code: 'config/evaluation-failed' })
   })
 
-  it('reports a config whose default export is not an object', async () => {
+  it('CFG-2: reports a config whose default export is not an object', async () => {
     const { root } = project({ config: 'export default 42' })
     await expect(loadConfig({ root, mode: 'development' })).rejects.toMatchObject({ code: 'config/not-an-object' })
   })
 
-  it('reports a descriptor that is not installed, naming it', async () => {
+  it('LDR-16: reports a descriptor that is not installed, naming it', async () => {
     const config = baseConfig()
     config.storage.providers.gcs.adapter = 'not-installed/storage'
     const issues = await issuesOf(config)
@@ -133,19 +133,19 @@ describe('file-level failures', () => {
 })
 
 describe('loader rules', () => {
-  it('1: requires every stanza', async () => {
+  it('LDR-1: requires every stanza', async () => {
     const config = baseConfig()
     delete config.security
     expect(codesAt(await issuesOf(config))).toContain('config/missing-stanza security')
   })
 
-  it('1b: refuses a malformed provider entry', async () => {
+  it('LDR-1: refuses a malformed provider entry', async () => {
     const config = baseConfig()
     config.storage.providers.gcs = { adapter: 'fake-storage' }
     expect(codesAt(await issuesOf(config))).toContain('config/invalid-provider-entry storage.providers.gcs')
   })
 
-  it('2: refuses values that do not survive JSON, including undefined properties', async () => {
+  it('LDR-2: refuses values that do not survive JSON, including undefined properties', async () => {
     const source = [
       `const config = ${JSON.stringify(baseConfig())}`,
       'config.security.fetchOrigins = undefined',
@@ -163,27 +163,27 @@ describe('loader rules', () => {
     expect(error.issues[0].message).toContain('remove the key')
   })
 
-  it('3: refuses an adapter configured under the wrong service', async () => {
+  it('LDR-3: refuses an adapter configured under the wrong service', async () => {
     const config = baseConfig()
     config.database.providers.db.adapter = 'fake-storage'
     config.database.providers.db.options = { projectId: 'p' }
     expect(codesAt(await issuesOf(config))).toContain('config/kind-mismatch database.providers.db.adapter')
   })
 
-  it("4: reports each of the descriptor's validation reasons", async () => {
+  it("LDR-4: reports each of the descriptor's validation reasons", async () => {
     const config = baseConfig()
     delete config.storage.providers.gcs.options.projectId
     const issues = await issuesOf(config)
     expect(issues).toContainEqual({ code: 'config/invalid-options', path: 'storage.providers.gcs.options', message: 'projectId is required' })
   })
 
-  it('5: refuses a bare value in a credential field', async () => {
+  it('LDR-5: refuses a bare value in a credential field', async () => {
     const config = baseConfig()
     config.storage.providers.gcs.options.credentials = { client_email: 'e' }
     expect(codesAt(await issuesOf(config))).toContain('config/bare-secret storage.providers.gcs.options.credentials')
   })
 
-  it('6: refuses references outside declared credential fields', async () => {
+  it('LDR-6: refuses references outside declared credential fields', async () => {
     const config = baseConfig()
     config.security.maxFuel = { $env: 'FUEL' }
     config.storage.providers.gcs.options.projectId = { $env: 'PROJECT' }
@@ -193,7 +193,7 @@ describe('loader rules', () => {
     ]))
   })
 
-  it('7: refuses secret() in the secrets provider', async () => {
+  it('LDR-7: refuses secret() in the secrets provider', async () => {
     const config = baseConfig()
     config.secrets.providers.local.options.credentials = { $secret: 'STORE_SA' }
     const codes = codesAt(await issuesOf(config))
@@ -201,19 +201,19 @@ describe('loader rules', () => {
     expect(codes.filter(code => code.startsWith('config/misplaced-reference'))).toEqual([])
   })
 
-  it('8: refuses a secret key outside the portable pattern', async () => {
+  it('LDR-8: refuses a secret key outside the portable pattern', async () => {
     const config = baseConfig()
     config.storage.providers.gcs.options.credentials = { $secret: 'gcs-sa' }
     expect(codesAt(await issuesOf(config))).toContain('config/invalid-secret-key storage.providers.gcs.options.credentials')
   })
 
-  it('9: requires exactly one secrets provider', async () => {
+  it('LDR-9: requires exactly one secrets provider', async () => {
     const config = baseConfig()
     config.secrets.providers.second = { adapter: 'fake-secrets', options: {} }
     expect(codesAt(await issuesOf(config))).toContain('config/secrets-provider-count secrets.providers')
   })
 
-  it('10: refuses references to providers and targets that do not exist', async () => {
+  it('LDR-10: refuses references to providers and targets that do not exist', async () => {
     const config = baseConfig()
     config.storage.buckets.genoacms.provider = 'gcs-typo'
     config.database.databases.main.provider = 'db-typo'
@@ -225,19 +225,19 @@ describe('loader rules', () => {
     ]))
   })
 
-  it('11: requires the default bucket to be a declared bucket', async () => {
+  it('LDR-11: requires the default bucket to be a declared bucket', async () => {
     const config = baseConfig()
     config.storage.defaultBucket = 'elsewhere'
     expect(codesAt(await issuesOf(config))).toContain('config/unknown-bucket storage.defaultBucket')
   })
 
-  it('12: refuses integer-like keys', async () => {
+  it('LDR-12: refuses integer-like keys', async () => {
     const config = baseConfig()
     config.authentication.providers = { 1: config.authentication.providers.array }
     expect(codesAt(await issuesOf(config))).toContain('config/integer-key authentication.providers.1')
   })
 
-  it('13: refuses a development-only adapter in production only', async () => {
+  it('LDR-13: refuses a development-only adapter in production only', async () => {
     const config = baseConfig()
     config.secrets.providers.local.adapter = 'fake-dev-secrets'
     expect(codesAt(await issuesOf(config, 'production'))).toContain('config/development-only secrets.providers.local.adapter')
@@ -245,7 +245,7 @@ describe('loader rules', () => {
     expect(await issuesOf(config, 'development')).toEqual([])
   })
 
-  it('14: warns per inline value in production, never for deployment targets, and refuses under forbidInline', async () => {
+  it('LDR-14: warns per inline value in production, never for deployment targets, and refuses under forbidInline', async () => {
     const config = baseConfig()
     config.deployment.targets.local.options.credentials = { $inline: { key: 'deploy' } }
     const { root } = project({ config: configSource(config) })
@@ -262,7 +262,7 @@ describe('loader rules', () => {
       .rejects.toMatchObject({ issues: [expect.objectContaining({ code: 'config/inline-forbidden' })] })
   })
 
-  it('reports every problem at once', async () => {
+  it('LDR-15: reports every problem at once', async () => {
     const config = baseConfig()
     config.storage.defaultBucket = 'elsewhere'
     config.secrets.providers.second = { adapter: 'fake-secrets', options: {} }
@@ -273,7 +273,7 @@ describe('loader rules', () => {
 })
 
 describe('memoization', () => {
-  it('returns the same promise per file and mode until the cache is cleared', async () => {
+  it('LDR-18: returns the same promise per file and mode until the cache is cleared', async () => {
     const { root } = project({ config: configSource(baseConfig()) })
     const first = loadConfig({ root, mode: 'development' })
     expect(loadConfig({ root, mode: 'development' })).toBe(first)
@@ -284,14 +284,14 @@ describe('memoization', () => {
     await second
   })
 
-  it('forgets a failed load, so a fixed config loads', async () => {
+  it('LDR-18: forgets a failed load, so a fixed config loads', async () => {
     const { root, file } = project({ config: "throw new Error('not yet')" })
     await expect(loadConfig({ root, mode: 'development' })).rejects.toBeInstanceOf(ConfigError)
     writeFileSync(file, configSource(baseConfig()))
     await expect(loadConfig({ root, mode: 'development' })).resolves.toBeDefined()
   })
 
-  it('prints warnings once per load, not once per call', async () => {
+  it('LDR-15, LDR-18: prints warnings once per load, not once per call', async () => {
     const { root } = project({ config: configSource(baseConfig()) })
     const warn = vi.fn()
     await loadConfig({ root, mode: 'production', onWarning: warn })

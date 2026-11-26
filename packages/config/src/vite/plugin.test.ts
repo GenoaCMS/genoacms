@@ -33,7 +33,7 @@ async function resolved (root: string, file: string, command: 'serve' | 'build')
 }
 
 describe('the genoa() plugin', () => {
-  it('serves the runtime manifest: no deployment stanza, no deployment adapters', async () => {
+  it('LDR-20: serves the runtime manifest: no deployment stanza, no deployment adapters', async () => {
     const { root, file } = project()
     const plugin = await resolved(root, file, 'serve')
     const id = plugin.resolveId('virtual:genoa/manifest')
@@ -45,14 +45,14 @@ describe('the genoa() plugin', () => {
     expect(manifest.source).toEqual({ root, file })
   })
 
-  it('ignores other ids', async () => {
+  it('LDR-20: ignores other ids', async () => {
     const { root, file } = project()
     const plugin = await resolved(root, file, 'build')
     expect(plugin.resolveId('virtual:other')).toBeNull()
     expect(plugin.load('/some/file.ts')).toBeNull()
   })
 
-  it('evaluates the config once however many times the Vite config is resolved', async () => {
+  it('LDR-18: evaluates the config once however many times the Vite config is resolved', async () => {
     const { root, file } = project()
     const plugin = genoa({ root, file }) as any
     plugin.config({}, { command: 'build', mode: 'production' })
@@ -60,7 +60,7 @@ describe('the genoa() plugin', () => {
     expect(evaluateConfigModule).toHaveBeenCalledTimes(1)
   })
 
-  it('takes the mode from GENOA_MODE rather than from the Vite command', async () => {
+  it('BLD-1, LDR-20: takes the mode from GENOA_MODE rather than from the Vite command', async () => {
     vi.stubEnv('GENOA_MODE', 'development')
     const { root, file } = project()
     const plugin = await resolved(root, file, 'build')
@@ -83,14 +83,14 @@ describe('the genoa() plugin in a dev server', () => {
     return created
   }
 
-  it('makes the manifest importable on the server', async () => {
+  it('LDR-20: makes the manifest importable on the server', async () => {
     const { root, file } = project()
     const dev = await server(root, file)
     const { manifest } = await dev.ssrLoadModule('virtual:genoa/manifest')
     expect(manifest.config.storage.defaultBucket).toBe('genoacms')
   })
 
-  it('restarts when the config changes, and the next load sees the edit', async () => {
+  it('LDR-21: restarts when the config changes, and the next load sees the edit', async () => {
     const { root, file } = project()
     const dev = await server(root, file)
     const restart = vi.spyOn(dev, 'restart').mockResolvedValue()
@@ -103,7 +103,7 @@ describe('the genoa() plugin in a dev server', () => {
     expect(Object.keys(reloaded.config.storage.buckets)).toContain('extra')
   })
 
-  it('ignores changes to files the config does not import', async () => {
+  it('LDR-21: ignores changes to files the config does not import', async () => {
     const { root, file } = project()
     const dev = await server(root, file)
     const restart = vi.spyOn(dev, 'restart').mockResolvedValue()

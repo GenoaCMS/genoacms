@@ -22,7 +22,7 @@ function context () {
 }
 
 describe('the Node deploy procedure', () => {
-  it('copies the artifact to build/ and leaves unrelated files there alone', async () => {
+  it('TGT-2: copies the artifact to build/ and leaves unrelated files there alone', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {})
     const ctx = context()
     mkdirSync(join(ctx.projectRoot, 'build'))
@@ -33,7 +33,7 @@ describe('the Node deploy procedure', () => {
     expect(readFileSync(join(ctx.projectRoot, 'build', 'keep.txt'), 'utf-8')).toBe('mine')
   })
 
-  it('refuses a target outside the project even when validation was bypassed', async () => {
+  it('TGT-2: refuses a target outside the project even when validation was bypassed', async () => {
     await expect(procedure({ outDir: '../x' }, context())).rejects.toThrow('deploy/out-dir-outside-project')
   })
 })

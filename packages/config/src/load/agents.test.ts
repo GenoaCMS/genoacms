@@ -49,7 +49,7 @@ describe('declared agents at load', () => {
     expect(refused[0]?.path).toBe('authentication.agents.builder')
   })
 
-  it('AGT-1: a token may be a secret, env or inline reference', async () => {
+  it('AGT-1, LDR-6: a token may be a secret, env or inline reference', async () => {
     for (const token of [{ $secret: 'GENOACMS_AGENT_BUILDER' }, { $env: 'GENOACMS_AGENT_BUILDER' }, { $inline: TOKEN }]) {
       clearLoadCache()
       expect(await issuesOf(configWithAgents({ 'agent:builder': { label: 'Builder', token } }))).toEqual([])

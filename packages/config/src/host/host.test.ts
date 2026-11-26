@@ -72,14 +72,14 @@ function runtimes (secretValues: Record<string, string | undefined> = { SHARED_S
 }
 
 describe('host construction', () => {
-  it('1: performs no I/O when created', () => {
+  it('HST-1: performs no I/O when created', () => {
     const { load, creates } = runtimes()
     createHost({ manifest: manifest(), load })
     expect(load).not.toHaveBeenCalled()
     expect(creates).toEqual([])
   })
 
-  it('2: builds two instances of one adapter, each with its own options and resources, and caches by name', async () => {
+  it('HST-2, HST-3: builds two instances of one adapter, each with its own options and resources, and caches by name', async () => {
     const { load, creates } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     const a = await host.storage('a') as any
@@ -92,14 +92,14 @@ describe('host construction', () => {
     expect(b.ctx).toMatchObject({ name: 'b', resources: ['archive'] })
   })
 
-  it('3: shares one construction between concurrent first calls', async () => {
+  it('HST-2: shares one construction between concurrent first calls', async () => {
     const { load, creates } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     await Promise.all([host.storage('a'), host.storage('a'), host.storage('a')])
     expect(creates.filter(c => c.specifier === 'mem/storage/runtime')).toHaveLength(1)
   })
 
-  it('4: retries a construction that failed', async () => {
+  it('HST-2: retries a construction that failed', async () => {
     const { load, modules } = runtimes()
     const create = modules['mem/database/runtime'].create
     let attempts = 0
@@ -114,7 +114,7 @@ describe('host construction', () => {
     expect(attempts).toBe(2)
   })
 
-  it('14: close() forgets constructed providers', async () => {
+  it('HST-7: close() forgets constructed providers', async () => {
     const { load, creates } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     await host.storage('a')
@@ -125,7 +125,7 @@ describe('host construction', () => {
 })
 
 describe('reference resolution', () => {
-  it('5: passes inline values through, reads env() and secret(), and decodes declared JSON only', async () => {
+  it('REF-2, REF-3: passes inline values through, reads env() and secret(), and decodes declared JSON only', async () => {
     const { load, getSecret } = runtimes({ SHARED_SA: '{"k":"v"}', PLAIN: '{"not":"decoded"}' })
     const host = createHost({ manifest: manifest(), load, environment: { JSON_VAR: '{"from":"env"}', TEXT_VAR: '{"raw"' } })
     expect(await host.resolve({ credentials: { $inline: '{"stays":"a string"}' } }, { credentials: 'json' }, 'x')).toEqual({ credentials: '{"stays":"a string"}' })
@@ -135,7 +135,7 @@ describe('reference resolution', () => {
     expect(getSecret).toHaveBeenCalledWith('PLAIN')
   })
 
-  it('6: reports missing values and invalid JSON without echoing the value', async () => {
+  it('REF-2, REF-3, REF-6: reports missing values and invalid JSON without echoing the value', async () => {
     const sentinel = 'SENTINEL-do-not-print'
     const { load } = runtimes({ BAD_JSON: `{${sentinel}` })
     const host = createHost({ manifest: manifest(), load, environment: {} })
@@ -146,7 +146,7 @@ describe('reference resolution', () => {
     expect(error.message).not.toContain(sentinel)
   })
 
-  it('7: times out a slow secret store, and does not cache that failure', async () => {
+  it('REF-4, REF-5: times out a slow secret store, and does not cache that failure', async () => {
     const { load, getSecret } = runtimes()
     getSecret.mockImplementationOnce(async () => await new Promise(() => {}))
     const host = createHost({ manifest: manifest(), load, secretTimeoutMs: 20 })
@@ -154,14 +154,14 @@ describe('reference resolution', () => {
     await expect(host.storage('a')).resolves.toBeDefined()
   })
 
-  it('8: fetches a secret shared by two providers once', async () => {
+  it('REF-5: fetches a secret shared by two providers once', async () => {
     const { load, getSecret } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     await Promise.all([host.storage('a'), host.storage('b')])
     expect(getSecret).toHaveBeenCalledTimes(1)
   })
 
-  it('9: refuses secret() in the secrets provider without asking any store', async () => {
+  it('REF-7: refuses secret() in the secrets provider without asking any store', async () => {
     const { load, getSecret } = runtimes()
     const m = manifest()
     ;(m.config.secrets.providers.store.options as any).credentials = { $secret: 'STORE_SA' }
@@ -172,7 +172,7 @@ describe('reference resolution', () => {
 })
 
 describe('routing and reads', () => {
-  it('10: routes buckets and collections to providers', async () => {
+  it('HST-4: routes buckets and collections to providers', async () => {
     const { load } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     expect(((await host.storageForBucket('archive')) as any).ctx.name).toBe('b')
@@ -181,7 +181,7 @@ describe('routing and reads', () => {
     await expect(host.databaseForCollection('nowhere')).rejects.toMatchObject({ code: 'database/not-found' })
   })
 
-  it('16: databaseNamed constructs the provider of the named database, and refuses a name the config lacks', async () => {
+  it('HST-4: databaseNamed constructs the provider of the named database, and refuses a name the config lacks', async () => {
     const { load, creates } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     const adapter = await host.databaseNamed('archive')
@@ -191,7 +191,7 @@ describe('routing and reads', () => {
     expect(creates.map(c => c.specifier)).toEqual(['mem/database/runtime'])
   })
 
-  it('11: explains an unconfigured language as core always has, and refuses a mismatch', async () => {
+  it('HST-5: explains an unconfigured language as core always has, and refuses a mismatch', async () => {
     const { load, modules } = runtimes()
     const host = createHost({ manifest: manifest(), load })
     await expect(host.language('kotlin')).rejects.toThrow("No language adapter is configured for 'kotlin'. Configured languages: typescript.")
@@ -203,7 +203,7 @@ describe('routing and reads', () => {
     await expect(createHost({ manifest: manifest(), load }).language('typescript')).rejects.toMatchObject({ code: 'language/mismatch' })
   })
 
-  it('12: reads data stanzas from the manifest on every access', () => {
+  it('HST-6: reads data stanzas from the manifest on every access', () => {
     const { load } = runtimes()
     const m = manifest()
     const host = createHost({ manifest: m, load })
@@ -218,7 +218,7 @@ describe('routing and reads', () => {
     expect(host.authorization.roles).toEqual({ Editor: [] })
   })
 
-  it('13: lists the authentication provider keys in config key order, constructing nothing', async () => {
+  it('HST-6: lists the authentication provider keys in config key order, constructing nothing', async () => {
     const { load } = runtimes()
     const loaded: string[] = []
     const m = manifest()
@@ -232,7 +232,7 @@ describe('routing and reads', () => {
 })
 
 describe('import hygiene', () => {
-  it('15: the host imports nothing that cannot ship inside a server bundle', () => {
+  it('HST-8: the host imports nothing that cannot ship inside a server bundle', () => {
     const here = dirname(fileURLToPath(import.meta.url))
     const sources = readdirSync(here).filter(file => file.endsWith('.ts') && !file.endsWith('.test.ts'))
     for (const file of sources) {

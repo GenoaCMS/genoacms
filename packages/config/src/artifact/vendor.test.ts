@@ -49,13 +49,13 @@ function project () {
 const names = (vendored: Array<{ name: string }>): string[] => vendored.map(entry => entry.name)
 
 describe('vendorPackages', { timeout: 30_000 }, () => {
-  it('vendors an adapter installed from the registry', async () => {
+  it('VND-1: vendors an adapter installed from the registry', async () => {
     const { registry, request } = project()
     registry({ name: 'adapter-r' })
     expect(names(await vendorPackages(request({ adapters: ['adapter-r'] })))).toEqual(['adapter-r'])
   })
 
-  it('follows a vendored package to its local dependencies, not to registry ones', async () => {
+  it('VND-1: follows a vendored package to its local dependencies, not to registry ones', async () => {
     const { local, registry, request } = project()
     const adapter = local({ name: 'adapter-l', dependencies: { 'lib-l': '^1.0.0', 'lib-r': '^1.0.0' } })
     local({ name: 'lib-l' }, adapter)
@@ -63,21 +63,21 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     expect(names(await vendorPackages(request({ adapters: ['adapter-l'] })))).toEqual(['adapter-l', 'lib-l'])
   })
 
-  it('vendors a scanned external only when it is local', async () => {
+  it('VND-1: vendors a scanned external only when it is local', async () => {
     const { local, registry, request } = project()
     local({ name: 'ext-l' })
     registry({ name: 'ext-r' })
     expect(names(await vendorPackages(request({ scanned: ['ext-l', 'ext-r'] })))).toEqual(['ext-l'])
   })
 
-  it('does not follow devDependencies', async () => {
+  it('VND-1: does not follow devDependencies', async () => {
     const { local, request } = project()
     const adapter = local({ name: 'adapter-l', devDependencies: { 'dev-l': '^1.0.0' } })
     local({ name: 'dev-l' }, adapter)
     expect(names(await vendorPackages(request({ adapters: ['adapter-l'] })))).toEqual(['adapter-l'])
   })
 
-  it('skips a missing peer dependency and refuses a missing regular one', async () => {
+  it('VND-1: skips a missing peer dependency and refuses a missing regular one', async () => {
     const { local, request } = project()
     local({ name: 'with-peer', peerDependencies: { absent: '^1.0.0' } })
     expect(names(await vendorPackages(request({ adapters: ['with-peer'] })))).toEqual(['with-peer'])
@@ -85,7 +85,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     await expect(vendorPackages(request({ adapters: ['with-dep'] }))).rejects.toThrow(/^build\/not-installed: absent/)
   })
 
-  it('refuses one name installed from two directories', async () => {
+  it('VND-1: refuses one name installed from two directories', async () => {
     const { local, registry, request } = project()
     const adapter = local({ name: 'adapter-l', dependencies: { shared: '^1.0.0' } })
     local({ name: 'shared' }, adapter)
@@ -98,7 +98,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     await expect(vendorPackages(request({ adapters: ['adapter-l', 'other-adapter'] }))).rejects.toThrow(/^build\/vendor-conflict: shared is installed from /)
   })
 
-  it('refuses a package whose export target was never built, ignoring type declarations', async () => {
+  it('VND-3: refuses a package whose export target was never built, ignoring type declarations', async () => {
     const { local, request } = project()
     local({ name: 'unbuilt', exports: { '.': { types: './dist/index.d.ts', import: './dist/index.js' } } })
     await expect(vendorPackages(request({ adapters: ['unbuilt'] }))).rejects.toThrow(/^build\/vendor-incomplete: unbuilt lacks dist\/index\.js/)
@@ -106,7 +106,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     expect(names(await vendorPackages(request({ adapters: ['untyped'] })))).toEqual(['untyped'])
   })
 
-  it('refuses a package that would ship a .env file, but not a .env.example', async () => {
+  it('VND-3: refuses a package that would ship a .env file, but not a .env.example', async () => {
     const { local, request } = project()
     local({ name: 'leaky' }, undefined, { '.env': 'X=1\n' })
     await expect(vendorPackages(request({ adapters: ['leaky'] }))).rejects.toThrow(/^build\/vendor-secret: leaky would ship \.env/)
@@ -114,7 +114,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     expect(names(await vendorPackages(request({ adapters: ['tidy'] })))).toEqual(['tidy'])
   })
 
-  it('accepts workspace: on a vendored dependency and refuses it on one that is not', async () => {
+  it('VND-3: accepts workspace: on a vendored dependency and refuses it on one that is not', async () => {
     const { local, request } = project()
     const adapter = local({ name: 'adapter-w', dependencies: { 'lib-w': 'workspace:^' } })
     local({ name: 'lib-w' }, adapter)
@@ -123,7 +123,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     await expect(vendorPackages(request({ adapters: ['adapter-c'] }))).rejects.toThrow(/^build\/vendor-protocol: adapter-c depends on lib-c@catalog:/)
   })
 
-  it('returns packages sorted, each pointing at a tarball in vendor/', async () => {
+  it('VND-2: returns packages sorted, each pointing at a tarball in vendor/', async () => {
     const { local, buildDir, request } = project()
     local({ name: 'zeta' })
     local({ name: '@scope/alpha', version: '2.0.0' })
@@ -135,7 +135,7 @@ describe('vendorPackages', { timeout: 30_000 }, () => {
     for (const entry of vendored) expect(existsSync(join(buildDir, 'vendor', entry.filename))).toBe(true)
   })
 
-  it('removes tarballs a previous run left behind', async () => {
+  it('VND-2: removes tarballs a previous run left behind', async () => {
     const { local, buildDir, request } = project()
     local({ name: 'first' })
     local({ name: 'second' })

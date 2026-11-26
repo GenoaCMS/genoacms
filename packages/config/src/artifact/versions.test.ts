@@ -19,14 +19,14 @@ function install (dir: string, name: string, version: string): void {
 }
 
 describe('installedVersion', () => {
-  it('finds a dependency below the directory, npm style', () => {
+  it('ART-4: finds a dependency below the directory, npm style', () => {
     const core = join(temp(), 'node_modules', '@genoacms', 'core')
     mkdirSync(core, { recursive: true })
     install(join(core, '..', '..'), 'jose', '5.10.0')
     expect(installedVersion('jose', core)).toBe('5.10.0')
   })
 
-  it('finds a sibling inside a pnpm store directory', () => {
+  it('ART-4: finds a sibling inside a pnpm store directory', () => {
     const store = join(temp(), 'node_modules', '.pnpm', '@genoacms+core@1.0.0', 'node_modules')
     const core = join(store, '@genoacms', 'core')
     mkdirSync(core, { recursive: true })
@@ -34,13 +34,13 @@ describe('installedVersion', () => {
     expect(installedVersion('@noble/hashes', core)).toBe('2.3.0')
   })
 
-  it('throws for a package that is not installed', () => {
+  it('ART-4: throws for a package that is not installed', () => {
     expect(() => installedVersion('not-there', temp())).toThrow(/^build\/not-installed: not-there/)
   })
 })
 
 describe('installedPackageDir', () => {
-  it('returns the symlink, not its target, for a linked package', () => {
+  it('ART-4: returns the symlink, not its target, for a linked package', () => {
     const root = temp()
     const target = join(root, 'packages', 'local')
     mkdirSync(target, { recursive: true })

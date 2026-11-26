@@ -25,17 +25,17 @@ describe('scanServerOutput', () => {
     'client/app.js': "import 'browser-only'\n"
   })
 
-  it('finds static, re-exported and literal dynamic imports, reduced to package names', () => {
+  it('ART-2: finds static, re-exported and literal dynamic imports, reduced to package names', () => {
     expect(scanServerOutput(buildDir()).packages).toEqual(['@sveltejs/kit', 'deep-diff', 'jose', 'marked'])
   })
 
-  it('ignores relative imports, node builtins and the client bundle', () => {
+  it('ART-2: ignores relative imports, node builtins and the client bundle', () => {
     const { packages } = scanServerOutput(buildDir())
     expect(packages).not.toContain('path')
     expect(packages).not.toContain('browser-only')
   })
 
-  it('reports the imports it cannot see through, with their file', () => {
+  it('ART-3: reports the imports it cannot see through, with their file', () => {
     expect(scanServerOutput(buildDir()).blind).toEqual([
       'server/chunks/loader.js: createRequire(<MemberExpression>)',
       'server/chunks/loader.js: import(<Identifier>)',
