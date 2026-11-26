@@ -127,7 +127,10 @@ flowchart LR
     LJ5(["Compose a role"])
     LJ6(["Delete a dynamic collection"])
   end
-  actor --- GJ1 & GJ2 & LJ1 & LJ2 & LJ3 & LJ4 & LJ5 & LJ6
+  subgraph doc3 ["Secret references and the secrets provider"]
+    SJ1(["Run several instances on one store"])
+  end
+  actor --- GJ1 & GJ2 & LJ1 & LJ2 & LJ3 & LJ4 & LJ5 & LJ6 & SJ1
   click GJ1 "architecture/adapter-gcp/deployment.md"
   click GJ2 "architecture/adapter-gcp/deployment.md"
   click LJ1 "architecture/cli.md"
@@ -136,6 +139,7 @@ flowchart LR
   click LJ4 "architecture/cli.md"
   click LJ5 "architecture/cli.md"
   click LJ6 "architecture/cli.md"
+  click SJ1 "architecture/secrets.md"
 ```
 
 ### Storage browser
@@ -580,7 +584,7 @@ flowchart LR
 | REF-6 · No value in an error | unit | — | [architecture/secrets.md](architecture/secrets.md) |
 | REF-7 · The store is constructed from env() and inline() only | unit | — | [architecture/secrets.md](architecture/secrets.md) |
 | REF-8 · The portable secret key | unit | — | [architecture/secrets.md](architecture/secrets.md) |
-| REF-9 · An instance prefix (new) | unit, e2e | — | [architecture/secrets.md](architecture/secrets.md) |
+| REF-9 · An instance prefix (new) | unit, e2e | SJ1a | [architecture/secrets.md](architecture/secrets.md) |
 | REG-1 · The key manifest | unit | — | [architecture/signing.md](architecture/signing.md) |
 | REG-2 · The key files | unit | — | [architecture/signing.md](architecture/signing.md) |
 | REG-3 · Rotating and revoking | unit, e2e | YJ2a, YJ3b | [architecture/signing.md](architecture/signing.md) |

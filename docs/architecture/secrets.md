@@ -38,6 +38,46 @@ flowchart LR
   click aws "adapter-aws/secrets.md"
 ```
 
+### Use cases
+
+```mermaid
+flowchart LR
+  operator[Operator]
+  subgraph secrets [Secrets]
+    SJ1([Run several instances on one store])
+  end
+  operator --- SJ1
+```
+
+| # | Use case | Actors | Statements |
+| :-- | :-- | :-- | :-- |
+| SJ1 | Run several instances on one store | Operator | |
+
+### Scenarios
+
+**SJ1a. An instance under a prefix keeps its secrets apart.** REF-9. The operator gives each
+instance its own `secrets.prefix`. When an instance first starts, its host asks the store for its
+root key's seed under the prefixed name, finds none, and claims it there, so the seed another
+instance holds under its own prefix, or under none, is never read or overwritten. A credential read
+with `env()` keeps its name.
+
+```mermaid
+sequenceDiagram
+  actor O as Operator
+  participant C as GenoaCMS core
+  participant H as Host
+  participant S as Secrets store
+  O->>C: start the instance whose config sets secrets.prefix: 'SHOP'
+  C->>H: getSecret('GENOACMS_ROOT_KEY_SEED')
+  H->>S: getSecret('SHOP__GENOACMS_ROOT_KEY_SEED') (REF-9)
+  S-->>H: undefined
+  C->>H: setSecretIfAbsent('GENOACMS_ROOT_KEY_SEED', seed)
+  H->>S: setSecretIfAbsent('SHOP__GENOACMS_ROOT_KEY_SEED', seed) (REF-9)
+  C->>H: resolve env('ADMIN_USERS')
+  H-->>C: the variable ADMIN_USERS, not prefixed (REF-9)
+  C-->>O: the store holds only SHOP__ names for this instance (REF-9)
+```
+
 ### Decisions
 
 | # | Decision | Consequence |
