@@ -284,10 +284,12 @@ describe('attributes', () => {
     }
   })
 
+  // NF28
   it.fails('CMP-3: a link attribute may carry a default list of links, the value form of a page', () => {
     expect(withAttribute(attribute.link('a', 't', { default: [{ isExternal: true, url: 'https://a.test' }] }))).toBe(true)
   })
 
+  // NF28
   it.fails('CMP-3: a storageResource attribute may carry a default list of objects, the value form of a page', () => {
     expect(withAttribute(attribute.storageResource('a', 't', { default: [{ bucket: 'b', name: 'n' }] }))).toBe(true)
   })
