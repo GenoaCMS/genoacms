@@ -171,6 +171,55 @@ describe('reference resolution', () => {
   })
 })
 
+function prefixed (prefix: string | undefined): RuntimeManifest {
+  const m = manifest()
+  m.adapters['mem/storage'] = record('storage', 'mem/storage/runtime', { credentials: 'string' })
+  m.config.storage.providers.a.options = { region: 'eu', credentials: { $secret: 'DB' } }
+  if (prefix !== undefined) Object.assign(m.config.secrets, { prefix })
+  return m
+}
+
+describe('the secrets prefix', () => {
+  it.fails('REF-9: with a prefix, host.secrets() asks the store for the prefixed key', async () => {
+    const { load } = runtimes({ SHOP__X: 'a', X: 'b' })
+    const host = createHost({ manifest: prefixed('SHOP'), load })
+    expect(await (await host.secrets()).getSecret('X')).toBe('a')
+  })
+
+  it.fails('REF-9, REF-2: a secret() option resolves the prefixed key', async () => {
+    const { load } = runtimes({ SHOP__DB: 'p', DB: 'q' })
+    const host = createHost({ manifest: prefixed('SHOP'), load })
+    const a = await host.storage('a') as unknown as { options: { credentials: unknown } }
+    expect(a.options.credentials).toBe('p')
+  })
+
+  it.fails('REF-9, REF-2: a missing secret names its stored name', async () => {
+    const { load } = runtimes({})
+    const host = createHost({ manifest: prefixed('SHOP'), load })
+    await expect(host.storage('a')).rejects.toMatchObject({
+      code: 'secrets/missing',
+      message: "secrets/missing: storage.providers.a.options.credentials points at 'DB', which the configured secret store does not hold. Set it before starting GenoaCMS. It is stored as 'SHOP__DB'."
+    })
+  })
+
+  it('REF-9: env() is never prefixed', async () => {
+    const { load } = runtimes({})
+    const host = createHost({ manifest: prefixed('SHOP'), load, environment: { VAR: 'v' } })
+    expect(await host.resolve({ token: { $env: 'VAR' } }, { token: 'string' }, 'x')).toEqual({ token: 'v' })
+  })
+
+  it('REF-9: without a prefix, keys reach the store as given', async () => {
+    const { load, getSecret } = runtimes({})
+    const host = createHost({ manifest: prefixed(undefined), load })
+    await (await host.secrets()).getSecret('X')
+    expect(getSecret).toHaveBeenCalledWith('X')
+    const error = await host.storage('a').catch(e => e)
+    expect(error.code).toBe('secrets/missing')
+    expect(error.message).toBe("secrets/missing: storage.providers.a.options.credentials points at 'DB', which the configured secret store does not hold. Set it before starting GenoaCMS.")
+    expect(error.message).not.toContain('It is stored as')
+  })
+})
+
 describe('routing and reads', () => {
   it('HST-4: routes buckets and collections to providers', async () => {
     const { load } = runtimes()

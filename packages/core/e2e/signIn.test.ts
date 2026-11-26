@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, inject } from 'vitest'
 import { randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 import { startServer, type RunningServer, type User } from './server'
 import { signIn, openLoginPage, withExpiredAccessToken, accessClaims } from './client'
 import { enabled, removeInstance } from './bucket'
+import { readManifestPayload } from './signing'
 
 const password = (): string => randomBytes(18).toString('base64url')
 
@@ -34,6 +36,14 @@ async function serve (providers: Parameters<typeof startServer>[0]): Promise<voi
   server = await startServer(providers)
 }
 
+function storedSecretKeys (): string[] {
+  return readFileSync(inject('secretsFile'), 'utf8')
+    .split(/\r\n|\r|\n/)
+    .map(line => line.trim().replace(/^export\s+/, ''))
+    .filter(line => line !== '' && !line.startsWith('#'))
+    .map(line => line.slice(0, line.indexOf('=')))
+}
+
 async function refreshed (cookie: string): Promise<Awaited<ReturnType<typeof openLoginPage>>> {
   return await openLoginPage(server, withExpiredAccessToken(cookie))
 }
@@ -58,6 +68,18 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       if (answer.outcome === 'signed-in') viaPrimary = answer.cookie
       expect(accessClaims(viaPrimary)).toMatchObject({ sub: ada.subject, email: ada.email })
       expect((await openLoginPage(server, viaPrimary)).signedIn).toBe(true)
+    })
+
+    it.fails('REF-9: the instance\'s own secrets are stored under its prefix, and env() credentials are not', async () => {
+      const { current } = await readManifestPayload()
+      const keys = storedSecretKeys()
+
+      expect(keys).toEqual(expect.arrayContaining([
+        'E2E__GENOACMS_ROOT_KEY_SEED',
+        'E2E__GENOACMS_KEY_REGISTRY_SEQUENCE',
+        `E2E__GENOACMS_SUBORDINATE_KEY_SEED_${current}`
+      ]))
+      expect(keys.filter(key => !key.startsWith('E2E__'))).toEqual([])
     })
 
     it('AUTHN-5: a credentials rejection moves on to the next provider', async () => {

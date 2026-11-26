@@ -265,6 +265,9 @@ importers:
       '@types/node':
         specifier: ^22.17.0
         version: 22.20.5
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3

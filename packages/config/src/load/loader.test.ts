@@ -299,3 +299,37 @@ describe('memoization', () => {
     expect(warn).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('the secrets prefix', () => {
+  const PREFIX_TEXT = 'must match ^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$ and be at most 64 characters'
+
+  function withPrefix (prefix: unknown) {
+    const config = baseConfig()
+    config.secrets.prefix = prefix
+    return config
+  }
+
+  it('LDR-22: a prefix of the portable form loads and reaches the manifest', async () => {
+    for (const prefix of ['SHOP', 'shop_2', 'A1_B2', `A${'b'.repeat(63)}`]) {
+      clearLoadCache()
+      const { root } = project({ config: configSource(withPrefix(prefix)) })
+      const manifest = await loadConfig({ root, mode: 'development' })
+      expect((manifest.config.secrets as { prefix?: unknown }).prefix).toBe(prefix)
+    }
+  })
+
+  it('LDR-22: an absent prefix loads', async () => {
+    const { root } = project({ config: configSource(baseConfig()) })
+    const manifest = await loadConfig({ root, mode: 'development' })
+    expect(Object.hasOwn(manifest.config.secrets, 'prefix')).toBe(false)
+  })
+
+  it.fails('LDR-22: any other prefix is an issue', async () => {
+    for (const prefix of ['', '_A', 'A_', 'A__B', '1A', 'A-B', 'Á', `A${'b'.repeat(64)}`, 42, null]) {
+      clearLoadCache()
+      expect(await issuesOf(withPrefix(prefix))).toEqual([
+        { code: 'config/invalid-secrets-prefix', path: 'secrets.prefix', message: PREFIX_TEXT }
+      ])
+    }
+  })
+})
