@@ -74,6 +74,34 @@ It is development only: its descriptor is marked so, and a production build refu
 `config/development-only`. No other secrets store runs without a cloud account today, which is why
 the [self-hosted example](/guide/config/examples#Self-hosted) is a development config.
 
+## Several instances on one store
+
+Two instances whose secrets providers reach one store, such as one GCP project or one AWS account,
+would otherwise share every secret, the signing keys GenoaCMS keeps for itself included. Give each
+instance a prefix of its own:
+
+```ts
+secrets: {
+  prefix: 'SHOP',
+  providers: { 'secret-manager': secretsProvider('@genoacms/adapter-gcp/secrets', { projectId: 'acme' }) }
+}
+```
+
+Every key the instance gives the store is then stored as `<prefix>__<key>`: `secret('ADMIN_CREDENTIALS')`
+reads `SHOP__ADMIN_CREDENTIALS`, and the root key's seed is `SHOP__GENOACMS_ROOT_KEY_SEED`. Keep
+writing the keys without the prefix in the config; create them with it wherever you set them by
+hand, such as in a cloud console. A missing one is reported under both names. `env()` variables are
+never prefixed.
+
+A prefix starts with a letter, holds letters, digits and single underscores, does not end in `_`,
+and is at most 64 characters: `SHOP`, `shop_eu` and `Shop2` are prefixes, `shop-eu`, `SHOP__EU` and
+`_SHOP` are not. Without a prefix, keys are stored as written.
+
+**Setting or changing the prefix of an instance that already runs starts a new instance in the
+store.** Nothing is migrated: the instance finds no root key under the new names, creates one, and
+nothing signed before verifies. Consumers then need the new root public key, and the old secrets
+stay in the store until you delete them.
+
 ## Rotation
 
 Resolved values are cached for the life of the process, and a constructed client keeps its
