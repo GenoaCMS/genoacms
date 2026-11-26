@@ -255,7 +255,7 @@ The helpers evaluate inside a config file.
 ### The loader's rules
 
 `loadConfig({ root, file?, mode, forbidInline?, onWarning? })` evaluates the config (CFG-2), loads
-its descriptors (LDR-16) and applies LDR-1 to LDR-14 and the agent rules of
+its descriptors (LDR-16) and applies LDR-1 to LDR-14, LDR-22 and the agent rules of
 [`agent-access.md`](agent-access.md) (AGT-1, AGT-5), then builds the manifest (LDR-17). A provider
 entry is each value of `authentication.providers`, `database.providers`, `storage.providers`,
 `secrets.providers`, `languages.providers` and `deployment.targets`; its path is
@@ -347,6 +347,19 @@ found <n>` (KF29).
 
 - Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
+
+#### LDR-22 · The secrets prefix
+
+**New.** `secrets.prefix` is absent, or a string of at most 64 characters matching
+`^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$`: it starts with a letter, holds no `__`, and does not end
+in `_`. Any other value gives the issue `config/invalid-secrets-prefix` at `secrets.prefix`,
+reading `must match ^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$ and be at most 64 characters`. The
+manifest carries it in `config.secrets.prefix` (LDR-17), and the host applies it (`secrets.md`
+REF-9).
+
+- Test: none yet
+- Level: unit
+- State: new (RFC-0050)
 
 #### LDR-10 · Names that must exist
 

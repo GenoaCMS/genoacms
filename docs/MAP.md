@@ -477,6 +477,7 @@ flowchart LR
 | LDR-19 · The runtime manifest | unit | — | [architecture/configuration.md](architecture/configuration.md) |
 | LDR-20 · The manifest in Vite | unit | — | [architecture/configuration.md](architecture/configuration.md) |
 | LDR-21 · Config edits restart the dev server | unit | — | [architecture/configuration.md](architecture/configuration.md) |
+| LDR-22 · The secrets prefix (new) | unit | — | [architecture/configuration.md](architecture/configuration.md) |
 | LMB-1 · Descriptor | unit | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
 | LMB-2 · Options | unit | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
 | LMB-3 · Option validation | unit | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
@@ -579,6 +580,7 @@ flowchart LR
 | REF-6 · No value in an error | unit | — | [architecture/secrets.md](architecture/secrets.md) |
 | REF-7 · The store is constructed from env() and inline() only | unit | — | [architecture/secrets.md](architecture/secrets.md) |
 | REF-8 · The portable secret key | unit | — | [architecture/secrets.md](architecture/secrets.md) |
+| REF-9 · An instance prefix (new) | unit, e2e | — | [architecture/secrets.md](architecture/secrets.md) |
 | REG-1 · The key manifest | unit | — | [architecture/signing.md](architecture/signing.md) |
 | REG-2 · The key files | unit | — | [architecture/signing.md](architecture/signing.md) |
 | REG-3 · Rotating and revoking | unit, e2e | YJ2a, YJ3b | [architecture/signing.md](architecture/signing.md) |
