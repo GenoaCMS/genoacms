@@ -84,7 +84,7 @@ describe.skipIf(!enabled).sequential('a damaged security policy through the runn
     await removeInstance()
   }, TEARDOWN_TIMEOUT_MS)
 
-  it('POL-3: a damaged policy keeps sign-in working and stops publishing until it is rewritten', async () => {
+  it('YJ4a, POL-3: a damaged policy keeps sign-in working and stops publishing until it is rewritten', async () => {
     await writeObject(POLICY_PATH, '{}')
 
     const page = await signIn()
@@ -110,7 +110,7 @@ describe.skipIf(!enabled).sequential('a damaged security policy through the runn
     await shown(page.getByText('Component published', { exact: true }))
   })
 
-  it('POL-2, POL-3: a restored older policy is damaged', async () => {
+  it('YJ4b, POL-2, POL-3: a restored older policy is damaged', async () => {
     const page = await signIn()
     await savePolicy(page)
     const older = await storedPolicyText()
