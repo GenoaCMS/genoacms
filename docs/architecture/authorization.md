@@ -253,7 +253,7 @@ than its record suggests, and only a warning says so.
 
 *History.* The roles screen and its grant editor date from 2026-08. Until 2026-11-01 only the code,
 `authorization/README.md` and `packages/core/tests/grantEditor.spec.ts`, a Playwright suite that
-ran nowhere (`build.md` F32), described them. RFC-0045 wrote ROL-1 to ROL-5 from the code and moved
+ran nowhere (`build.md` PF32), described them. RFC-0045 wrote ROL-1 to ROL-5 from the code and moved
 that suite to `packages/core/e2e/`.
 
 *History.* The rest of authorization was designed in the author's master's thesis (proposal §4.2,

@@ -78,7 +78,7 @@ it fails too; the suite reports the first failure.
 
 *History.* The suites came from `@genoacms/cloudabstraction`'s test helpers, which read a config file
 and `testDocuments` from its root. The 2026-09 redesign moved them into their own package, taking a
-constructed instance and the fixture as arguments (RFC-0002, `configuration.md` C14, A9). On
+constructed instance and the fixture as arguments (RFC-0002, `configuration.md` History). On
 2026-10-02 the package got this document; until then no document specified it.
 
 ### Verification

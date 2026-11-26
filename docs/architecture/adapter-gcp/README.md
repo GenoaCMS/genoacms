@@ -24,8 +24,8 @@ runs `@genoacms/conformance` against real GCP, only with `GENOACMS_TEST_GCP=1`.
 **Relation to the platform documents.** They define what this package implements: descriptors,
 runtimes and bare-specifier loading ([`contracts/adapter-model.md`](../contracts/adapter-model.md)
 D2, D4), the service contracts ([`contracts/`](../contracts/README.md)), the host
-([`host.md`](../host.md) D3), secret references ([`secrets.md`](../secrets.md) D5), and the artifact
-and deployment targets ([`build.md`](../build.md) D6, D9). They stay authoritative for all of that.
+([`host.md`](../host.md) DD3), secret references ([`secrets.md`](../secrets.md) SD5), and the artifact
+and deployment targets ([`build.md`](../build.md) PD6, PD9). They stay authoritative for all of that.
 These documents cover only what is specific to GCP. If they disagree on the adapter model or a
 contract, those documents win. If they disagree on a GCP detail, these documents win, and the other
 is corrected to point here.
@@ -71,7 +71,7 @@ flowchart LR
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
-| GU1 | Production authentication on GCP uses **Identity Platform** or, since GU9, the **Firestore identity store**. With Identity Platform, GenoaCMS stores no password and no password hash on GCP (`configuration.md` U13). | [`authentication-identity-platform.md`](authentication-identity-platform.md) GD2 |
+| GU1 | Production authentication on GCP uses **Identity Platform** or, since GU9, the **Firestore identity store**. With Identity Platform, GenoaCMS stores no password and no password hash on GCP. | [`authentication-identity-platform.md`](authentication-identity-platform.md) GD2 |
 | GU2 | At runtime every GCP client authenticates as **Application Default Credentials**, the function's own service account. A service-account key is used only by `genoa deploy`, on the operator's machine. | Identities |
 | GU3 | 2026-09-28: the deploy waits for the platform and fails when it fails (GD1); the function's settings become target options (GD3); the upload's status is checked (GF2). The IAM gap (GF4) and the accumulating secret versions (GF5) are fixed where a simple fix exists. | [`deployment.md`](deployment.md), IAM, [`secrets.md`](secrets.md) |
 | GU5 | 2026-09-29: SEC-9 and SEC-10 are verified at `unit` only. They describe the adapter's own handling, which the real service cannot provoke or show (RFC-0025). | [`secrets.md`](secrets.md) |
@@ -83,7 +83,7 @@ flowchart LR
 | GU11 | 2026-10-02: the Identity Platform adapter (GD2) is implemented from Google's reference documentation, before GS1 runs. GS1 confirms it afterwards; a contradiction reopens the statement it contradicts. | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU12 | 2026-10-02: AUTH-4 and AUTH-6 are verified at `unit` only. A second factor needs the Identity Platform upgrade with multi-factor enabled, which the author defers, and provoking throttling could throttle CI's address for the other contract tests. A contract test is added when either changes. | [`authentication-identity-platform.md`](authentication-identity-platform.md) |
 | GU4 | 2026-09-28: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` rather than dropping `env.js` or adopting all of adapter-node's variables (GF7, GF14). | [`deployment.md`](deployment.md) GD5 |
-| GU13 | 2026-10-30: on SvelteKit 3 the SvelteKit adapter takes the origin from the build (`paths.origin`) instead of `ORIGIN`, bundles the server in Vite's own build, and supports SvelteKit 3 only, as 2.0.0 ([`build.md`](../build.md) U16, U18, U19). | [`deployment.md`](deployment.md) GD5, ADP-3, ADP-4 |
+| GU13 | 2026-10-30: on SvelteKit 3 the SvelteKit adapter takes the origin from the build (`paths.origin`) instead of `ORIGIN`, bundles the server in Vite's own build, and supports SvelteKit 3 only, as 2.0.0 ([`build.md`](../build.md) PU16, PU18, PU19). | [`deployment.md`](deployment.md) GD5, ADP-3, ADP-4 |
 
 **GD6. Every current runtime statement has a unit test (GF12, GF13, and SEC and DEP gaps).**
 RFC-0024. STO-4 to STO-12, DB-3 to DB-7, SEC-3, SEC-5, SEC-10, SEC-11 and DEP-13 get unit
@@ -101,7 +101,7 @@ partial failure leaves behind (GF10).
 
 `@genoacms/adapter-gcp` implements four GenoaCMS services on Google Cloud, plus authentication, planned as two adapters. Each is a
 descriptor, which the build loads and which imports no SDK, and a runtime, which the host constructs
-per provider (`contracts/adapter-model.md` D2, `host.md` D3).
+per provider (`contracts/adapter-model.md` CD16, `host.md` DD3).
 
 | Export | Google service | Document |
 | :-- | :-- | :-- |
@@ -131,7 +131,7 @@ Two identities act for an instance. GenoaCMS creates neither.
 - **The operator identity** is whoever runs `genoa deploy`: the `gcp` target's `credentials` (a key, resolved on the operator's machine and never embedded in the build) or the operator's own ADC.
 
 `credentials` on runtime descriptors exists for running outside GCP, for example core's development
-config, which uses an inline key file (`configuration.md` U7).
+config, which uses an inline key file (`configuration.md` KU7).
 
 ---
 
@@ -194,12 +194,12 @@ bootstrap reports the secret it could not read or create. `genoa deploy` does no
 
 *History.* In brief, oldest first:
 
-- **2023-10 to 2025-05** (`0.1` to `0.8.2`): the adapter implemented services of `@genoacms/cloudabstraction` as module-level singletons that read the whole config (`configuration.md` F5). Deployment uploaded the **project source**, including `genoa.config/`, and injected snippets for a remote build on GCP (`configuration.md` F9, F15). The service-account key went with it. Custom function names arrived in 2025-05.
+- **2023-10 to 2025-05** (`0.1` to `0.8.2`): the adapter implemented services of `@genoacms/cloudabstraction` as module-level singletons that read the whole config (`configuration.md` KF5). Deployment uploaded the **project source**, including `genoa.config/`, and injected snippets for a remote build on GCP (`configuration.md` KF9, KF15). The service-account key went with it. Custom function names arrived in 2025-05.
 - **2024-11**: `@genoacms/sveltekit-adapter-cloud-run-functions` was written, adapting SvelteKit to Cloud Run functions (2nd gen) instead of Firebase's adapter.
 - **2026-08**: moved into the monorepo; the authorization service was removed from the abstraction (core owns authorization); a Secret Manager secrets service with atomic claims and generation preconditions on storage were added.
 - **2026-09-27** (RFC-0007, RFC-0014): descriptors and runtimes replaced the services; the deploy switched to uploading the **build artifact** only, so no source, config or credential leaves the machine.
 - **2026-09-28, later**: the SvelteKit adapter honors `ORIGIN` and `XFF_DEPTH` (RFC-0023), and every current runtime statement got a unit test (RFC-0024).
-- **2026-09-28**: vendored runtime packages (`build.md` D9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
+- **2026-09-28**: vendored runtime packages (`build.md` PD9, RFC-0020) made the first live deploy of core possible, and it succeeded. The same day, the deploy learned to wait for the platform and took its function settings from the target (RFC-0021), and Secret Manager stopped accumulating versions (RFC-0022).
 - **2026-10-01** (RFC-0027): the open findings GF10 and GF20 to GF26 were fixed, with two more that its audits found (GF29, GF30): bounded directory operations (GD7), the framework's ignored routes disabled (GD8), and the missing tests.
 
 ---

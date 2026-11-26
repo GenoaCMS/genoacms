@@ -402,7 +402,7 @@ RFC-0045 changed them are not yet audited for falsification.
 - *History.* Until RFC-0045 the screens were driven by a Playwright suite,
   `packages/core/tests/components.spec.ts`, `pages.spec.ts`, `pageComposition.spec.ts` and
   `revisionPinning.spec.ts`. It needed the development credentials, ran in no CI job and was no
-  level of `docs/README.md` (`build.md` F32), so it gated nothing: NF20 shipped past it.
+  level of `docs/README.md` (`build.md` PF32), so it gated nothing: NF20 shipped past it.
 
 Not covered by any test: the storage layout as a whole (CMP-1) and value resolution in the built tree
 (TRE-3).

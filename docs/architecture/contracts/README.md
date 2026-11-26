@@ -14,12 +14,11 @@ verified: 7174f7f
 
 `@genoacms/contracts` holds what every adapter implements and core consumes: the adapter model
 (descriptors, runtimes, the references that fill credential options, the registries that type each
-provider entry) and one contract per service. An adapter depends on this package alone (U4), so a
-third-party adapter needs nothing else to be written.
+provider entry) and one contract per service. An adapter depends on this package alone, so a
+third-party adapter needs nothing else to be written (CU18).
 
 These documents follow the Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md)). The ID prefix is
-`C`. The adapter model is not restructured yet, and its unprefixed IDs are those of the 2026-09
-redesign ([`configuration.md`](../configuration.md)).
+`C`.
 
 ```mermaid
 flowchart LR
@@ -45,7 +44,7 @@ flowchart LR
 
 | Document | Codes | Covers | State |
 | :-- | :-- | :-- | :-- |
-| [`adapter-model.md`](adapter-model.md) | — | descriptors and runtimes, references, registries, packages and their dependency direction | not restructured (`conforms: false`) |
+| [`adapter-model.md`](adapter-model.md) | MOD | descriptors and runtimes, references, registries, packages and their dependency direction | conforming since 2026-11-26; the types unverified (CF67) |
 | [`authentication.md`](authentication.md) | AUTHN | `authenticate`, `getIdentity`, and what core does with them: sign-in, session revalidation | conforming |
 | [`storage.md`](storage.md) | STOR | the ten storage methods, names and directories, conditional writes and versions, failures | conforming; every statement `unverified` |
 | [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
@@ -71,7 +70,7 @@ capability needs its own conformance suite.
 
 *History.* The contracts lived in `@genoacms/cloudabstraction`, beside a config loader and a build tool,
 until the 2026-09 redesign moved them into `@genoacms/contracts` with their signatures unchanged
-(RFC-0001, [`configuration.md`](../configuration.md) A1 to A6). On 2026-10-02 the adapter model moved
+(RFC-0001, [`configuration.md`](../configuration.md) History). On 2026-10-02 the adapter model moved
 out of `configuration.md` into this directory, and the authentication contract and the conformance suites got a Specification. On 2026-10-18 the storage contract got one, written from the types and the adapters.
 
 ### Register
@@ -119,10 +118,13 @@ Every `C` ID, where it lives, and its state.
 | CU15 | Updating a missing document throws `DocumentNotFoundError` | decided | [`database.md`](database.md) |
 | CU16 | A document holds JSON values only | decided | [`database.md`](database.md) |
 | CU17 | A document holds only values every store can hold | decided | [`database.md`](database.md) |
+| CU18 | The packages are `@genoacms/contracts` and `@genoacms/config` | decided | [`adapter-model.md`](adapter-model.md) |
 | CD12 | Pages in the store's own order, continued with an opaque cursor | new | [`database.md`](database.md) |
 | CD13 | A condition compares values of one JSON type, strings by UTF-8 bytes | new | [`database.md`](database.md) |
 | CD14 | The key is in the data, and only the store writes it | new | [`database.md`](database.md) |
 | CD15 | The store assigns IDs | new | [`database.md`](database.md) |
+| CD16 | Adapters are a descriptor and a runtime | current | [`adapter-model.md`](adapter-model.md) |
+| CD17 | Adapter runtimes are loaded by bare specifier, not bundled | current | [`adapter-model.md`](adapter-model.md) |
 | CF51 | No adapter honours `QueryParams` | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
 | CF52 | `QueryParams` cannot be implemented as typed | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
 | CF53 | Who chooses an ID differs | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
@@ -139,7 +141,9 @@ Every `C` ID, where it lives, and its state.
 | CF64 | DATA-8 is partly enforced | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
 | CF65 | Values DATA-2 permits fail in a store | fixed, RFC-0042 (`eeabe194`) | [`database.md`](database.md) |
 | CF66 | The suite leaves orderings and paging paths unpinned | fixed, RFC-0042 (tests `1ca2c2eb`) | [`database.md`](database.md) |
+| CF67 | No release proves the adapter model's types | open | [`adapter-model.md`](adapter-model.md) |
 | CS8 | Falsification audit of the database contract | current | [`database.md`](database.md) |
+| CS9 | The adapter model's Specification from the types | current | [`adapter-model.md`](adapter-model.md) |
 | CF12 | Parts of the sign-in trial that no test checks | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF13 | Revalidation of a family without a provider is checked with no failure | fixed, RFC-0030 | [`authentication.md`](authentication.md) |
 | CF14 | The array adapter's `getIdentity` is tested only with its own subject and an unknown one | fixed, RFC-0030 | [`authentication.md`](authentication.md) |

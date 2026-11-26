@@ -17,14 +17,14 @@ afterwards (GU11).
 ### Role
 
 `@genoacms/adapter-gcp/authentication/identity-platform` authenticates CMS users against Identity Platform on GCP,
-so that GenoaCMS stores no password material there (`configuration.md` U13). It is one of two
+so that GenoaCMS stores no password material there (GU1). It is one of two
 authentication adapters on GCP; the other is the Firestore identity store
 ([`authentication-firestore.md`](authentication-firestore.md), GU9). Authorization stays
 core's: a subject that signs in is admitted only if the authorization data knows it.
 
 ### Decisions
 
-**GD2. Identity Platform authenticates (GU1, `configuration.md` U13).** AUTH-1 to AUTH-10.
+**GD2. Identity Platform authenticates (GU1).** AUTH-1 to AUTH-10.
 *Why:* on GCP the provider already offers hashing, breach-safe storage, disabling, password reset
 and email-enumeration protection. GenoaCMS does not own any of it, and the contract maps directly: `authenticate` onto
 `signInWithPassword`, `getIdentity` onto `accounts:lookup`.

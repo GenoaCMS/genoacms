@@ -71,7 +71,7 @@ flowchart LR
 | WU4 | 2026-09-30: every runtime statement is verified at `unit` and `contract`. The contract tests run against the author's AWS account: locally with a scoped IAM user (`genoacms-contract`), and in CI through GitHub's OIDC provider and a role, never an access key. The root user is never used. | Verification |
 | WU5 | 2026-10-01: a secret **scheduled for deletion is absent**: reading it resolves `undefined` and deleting it again `false`, and a delete does not wait for Secrets Manager to finish (WF24). It replaced the same day's decision to wait in the delete, once the delete was seen to take up to 30 seconds (WS6). | [`secrets.md`](secrets.md) WD6 |
 | WU6 | 2026-10-01: the client address is taken from **`http.sourceIp` of the request context** through a small staged entry, not from `X-Forwarded-For`, which a function URL passes through unchanged (WF25). | [`deployment.md`](deployment.md) WD7 |
-| WU7 | 2026-10-30: on SvelteKit 3, which adapter-node 6 requires, the `origin` option is fixed at build time as SvelteKit's `paths.origin`, as on every target ([`build.md`](../build.md) U16). | [`deployment.md`](deployment.md) WD8 |
+| WU7 | 2026-10-30: on SvelteKit 3, which adapter-node 6 requires, the `origin` option is fixed at build time as SvelteKit's `paths.origin`, as on every target ([`build.md`](../build.md) PU16). | [`deployment.md`](deployment.md) WD8 |
 
 **WD1. The AWS adapter matches the GCP adapter where the contract is silent.** Directory
 placeholders, listing shapes, error propagation and the messages of GenoaCMS's own errors are the
@@ -93,7 +93,7 @@ differ from Google's.
 
 `@genoacms/adapter-aws` implements four GenoaCMS services on AWS. Each is a descriptor, which the build
 loads and which imports no SDK, and a runtime, which the host constructs per provider
-(`contracts/adapter-model.md` D2, `host.md` D3).
+(`contracts/adapter-model.md` CD16, `host.md` DD3).
 
 | Export | AWS service | Document |
 | :-- | :-- | :-- |
@@ -156,8 +156,8 @@ not check grants, as on GCP (`adapter-gcp/deployment.md` GQ2).
 
 *History.* In brief, oldest first:
 
-- **2023-10 to 2024-06** (`0.1` to `0.6.2`): the adapter implemented `@genoacms/cloudabstraction` services on S3 and DynamoDB, as module-level singletons that read the whole config (`configuration.md` F5). The deploy created a Lambda function behind an API Gateway REST API through `aws-serverless-express`.
-- **2026-08**: the config shape it read no longer existed, so it could not run (`configuration.md` F14).
+- **2023-10 to 2024-06** (`0.1` to `0.6.2`): the adapter implemented `@genoacms/cloudabstraction` services on S3 and DynamoDB, as module-level singletons that read the whole config (`configuration.md` KF5). The deploy created a Lambda function behind an API Gateway REST API through `aws-serverless-express`.
+- **2026-08**: the config shape it read no longer existed, so it could not run (`configuration.md` KF14).
 - **2026-09-27** (RFC-0007, RFC-0014): ported to descriptors and runtimes and to the artifact deploy, keeping every method body. The port made it load again. It has not been deployed since.
 - **2026-10-01** (RFC-0026): TypeScript, built to `dist/`; every service brought to the Specification, a Secrets Manager provider added, the deploy rebuilt on the Lambda Web Adapter and a function URL, and tests at `unit`, `integration` and `contract` against a real account (WF1 to WF26).
 

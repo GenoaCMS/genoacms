@@ -21,7 +21,7 @@ it signs users in across the configured providers, and revalidates each session 
 Users and their passwords belong to the providers. Core holds the sessions, and the authorization
 data decides what a subject may do: a subject that signs in is admitted only if the authorization
 data knows it. Provider entries, their order and the loader's rules are configuration
-([`configuration.md`](../configuration.md), C3 and loader rule 9).
+([`configuration.md`](../configuration.md) CFG-3, LDR-12).
 
 Each adapter specifies its own mapping onto this contract:
 [`adapter-gcp/authentication-identity-platform.md`](../adapter-gcp/authentication-identity-platform.md),
@@ -115,7 +115,7 @@ area answers 303 to `/` and renders nothing; `/` and `/login` answer 200.
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
-| CU2 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. Moved from `configuration.md` U14. | the CLI templates, the config README, core's configs |
+| CU2 | Credentials are **user** credentials, not administrator credentials: any user of an instance may have them. The array adapter's conventional secret is `GENOACMS_CREDENTIALS`, and the provider key in the templates is `users`. Moved from the 2026-09 redesign's U14 (`configuration.md` History). | the CLI templates, the config README, core's configs |
 | CU3 | 2026-10-02: every adapter implements `getIdentity`, and a rejected sign-in carries its reason. Both are within CU1: every adapter can implement them. | CD2, CD3 |
 | CU4 | 2026-10-02: core tries providers one at a time and tells an outage from a wrong password (CF3, CF4). It limits failed sign-ins itself (CQ1): counters in the default bucket, keyed on the pair of email and client address and on the address alone, 5 failures per pair and 50 per address within 15 minutes, as security-policy defaults. | AUTHN-5, CD7 |
 
@@ -164,7 +164,7 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| CF1 | **Nothing limits failed sign-ins.** Core calls every authentication provider for every attempt, with no count per email or per client. Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication-identity-platform.md` GS1c). Moved from `configuration.md` F20. | open, fixed by CD7 |
+| CF1 | **Nothing limits failed sign-ins.** Core calls every authentication provider for every attempt, with no count per email or per client. Behind a managed provider, the provider's own abuse protection sees one client, the server, so it either throttles everyone together or nobody (`adapter-gcp/authentication-identity-platform.md` GS1c). Moved from the 2026-09 redesign's F20 (`configuration.md` History). | open, fixed by CD7 |
 | CF2 | **The array adapter compares plain-text passwords, not in constant time.** Its credentials are a JSON secret with passwords in clear (`authentication-adapter-array/src/runtime.js`). Recorded as a non-goal of the 2026-09 redesign. | open |
 | CF3 | **Every password is sent to every provider.** Core calls `authenticate` on all providers at once and takes the first `Identity` in key order (`core/src/lib/script/providers.server.ts`, `callProvidersFunction`). A user of one provider therefore sends their password to every other, and each provider's own lockout counts attempts meant for another. Found 2026-10-02. AUTHN-5 tries the providers one at a time and stops at the first that knows the user, so a user of a later provider still reaches every earlier one. | mitigated, RFC-0030 |
 | CF4 | *History.* **A provider failure reads as a wrong password.** Core keeps only the results of providers that did not throw, and `authenticateAndAuthorize` turns any error into no identity (`core/src/lib/script/auth/auth.server.ts`). An outage of the only provider is reported as `invalid-credentials`, which defeats AUTH-7 and IDS-5. Found 2026-10-02. | fixed, RFC-0030 |
@@ -203,7 +203,7 @@ window until a successful sign-in deletes it, so they accumulate, one per failed
 ### History
 
 *History.* `authenticate(email, password) → Identity | null` was the whole contract from the
-monorepo's start through the 2026-09 redesign, which kept it unchanged (`configuration.md` A1 to A6).
+monorepo's start through the 2026-09 redesign, which kept it unchanged (`configuration.md` History).
 `Identity.subject` replaced the email as what authorization binds to, so that a reassigned address
 cannot inherit its previous holder's permissions. Until 2026-10-02 the contract was described only in
 `configuration.md`, by its signature.

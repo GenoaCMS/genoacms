@@ -20,7 +20,7 @@ URL** (WU1). `@genoacms/adapter-aws/deployment` is the target's descriptor and d
 genoa build aws                               genoa deploy aws
   vite build ──adapter-node──▶ .genoacms/build/   ──procedure──▶ npm install (linux x64)
                                + package.json, vendor/           ──▶ zip ──▶ S3 artifact bucket
-                               (build.md D6, D9)                 ──▶ Lambda: function, URL, permission
+                               (build.md PD6, PD9)                 ──▶ Lambda: function, URL, permission
 ```
 
 At runtime, the Lambda Web Adapter, a layer running as a Lambda extension, starts the staged entry
@@ -51,7 +51,7 @@ core's dependencies has one today.
 console is reverted by the next deploy.
 
 **WD8. The origin comes from forwarded headers unless `origin` is set, and `origin` is fixed at build time (WU7; LMB-1, LMB-10).** Adapter-node reads the
-protocol and host from the headers the function URL sends (WS2). When `origin` is set, the descriptor gives it to the build as SvelteKit's `paths.origin`, which adapter-node 6 reads instead of the headers ([`build.md`](../build.md) D11, F23). The function gets no `ORIGIN` variable: adapter-node 6 ignores it.
+protocol and host from the headers the function URL sends (WS2). When `origin` is set, the descriptor gives it to the build as SvelteKit's `paths.origin`, which adapter-node 6 reads instead of the headers ([`build.md`](../build.md) PD11, PF23). The function gets no `ORIGIN` variable: adapter-node 6 ignores it.
 *Cost:* behind CloudFront the host differs, and `origin` must be set. One build serves one origin.
 
 **WD7. The client address comes from the request context, not `X-Forwarded-For` (WU6; LMB-10,
@@ -84,7 +84,7 @@ function URL every request carries the Web Adapter's context, and a client's own
 
 *History.* The first AWS deploy (2024-05) created a Lambda function behind an API Gateway REST API,
 with `aws-serverless-express` as the entry. RFC-0007 moved it to the artifact deploy and made its
-settings target options, keeping every step (`configuration.md` P9). RFC-0026 (2026-10-01) rebuilt the deploy on the Lambda Web Adapter and a function URL, with the client address from the request context (WF15 to WF18, WF20, WF25).
+settings target options, keeping every step (`configuration.md` History). RFC-0026 (2026-10-01) rebuilt the deploy on the Lambda Web Adapter and a function URL, with the client address from the request context (WF15 to WF18, WF20, WF25).
 
 ### Verification
 

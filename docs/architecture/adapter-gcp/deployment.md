@@ -23,12 +23,12 @@ make that:
 genoa build gcp                          genoa deploy gcp
   vite build ──SvelteKit adapter──▶ .genoacms/build/   ──procedure──▶ Cloud Functions API
                                     + package.json, vendor/          ──▶ Cloud Build (buildpacks: npm install)
-                                    (build.md D6, D9)                ──▶ Cloud Run service
+                                    (build.md PD6, PD9)                ──▶ Cloud Run service
 ```
 
 The SvelteKit adapter is a fork of `@sveltejs/adapter-node`'s shape for a function, which has no
 server of its own to start: the Functions Framework calls an exported handler. From 2.0.0 it follows
-adapter-node 6 on SvelteKit 3 (`build.md` U15, U18, U19).
+adapter-node 6 on SvelteKit 3 (`build.md` PU15, PU18, PU19).
 
 ### Use cases
 
@@ -120,7 +120,7 @@ nothing.
 
 **GD1. The deploy waits for the platform and fails when it fails (GF1, GF2, GF6).** DEP-9 to DEP-12.
 *Why:* a deploy that reports success when the platform rejected it is worse than no report, and a
-buildpack install failure (`build.md` D9, its *Cost:*) is exactly the case that must surface.
+buildpack install failure (`build.md` PD9, its *Cost:*) is exactly the case that must surface.
 *Cost:* `genoa deploy` takes as long as Cloud Build, a few minutes, instead of returning after the upload.
 An interrupted CLI leaves the operation running on Google's side, and a deploy started meanwhile may
 fail with a conflict until it ends. The client library's polling timeout bounds how long a build may
@@ -142,7 +142,7 @@ ingress `internal` makes the CMS unreachable from a browser without a load balan
 descriptor cannot know either.
 
 **GD5. The adapter honors the build's origin and `XFF_DEPTH`, and the target sets them (GU4, GU13; GF7, GF11, GF14).**
-RFC-0023; the origin at build time from RFC-0043 (`build.md` U16, D11). DEP-1, DEP-14, ADP-5, ADP-6, ADP-7, ADP-8.
+RFC-0023; the origin at build time from RFC-0043 (`build.md` PU16, PD11). DEP-1, DEP-14, ADP-5, ADP-6, ADP-7, ADP-8.
 - The origin, when set, is the origin of every request, and forwarded headers no longer decide it. Behind Firebase Hosting or a custom domain the forwarded host can differ from what browsers see, and SvelteKit's CSRF check compares against the request's origin.
 - `XFF_DEPTH` says which `X-Forwarded-For` entry, counted from the right, is the client. Default `1`, the entry the platform's own front end appended. Anything to its left was sent by the client and can be forged.
 - The `gcp` target sets both through two named options. `origin` becomes SvelteKit's `paths.origin` when the app is built, and the adapter reads it from the build. `xffDepth` becomes the function's `XFF_DEPTH`. The target passes no other environment variable (GQ1).
@@ -151,7 +151,7 @@ RFC-0023; the origin at build time from RFC-0043 (`build.md` U16, D11). DEP-1, D
 - The address and origin logic moves into a module with no build-time placeholders, so it can be unit-tested, and the adapter's test script runs again (GF11).
 
 *Why:* the client address is what sign-in throttling will key on (`contracts/authentication.md` CQ1), and a forgeable one makes throttling useless. The origin fixes CSRF behind proxies that rewrite the host.
-*Cost:* two more target options. The origin is part of the artifact, so one build serves one origin (`build.md` D11), and the adapter's users outside GenoaCMS move `ORIGIN` into `paths.origin` when they upgrade to 2.0.0. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
+*Cost:* two more target options. The origin is part of the artifact, so one build serves one origin (`build.md` PD11), and the adapter's users outside GenoaCMS move `ORIGIN` into `paths.origin` when they upgrade to 2.0.0. An operator behind an extra proxy must know its depth, and a wrong depth attributes every request to the proxy, or trusts a forged entry. Only a depth beyond the entries present throws. Depth 1 assumes that Google's front end appends exactly one entry (GS5). Entries are returned as written, so IPv6 forms and ports are not normalized and one client can appear under two spellings. A function reached both directly and through a proxy has no single correct depth.
 
 **GD8. The deploy disables the Functions Framework's ignored routes (GU8; DEP-10; GF20).** The
 function's environment carries `IGNORED_ROUTES` set to the empty string.
@@ -166,7 +166,7 @@ end-to-end tests run, since the artifact does not depend on it (GS7).
 therefore the source of truth, and a setting changed in the console is reverted by the next deploy.
 
 **Only the artifact is uploaded (DEP-6, DEP-7).** No project source, no config and no credential
-leave the machine (`configuration.md` F9, F15).
+leave the machine (`configuration.md` KF9, KF15).
 
 ### Findings
 
@@ -191,7 +191,7 @@ leave the machine (`configuration.md` F9, F15).
 ### History
 
 *History.*
-- **Until RFC-0007 (2026-09-27)**, the deploy archived the **project source** from the project root, ignoring only `node_modules`, `.git`, `.github`, `.gitignore`, `.genoacms` and `build`. It injected entry snippets so that GCP would install and build core remotely (`configuration.md` F9, F15). The service-account key inside `genoa.config/` was uploaded with it, and the injected build snippet no longer existed, so the deploy was broken.
+- **Until RFC-0007 (2026-09-27)**, the deploy archived the **project source** from the project root, ignoring only `node_modules`, `.git`, `.github`, `.gitignore`, `.genoacms` and `build`. It injected entry snippets so that GCP would install and build core remotely (`configuration.md` KF9, KF15). The service-account key inside `genoa.config/` was uploaded with it, and the injected build snippet no longer existed, so the deploy was broken.
 - **RFC-0007** replaced that with the artifact upload, and kept the function settings unchanged (its non-goal). That is why GF3 existed.
 - **RFC-0021 (2026-09-28)** added GD1 and GD3.
 - **RFC-0027 (2026-10-01)** added GD8, so the app serves `/favicon.ico` and `/robots.txt`, and dropped the unused `static/` middleware.

@@ -102,7 +102,7 @@ then miss its errors and treat a lost race as a fault.
 
 *History.* The contract lived in `@genoacms/cloudabstraction` from the monorepo's start; the 2026-09
 redesign moved it into `@genoacms/contracts` with its signatures unchanged (RFC-0001,
-[`configuration.md`](../configuration.md) A1 to A6). Conditional writes (`ifAbsent`, `ifVersion`, the
+[`configuration.md`](../configuration.md) History). Conditional writes (`ifAbsent`, `ifVersion`, the
 version on reads and `PreconditionFailedError`) were added on 2026-08-16 for core's optimistic
 concurrency. `ObjectPayload` named only a stream until the CMS's own writes of strings contradicted
 it. Until 2026-10-18 the types were the only description of the contract. RFC-0037 (2026-10-18) added

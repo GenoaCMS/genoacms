@@ -40,7 +40,7 @@ defined a collection named after the identities collection would expose it throu
 database that no `databases` entry names cannot be reached that way. Its IAM can also be granted on
 its own.
 *Cost:* the adapter cannot check that no `databases` entry names the same database, because adapters
-never see the config (`host.md` D3). Firestore's free quota applies only to a project's
+never see the config (`host.md` DD3). Firestore's free quota applies only to a project's
 `(default)` database, so a second database is billed from its first read, at the same rates. The
 operator creates the database once, by hand.
 

@@ -39,7 +39,7 @@ it.
 
 | # | Decision | Where |
 | :-- | :-- | :-- |
-| IU1 | 2026-10-02: GenoaCMS owns identity stores, beside managed providers. Firestore is the first, as `@genoacms/adapter-gcp/authentication/firestore`. This reverses the deferral in `configuration.md` U13, whose content now lives in GU1 and here. | this document; [`adapter-gcp/authentication-firestore.md`](adapter-gcp/authentication-firestore.md) |
+| IU1 | 2026-10-02: GenoaCMS owns identity stores, beside managed providers. Firestore is the first, as `@genoacms/adapter-gcp/authentication/firestore`. This reverses the deferral in the 2026-09 redesign's U13 (`configuration.md` History), whose content now lives in GU1 and here. | this document; [`adapter-gcp/authentication-firestore.md`](adapter-gcp/authentication-firestore.md) |
 | IU2 | 2026-10-02: passwords are hashed with **scrypt**, in an encoding this document fixes, so users move between stores, third-party ones included, with their passwords. | PWH-1 to PWH-6 |
 | IU3 | 2026-10-02: the shared specification covers the identity record, not only the hash. | IDS-2 |
 | IU4 | 2026-10-02: managing users is not part of this change. The authentication contract gains no management methods until core can use them, and then only as CU1 allows. | CQ2 |

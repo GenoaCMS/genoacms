@@ -41,7 +41,7 @@ The key registry screen:
 
 Out of scope, and not yet specified: root rotation as a whole (`genoa rotate-root`, `cli.md`
 CLI-9), of which REG-5 and POL-4 hold only what it writes; the bootstrap that creates the keys
-(`secrets.md`, *Bootstrap ordering*); where seeds are kept; the session key derived from the root
+(`secrets.md` REF-7); where seeds are kept; the session key derived from the root
 (`signing/derivedKeys.ts`); and how each kind of document is read once its signature verifies, which
 lives with the document (`authorization.md` MAN, `components.md` PUB and TRE).
 
@@ -269,7 +269,7 @@ by deleting its documents.
 
 *History.* The key registry screen dates from 2026-08. Until 2026-11-01 only the code,
 `signing/README.md` and `packages/core/tests/keys.spec.ts`, a Playwright suite that ran nowhere
-(`build.md` F32), described it. RFC-0045 wrote KEY-1 to KEY-4 from the code and moved that suite to
+(`build.md` PF32), described it. RFC-0045 wrote KEY-1 to KEY-4 from the code and moved that suite to
 `packages/core/e2e/`.
 
 *History.* Until 2026-11-25 this document covered the key registry screen only, and the envelope,

@@ -452,7 +452,7 @@ Older tests that check statements without carrying their IDs:
   against the example collections.
 - *History.* `packages/core/tests/collections.spec.ts` and `tests/selection.spec.ts`, a Playwright
   suite of creating, reopening, saving, deleting and bulk-deleting documents, ran in no CI job
-  (`build.md` F32). RFC-0045 removed them: `e2e/collections.test.ts` checks the same flows under
+  (`build.md` PF32). RFC-0045 removed them: `e2e/collections.test.ts` checks the same flows under
   LST-1 to LST-6, DOC-5 to DOC-7 and EDT-2, and `e2e/storage.test.ts` the selection of objects under
   BRW-5, BRW-10, BRW-12 and BRW-14.
 

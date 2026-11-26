@@ -1,275 +1,348 @@
 ---
 type: architecture
 title: Build, artifact and deployment
-conforms: false
+prefix: P
+codes: [BLD, ART, VND, TGT]
+verified: f18f6205
 ---
 
 # Build, artifact and deployment
 
-Part of the configuration architecture, split out of [`configuration.md`](configuration.md) on 2026-10-02 without changing its content. Unprefixed IDs (`U`, `D`, `F`, `R`, `S-`, `C`, `A`, `K`, `P`) are those of the 2026-09 redesign. `configuration.md` lists which document holds each.
+## Design
 
-What `genoa build` and `genoa deploy` do: the processes and the facts that cross between them, the
-self-contained artifact and its generated `package.json`, vendored local packages, the deployment
-targets, and the lifecycle of a project from development to a production cold start.
+### Role
 
-## Decisions
+What `genoa build` and `genoa deploy` do between the CLI ([`cli.md`](cli.md)) and a running
+instance: the facts that cross into core's Vite and SvelteKit, the choice of the SvelteKit adapter
+and origin from the deployment target, the guard that keeps the build from reaching a live instance,
+and the self-contained artifact with its generated `package.json` and vendored local packages. The
+GCP and AWS targets are specified in [`adapter-gcp/deployment.md`](adapter-gcp/deployment.md) and
+[`adapter-aws/deployment.md`](adapter-aws/deployment.md); the Node target is here (TGT-1, TGT-2).
+
+```mermaid
+flowchart LR
+  cli["genoa build / deploy"] -->|"GENOA_PROJECT, GENOA_CONFIG, GENOA_TARGET, GENOA_MODE"| vite
+  subgraph core ["@genoacms/core, cwd of Vite"]
+    vite["vite.config.ts"] --> kit["sveltekit(): adapter, paths.origin"]
+    vite --> plugin["genoa(): virtual:genoa/manifest"]
+  end
+  vite -->|resolveKitTarget| target["Deployment descriptor"]
+  kit --> artifact[("&lt;project&gt;/.genoacms/build")]
+  cli -->|createRuntimePackage| artifact
+  artifact --> vendor["vendor/: packed local packages"]
+  cli -->|deploy| procedure["Target procedure"]
+  procedure --> node["@genoacms/adapter-node"]
+  procedure --> gcp["@genoacms/adapter-gcp/deployment"]
+  procedure --> aws["@genoacms/adapter-aws/deployment"]
+  click cli "cli.md"
+  click plugin "configuration.md"
+  click target "contracts/adapter-model.md"
+  click gcp "adapter-gcp/deployment.md"
+  click aws "adapter-aws/deployment.md"
+```
+
+The lifecycle, from development to a production cold start:
+
+```
+DEVELOPMENT   genoa dev            vite dev in core; genoa() loads the development manifest and watches it
+                                   host.server.ts: createHost (no I/O); hooks: bootstrap through host.secrets()
+BUILD         genoa build [t]      the CLI loads the config, spawns vite build in core with BLD-1's facts;
+                                   vite.config.ts: resolveKitTarget (BLD-2); genoa() embeds the runtime manifest;
+                                   the CLI writes .genoacms/build/package.json (ART-1) and vendor/ (VND-2)
+DEPLOY        genoa deploy [t]     BUILD, then a host resolves the target's options and runs its procedure (CLI-8)
+PRODUCTION    cold start           createHost over the embedded manifest; bootstrap; providers on first use
+```
+
+### Decisions
 
 | # | Decision | Consequence |
 | :-- | :-- | :-- |
-| U2 | GCP does not have to build remotely. **Build locally, ship the bundle**, still without uploading `node_modules`. | Build output carries a generated `package.json` of runtime dependencies; the platform installs them (*The artifact*). |
-| U6 | Core's `dependencies` stay as they are: `vite` and the build tooling are genuinely needed where core is installed as a package and built by the user. | The runtime `package.json` is derived from what the server bundle imports, not from core's `dependencies` (*The artifact*). |
-| U10 | The live GCP spike (S-4) is skipped until the production config exists. That config uses `@genoacms/adapter-gcp/secrets`. | The first real GCP deploy is part of the GCP deployment RFC's verification ([`configuration.md`](configuration.md) *Verification before any RFC was written*). |
-| U15 | 2026-10-30: GenoaCMS moves to SvelteKit 3, including `@genoacms/sveltekit-adapter-cloud-run-functions`, which is part of the project. | The toolchain minimums of F26 apply to every package that builds or tests with SvelteKit (*SvelteKit 3*). D10 and D11, RFC-0043. |
-| U16 | 2026-10-30: the origin is fixed at build time, on every target. Each deployment target turns its `origin` option into SvelteKit's `paths.origin`, and the Cloud Run adapter reads `paths.origin` instead of a runtime `ORIGIN` (F23). | D11. One mechanism on every target. Changing the origin needs a rebuild, which `genoa deploy` always does. Breaking for the Cloud Run adapter's users outside GenoaCMS (`adapter-gcp/deployment.md` GD5). |
-| U17 | 2026-10-30: core imports its own modules through `#lib` subpath imports (`package.json` `imports`), not the deprecated `alias` that would keep `$lib` (F22). | A mechanical migration of every `$lib` import and `vi.mock('$lib/…')` call in core, committed on its own. |
-| U18 | 2026-10-30: the Cloud Run adapter bundles the server in Vite's own build, as adapter-node 6 does, instead of a second Rollup pass (F24). | `adapter-gcp/deployment.md` ADP-3 and ADP-4 change. The adapter drops its Rollup dependencies. Svelte libraries in core's `dependencies` are bundled, not external. |
-| U19 | 2026-10-30: the Cloud Run adapter supports SvelteKit 3 only, released as 2.0.0. | Its peer dependency is `@sveltejs/kit ^3`. SvelteKit 2 users stay on 1.x. |
-| U20 | 2026-10-30: the `@genoacms/adapter-node` target gets an optional `origin` option, fixed at build time like the `gcp` and `aws` targets' (F30). | D11 covers every target. A server reached over plain HTTP sets `origin`; without it the origin is `https://` plus the host. RFC-0043. |
+| PU2 | GCP does not have to build remotely. **Build locally, ship the bundle**, still without uploading `node_modules`. | The artifact carries a generated `package.json`, and the platform installs it (PD6). |
+| PU6 | Core's `dependencies` stay as they are: `vite` and the build tooling are needed where core is installed as a package and built by the user. | The artifact's `package.json` is derived from what the server bundle imports, not from core's `dependencies` (ART-2). |
+| PU10 | The live GCP spike (KS4) is skipped until the production config exists. | The first real GCP deploy was the GCP deployment RFC's verification; it ran on 2026-09-28. |
+| PU15 | 2026-10-30: GenoaCMS moves to SvelteKit 3, including `@genoacms/sveltekit-adapter-cloud-run-functions`. | The toolchain minimums of PF26 apply to every package that builds or tests with SvelteKit. PD10 and PD11, RFC-0043. |
+| PU16 | 2026-10-30: the origin is fixed at build time, on every target. Each target turns its `origin` option into SvelteKit's `paths.origin`, and the Cloud Run adapter reads `paths.origin` instead of a runtime `ORIGIN` (PF23). | PD11. Changing the origin needs a rebuild, which `genoa deploy` always does. Breaking for the Cloud Run adapter's users outside GenoaCMS (`adapter-gcp/deployment.md` GD5). |
+| PU17 | 2026-10-30: core imports its own modules through `#lib` subpath imports, not the deprecated `alias` that would keep `$lib` (PF22). | A mechanical migration of every `$lib` import and `vi.mock('$lib/…')` call in core, committed on its own. |
+| PU18 | 2026-10-30: the Cloud Run adapter bundles the server in Vite's own build, as adapter-node 6 does, instead of a second Rollup pass (PF24). | `adapter-gcp/deployment.md` ADP-3 and ADP-4 change. Svelte libraries in core's `dependencies` are bundled, not external. |
+| PU19 | 2026-10-30: the Cloud Run adapter supports SvelteKit 3 only, released as 2.0.0. | Its peer dependency is `@sveltejs/kit ^3`. SvelteKit 2 users stay on 1.x. |
+| PU20 | 2026-10-30: the `@genoacms/adapter-node` target gets an optional `origin` option, fixed at build time like the `gcp` and `aws` targets' (PF30). | PD11 covers every target. A server reached over plain HTTP sets `origin`; without it the origin is `https://` plus the host. RFC-0043. |
 
-**D6. A build produces a self-contained, self-describing artifact.** It contains the SvelteKit output
-and a generated `package.json`, pinned to the installed versions. That file lists the packages the
-server bundle actually imports, plus every adapter package the manifest names. It contains no project
-source, no config file and no deployment options. Targets add their own entry glue and install
-dependencies in their own way (R4).
-*Why derived from the bundle:* core's `dependencies` must keep build tooling such as `vite`, because a
-user installs core as a package and builds it (U6). Copying that list would install the build
-toolchain on every function. The bundle's imports are the exact set the running server needs.
-*Cost:* the scan sees only ESM `import` syntax. A `require()` left dynamic by rollup's CommonJS
-plugin, a `createRequire` call, or a non-literal `import()` inside a bundled dependency loads a
-package the scan cannot find, and fails at runtime with `ERR_MODULE_NOT_FOUND`, not at build; a later
-dependency can bring one in quietly. The `package.json` has no lockfile, so transitive versions are
-resolved at install time and two deploys of one build can differ.
+**PD6. A build produces a self-contained, self-describing artifact.** It holds the SvelteKit output
+and a generated `package.json` pinned to the installed versions, listing the packages the server
+bundle imports and the adapter packages the manifest names (ART-2). It holds no project source, no
+config file and no deployment option. Targets add their own entry glue and install the dependencies
+their own way (KF24).
+*Why:* core's `dependencies` keep build tooling such as `vite` (PU6); copying that list would install
+the toolchain on every function. The bundle's imports are the exact set the running server needs.
+*Cost:* the scan sees only ESM `import` syntax. A `require()` left dynamic, a `createRequire` call
+or a non-literal `import()` inside a bundled dependency loads a package the scan cannot find, and
+fails at runtime with `ERR_MODULE_NOT_FOUND`; the CLI warns about each (ART-3). There is no lockfile,
+so transitive versions are resolved at install time and two deploys of one build can differ.
 
-**D7. Explicit facts cross the process boundary, as absolute paths or names.** The CLI is the only
-entry point. It spawns Vite with `cwd` = core (R1) and passes `GENOA_PROJECT` (absolute project
-root), `GENOA_CONFIG` (absolute config file, optional), `GENOA_TARGET` (target name, build only) and
-`GENOA_MODE` (`development` or `production`). There are no relative directory walks.
-*Why `GENOA_MODE` is explicit:* Vite's `mode` is not reliable inside a SvelteKit build. One
-`vite build --mode development` fired the plugin's `configResolved` eight times, and some of those
-calls reported `production` (S-2 result, [`configuration.md`](configuration.md) *Verification before any RFC was written*). SvelteKit runs extra internal Vite builds and resolves
-the Vite config while loading its own config. When `GENOA_MODE` is unset (monorepo `pnpm dev` or
-`pnpm build`), the plugin falls back to `development` for `vite dev` and `production` for `vite build`.
-That fallback depends only on `command`, which was consistent across every call.
-*Cost:* with Vite running in core, SvelteKit writes `.svelte-kit/` and Vite writes
-`node_modules/.vite-temp/` inside the installed core package, in pnpm's virtual store too. It worked
-in S-3 and S-5, but a read-only `node_modules` (Nix-style, or baked into a container) fails the build.
+**PD7. Explicit facts cross the process boundary, as absolute paths or names.** The CLI spawns Vite
+with core as its working directory (KF21) and passes `GENOA_PROJECT`, `GENOA_CONFIG`, `GENOA_TARGET`
+and `GENOA_MODE` (BLD-1, CLI-5). There are no relative directory walks.
+*Why `GENOA_MODE` is explicit:* Vite's `mode` is not reliable inside a SvelteKit build: one
+`vite build --mode development` resolved the Vite config eight times, and some resolutions reported
+`production` (KS2).
+*Cost:* SvelteKit writes `.svelte-kit/` and Vite writes `node_modules/.vite-temp/` inside the
+installed core package, in pnpm's virtual store too (KS3, KS5). A read-only `node_modules`, as in Nix
+or a container image, fails the build.
 
-**D8. No provider is constructed while SvelteKit analyses the build (F18).** Core reads `building`
-from `$app/env` (`$app/environment` until RFC-0043, F22), which SvelteKit sets exactly while it runs the app during `vite build`. It
-is enforced twice:
-- **At each module-scope call:** the bootstrap and the collection listing skip their I/O while `building`. The listing reads as empty.
-- **In core's host loader:** `host.server.ts` refuses to load any adapter runtime while `building` (`host/building`). A future module-scope call therefore fails the build loudly instead of quietly reaching a live instance.
+**PD8. No provider is constructed while SvelteKit analyses the build (KF18).** Core reads `building`
+from `$app/env`, which SvelteKit sets exactly while it runs the app during `vite build`. It is
+enforced twice: each module-scope call skips its I/O while `building` (the bootstrap, and the
+collection listing, COL-1), and core's runtime loader refuses to load any adapter runtime (BLD-3),
+so a future module-scope call fails the build by name instead of reaching a live instance.
+*Why:* any server code that runs at import time runs during the build, and the flag is the one
+SvelteKit defines for this purpose.
+*Cost:* each module-scope call must remember the flag. The collection listing reads as empty while
+`building`, and `building` is also true while prerendering, so a prerendered page cannot reach a
+provider. The loader check catches provider construction only, not a direct `fetch` or file read at
+import time. A provider failure thrown outside the promise chain crashes the process instead of
+degrading.
 
-*Why:* goal 6 was an assumption about Vite, and SvelteKit's analysis step broke it. Any server-side
-code that runs at import time runs during the build. The guard reads a flag that SvelteKit defines for
-exactly this purpose, rather than inferring build time from the environment.
-*Cost:* two call sites must remember the flag. The loader check turns forgetting it into a build
-failure, not a silent write. Core depends on `$app/env` in two service modules and in
-`host.server.ts`, so unit tests have to provide the flag (Vitest resolves it to `false` through
-SvelteKit's plugin). The collection listing reads as empty while SvelteKit analyses the build, and
-`building` is also true while prerendering: a prerendered page cannot reach a provider, and one that
-listed collections would be built empty. The loader check catches provider construction only, not a
-direct `fetch` or file read at import time, which would still run during the build. A provider
-failure thrown outside the promise chain, as the GCP auth library's was during the build, crashes the
-process instead of degrading, so K1's "never rejects" does not cover every failure.
+**PD9. Local packages travel inside the artifact (KF19).** The build packs with `npm pack` every
+runtime adapter package the manifest names, however it was installed, and every local package the
+server bundle imports or a packed package depends on (VND-1), and points the `package.json` at the
+tarballs (VND-2). Everything else installs from the registry. The artifact is always installed with
+npm 9 or later: Cloud Run buildpacks and the AWS procedure do, and the Node target says so.
+*Why:* the artifact installs exactly the adapter code that was loaded and tested on the developer's
+machine, published or not, and a version collision with the registry cannot occur. Adapters are
+packed unconditionally because yarn v1 copies a `file:` directory into `node_modules`, where it
+cannot be told from a registry install (KS8).
+*Cost:* the build needs `npm` on `PATH`, about a second per packed package. Packed packages lose
+registry provenance, and their own dependencies still resolve by range. pnpm or yarn inside the
+artifact would also need their own override syntax. Not covered: a local helper library installed by
+yarn v1's copy, which looks like a registry package and fails the install with `E404`; pnpm
+`catalog:`, yarn `patch:` and `portal:` on a name that is not packed, which fail the build (VND-3); a
+stale `dist/`, which is packed as it is; a credential under a name the deny list does not know;
+Yarn Plug'n'Play, which has no `node_modules`; native binaries, packed as built on the build machine.
 
-**D9. Local packages travel inside the artifact (F19).** `createRuntimePackage` packs some packages
-with `npm pack` into `<buildDir>/vendor/`. The runtime `package.json` points each of them at its
-tarball, in `dependencies` and in `overrides`. Two rules decide what is vendored:
-- **Every runtime adapter package named in the manifest**, however it was installed. Adapters are the packages users write themselves, and the one install layout that hides where a package came from (yarn v1 copies `file:` dependencies into `node_modules`) cannot be detected (S-8).
-- **Every other package, transitively from a vendored one, that is local:** its installed directory's real path has no `node_modules` segment. That covers pnpm, npm and yarn workspaces, and `file:`/`link:` directory dependencies under npm and pnpm.
+**PD10. SvelteKit's config is the argument of `sveltekit()` in core's `vite.config.ts` (PU15,
+PF21).** Core has no `svelte.config.js`. `vite.config.ts` reads BLD-1's facts, calls
+`resolveKitTarget()` (BLD-2), and passes its adapter and origin to `sveltekit()` with core's own
+options (`vitePreprocess()`, `experimental.remoteFunctions`). RFC-0043.
+*Why:* SvelteKit 3 reads no other file. The Vite config is where the `genoa()` plugin reads the
+manifest, so both evaluate the config in one process.
+*Cost:* the Vite config awaits the loader at the top level, so every Vite start, `vitest` included,
+pays one evaluation of the config. An error in the config reads as a failed Vite config.
 
-Everything else installs from the registry as before. Packing uses npm, which ships with Node, so it
-works in npm, pnpm and yarn (node-modules linker) projects. The artifact is always installed with npm
-9 or later: Cloud Run buildpacks and the AWS procedure already do so, and the Node target documents it.
-
-*Why:* the artifact then installs exactly the adapter code that was loaded and tested on the
-developer's machine, published or not, and a version collision with the registry (F19) cannot occur.
-A user can deploy an adapter that exists only in their repository.
-*Cost:* the build needs `npm` on `PATH` and runs it once per vendored package, about a second each.
-Adapters are repacked even when they came from the registry, so vendored packages lose registry
-provenance, and their own dependencies still resolve by range, as all transitive dependencies already
-do. The artifact is installed with npm only; pnpm or yarn inside it would also need `pnpm.overrides`
-or `resolutions`. What D9 does not cover:
-- a local helper library that an adapter depends on, installed by yarn v1's copy, looks like a registry package, is not vendored, and fails the install with `E404`;
-- pnpm `catalog:`, yarn `patch:` and `portal:` in a vendored package's dependencies, on a name that is not vendored, fail the build; they are not rewritten;
-- `npm pack --ignore-scripts` packs what is on disk: a package whose `exports` target a `dist/` never built is refused by name, but a stale `dist/` is not detected;
-- a deny-list refuses the repository's known secret file names, but a credential under any other name inside a package directory ships;
-- Yarn Plug'n'Play has no `node_modules`, and fails earlier with `build/not-installed`;
-- native binaries are packed as built on the build machine; none of today's vendored packages has one.
-
-**D10. SvelteKit's config is the argument of `sveltekit()` in core's `vite.config.ts` (U15, F21).**
-Core has no `svelte.config.js`. `vite.config.ts` calls `resolveKitTarget()` from
-`@genoacms/config/load` with the facts of D7, and passes its result to `sveltekit()` together with
-core's own options (`vitePreprocess()`, `experimental.remoteFunctions`). The config is flat: no
-`kit` key. RFC-0043.
-*Why:* SvelteKit 3 reads no other file (F21). The Vite config is already where the `genoa()` plugin
-reads the manifest, so both now evaluate the config in the same process.
-*Cost:* the Vite config awaits the config loader at the top level, so every Vite start pays for one
-evaluation of the config, `vitest` included. That is not new, because `svelte.config.js` did the
-same. An error in the config is now reported as a failed Vite config, not a failed SvelteKit config.
-
-**D11. A deployment target fixes the origin at build time (U16, F23).** A deployment descriptor MAY
-declare `origin(options)`, which returns the origin the built app is served at, or `undefined`.
-`resolveKitTarget()` passes it to SvelteKit as `paths.origin`. Every SvelteKit adapter then reads
-the origin from `builder.config.paths.origin`: adapter-node 6 does so already, and the Cloud Run
-adapter does from 2.0.0. SvelteKit also uses `paths.origin` as the trusted origin of its CSRF check.
-RFC-0043.
+**PD11. A deployment target fixes the origin at build time (PU16, PF23).** A deployment descriptor
+MAY declare `origin(options)`, and its result is SvelteKit's `paths.origin` (BLD-2), which every
+SvelteKit adapter reads and SvelteKit's CSRF check trusts. RFC-0043.
 *Why:* SvelteKit 3 and adapter-node 6 no longer read `ORIGIN` at runtime. One mechanism serves every
 target.
-*Cost:* an artifact serves one origin. Moving an instance to another domain needs a rebuild, and
-deploying one build to two domains does not work. The descriptor receives unresolved options, so
-the origin cannot be a `secret()` or `env()` reference: a reference fails the build with the
-descriptor's validation reason. An operator who still sets `ORIGIN` on a function gets an error at
-startup on GCP (`adapter-gcp/deployment.md` ADP-8). On AWS and Node the variable is ignored.
+*Cost:* an artifact serves one origin; moving an instance to another domain needs a rebuild. The
+descriptor receives unresolved options, so the origin cannot be a `secret()` or `env()` reference:
+the descriptor's validation refuses one. An operator who still sets `ORIGIN` on a function gets an
+error at startup on GCP (`adapter-gcp/deployment.md` ADP-8); on AWS and Node it is ignored.
 
-**D12. Core builds from what it publishes (`cli.md` LF19, CLI-21).** RFC-0043 amendment. Whatever
-`genoa build`, `genoa deploy`, `genoa dev` and `genoa rotate-root` load from core imports only
-packages core lists in `dependencies` or `peerDependencies`. Vitest's configuration, which needs
-devDependencies such as `@vitest/browser-playwright`, lives in core's `vitest.config.ts`, which
-Vitest prefers to `vite.config.ts` and Vite never loads; it extends the Vite config. Core also lists
-`@sveltejs/kit` in `peerDependencies`, with the range of its `dependencies` entry, so SvelteKit
-treats core's `*.remote.ts` modules as remote functions when core is installed (F31). A test packs
-the packages, installs them into a fresh project without devDependencies, and builds there.
+**PD12. Core builds from what it publishes (`cli.md` LF19, CLI-21).** RFC-0043 amendment. What `genoa
+build`, `genoa deploy`, `genoa dev` and `genoa rotate-root` load from core imports only packages core
+lists in `dependencies` or `peerDependencies`. Vitest's configuration lives in core's
+`vitest.config.ts`, which Vitest prefers and Vite never loads. Core lists `@sveltejs/kit` in
+`peerDependencies` too, so SvelteKit treats core's `*.remote.ts` modules as remote functions when
+core is installed (PF31).
 *Why:* the repository builds core in place, with every devDependency installed and outside
-`node_modules`, which is the one setting no user has. Only a build of the packed packages sees what
-users see.
-*Cost:* core keeps two configs, and a test option written into `vite.config.ts` silently does
-nothing under Vitest. The peer makes pnpm and npm install `@sveltejs/kit` for the project as well,
-and warn when the project pins another major. The packed build is the slowest end-to-end test, and
-installs core's dependencies from the registry on every run.
+`node_modules`, the one setting no user has. Only a build of the packed packages sees what users see.
+*Cost:* core keeps two configs, and a test option written into `vite.config.ts` does nothing under
+Vitest. The peer makes pnpm and npm install `@sveltejs/kit` for the project as well. The packed build
+is the slowest end-to-end test.
 
-## SvelteKit 3
-
-Facts about SvelteKit 3.1.1, `@sveltejs/adapter-node` 6.0.1, Vite 8.0.12 and Vitest 4.1, read from
-their published packages on 2026-10-30. Paths are inside each package.
-
-| Id | Finding | Evidence |
-| :-- | :-- | :-- |
-| F21 | **`svelte.config.js` is no longer read.** SvelteKit's config is the argument of the `sveltekit()` Vite plugin. It is flat: what was under `kit` sits at the top, next to vite-plugin-svelte's options, which the plugin passes on. `sveltekit()` is asynchronous. Core's `svelte.config.js`, which chooses the SvelteKit adapter (P7), would be ignored. | `@sveltejs/kit/src/exports/vite/index.js:135-209`, `src/core/config/index.js:21-65` |
-| F22 | **`$lib` is removed.** Importing it fails the build with `module_removed_lib`. The replacement is a subpath import, `#lib`, declared in the package's `imports`. An `alias` for `$lib` still works, and is deprecated. Core imports `$lib` about 1057 times in 310 files, and its tests mock modules by `$lib` path (K5). `$app/environment` is deprecated in favor of `$app/env`, which exports the same `building` (D8). | `src/exports/vite/index.js:75-86`, `src/exports/vite/public.d.ts:28-35`, `src/runtime/app/environment/index.js` |
-| F23 | **adapter-node 6 reads no `ORIGIN`.** The origin is `builder.config.paths.origin`, written into the build. Without it, the origin comes from `PROTOCOL_HEADER` (default `https`) and `HOST_HEADER`, else `Host`. `ORIGIN` is not among its expected variables, so it is ignored, and fails the start only under a non-empty `envPrefix`. The AWS target sets `ORIGIN` and, in that case, no header variables (`adapter-aws/deployment.md` LMB-10). Behind CloudFront its `origin` option would therefore silently stop applying, and CSRF would compare against the function URL's host. | `@sveltejs/adapter-node/index.js:69`, `src/env.js:4-18`, `src/handler.js:46-60,153-175` |
-| F24 | **adapter-node 6 no longer bundles the server a second time.** It adds a Vite plugin to SvelteKit's SSR build. The `dependencies` of `package.json` in the working directory stay external, except Svelte libraries that vite-plugin-svelte lists in `ssr.noExternal`, which are bundled. R2 holds for neither SvelteKit adapter after U18. The externals, and S-6's measurement, change. | `@sveltejs/adapter-node/index.js:87-139` |
-| F25 | **The adapter API changed.** `builder.generateManifest` and `createEntries` throw. `builder.config` has no `kit` key (`builder.config.paths.base`). `rimraf` and `mkdirp` are deprecated. New: `generateServerInstance(dest)`, a module exporting a ready `server`; `builder.manifest`; `builder.mimeTypes`. The Cloud Run adapter calls `generateManifest`, `rimraf`, `mkdirp` and `config.kit.paths.base`, so it fails on SvelteKit 3. | `src/core/adapt/builder.js:218-245`, `types/index.d.ts:136-280`, `sveltekit-adapter-cloud-run-functions/index.js` |
-| F26 | **The toolchain minimums rise.** SvelteKit 3 needs Node ≥ 22.17 and peers TypeScript ^6, Vite ^8.0.12, `@sveltejs/vite-plugin-svelte` ^7 and Svelte ^5.57.1. adapter-node 6 peers `@sveltejs/kit` ^3. Vitest 3 supports Vite up to 7, so Vitest ≥ 4 is needed wherever a Vite config with SvelteKit is loaded. `@genoacms/config` depends on Vite ^7.3 for `runnerImport` (R5) and the `genoa()` plugin, so it must follow core to Vite 8. The repository's engines, `^20.19 \|\| ^22.12 \|\| >=24`, admit Node versions SvelteKit 3 refuses. | `@sveltejs/kit/package.json`, `@sveltejs/adapter-node/package.json`, `vitest/package.json`, `packages/config/package.json`, root `package.json` |
-| F27 | **`runnerImport` survives in Vite 8,** still marked `@experimental` (R5, D1). | `vite/dist/node/index.d.ts:3726-3735` |
-| F28 | **SvelteKit 3 writes its generated `tsconfig.json` to `node_modules/$app/tsconfig.json`** of the app's package, which the app's `tsconfig.json` extends as `$app/tsconfig`. `.svelte-kit/` holds only `generated/` and `types/`. It sets no `include`. The types that moved out of `@sveltejs/kit` are `SubmitFunction` and `ActionResult` (to `$app/forms`) and `Handle` (to `@sveltejs/kit/hooks`). `resolve()` from `$app/paths` takes a route ID, with its parameters, where an argument starts with `/`. `@sveltejs/kit/node/polyfills` is removed; Node ≥ 22 has the `crypto` and `File` globals it installed. | `src/core/sync/write_tsconfig/index.js`, `types/index.d.ts:2931-2951`, `package.json` `exports` |
-| F29 | **`$env/dynamic/private` is an alias of `$app/env/private`,** which exposes only the variables declared with `defineEnvVars` in `src/env.ts`. An undeclared variable reads as `undefined`, with no error. Core reads no `$env` module. | `src/runtime/env/dynamic/private.js`, `src/core/env.js:152-230` |
-| F30 | **adapter-node 6 assumes `https` without `PROTOCOL_HEADER`.** With no `paths.origin` and no protocol header, the request origin is `https://<host>`. A server reached over plain HTTP, such as `node build` on `http://localhost`, then fails SvelteKit's CSRF check on every form post, because the browser's `Origin` is `http://…`. `ORIGIN`, which used to fix this, is ignored. Core's end-to-end harness passed `ORIGIN`, and its sign-in failed on SvelteKit 3. | `@sveltejs/adapter-node/src/handler.js:153-183` |
-| F31 | **A remote module inside `node_modules` counts only when its package peers on SvelteKit.** `is_remote_module` accepts a `*.remote.*` file whose path contains `node_modules` only when a `package.json` in one of the directories above it, up to the enclosing `node_modules`, lists `@sveltejs/kit` in `peerDependencies`. Otherwise the file is an ordinary module, its server-only imports reach the client build, and the guard fails it with `server_only_import`. Core lists `@sveltejs/kit` only in `dependencies`, so its remote functions work in the repository and fail wherever core is installed (`cli.md` LF19). | `@sveltejs/kit/src/exports/vite/utils.js:152-192`, `src/exports/vite/plugins/guard.js` |
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs every level of `docs/README.md` through `scripts/test-level.mjs`,
-which writes the JUnit reports `record.mjs` counts (WORKFLOW §11). A test that no level runs gates
-nothing.
-
-| Id | Finding | Evidence |
-| :-- | :-- | :-- |
-| F32 | **Core's Playwright Test suite gated nothing.** `packages/core/tests/*.spec.ts` (`pnpm test:integration`, `playwright.config.ts`) built with `genoa.config/development.ts`, which imports gitignored credential files, so no runner could load it. It was no level of `docs/README.md`, its titles carried no statement IDs, and no CI job ran it. RFC-0043's critique says it "runs in CI on `main`"; it never did. On 2026-11-01 the SvelteKit 3.1 `form_field_unbound` regression broke saving, publishing and deleting components (`components.md` NF20), although `tests/components.spec.ts` covered publishing. Found the same day. RFC-0045 moves the suite into `e2e/`. Nothing yet refuses a test file that no level runs. | `.github/workflows/ci.yml`, `scripts/test-level.mjs`, `packages/core/playwright.config.ts`, `docs/rfcs/0043-sveltekit-3.md` *Critique* |
-
-```
-<project>/.genoacms/
-  build/                    SvelteKit adapter output (adapter `out`, set by vite.config.ts, D10)
-    package.json            generated: { type: "module", dependencies: core deps ∪ adapter packages, overrides: vendored }
-    vendor/                 generated: one npm-pack tarball per vendored package (D9)
-    …                       server bundle with the runtime manifest embedded; client assets
-  deploy/<target>/          workDir of a deploy procedure
-```
-
-`createRuntimePackage(manifest, buildDir, coreDir)` builds `package.json` from:
-- **the bundle's imports:** every bare specifier in a static or string-literal dynamic `import` in the server output, reduced to its package name. `node:` builtins are ignored. Anything bare left in the output is external by definition (R2), so it must be installed, and nothing else needs to be. Core's build tooling (`vite`, `vitest`, `tailwindcss`) never appears there.
-- **the adapter packages:** the package of every runtime specifier in `manifest.adapters`. The host imports these with a non-literal specifier (D4), so no scan can see them.
-- **versions** read from each package's installed `package.json`, resolved from `coreDir`.
-- **vendored packages** (D9): each one's entry becomes `file:vendor/<tarball>`, and `overrides` maps every vendored name to its tarball, so a vendored package's own dependency on another vendored one resolves to the tarball as well. `overrides` is required: without it a nested `@genoacms/contracts@^0.0.1` goes to the registry (S-8).
-
-It contains no workspace protocols and no dev dependencies. A tarball may still declare
-`workspace:` dependencies, because `npm pack` does not rewrite them. `overrides` replaces those
-specs before npm parses them (S-8). A dependency with a protocol npm cannot parse whose name is
-**not** vendored fails the build. Core's own `package.json` is not changed.
-
-**Measured on real core** (S-6, adapter-node build of `9592593`): the server imports 12 of core's 45
-`dependencies`. They are `@exodus/schemasafe`, `@noble/hashes`, `@noble/post-quantum`, `@sveltejs/kit`,
-`canonicalize`, `deep-diff`, `dompurify`, `flatted`, `highland`, `jose`, `jsdom` and `marked`, and the
-generated `package.json` installs 126 packages (67 MB). `vite`, `vitest`, the tailwind packages,
-`typescript`, codemirror and every `@types/*` are absent. The only non-literal imports in the output are
-Svelte's `obfuscated_import('node:crypto')` (a builtin) and today's config loader, which this design
-removes. There are no `require()` or `createRequire` calls.
-
-Two properties of the output the RFCs must not trip over:
-- **The scan is per build.** In the monorepo, Vite inlines symlinked workspace packages such as `@genoacms/internal`. In a user install the same packages are external. The scan reads whichever output exists, so it is correct in both cases, but the two lists differ.
-- **Rollup tree-shakes manifest properties the server never reads.** The embedded manifest is not a complete copy and must not be treated as one, for example when auditing an artifact for `inline()` values. Audit the manifest the loader produced instead.
-
-**Constraint:** every listed package that is **not vendored** must be installable from the registry
-where the target installs dependencies. Vendored packages (D9) need no registry. Deploying from the
-monorepo therefore needs no published `@genoacms/*` version.
-
-SvelteKit's intermediate `.svelte-kit/` stays inside the installed core package, and so does the
-`tsconfig.json` SvelteKit generates at `node_modules/$app/` inside it (F28), which core's `tsconfig.json`
-extends as `$app/tsconfig`. The build only creates new files there and never modifies installed ones.
-
-## Targets
-
-| Target | SvelteKit adapter | Procedure |
-| :-- | :-- | :-- |
-| `@genoacms/adapter-node` | `@sveltejs/adapter-node` | `origin`, when set, is the build's `paths.origin` (U20). Copies `buildDir` to `options.outDir` (default `<project>/build`). The operator runs `npm install --omit=dev` there, as with any adapter-node output. |
-| `@genoacms/adapter-gcp/deployment` | `@genoacms/sveltekit-adapter-cloud-run-functions` | Archives `buildDir`. Adds a generated `function.js` that exports `genoacms` from the build's handler, and sets `"main": "function.js"` in the archived `package.json`. Uploads, then creates or updates the function. Buildpacks install the dependencies (R4). **No project source and no config leave the machine** (fixes F9, F15). GCP specifics, findings and IAM: [`adapter-gcp/deployment.md`](adapter-gcp/deployment.md). |
-| `@genoacms/adapter-aws/deployment` | `@sveltejs/adapter-node` + the Lambda wrapper | Ported (F14). Lambda does not install dependencies, so the procedure runs `npm install --omit=dev` in its `workDir` before zipping. |
-
-## Lifecycle
-
-```
-DEVELOPMENT   genoa dev [--config f] [--mode m]            (monorepo: pnpm dev in packages/core)
-  cli    root = cwd; spawn `vite dev`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG
-  vite   genoa(): loadConfig(mode = config.mode = 'development') → manifest (with source)
-                  virtual:genoa/manifest; watch source.dependencies
-         vite.config.ts: resolveKitTarget() → target's SvelteKit adapter and origin, or none if no targets
-  core   host.server.ts: createHost({ manifest, load })          no I/O
-         hooks: ensureInstanceInitialized() → host.secrets() (secrets-env) → root seed → default bucket
-  edit   config or any file it imports → reload manifest → server.restart()
-
-BUILD         genoa build [target] [--config f] [--no-inline] [--mode m]
-  cli    loadConfig(mode = --mode, default production) → refuse on any error
-         target = arg ?? deployment.default ?? first key
-         spawn `vite build`, cwd = <core>, GENOA_PROJECT, GENOA_CONFIG, GENOA_TARGET, GENOA_MODE
-  kit    vite.config.ts: descriptor(target) → sveltekit({ adapter: (await descriptor.svelteKitAdapter()).default(svelteKitOptions + out),
-                                                   paths: { origin: descriptor.origin?.(options) } })   (D10, D11)
-  vite   genoa(): embeds the RuntimeManifest; adapter runtimes stay external (D4)
-  cli    write .genoacms/build/package.json (The artifact)
-
-DEPLOY        genoa deploy [target] [--config f] [--no-inline] [--mode m]
-  cli    run BUILD
-         host = createHost({ manifest, load, projectRoot })
-         options = host.resolve(target.options, descriptor.secretOptions, `deployment.targets.${target}`)
-         (await descriptor.procedure()).default(options, { projectRoot, buildDir, workDir, target })
-         host.close()
-
-PRODUCTION    cold start of the artifact
-  module eval   createHost(runtime manifest, import)                 no I/O, no cwd, no fs
-  bootstrap     host.secrets() → root seed → host.storageForBucket(defaultBucket)
-  first use     host.databaseForCollection(c), host.language(l): resolve, then construct
-  failure       construction rejects → request 500 → next call retries
-```
-
-The CLI's commands, flags and messages are specified in [`cli.md`](cli.md).
-
-**Mode** is `GENOA_MODE` (D7), never Vite's `mode`. `genoa build --mode development` sets it to
-`development` and produces a development artifact: its manifest carries `source.root` and it may use `developmentOnly` adapters. Core's
-Playwright suite uses this (`build && preview` against the dev store), replacing today's
-`deploy --dev`.
-
-`scripts/rotate-root.ts` keeps running under `vite-node` with core's Vite config, so it gets the same
-plugin, manifest and host. `genoa rotate-root` spawns it with `GENOA_PROJECT` and `GENOA_CONFIG`,
-without `npm explore` and without `GENOA_BUILD`.
-
-## Non-goals
-
-- Changing core's `dependencies` (U6).
-
-## Rejected alternatives
+### Rejected alternatives
 
 | Alternative | Why rejected |
 | :-- | :-- |
-| **Remote build on GCP** (today's intent) | It uploads the project source, including the config directory and credentials (F9), and it needs the config and a build script at the remote end. Building locally also lets CI verify exactly what ships. |
-| **Runtime `package.json` = core's `dependencies`** | Would install `vite`, `vitest` and the tailwind toolchain on every function. Moving them to `devDependencies` breaks users, who build core from their own install (U6). |
-| **Fully self-contained bundle, no install** | Would bundle `typescript`, `ts-morph`, `jsdom` and gRPC SDKs through rollup, which is the most fragile option. |
+| **Remote build on GCP** | It uploads the project source, including the config directory and credentials (KF9), and needs the config and a build script at the remote end. Building locally also lets CI verify exactly what ships. |
+| **Runtime `package.json` = core's `dependencies`** | Would install `vite`, `vitest` and the tailwind toolchain on every function; moving them to `devDependencies` breaks users, who build core from their own install (PU6). |
+| **Fully self-contained bundle, no install** | Would bundle `typescript`, `ts-morph`, `jsdom` and gRPC SDKs, which is the most fragile option. |
+
+### Findings
+
+PF21 to PF31 are facts about SvelteKit 3.1.1, `@sveltejs/adapter-node` 6.0.1, Vite 8.0.12 and Vitest
+4.1, read from their published packages on 2026-10-30.
+
+| # | Finding | State |
+| :-- | :-- | :-- |
+| PF21 | `svelte.config.js` is no longer read. SvelteKit's config is the flat argument of the asynchronous `sveltekit()` Vite plugin (`@sveltejs/kit/src/exports/vite/index.js`). | holds; met by PD10 |
+| PF22 | `$lib` is removed; the replacement is a `#lib` subpath import. `$app/environment` is deprecated in favor of `$app/env`, which exports the same `building`. | holds; met by PU17, PD8 |
+| PF23 | adapter-node 6 reads no `ORIGIN`: the origin is `builder.config.paths.origin`, or else comes from `PROTOCOL_HEADER` and `HOST_HEADER` (`@sveltejs/adapter-node/src/handler.js`). Behind CloudFront the AWS target's `origin` would silently stop applying. | holds; met by PD11 |
+| PF24 | adapter-node 6 no longer bundles the server a second time: the `dependencies` of `package.json` in the working directory stay external, except Svelte libraries, which are bundled. KF22 no longer holds. | holds; met by PU18, ART-2 |
+| PF25 | The adapter API changed: `builder.generateManifest` and `createEntries` throw, `builder.config` has no `kit` key, `rimraf` and `mkdirp` are deprecated. The Cloud Run adapter 1.x fails on SvelteKit 3. | holds; met by PU19 |
+| PF26 | The toolchain minimums rise: Node ≥ 22.17, TypeScript ^6, Vite ^8.0.12, `@sveltejs/vite-plugin-svelte` ^7, Svelte ^5.57.1, Vitest ≥ 4 wherever a SvelteKit Vite config is loaded; `@genoacms/config` follows core to Vite 8. | holds; RFC-0043 |
+| PF27 | `runnerImport` survives in Vite 8, still `@experimental` (KF25). | holds |
+| PF28 | SvelteKit 3 writes its generated `tsconfig.json` to `node_modules/$app/tsconfig.json`, which the app extends as `$app/tsconfig`; several types moved (`$app/forms`, `@sveltejs/kit/hooks`); `@sveltejs/kit/node/polyfills` is removed. | holds; RFC-0043 |
+| PF29 | `$env/dynamic/private` is an alias of `$app/env/private`, which exposes only variables declared with `defineEnvVars`; core reads no `$env` module. | holds |
+| PF30 | adapter-node 6 assumes `https` without `PROTOCOL_HEADER`, so a server reached over plain HTTP fails SvelteKit's CSRF check on every form post. | holds; met by PU20, TGT-1 |
+| PF31 | A `*.remote.*` module inside `node_modules` counts as remote only when its package lists `@sveltejs/kit` in `peerDependencies`; otherwise its server-only imports reach the client build (`@sveltejs/kit/src/exports/vite/utils.js`). | holds; met by PD12 |
+| PF32 | *History.* **Core's Playwright Test suite gated nothing.** It built with `genoa.config/development.ts`, which imports gitignored credential files, ran at no level and carried no statement IDs; on 2026-11-01 a SvelteKit 3.1 regression broke saving and publishing components unseen (`components.md` NF20). | fixed, RFC-0045: the suite moved into `e2e/` |
+| PF33 | **An adapter whose runtime lives in another package than its descriptor deploys without its runtime** (ART-2). The artifact lists the package that owns each descriptor, at the version installed for the project, not the package of its runtime specifier, which the host then cannot import. Every adapter of the repository keeps both in one package. Found by LS3 (D19). | open |
+| PF34 | **No test runs core's runtime loader or hooks while `building`** (BLD-3). Only the collection listing's guard is tested (COL-1); removing the loader's refusal or the hooks' check passes every test. Found writing BLD-3, 2026-11-26. | open |
+
+### History
+
+*History.* Before the 2026-09 redesign the GCP deploy uploaded the project source and assumed a
+remote build (KF9, KF15). RFC-0005, RFC-0015 and RFC-0020 implemented the local build, the CLI and
+vendoring; RFC-0043 moved to SvelteKit 3. On 2026-09-27, measured on real core (KS6), the server
+imported 12 of core's 45 `dependencies`, and the generated `package.json` installed 126 packages
+(67 MB). This text was split out of `configuration.md` on 2026-10-02 and restructured under the Spec
+Workflow on 2026-11-26 (PS1); its IDs gained the prefix `P`, so D9 is PD9.
+
+### Verification
+
+- **PS1, drift audit and Specification from the code, at `f18f6205`, 2026-11-26.** The Specification was written from `packages/config/src/environment.ts`, `src/load/kit.ts`, `src/artifact/`, core's `host.server.ts` and `hooks.server.ts`, and `packages/adapter-node/src/`. LS3 (`cli.md`) had audited the earlier text at `9f43931`: D17, D18 and D21 are corrected here, D20 is stated in VND-1, and D19 is PF33. No falsification audit of these statements has run.
+
+## Specification
+
+### The build
+
+#### BLD-1 · The facts Vite receives
+
+`readGenoaEnvironment(fallbackMode, environment)` reads the facts of a build or a dev server: the
+project root from `GENOA_PROJECT`, else the working directory; the config file from `GENOA_CONFIG`,
+absent when unset; the target from `GENOA_TARGET`, absent when unset; and the mode from `GENOA_MODE`,
+else `fallbackMode`. An empty variable counts as unset. A relative `GENOA_PROJECT` or `GENOA_CONFIG`
+fails with `genoa/relative-path: <variable> must be absolute`, and a mode other than `development`
+or `production` with `genoa/invalid-mode: GENOA_MODE must be development or production, not
+<mode>`. Vite's own `mode` is never read: the `genoa()` plugin falls back to `development` for `vite
+dev` and `production` for `vite build`, and core's `vite.config.ts` to `development`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### BLD-2 · The SvelteKit adapter and origin
+
+`resolveKitTarget({ root, file?, mode, target? })` loads the config (LDR-18). When it declares no
+deployment target, it returns neither an adapter nor an origin, or fails with
+`config/no-deployment-target` when a target was requested. Otherwise the target is the requested
+one, else `deployment.default`, else the first key of `deployment.targets`; an undeclared one fails
+as CLI-7 states. It loads the target's descriptor from the project (LDR-16) and returns the
+SvelteKit adapter its `svelteKitAdapter()` loader's factory makes from
+`svelteKitOptions(options, { outDir: <root>/.genoacms/build })`, or from `{}` without
+`svelteKitOptions`, and the origin `origin(options)` returns, or none. Both receive the target's
+options unresolved. Core's `vite.config.ts` passes the origin to SvelteKit as `paths.origin`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### BLD-3 · No provider while SvelteKit analyses the build
+
+While SvelteKit's `building` is true, core loads no adapter runtime: its loader fails with
+`host/building: <specifier> was requested while SvelteKit analyses the build; module-scope provider
+I/O must check building`. The instance bootstrap does not run.
+
+- Test: unverified (PF34)
+- Level: unit
+
+### The artifact
+
+#### ART-1 · Where the artifact is
+
+The artifact is `<project>/.genoacms/build`, the SvelteKit adapter's output. After `vite build` the
+build writes its `package.json`: `{ "name": "genoacms-runtime", "private": true, "type": "module",
+"dependencies": {…}, "overrides": {…} }`, with `overrides` present only when a package was packed
+(VND-2), two-space indented and ending in a newline.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### ART-2 · Its dependencies
+
+`dependencies` lists, sorted by name: every package the server output imports by a bare specifier,
+at the version installed where core resolves it (ART-4); and the package of every adapter record of
+the manifest that is not a deployment, at the record's version (LDR-17). The server output is every
+`.js` and `.mjs` file of the artifact outside `client/`; a bare specifier is the source of a static
+import, an `export … from` or an `import()` with a string literal, that does not start with `.`,
+`/`, `node:`, `data:` or `file:` and does not name a Node builtin; it is reduced to its package name.
+A package both imported and an adapter's, at two versions, fails the build with
+`build/version-conflict: <package>`. Nothing else is listed: no devDependency and no workspace
+protocol.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### ART-3 · Imports the scan cannot see
+
+The build reports, as `<file relative to the artifact>: <construct>`, every `import()` whose
+argument is not a string literal, as `import(<node type>)`, and every call of `require` or
+`createRequire`, with its argument as JSON or `<node type>`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### ART-4 · Installed versions
+
+A package's installed version, from a directory, is the `version` of the first
+`node_modules/<package>/package.json` found walking up from that directory, a directory itself named
+`node_modules` being searched directly, as pnpm places a package's dependencies beside it. Symbolic
+links are not followed for the walk. A package found nowhere fails with `build/not-installed:
+<package> (from <directory>)`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+### Vendoring
+
+#### VND-1 · What is packed
+
+A package is **local** when no segment of its directory's real path is `node_modules`. The build
+packs: every package of ART-2's adapters, as resolved from the project root, local or not; every
+local package the server output imports, as resolved from core; and, transitively, every local
+package that a packed package lists in `dependencies`, `optionalDependencies` or
+`peerDependencies`, never `devDependencies`. A missing optional or peer dependency is skipped; a
+missing regular one fails with ART-4's error. One name at two real paths fails with
+`build/vendor-conflict: <name> is installed from <path> and from <path>`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### VND-2 · How it is packed
+
+`<artifact>/vendor/` is emptied, then each package is packed into it with `npm pack --ignore-scripts`,
+in name order. A pack that fails fails the build with `build/vendor-pack-failed: <directory>:
+<first line of npm's error>`. In the artifact's `package.json`, each packed package that is a
+direct dependency is `file:vendor/<tarball>`, and `overrides` maps every packed name to its
+tarball.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### VND-3 · What is refused
+
+A packed package fails the build when its tarball lacks a target of its `exports` or its `main`,
+type declarations and patterns aside: `build/vendor-incomplete: <name> lacks <target>; build the
+package before deploying`; when its tarball holds a file named `serviceAccount.json`,
+`credentials.json`, `authCredentials.js`, `secrets.env`, `.env` or `.env.<anything>` other than one
+ending in `.example`: `build/vendor-secret: <name> would ship <file>`; and when it depends, by
+`workspace:`, `catalog:`, `link:`, `portal:` or `patch:`, on a package that is not packed:
+`build/vendor-protocol: <name> depends on <dependency>@<spec>, which npm cannot install; vendor or
+publish <dependency>`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+### The Node target
+
+#### TGT-1 · Its descriptor
+
+`@genoacms/adapter-node` is a deployment target whose SvelteKit adapter is `@sveltejs/adapter-node`,
+loaded from its own package, writing into the artifact directory. Its options are `outDir`, a
+non-empty directory given relative to the project root, inside it and not the root itself, and
+`origin`, an absolute `http` or `https` origin without a path, which is the build's origin (BLD-2).
+Its validation gives `unknown option '<key>'` for any other key, `origin must be an absolute http(s)
+origin such as 'https://cms.example.com'`, `outDir must be a non-empty string`, and `outDir must be
+a directory inside the project, given relative to its root`.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
+
+#### TGT-2 · Its procedure
+
+The procedure copies the artifact, its `package.json` included, into `<project>/<outDir>`, default
+`build`, over what is there, deleting nothing, and prints `GenoaCMS copied to <directory>. Install
+its runtime dependencies there with: npm install --omit=dev`. A directory that is the project root
+or outside it is refused with `deploy/out-dir-outside-project`, whatever the validation let through.
+
+- Test: unverified (no test carries its ID yet)
+- Level: unit
