@@ -32,9 +32,9 @@ vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#l
 vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
   ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
-  loadSecurityPolicy: async () => {
+  governingPolicy: async () => {
     fakes.policyReads++
-    return { ...(await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy, fetchOrigins: fakes.fetchOrigins }
+    return { ok: true, policy: { ...(await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy, fetchOrigins: fakes.fetchOrigins } }
   }
 }))
 vi.mock('../language.server', async (importOriginal) => {

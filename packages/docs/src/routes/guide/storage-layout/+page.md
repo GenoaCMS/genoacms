@@ -63,6 +63,14 @@ interval. Signed by the root, because it governs the signing keys themselves.
 Its initial values come from the `security` stanza of `genoa.config`. Editing that stanza afterwards
 does not change a running instance; this document is the live value.
 
+It carries a `sequence`, and the secret `GENOACMS_SECURITY_POLICY_SEQUENCE` holds the highest one
+seen, so an older copy put back is detected. A policy that is not readable, does not verify, is out
+of bounds, is older than that mark, or is missing once it has existed is **damaged**: it is left in
+place, sign-in keeps working on the strictest token lifetimes (one minute, one day), and publishing
+is refused until an administrator saves the policy on *Configuration → Security*. A policy written
+by an earlier version of GenoaCMS (`genoacms.securityPolicy.v1`) counts as damaged; saving it on that
+screen replaces it.
+
 ### `security/roles.json` and `security/users.json`
 
 What each role may do, and which roles each user holds. Signed by the current subordinate key.

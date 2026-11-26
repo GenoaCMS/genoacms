@@ -125,7 +125,9 @@ Rotating also:
   registry naming keys an attacker controls, and nothing distinguishes those from the legitimate
   ones once the anchor that vouched for them is untrusted;
 - consequently **invalidates `roles.json` and `users.json`**, which are quarantined and replaced
-  empty — the instance returns to seed-administrator-only until roles are rebuilt.
+  empty — the instance returns to seed-administrator-only until roles are rebuilt;
+- **resets the security policy** to the `security` stanza of `genoa.config`, signed by the new root:
+  values an administrator set at runtime have to be entered again.
 
 The command prints the new public key. That output is the only record of it, so capture it before
 closing the terminal.

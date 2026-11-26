@@ -9,8 +9,8 @@ import { getComponentDefiniton } from '../editor/io'
 import { updateComponentDefinition } from '../editor/index'
 import { analyzeComponentBody, compileComponentBody, signatureFor } from '../editor/compilation'
 import type { CompiledComponent } from '../editor/compilation'
-import { guardCeilings } from '#lib/script/securityPolicy/policy.js'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { guardCeilings, type SecurityPolicy } from '#lib/script/securityPolicy/policy.js'
+import { governingPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import { signComponentPublication } from './payload.server'
 import { describingDigest } from './payload'
 import {
@@ -125,6 +125,15 @@ interface BuiltPublication {
   warnings: Diagnostic[]
 }
 
+/** POL-3: the policy a publication is built under, or the refusal while it is damaged. */
+const policyToPublishUnder = async (): Promise<SecurityPolicy> => {
+  const governing = await governingPolicy()
+  if (!governing.ok) {
+    throw new Error(`security-policy/damaged: ${governing.reason}. An administrator must rewrite it on /configuration/security.`)
+  }
+  return governing.policy
+}
+
 /**
  * Compiles and signs everything, and writes nothing.
  *
@@ -141,6 +150,11 @@ const build = async (
 ): Promise<BuiltPublication> => {
   const { header, definition } = subject
   const release = { publicationId, publisherId, publishedAt, note }
+  // Read at publish time rather than carried on the order: what a component runs under is the
+  // instance's decision, not something the person publishing gets to state. **One read**, because a
+  // second could return a policy an administrator changed in between — and then a component would be
+  // checked against one allowlist while another was compiled into it.
+  const policy = await policyToPublishUnder()
   if (definition === undefined) {
     // A prebuilt component has no body to analyze, so there is nothing to warn about.
     return {
@@ -151,11 +165,6 @@ const build = async (
   }
 
   const shape = shapeOf(header)
-  // Read at publish time rather than carried on the order: what a component runs under is the
-  // instance's decision, not something the person publishing gets to state. **One read**, because a
-  // second could return a policy an administrator changed in between — and then a component would be
-  // checked against one allowlist while another was compiled into it.
-  const policy = await loadSecurityPolicy()
   const ceilings = guardCeilings(policy)
   const warnings = await analyzeComponentBody(
     definition.language, definition.body, shape, policy.fetchOrigins

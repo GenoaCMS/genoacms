@@ -30,7 +30,7 @@ vi.mock('#lib/script/secrets/providers.server.js', () => ({
 }))
 
 vi.mock('#lib/script/storage/storage.server.js', () => {
-  const notFound = (name: string): never => { throw new Error(`no such object: ${name}`) }
+  const notFound = (name: string): never => { throw Object.assign(new Error(`no such object: ${name}`), { name: 'ObjectNotFoundError' }) }
   return {
     defaultBucketId: 'test-bucket',
     getObject: async ({ name }: { name: string }) => {
@@ -138,7 +138,7 @@ describe('bootstrapping a fresh instance', () => {
     expect(objects.has(policyPath)).toBe(true)
     const stored = JSON.parse(objects.get(policyPath) as string)
     expect(stored).toMatchObject({
-      type: 'genoacms.securityPolicy.v1',
+      type: 'genoacms.securityPolicy.v2',
       payload: { subordinateKeyRotationDays: 90, maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
     })
   })
@@ -232,6 +232,16 @@ describe('rotating the root trust anchor', () => {
   it('re-signs the security policy, which is also root-signed', async () => {
     const policy = JSON.parse(objects.get(policyPath) as string)
     expect(policy.keyId).toBe(result.keyId)
+  })
+
+  it('POL-4: root rotation writes the configured policy under the new root at the policy mark plus 1', async () => {
+    const policy = JSON.parse(objects.get(policyPath) as string)
+    expect(policy).toMatchObject({
+      type: 'genoacms.securityPolicy.v2',
+      keyId: result.keyId,
+      payload: { sequence: 2, subordinateKeyRotationDays: 90, maxDepth: 100 }
+    })
+    expect(secrets.get('GENOACMS_SECURITY_POLICY_SEQUENCE')).toBe('2')
   })
 
   it('continues the sequence from the high-water mark, not from the old registry', async () => {

@@ -52,7 +52,7 @@ vi.mock('#lib/script/secrets/providers.server.js', () => ({
 }))
 
 vi.mock('#lib/script/storage/storage.server.js', () => {
-  const notFound = (name: string): never => { throw new Error(`no such object: ${name}`) }
+  const notFound = (name: string): never => { throw Object.assign(new Error(`no such object: ${name}`), { name: 'ObjectNotFoundError' }) }
   return {
     defaultBucketId: 'test-bucket',
     getObject: async ({ name }: { name: string }) => {
@@ -525,5 +525,25 @@ describe('the cases CS6 found untested', () => {
     const result = await sessions.refreshSession(started.familyId, started.token, stillKnown)
 
     expect(result).toMatchObject({ outcome: 'concurrent', email })
+  })
+})
+
+describe('a damaged security policy', () => {
+  it('POL-3: a session started while the policy is damaged lasts one day', async () => {
+    const policyPath = '.genoacms/security/policy.json'
+    const healthy = objects.get(policyPath)
+    const day = 24 * 60 * 60 * 1_000
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    put(policyPath, 'not json {')
+    try {
+      const before = Date.now()
+      const started = await sessions.startSession(IDENTITY, PROVIDER)
+
+      expect(started.expiresAt).toBeGreaterThanOrEqual(before + day)
+      expect(started.expiresAt).toBeLessThanOrEqual(Date.now() + day)
+    } finally {
+      if (healthy === undefined) objects.delete(policyPath)
+      else objects.set(policyPath, healthy)
+    }
   })
 })

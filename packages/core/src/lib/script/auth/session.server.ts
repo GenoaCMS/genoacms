@@ -10,7 +10,7 @@ import { streamToString } from '#lib/script/utils.server.js'
 import { sign, type DocumentType } from '#lib/script/signing/envelope.js'
 import { readSignedDocument } from '#lib/script/signing/signedDocument.server.js'
 import { getCurrentSigningKey } from '#lib/script/signing/keyResolution.server.js'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { accessPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import {
   assessToken,
   newFamily,
@@ -103,7 +103,7 @@ interface IssuedSession {
 
 /** Starts a family for the identity a provider admitted. Called once per sign-in. */
 async function startSession (identity: Identity, provider: string): Promise<IssuedSession> {
-  const { refreshTokenDays } = await loadSecurityPolicy()
+  const { refreshTokenDays } = await accessPolicy()
   const familyId = randomUUID()
   const token = generateToken()
   const family = newFamily(familyId, identity.subject, identity.email, provider, token, Date.now(), refreshTokenDays)

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getAlgorithm, SUBORDINATE_ALGORITHM } from '#lib/script/signing/algorithms.js'
 import { deriveKeyId } from '#lib/script/signing/keyId.js'
 import { verify } from '#lib/script/signing/envelope.js'
@@ -28,19 +28,40 @@ const algorithm = getAlgorithm(SUBORDINATE_ALGORITHM)
 const keypair = algorithm.generateKeypair(new Uint8Array(algorithm.lengths.seed).fill(3))
 const keyId = deriveKeyId(keypair.publicKey)
 
+const governing = vi.hoisted(() => ({ answer: undefined as undefined | { ok: false, reason: string } }))
+const compilations = vi.hoisted(() => ({ count: 0 }))
+
 vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
   ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
-  loadSecurityPolicy: async () => ({
-    subordinateKeyRotationDays: 90,
-    accessTokenMinutes: 15,
-    grantCacheSeconds: 30,
-    refreshTokenDays: 14,
-    maxFuel: 1_000_000,
-    maxDepth: 100,
-    maxAllocation: 10_000_000,
-    fetchOrigins: []
-  })
+  governingPolicy: async () => governing.answer ?? {
+    ok: true,
+    policy: {
+      subordinateKeyRotationDays: 90,
+      accessTokenMinutes: 15,
+      grantCacheSeconds: 30,
+      refreshTokenDays: 14,
+      maxFuel: 1_000_000,
+      maxDepth: 100,
+      maxAllocation: 10_000_000,
+      fetchOrigins: []
+    }
+  }
 }))
+
+vi.mock('../editor/compilation', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../editor/compilation')>()
+  return {
+    ...original,
+    analyzeComponentBody: async (...args: Parameters<typeof original.analyzeComponentBody>) => {
+      compilations.count++
+      return await original.analyzeComponentBody(...args)
+    },
+    compileComponentBody: async (...args: Parameters<typeof original.compileComponentBody>) => {
+      compilations.count++
+      return await original.compileComponentBody(...args)
+    }
+  }
+})
 
 vi.mock('#lib/script/signing/keyResolution.server.js', () => ({
   getCurrentSigningKey: async () => ({
@@ -467,5 +488,24 @@ describe('what the ruleset does to a publication', () => {
     const { warnings } = await publishComponent(order, 'user-1')
 
     expect(warnings).toEqual([])
+  })
+})
+
+describe('a damaged security policy', () => {
+  beforeEach(() => {
+    compilations.count = 0
+  })
+
+  afterEach(() => {
+    governing.answer = undefined
+  })
+
+  it('POL-3: publishing refuses while the policy is damaged', async () => {
+    governing.answer = { ok: false, reason: 'not JSON' }
+
+    await expect(publishComponent(order, 'user-1'))
+      .rejects.toThrow('security-policy/damaged: not JSON. An administrator must rewrite it on /configuration/security.')
+    expect(compilations.count).toBe(0)
+    expect(writes).toEqual([])
   })
 })

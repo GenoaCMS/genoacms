@@ -57,7 +57,7 @@ vi.mock('#lib/script/secrets/providers.server.js', async () => {
 })
 vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
   ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
-  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
+  ...(await import('#lib/script/testing/signingKeys.js')).testPolicyReaders
 }))
 
 const registry = async () => await import('./registry.server')

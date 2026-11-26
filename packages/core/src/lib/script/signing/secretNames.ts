@@ -36,9 +36,13 @@ function subordinateSeedSecret (keyId: string): string {
  */
 const REGISTRY_SEQUENCE_SECRET = 'GENOACMS_KEY_REGISTRY_SEQUENCE'
 
+/** The highest security policy sequence ever observed (POL-2). */
+const POLICY_SEQUENCE_SECRET = 'GENOACMS_SECURITY_POLICY_SEQUENCE'
+
 export {
   ROOT_SEED_SECRET,
   SUBORDINATE_SEED_PREFIX,
   REGISTRY_SEQUENCE_SECRET,
+  POLICY_SEQUENCE_SECRET,
   subordinateSeedSecret
 }

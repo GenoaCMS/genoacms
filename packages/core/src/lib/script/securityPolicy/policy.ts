@@ -64,6 +64,15 @@ interface SecurityPolicy {
   fetchOrigins: string[]
 }
 
+/** The policy as stored: the policy and its sequence (POL-1, POL-2). */
+interface StoredSecurityPolicy extends SecurityPolicy {
+  sequence: number
+}
+
+type StoredPolicyParseResult =
+  | { ok: true, policy: StoredSecurityPolicy }
+  | { ok: false, reason: string }
+
 type PolicyParseResult =
   | { ok: true, policy: SecurityPolicy }
   | { ok: false, reason: string }
@@ -215,6 +224,27 @@ function parseSecurityPolicy (payload: unknown): PolicyParseResult {
   return { ok: true, policy }
 }
 
+function isPositiveInteger (value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1
+}
+
+/** POL-1: the stored payload, its sequence checked before everything `parseSecurityPolicy` checks. */
+function parseStoredPolicy (payload: unknown): StoredPolicyParseResult {
+  if (!isPlainObject(payload)) return { ok: false, reason: 'policy is not an object' }
+  const { sequence, ...rest } = payload
+  if (!isPositiveInteger(sequence)) return { ok: false, reason: 'policy.sequence is not a positive integer' }
+  const parsed = parseSecurityPolicy(rest)
+  if (!parsed.ok) return parsed
+  return { ok: true, policy: { ...parsed.policy, sequence } }
+}
+
+/** POL-3: the values sign-in runs on while the stored policy is damaged. */
+const STRICTEST_ACCESS = {
+  accessTokenMinutes: MIN_ACCESS_TOKEN_MINUTES,
+  refreshTokenDays: MIN_REFRESH_TOKEN_DAYS,
+  grantCacheSeconds: MIN_GRANT_CACHE_SECONDS
+} as const
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
@@ -273,11 +303,15 @@ export {
   DAY_MS,
   guardCeilings,
   parseSecurityPolicy,
+  parseStoredPolicy,
+  STRICTEST_ACCESS,
   isRotationDue,
   rotationDueAt
 }
 
 export type {
   SecurityPolicy,
-  PolicyParseResult
+  StoredSecurityPolicy,
+  PolicyParseResult,
+  StoredPolicyParseResult
 }

@@ -21,7 +21,7 @@ vi.mock('#lib/script/storage/providers.server.js', async () => (await import('#l
 vi.mock('#lib/script/signing/keyResolution.server.js', async () => (await import('#lib/script/testing/signingKeys.js')).testKeyResolution)
 vi.mock('#lib/script/securityPolicy/policy.server.js', async (importOriginal) => ({
   ...await importOriginal<typeof import('#lib/script/securityPolicy/policy.server.js')>(),
-  loadSecurityPolicy: async () => (await import('#lib/script/testing/signingKeys.js')).testSecurityPolicy
+  ...(await import('#lib/script/testing/signingKeys.js')).testPolicyReaders
 }))
 
 const registrarList = await import('../../../routes/(admin)/components/registrar/+page.server')

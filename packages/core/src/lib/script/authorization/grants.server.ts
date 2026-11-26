@@ -1,6 +1,6 @@
 import { GrantCache } from './grantCache'
 import { resolvePrincipal } from './resolution.server'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { accessPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import type { AuthContext } from './context'
 
 /**
@@ -19,7 +19,7 @@ let cache: GrantCache | undefined
  */
 async function getCache (): Promise<GrantCache> {
   if (cache === undefined) {
-    const policy = await loadSecurityPolicy()
+    const policy = await accessPolicy()
     cache = new GrantCache(resolvePrincipal, { ttlSeconds: policy.grantCacheSeconds })
   }
   return cache

@@ -2,7 +2,7 @@ import { requirePermission } from '#lib/script/authorization/enforce.js'
 import type { AuthContext } from '#lib/script/authorization/context.js'
 import { isPreconditionFailed } from '@genoacms/contracts/storage'
 import { parseSecurityPolicy, policyBounds, type SecurityPolicy } from './policy'
-import { readStoredPolicy, writePolicy } from './policy.server'
+import { defaultPolicy, readStoredPolicy, writePolicy, type StoredPolicy } from './policy.server'
 
 /**
  * Administering the security policy.
@@ -41,6 +41,13 @@ interface PolicyAdministrationView {
   degraded?: string
 }
 
+/** POL-3: a damaged policy is shown as the configured defaults, with why. */
+const policyShown = (stored: StoredPolicy): Pick<PolicyAdministrationView, 'policy' | 'degraded'> => {
+  if (stored.state === 'damaged') return { policy: defaultPolicy(), degraded: stored.reason }
+  const { sequence: _sequence, ...policy } = stored.policy
+  return { policy }
+}
+
 const readUserSecurityPolicy = async (
   ctx: AuthContext
 ): Promise<PolicyResult<PolicyAdministrationView>> => {
@@ -50,10 +57,9 @@ const readUserSecurityPolicy = async (
   return {
     ok: true,
     value: {
-      policy: stored.policy,
+      ...policyShown(stored),
       bounds: policyBounds(),
-      ...(stored.version === undefined ? {} : { version: stored.version }),
-      ...(stored.degraded === undefined ? {} : { degraded: stored.degraded })
+      ...(stored.version === undefined ? {} : { version: stored.version })
     }
   }
 }
@@ -79,7 +85,9 @@ const updateUserSecurityPolicy = async (
   if (!parsed.ok) return { ok: false, reason: parsed.reason }
 
   try {
-    await writePolicy(parsed.policy, expectedVersion)
+    // POL-2
+    const stored = await readStoredPolicy()
+    await writePolicy(parsed.policy, { ...stored, version: expectedVersion })
   } catch (error) {
     // Someone else wrote between the read and this. Reporting it as a conflict is what lets the
     // screen reload rather than silently discarding whatever they changed.

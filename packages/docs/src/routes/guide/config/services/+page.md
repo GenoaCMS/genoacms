@@ -162,6 +162,7 @@ the configuration changes. How a config refers to a secret is under [secrets](/g
 | `GENOACMS_ROOT_KEY_SEED` | The root signing key. See below. |
 | `GENOACMS_SUBORDINATE_KEY_SEED_…` | One per signing key, named by its key id. |
 | `GENOACMS_KEY_REGISTRY_SEQUENCE` | Guards against an old key manifest being restored. A consumer with a server may read it and pass it to the SDK as `minimumRegistrySequence`. Its value is a non-negative integer in decimal, with no leading zeros. |
+| `GENOACMS_SECURITY_POLICY_SEQUENCE` | Guards against an old security policy being restored. A policy below it is treated as damaged: sign-in runs on the strictest token lifetimes and publishing is refused until an administrator saves the policy on *Configuration → Security*. |
 
 GenoaCMS creates all of these itself. Nothing here has to be set by hand.
 

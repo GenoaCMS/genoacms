@@ -1,6 +1,6 @@
 import { loadOrBootstrapRegistry } from '#lib/script/signing/registry.server.js'
 import { loadAuthorizationSource } from '#lib/script/authorization/resolution.server.js'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { governingPolicy } from '#lib/script/securityPolicy/policy.server.js'
 
 /**
  * What an instance must have in place before it serves anything.
@@ -24,8 +24,8 @@ let initialized: Promise<void> | undefined
 async function initialize (): Promise<void> {
   // Creates the root key on the way, since signing the registry requires it.
   await loadOrBootstrapRegistry()
-  // Creates the security policy document from Tier-1 defaults, if absent.
-  await loadSecurityPolicy()
+  // POL-1, POL-3
+  await governingPolicy()
   // Creates roles.json and users.json, empty and signed, if they are absent.
   await loadAuthorizationSource()
 }

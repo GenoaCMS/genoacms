@@ -21,16 +21,19 @@ const POLICY = {
   fetchOrigins: ['https://api.example.com']
 }
 
-const readStoredPolicy = vi.fn(async () => ({ policy: POLICY, version: 'v1' }) as {
-  policy: typeof POLICY, version?: string, degraded?: string
-})
+type Stored =
+  | { state: 'trusted', policy: typeof POLICY & { sequence: number }, version?: string }
+  | { state: 'damaged', reason: string, version?: string }
+
+const readStoredPolicy = vi.fn(async (): Promise<Stored> => ({ state: 'trusted', policy: { ...POLICY, sequence: 1 }, version: 'v1' }))
 const writePolicy = vi.fn(async (_policy: unknown, _expected?: string) => undefined)
 
 class PreconditionFailed extends Error {}
 
 vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
+  defaultPolicy: () => POLICY,
   readStoredPolicy: async () => await readStoredPolicy(),
-  writePolicy: async (policy: unknown, expected?: string) => await writePolicy(policy, expected)
+  writePolicy: async (policy: unknown, stored: { version?: string }) => await writePolicy(policy, stored.version)
 }))
 
 vi.mock('@genoacms/contracts/storage', () => ({
@@ -83,7 +86,7 @@ describe('reading it for a screen', () => {
   })
 
   it('says when it is showing configured defaults rather than the stored document', async () => {
-    readStoredPolicy.mockResolvedValueOnce({ policy: POLICY, version: 'v1', degraded: 'not JSON' })
+    readStoredPolicy.mockResolvedValueOnce({ state: 'damaged', reason: 'not JSON', version: 'v1' })
 
     const result = await readUserSecurityPolicy(administrator())
 

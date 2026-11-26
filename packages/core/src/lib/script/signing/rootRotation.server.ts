@@ -4,13 +4,13 @@ import { uploadInternalObjectJSON } from '#lib/script/storage/storage.server.js'
 import { getAlgorithm, ROOT_ALGORITHM } from './algorithms'
 import { deriveKeyId } from './keyId'
 import { sign, toBase64, type SigningKey } from './envelope'
-import { ROOT_SEED_SECRET } from './secretNames'
+import { ROOT_SEED_SECRET, POLICY_SEQUENCE_SECRET } from './secretNames'
 import { createSubordinateKey } from './subordinateKey.server'
 import { registryPath, MANIFEST_DOCUMENT, publishKeyFile, registeredKeyOf } from './registry.server'
 import { toPayload, type KeyManifest } from './registry'
 import { readHighWaterMark, recordPublished } from './registrySequence.server'
-import { policyPath, POLICY_DOCUMENT, defaultPolicy } from '#lib/script/securityPolicy/policy.server.js'
-import type { JsonValue } from './canonical'
+import { policyPath, defaultPolicy, signedPolicy, unreadableMark } from '#lib/script/securityPolicy/policy.server.js'
+import { readMark, recordMark } from './sequenceMark.server'
 
 /**
  * Replacing the root trust anchor.
@@ -65,13 +65,10 @@ async function rotateRootKey (): Promise<RootRotationResult> {
   await uploadInternalObjectJSON(registryPath, sign(MANIFEST_DOCUMENT, toPayload(registry), signingKey), {})
   await recordPublished(sequence)
 
-  // The policy is root-signed too, so it must be reissued under the new anchor or it stops
-  // verifying and the instance silently falls back to configured defaults.
-  await uploadInternalObjectJSON(
-    policyPath,
-    sign(POLICY_DOCUMENT, defaultPolicy() as unknown as JsonValue, signingKey),
-    {}
-  )
+  // POL-4
+  const policySequence = await readMark(POLICY_SEQUENCE_SECRET, unreadableMark) + 1
+  await uploadInternalObjectJSON(policyPath, await signedPolicy({ ...defaultPolicy(), sequence: policySequence }, signingKey), {})
+  await recordMark(POLICY_SEQUENCE_SECRET, policySequence, unreadableMark)
 
   return {
     keyId,

@@ -1,6 +1,6 @@
 import { requirePermission } from '#lib/script/authorization/enforce.js'
 import type { AuthContext } from '#lib/script/authorization/context.js'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { governingPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import { rotationDueAt } from '#lib/script/securityPolicy/policy.js'
 import { getRegistry, rotateSubordinateKey, revokeSubordinateKey } from './keyResolution.server'
 import { findKey, currentKey } from './registry'
@@ -94,7 +94,9 @@ const listUserSigningKeys = async (
  */
 const rotationOf = async (createdAt: number): Promise<Pick<KeyAdministrationView, 'rotation'>> => {
   try {
-    const policy = await loadSecurityPolicy()
+    const governing = await governingPolicy()
+    if (!governing.ok) return {}
+    const { policy } = governing
     return {
       rotation: {
         days: policy.subordinateKeyRotationDays,

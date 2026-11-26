@@ -26,17 +26,12 @@ vi.mock('#lib/script/signing/rootKey.server.js', () => ({
   getSessionKey: async () => SESSION_KEY
 }))
 
+const access = vi.hoisted(() => ({
+  answer: { accessTokenMinutes: 15, refreshTokenDays: 14, grantCacheSeconds: 30 } as unknown
+}))
+
 vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
-  loadSecurityPolicy: async () => ({
-    subordinateKeyRotationDays: 90,
-    accessTokenMinutes: 15,
-    grantCacheSeconds: 30,
-    refreshTokenDays: 14,
-    maxFuel: 1_000_000,
-    maxDepth: 100,
-    maxAllocation: 10_000_000,
-    fetchOrigins: []
-  })
+  accessPolicy: async () => access.answer
 }))
 
 const identity = { subject: 'subject-1', email: 'admin@example.com' }
@@ -449,5 +444,25 @@ describe('logout', () => {
 
     await expect(logout(cookies)).resolves.toBeUndefined()
     expect(revoked).toEqual([])
+  })
+})
+
+describe('a damaged security policy', () => {
+  it('POL-3: an access token issued while the policy is damaged lasts one minute', async () => {
+    const { STRICTEST_ACCESS } = await import('#lib/script/securityPolicy/policy.js') as unknown as { STRICTEST_ACCESS: unknown }
+    const healthy = access.answer
+    access.answer = STRICTEST_ACCESS
+    try {
+      const { login } = await authModule()
+      const { cookies, jar } = cookieJar()
+
+      await login(identity.email, 'password', cookies)
+
+      const { exp, iat } = decodeJwt((await sessionIn(jar))?.accessToken as string)
+      expect(STRICTEST_ACCESS).toBeDefined()
+      expect((exp as number) - (iat as number)).toBe(60)
+    } finally {
+      access.answer = healthy
+    }
   })
 })

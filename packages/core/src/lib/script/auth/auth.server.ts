@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { signIn, revalidate } from './providers.server'
 import type { SignInFailure } from './providers.server'
 import { resolvePrincipal } from '../authorization/resolution.server'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { accessPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import { getSessionKey } from '#lib/script/signing/rootKey.server.js'
 import { startSession, refreshSession, revokeSession } from './session.server'
 import { packSessionCookie, unpackSessionCookie, type SessionCookie } from './sessionCookie'
@@ -43,7 +43,7 @@ function secondsUntil (expiresAt: number): number {
 
 /** Mints an access token for a subject. Identity only; grants are resolved per request. */
 async function issueAccessToken (subject: string, email: string): Promise<string> {
-  const { accessTokenMinutes } = await loadSecurityPolicy()
+  const { accessTokenMinutes } = await accessPolicy()
   return await new SignJWT({ email })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(subject)

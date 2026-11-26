@@ -46,7 +46,7 @@ vi.mock('#lib/script/signing/rootKey.server.js', () => ({
 }))
 
 vi.mock('#lib/script/securityPolicy/policy.server.js', () => ({
-  loadSecurityPolicy: async () => await loadSecurityPolicy()
+  governingPolicy: async () => ({ ok: true, policy: await loadSecurityPolicy() })
 }))
 
 const { createAuthContext } = await import('#lib/script/authorization/context.js')

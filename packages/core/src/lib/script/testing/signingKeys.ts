@@ -33,4 +33,13 @@ const testSecurityPolicy = {
   fetchOrigins: []
 }
 
-export { testKeyResolution, testSecurityPolicy, signingKey }
+/** The policy readers of `policy.server`, answering a trusted `testSecurityPolicy`. */
+const testPolicyReaders = {
+  accessPolicy: async () => {
+    const { accessTokenMinutes, refreshTokenDays, grantCacheSeconds } = testSecurityPolicy
+    return { accessTokenMinutes, refreshTokenDays, grantCacheSeconds }
+  },
+  governingPolicy: async () => ({ ok: true as const, policy: testSecurityPolicy })
+}
+
+export { testKeyResolution, testSecurityPolicy, testPolicyReaders, signingKey }

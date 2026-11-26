@@ -18,7 +18,7 @@ const DOCUMENT_TYPES = [
   'genoacms.roles.v1',
   'genoacms.users.v1',
   'genoacms.keyRegistry.v2',
-  'genoacms.securityPolicy.v1',
+  'genoacms.securityPolicy.v2',
   'genoacms.session.v1',
   'genoacms.componentPublication.v1',
   'genoacms.pageTree.v1',

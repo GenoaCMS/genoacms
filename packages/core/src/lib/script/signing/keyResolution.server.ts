@@ -7,7 +7,7 @@ import {
 } from './registry.server'
 import { loadSubordinateKey, toSigningKey } from './subordinateKey.server'
 import { currentKey, type KeyManifest } from './registry'
-import { loadSecurityPolicy } from '#lib/script/securityPolicy/policy.server.js'
+import { governingPolicy } from '#lib/script/securityPolicy/policy.server.js'
 import { isRotationDue } from '#lib/script/securityPolicy/policy.js'
 import type { SigningKey } from './envelope'
 
@@ -75,13 +75,15 @@ async function currentRegistryAfterDueRotation (): Promise<KeyManifest> {
   const registry = await resolver.getRegistry()
   const entry = currentKey(registry)
 
-  let policy
+  let governing
   try {
-    policy = await loadSecurityPolicy()
+    governing = await governingPolicy()
   } catch {
     return registry
   }
-  if (!isRotationDue(policy, entry.createdAt, Date.now())) return registry
+  // POL-3
+  if (!governing.ok) return registry
+  if (!isRotationDue(governing.policy, entry.createdAt, Date.now())) return registry
 
   try {
     return await rotateSubordinateKey()

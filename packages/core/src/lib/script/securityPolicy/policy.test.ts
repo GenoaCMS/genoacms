@@ -15,6 +15,7 @@ import {
   MAX_FETCH_ORIGINS,
   type SecurityPolicy
 } from './policy'
+import * as policyModule from './policy'
 
 const CEILINGS = { maxFuel: 1_000_000, maxDepth: 100, maxAllocation: 10_000_000 }
 const ORIGINS = { fetchOrigins: [] as string[] }
@@ -214,5 +215,27 @@ describe('isRotationDue', () => {
   it('does not fire on a clock that runs backwards', () => {
     // A skewed or corrected clock must not trigger a rotation on every signature.
     expect(isRotationDue(policy(90), created, created - 10 * DAY_MS)).toBe(false)
+  })
+})
+
+describe('parseStoredPolicy', () => {
+  it('POL-1: a stored policy needs a sequence of at least 1', () => {
+    for (const sequence of [0, 1.5, undefined]) {
+      const payload = sequence === undefined ? complete() : complete({ sequence })
+
+      expect(policyModule.parseStoredPolicy(payload))
+        .toEqual({ ok: false, reason: 'policy.sequence is not a positive integer' })
+    }
+  })
+
+  it('POL-1: a stored policy refuses an unexpected member', () => {
+    expect(policyModule.parseStoredPolicy(complete({ sequence: 1, x: 1 })))
+      .toEqual({ ok: false, reason: 'policy has unexpected fields: x' })
+  })
+})
+
+describe('STRICTEST_ACCESS', () => {
+  it('POL-3: the strictest access values are the lower bounds', () => {
+    expect(policyModule.STRICTEST_ACCESS).toEqual({ accessTokenMinutes: 1, refreshTokenDays: 1, grantCacheSeconds: 0 })
   })
 })
