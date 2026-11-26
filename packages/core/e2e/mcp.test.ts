@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { randomBytes } from 'node:crypto'
 import runtime from '@genoacms/adapter-gcp/storage/runtime'
 import { verify, peekUnverifiedHeader } from '../src/lib/script/signing/envelope'
-import { parseKeyRegistry, findPublicKey } from '../src/lib/script/signing/registry'
+import { parseKeyManifest, findKey } from '../src/lib/script/signing/registry'
+import { keyFilePath, parseKeyFile } from '../src/lib/script/signing/keyFile'
 import { startServer, type RunningServer, type User } from './server'
 import { signIn } from './client'
 import { enabled, removeInstance } from './bucket'
@@ -79,13 +80,15 @@ async function readObject (name: string): Promise<unknown> {
 }
 
 async function verifiedTree (page: string): Promise<Parsed> {
-  const registry = parseKeyRegistry(((await readObject('.genoacms/keys/public.json')) as { payload: unknown }).payload)
-  if (!registry.ok) throw new Error(`e2e/registry: ${registry.reason}`)
+  const manifest = parseKeyManifest(((await readObject('.genoacms/keys/public.json')) as { payload: unknown }).payload)
+  if (!manifest.ok) throw new Error(`e2e/manifest: ${manifest.reason}`)
   const candidate = await readObject(`.genoacms/pages/readables/${page}`)
   const keyId = peekUnverifiedHeader(candidate)?.keyId ?? ''
-  const publicKey = findPublicKey(registry.registry, keyId)
-  if (publicKey === undefined) throw new Error(`e2e/unknown-key: ${keyId}`)
-  const verified = verify(candidate, 'genoacms.pageTree.v1', publicKey)
+  const entry = findKey(manifest.manifest, keyId)
+  if (entry === undefined) throw new Error(`e2e/unknown-key: ${keyId}`)
+  const keyFile = parseKeyFile(entry, await readObject(keyFilePath(keyId)))
+  if (!keyFile.ok) throw new Error(`e2e/key-file: ${keyFile.reason}`)
+  const verified = verify(candidate, 'genoacms.pageTree.v1', keyFile.key)
   if (!verified.valid) throw new Error(`e2e/tree-unverifiable: ${verified.reason}`)
   return verified.payload
 }
