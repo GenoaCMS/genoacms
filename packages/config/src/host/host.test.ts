@@ -180,20 +180,20 @@ function prefixed (prefix: string | undefined): RuntimeManifest {
 }
 
 describe('the secrets prefix', () => {
-  it.fails('REF-9: with a prefix, host.secrets() asks the store for the prefixed key', async () => {
+  it('REF-9: with a prefix, host.secrets() asks the store for the prefixed key', async () => {
     const { load } = runtimes({ SHOP__X: 'a', X: 'b' })
     const host = createHost({ manifest: prefixed('SHOP'), load })
     expect(await (await host.secrets()).getSecret('X')).toBe('a')
   })
 
-  it.fails('REF-9, REF-2: a secret() option resolves the prefixed key', async () => {
+  it('REF-9, REF-2: a secret() option resolves the prefixed key', async () => {
     const { load } = runtimes({ SHOP__DB: 'p', DB: 'q' })
     const host = createHost({ manifest: prefixed('SHOP'), load })
     const a = await host.storage('a') as unknown as { options: { credentials: unknown } }
     expect(a.options.credentials).toBe('p')
   })
 
-  it.fails('REF-9, REF-2: a missing secret names its stored name', async () => {
+  it('REF-9, REF-2: a missing secret names its stored name', async () => {
     const { load } = runtimes({})
     const host = createHost({ manifest: prefixed('SHOP'), load })
     await expect(host.storage('a')).rejects.toMatchObject({

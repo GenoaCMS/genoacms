@@ -2,6 +2,7 @@ import { SECRET_KEY_PATTERN } from '@genoacms/contracts/secrets'
 import type { ConfigIssue } from '../errors.js'
 import { isPlainObject, isReference, isSecretRef, isInlineRef } from '../references.js'
 import { agentIssues, agentTokenPaths } from './agents.js'
+import { SECRETS_PREFIX_PATTERN } from '../host/prefixedStore.js'
 import { providerSlots, isWellFormedEntry, type LoadedDescriptor, type ProviderSlot, type WellFormedEntry } from './descriptors.js'
 
 type Mode = 'development' | 'production'
@@ -160,6 +161,19 @@ function secretsProviderCount (ctx: RuleContext): ConfigIssue[] {
 }
 
 // LDR-10
+const SECRETS_PREFIX_MAX_LENGTH = 64
+
+const isSecretsPrefix = (value: unknown): boolean =>
+  typeof value === 'string' && value.length <= SECRETS_PREFIX_MAX_LENGTH && SECRETS_PREFIX_PATTERN.test(value)
+
+// LDR-22
+function invalidSecretsPrefix (ctx: RuleContext): ConfigIssue[] {
+  const secrets = ctx.config.secrets
+  if (!isPlainObject(secrets) || !Object.hasOwn(secrets, 'prefix') || isSecretsPrefix(secrets.prefix)) return []
+  return [issue('config/invalid-secrets-prefix', 'secrets.prefix',
+    `must match ${SECRETS_PREFIX_PATTERN.source} and be at most ${SECRETS_PREFIX_MAX_LENGTH} characters`)]
+}
+
 function unknownReferences (records: Record<string, unknown> | undefined, recordPath: string, known: Record<string, unknown> | undefined, knownPath: string): ConfigIssue[] {
   if (records === undefined) return []
   return Object.entries(records)
@@ -232,6 +246,7 @@ const RULES: ReadonlyArray<(ctx: RuleContext) => ConfigIssue[]> = [
   bootstrapSecrets,
   invalidSecretKeys,
   secretsProviderCount,
+  invalidSecretsPrefix,
   unknownProviders,
   unknownDefaultBucket,
   integerKeys,

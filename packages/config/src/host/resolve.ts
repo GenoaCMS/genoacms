@@ -9,6 +9,8 @@ interface ResolveDeps {
   readonly environment: Readonly<Record<string, string | undefined>>
   readonly cache: SecretCache
   readonly timeoutMs: number
+  /** REF-9: the name the store holds a key under, when an instance prefix is set. */
+  readonly storedName: (key: string) => string | undefined
 }
 
 /** Rejects with `onTimeout()` if `promise` has not settled in `ms`; the timer never outlives the race. */
@@ -22,6 +24,11 @@ async function withTimeout<T> (promise: Promise<T>, ms: number, onTimeout: () =>
   }
 }
 
+function storedAs (key: string, deps: ResolveDeps): string {
+  const stored = deps.storedName(key)
+  return stored === undefined ? '' : ` It is stored as '${stored}'.`
+}
+
 async function readSecret (key: string, path: string, deps: ResolveDeps): Promise<string> {
   const value = await deps.cache.get(key, async () => await withTimeout(
     deps.secrets().then(async store => await store.getSecret(key)),
@@ -29,7 +36,7 @@ async function readSecret (key: string, path: string, deps: ResolveDeps): Promis
     () => new HostError('provider/secret-unavailable', `${path} → ${key}: no answer within ${deps.timeoutMs} ms`)
   ))
   if (value === undefined) {
-    throw new HostError('secrets/missing', `${path} points at '${key}', which the configured secret store does not hold. Set it before starting GenoaCMS.`)
+    throw new HostError('secrets/missing', `${path} points at '${key}', which the configured secret store does not hold. Set it before starting GenoaCMS.${storedAs(key, deps)}`)
   }
   return value
 }

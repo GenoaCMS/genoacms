@@ -324,7 +324,7 @@ describe('the secrets prefix', () => {
     expect(Object.hasOwn(manifest.config.secrets, 'prefix')).toBe(false)
   })
 
-  it.fails('LDR-22: any other prefix is an issue', async () => {
+  it('LDR-22: any other prefix is an issue', async () => {
     for (const prefix of ['', '_A', 'A_', 'A__B', '1A', 'A-B', 'Á', `A${'b'.repeat(64)}`, 42, null]) {
       clearLoadCache()
       expect(await issuesOf(withPrefix(prefix))).toEqual([

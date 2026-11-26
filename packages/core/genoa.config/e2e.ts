@@ -33,6 +33,7 @@ export default defineConfig({
     }
   },
   secrets: {
+    prefix: 'E2E',
     providers: { local: secretsProvider('@genoacms/adapter-secrets-env', { path: secretsPath }) }
   },
   storage: {

@@ -10,6 +10,7 @@ import { HostError } from './errors.js'
 import { createSecretCache } from './secretCache.js'
 import { createConstructionCache } from './constructions.js'
 import { resolveOptions, type ResolveDeps } from './resolve.js'
+import { prefixedStore, storedSecretName } from './prefixedStore.js'
 import { bucketProvider, databaseProviderOfCollection, resourcesOf, bucketNames, databaseNames, collectionsOf, type ConstructedService, type HostConfig } from './routing.js'
 
 type RuntimeLoader = (specifier: string) => Promise<{ default: AdapterRuntime<object, unknown> }>
@@ -87,11 +88,13 @@ function createHost (options: HostOptions): Host {
   const projectRoot = options.projectRoot ?? manifest.source?.root
   const constructions = createConstructionCache()
   const secretCache = createSecretCache()
+  const prefix = config.secrets.prefix
   const deps: ResolveDeps = {
     secrets: async () => await secrets(),
     environment: options.environment ?? process.env,
     cache: secretCache,
-    timeoutMs: options.secretTimeoutMs ?? DEFAULT_SECRET_TIMEOUT_MS
+    timeoutMs: options.secretTimeoutMs ?? DEFAULT_SECRET_TIMEOUT_MS,
+    storedName: key => prefix === undefined ? undefined : storedSecretName(prefix, key)
   }
 
   const providersOf = (service: ConstructedService | 'secrets'): Record<string, ProviderEntry> =>
@@ -125,7 +128,9 @@ function createHost (options: HostOptions): Host {
       const names = Object.keys(providersOf('secrets'))
       if (names.length !== 1) throw new HostError('secrets/provider-count', `exactly one secrets provider is allowed, found ${names.length}`)
       const [name] = names
-      return await instantiate<SecretsAdapter>(providersOf('secrets')[name], `secrets.providers.${name}`, name, [], refuseSecretReferences)
+      const store = await instantiate<SecretsAdapter>(providersOf('secrets')[name], `secrets.providers.${name}`, name, [], refuseSecretReferences)
+      // REF-9, SD8
+      return prefix === undefined ? store : prefixedStore(store, prefix)
     })
   }
 
@@ -185,5 +190,5 @@ function createHost (options: HostOptions): Host {
   }
 }
 
-export { createHost, HostError }
+export { createHost, HostError, storedSecretName }
 export type { Host, HostOptions, RuntimeLoader }

@@ -58,3 +58,18 @@ defineConfig({
   // @ts-expect-error
   deployment: { targets: { local: deploymentTarget('unregistered/node', {}) }, default: 'nowhere' }
 })
+
+// Positive: an instance prefix for the secrets store (REF-9).
+defineConfig({
+  ...stanzas,
+  secrets: { prefix: 'SHOP', providers: { store: secretsProvider('a/secrets', {}) } },
+  storage: { providers: { gcs: storageProvider('a/storage', { projectId: 'p' }) }, buckets: { b: { provider: 'gcs' } }, defaultBucket: 'b' }
+})
+
+// Negative: a prefix that is not a string.
+defineConfig({
+  ...stanzas,
+  // @ts-expect-error
+  secrets: { prefix: 1, providers: { store: secretsProvider('a/secrets', {}) } },
+  storage: { providers: { gcs: storageProvider('a/storage', { projectId: 'p' }) }, buckets: { b: { provider: 'gcs' } }, defaultBucket: 'b' }
+})

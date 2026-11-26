@@ -70,7 +70,7 @@ describe.skipIf(!enabled).sequential('signing in and refreshing through the runn
       expect((await openLoginPage(server, viaPrimary)).signedIn).toBe(true)
     })
 
-    it.fails('REF-9: the instance\'s own secrets are stored under its prefix, and env() credentials are not', async () => {
+    it('REF-9: the instance\'s own secrets are stored under its prefix, and env() credentials are not', async () => {
       const { current } = await readManifestPayload()
       const keys = storedSecretKeys()
 

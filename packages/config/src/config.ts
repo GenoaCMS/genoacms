@@ -123,8 +123,12 @@ interface Config<AP extends Providers, DP extends Providers, SP extends Provider
     /** Segment separator in storage browser URLs. Default `'|->'`. */
     pathDelimiter?: string
   }
-  /** Exactly one provider. A secret store is a single authority; see @genoacms/contracts/secrets. */
-  secrets: { providers: XP }
+  secrets: {
+    /** Exactly one provider. A secret store is a single authority; see @genoacms/contracts/secrets. */
+    providers: XP
+    /** Names this instance in a store several instances share: each key is stored as `<prefix>__<key>` (secrets.md REF-9). */
+    prefix?: string
+  }
   /** Keyed by the language name a component records. */
   languages: { providers: LP }
   /** Optional: a config used only by the dev server needs no target. A build requires one. */

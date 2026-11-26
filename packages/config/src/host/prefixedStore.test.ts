@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import { isValidSecretKey } from '@genoacms/contracts/secrets'
 import type { Adapter as SecretsAdapter } from '@genoacms/contracts/secrets'
+import { prefixedStore, storedSecretName, SECRETS_PREFIX_PATTERN } from './prefixedStore.js'
 
 type Call = [method: keyof SecretsAdapter, ...args: string[]]
 
@@ -41,8 +42,7 @@ const extendedPrefixPairs = fc.tuple(prefixes, segments, keys, fc.constantFrom('
 const prefixPairsWithKeys = fc.oneof(independentPairs, extendedPrefixPairs)
 
 describe('prefixedStore', () => {
-  it.fails('REF-9: each method calls the adapter with the prefixed key and passes the value unchanged', async () => {
-    const { prefixedStore } = await import('./prefixedStore.js')
+  it('REF-9: each method calls the adapter with the prefixed key and passes the value unchanged', async () => {
     const { adapter, calls } = recordingAdapter()
     const store = prefixedStore(adapter, 'SHOP')
     await store.getSecret('A')
@@ -57,8 +57,7 @@ describe('prefixedStore', () => {
     ])
   })
 
-  it.fails("REF-9: each result and each rejection is the adapter's", async () => {
-    const { prefixedStore } = await import('./prefixedStore.js')
+  it("REF-9: each result and each rejection is the adapter's", async () => {
     const { adapter } = recordingAdapter({ get: undefined, set: false, setIfAbsent: true, delete: false })
     const store = prefixedStore(adapter, 'SHOP')
     expect(await store.getSecret('A')).toBeUndefined()
@@ -74,16 +73,14 @@ describe('prefixedStore', () => {
     await expect(failing.deleteSecret('A')).rejects.toBe(e)
   })
 
-  it.fails('REF-9: different prefixes never give one stored name', async () => {
-    const { storedSecretName, SECRETS_PREFIX_PATTERN } = await import('./prefixedStore.js')
+  it('REF-9: different prefixes never give one stored name', async () => {
     fc.assert(fc.property(prefixPairsWithKeys, ([p, q, k, l]) => {
       expect(SECRETS_PREFIX_PATTERN.test(p) && SECRETS_PREFIX_PATTERN.test(q)).toBe(true)
       expect(storedSecretName(p, k)).not.toBe(storedSecretName(q, l))
     }), { numRuns: 1000 })
   })
 
-  it.fails('REF-9: a stored name is a portable secret key', async () => {
-    const { storedSecretName } = await import('./prefixedStore.js')
+  it('REF-9: a stored name is a portable secret key', async () => {
     fc.assert(fc.property(prefixes, keys, (p, k) => {
       expect(isValidSecretKey(storedSecretName(p, k))).toBe(true)
     }), { numRuns: 1000 })

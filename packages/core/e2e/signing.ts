@@ -2,6 +2,7 @@ import { inject } from 'vitest'
 import runtime from '@genoacms/adapter-gcp/storage/runtime'
 import { isNotFound } from '@genoacms/contracts/storage'
 import secretsRuntime from '@genoacms/adapter-secrets-env/runtime'
+import { storedSecretName } from '@genoacms/config/host'
 import { getAlgorithm } from '../src/lib/script/signing/algorithms'
 import { sign, fromBase64, type SignedEnvelope } from '../src/lib/script/signing/envelope'
 import { parseKeyManifest, currentKey } from '../src/lib/script/signing/registry'
@@ -42,7 +43,7 @@ export async function readKeyFile (keyId: string): Promise<{ keyId: string, alg:
 
 async function readSeed (keyId: string): Promise<Uint8Array> {
   const secrets = secretsRuntime.create({ path: inject('secretsFile') }, { name: 'e2e', resources: [], projectRoot: '/' })
-  const seed = await secrets.getSecret(subordinateSeedSecret(keyId))
+  const seed = await secrets.getSecret(storedSecretName('E2E', subordinateSeedSecret(keyId)))
   const bytes = seed === undefined ? undefined : fromBase64(seed)
   if (bytes === undefined) throw new Error(`e2e/no-seed: the secrets file holds no seed for ${keyId}`)
   return bytes

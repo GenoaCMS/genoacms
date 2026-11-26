@@ -46,8 +46,8 @@ import type { JsonValue } from './canonical.js'
  *
  * Without `minimumRegistrySequence` that protection holds for the lifetime of the instance it is
  * used through, and not across one. A consumer that can read the instance's secret mark
- * `GENOACMS_KEY_REGISTRY_SEQUENCE` passes it, and then a restored older manifest is refused on the
- * first load too.
+ * `GENOACMS_KEY_REGISTRY_SEQUENCE`, stored as `<prefix>__GENOACMS_KEY_REGISTRY_SEQUENCE` under an
+ * instance prefix, passes it, and then a restored older manifest is refused on the first load too.
  *
  * ## Two answers, and a third thing that is not an answer
  *
@@ -98,7 +98,9 @@ interface VerifierOptions {
    */
   platforms?: readonly string[]
   /**
-   * The value of the secret `GENOACMS_KEY_REGISTRY_SEQUENCE`, read by the consumer where it can be.
+   * The value of the secret `GENOACMS_KEY_REGISTRY_SEQUENCE`, stored as
+   * `<prefix>__GENOACMS_KEY_REGISTRY_SEQUENCE` under an instance prefix, read by the consumer where
+   * it can be.
    * A manifest with a lower sequence is refused (VFY-2).
    */
   minimumRegistrySequence?: number
