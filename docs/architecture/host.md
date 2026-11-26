@@ -79,7 +79,7 @@ runtime module, `projectRoot` defaults to the manifest's `source.root`, `secretT
 and `environment` to `process.env`. A manifest whose `version` is not 1 is refused with the
 `HostError` `host/unsupported-manifest: manifest version <version> is not supported`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-2 · One construction per provider
@@ -89,7 +89,7 @@ and `environment` to `process.env`. A manifest whose `version` is not 1 is refus
 promise. A construction that rejects is forgotten, so the next call constructs again. Two providers
 naming one adapter are two constructions, each with its own options and resources.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-3 · What a construction does
@@ -103,7 +103,7 @@ projectRoot })` returns. `resources` are, in key order, the buckets bound to the
 storage, the databases bound to it for a database, and empty otherwise. Every failure is a
 `HostError` whose `code` is the message's prefix.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-4 · Routing
@@ -114,7 +114,7 @@ the first database, in key order, whose `collections` holds a reference with tha
 with `database/not-found: <collection>`. `databaseNamed(database)` constructs the provider of
 `database.databases.<database>`, or fails with `database/not-found: <database>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-5 · Languages
@@ -125,7 +125,7 @@ languages: <keys, comma-separated>.`, or `… No language adapters are configure
 are none. When the constructed adapter's `language` is not `name`, it fails with `language/mismatch:
 languages.providers.<name> constructs an adapter for '<language>'`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-6 · The config's data
@@ -137,7 +137,7 @@ and `databases` (their names in key order), `collections` (every collection of e
 databases in key order, collections in array order), and `authenticationProviderKeys` (in key order).
 Reading them constructs nothing.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-7 · Closing
@@ -145,7 +145,7 @@ Reading them constructs nothing.
 `close()` waits until every pending construction has settled, then forgets every construction and
 every cached secret, so a later call constructs again.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### HST-8 · The host ships inside the server bundle
@@ -154,5 +154,5 @@ every cached secret, so a later call constructs again.
 file system or path modules of Node: it runs in a production artifact, where none of them is
 installed or has a project to read.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit

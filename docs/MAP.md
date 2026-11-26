@@ -697,26 +697,9 @@ flowchart LR
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
 | ADM-1 · Administration reads strictly and writes conditionally |  | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | ADM-2 · Changing roles | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
-| ART-1 · Where the artifact is | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| ART-2 · Its dependencies | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| ART-3 · Imports the scan cannot see | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| ART-4 · Installed versions | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| BLD-1 · The facts Vite receives | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| BLD-2 · The SvelteKit adapter and origin | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
 | BLD-3 · No provider while SvelteKit analyses the build | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| CFG-1 · Where the config is | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| CFG-2 · Evaluating the config | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
 | CFG-3 · The config's shape | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| CFG-4 · Authoring helpers | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
 | DEP-10 · Create or update | required |  | wanted | required |  | [architecture/adapter-gcp/deployment.md](architecture/adapter-gcp/deployment.md) |
-| DST-1 · Its descriptor | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-2 · It needs the project | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-3 · Its file | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-4 · What a read sees | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-5 · Writes and deletions | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-6 · Claims across processes | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-7 · The file's format | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| DST-8 · Keys in every method | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
 | ENF-1 · Every operation is checked first | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | ENF-2 · No principal, no operation |  | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | ENF-4 · Interface gates | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
@@ -727,35 +710,6 @@ flowchart LR
 | GRT-5 · A denial | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | GRT-6 · Permitted fields | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | GRT-7 · Roles | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
-| HST-1 · A host does no I/O when created | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-2 · One construction per provider | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-3 · What a construction does | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-4 · Routing | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-5 · Languages | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-6 · The config's data | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-7 · Closing | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| HST-8 · The host ships inside the server bundle | unverified |  |  |  |  | [architecture/host.md](architecture/host.md) |
-| LDR-1 · Stanzas and provider entries | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-2 · Data only | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-3 · Each adapter under its own service | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-4 · The descriptor's validation | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-5 · Credential fields hold references | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-6 · References only in credential fields | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-7 · The bootstrap rule | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-8 · Secret keys | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-9 · One secrets store | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-10 · Names that must exist | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-11 · The default bucket | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-12 · No integer-like keys | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-13 · Development-only adapters | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-14 · Inline values in production | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-15 · Every issue at once | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-16 · Descriptors load from the project | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-17 · The manifest | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-18 · One load per file, mode and inline rule | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-19 · The runtime manifest | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-20 · The manifest in Vite | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
-| LDR-21 · Config edits restart the dev server | unverified |  |  |  |  | [architecture/configuration.md](architecture/configuration.md) |
 | MAN-1 · Two signed manifests | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | MAN-2 · An absent manifest is created signed |  | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | MAN-3 · A rejected manifest is quarantined and replaced | unverified | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
@@ -764,27 +718,13 @@ flowchart LR
 | MOD-2 · A deployment target | unverified |  |  |  |  | [architecture/contracts/adapter-model.md](architecture/contracts/adapter-model.md) |
 | MOD-3 · References and resolved options | unverified |  |  |  |  | [architecture/contracts/adapter-model.md](architecture/contracts/adapter-model.md) |
 | MOD-4 · Registries | unverified |  |  |  |  | [architecture/contracts/adapter-model.md](architecture/contracts/adapter-model.md) |
-| MOD-5 · Stamping the kind | unverified |  |  |  |  | [architecture/contracts/adapter-model.md](architecture/contracts/adapter-model.md) |
 | MOD-6 · The bootstrap rule in the types | unverified |  |  |  |  | [architecture/contracts/adapter-model.md](architecture/contracts/adapter-model.md) |
-| REF-1 · The three references | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-2 · Resolving a provider's options | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-3 · JSON credentials | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-4 · A bounded wait for the store | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-5 · One read per secret | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-6 · No value in an error | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-7 · The store is constructed from env() and inline() only | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
-| REF-8 · The portable secret key | unverified |  |  |  |  | [architecture/secrets.md](architecture/secrets.md) |
 | RES-3 · Every request is resolved |  | unverified | unverified |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | RES-4 · Resolutions are cached per subject | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
-| TGT-1 · Its descriptor | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| TGT-2 · Its procedure | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
 | TIR-1 · Declared roles and assignments | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | TIR-2 · Declarations are merged when authorization is read | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | TIR-3 · Declarations alone when the stored data is rejected | unverified | unverified |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
 | TIR-4 · The lock | unverified |  |  |  |  | [architecture/authorization.md](architecture/authorization.md) |
-| VND-1 · What is packed | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| VND-2 · How it is packed | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
-| VND-3 · What is refused | unverified |  |  |  |  | [architecture/build.md](architecture/build.md) |
 
 ## Collaboration
 

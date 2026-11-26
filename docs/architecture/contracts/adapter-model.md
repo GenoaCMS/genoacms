@@ -208,7 +208,7 @@ the descriptor they are given with `kind` set to `storage`, `database`, `authent
 `language` or `deployment`, replacing any `kind` it had, every other property kept. `defineRuntime`
 and `defineDeployProcedure` return their argument.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/contracts/src/define.test.js`
 - Level: unit
 
 #### MOD-6 · The bootstrap rule in the types

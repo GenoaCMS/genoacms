@@ -208,7 +208,7 @@ or `production` with `genoa/invalid-mode: GENOA_MODE must be development or prod
 <mode>`. Vite's own `mode` is never read: the `genoa()` plugin falls back to `development` for `vite
 dev` and `production` for `vite build`, and core's `vite.config.ts` to `development`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/environment.test.ts`, `packages/config/src/vite/plugin.test.ts`
 - Level: unit
 
 #### BLD-2 · The SvelteKit adapter and origin
@@ -223,7 +223,7 @@ SvelteKit adapter its `svelteKitAdapter()` loader's factory makes from
 `svelteKitOptions`, and the origin `origin(options)` returns, or none. Both receive the target's
 options unresolved. Core's `vite.config.ts` passes the origin to SvelteKit as `paths.origin`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/kit.test.ts`
 - Level: unit
 
 #### BLD-3 · No provider while SvelteKit analyses the build
@@ -244,7 +244,7 @@ build writes its `package.json`: `{ "name": "genoacms-runtime", "private": true,
 "dependencies": {…}, "overrides": {…} }`, with `overrides` present only when a package was packed
 (VND-2), two-space indented and ending in a newline.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/runtimePackage.test.ts`
 - Level: unit
 
 #### ART-2 · Its dependencies
@@ -259,7 +259,7 @@ A package both imported and an adapter's, at two versions, fails the build with
 `build/version-conflict: <package>`. Nothing else is listed: no devDependency and no workspace
 protocol.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/runtimePackage.test.ts`, `packages/config/src/artifact/scan.test.ts`
 - Level: unit
 
 #### ART-3 · Imports the scan cannot see
@@ -268,7 +268,7 @@ The build reports, as `<file relative to the artifact>: <construct>`, every `imp
 argument is not a string literal, as `import(<node type>)`, and every call of `require` or
 `createRequire`, with its argument as JSON or `<node type>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/scan.test.ts`
 - Level: unit
 
 #### ART-4 · Installed versions
@@ -279,7 +279,7 @@ A package's installed version, from a directory, is the `version` of the first
 links are not followed for the walk. A package found nowhere fails with `build/not-installed:
 <package> (from <directory>)`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/versions.test.ts`
 - Level: unit
 
 ### Vendoring
@@ -294,7 +294,7 @@ package that a packed package lists in `dependencies`, `optionalDependencies` or
 missing regular one fails with ART-4's error. One name at two real paths fails with
 `build/vendor-conflict: <name> is installed from <path> and from <path>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/vendor.test.ts`
 - Level: unit
 
 #### VND-2 · How it is packed
@@ -305,7 +305,7 @@ in name order. A pack that fails fails the build with `build/vendor-pack-failed:
 direct dependency is `file:vendor/<tarball>`, and `overrides` maps every packed name to its
 tarball.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/vendor.test.ts`, `packages/config/src/artifact/runtimePackage.test.ts`
 - Level: unit
 
 #### VND-3 · What is refused
@@ -319,7 +319,7 @@ ending in `.example`: `build/vendor-secret: <name> would ship <file>`; and when 
 `build/vendor-protocol: <name> depends on <dependency>@<spec>, which npm cannot install; vendor or
 publish <dependency>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/artifact/vendor.test.ts`
 - Level: unit
 
 ### The Node target
@@ -334,7 +334,7 @@ Its validation gives `unknown option '<key>'` for any other key, `origin must be
 origin such as 'https://cms.example.com'`, `outDir must be a non-empty string`, and `outDir must be
 a directory inside the project, given relative to its root`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-node/src/descriptor.test.js`
 - Level: unit
 
 #### TGT-2 · Its procedure
@@ -344,5 +344,5 @@ The procedure copies the artifact, its `package.json` included, into `<project>/
 its runtime dependencies there with: npm install --omit=dev`. A directory that is the project root
 or outside it is refused with `deploy/out-dir-outside-project`, whatever the validation let through.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-node/src/procedure.test.js`
 - Level: unit

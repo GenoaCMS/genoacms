@@ -125,7 +125,7 @@ portable rule. `env(variable)` returns `{ $env: variable }`, and throws
 returns `{ $inline: value }`. A value is a reference only when it is a plain object with exactly one
 own key: `$secret` holding a string, `$env` holding a string, or `$inline` holding anything.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/references.test.ts`
 - Level: unit
 
 #### REF-2 · Resolving a provider's options
@@ -140,7 +140,7 @@ listed option present without a reference fails with `config/bare-secret: <path>
 field and holds no reference`. `<path>` is `<service>.providers.<name>.options.<option>`. The options
 of one provider are resolved concurrently.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### REF-3 · JSON credentials
@@ -150,7 +150,7 @@ listed as `'string'` is passed as read. A value that does not parse fails with
 `secrets/invalid-json: <path> is declared JSON and is not valid JSON`, which holds neither the value
 nor the parser's message.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### REF-4 · A bounded wait for the store
@@ -159,7 +159,7 @@ Each read of a `secret()` reference, the construction of the store included, is 
 host's `secretTimeoutMs`. When the bound passes first, the construction fails with
 `provider/secret-unavailable: <path> → <key>: no answer within <ms> ms` (SF2).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### REF-5 · One read per secret
@@ -169,7 +169,7 @@ that key, by any provider, share the first read. A read that resolved, to a valu
 is kept until `close()` (HST-7). A read that rejected or timed out is forgotten, and the next
 resolution reads again (SF1).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### REF-6 · No value in an error
@@ -177,7 +177,7 @@ resolution reads again (SF1).
 No error of the loader or the host holds a resolved value or an option's value. They name config
 paths, provider names, variable names and secret keys.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts` (unverified: the loader's messages, which LDR-15 states and no test checks against a credential)
 - Level: unit
 
 ### The secrets provider
@@ -190,7 +190,7 @@ found <n>` when there is not exactly one, and with `config/bootstrap-secret: the
 cannot be configured with secret()` when one of its listed options is a `secret()` reference,
 without asking any store.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/host/host.test.ts`
 - Level: unit
 
 #### REF-8 · The portable secret key
@@ -200,7 +200,7 @@ variable accept. `@genoacms/contracts/secrets` exports the pattern as `SECRET_KE
 `isValidSecretKey(key)`, and `assertValidSecretKey(key)`, which throws `invalid-secret-key: '<key>'
 must match ^[A-Za-z_][A-Za-z0-9_]*$` and never normalizes a key.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/contracts/src/secrets.test.js`
 - Level: unit
 
 ### The development store
@@ -212,7 +212,7 @@ must match ^[A-Za-z_][A-Za-z0-9_]*$` and never normalizes a key.
 (LDR-13). Its one option is `path`, a non-empty string; its validation gives `unknown option
 '<key>'` for any other key and `path must be a non-empty string` for another `path`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/descriptor.test.js`
 - Level: unit
 
 #### DST-2 · It needs the project
@@ -221,7 +221,7 @@ Its runtime fails to construct without `projectRoot` in the context, which a pro
 lacks, with `secrets-env/no-project-root: this adapter is for development only; configure a secret
 manager for deployment`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit
 
 #### DST-3 · Its file
@@ -230,7 +230,7 @@ The store is the file at `path`, default `.genoacms/secrets.env`, resolved again
 A read of a missing file reads as empty. A write creates the file with mode `0600`, and its
 directory with mode `0700`, when they do not exist (SF5).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit
 
 #### DST-4 · What a read sees
@@ -240,7 +240,7 @@ after it deleted the key. For a key it has not written or deleted, it answers th
 environment's variable when one is set, and otherwise reads the file afresh, so another process's
 write is seen. The store never writes the process environment.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit
 
 #### DST-5 · Writes and deletions
@@ -250,7 +250,7 @@ every line of the key from the file and resolves to `true` when the key was in t
 store's own writes or in the environment, and to `false` otherwise; the key then reads as absent in
 this store. Writes of one store run one at a time, so concurrent writes lose none.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit
 
 #### DST-6 · Claims across processes
@@ -262,7 +262,7 @@ write, so of racing claims from several stores or processes exactly one wins. A 
 within 5 s fails the claim with `secrets-env/lock-timeout: <lock path> is held; remove it if no
 process owns it` (SF3).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit
 
 #### DST-7 · The file's format
@@ -277,7 +277,7 @@ and writes LF line ends. It writes a value unquoted unless it is empty, has lead
 whitespace, or holds `"`, `'`, `#`, a newline or a backslash; then it writes it double-quoted, with
 backslash, `"` and newline escaped, so that every value reads back as written.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/envFile.test.js`
 - Level: unit
 
 #### DST-8 · Keys in every method
@@ -285,5 +285,5 @@ backslash, `"` and newline escaped, so that every value reads back as written.
 Every method of the store refuses a key outside the portable rule with the error of REF-8, before
 reading or writing anything.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/adapter-secrets-env/src/runtime.test.js`
 - Level: unit

@@ -187,7 +187,7 @@ other file is found by default, `genoa.config/index.*` and `genoa.config/product
 When none exists, the load fails with the `ConfigError` `config/not-found`, whose one issue reads
 `no config file under <root>; looked for: <the eight paths, comma-separated>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### CFG-2 · Evaluating the config
@@ -199,7 +199,7 @@ evaluate: <first line of the error>`. A file whose default export is not a plain
 `config/not-an-object`: `<file> must default-export a plain object`. The import graph is recorded:
 the file itself first, then every file it imported.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### CFG-3 · The config's shape
@@ -249,7 +249,7 @@ service's registry (CD16): a registered specifier takes its registered option ty
 in a `Secret` field is a type error, and `secretsProvider` refuses `secret()` in any field (REF-7).
 The helpers evaluate inside a config file.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts` (unverified: the type errors, which `tsc` checks in `packages/config/test/types/config.test.ts` without a report)
 - Level: unit
 
 ### The loader's rules
@@ -269,7 +269,7 @@ must be an object`. A provider entry is `{ adapter: <non-empty string>, options:
 or the issue `config/invalid-provider-entry` at its path reads `must be { adapter: '<descriptor
 specifier>', options: { … } }`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-2 · Data only
@@ -280,7 +280,7 @@ or a plain object. Any other value gives the issue `config/not-serializable` at 
 non-finite number, `is a function: the config must evaluate to data`, `is a <bigint or symbol>,
 which JSON cannot represent`, or `is an instance of <class name>, which does not survive JSON`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-3 · Each adapter under its own service
@@ -290,7 +290,7 @@ A provider entry whose descriptor's `kind` is not the kind of the place it is co
 under `deployment.targets`) gives `config/kind-mismatch` at `<path>.adapter`: `<specifier> is a
 <kind> adapter, configured under <stanza>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-4 · The descriptor's validation
@@ -299,7 +299,7 @@ Each entry's unresolved options are passed to its descriptor's `validate`, when 
 each reason it returns is an issue `config/invalid-options` at `<path>.options`. A `validate` that
 throws gives the one reason `validate threw: <its message>`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-5 · Credential fields hold references
@@ -309,7 +309,7 @@ Each option the descriptor lists in `secretOptions` that is present holds a `sec
 `is a credential field: use secret(), env() or inline(), not a bare value`. An absent credential
 option is allowed.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-6 · References only in credential fields
@@ -319,7 +319,7 @@ an agent's `token` (AGT-1), gives `config/misplaced-reference` at its path: `a s
 inline() reference is only allowed in a credential field the adapter declares`. The values under an
 entry whose descriptor did not load are not checked by this rule.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`, `packages/config/src/load/agents.test.ts`
 - Level: unit
 
 #### LDR-7 · The bootstrap rule
@@ -328,7 +328,7 @@ A `secret()` reference at any depth of the secrets provider's options gives
 `config/bootstrap-secret` at its path: `the secrets provider cannot be configured with secret():
 nothing exists yet to resolve it; use env() or inline()`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-8 · Secret keys
@@ -336,7 +336,7 @@ nothing exists yet to resolve it; use env() or inline()`.
 Every `secret()` key in the config matches the portable key rule (REF-8), or the issue
 `config/invalid-secret-key` at its path reads `secret key must match ^[A-Za-z_][A-Za-z0-9_]*$`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-9 · One secrets store
@@ -345,7 +345,7 @@ When `secrets.providers` is a plain object, it has exactly one key, or the issue
 `config/secrets-provider-count` at `secrets.providers` reads `exactly one provider is allowed,
 found <n>` (KF29).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-10 · Names that must exist
@@ -357,7 +357,7 @@ key of storage.providers` or `must name a key of database.providers`. A `deploym
 is present is a key of `deployment.targets`, or the same code at `deployment.default` reads `must
 name a key of deployment.targets`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-11 · The default bucket
@@ -365,7 +365,7 @@ name a key of deployment.targets`.
 `storage.defaultBucket` is a key of `storage.buckets`, or the issue `config/unknown-bucket` at
 `storage.defaultBucket` reads `must name a key of storage.buckets`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-12 · No integer-like keys
@@ -374,7 +374,7 @@ A provider key, bucket name or database name matching `^(0|[1-9][0-9]*)$` gives 
 at its path: `integer-like keys are reordered by JavaScript, which would change the order providers
 are tried in; use a name`.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-13 · Development-only adapters
@@ -383,7 +383,7 @@ In `production` mode, an entry whose descriptor is `developmentOnly` gives `conf
 at `<path>.adapter`: `<specifier> is for development only; a production build cannot use it`. In
 `development` mode it is allowed.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-14 · Inline values in production
@@ -393,7 +393,7 @@ path as `is inline: this value is written into the build`: as the warning `confi
 `forbidInline`, as the error `config/inline-forbidden`. In `development` mode, and under
 `deployment`, an `inline()` reference is neither (KF31).
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 ### Issues and the manifest
@@ -408,7 +408,7 @@ one. Warnings are not errors: each is passed to `onWarning`, or printed to stand
 `[genoacms] <path> <message>`, and the load succeeds when only warnings were found. No message of
 the loader holds an option's value.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-16 · Descriptors load from the project
@@ -424,7 +424,7 @@ functions`, or `runtime must be a non-empty bare specifier`. The descriptor's pa
 specifier's first segment, or first two for a scoped name, and its version is that of the nearest
 `package.json` above the resolved file that carries that name.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-17 · The manifest
@@ -451,7 +451,7 @@ interface Manifest {
 `source` is present in `development` mode only, and its `dependencies` is CFG-2's import graph, the
 config file first.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`
 - Level: unit
 
 #### LDR-18 · One load per file, mode and inline rule
@@ -460,7 +460,7 @@ Within one process, calls to `loadConfig` with the same config file, mode and `f
 the very same promise, so the config is evaluated and its warnings reported once. A load that
 rejects is forgotten, and the next call loads again. `clearLoadCache()` forgets every load.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/load/loader.test.ts`, `packages/config/src/vite/plugin.test.ts`
 - Level: unit
 
 #### LDR-19 · The runtime manifest
@@ -470,7 +470,7 @@ without `config.deployment`, without the adapter records of kind `deployment`, a
 reduced to `{ root, file }`, absent when the manifest has none. It is what the build embeds, so no
 deployment option, inline or not, enters the build.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/manifest.test.ts`
 - Level: unit
 
 #### LDR-20 · The manifest in Vite
@@ -480,7 +480,7 @@ and mode of BLD-1 (the mode falling back to `development` for `vite dev` and `pr
 build`), and serves `virtual:genoa/manifest`, a module exporting `manifest`, the runtime manifest
 (LDR-19). It resolves no other id.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/vite/plugin.test.ts`
 - Level: unit
 
 #### LDR-21 · Config edits restart the dev server
@@ -489,5 +489,5 @@ In the dev server, the plugin watches the files of `source.dependencies`. A chan
 forgets every load (LDR-18) and restarts the server, which then loads the edited config. A change to
 any other file does neither.
 
-- Test: unverified (no test carries its ID yet)
+- Test: `packages/config/src/vite/plugin.test.ts`
 - Level: unit
