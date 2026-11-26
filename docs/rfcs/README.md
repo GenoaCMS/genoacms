@@ -71,6 +71,7 @@ own before starting the next.
 | [0047](0047-account-roles-need-both-permissions.md) | The roles of accounts and agents change only with both `config:users:manage` and `config:roles:manage` (`authorization.md` ZU13, ZF5; `agent-access.md` AGT-3). Implemented. | `packages/core` |
 | [0048](0048-keys-on-demand.md) | A key manifest with one file per key, bound by its full digest; the registered algorithm; a consumer's rollback mark (`signing.md` YU2, YF2, YF5, YF6). Auditing. | `packages/core`, `packages/sdk`, `packages/demo-support`, `packages/demo-svelte`, `packages/demo-deploy`, `packages/docs` |
 | [0049](0049-security-policy-fails-closed.md) | The security policy has a sequence and a mark, and a damaged one fails closed with strict sign-in (`signing.md` YU3, YF3, YF4, YF8). Auditing. | `packages/core`, `packages/docs` |
+| [0050](0050-secrets-prefix.md) | Several instances share one secrets store, each under its own prefix: `secrets.prefix`, stored as `<prefix>__<key>` (`secrets.md` SU12, SD8; issue #28). Draft. | `packages/config`, `packages/core`, `packages/sdk`, `packages/docs` |
 | [0016](0016-remove-cloudabstraction.md) | Delete `@genoacms/cloudabstraction` | `packages/cloudAbstraction`, `packages/internal` |
 | [0017](0017-documentation-site.md) | Documentation site, with example configs checked in CI. Amended 2026-10-04, 2026-10-05 and 2026-10-06 (sveltepress update). | `packages/docs`, `packages/core` (example configs), CI |
 
