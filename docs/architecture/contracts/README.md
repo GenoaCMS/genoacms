@@ -22,14 +22,15 @@ These documents follow the Spec Workflow ([`docs/WORKFLOW.md`](../../WORKFLOW.md
 
 ```mermaid
 flowchart LR
-  core[GenoaCMS core] -->|consumes| authentication & storage & database
-  adapters[Adapters] -->|implement| authentication & storage & database
+  core[GenoaCMS core] -->|consumes| authentication & storage & database & activity
+  adapters[Adapters] -->|implement| authentication & storage & database & activity
   adapters -->|follow| model
   subgraph contracts ["@genoacms/contracts"]
     model[Adapter model]
     authentication[Authentication]
     storage[Storage]
     database[Database]
+    activity[Activity sink]
   end
   conformance["@genoacms/conformance"] -->|runs against| adapters
   conformance -.->|checks| storage & database & authentication
@@ -37,6 +38,7 @@ flowchart LR
   click authentication "authentication.md"
   click storage "storage.md"
   click database "database.md"
+  click activity "activity.md"
   click conformance "conformance.md"
 ```
 
@@ -49,6 +51,7 @@ flowchart LR
 | [`storage.md`](storage.md) | STOR | the ten storage methods, names and directories, conditional writes and versions, failures | conforming; every statement `unverified` |
 | [`conformance.md`](conformance.md) | CONF | `@genoacms/conformance`: the suites every adapter of a service runs | conforming |
 | [`database.md`](database.md) | DATA | the five database methods, values and the key, queries and pages, failures | conforming; current (RFC-0042), contract level not run |
+| [`activity.md`](activity.md) | SINK | appending signed entries of the activity record, retention | **New** (no RFC yet) |
 | secrets, language, deployment | — | not specified yet: `packages/contracts/src/<service>/` and `packages/internal` (language) are the only description | none |
 
 ### Decisions
@@ -125,6 +128,10 @@ Every `C` ID, where it lives, and its state.
 | CD15 | The store assigns IDs | new | [`database.md`](database.md) |
 | CD16 | Adapters are a descriptor and a runtime | current | [`adapter-model.md`](adapter-model.md) |
 | CD17 | Adapter runtimes are loaded by bare specifier, not bundled | current | [`adapter-model.md`](adapter-model.md) |
+| CU19 | The activity sink contract is write-only (`append` only) | new | [`activity.md`](activity.md) |
+| CU20 | A sink takes the provider's retention as an option; absent, the provider's stands | new | [`activity.md`](activity.md) |
+| CD18 | A record carries `at`, `action` and optional `subject` beside the envelope, unsigned | new | [`activity.md`](activity.md) |
+| CD19 | Records are appended one at a time, bounded to 64 KiB | new | [`activity.md`](activity.md) |
 | CF51 | No adapter honours `QueryParams` | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
 | CF52 | `QueryParams` cannot be implemented as typed | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |
 | CF53 | Who chooses an ID differs | fixed, RFC-0042 (`9b97ef12`) | [`database.md`](database.md) |

@@ -35,12 +35,16 @@ flowchart LR
 ```mermaid
 flowchart LR
   actor["AI agent"]
-  subgraph doc1 ["Agent access"]
+  subgraph doc1 ["The activity record"]
+    AJ1(["Make a change, which the record holds"])
+  end
+  subgraph doc2 ["Agent access"]
     TJ1(["Connect to the MCP endpoint"])
     TJ2(["Build a component"])
     TJ3(["Compose a page"])
   end
-  actor --- TJ1 & TJ2 & TJ3
+  actor --- AJ1 & TJ1 & TJ2 & TJ3
+  click AJ1 "architecture/activity.md"
   click TJ1 "architecture/agent-access.md"
   click TJ2 "architecture/agent-access.md"
   click TJ3 "architecture/agent-access.md"
@@ -159,17 +163,21 @@ flowchart LR
 ```mermaid
 flowchart LR
   actor["User"]
-  subgraph doc1 ["Authorization in core"]
+  subgraph doc1 ["The activity record"]
+    AJ1(["Make a change, which the record holds"])
+    AJ2(["Sign in and out, which the record holds"])
+  end
+  subgraph doc2 ["Authorization in core"]
     ZJ2(["Act with the grants held now"])
   end
-  subgraph doc2 ["Collections"]
+  subgraph doc3 ["Collections"]
     OJ1(["Find a document"])
     OJ2(["Create a document"])
     OJ3(["Edit a document"])
     OJ4(["Delete documents"])
     OJ5(["Reference documents or files"])
   end
-  subgraph doc3 ["Components and pages"]
+  subgraph doc4 ["Components and pages"]
     NJ1(["Describe a component"])
     NJ2(["Code a dynamic component"])
     NJ3(["Publish a component"])
@@ -178,17 +186,19 @@ flowchart LR
     NJ6(["Build a page"])
     NJ7(["Delete pages"])
   end
-  subgraph doc4 ["Authentication contract"]
+  subgraph doc5 ["Authentication contract"]
     CJ1(["Sign in"])
     CJ2(["Stay signed in"])
     CJ3(["Reach the admin area"])
   end
-  subgraph doc5 ["Storage in core"]
+  subgraph doc6 ["Storage in core"]
     BJ1(["Browse a bucket"])
     BJ2(["Manage files and directories"])
     BJ3(["Pick files for a field"])
   end
-  actor --- ZJ2 & OJ1 & OJ2 & OJ3 & OJ4 & OJ5 & NJ1 & NJ2 & NJ3 & NJ4 & NJ5 & NJ6 & NJ7 & CJ1 & CJ2 & CJ3 & BJ1 & BJ2 & BJ3
+  actor --- AJ1 & AJ2 & ZJ2 & OJ1 & OJ2 & OJ3 & OJ4 & OJ5 & NJ1 & NJ2 & NJ3 & NJ4 & NJ5 & NJ6 & NJ7 & CJ1 & CJ2 & CJ3 & BJ1 & BJ2 & BJ3
+  click AJ1 "architecture/activity.md"
+  click AJ2 "architecture/activity.md"
   click ZJ2 "architecture/authorization.md"
   click OJ1 "architecture/collections.md"
   click OJ2 "architecture/collections.md"
@@ -226,6 +236,12 @@ flowchart LR
 
 | Statement | Levels | Named by | Document |
 | :-- | :-- | :-- | :-- |
+| ACT-1 · What is recorded (new) | unit, e2e | AJ1a | [architecture/activity.md](architecture/activity.md) |
+| ACT-2 · Post-write recording in the service layer (new) | unit, e2e | AJ1a, AJ1b | [architecture/activity.md](architecture/activity.md) |
+| ACT-3 · Sessions and MCP authentication (new) | unit, e2e | AJ2a, AJ2b, AJ2c | [architecture/activity.md](architecture/activity.md) |
+| ACT-4 · Denials (new) | unit, e2e | AJ1d | [architecture/activity.md](architecture/activity.md) |
+| ACT-5 · When the entry cannot be stored (new) | unit, e2e | AJ1c, AJ2a | [architecture/activity.md](architecture/activity.md) |
+| ACT-6 · The actor (new) | unit | AJ1a, AJ2b | [architecture/activity.md](architecture/activity.md) |
 | ADM-1 · Administration reads strictly and writes conditionally | integration | — | [architecture/authorization.md](architecture/authorization.md) |
 | ADM-2 · Changing roles | unit | — | [architecture/authorization.md](architecture/authorization.md) |
 | ADM-3 · Changing accounts | unit | — | [architecture/authorization.md](architecture/authorization.md) |
@@ -497,6 +513,10 @@ flowchart LR
 | LMB-13 · Function URL | unit, contract | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
 | LMB-14 · Operator credentials | unit, contract | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
 | LMB-15 · Entry and client address | integration, contract | — | [architecture/adapter-aws/deployment.md](architecture/adapter-aws/deployment.md) |
+| LOG-1 · An entry (new) | unit | AJ1a, AJ1b | [architecture/activity.md](architecture/activity.md) |
+| LOG-2 · The record a sink receives (new) | unit | AJ1a | [architecture/activity.md](architecture/activity.md) |
+| LOG-3 · Appending and timeout (new) | unit, integration | AJ1a, AJ1b, AJ1c, AJ2a | [architecture/activity.md](architecture/activity.md) |
+| LOG-4 · The config (new) | unit | — | [architecture/activity.md](architecture/activity.md) |
 | LST-1 · The listing | unit, e2e | OJ1a | [architecture/collections.md](architecture/collections.md) |
 | LST-2 · The toolbar | e2e | OJ2a, OJ4a | [architecture/collections.md](architecture/collections.md) |
 | LST-3 · Selecting documents | e2e | OJ1b, OJ4a | [architecture/collections.md](architecture/collections.md) |
@@ -612,6 +632,10 @@ flowchart LR
 | SEC-10 · Claims do not clean up | unit | — | [architecture/adapter-gcp/secrets.md](architecture/adapter-gcp/secrets.md) |
 | SEC-11 · Deleting a secret | unit, contract | — | [architecture/adapter-gcp/secrets.md](architecture/adapter-gcp/secrets.md) |
 | SHL-1 · The page marks when it is interactive | e2e | VJ1a | [architecture/shell.md](architecture/shell.md) |
+| SINK-1 · The types that cross the contract (new) | unit | — | [architecture/contracts/activity.md](architecture/contracts/activity.md) |
+| SINK-2 · Appending (new) | unit, contract, conformance | AJ1a | [architecture/contracts/activity.md](architecture/contracts/activity.md) |
+| SINK-3 · A failed append (new) | unit, conformance | AJ1c | [architecture/contracts/activity.md](architecture/contracts/activity.md) |
+| SINK-4 · Retention (new) | unit, contract | — | [architecture/contracts/activity.md](architecture/contracts/activity.md) |
 | SRC-1 · A source definition | unit | — | [architecture/components.md](architecture/components.md) |
 | SRC-2 · Opening a component's source | unit, e2e | NJ2a | [architecture/components.md](architecture/components.md) |
 | SRC-3 · The signature preview | unit, e2e | NJ2a | [architecture/components.md](architecture/components.md) |
@@ -736,14 +760,19 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  doc1["Agent access"]
-  doc2["Collections"]
-  doc3["Components and pages"]
-  doc4["Storage in core"]
-  doc1 ---|TJ2a, TJ3a| doc3
-  doc2 ---|BJ3a| doc4
-  click doc1 "architecture/agent-access.md"
-  click doc2 "architecture/collections.md"
-  click doc3 "architecture/components.md"
-  click doc4 "architecture/storage.md"
+  doc1["The activity record"]
+  doc2["Agent access"]
+  doc3["Collections"]
+  doc4["Components and pages"]
+  doc5["Activity sink contract"]
+  doc6["Storage in core"]
+  doc1 ---|AJ1a, AJ1c| doc5
+  doc2 ---|TJ2a, TJ3a| doc4
+  doc3 ---|BJ3a| doc6
+  click doc1 "architecture/activity.md"
+  click doc2 "architecture/agent-access.md"
+  click doc3 "architecture/collections.md"
+  click doc4 "architecture/components.md"
+  click doc5 "architecture/contracts/activity.md"
+  click doc6 "architecture/storage.md"
 ```

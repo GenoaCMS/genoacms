@@ -138,7 +138,7 @@ sequenceDiagram
 | TU7 | 2026-10-27: publishing needs no rule of its own for agents; the agent's grants decide. | TOL-17 |
 | TU8 | 2026-10-27: tools change a page one node at a time, validated against stored, published component headers. | TD4; TOL-9 to TOL-13 |
 | TU9 | 2026-10-27: every save carries the version it was read at, and a stale save is refused, for agents and for the screens. | TD6; TOL-1 |
-| TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. | TF1 |
+| TU10 | 2026-10-27: no server-side record of who changed what for now; it stays a finding. Superseded 2026-11-27 by `activity.md` AU1. | TF1 |
 | TF2 | **A move replaces what is at its destination (TOL-27, TOL-28).** `move_object a → b` replaces `b`, under `storage:bucket:write` alone, without `delete`; `move_directory d/ → e/` replaces what `e/` holds; an object can be moved onto the name of a directory, and a directory into itself, which the browser refuses (`storage.md` BRW-9). Uploads refuse to replace unless asked (TOL-26); moves say nothing. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | fixed, RFC-0041 (`159aaffc`) |
 | TF3 | **`create_directory` accepts the root (TOL-28).** A `path` of `''` reaches the adapter on any bucket but the default, where STS-5 refuses it. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | fixed, RFC-0041 (`159aaffc`) |
 | TF4 | **Content edge cases of `upload_object` (TOL-26).** Wrapped base64 and base64url are refused as `storage/invalid-content`; text with a lone surrogate is stored with U+FFFD in its place. Found 2026-10-28 by the falsification audit of RFC-0041, with probes through the tool registry and the memory adapters. | the base64 half needed no change (the pattern already refused both inputs, tested in `storage.test.ts`); the lone surrogate stays open, no statement says what it becomes |
@@ -228,7 +228,7 @@ upload carries no content type.
 
 | # | Finding | State |
 | :-- | :-- | :-- |
-| TF1 | **An agent's edits are not recorded on the server.** As for people (`components.md` NF13), nothing records which principal saved a header, a body or a page entry. A publication names its publisher (`components.md` PUB-4), so what an agent publishes is attributable; what it only saved, or built, is not. | open |
+| TF1 | **An agent's edits are not recorded on the server.** As for people (`components.md` NF13), nothing records which principal saved a header, a body or a page entry. A publication names its publisher (`components.md` PUB-4), so what an agent publishes is attributable; what it only saved, or built, is not. | open; to be fixed by the activity record (`activity.md` AU1, no RFC yet) |
 
 ### History
 

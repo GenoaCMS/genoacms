@@ -33,6 +33,7 @@ flowchart LR
     storage[Storage browser]
     components[Components and pages]
     mcp[MCP endpoint]
+    activity[Activity record]
     host[Host]
   end
   cli[genoa CLI]
@@ -52,6 +53,10 @@ flowchart LR
   collections -->|file pickers| storage
   collections & components & authz -->|verify, sign| signing
   authz --> signing
+  signin & authz & collections & storage & components & mcp -->|record| activity
+  activity -->|sign| signing
+  activity --> host
+  activity -->|append: activity sink| contracts
   signin & collections & storage & components & signing --> host
   operator --> cli
   cli --> config & build
@@ -69,6 +74,7 @@ flowchart LR
   click storage "architecture/storage.md"
   click components "architecture/components.md"
   click mcp "architecture/agent-access.md"
+  click activity "architecture/activity.md"
   click host "architecture/host.md"
   click cli "architecture/cli.md"
   click config "architecture/configuration.md"
@@ -121,7 +127,7 @@ functions and verify every signature in the browser (`packages/demo-deploy/READM
 | [`architecture/host.md`](architecture/host.md) | `D` | `HST` | the host: provider construction, routing, the config's data | yes, since 2026-11-26: 8 statements, all naming tests |
 | [`architecture/secrets.md`](architecture/secrets.md) | `S` | `REF`, `DST` | secret references, their resolution, the secrets provider, the development store | yes, since 2026-11-26: 17 statements, all naming tests; open findings SF1 to SF5 |
 | [`architecture/build.md`](architecture/build.md) | `P` | `BLD`, `ART`, `VND`, `TGT` | the facts Vite receives, the SvelteKit target, the artifact, vendoring, the Node target | yes, since 2026-11-26: 12 statements, 11 naming tests; open findings PF33, PF34 |
-| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `MOD`, `AUTHN`, `STOR`, `CONF`, `DATA` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md`, `database.md` (12 statements, 11 naming tests; DATA-2 to DATA-10 not yet run at the contract level; RFC-0042 `auditing`) and `conformance.md` conform (27 current statements, all naming a test: 10 of authentication and conformance, 1 of them partly verified (AUTHN-1, a type), the 16 of `storage.md` and CONF-2; 7 more **New**); `adapter-model.md` conforms since 2026-11-26, 6 statements, 5 of them types left `unverified` (CF67) |
+| [`architecture/contracts/`](architecture/contracts/README.md) | `C` | `MOD`, `AUTHN`, `STOR`, `CONF`, `DATA`, `SINK` | the adapter model, the service contracts, and the conformance suites | partly: the index, `authentication.md`, `storage.md`, `database.md` (12 statements, 11 naming tests; DATA-2 to DATA-10 not yet run at the contract level; RFC-0042 `auditing`) and `conformance.md` conform (27 current statements, all naming a test: 10 of authentication and conformance, 1 of them partly verified (AUTHN-1, a type), the 16 of `storage.md` and CONF-2; 7 more **New**); `adapter-model.md` conforms since 2026-11-26, 6 statements, 5 of them types left `unverified` (CF67); `activity.md`, the activity sink, 4 statements, all **New** (no RFC yet) |
 | [`architecture/identities.md`](architecture/identities.md) | `I` | `PWH`, `IDS` | self-owned identity stores: password hashing, the identity record, sign-in | yes. 12 statements, all **New** (no RFC yet). |
 | [`architecture/adapter-gcp/`](architecture/adapter-gcp/README.md) | `G` | `COM`, `STO`, `DB`, `SEC`, `DEP`, `ADP`, `AUTH`, `FAUTH` | everything GenoaCMS runs on Google Cloud | yes. 55 current statements, all naming a test, 2 of them partly verified (STO-8, and COM-1, a type); 14 more are **New** (authentication: 10 Identity Platform, 4 Firestore). |
 | [`architecture/adapter-aws/`](architecture/adapter-aws/README.md) | `W` | `AWS`, `OBJ`, `DDB`, `ASM`, `LMB` | everything GenoaCMS runs on AWS | yes. 43 current statements, all naming a test, 1 of them partly verified (AWS-1, a type). |
@@ -134,6 +140,7 @@ functions and verify every signature in the browser (`packages/demo-deploy/READM
 | [`architecture/signing.md`](architecture/signing.md) | `Y` | `KEY` | signing in core: the envelope, the key manifest and key files, verification by a consumer, the security policy, the key registry screen | yes. Every statement names its tests: KEY at `e2e` (RFC-0045), ENV, REG and VFY at `unit` (RFC-0048), POL at `unit` and `e2e` (RFC-0049). |
 | [`architecture/shell.md`](architecture/shell.md) | `V` | `SHL` | the page shell in core: the mark that a page is interactive only | yes. 1 statement, naming a test at `e2e` (RFC-0046 `auditing`). |
 | [`architecture/agent-access.md`](architecture/agent-access.md) | `T` | `AGT`, `MCP`, `TOL` | agents: their declaration, tokens and ceiling, the MCP endpoint, and the tools for components, pages, documents and objects | yes. 38 current statements, all naming a test (RFC-0039; TOL-18 to TOL-29 RFC-0041 `auditing`); MCP-3 is **New** (no RFC yet). |
+| [`architecture/activity.md`](architecture/activity.md) | `A` | `ACT`, `LOG` | the activity record: what is recorded post-write in the service layer and handed as signed entries to the write-only activity sink | yes. 10 statements, all **New** (no RFC yet). |
 | [`rfcs/`](rfcs/README.md) | — | — | implementation specifications, in implementation order. RFC-0001 to RFC-0024 predate the workflow (`sections: legacy`). | — |
 
 ## Coverage
@@ -160,6 +167,7 @@ What the Specifications cover, measured against the reproducibility principle
 | Core: storage browser | `core` (`storage/`, routes) | `storage.md` | specified; all 22 statements name tests; BF1 to BF6 and BF8 to BF10 fixed (RFC-0038), BF12 (RFC-0040), BF7 mitigated |
 | MinIO | `adapter-minio` | `adapter-minio.md` | specified; conforms (RFC-0037), tested against RustFS, in CI too |
 | Core: pages, components, publication, editor | `core` (`components/`, routes) | `components.md` | specified from the code; all 40 statements name tests; open findings NF3, NF9, NF10, NF12 to NF16, NF18 and NF21; NF1, NF2, NF4 to NF8, NF11 and NF17 fixed (RFC-0039) |
+| Core: the activity record | `core`, `contracts` | `activity.md`, `contracts/activity.md` | specified, **New**: write-only signed forensic trail; dashboard keeps its client-side recent-items list |
 | Consumer SDK and demos | `sdk`, `demo-*` | `signing.md`: verification by a consumer (VFY); `demo-deploy/README.md` (deployment only) | partial: VFY at `unit` (RFC-0048); rendering, resolution and publications: none |
 
 ## Testing and release
