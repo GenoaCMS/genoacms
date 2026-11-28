@@ -1,5 +1,19 @@
 # @genoacms/config
 
+## 0.2.0
+
+### Minor Changes
+
+- [`dd48346`](https://github.com/GenoaCMS/genoacms/commit/dd4834636e9ff766080b9886528721b9a66ec07a) Thanks [@Hejtmus](https://github.com/Hejtmus)! - `secrets.prefix` lets several instances share one secrets store. Every key an instance gives the
+  store, its own signing keys and the config's `secret()` keys alike, is stored as `<prefix>__<key>`;
+  `env()` variables are not prefixed. Without a prefix, keys are stored as written. Setting a prefix
+  on a running instance is not migrated: the instance starts with a new root key.
+
+### Patch Changes
+
+- Updated dependencies [[`260cf68`](https://github.com/GenoaCMS/genoacms/commit/260cf6815bba942244d7a0bd2a0ec461ff75e082)]:
+  - @genoacms/contracts@0.2.1
+
 ## 0.1.0
 
 ### Minor Changes

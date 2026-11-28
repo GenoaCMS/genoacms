@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Client SDK for GenoaCMS: verifies signed documents against an embedded root anchor, and executes and renders published pages in the browser",
   "repository": {

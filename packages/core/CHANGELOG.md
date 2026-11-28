@@ -1,5 +1,41 @@
 # @genoacms/core
 
+## 0.6.0
+
+### Minor Changes
+
+- [`0d2fa49`](https://github.com/GenoaCMS/genoacms/commit/0d2fa496a5890a3227ef8852180ed075286710dd) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The key registry becomes a key manifest, `genoacms.keyRegistry.v2`: it lists each key with the
+  SHA-256 of its public key, and each public key moves to a file of its own at
+  `.genoacms/keys/public/<keyId>.json`, fetched only by a verifier that needs it. An envelope whose
+  algorithm differs from the one its key was registered for is refused before its signature is checked.
+
+  `@genoacms/core` no longer reads a `genoacms.keyRegistry.v1` registry: it refuses one with
+  `registry/needs-migration`. Rotating writes the new key's file; revoking deletes the revoked key's
+  file.
+
+  `@genoacms/sdk` no longer reads a `genoacms.keyRegistry.v1` registry either. `verifyEnvelope` takes
+  `{ alg, publicKey }` in place of a public key, `resolveKey` is removed, and `readKeyFile` and
+  `keyFilePath` are added. `new Verifier({ …, minimumRegistrySequence })` takes the instance's secret
+  mark and refuses a manifest below it.
+
+- [`15f94f5`](https://github.com/GenoaCMS/genoacms/commit/15f94f50bda7875f06a3715c8d6ec4c103017f87) Thanks [@Hejtmus](https://github.com/Hejtmus)! - The security policy becomes `genoacms.securityPolicy.v2`, with a `sequence` whose highest value is
+  kept in the secret `GENOACMS_SECURITY_POLICY_SEQUENCE`, so an older policy put back is refused.
+
+  A policy that cannot be trusted no longer puts the instance on the configured defaults. It is
+  damaged: it is left in place, sign-in runs on the strictest token lifetimes and grant cache,
+  publishing fails with `security-policy/damaged`, the current key does not rotate when due, and the
+  security screen says so until an administrator saves the policy there. A storage error while
+  reading the policy now propagates instead of being read as an absent policy.
+
+  A stored `genoacms.securityPolicy.v1` policy is read as damaged; saving the policy on
+  _Configuration → Security_ replaces it.
+
+### Patch Changes
+
+- Updated dependencies [[`dd48346`](https://github.com/GenoaCMS/genoacms/commit/dd4834636e9ff766080b9886528721b9a66ec07a), [`260cf68`](https://github.com/GenoaCMS/genoacms/commit/260cf6815bba942244d7a0bd2a0ec461ff75e082)]:
+  - @genoacms/config@0.2.0
+  - @genoacms/contracts@0.2.1
+
 ## 0.5.1
 
 ### Patch Changes
