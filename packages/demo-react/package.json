@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/demo-react",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "A React consumer rendering a GenoaCMS page through @genoacms/sdk",
   "type": "module",

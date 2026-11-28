@@ -1,6 +1,6 @@
 {
   "name": "@genoacms/demo-support",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "What the four consumer demos share: reading the instance's bucket, and the components they render",
   "type": "module",
